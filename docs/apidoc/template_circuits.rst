@@ -6,14 +6,14 @@
    :no-special-members:
 
 Template Circuits
-================
+=================
 
 Templates are functions that return circuits that compute the identity. They are used in
 circuit optimization where matching part of the template allows the compiler
 to replace the match with the inverse of the remainder from the template.
 
 NCT Template Circuits
---------------------
+---------------------
 
 Template circuits for :class:`~qiskit.circuit.library.XGate`,
 :class:`~qiskit.circuit.library.CXGate`, and
@@ -94,7 +94,7 @@ Template circuits over Clifford gates.
 .. autofunction:: clifford_8_3
 
 RZXGate Template Circuits
-------------------------
+-------------------------
 
 Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 
