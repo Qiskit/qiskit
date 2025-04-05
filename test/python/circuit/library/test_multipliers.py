@@ -145,7 +145,7 @@ class TestMultiplier(QiskitTestCase):
         # using this plugin.
         # Note that HighLevelSynthesis runs without basis_gates, so it does not
         # synthesize down to 1-qubit and 2-qubit gates.
-        plugins = [("cumulative_h18", "cSum"), ("qft_r17", "mcphase")]
+        plugins = [("cumulative_h18", "ccx"), ("qft_r17", "mcphase")]
 
         num_state_qubits = 2
 
