@@ -1998,9 +1998,9 @@ impl Operation for StandardGate {
                         2,
                         [
                             (Self::RZ, smallvec![beta.clone()], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q1.clone()),
+                            (Self::Sdg, smallvec![], q1.clone()),
                             (Self::SX, smallvec![], q1.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q1.clone()),
+                            (Self::S, smallvec![], q1.clone()),
                             (Self::S, smallvec![], q0.clone()),
                             (Self::CX, smallvec![], q1_0.clone()),
                             (
@@ -2015,9 +2015,9 @@ impl Operation for StandardGate {
                             ),
                             (Self::CX, smallvec![], q1_0),
                             (Self::Sdg, smallvec![], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q1.clone()),
+                            (Self::Sdg, smallvec![], q1.clone()),
                             (Self::SXdg, smallvec![], q1.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q1),
+                            (Self::S, smallvec![], q1),
                             (Self::RZ, smallvec![multiply_param(beta, -1.0, py)], q0),
                         ],
                         FLOAT_ZERO,
