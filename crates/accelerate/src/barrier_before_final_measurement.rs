@@ -154,7 +154,7 @@ pub fn barrier_before_final_measurements(
         None,
     )?;
     for inst in final_packed_ops {
-        dag.push_back(py, inst)?;
+        dag.push_back(inst)?;
     }
     Ok(())
 }
