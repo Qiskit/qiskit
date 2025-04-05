@@ -22,10 +22,12 @@ from __future__ import annotations
 __all__ = [
     "Expr",
     "Var",
+    "Stretch",
     "Value",
     "Cast",
     "Unary",
     "Binary",
+    "Index",
 ]
 
 import abc
@@ -204,6 +206,75 @@ class Var(Expr):
 
 
 @typing.final
+class Stretch(Expr):
+    """A stretch variable.
+
+    In general, construction of stretch variables for use in programs should use :meth:`Stretch.new`
+    or :meth:`.QuantumCircuit.add_stretch`.
+    """
+
+    __slots__ = (
+        "var",
+        "name",
+    )
+
+    var: uuid.UUID
+    """A :class:`~uuid.UUID` to uniquely identify this stretch."""
+    name: str
+    """The name of the stretch variable."""
+
+    def __init__(
+        self,
+        var: uuid.UUID,
+        name: str,
+    ):
+        super().__setattr__("type", types.Duration())
+        super().__setattr__("const", True)
+        super().__setattr__("var", var)
+        super().__setattr__("name", name)
+
+    @classmethod
+    def new(cls, name: str) -> typing.Self:
+        """Generate a new named stretch variable."""
+        return cls(uuid.uuid4(), name)
+
+    def accept(self, visitor, /):
+        return visitor.visit_stretch(self)
+
+    def __setattr__(self, key, value):
+        if hasattr(self, key):
+            raise AttributeError(f"'Stretch' object attribute '{key}' is read-only")
+        raise AttributeError(f"'Stretch' object has no attribute '{key}'")
+
+    def __hash__(self):
+        return hash((self.var, self.name))
+
+    def __eq__(self, other):
+        return isinstance(other, Stretch) and self.var == other.var and self.name == other.name
+
+    def __repr__(self):
+        return f"Stretch({self.var}, {self.name})"
+
+    def __getstate__(self):
+        return (self.var, self.name)
+
+    def __setstate__(self, state):
+        var, name = state
+        super().__setattr__("type", types.Duration())
+        super().__setattr__("const", True)
+        super().__setattr__("var", var)
+        super().__setattr__("name", name)
+
+    def __copy__(self):
+        # I am immutable...
+        return self
+
+    def __deepcopy__(self, memo):
+        # ... as are all my constituent parts.
+        return self
+
+
+@typing.final
 class Value(Expr):
     """A single scalar value."""
 
@@ -314,6 +385,15 @@ class Binary(Expr):
         container types (e.g. unsigned integers) as the left operand, and any integer type as the
         right-hand operand.  In all cases, the output bit width is the same as the input, and zeros
         fill in the "exposed" spaces.
+
+        The binary arithmetic operators :data:`ADD`, :data:`SUB:, :data:`MUL`, and :data:`DIV`
+        can be applied to two floats or two unsigned integers, which should be made to be of
+        the same width during construction via a cast.
+        The :data:`ADD`, :data:`SUB`, and :data:`DIV` operators can be applied on two durations
+        yielding another duration, or a float in the case of :data:`DIV`. The :data:`MUL` operator
+        can also be applied to a duration and a numeric type, yielding another duration. Finally,
+        the :data:`DIV` operator can be used to divide a duration by a numeric type, yielding a
+        duration.
         """
 
         # If adding opcodes, remember to add helper constructor functions in `constructors.py`
@@ -345,6 +425,14 @@ class Binary(Expr):
         """Zero-padding bitshift to the left.  ``lhs << rhs``."""
         SHIFT_RIGHT = 13
         """Zero-padding bitshift to the right.  ``lhs >> rhs``."""
+        ADD = 14
+        """Addition. ``lhs + rhs``."""
+        SUB = 15
+        """Subtraction. ``lhs - rhs``."""
+        MUL = 16
+        """Multiplication. ``lhs * rhs``."""
+        DIV = 17
+        """Division. ``lhs / rhs``."""
 
         def __str__(self):
             return f"Binary.{super().__str__()}"

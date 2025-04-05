@@ -44,7 +44,7 @@ def _is_boolean_expression(gate_text, op):
     return isinstance(op, (PhaseOracleGate, BitFlipOracleGate)) and gate_text == op.label
 
 
-def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
+def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     anno_list = []
     anno_text = ""
@@ -118,13 +118,6 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         or (gate_text == base_name and base_type not in (Gate, Instruction))
     ) and (op_type is not PauliEvolutionGate):
         gate_text = gate_text.capitalize()
-
-    if drawer == "mpl" and op.name in calibrations:
-        if isinstance(op, ControlledGate):
-            ctrl_text = "" if ctrl_text is None else ctrl_text
-            ctrl_text = "(cal)\n" + ctrl_text
-        else:
-            gate_text = gate_text + "\n(cal)"
 
     if anno_text:
         gate_text += " - " + anno_text
@@ -285,10 +278,21 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                     f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
                 )
         except StopIteration:
-            if drawer == "text":
-                wire_label = f"{virt_bit} -> {index}"
+            if virt_bit._register is not None:
+                virt_reg = virt_bit._register
+                if drawer == "text":
+                    wire_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+                else:
+                    wire_label = (
+                        f"{{{virt_reg.name}}}_"
+                        f"{{{virt_reg[:].index(virt_bit)}}} "
+                        f"\\mapsto {{{index}}}"
+                    )
             else:
-                wire_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+                if drawer == "text":
+                    wire_label = f"{index_str} -> {index}"
+                else:
+                    wire_label = f"{index_str} \\mapsto {{{index}}}"
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
@@ -457,9 +461,9 @@ def _get_layered_instructions(
     else:
         nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
 
-    # Optionally remove all idle wires and instructions that are on them and
-    # on them only.
     if not idle_wires:
+        # Optionally remove all idle wires and instructions that are on them and
+        # on them only.
         for wire in dag.idle_wires(ignore=["barrier", "delay"]):
             if wire in qubits:
                 qubits.remove(wire)

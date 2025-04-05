@@ -59,8 +59,10 @@ class LieTrotter(SuzukiTrotter):
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,
+        *,
+        atomic_evolution_sparse_observable: bool = False,
     ) -> None:
-        """
+        r"""
         Args:
             reps: The number of time steps.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
@@ -78,6 +80,11 @@ class LieTrotter(SuzukiTrotter):
             preserve_order: If ``False``, allows reordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
                 when synthesizing operator with a single term.
+            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+                which does not yet support :class:`.SparseObservable`\ s as input, set this
+                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+                are required to support :class:`.SparseObservable`\ s as input.
         """
         super().__init__(
             1,
@@ -87,6 +94,7 @@ class LieTrotter(SuzukiTrotter):
             atomic_evolution,
             wrap,
             preserve_order=preserve_order,
+            atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
 
     @property

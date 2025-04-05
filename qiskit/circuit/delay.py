@@ -14,6 +14,8 @@
 Delay instruction (for circuit module).
 """
 import numpy as np
+
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -28,13 +30,35 @@ class Delay(Instruction):
 
     _standard_instruction_type = StandardInstructionType.Delay
 
-    def __init__(self, duration, unit="dt"):
+    def __init__(self, duration, unit=None):
         """
         Args:
-            duration: the length of time of the duration.  Given in units of ``unit``.
-            unit: the unit of the duration.  Must be ``"dt"`` or an SI-prefixed seconds unit.
+            duration: the length of time of the duration. If this is an
+                :class:`~.expr.Expr`, it must be a constant expression of type
+                :class:`~.types.Duration` and the ``unit`` parameter should be
+                omitted (or MUST be "expr" if it is specified).
+            unit: the unit of the duration, if ``duration`` is a numeric
+                value. Must be ``"dt"``, an SI-prefixed seconds unit, or "expr".
+
+        Raises:
+            CircuitError: A ``duration`` expression was specified with a resolved
+                type that is not timing-based, or the ``unit`` was improperly specified.
         """
-        if unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
+        if isinstance(duration, expr.Expr):
+            if unit is not None and unit != "expr":
+                raise CircuitError(
+                    "Argument 'unit' must not be specified for a duration expression."
+                )
+            if duration.type.kind is not types.Duration:
+                raise CircuitError(
+                    f"Expression of type '{duration.type}' is not valid for 'duration'."
+                )
+            if not duration.const:
+                raise CircuitError("Duration expressions must be constant.")
+            unit = "expr"
+        elif unit is None:
+            unit = "dt"
+        elif unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
             raise CircuitError(f"Unknown unit {unit} is specified.")
         # Double underscore to differentiate from the private attribute in
         # `Instruction`. This can be changed to `_unit` in 2.0 after we
@@ -88,8 +112,9 @@ class Delay(Instruction):
         """Return the official string representing the delay."""
         return f"{self.__class__.__name__}(duration={self.params[0]}[unit={self.unit}])"
 
+    # pylint: disable=too-many-return-statements
     def validate_parameter(self, parameter):
-        """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
+        """Delay parameter (i.e. duration) must be Expr, int, float or ParameterExpression."""
         if isinstance(parameter, int):
             if parameter < 0:
                 raise CircuitError(
@@ -106,6 +131,12 @@ class Delay(Instruction):
                 if parameter != parameter_int:
                     raise CircuitError("Integer duration is expected for 'dt' unit.")
                 return parameter_int
+            return parameter
+        elif isinstance(parameter, expr.Expr):
+            if parameter.type.kind is not types.Duration:
+                raise CircuitError(f"Expression duration of type '{parameter.type}' is not valid.")
+            if not parameter.const:
+                raise CircuitError("Duration expressions must be constant.")
             return parameter
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:

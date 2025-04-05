@@ -19,6 +19,7 @@ import uuid
 
 import qiskit._accelerate.circuit
 from qiskit.circuit import (
+    BoxOp,
     Clbit,
     ClassicalRegister,
     IfElseOp,
@@ -170,11 +171,18 @@ def _for_loop_eq(node1, node2, bit_indices1, bit_indices2):
     )
 
 
+def _box_eq(node1, node2, bit_indices1, bit_indices2):
+    return node1.op.duration == node2.op.duration and _circuit_to_dag(
+        node1.op.blocks[0], node1.qargs, node1.cargs, bit_indices1
+    ) == _circuit_to_dag(node2.op.blocks[0], node2.qargs, node2.cargs, bit_indices2)
+
+
 _SEMANTIC_EQ_CONTROL_FLOW = {
     IfElseOp: _condition_op_eq,
     WhileLoopOp: _condition_op_eq,
     SwitchCaseOp: _switch_case_eq,
     ForLoopOp: _for_loop_eq,
+    BoxOp: _box_eq,
 }
 
 _SEMANTIC_EQ_SYMMETRIC = frozenset({"barrier", "swap", "break_loop", "continue_loop"})

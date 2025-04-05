@@ -29,7 +29,7 @@ from qiskit.circuit.library.standard_gates.sx import SXdgGate, SXGate
 from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -65,7 +65,7 @@ class XXMinusYYGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.XXMinusYYGate
+    _standard_gate = StandardGate.XXMinusYY
 
     def __init__(
         self,

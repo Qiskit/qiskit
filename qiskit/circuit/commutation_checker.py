@@ -12,6 +12,7 @@
 
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
+from __future__ import annotations
 from typing import List, Union, Set, Optional
 
 from qiskit.circuit.operation import Operation
@@ -19,11 +20,31 @@ from qiskit._accelerate.commutation_checker import CommutationChecker as RustChe
 
 
 class CommutationChecker:
-    """This code is essentially copy-pasted from commutative_analysis.py.
-    This code cleverly hashes commutativity and non-commutativity results between DAG nodes and seems
-    quite efficient for large Clifford circuits.
-    They may be other possible efficiency improvements: using rule-based commutativity analysis,
-    evicting from the cache less useful entries, etc.
+    r"""Check commutations of two operations.
+
+    Two unitaries :math:`A` and :math:`B` on :math:`n` qubits commute if
+
+    .. math::
+
+        \frac{2^n F_{\text{process}}(AB, BA) + 1}{2^n + 1} > 1 - \varepsilon,
+
+    where
+
+    .. math::
+
+        F_{\text{process}}(U_1, U_2) = \left|\frac{\mathrm{Tr}(U_1 U_2^\dagger)}{2^n} \right|^2,
+
+    and we set :math:`\varepsilon` to :math:`10^{-12}` to account for round-off errors on
+    few-qubit systems. This metric is chosen for consistency with other closeness checks in
+    Qiskit.
+
+    When possible, commutation relations are queried from a lookup table. This is the case
+    for standard gates without parameters (such as :class:`.XGate` or :class:`.HGate`) or
+    gates with free parameters (such as :class:`.RXGate` with a :class:`.ParameterExpression` as
+    angle). Otherwise, a matrix-based check is performed, where two operations are said to
+    commute, if the average gate fidelity of performing the commutation is above a certain threshold
+    (see ``approximation_degree``). The result of this commutation is then added to the
+    cached lookup table.
     """
 
     def __init__(
@@ -40,9 +61,10 @@ class CommutationChecker:
         op1,
         op2,
         max_num_qubits: int = 3,
+        approximation_degree: float = 1.0,
     ) -> bool:
         """Checks if two DAGOpNodes commute."""
-        return self.cc.commute_nodes(op1, op2, max_num_qubits)
+        return self.cc.commute_nodes(op1, op2, max_num_qubits, approximation_degree)
 
     def commute(
         self,
@@ -53,6 +75,7 @@ class CommutationChecker:
         qargs2: List,
         cargs2: List,
         max_num_qubits: int = 3,
+        approximation_degree: float = 1.0,
     ) -> bool:
         """
         Checks if two Operations commute. The return value of `True` means that the operations
@@ -69,11 +92,15 @@ class CommutationChecker:
             cargs2: second operation's clbits.
             max_num_qubits: the maximum number of qubits to consider, the check may be skipped if
                 the number of qubits for either operation exceeds this amount.
+            approximation_degree: If the average gate fidelity in between the two operations
+                is above this number (up to ``1e-12``) they are assumed to commute.
 
         Returns:
             bool: whether two operations commute.
         """
-        return self.cc.commute(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits)
+        return self.cc.commute(
+            op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits, approximation_degree
+        )
 
     def num_cached_entries(self):
         """Returns number of cached entries"""

@@ -177,11 +177,24 @@ External Python Libraries
     special methods from Symengine to accelerate its handling of
     :class:`~.circuit.Parameter`\\ s if available.
 
+.. py:data:: HAS_SYMPY
+
+    `SymPy <https://www.sympy.org/en/index.html>`__ is Python library for symbolic mathematics.
+    Sympy was historically used for the implementation of the :class:`.ParameterExpression`
+    class but isn't any longer. However it is needed for some legacy functionality that uses
+    :meth:`.ParameterExpression.sympify`. It is also used in some visualization functions.
+
 .. py:data:: HAS_TESTTOOLS
 
     Qiskit's test suite has more advanced functionality available if the optional
     `testtools <https://pypi.org/project/testtools/>`__ library is installed.  This is generally
     only needed for Qiskit developers.
+
+.. py:data:: HAS_TWEEDLEDUM
+
+    `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
+    synthesis and optimization of circuits that may involve classical oracles. In the past
+    Qiskit's :class:`.PhaseOracle` used this but it is no longer used by Qiskit.
 
 .. py:data:: HAS_Z3
 
@@ -316,8 +329,10 @@ HAS_SKQUANT = _LazyImportTester(
     install="pip install scikit-quant",
 )
 HAS_SQSNOBFIT = _LazyImportTester("SQSnobFit", install="pip install SQSnobFit")
-HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine")
+HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine<0.14")
+HAS_SYMPY = _LazyImportTester("sympy", install="pip install sympy")
 HAS_TESTTOOLS = _LazyImportTester("testtools", install="pip install testtools")
+HAS_TWEEDLEDUM = _LazyImportTester("tweedledum", install="pip install tweedledum")
 HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
 
 HAS_GRAPHVIZ = _LazySubprocessTester(

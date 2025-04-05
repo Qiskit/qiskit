@@ -397,6 +397,35 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             expected,
         )
 
+    def test_basic_box(self):
+        """Test that drawing a `box` doesn't explode."""
+        # The exact output is not important - feel free to change it.  We only care that it doesn't
+        # explode when drawing.
+        qc = QuantumCircuit(5)
+        with qc.box():
+            qc.x(0)
+        with qc.box():
+            qc.cx(2, 3)
+            with qc.box():
+                qc.noop(4)
+        # We don't care about trailing whitespace on a line.
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text", fold=80)).splitlines())
+
+        expected = """\
+     ┌─────── ┌───┐ ───────┐
+q_0: ┤ Box-0  ┤ X ├  End-0 ├────────────────────────────────────────────
+     └─────── └───┘ ───────┘
+q_1: ───────────────────────────────────────────────────────────────────
+                             ┌───────                          ───────┐
+q_2: ────────────────────────┤        ──■─────────────────────        ├─
+                             │        ┌─┴─┐                           │
+q_3: ────────────────────────┤ Box-0  ┤ X ├───────────────────  End-0 ├─
+                             │        └───┘┌───────  ───────┐         │
+q_4: ────────────────────────┤        ─────┤ Box-1    End-1 ├─        ├─
+                             └───────      └───────  ───────┘  ───────┘
+""".rstrip()
+        self.assertEqual(actual, expected)
+
     def test_text_swap(self):
         """Swap drawing."""
         expected = "\n".join(
@@ -3208,7 +3237,7 @@ class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
 
     def test_with_no_layout(self):
-        """A circuit without layout"""
+        """A circuit without layout and idle_wires=auto"""
         expected = "\n".join(
             [
                 "             ",
@@ -3223,10 +3252,13 @@ class TestTextWithLayout(QiskitTestCase):
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
         circuit.h(qr[1])
-        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires="auto")),
+            expected,
+        )
 
-    def test_mixed_layout(self):
-        """With a mixed layout."""
+    def test_mixed_layout_idle_wires_true(self):
+        """With a mixed layout and idle_wires=True"""
         expected = "\n".join(
             [
                 "                  ┌───┐",
@@ -3246,15 +3278,49 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.h(qr)
 
         pass_ = ApplyLayout()
+        layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
+        circuit_with_layout = pass_(circuit, property_set={"layout": layout})
+
+        self.assertEqual(
+            str(
+                circuit_drawer(
+                    circuit_with_layout, output="text", initial_state=True, idle_wires=True
+                )
+            ),
+            expected,
+        )
+
+    def test_mixed_layout_idle_wires_auto(self):
+        """With a mixed layout and idle_wires=False"""
+        expected = "\n".join(
+            [
+                "            ┌───┐",
+                "v_0 -> 0 |0>┤ H ├",
+                "            ├───┤",
+                "v_1 -> 3 |0>┤ H ├",
+                "            └───┘",
+            ]
+        )
+        qr = QuantumRegister(2, "v")
+        ancilla = QuantumRegister(2, "ancilla")
+        circuit = QuantumCircuit(qr, ancilla)
+        circuit.h(qr)
+
+        pass_ = ApplyLayout()
         pass_.property_set["layout"] = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
         circuit_with_layout = pass_(circuit)
 
         self.assertEqual(
-            str(circuit_drawer(circuit_with_layout, output="text", initial_state=True)), expected
+            str(
+                circuit_drawer(
+                    circuit_with_layout, output="text", initial_state=True, idle_wires="auto"
+                )
+            ),
+            expected,
         )
 
-    def test_partial_layout(self):
-        """With a partial layout.
+    def test_partial_layout_idle_true(self):
+        """With a partial layout and idle_wires=True.
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
         expected = "\n".join(
             [
@@ -3280,7 +3346,38 @@ class TestTextWithLayout(QiskitTestCase):
         )
         circuit._layout.initial_layout.add_register(qr)
 
-        self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires=True)),
+            expected,
+        )
+
+    def test_partial_layout_idle_auto(self):
+        """With a partial layout and idle_wires="auto"
+        See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
+        expected = "\n".join(
+            [
+                "            ┌───┐",
+                "v_0 -> 0 |0>┤ H ├",
+                "            ├───┤",
+                "v_1 -> 3 |0>┤ H ├",
+                "            └───┘",
+            ]
+        )
+        qr = QuantumRegister(2, "v")
+        pqr = QuantumRegister(4, "physical")
+        circuit = QuantumCircuit(pqr)
+        circuit.h(0)
+        circuit.h(3)
+        circuit._layout = TranspileLayout(
+            Layout({0: qr[0], 1: None, 2: None, 3: qr[1]}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        circuit._layout.initial_layout.add_register(qr)
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=True, idle_wires="auto")),
+            expected,
+        )
 
     def test_with_classical_regs(self):
         """Involving classical registers"""
@@ -3308,11 +3405,16 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.measure(qr2[1], cr[1])
 
         pass_ = ApplyLayout()
-        pass_.property_set["layout"] = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
-        circuit_with_layout = pass_(circuit)
+        layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit_with_layout = pass_(circuit, property_set={"layout": layout})
 
         self.assertEqual(
-            str(circuit_drawer(circuit_with_layout, output="text", initial_state=True)), expected
+            str(
+                circuit_drawer(
+                    circuit_with_layout, output="text", initial_state=True, idle_wires=True
+                )
+            ),
+            expected,
         )
 
     def test_with_layout_but_disable(self):
@@ -3341,7 +3443,11 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.measure(pqr[2], cr[0])
         circuit.measure(pqr[3], cr[1])
         self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, with_layout=False)),
+            str(
+                circuit_drawer(
+                    circuit, output="text", initial_state=True, with_layout=False, idle_wires=True
+                )
+            ),
             expected,
         )
 
@@ -3419,7 +3525,10 @@ class TestTextWithLayout(QiskitTestCase):
             optimization_level=0,
             seed_transpiler=0,
         )
-        self.assertEqual(qc_result.draw(output="text", cregbundle=False).single_string(), expected)
+        self.assertEqual(
+            qc_result.draw(output="text", cregbundle=False, idle_wires=True).single_string(),
+            expected,
+        )
 
 
 class TestTextInitialValue(QiskitTestCase):
@@ -3537,7 +3646,7 @@ class TestTextPhase(QiskitTestCase):
         """Text Bell state with phase."""
         expected = "\n".join(
             [
-                "global phase: \u03c0/2",
+                "global phase: \u03C0/2",
                 "     ┌───┐     ",
                 "q_0: ┤ H ├──■──",
                 "     └───┘┌─┴─┐",
@@ -4116,7 +4225,12 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         self.assertEqual(
             str(
                 circuit_drawer(
-                    circuit, output="text", fold=78, initial_state=False, cregbundle=False
+                    circuit,
+                    output="text",
+                    fold=78,
+                    initial_state=False,
+                    cregbundle=False,
+                    idle_wires=True,
                 )
             ),
             expected,

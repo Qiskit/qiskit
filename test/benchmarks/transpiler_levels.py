@@ -21,7 +21,7 @@ from qiskit.transpiler import InstructionDurations
 from qiskit.providers.fake_provider import GenericBackendV2
 
 from .utils import build_qv_model_circuit
-from ..python.legacy_cmaps import MELBOURNE_CMAP
+from .legacy_cmaps import MELBOURNE_CMAP
 
 
 class TranspilerLevelBenchmarks:
@@ -154,7 +154,7 @@ class TranspilerLevelBenchmarks:
         self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
         large_qasm_path = os.path.join(self.qasm_path, "test_eoh_qasm.qasm")
         self.large_qasm = QuantumCircuit.from_qasm_file(large_qasm_path)
-        self.melbourne = GenericBackendV2(num_qubits=20, coupling_map=MELBOURNE_CMAP, seed=0)
+        self.melbourne = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP, seed=0)
 
         self.durations = InstructionDurations(
             [
@@ -231,7 +231,6 @@ class TranspilerLevelBenchmarks:
             seed_transpiler=0,
             optimization_level=transpiler_level,
             scheduling_method="alap",
-            instruction_durations=self.durations,
         )
 
     # limit optimization levels to reduce time

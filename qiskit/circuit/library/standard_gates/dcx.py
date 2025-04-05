@@ -13,7 +13,6 @@
 """Double-CNOT gate."""
 
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -50,7 +49,7 @@ class DCXGate(SingletonGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.DCXGate
+    _standard_gate = StandardGate.DCX
 
     def __init__(self, label=None):
         """Create new DCX gate."""
@@ -63,7 +62,7 @@ class DCXGate(SingletonGate):
         gate dcx a, b { cx a, b; cx b, a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate
 
         q = QuantumRegister(2, "q")

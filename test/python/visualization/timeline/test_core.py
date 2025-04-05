@@ -166,18 +166,22 @@ class TestCanvas(QiskitTestCase):
         circ.measure(0, 0)
         circ.measure(1, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            circ = transpile(
-                circ,
-                scheduling_method="alap",
-                basis_gates=[],
-                dt=1e-7,
-                instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
-                optimization_level=0,
-            )
+        target = Target(num_qubits=2, dt=1e-7)
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=2000 * 1e-7),
+                (1,): InstructionProperties(duration=2000 * 1e-7),
+            },
+        )
+
+        circ = transpile(
+            circ,
+            scheduling_method="alap",
+            dt=1e-7,
+            target=target,
+            optimization_level=0,
+        )
 
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({"control.show_clbits": False})
@@ -191,14 +195,7 @@ class TestCanvas(QiskitTestCase):
             "barriers": [],
             "gate_links": [generators.gen_gate_link],
         }
-        target = Target(num_qubits=2, dt=1e-7)
-        target.add_instruction(
-            Measure(),
-            {
-                (0,): InstructionProperties(duration=2000 * 1e-7),
-                (1,): InstructionProperties(duration=2000 * 1e-7),
-            },
-        )
+
         canvas.load_program(circ, target)
         canvas.update()
         self.assertEqual(len(canvas._output_dataset), 0)
@@ -209,18 +206,18 @@ class TestCanvas(QiskitTestCase):
         circ.measure(0, 0)
         circ.measure(1, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            circ = transpile(
-                circ,
-                scheduling_method="alap",
-                dt=1e-7,
-                basis_gates=[],
-                instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
-                optimization_level=0,
-            )
+        target = Target(num_qubits=2, dt=1e-7)
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=2000 * 1e-7),
+                (1,): InstructionProperties(duration=2000 * 1e-7),
+            },
+        )
+
+        circ = transpile(
+            circ, scheduling_method="alap", dt=1e-7, optimization_level=0, target=target
+        )
 
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({"control.show_clbits": True})
@@ -234,14 +231,6 @@ class TestCanvas(QiskitTestCase):
             "barriers": [],
             "gate_links": [generators.gen_gate_link],
         }
-        target = Target(num_qubits=2, dt=1e-7)
-        target.add_instruction(
-            Measure(),
-            {
-                (0,): InstructionProperties(duration=2000 * 1e-7),
-                (1,): InstructionProperties(duration=2000 * 1e-7),
-            },
-        )
 
         canvas.load_program(circ, target)
         canvas.update()

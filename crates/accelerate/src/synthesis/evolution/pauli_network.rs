@@ -50,40 +50,20 @@ fn expand_pauli(sparse_pauli: String, qubits: &[u32], num_qubits: usize) -> Stri
 fn to_qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
     match rustiq_gate {
         CliffordGate::CNOT(i, j) => (
-            StandardGate::CXGate,
+            StandardGate::CX,
             smallvec![],
             smallvec![Qubit(*i as u32), Qubit(*j as u32)],
         ),
         CliffordGate::CZ(i, j) => (
-            StandardGate::CZGate,
+            StandardGate::CZ,
             smallvec![],
             smallvec![Qubit(*i as u32), Qubit(*j as u32)],
         ),
-        CliffordGate::H(i) => (
-            StandardGate::HGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::S(i) => (
-            StandardGate::SGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::Sd(i) => (
-            StandardGate::SdgGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::SqrtX(i) => (
-            StandardGate::SXGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::SqrtXd(i) => (
-            StandardGate::SXdgGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
+        CliffordGate::H(i) => (StandardGate::H, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::S(i) => (StandardGate::S, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::Sd(i) => (StandardGate::Sdg, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::SqrtX(i) => (StandardGate::SX, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::SqrtXd(i) => (StandardGate::SXdg, smallvec![], smallvec![Qubit(*i as u32)]),
     }
 }
 
@@ -100,9 +80,9 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
     for (q, c) in pauli_str.chars().enumerate() {
         if c != 'I' {
             let standard_gate = match c {
-                'X' => StandardGate::RXGate,
-                'Y' => StandardGate::RYGate,
-                'Z' => StandardGate::RZGate,
+                'X' => StandardGate::RX,
+                'Y' => StandardGate::RY,
+                'Z' => StandardGate::RZ,
                 _ => unreachable!("Only X, Y and Z are possible characters at this point."),
             };
             // We need to negate the angle when there is a phase.

@@ -578,7 +578,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         // We need to check by name here to avoid a circular import during initial loading
         if ob.getattr(intern!(py, "name"))?.extract::<String>()? == "unitary" {
             let params = extract_params()?;
-            if let Param::Obj(data) = &params[0] {
+            if let Some(Param::Obj(data)) = params.first() {
                 let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
                 let matrix: Option<MatrixView2<Complex64>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
@@ -698,7 +698,7 @@ fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
                 py,
                 concat!(
                     "Treating CircuitInstruction as an iterable is deprecated legacy behavior",
-                    " since Qiskit 1.2, and will be removed in Qiskit 2.0.",
+                    " since Qiskit 1.2, and will be removed in Qiskit 3.0.",
                     " Instead, use the `operation`, `qubits` and `clbits` named attributes."
                 )
             ),

@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 import logging
-import warnings
 
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit.delay import Delay
@@ -81,14 +80,6 @@ class BasePadding(TransformationPass):
         if not self.target and not self.durations:
             return None
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
-        if dag._has_calibration_for(node):
-            # If node has calibration, this value should be the highest priority
-            cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=DeprecationWarning)
-                # `schedule.duration` emits pulse deprecation warnings which we don't want
-                # to see here
-                return dag._calibrations_prop[node.op.name][cal_key].duration
 
         if self.target:
             props_dict = self.target.get(node.name)
@@ -133,8 +124,7 @@ class BasePadding(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
-        new_dag.unit = self.property_set["time_unit"]
-        new_dag._calibrations_prop = dag._calibrations_prop
+        new_dag._unit = self.property_set["time_unit"]
         new_dag.global_phase = dag.global_phase
 
         idle_after = {bit: 0 for bit in dag.qubits}
@@ -196,7 +186,7 @@ class BasePadding(TransformationPass):
                     prev_node=prev_node,
                 )
 
-        new_dag.duration = circuit_duration
+        new_dag._duration = circuit_duration
 
         return new_dag
 
@@ -220,6 +210,9 @@ class BasePadding(TransformationPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
+        if self.property_set["time_unit"] == "stretch":
+            # This should have already been raised during scheduling, but just in case.
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
         for qarg, _ in enumerate(dag.qubits):
             if not self.__delay_supported(qarg):
                 logger.debug(

@@ -151,7 +151,7 @@ class TestInverseCancellation(QiskitTestCase):
         qc.rx(np.pi / 4, 0)
         qc.rx(np.pi / 4, 0)
         with self.assertRaises(TranspilerError):
-            InverseCancellation([RXGate(np.pi / 4)])
+            InverseCancellation([(RXGate(np.pi / 4))])
 
     def test_string_gate_error(self):
         """Test that when gate is passed as a string an error is raised."""

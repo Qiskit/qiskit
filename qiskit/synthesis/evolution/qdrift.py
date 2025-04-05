@@ -50,6 +50,8 @@ class QDrift(ProductFormula):
         seed: int | None = None,
         wrap: bool = False,
         preserve_order: bool = True,
+        *,
+        atomic_evolution_sparse_observable: bool = False,
     ) -> None:
         r"""
         Args:
@@ -70,9 +72,21 @@ class QDrift(ProductFormula):
             preserve_order: If ``False``, allows reordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
                 when synthesizing operator with a single term.
+            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+                which does not yet support :class:`.SparseObservable`\ s as input, set this
+                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+                are required to support :class:`.SparseObservable`\ s as input.
         """
         super().__init__(
-            1, reps, insert_barriers, cx_structure, atomic_evolution, wrap, preserve_order
+            1,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            preserve_order,
+            atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
         self.sampled_ops = None
         self.rng = np.random.default_rng(seed)

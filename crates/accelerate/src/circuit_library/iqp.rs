@@ -36,10 +36,10 @@ fn iqp(
 
     // The initial and final Hadamard layer.
     let h_layer =
-        (0..num_qubits).map(|i| (StandardGate::HGate, smallvec![], smallvec![Qubit(i as u32)]));
+        (0..num_qubits).map(|i| (StandardGate::H, smallvec![], smallvec![Qubit(i as u32)]));
 
-    // The circuit interactions are powers of the CSGate, which is implemented by calling
-    // the CPhaseGate with angles of Pi/2 times the power. The gate powers are given by the
+    // The circuit interactions are powers of the CS gate, which is implemented by calling
+    // the CPhase gate with angles of Pi/2 times the power. The gate powers are given by the
     // upper triangular part of the symmetric ``interactions`` matrix.
     let connections = (0..num_qubits).flat_map(move |i| {
         (i + 1..num_qubits)
@@ -47,14 +47,14 @@ fn iqp(
             .filter(move |(_, value)| value % 4 != 0)
             .map(move |(j, value)| {
                 (
-                    StandardGate::CPhaseGate,
+                    StandardGate::CPhase,
                     smallvec![Param::Float(PI2 * value as f64)],
                     smallvec![Qubit(i as u32), Qubit(j as u32)],
                 )
             })
     });
 
-    // The layer of T gates. Again we use the PhaseGate, now with powers of Pi/8. The powers
+    // The layer of T gates. Again we use the Phase gate, now with powers of Pi/8. The powers
     // are given by the diagonal of the ``interactions`` matrix.
     let shifts = (0..num_qubits)
         .map(move |i| interactions[(i, i)])
@@ -62,7 +62,7 @@ fn iqp(
         .filter(|(_, value)| value % 8 != 0)
         .map(|(i, value)| {
             (
-                StandardGate::PhaseGate,
+                StandardGate::Phase,
                 smallvec![Param::Float(PI8 * value as f64)],
                 smallvec![Qubit(i as u32)],
             )

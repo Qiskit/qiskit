@@ -19,7 +19,7 @@ from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 
-from ..python.legacy_cmaps import MUMBAI_CMAP
+from .legacy_cmaps import MUMBAI_CMAP
 
 
 class TranspilerQualitativeBench:

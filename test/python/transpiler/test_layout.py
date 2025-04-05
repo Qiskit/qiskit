@@ -275,46 +275,6 @@ class LayoutTest(QiskitTestCase):
         with self.assertRaises(LayoutError):
             layout[0] = 1
 
-    def test_layout_repr(self):
-        """Layout repr reproduces layout"""
-        qr = QuantumRegister(5, "qr")
-        layout = Layout(
-            {
-                qr[0]: 2,
-                qr[1]: 4,
-                qr[2]: 3,
-                qr[3]: 0,
-                qr[4]: 1,
-            }
-        )
-
-        repr_layout = eval(  # pylint: disable=eval-used
-            layout.__repr__(),
-            {
-                "Qubit": Qubit,
-                "QuantumRegister": QuantumRegister,
-                "Layout": Layout,
-            },
-        )
-        self.assertDictEqual(layout._p2v, repr_layout._p2v)
-        self.assertDictEqual(layout._v2p, repr_layout._v2p)
-
-    def test_layout_repr_with_holes(self):
-        """A non-bijective Layout repr reproduces layout"""
-        qr = QuantumRegister(5, "qr")
-        layout = Layout({qr[0]: 0, qr[1]: 3, qr[2]: 4, qr[3]: 5, qr[4]: 6})
-
-        repr_layout = eval(  # pylint: disable=eval-used
-            layout.__repr__(),
-            {
-                "Qubit": Qubit,
-                "QuantumRegister": QuantumRegister,
-                "Layout": Layout,
-            },
-        )
-        self.assertDictEqual(layout._p2v, repr_layout._p2v)
-        self.assertDictEqual(layout._v2p, repr_layout._v2p)
-
     def test_layout_from_intlist(self):
         """Create a layout from a list of integers.
         virtual  physical
