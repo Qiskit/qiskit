@@ -1719,7 +1719,7 @@ impl Operation for StandardGate {
                         2,
                         [
                             (Self::H, smallvec![], q1.clone()),
-                            (Self::CPhase, smallvec![Param::Float(PI / 2.)], q0_1),
+                            (Self::CS, smallvec![], q0_1),
                             (Self::H, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
