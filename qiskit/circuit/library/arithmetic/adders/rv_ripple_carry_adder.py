@@ -43,7 +43,7 @@ class RVRippleCarryAdder(Adder):
         """
         if kind != "half":
             raise ValueError("Only 'half' kind is supported.")
-        
+
         super().__init__(num_state_qubits, name=name)
         circuit = adder_ripple_rv25(num_state_qubits)
 
