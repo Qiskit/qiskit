@@ -22,17 +22,24 @@ from qiskit.circuit.library import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     VBERippleCarryAdder,
+    RVRippleCarryAdder,
     ModularAdderGate,
     HalfAdderGate,
     FullAdderGate,
 )
-from qiskit.synthesis.arithmetic import adder_ripple_c04, adder_ripple_v95, adder_qft_d00
+from qiskit.synthesis.arithmetic import (
+    adder_ripple_c04,
+    adder_ripple_v95,
+    adder_ripple_rv25,
+    adder_qft_d00,
+)
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 ADDERS = {
     "vbe": adder_ripple_v95,
     "cdkm": adder_ripple_c04,
+    "rv": adder_ripple_rv25,
     "draper": adder_qft_d00,
 }
 
@@ -40,6 +47,7 @@ ADDER_CIRCUITS = {
     "vbe": VBERippleCarryAdder,
     "cdkm": CDKMRippleCarryAdder,
     "draper": DraperQFTAdder,
+    "rv": RVRippleCarryAdder,
 }
 
 
@@ -128,6 +136,8 @@ class TestAdder(QiskitTestCase):
         (1, "cdkm", "full"),
         (3, "cdkm", "full"),
         (5, "cdkm", "full"),
+        (3, "rv", "half"),
+        (5, "rv", "half"),
         (3, "draper", "half"),
         (5, "draper", "half"),
         (3, "draper", "fixed"),
@@ -160,6 +170,7 @@ class TestAdder(QiskitTestCase):
         VBERippleCarryAdder,
         adder_ripple_c04,
         adder_ripple_v95,
+        adder_ripple_rv25,
         adder_qft_d00,
     )
     def test_raises_on_wrong_num_bits(self, adder):
