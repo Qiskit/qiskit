@@ -1511,19 +1511,12 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (
-                                Self::RZX,
-                                smallvec![Param::Float(PI / 4.)],
-                                smallvec![Qubit(0), Qubit(1)],
-                            ),
+                            (Self::S, smallvec![], smallvec![Qubit(0)]),
+                            (Self::SX, smallvec![], smallvec![Qubit(1)]),
+                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (Self::X, smallvec![], smallvec![Qubit(0)]),
-                            (
-                                Self::RZX,
-                                smallvec![Param::Float(-PI / 4.)],
-                                smallvec![Qubit(0), Qubit(1)],
-                            ),
                         ],
-                        FLOAT_ZERO,
+                        Param::Float(-PI / 4.),
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
