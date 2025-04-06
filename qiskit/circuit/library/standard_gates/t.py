@@ -67,8 +67,6 @@ class TGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
 
-        from .p import PhaseGate
-
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [(PhaseGate(pi / 4), [q[0]], [])]
@@ -140,8 +138,6 @@ class TdgGate(SingletonGate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-
-        from .p import PhaseGate
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)

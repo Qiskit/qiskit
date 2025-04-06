@@ -84,7 +84,6 @@ class ZGate(SingletonGate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .p import PhaseGate
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
