@@ -109,24 +109,7 @@ class XXPlusYYGate(Gate):
         super().__init__("xx_plus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
-        """
-        gate xx_plus_yy(theta, beta) a, b {
-            rz(beta) b;
-            rz(-pi/2) a;
-            sx a;
-            rz(pi/2) a;
-            s b;
-            cx a, b;
-            ry(theta/2) a;
-            ry(theta/2) b;
-            cx a, b;
-            sdg b;
-            rz(-pi/2) a;
-            sxdg a;
-            rz(pi/2) a;
-            rz(-beta) b;
-        }
-        """
+        """Default definition."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
@@ -135,24 +118,30 @@ class XXPlusYYGate(Gate):
         from .rz import RZGate
         from .ry import RYGate
 
+        #      ┌───────┐┌───┐      ┌───┐┌──────────┐┌───┐┌─────┐┌────────┐
+        # q_0: ┤ Rz(β) ├┤ S ├──────┤ X ├┤ Ry(-θ/2) ├┤ X ├┤ Sdg ├┤ Rz(-β) ├─────
+        #      └┬─────┬┘├───┴┐┌───┐└─┬─┘├──────────┤└─┬─┘├─────┤└┬──────┬┘┌───┐
+        # q_1: ─┤ Sdg ├─┤ √X ├┤ S ├──■──┤ Ry(-θ/2) ├──■──┤ Sdg ├─┤ √Xdg ├─┤ S ├
+        #       └─────┘ └────┘└───┘     └──────────┘     └─────┘ └──────┘ └───┘
+
         theta = self.params[0]
         beta = self.params[1]
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (RZGate(beta), [q[0]], []),
-            (RZGate(-pi / 2), [q[1]], []),
+            (SdgGate(), [q[1]], []),
             (SXGate(), [q[1]], []),
-            (RZGate(pi / 2), [q[1]], []),
+            (SGate(), [q[1]], []),
             (SGate(), [q[0]], []),
             (CXGate(), [q[1], q[0]], []),
             (RYGate(-theta / 2), [q[1]], []),
             (RYGate(-theta / 2), [q[0]], []),
             (CXGate(), [q[1], q[0]], []),
             (SdgGate(), [q[0]], []),
-            (RZGate(-pi / 2), [q[1]], []),
+            (SdgGate(), [q[1]], []),
             (SXdgGate(), [q[1]], []),
-            (RZGate(pi / 2), [q[1]], []),
+            (SGate(), [q[1]], []),
             (RZGate(-beta), [q[0]], []),
         ]
         for instr, qargs, cargs in rules:

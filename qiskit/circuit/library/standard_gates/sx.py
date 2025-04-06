@@ -291,17 +291,20 @@ class CSXGate(SingletonControlledGate):
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate csx a,b { h b; cu1(pi/2) a,b; h b; }
-        """
+        """Default definition."""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
-        from .u1 import CU1Gate
+        from .s import CSGate
+
+        # q_0: ───────■───────
+        #      ┌───┐┌─┴─┐┌───┐
+        # q_1: ┤ H ├┤ S ├┤ H ├
+        #      └───┘└───┘└───┘
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[1]], []), (CU1Gate(pi / 2), [q[0], q[1]], []), (HGate(), [q[1]], [])]
+        rules = [(HGate(), [q[1]], []), (CSGate(), [q[0], q[1]], []), (HGate(), [q[1]], [])]
         for operation, qubits, clbits in rules:
             qc._append(operation, qubits, clbits)
         self.definition = qc
