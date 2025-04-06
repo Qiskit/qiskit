@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    The definitions for some of the standard gates were updated: discrete gates are
+    preferred over parametric gates. Additionally, ``PhaseGate`` is preferred
+    over ``U1Gate``, and ``UGate`` is preferred over ``U3Gate``.
