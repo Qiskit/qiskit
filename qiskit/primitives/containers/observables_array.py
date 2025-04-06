@@ -26,7 +26,7 @@ from numbers import Complex
 import numpy as np
 from numpy.typing import ArrayLike
 
-from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
+from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp, SparseObservable
 
 from .object_array import object_array
 from .shape import ShapedMixin, shape_tuple
@@ -51,8 +51,6 @@ class ObservablesArray(ShapedMixin):
     """An ND-array of Hermitian observables for an :class:`.Estimator` primitive."""
 
     __slots__ = ("_array", "_shape")
-    ALLOWED_BASIS: str = "IXYZ01+-lr"
-    """The allowed characters in basis strings."""
 
     def __init__(
         self,
@@ -162,7 +160,7 @@ class ObservablesArray(ShapedMixin):
         return self.reshape(self.size)
 
     @classmethod
-    def coerce_observable(cls, observable: ObservableLike) -> Mapping[str, float]:
+    def coerce_observable(cls, observable: ObservableLike) -> SparseObservable:
         """Format an observable-like object into the internal format.
 
         Args:
@@ -177,61 +175,39 @@ class ObservablesArray(ShapedMixin):
         """
         # Pauli-type conversions
         if isinstance(observable, SparsePauliOp):
-            observable = observable.simplify(atol=0)
-            # Check that the operator is Hermitian and has real coeffs
+            observable = SparseObservable.from_sparse_pauli_op(observable)
+        elif isinstance(observable, Pauli):
+            observable = SparseObservable.from_pauli(observable)
+        elif isinstance(observable, str):
+            observable = SparseObservable.from_label(observable)
+        elif isinstance(observable, _Mapping):
+            term_list = []
+            for basis, coeff in observable.items():
+                if isinstance(basis, str):
+                    term_list.append((basis, coeff))
+                elif isinstance(basis, Pauli):
+                    unphased_basis, phase = basis[:].to_label(), basis.phase
+                    term_list.append((unphased_basis, complex(0, 1) ** phase * coeff))
+                else:
+                    raise TypeError(f"Invalid observable basis type: {type(basis)}")
+            observable = SparseObservable.from_list(term_list)
+
+        if isinstance(observable, SparseObservable):
+            # Check that the operator has real coeffs
             coeffs = np.real_if_close(observable.coeffs)
             if np.iscomplexobj(coeffs):
                 raise ValueError(
                     "Non-Hermitian input observable: the input SparsePauliOp has non-zero"
                     " imaginary part in its coefficients."
                 )
-            paulis = observable.paulis.to_labels()
-            # Call simplify to combine duplicate keys before converting to a mapping
-            return dict(zip(paulis, coeffs))
 
-        if isinstance(observable, Pauli):
-            label, phase = observable[:].to_label(), observable.phase
-            if phase % 2:
-                raise ValueError(
-                    "Non-Hermitian input observable: the input Pauli has an imaginary phase."
-                )
-            return {label: 1} if phase == 0 else {label: -1}
-
-        # String conversion
-        if isinstance(observable, str):
-            cls._validate_basis(observable)
-            return {observable: 1}
-
-        # Mapping conversion (with possible Pauli keys)
-        if isinstance(observable, _Mapping):
-            num_qubits = len(next(iter(observable)))
-            unique = defaultdict(float)
-            for basis, coeff in observable.items():
-                if isinstance(basis, Pauli):
-                    basis, phase = basis[:].to_label(), basis.phase
-                    if phase % 2:
-                        raise ValueError(
-                            "Non-Hermitian input observable: the input Pauli has an imaginary phase."
-                        )
-                    if phase == 2:
-                        coeff = -coeff
-                # Truncate complex numbers to real
-                if isinstance(coeff, Complex):
-                    if abs(coeff.imag) > 1e-7:
-                        raise TypeError(
-                            f"Non-Hermitian input observable: {basis} term has a complex value"
-                            " coefficient."
-                        )
-                    coeff = coeff.real
-
-                # Validate basis
-                cls._validate_basis(basis)
-                if len(basis) != num_qubits:
-                    raise ValueError(
-                        "Number of qubits must be the same for all observable basis elements."
-                    )
-                unique[basis] += coeff
-            return dict(unique)
+            return SparseObservable.from_raw_parts(
+                observable.num_qubits,
+                coeffs,
+                observable.bit_terms,
+                observable.indices,
+                observable.boundaries,
+            ).simplify(tol=0)
 
         raise TypeError(f"Invalid observable type: {type(observable)}")
 
@@ -261,27 +237,6 @@ class ObservablesArray(ShapedMixin):
                     "The number of qubits must be the same for all observables in the "
                     "observables array."
                 )
-
-    @classmethod
-    def _validate_basis(cls, basis: str) -> None:
-        """Validate a basis string.
-
-        Args:
-            basis: a basis string to validate.
-
-        Raises:
-            ValueError: If basis string contains invalid characters
-        """
-        # NOTE: the allowed basis characters can be overridden by modifying the class
-        # attribute ALLOWED_BASIS
-        allowed_pattern = _regex_match(cls.ALLOWED_BASIS)
-        if not allowed_pattern.match(basis):
-            invalid_pattern = _regex_invalid(cls.ALLOWED_BASIS)
-            invalid_chars = list(set(invalid_pattern.findall(basis)))
-            raise ValueError(
-                f"Observable basis string '{basis}' contains invalid characters {invalid_chars},"
-                f" allowed characters are {list(cls.ALLOWED_BASIS)}.",
-            )
 
 
 @lru_cache(1)
