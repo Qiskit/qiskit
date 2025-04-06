@@ -39,8 +39,8 @@ class ECRGate(SingletonGate):
     **Circuit Symbol:**
 
     .. code-block:: text
-                               global phase: 7π/4
 
+                               global phase: 7π/4
              ┌─────────┐            ┌───┐      ┌───┐
         q_0: ┤0        ├       q_0: ┤ S ├───■──┤ X ├
              │   ECR   │   =        ├───┴┐┌─┴─┐└───┘
