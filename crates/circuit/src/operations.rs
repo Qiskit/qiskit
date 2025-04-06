@@ -1788,19 +1788,19 @@ impl Operation for StandardGate {
                         2,
                         [
                             (
-                                Self::U1,
+                                Self::Phase,
                                 smallvec![multiply_param(&params[0], 0.5, py)],
                                 smallvec![Qubit(0)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U1,
+                                Self::Phase,
                                 smallvec![multiply_param(&params[0], -0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U1,
+                                Self::Phase,
                                 smallvec![multiply_param(&params[0], 0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
@@ -1831,11 +1831,11 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::U1, smallvec![param_first_u1], smallvec![Qubit(0)]),
-                            (Self::U1, smallvec![param_second_u1], smallvec![Qubit(1)]),
+                            (Self::Phase, smallvec![param_first_u1], smallvec![Qubit(0)]),
+                            (Self::Phase, smallvec![param_second_u1], smallvec![Qubit(1)]),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U3,
+                                Self::U,
                                 smallvec![
                                     multiply_param(&params[0], -0.5, py),
                                     FLOAT_ZERO,
@@ -1845,7 +1845,7 @@ impl Operation for StandardGate {
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U3,
+                                Self::U,
                                 smallvec![
                                     multiply_param(&params[0], 0.5, py),
                                     params[1].clone(),
@@ -2234,7 +2234,7 @@ impl Operation for StandardGate {
                         [
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(0), Qubit(3)],
                             ),
@@ -2242,7 +2242,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(1), Qubit(3)],
                             ),
@@ -2250,7 +2250,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(1), Qubit(3)],
                             ),
@@ -2258,7 +2258,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
@@ -2266,7 +2266,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
@@ -2274,7 +2274,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
@@ -2282,7 +2282,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),

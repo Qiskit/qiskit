@@ -69,17 +69,14 @@ class RZGate(Gate):
         super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
-        """
-        gate rz(phi) a { u1(phi) a; }
-        """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u1 import U1Gate
+        from .p import PhaseGate
 
         q = QuantumRegister(1, "q")
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
-        rules = [(U1Gate(theta), [q[0]], [])]
+        rules = [(PhaseGate(theta), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 

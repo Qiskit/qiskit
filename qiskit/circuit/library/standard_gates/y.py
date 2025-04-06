@@ -81,11 +81,11 @@ class YGate(SingletonGate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u3 import U3Gate
+        from .u import UGate
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])]
+        rules = [(UGate(pi, pi / 2, pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 

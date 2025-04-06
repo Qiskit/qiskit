@@ -101,11 +101,11 @@ class U1Gate(Gate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u3 import U3Gate  # pylint: disable=cyclic-import
+        from .p import PhaseGate  # pylint: disable=cyclic-import
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(0, 0, self.params[0]), [q[0]], [])]
+        rules = [(PhaseGate(self.params[0]), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -246,30 +246,24 @@ class CU1Gate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate cu1(lambda) a,b
-        { u1(lambda/2) a; cx a,b;
-          u1(-lambda/2) b; cx a,b;
-          u1(lambda/2) b;
-        }
-        """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate  # pylint: disable=cyclic-import
+        from .p import PhaseGate
 
-        #      ┌─────────┐
-        # q_0: ┤ U1(λ/2) ├──■────────────────■─────────────
-        #      └─────────┘┌─┴─┐┌──────────┐┌─┴─┐┌─────────┐
-        # q_1: ───────────┤ X ├┤ U1(-λ/2) ├┤ X ├┤ U1(λ/2) ├
-        #                 └───┘└──────────┘└───┘└─────────┘
+        #      ┌────────┐
+        # q_0: ┤ P(λ/2) ├──■───────────────■────────────
+        #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
+        # q_1: ──────────┤ X ├┤ P(-λ/2) ├┤ X ├┤ P(λ/2) ├
+        #                └───┘└─────────┘└───┘└────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
-            (U1Gate(self.params[0] / 2), [q[0]], []),
+            (PhaseGate(self.params[0] / 2), [q[0]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
+            (PhaseGate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0] / 2), [q[1]], []),
+            (PhaseGate(self.params[0] / 2), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)

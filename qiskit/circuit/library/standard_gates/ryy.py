@@ -82,7 +82,6 @@ class RYYGate(Gate):
         super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
-        """Default definition."""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate

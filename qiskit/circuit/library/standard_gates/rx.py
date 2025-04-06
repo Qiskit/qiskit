@@ -224,26 +224,25 @@ class CRXGate(ControlledGate):
         )
 
     def _define(self):
-        """Default definition."""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u3 import U3Gate
+        from .u import UGate
         from .x import CXGate
         from .s import SGate
 
-        # q_0: ───────■────────────────────■────────────────────
-        #      ┌───┐┌─┴─┐┌──────────────┐┌─┴─┐┌────────────────┐
-        # q_1: ┤ S ├┤ X ├┤ U3(-θ/2,0,0) ├┤ X ├┤ U3(θ/2,-π/2,0) ├
-        #      └───┘└───┘└──────────────┘└───┘└────────────────┘
+        # q_0: ───────■───────────────────■───────────────────
+        #      ┌───┐┌─┴─┐┌─────────────┐┌─┴─┐┌───────────────┐
+        # q_1: ┤ S ├┤ X ├┤ U(-θ/2,0,0) ├┤ X ├┤ U(θ/2,-π/2,0) ├
+        #      └───┘└───┘└─────────────┘└───┘└───────────────┘
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (SGate(), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
+            (UGate(-self.params[0] / 2, 0, 0), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], []),
+            (UGate(self.params[0] / 2, -pi / 2, 0), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)

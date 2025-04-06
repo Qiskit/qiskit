@@ -83,8 +83,6 @@ class XXMinusYYGate(Gate):
         super().__init__("xx_minus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
-        """Default definition."""
-
         #       ┌─────┐  ┌────┐┌───┐     ┌─────────┐      ┌─────┐ ┌──────┐┌───┐
         # q_0: ─┤ Sdg ├──┤ √X ├┤ S ├──■──┤ Ry(θ/2) ├───■──┤ Sdg ├─┤ √Xdg ├┤ S ├
         #      ┌┴─────┴─┐├───┬┘└───┘┌─┴─┐├─────────┴┐┌─┴─┐├─────┤┌┴──────┤└───┘

@@ -68,11 +68,11 @@ class HGate(SingletonGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u2 import U2Gate
+        from .u import UGate
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(U2Gate(0, pi), [q[0]], [])]
+        rules = [(UGate(pi / 2, 0, pi), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 

@@ -81,16 +81,13 @@ class XGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate x a { u3(pi,0,pi) a; }
-        """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u3 import U3Gate
+        from .u import UGate
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(pi, 0, pi), [q[0]], [])]
+        rules = [(UGate(pi, 0, pi), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -525,7 +522,6 @@ class RCCXGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """Default definition."""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
@@ -621,38 +617,38 @@ class C3SXGate(SingletonControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u1 import CU1Gate
+        from .p import CPhaseGate
         from .h import HGate
 
         angle = numpy.pi / 8
         q = QuantumRegister(4, name="q")
         rules = [
             (HGate(), [q[3]], []),
-            (CU1Gate(angle), [q[0], q[3]], []),
+            (CPhaseGate(angle), [q[0], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-angle), [q[1], q[3]], []),
+            (CPhaseGate(-angle), [q[1], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[1]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(angle), [q[1], q[3]], []),
+            (CPhaseGate(angle), [q[1], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[1], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-angle), [q[2], q[3]], []),
+            (CPhaseGate(-angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(angle), [q[2], q[3]], []),
+            (CPhaseGate(angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[1], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(-angle), [q[2], q[3]], []),
+            (CPhaseGate(-angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
             (CXGate(), [q[0], q[2]], []),
             (HGate(), [q[3]], []),
-            (CU1Gate(angle), [q[2], q[3]], []),
+            (CPhaseGate(angle), [q[2], q[3]], []),
             (HGate(), [q[3]], []),
         ]
         qc = QuantumCircuit(q)
@@ -866,7 +862,6 @@ class RC3XGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """Default definition."""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
@@ -974,18 +969,18 @@ class C4XGate(SingletonControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u1 import CU1Gate
         from .h import HGate
+        from .p import CPhaseGate
 
         q = QuantumRegister(5, name="q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[4]], []),
-            (CU1Gate(numpy.pi / 2), [q[3], q[4]], []),
+            (CPhaseGate(numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
             (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
             (HGate(), [q[4]], []),
-            (CU1Gate(-numpy.pi / 2), [q[3], q[4]], []),
+            (CPhaseGate(-numpy.pi / 2), [q[3], q[4]], []),
             (HGate(), [q[4]], []),
             (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
             (C3SXGate(), [q[0], q[1], q[2], q[4]], []),

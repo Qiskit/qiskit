@@ -109,7 +109,6 @@ class XXPlusYYGate(Gate):
         super().__init__("xx_plus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
-        """Default definition."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
