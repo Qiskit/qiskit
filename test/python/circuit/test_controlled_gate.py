@@ -1592,9 +1592,6 @@ class TestControlledStandardGates(QiskitTestCase):
         gate_params = _get_free_params(gate_class)
         numargs = len(gate_params)
         args = [theta] * numargs
-
-        print(f"{num_ctrl_qubits = }, {gate_class = }")
-
         if gate_class in [MSGate, Barrier]:
             args[0] = 2
         elif gate_class in [MCU1Gate, MCPhaseGate]:
@@ -1625,8 +1622,6 @@ class TestControlledStandardGates(QiskitTestCase):
                 target_mat = _compute_control_matrix(
                     base_mat, num_ctrl_qubits, ctrl_state=ctrl_state
                 )
-
-                print(f"{ctrl_state = }")
                 self.assertEqual(Operator(cgate), Operator(target_mat))
 
 

@@ -135,7 +135,6 @@ def_h = QuantumCircuit(q)
 def_h.append(U2Gate(0, pi), [q[0]], [])
 _sel.add_equivalence(HGate(), def_h)
 
-
 # CHGate
 #
 # q_0: ──■──     q_0: ─────────────────■─────────────────────
