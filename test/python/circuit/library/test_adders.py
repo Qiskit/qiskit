@@ -192,6 +192,7 @@ class TestAdder(QiskitTestCase):
         expected_ops = {
             "ripple_c04": "MAJ",
             "ripple_v95": "Carry",
+            "ripple_rv25": "ccx",
             "qft_d00": "cp",
         }
 
@@ -213,7 +214,7 @@ class TestAdder(QiskitTestCase):
                     synth = hls(circuit)
                     ops = set(synth.count_ops().keys())
 
-                    self.assertTrue(expected_ops[plugin] in ops) if plugin in expected_ops else None
+                    self.assertTrue(expected_ops[plugin] in ops)
 
     def test_plugins_when_do_not_apply(self):
         """Test that plugins do not do anything when not enough
