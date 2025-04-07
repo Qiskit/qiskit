@@ -353,7 +353,7 @@ def random_circuit_from_graph(
                 is_rst_control, is_rst_target = is_rst
                 rst_oper = Reset()
                 if is_rst_control:
-                    qc.append(
+                    qc._append(
                         CircuitInstruction(
                             operation=rst_oper,
                             qubits=[qubits[control_qubit]],
@@ -361,7 +361,7 @@ def random_circuit_from_graph(
                     )
 
                 if is_rst_target:
-                    qc.append(
+                    qc._append(
                         CircuitInstruction(
                             operation=rst_oper,
                             qubits=[qubits[target_qubit]],
@@ -384,7 +384,7 @@ def random_circuit_from_graph(
                         )
                     )
             else:
-                qc.append(
+                qc._append(
                     CircuitInstruction(
                         operation=current_instr,
                         qubits=[qubits[control_qubit], qubits[target_qubit]],
@@ -417,7 +417,7 @@ def random_circuit_from_graph(
 
                 # Some extra 1Q Gate in to fill qubits which are still idle for this
                 # particular while iteration.
-                extra_1q_gates = rng.choice(gates_1q, size=len(qubit_idx_idle), replace=True)
+                extra_1q_gates = rng.choice(gates_1q, size=num_unused_qubits, replace=True)
 
                 cumsum_params = np.cumsum(extra_1q_gates["num_params"], dtype=np.int64)
                 parameters_1q = rng.uniform(0, 2 * np.pi, size=cumsum_params[-1])
@@ -444,7 +444,7 @@ def random_circuit_from_graph(
                                 )
                             )
                     else:
-                        qc.append(
+                        qc._append(
                             CircuitInstruction(
                                 operation=current_instr,
                                 qubits=[qubits[qubit_idx]],
@@ -669,13 +669,15 @@ def random_circuit(
                             CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end])
                         )
                 else:
-                    qc.append(CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end]))
+                    qc._append(
+                        CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end])
+                    )
         else:
             for gate, q_start, q_end, p_start, p_end in zip(
                 gate_specs["class"], q_indices[:-1], q_indices[1:], p_indices[:-1], p_indices[1:]
             ):
                 operation = gate(*parameters[p_start:p_end])
-                qc.append(CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end]))
+                qc._append(CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end]))
     if measure:
         qc.measure(qc.qubits, cr)
 
