@@ -264,26 +264,19 @@ class TestStatevector(QiskitTestCase):
         """Test is_entangled method."""
         qc_2 = QuantumCircuit(2)
         qc_3 = QuantumCircuit(3)
-
         qc_2.h(0)
         qc_2.cx(0, 1)
-
         qc_3.h(0)
         qc_3.cx(0, 1)
         qc_3.cx(0, 2)
-
         ne_state_2 = Statevector.from_label("++")
         ne_state_3 = Statevector.from_label("+++")
-
         self.assertFalse(ne_state_2.is_entangled())
         self.assertFalse(ne_state_3.is_entangled())
-
         e_state_2 = Statevector.from_instruction(qc_2)
         e_state_3 = Statevector.from_instruction(qc_3)
-
         self.assertTrue(e_state_2.is_entangled())
         self.assertTrue(e_state_3.is_entangled())
-
 
     def test_to_operator(self):
         """Test to_operator method for returning projector."""
