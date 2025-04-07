@@ -63,7 +63,7 @@ fn subgraph(graph: &CouplingMap, node_set: &HashSet<NodeIndex>) -> CouplingMap {
 }
 
 #[pyfunction(name = "run_pass_over_connected_components")]
-pub(crate) fn py_run_pass_over_connected_components(
+pub fn py_run_pass_over_connected_components(
     dag: &mut DAGCircuit,
     target: &Target,
     run_func: Bound<PyAny>,
@@ -91,7 +91,7 @@ pub(crate) fn py_run_pass_over_connected_components(
     run_pass_over_connected_components(dag, target, func)
 }
 
-pub(crate) fn run_pass_over_connected_components<T, F>(
+pub fn run_pass_over_connected_components<T, F>(
     dag: &mut DAGCircuit,
     target: &Target,
     mut run_func: F,
