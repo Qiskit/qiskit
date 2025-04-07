@@ -53,7 +53,7 @@ create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 fn build_average_error_map(target: &Target) -> ErrorMap {
     let qargs_count = target.qargs().unwrap().count();
     let mut error_map = ErrorMap::new(Some(qargs_count));
-    for qargs in target.qargs().unwrap().flatten() {
+    for qargs in target.qargs().unwrap() {
         let mut qarg_error: f64 = 0.;
         let mut count: usize = 0;
         for op in target.operation_names_for_qargs(Some(qargs)).unwrap() {
@@ -260,7 +260,7 @@ fn build_coupling_map<Ty: EdgeType>(
     }
     let qargs = target.qargs();
     qargs.as_ref()?;
-    for qarg in qargs.unwrap().flatten() {
+    for qarg in qargs.unwrap() {
         if qarg.len() == 1 {
             let node_index = NodeIndex::new(qarg[0].index());
             let op_names = target.operation_names_for_qargs(Some(qarg)).unwrap();

@@ -1203,6 +1203,16 @@ impl Target {
         Some(qargs)
     }
 
+    /// Checks whether an operation in the [Target] is non-local.
+    ///
+    /// A non-local operation operates over a non specific collection of
+    /// qargs with the same properties all throughout the [Target]. The two
+    /// types of operation considered this way are:
+    /// - Variadics: Which operate over a non fixed amount of qubits in the
+    ///   Target.
+    /// - Global operations: Which operate over any combination of qubits
+    ///   in the [Target] as long as the number of qubits is the same as
+    ///   the operation.
     fn check_non_local_operation(&self, operation_name: &str) -> bool {
         if self.gate_map.contains_key(operation_name) {
             matches!(
