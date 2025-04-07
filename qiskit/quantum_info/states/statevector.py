@@ -27,6 +27,9 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
+# from qiskit.quantum_info.states.densitymatrix import DensityMatrix
+# from qiskit.quantum_info.states.utils import partial_trace
+# from qiskit.quantum_info.states.measures import entropy
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator, BaseOperator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
@@ -248,6 +251,20 @@ class Statevector(QuantumState, TolerancesMixin):
             rtol = self.rtol
         norm = np.linalg.norm(self.data)
         return np.allclose(norm, 1, rtol=rtol, atol=atol)
+
+    def is_entangled(self, epsilon: float = 1e-10) -> bool:
+        """Returns True is a Statevector is Entangled else False."""
+        from qiskit.quantum_info import DensityMatrix, partial_trace, entropy
+
+        density_matrix = DensityMatrix(self)
+
+        for qubit in range(self.num_qubits):
+            trace_out = [i for i in range(self.num_qubits) if i != qubit]
+            subsystem_entropy = entropy(partial_trace(density_matrix, trace_out))
+
+            if subsystem_entropy > epsilon:
+                return True
+        return False
 
     def to_operator(self) -> Operator:
         """Convert state to a rank-1 projector operator"""
