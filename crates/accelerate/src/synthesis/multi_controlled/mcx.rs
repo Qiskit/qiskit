@@ -13,7 +13,7 @@
 use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, PyGate, StandardGate};
+use qiskit_circuit::operations::{PyGate, StandardGate};
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param, Qubit};
 
 use std::f64::consts::PI;
@@ -21,26 +21,12 @@ const PI2: f64 = PI / 2.0;
 
 /// Efficient synthesis for CCX.
 pub fn ccx() -> PyResult<CircuitData> {
-    let circuit = StandardGate::CCX
-        .definition(&[])
-        .expect("Could not extract definition for CCX.");
-    Ok(circuit)
-}
-
-/// Efficient synthesis for RCCX.
-fn rccx() -> PyResult<CircuitData> {
-    let circuit = StandardGate::RCCX
-        .definition(&[])
-        .expect("Could not extract definition for RCCX.");
-    Ok(circuit)
+    CircuitData::from_standard_gate_definition(StandardGate::CCX, &[])
 }
 
 /// Efficient synthesis for 3-controlled X-gate.
 pub fn c3x() -> PyResult<CircuitData> {
-    let circuit = StandardGate::C3X
-        .definition(&[])
-        .expect("Could not extract definition for C3X.");
-    Ok(circuit)
+    CircuitData::from_standard_gate_definition(StandardGate::C3X, &[])
 }
 
 /// Efficient synthesis for 4-controlled X-gate.
@@ -172,7 +158,7 @@ pub fn synth_mcx_n_dirty_i15(
             }
 
             circuit.compose(
-                &rccx()?,
+                &CircuitData::from_standard_gate_definition(StandardGate::RCCX, &[])?,
                 Some(&[Qubit(controls[0]), Qubit(controls[1]), Qubit(ancillas[0])]),
             )?;
 
@@ -224,7 +210,6 @@ pub fn synth_mcx_n_dirty_i15(
 /// Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
 /// [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
 pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
-    println!("IN RUST synth_mcx_noaux_v24! with num_controls = {}", num_controls);
     if num_controls == 3 {
         c3x()
     } else if num_controls == 4 {

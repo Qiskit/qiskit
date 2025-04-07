@@ -2023,7 +2023,6 @@ impl CircuitData {
             };
             let remapped_clbits: Vec<Clbit> = other.get_cargs(inst.clbits).to_vec();
 
-            // let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
             let qubits = self.qargs_interner.insert(&remapped_qubits);
             let clbits = self.cargs_interner.insert(&remapped_clbits);
 
