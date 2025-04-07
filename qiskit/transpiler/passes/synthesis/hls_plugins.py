@@ -194,6 +194,26 @@ not sufficient, the corresponding synthesis method will return `None`.
       - `0`
       - `k-2`
       - at most `8*k-6` CX gates
+    * - ``"2_clean_kg24"``
+      - :class:`~.MCXSynthesis2CleanKG24`
+      - `2`
+      - `0`
+      - at most `12*k-18` CX gates
+    * - ``"2_dirty_kg24"``
+      - :class:`~.MCXSynthesis2DirtyKG24`
+      - `0`
+      - `2`
+      - at most `24*k-48` CX gates
+    * - ``"1_clean_kg24"``
+      - :class:`~.MCXSynthesis1CleanKG24`
+      - `1`
+      - `0`
+      - at most `12*k-18` CX gates
+    * - ``"1_dirty_kg24"``
+      - :class:`~.MCXSynthesis1DirtyKG24`
+      - `0`
+      - `1`
+      - at most `24*k-48` CX gates
     * - ``"1_clean_b95"``
       - :class:`~.MCXSynthesis1CleanB95`
       - `1`
@@ -212,6 +232,10 @@ not sufficient, the corresponding synthesis method will return `None`.
    MCXSynthesisNoAuxV24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
+   MCXSynthesis2CleanKG24
+   MCXSynthesis2DirtyKG24
+   MCXSynthesis1CleanKG24
+   MCXSynthesis1DirtyKG24
    MCXSynthesis1CleanB95
    MCXSynthesisDefault
 
@@ -522,7 +546,11 @@ from qiskit.synthesis.qft import (
 )
 from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15,
+    synth_mcx_2_dirty_kg24,
+    synth_mcx_1_dirty_kg24,
     synth_mcx_n_clean_m15,
+    synth_mcx_2_clean_kg24,
+    synth_mcx_1_clean_kg24,
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
@@ -1145,6 +1173,174 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class MCXSynthesis2CleanKG24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
+    Gidney (2024).
+
+    See [1] for details.
+
+    The plugin name is :``mcx.2_clean_kg24`` which can be used as the key on an :class:`~.HLSConfig`
+    object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
+    :math:`2` additional clean ancillary qubits. The synthesized circuit consists of :math:`k + 2`
+    qubits and at most :math:`12 * k - 18` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean ancillary qubits available.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_clean_ancillas = options.get("num_clean_ancillas", 0)
+
+        if num_clean_ancillas < 2:
+            return None
+
+        decomposition = synth_mcx_2_clean_kg24(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
+    Gidney (2024).
+
+    See [1] for details.
+
+    The plugin name is :``mcx.2_dirty_kg24`` which can be used as the key on an :class:`~.HLSConfig`
+    object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
+    :math:`2` additional dirty ancillary qubits. The synthesized circuit consists of :math:`k + 2`
+    qubits and at most :math:`24 * k - 48` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean ancillary qubits available.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+
+        if num_dirty_ancillas < 2:
+            return None
+
+        decomposition = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesis1CleanKG24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
+    Gidney (2024).
+
+    See [1] for details.
+
+    The plugin name is :``mcx.1_clean_kg24`` which can be used as the key on an :class:`~.HLSConfig`
+    object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
+    :math:`1` additional clean ancillary qubit. The synthesized circuit consists of :math:`k + 2`
+    qubits and at most :math:`12 * k - 18` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean ancillary qubits available.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_clean_ancillas = options.get("num_clean_ancillas", 0)
+
+        if num_clean_ancillas < 1:
+            return None
+
+        decomposition = synth_mcx_1_clean_kg24(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
+    Gidney (2024).
+
+    See [1] for details.
+
+    The plugin name is :``mcx.1_dirty_kg24`` which can be used as the key on an :class:`~.HLSConfig`
+    object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
+    :math:`1` additional dirty ancillary qubit. The synthesized circuit consists of :math:`k + 2`
+    qubits and at most :math:`24 * k - 48` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean ancillary qubits available.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+
+        if num_dirty_ancillas < 1:
+            return None
+
+        decomposition = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
+        return decomposition
+
+
 class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate based on the Gray code.
 
@@ -1228,27 +1424,23 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
         # Iteratively run other synthesis methods available
 
-        if (
-            decomposition := MCXSynthesisNCleanM15().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
+        for synthesis_method in [
+            MCXSynthesisNCleanM15,
+            MCXSynthesisNDirtyI15,
+            MCXSynthesis2CleanKG24,
+            MCXSynthesis2DirtyKG24,
+            MCXSynthesis1CleanKG24,
+            MCXSynthesis1DirtyKG24,
+            MCXSynthesis1CleanB95,
+        ]:
+            if (
+                decomposition := synthesis_method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
+                return decomposition
 
-        if (
-            decomposition := MCXSynthesisNDirtyI15().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
-        if (
-            decomposition := MCXSynthesis1CleanB95().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
+        # If no synthesis method was successful, fall back to the default
         return MCXSynthesisNoAuxV24().run(
             high_level_object, coupling_map, target, qubits, **options
         )

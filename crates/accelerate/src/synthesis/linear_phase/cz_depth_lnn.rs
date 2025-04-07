@@ -132,7 +132,7 @@ pub(super) fn synth_cz_depth_line_mr_inner(matrix: ArrayView2<bool>) -> (usize, 
         }
     }
 
-    for i in 0..((num_qubits + 1) / 2) {
+    for i in 0..num_qubits.div_ceil(2) {
         for j in 0..num_qubits {
             let pat_val = pats[&(i, j)];
             if patlist.contains(&pat_val) {

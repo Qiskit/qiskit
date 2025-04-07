@@ -4130,7 +4130,7 @@ fn cast_array_type<'py, T>(
 ///
 /// * `Ok(Some(obs))` if the coercion was completely successful.
 /// * `Ok(None)` if the input value was just completely the wrong type and no coercion could be
-///    attempted.
+///   attempted.
 /// * `Err` if the input was a valid type for coercion, but the coercion failed with a Python
 ///   exception.
 ///
