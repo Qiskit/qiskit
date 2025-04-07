@@ -89,12 +89,15 @@ fn reset_gadget() -> PyResult<CircuitData> {
     Ok(circuit)
 }
 
-/// Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
-/// dirty ancillary qubits, producing a circuit with :math:`2 * k - 1` qubits and at most
-/// :math:`8 * k - 6` CX gates. For details, see lemma 8 in [1].
+/// Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
+/// by Iten et al. [1].
+///
+/// For :math:`k\ge 4` the method uses :math:`k - 2` dirty ancillary qubits, producing a circuit
+/// with :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates. For :math:`k\le 3`
+/// explicit efficient circuits are used instead.
 ///
 /// # Arguments
-/// - num_ctrl_qubits: the number of control qubits.
+/// - num_controls: the number of control qubits.
 /// - relative_phase: when set to `true`, the method applies the optimized multi-controlled
 ///   X gate up to a relative phase, in a way that the relative phases of the `action part`
 ///   cancel out with the relative phases of the `reset part`.
@@ -208,7 +211,7 @@ pub fn synth_mcx_n_dirty_i15(
 /// special unitaries described in [1].
 ///
 /// # Arguments
-/// - num_ctrl_qubits: the number of control qubits.
+/// - num_controls: the number of control qubits.
 ///
 /// # Returns
 ///
@@ -224,12 +227,9 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
     // ToDo: should we return Result?
     if num_controls == 3 {
         c3x()
-    }
-    // restore me!
-    // else if num_controls == 4 {
-    //     c4x()
-    // }
-    else {
+    } else if num_controls == 4 {
+        c4x()
+    } else {
         let num_qubits = (num_controls + 1) as u32;
         let target = num_controls as u32;
 
