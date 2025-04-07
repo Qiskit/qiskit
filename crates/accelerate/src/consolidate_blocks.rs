@@ -51,7 +51,7 @@ fn is_supported(
         Some(target) => {
             let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
                 qargs.iter().map(|bit| PhysicalQubit(bit.0)).collect();
-            target.instruction_supported(name, &physical_qargs)
+            target.instruction_supported(name, Some(&physical_qargs))
         }
         None => match basis_gates {
             Some(basis_gates) => basis_gates.contains(name),

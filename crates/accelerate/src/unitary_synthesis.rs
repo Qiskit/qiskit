@@ -114,7 +114,7 @@ fn get_euler_basis_set(basis_list: IndexSet<&str>) -> EulerBasisSet {
 /// This will determine the available 1q synthesis basis for different decomposers.
 fn get_target_basis_set(target: &Target, qubit: PhysicalQubit) -> EulerBasisSet {
     let mut target_basis_set: EulerBasisSet = EulerBasisSet::new();
-    let target_basis_list = target.operation_names_for_qargs(&[qubit]);
+    let target_basis_list = target.operation_names_for_qargs(Some(&[qubit]));
     match target_basis_list {
         Ok(basis_list) => {
             target_basis_set = get_euler_basis_set(basis_list.into_iter().collect());
@@ -518,15 +518,15 @@ fn get_2q_decomposers_from_target(
     // Store elegible basis gates (1q and 2q) with corresponding qargs (PhysicalQubit)
     let reverse_qubits: [PhysicalQubit; 2] = [qubits[1], qubits[0]];
     let mut qubit_gate_map: IndexMap<&[PhysicalQubit; 2], HashSet<&str>> = IndexMap::new();
-    match target.operation_names_for_qargs(qubits) {
+    match target.operation_names_for_qargs(Some(qubits)) {
         Ok(direct_keys) => {
             qubit_gate_map.insert(qubits, direct_keys);
-            if let Ok(reverse_keys) = target.operation_names_for_qargs(&reverse_qubits) {
+            if let Ok(reverse_keys) = target.operation_names_for_qargs(Some(&reverse_qubits)) {
                 qubit_gate_map.insert(&reverse_qubits, reverse_keys);
             }
         }
         Err(_) => {
-            if let Ok(reverse_keys) = target.operation_names_for_qargs(&reverse_qubits) {
+            if let Ok(reverse_keys) = target.operation_names_for_qargs(Some(&reverse_qubits)) {
                 qubit_gate_map.insert(&reverse_qubits, reverse_keys);
             } else {
                 return Err(QiskitError::new_err(
@@ -1106,7 +1106,7 @@ fn synth_error(
     let mut score_instruction = |inst_name: &str,
                                  inst_params: &Option<SmallVec<[Param; 3]>>,
                                  inst_qubits: &[PhysicalQubit]| {
-        if let Ok(names) = target.operation_names_for_qargs(inst_qubits) {
+        if let Ok(names) = target.operation_names_for_qargs(Some(inst_qubits)) {
             for name in names {
                 if let Ok(target_op) = target.operation_from_name(name) {
                     let are_params_close = if let Some(params) = inst_params {

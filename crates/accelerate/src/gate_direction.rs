@@ -78,7 +78,7 @@ fn py_check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> P
             PhysicalQubit::new(op_args[1].0),
         ];
 
-        target.instruction_supported(inst.op.name(), qargs)
+        target.instruction_supported(inst.op.name(), Some(qargs))
     };
 
     check_gate_direction(py, dag, &target_check, None)
@@ -225,7 +225,7 @@ fn py_fix_direction_target(
                 _ => {}
             }
         }
-        target.instruction_supported(inst.op.name(), &qargs)
+        target.instruction_supported(inst.op.name(), Some(&qargs))
     };
 
     fix_gate_direction(py, dag, &target_check, None).cloned()

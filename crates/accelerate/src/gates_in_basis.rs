@@ -37,7 +37,7 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
     ) -> PyResult<bool> {
         let qargs_mapped: SmallVec<[PhysicalQubit; 2]> =
             qargs.iter().map(|q| wire_map[q]).collect();
-        if !target.instruction_supported(gate.op.name(), &qargs_mapped) {
+        if !target.instruction_supported(gate.op.name(), Some(&qargs_mapped)) {
             return Ok(true);
         }
 
