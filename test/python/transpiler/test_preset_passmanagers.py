@@ -970,12 +970,12 @@ class TestFinalLayouts(QiskitTestCase):
             result.layout.initial_index_layout(filter_ancillas=True), expected_layouts[level]
         )
 
-    @data(0, 1, 2, 3)
-    def test_all_levels_use_trivial_if_perfect(self, level):
-        """Test that we always use trivial if it's a perfect match.
+    @data(0, 1)
+    def test_low_levels_use_trivial_if_perfect(self, level):
+        """Test that we use trivial if it's a perfect match at levels 0 and 1.  Higher levels use
+        VF2 instead, which may not always return the trivial layout based on the scoring.
 
-        See: https://github.com/Qiskit/qiskit-terra/issues/5694 for more
-        details
+        See: https://github.com/Qiskit/qiskit-terra/issues/5694 for more details.
         """
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
 
