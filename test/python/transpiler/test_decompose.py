@@ -200,22 +200,19 @@ class TestDecompose(QiskitTestCase):
     def test_decompose_only_given_name(self):
         """Test decomposition parameters so that only given name is decomposed."""
         decom_circ = self.complex_circuit.decompose(["mcx"], reps=2)
+        print(decom_circ)
         dag = circuit_to_dag(decom_circ)
-
-        self.assertEqual(len(dag.op_nodes()), 13)
+        self.assertEqual(len(dag.op_nodes()), 7)
         self.assertEqual(dag.op_nodes()[0].op.label, "gate1")
         self.assertEqual(dag.op_nodes()[1].op.label, "gate2")
         self.assertEqual(dag.op_nodes()[2].name, "h")
-        self.assertEqual(dag.op_nodes()[3].name, "cu1")
-        self.assertEqual(dag.op_nodes()[4].name, "rcccx")
-        self.assertEqual(dag.op_nodes()[5].name, "h")
+        self.assertEqual(dag.op_nodes()[3].name, "mcphase")
+
+        print(type(decom_circ[3]))
+
+        self.assertEqual(dag.op_nodes()[4].name, "h")
+        self.assertRegex(dag.op_nodes()[5].name, "circuit-")
         self.assertEqual(dag.op_nodes()[6].name, "h")
-        self.assertEqual(dag.op_nodes()[7].name, "cu1")
-        self.assertEqual(dag.op_nodes()[8].name, "rcccx_dg")
-        self.assertEqual(dag.op_nodes()[9].name, "h")
-        self.assertEqual(dag.op_nodes()[10].name, "c3sx")
-        self.assertEqual(dag.op_nodes()[11].name, "h")
-        self.assertRegex(dag.op_nodes()[12].name, "circuit-")
 
     def test_decompose_mixture_of_names_and_labels(self):
         """Test decomposition parameters so that mixture of names and labels is decomposed"""

@@ -21,8 +21,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister, Ancil
 from qiskit.circuit.library.standard_gates import (
     HGate,
     CU1Gate,
-    RC3XGate,
-    C3SXGate,
 )
 
 from qiskit._accelerate.synthesis.multi_controlled import (
@@ -569,34 +567,9 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_c3x() -> QuantumCircuit:
     """Efficient synthesis of 3-controlled X-gate."""
-    circ = QuantumCircuit._from_circuit_data(c3x_rs())
-    return circ
+    return QuantumCircuit._from_circuit_data(c3x_rs())
 
 
 def synth_c4x() -> QuantumCircuit:
-    """Efficient synthesis of 4-controlled X-gate."""
-
-    q = QuantumRegister(5, name="q")
-    qc = QuantumCircuit(q, name="mcx")
-
-    rules = [
-        (HGate(), [q[4]], []),
-        (CU1Gate(np.pi / 2), [q[3], q[4]], []),
-        (HGate(), [q[4]], []),
-        (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
-        (HGate(), [q[4]], []),
-        (CU1Gate(-np.pi / 2), [q[3], q[4]], []),
-        (HGate(), [q[4]], []),
-        (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
-        (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
-    ]
-    for instr, qargs, cargs in rules:
-        qc._append(instr, qargs, cargs)
-
-    return qc
-
-
-
-def synth_c4x_new() -> QuantumCircuit:
     """Efficient synthesis of 4-controlled X-gate."""
     return QuantumCircuit._from_circuit_data(c4x_rs())
