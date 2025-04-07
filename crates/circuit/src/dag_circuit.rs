@@ -6989,9 +6989,9 @@ impl DAGCircuitConcat {
         let num_vars = dag.num_vars();
         Self {
             dag,
-            last_qubits: (0..num_qubits).map(|_| None).collect(),
-            last_clbits: (0..num_clbits).map(|_| None).collect(),
-            last_vars: (0..num_vars).map(|_| None).collect(),
+            last_qubits: vec![None; num_qubits],
+            last_clbits: vec![None; num_clbits],
+            last_vars: vec![None; num_vars],
         }
     }
 
