@@ -137,11 +137,11 @@ fn get_ctrl_state(py: Python, inst: &PackedInstruction, num_ctrl_qubits: u32) ->
     }
 }
 
-fn get_instruction_params(instruction: &PackedInstruction) -> Vec<SerializableParam> {
+fn get_instruction_params(py: Python, instruction: &PackedInstruction) -> Vec<SerializableParam> {
     instruction
     .params_view()
     .iter()
-    .map(|x| param_to_serializable(&x))
+    .map(|x| param_to_serializable(py, &x))
     .collect()
 }
 
@@ -150,7 +150,7 @@ fn instruction_raw(py: Python, instruction: &PackedInstruction, circuit_data: &C
     let label_raw = gate_label(instruction);
     let num_ctrl_qubits = get_num_ctrl_qubits(py,instruction).unwrap_or(0);
     let ctrl_state = get_ctrl_state(py, instruction, num_ctrl_qubits).unwrap_or(0);
-    let instruction_params: Vec<SerializableParam> = get_instruction_params(instruction);
+    let instruction_params: Vec<SerializableParam> = get_instruction_params(py, instruction);
     let bit_data = get_packed_bit_list(instruction, circuit_data);
     CircuitInstructionV2Pack{
         gate_class_name_length: class_name.len() as u16,

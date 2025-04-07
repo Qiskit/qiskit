@@ -64,6 +64,8 @@ pub static INSTRUCTION: ImportOnceCell =
 pub static GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.gate", "Gate");
 pub static CONTROL_FLOW_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "ControlFlowOp");
+pub static PARAMETER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parameter", "Parameter");
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
 pub static PARAMETER_VECTOR: ImportOnceCell =
