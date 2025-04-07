@@ -74,6 +74,10 @@ from qiskit.transpiler.passes.synthesis.hls_plugins import (
     MCXSynthesis1CleanB95,
     MCXSynthesisNCleanM15,
     MCXSynthesisNDirtyI15,
+    MCXSynthesis2CleanKG24,
+    MCXSynthesis2DirtyKG24,
+    MCXSynthesis1CleanKG24,
+    MCXSynthesis1DirtyKG24,
     MCXSynthesisGrayCode,
     MCXSynthesisDefault,
     MCXSynthesisNoAuxV24,
@@ -2669,6 +2673,69 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNone(decomposition)
 
+        with self.subTest(method="2_clean_kg24", num_clean_ancillas=2, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesis2CleanKG24().run(
+                gate, num_clean_ancillas=2, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="2_clean_kg24", num_clean_ancillas=1, num_dirty_ancillas=0):
+            # should not have a decomposition
+            decomposition = MCXSynthesis2CleanKG24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=0
+            )
+            self.assertIsNone(decomposition)
+            decomposition = MCXSynthesis2CleanKG24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
+            self.assertIsNone(decomposition)
+
+        with self.subTest(method="2_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=2):
+            # should have a decomposition
+            decomposition = MCXSynthesis2DirtyKG24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=2
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="2_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=1):
+            # should not have a decomposition
+            decomposition = MCXSynthesis2DirtyKG24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=1
+            )
+            self.assertIsNone(decomposition)
+            decomposition = MCXSynthesis2DirtyKG24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
+            self.assertIsNone(decomposition)
+
+        with self.subTest(method="1_clean_kg24", num_clean_ancillas=1, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesis1CleanKG24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="1_clean_kg24", num_clean_ancillas=0, num_dirty_ancillas=1):
+            # should not have a decomposition
+            decomposition = MCXSynthesis1CleanKG24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=1
+            )
+            self.assertIsNone(decomposition)
+
+        with self.subTest(method="1_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=1):
+            # should have a decomposition
+            decomposition = MCXSynthesis1DirtyKG24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+        with self.subTest(method="1_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should not have a decomposition
+            decomposition = MCXSynthesis1DirtyKG24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
+            self.assertIsNone(decomposition)
+
         with self.subTest(method="1_clean_b95", num_clean_ancillas=1, num_dirty_ancillas=0):
             # should have a decomposition
             decomposition = MCXSynthesis1CleanB95().run(
@@ -2725,7 +2792,18 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
-    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "noaux_v24", "gray_code", "default")
+    @data(
+        "n_clean_m15",
+        "n_dirty_i15",
+        "2_clean_kg24",
+        "2_dirty_kg24",
+        "1_clean_kg24",
+        "1_dirty_kg24",
+        "1_clean_b95",
+        "noaux_v24",
+        "gray_code",
+        "default",
+    )
     def test_mcx_plugins_correctness_from_arbitrary(self, mcx_plugin_name):
         """Test that all plugins return a correct Operator when qubits are not
         initially zero."""
@@ -2740,7 +2818,18 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
         qct = hls_pass(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
-    @data("n_clean_m15", "n_dirty_i15", "1_clean_b95", "noaux_v24", "gray_code", "default")
+    @data(
+        "n_clean_m15",
+        "n_dirty_i15",
+        "2_clean_kg24",
+        "2_dirty_kg24",
+        "1_clean_kg24",
+        "1_dirty_kg24",
+        "1_clean_b95",
+        "noaux_v24",
+        "gray_code",
+        "default",
+    )
     def test_mcx_plugins_correctness_from_zero(self, mcx_plugin_name):
         """Test that all plugins return a correct Statevector when qubits are
         initially zero."""
