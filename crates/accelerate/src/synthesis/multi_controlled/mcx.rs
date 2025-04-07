@@ -17,43 +17,21 @@ use qiskit_circuit::operations::{Operation, PyGate, StandardGate};
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param, Qubit};
 
 use std::f64::consts::PI;
-// const PI2: f64 = PI / 2.;
-// const PI4: f64 = PI / 4.;
-const PI8: f64 = PI / 8.;
+const PI2: f64 = PI / 2.0;
 
+/// Efficient synthesis for CCX.
 pub fn ccx() -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(3, 0, 15, Param::Float(0.0))?;
-    circuit.h(2);
-    circuit.cx(1, 2);
-    circuit.tdg(2);
-    circuit.cx(0, 2);
-    circuit.t(2);
-    circuit.cx(1, 2);
-    circuit.tdg(2);
-    circuit.cx(0, 2);
-    circuit.t(1);
-    circuit.t(2);
-    circuit.h(2);
-    circuit.cx(0, 1);
-    circuit.t(0);
-    circuit.tdg(1);
-    circuit.cx(0, 1);
+    let circuit = StandardGate::CCX
+        .definition(&[])
+        .expect("Could not extract definition for CCX.");
     Ok(circuit)
 }
 
-/// Implements an optimized toffoli operation up to a diagonal gate,
-/// akin to lemma 6 of [arXiv:1501.06911] (https://arxiv.org/abs/1501.06911).
+/// Efficient synthesis for RCCX.
 fn rccx() -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(3, 0, 9, Param::Float(0.0))?;
-    circuit.h(2);
-    circuit.t(2);
-    circuit.cx(1, 2);
-    circuit.tdg(2);
-    circuit.cx(0, 2);
-    circuit.t(2);
-    circuit.cx(1, 2);
-    circuit.tdg(2);
-    circuit.h(2);
+    let circuit = StandardGate::RCCX
+        .definition(&[])
+        .expect("Could not extract definition for RCCX.");
     Ok(circuit)
 }
 
@@ -65,49 +43,29 @@ pub fn c3x() -> PyResult<CircuitData> {
     Ok(circuit)
 }
 
-// /// Standard definition for RC3XGate
-// // ToDo: maybe we should instead introduce from_definition?
-// rules = [
-//             (U2Gate(0, pi), [q[3]], []),  # H gate
-//             (U1Gate(pi / 4), [q[3]], []),  # T gate
-//             (CXGate(), [q[2], q[3]], []),
-//             (U1Gate(-pi / 4), [q[3]], []),  # inverse T gate
-//             (U2Gate(0, pi), [q[3]], []),
-//             (CXGate(), [q[0], q[3]], []),
-//             (U1Gate(pi / 4), [q[3]], []),
-//             (CXGate(), [q[1], q[3]], []),
-//             (U1Gate(-pi / 4), [q[3]], []),
-//             (CXGate(), [q[0], q[3]], []),
-//             (U1Gate(pi / 4), [q[3]], []),
-//             (CXGate(), [q[1], q[3]], []),
-//             (U1Gate(-pi / 4), [q[3]], []),
-//             (U2Gate(0, pi), [q[3]], []),
-//             (U1Gate(pi / 4), [q[3]], []),
-//             (CXGate(), [q[2], q[3]], []),
-//             (U1Gate(-pi / 4), [q[3]], []),
-//             (U2Gate(0, pi), [q[3]], []),
-//         ]
-
-// /// Efficient synthesis for 4-controlled X-gate.
-// pub fn c4x<'a>() -> CircuitData<'a> {
-//     let mut circuit = CircuitData::new(5);
-//     circuit.h(4);
-//     circuit.cu1(PI2, 3, 4);
-//     circuit.h(4);
-// }
-
-//     rules = [
-//         (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
-//         (HGate(), [q[4]], []),
-//         (CU1Gate(-np.pi / 2), [q[3], q[4]], []),
-//         (HGate(), [q[4]], []),
-//         (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
-//         (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
-//     ]
-//     for instr, qargs, cargs in rules:
-//         qc._append(instr, qargs, cargs)
-
-//     return qc
+/// Efficient synthesis for 4-controlled X-gate.
+pub fn c4x() -> PyResult<CircuitData> {
+    let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
+    circuit.h(4);
+    circuit.cp(PI2, 3, 4);
+    circuit.h(4);
+    circuit.compose(
+        &CircuitData::from_standard_gate_definition(StandardGate::RC3X, &[])?,
+        Some(&[Qubit(0), Qubit(1), Qubit(2), Qubit(3)]),
+    )?;
+    circuit.h(4);
+    circuit.cp(-PI2, 3, 4);
+    circuit.h(4);
+    circuit.compose(
+        &CircuitData::from_standard_gate_definition(StandardGate::RC3X, &[])?.inverse()?,
+        Some(&[Qubit(0), Qubit(1), Qubit(2), Qubit(3)]),
+    )?;
+    circuit.compose(
+        &CircuitData::from_standard_gate_definition(StandardGate::C3SX, &[])?,
+        Some(&[Qubit(0), Qubit(1), Qubit(2), Qubit(4)]),
+    )?;
+    Ok(circuit)
+}
 
 /// A block in the `action part`, see Iten et al.
 fn action_gadget() -> PyResult<CircuitData> {

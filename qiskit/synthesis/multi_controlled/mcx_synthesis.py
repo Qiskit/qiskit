@@ -27,6 +27,7 @@ from qiskit.circuit.library.standard_gates import (
 
 from qiskit._accelerate.synthesis.multi_controlled import (
     c3x as c3x_rs,
+    c4x as c4x_rs,
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
     synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
 )
@@ -593,3 +594,9 @@ def synth_c4x() -> QuantumCircuit:
         qc._append(instr, qargs, cargs)
 
     return qc
+
+
+
+def synth_c4x_new() -> QuantumCircuit:
+    """Efficient synthesis of 4-controlled X-gate."""
+    return QuantumCircuit._from_circuit_data(c4x_rs())

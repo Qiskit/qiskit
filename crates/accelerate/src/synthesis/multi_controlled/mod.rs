@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use mcx::{c3x, ccx, synth_mcx_n_dirty_i15, synth_mcx_noaux_v24};
+use mcx::{c3x, c4x, ccx, synth_mcx_n_dirty_i15, synth_mcx_noaux_v24};
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 
@@ -27,6 +27,12 @@ pub fn py_ccx() -> PyResult<CircuitData> {
 #[pyo3(name = "c3x")]
 pub fn py_c3x() -> PyResult<CircuitData> {
     c3x()
+}
+
+#[pyfunction]
+#[pyo3(name = "c4x")]
+pub fn py_c4x() -> PyResult<CircuitData> {
+    c4x()
 }
 
 #[pyfunction]
@@ -48,6 +54,7 @@ fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitDa
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_ccx, m)?)?;
     m.add_function(wrap_pyfunction!(py_c3x, m)?)?;
+    m.add_function(wrap_pyfunction!(py_c4x, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_i15, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_v24, m)?)?;
     m.add_function(wrap_pyfunction!(mcmt::mcmt_v_chain, m)?)?;
