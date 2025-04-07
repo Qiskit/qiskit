@@ -419,14 +419,12 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
                 let num_qubits = dag[*other_index].unwrap_operation().op.num_qubits() + num_qubits;
                 let new_label = if retain_uuid {
                     Some(label.to_string())
+                } else if label.starts_with("_none_uuid=") {
+                    None
                 } else {
-                    if label.starts_with("_none_uuid=") {
-                        None
-                    } else {
-                        let len = label.len();
-                        let components: Vec<&str> = label.split("_uuid=").collect();
-                        Some(components[..len - 1].join("_uuid="))
-                    }
+                    let len = label.len();
+                    let components: Vec<&str> = label.split("_uuid=").collect();
+                    Some(components[..len - 1].join("_uuid="))
                 };
                 let new_op = PackedOperation::from_standard_instruction(
                     StandardInstruction::Barrier(num_qubits),

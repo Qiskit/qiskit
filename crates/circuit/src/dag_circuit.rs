@@ -1551,9 +1551,9 @@ impl DAGCircuit {
         )?;
         target_dag.name = self.name.clone();
         target_dag.global_phase = self.global_phase.clone();
-        target_dag.duration = self.duration.as_ref().map(|d| d.clone());
+        target_dag.duration = self.duration.clone();
         target_dag.unit.clone_from(&self.unit);
-        target_dag.metadata = self.metadata.as_ref().map(|m| m.clone());
+        target_dag.metadata = self.metadata.clone();
         target_dag.qargs_interner = self.qargs_interner.clone();
         target_dag.cargs_interner = self.cargs_interner.clone();
 
@@ -4689,7 +4689,7 @@ impl DAGCircuit {
     /// Returns an immutable view of the clbit io map
     #[inline(always)]
     pub fn clbit_io_map(&self) -> &[[NodeIndex; 2]] {
-        &self.qubit_io_map
+        &self.clbit_io_map
     }
 
     /// Returns an immutable view of the inner StableGraph managed by the circuit.
