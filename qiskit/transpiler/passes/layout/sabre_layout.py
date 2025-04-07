@@ -318,14 +318,7 @@ class SabreLayout(TransformationPass):
             mapped_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             mapped_dag.add_declared_var(var)
-<<<<<<< HEAD
-        mapped_dag.global_phase = dag.global_phase
-=======
-        for stretch in dag.iter_captured_stretches():
-            mapped_dag.add_captured_stretch(stretch)
-        for stretch in dag.iter_declared_stretches():
-            mapped_dag.add_declared_stretch(stretch)
->>>>>>> 2504bde2f (Fix circuit-metadata propagation in `SabreLayout` (#14186))
+
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
