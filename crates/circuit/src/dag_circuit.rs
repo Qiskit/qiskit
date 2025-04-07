@@ -200,9 +200,9 @@ pub struct DAGCircuit {
     /// Identifiers, in order of their addition to the DAG.
     identifier_info: IndexMap<String, DAGIdentifierInfo, RandomState>,
 
-    vars_input: Vec<Var>,
-    vars_capture: Vec<Var>,
-    vars_declare: Vec<Var>,
+    vars_input: HashSet<Var>,
+    vars_capture: HashSet<Var>,
+    vars_declare: HashSet<Var>,
 
     stretches_capture: HashSet<Stretch>,
     stretches_declare: Vec<Stretch>,
@@ -823,13 +823,13 @@ impl DAGCircuit {
                 },
                 DAGIdentifierInfo::Var(info) => match info.type_ {
                     DAGVarType::Input => {
-                        self.vars_input.push(info.var);
+                        self.vars_input.insert(info.var);
                     }
                     DAGVarType::Capture => {
-                        self.vars_capture.push(info.var);
+                        self.vars_capture.insert(info.var);
                     }
                     DAGVarType::Declare => {
-                        self.vars_declare.push(info.var);
+                        self.vars_declare.insert(info.var);
                     }
                 },
             }
@@ -2408,21 +2408,6 @@ impl DAGCircuit {
         {
             return Ok(false);
         }
-        for (our_var, their_var) in self.vars_input.iter().zip(&other.vars_input) {
-            if self.vars.get(*our_var) != other.vars.get(*their_var) {
-                return Ok(false);
-            }
-        }
-        for (our_var, their_var) in self.vars_capture.iter().zip(&other.vars_capture) {
-            if self.vars.get(*our_var) != other.vars.get(*their_var) {
-                return Ok(false);
-            }
-        }
-        for (our_var, their_var) in self.vars_declare.iter().zip(&other.vars_declare) {
-            if self.vars.get(*our_var) != other.vars.get(*their_var) {
-                return Ok(false);
-            }
-        }
 
         if self.stretches_capture.len() != other.stretches_capture.len()
             || self.stretches_declare.len() != other.stretches_declare.len()
@@ -2430,8 +2415,28 @@ impl DAGCircuit {
             return Ok(false);
         }
 
-        // Note that stretch captures is a set and thus order of captured stretches
-        // does not influence equality.
+        let var_eq = |our_vars: &HashSet<Var>, their_vars: &HashSet<Var>| -> PyResult<bool> {
+            for our_var in our_vars {
+                let our_var = self.vars.get(*our_var).unwrap();
+                let Some(their_var) = other.vars.find(our_var) else {
+                    // The var isn't registered at all.
+                    return Ok(false);
+                };
+                if !their_vars.contains(&their_var) {
+                    // It's registered, but not as the right kind (e.g. not a capture).
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        };
+
+        if !var_eq(&self.vars_input, &other.vars_input)?
+            || !var_eq(&self.vars_capture, &other.vars_capture)?
+            || !var_eq(&self.vars_declare, &other.vars_declare)?
+        {
+            return Ok(false);
+        }
+
         for our_stretch in self.stretches_capture.iter() {
             let our_stretch = self.stretches.get(*our_stretch).unwrap();
             let Some(their_stretch) = other.stretches.find(our_stretch) else {
@@ -2443,6 +2448,8 @@ impl DAGCircuit {
                 return Ok(false);
             }
         }
+
+        // Declared stretches must match exact order.
         for (our_stretch, their_stretch) in
             self.stretches_declare.iter().zip(&other.stretches_declare)
         {
@@ -4700,7 +4707,7 @@ impl DAGCircuit {
 
     /// Iterable over the input classical variables tracked by the circuit.
     fn iter_input_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        let result = PyList::new(
+        let result = PySet::new(
             py,
             self.vars_input
                 .iter()
@@ -4711,7 +4718,7 @@ impl DAGCircuit {
 
     /// Iterable over the captured classical variables tracked by the circuit.
     fn iter_captured_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        let result = PyList::new(
+        let result = PySet::new(
             py,
             self.vars_capture
                 .iter()
@@ -4750,7 +4757,7 @@ impl DAGCircuit {
 
     /// Iterable over the declared classical variables tracked by the circuit.
     fn iter_declared_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
-        let result = PyList::new(
+        let result = PySet::new(
             py,
             self.vars_declare
                 .iter()
@@ -4939,9 +4946,9 @@ impl DAGCircuit {
             var_io_map: Vec::new(),
             op_names: IndexMap::default(),
             identifier_info: IndexMap::default(),
-            vars_input: Vec::new(),
-            vars_capture: Vec::new(),
-            vars_declare: Vec::new(),
+            vars_input: HashSet::new(),
+            vars_capture: HashSet::new(),
+            vars_declare: HashSet::new(),
             stretches_capture: HashSet::new(),
             stretches_declare: Vec::new(),
         })
@@ -6326,7 +6333,7 @@ impl DAGCircuit {
             DAGVarType::Capture => &mut self.vars_capture,
             DAGVarType::Declare => &mut self.vars_declare,
         }
-        .push(var_idx);
+        .insert(var_idx);
         self.identifier_info.insert(
             name,
             DAGIdentifierInfo::Var(DAGVarInfo {
@@ -6439,9 +6446,9 @@ impl DAGCircuit {
                 num_vars + num_stretches,
                 RandomState::default(),
             ),
-            vars_input: Vec::new(),
-            vars_capture: Vec::new(),
-            vars_declare: Vec::new(),
+            vars_input: HashSet::new(),
+            vars_capture: HashSet::new(),
+            vars_declare: HashSet::new(),
             stretches_capture: HashSet::new(),
             stretches_declare: Vec::new(),
         })
