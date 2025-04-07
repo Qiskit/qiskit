@@ -1318,8 +1318,9 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        self.assertEqual(out.unit, "dt")
-        self.assertEqual(out.duration, 1200)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.unit, "dt")
+            self.assertEqual(out.duration, 1200)
 
     @data(0, 1, 2, 3)
     def test_circuit_with_delay_expr_duration(self, optimization_level):
@@ -1355,8 +1356,9 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        self.assertEqual(out.unit, "dt")
-        self.assertEqual(out.duration, 1200)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.unit, "dt")
+            self.assertEqual(out.duration, 1200)
 
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
@@ -1647,7 +1649,8 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
@@ -1671,7 +1674,8 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
@@ -1683,11 +1687,13 @@ class TestTranspile(QiskitTestCase):
         qc.x(0)
         qc.measure(0, 0)
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap")
-        original_duration = scheduled.duration
+        with self.assertWarns(DeprecationWarning):
+            original_duration = scheduled.duration
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, original_duration * 2)
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
