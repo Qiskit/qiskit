@@ -1337,9 +1337,8 @@ impl Target {
         Ok(res)
     }
 
-    /// Returns an iterator of `OperationType` instances and parameters present in the Target that affect the provided qargs.
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
+    /// Returns an iterator of `OperationType` instances and parameters present in the Target that
+    /// affect the provided qargs.
     pub fn operations_for_qargs<'a, T>(
         &self,
         qargs: T,
