@@ -224,7 +224,7 @@ pub fn synth_mcx_n_dirty_i15(
 /// Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
 /// [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
 pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
-    // ToDo: should we return Result?
+    println!("IN RUST synth_mcx_noaux_v24! with num_controls = {}", num_controls);
     if num_controls == 3 {
         c3x()
     } else if num_controls == 4 {
