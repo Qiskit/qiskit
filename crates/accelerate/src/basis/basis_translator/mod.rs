@@ -29,7 +29,7 @@ use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::DAGCircuitConcat;
+use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
@@ -462,7 +462,7 @@ fn apply_translation(
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
     let out_dag = dag.copy_empty_like(py, "alike")?;
-    let mut out_dag_concat = out_dag.into_concat();
+    let mut out_dag_concat = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
@@ -519,7 +519,7 @@ fn apply_translation(
                     new_op.label.as_deref().cloned(),
                     #[cfg(feature = "cache_pygates")]
                     None,
-                );
+                )?;
             } else {
                 out_dag_concat.apply_operation_back(
                     py,
@@ -530,7 +530,7 @@ fn apply_translation(
                     node_obj.label.as_deref().cloned(),
                     #[cfg(feature = "cache_pygates")]
                     None,
-                );
+                )?;
             }
             continue;
         }
@@ -548,7 +548,7 @@ fn apply_translation(
                 node_obj.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
-            );
+            )?;
             continue;
         }
 
@@ -582,7 +582,7 @@ fn apply_translation(
 
 fn replace_node(
     py: Python,
-    dag: &mut DAGCircuitConcat,
+    dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
     instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
 ) -> PyResult<()> {
@@ -636,7 +636,7 @@ fn replace_node(
                 node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
-            );
+            )?;
         }
         dag.add_global_phase(target_dag.global_phase())?;
     } else {
@@ -740,7 +740,7 @@ fn replace_node(
                 inner_node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
-            );
+            )?;
         }
 
         match target_dag.global_phase() {

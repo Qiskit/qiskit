@@ -21,7 +21,7 @@ use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGCircuitConcat;
+use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use smallvec::{smallvec, SmallVec};
 
 use pyo3::intern;
@@ -133,7 +133,7 @@ fn get_target_basis_set(target: &Target, qubit: PhysicalQubit) -> EulerBasisSet 
 /// it should be applied.
 fn apply_synth_dag(
     py: Python<'_>,
-    out_dag: &mut DAGCircuitConcat,
+    out_dag: &mut DAGCircuitBuilder,
     out_qargs: &[Qubit],
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
@@ -144,8 +144,8 @@ fn apply_synth_dag(
             .iter()
             .map(|qarg| out_qargs[qarg.0 as usize])
             .collect();
-        out_packed_instr.qubits = out_dag.qargs_interner_mut().insert_owned(mapped_qargs);
-        out_dag.push_instruction_back(py, out_packed_instr);
+        out_packed_instr.qubits = out_dag.insert_qargs(mapped_qargs.into());
+        out_dag.push_back(py, out_packed_instr)?;
     }
     out_dag.add_global_phase(&synth_dag.get_global_phase())?;
     Ok(())
@@ -157,7 +157,7 @@ fn apply_synth_dag(
 /// so `out_qargs` is used to track the final qubit ids where they should be applied.
 fn apply_synth_sequence(
     py: Python<'_>,
-    out_dag: &mut DAGCircuitConcat,
+    out_dag: &mut DAGCircuitBuilder,
     out_qargs: &[Qubit],
     sequence: &TwoQubitUnitarySequence,
 ) -> PyResult<()> {
@@ -219,7 +219,7 @@ fn apply_synth_sequence(
             None,
             #[cfg(feature = "cache_pygates")]
             None,
-        );
+        )?;
     }
     out_dag.add_global_phase(&Param::Float(sequence.gate_sequence.global_phase()))?;
     Ok(())
@@ -371,11 +371,11 @@ fn py_run_main_loop(
                     PhysicalQubit::new(qubit_indices[out_qargs[0].0 as usize] as u32),
                     PhysicalQubit::new(qubit_indices[out_qargs[1].0 as usize] as u32),
                 ];
-                let apply_original_op = |out_dag: &mut DAGCircuitConcat| -> PyResult<()> {
-                    out_dag.push_instruction_back(py, packed_instr.clone());
+                let apply_original_op = |out_dag: &mut DAGCircuitBuilder| -> PyResult<()> {
+                    out_dag.push_back(py, packed_instr.clone())?;
                     Ok(())
                 };
-                let mut concatenable_dag = out_dag.into_concat();
+                let mut concatenable_dag = out_dag.into_builder();
                 run_2q_unitary_synthesis(
                     py,
                     unitary,
@@ -408,7 +408,7 @@ fn py_run_main_loop(
                         None,
                     )?;
                     let out_qargs = dag.get_qargs(packed_instr.qubits);
-                    let mut concatenable_dag = out_dag.into_concat();
+                    let mut concatenable_dag = out_dag.into_builder();
                     apply_synth_dag(py, &mut concatenable_dag, out_qargs, &synth_dag)?;
                     out_dag = concatenable_dag.end();
                 }
@@ -1076,7 +1076,7 @@ fn reversed_synth_su4_dag(
 
     let target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
-    let mut target_dag_concat = target_dag.into_concat();
+    let mut target_dag_concat = target_dag.into_builder();
     for node in synth_dag.topological_op_nodes()? {
         let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
@@ -1085,10 +1085,8 @@ fn reversed_synth_su4_dag(
             .iter()
             .map(|x| flip_bits[x.0 as usize])
             .collect();
-        inst.qubits = target_dag_concat
-            .qargs_interner_mut()
-            .insert_cow(qubits.into());
-        target_dag_concat.push_instruction_back(py, inst);
+        inst.qubits = target_dag_concat.insert_qargs(qubits.into());
+        target_dag_concat.push_back(py, inst)?;
     }
     Ok(target_dag_concat.end())
 }
@@ -1166,9 +1164,9 @@ fn run_2q_unitary_synthesis(
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
-    out_dag: &mut DAGCircuitConcat,
+    out_dag: &mut DAGCircuitBuilder,
     out_qargs: &[Qubit],
-    mut apply_original_op: impl FnMut(&mut DAGCircuitConcat) -> PyResult<()>,
+    mut apply_original_op: impl FnMut(&mut DAGCircuitBuilder) -> PyResult<()>,
 ) -> PyResult<()> {
     // Find decomposer candidates
     let decomposers = match target {
