@@ -24,32 +24,32 @@ type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 fn get_instr(angle: String, qubit_idx: usize) -> Option<Instruction> {
     Some(match angle.as_str() {
         "t" => (
-            StandardGate::TGate,
+            StandardGate::T,
             smallvec![],
             smallvec![Qubit(qubit_idx as u32)],
         ),
         "tdg" => (
-            StandardGate::TdgGate,
+            StandardGate::Tdg,
             smallvec![],
             smallvec![Qubit(qubit_idx as u32)],
         ),
         "s" => (
-            StandardGate::SGate,
+            StandardGate::S,
             smallvec![],
             smallvec![Qubit(qubit_idx as u32)],
         ),
         "sdg" => (
-            StandardGate::SdgGate,
+            StandardGate::Sdg,
             smallvec![],
             smallvec![Qubit(qubit_idx as u32)],
         ),
         "z" => (
-            StandardGate::ZGate,
+            StandardGate::Z,
             smallvec![],
             smallvec![Qubit(qubit_idx as u32)],
         ),
         angles_in_pi => (
-            StandardGate::PhaseGate,
+            StandardGate::Phase,
             smallvec![Param::Float((angles_in_pi.parse::<f64>().ok()?) % PI)],
             smallvec![Qubit(qubit_idx as u32)],
         ),
@@ -211,7 +211,7 @@ pub fn synth_cnot_phase_aam(
                             keep_iterating = true;
                             cx_gate_done = true;
                             gate_instr = Some((
-                                StandardGate::CXGate,
+                                StandardGate::CX,
                                 smallvec![],
                                 smallvec![Qubit((qubit_idx) as u32), Qubit(qubits_ as u32)],
                             ));
