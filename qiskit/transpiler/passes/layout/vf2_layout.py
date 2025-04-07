@@ -130,7 +130,7 @@ class VF2Layout(AnalysisPass):
         if self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
-        # Run rust fast path if we hae a target and no randomization
+        # Run rust fast path if we have a target and no randomization
         if self.seed == -1 and self.target is not None:
             try:
                 layout = vf2_layout_pass(
