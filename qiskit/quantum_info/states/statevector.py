@@ -27,9 +27,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
-# from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-# from qiskit.quantum_info.states.utils import partial_trace
-# from qiskit.quantum_info.states.measures import entropy
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
 from qiskit.quantum_info.operators.operator import Operator, BaseOperator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
