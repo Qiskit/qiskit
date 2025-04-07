@@ -40,7 +40,7 @@ type Instruction = (
 ///
 /// - `num_qubits`: The number of qubits in the circuit.
 /// - `rotation_blocks`: A reference to a vector containing the instructions to insert.
-///   This is a vector (sind we can have multiple rotations  operations per layer), with
+///   This is a vector (since we can have multiple operations per layer), with
 ///   3-tuple elements containing (packed_operation, num_qubits, num_params).
 /// - `parameters`: The set of parameter objects to use for the operations. This is a 3x nested
 ///   vector, organized as operation -> block -> param. That means that for operation `i`
@@ -94,7 +94,7 @@ fn rotation_layer<'a>(
 ///   for each entanglement block contains a vector of connections, where each connection
 ///   is a vector of indices.
 /// - `entanglement_blocks`: A reference to a vector containing the instructions to insert.
-///   This is a vector (sind we can have multiple entanglement operations per layer), with
+///   This is a vector (since we can have multiple entanglement operations per layer), with
 ///   3-tuple elements containing (packed_operation, num_qubits, num_params).
 /// - `parameters`: The set of parameter objects to use for the operations. This is a 3x nested
 ///   vector, organized as operation -> block -> param. That means that for operation `i`
