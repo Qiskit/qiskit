@@ -1,6 +1,6 @@
 # Deprecation Policy
 
-Starting from the 1.0.0 release, Qiskit follows semantic versioning, with a yearly release cycle for major releases.
+Starting from the 1.0 release, Qiskit follows semantic versioning, with a yearly release cycle for major releases.
 [Full details of the scheduling are hosted with the external public documentation](https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy).
 
 This document is primarily intended for developers of Qiskit themselves.
@@ -150,11 +150,11 @@ and add the deprecation to that function's docstring so that it shows up in the 
 ```python
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 
-@deprecate_func(since="0.24.0", additional_msg="No replacement is provided.")
+@deprecate_func(since="1.2", additional_msg="No replacement is provided.")
 def deprecated_func():
     pass
 
-@deprecate_arg("bad_arg", new_alias="new_name", since="0.24.0")
+@deprecate_arg("bad_arg", new_alias="new_name", since="1.2")
 def another_func(bad_arg: str, new_name: str):
     pass
 ```
@@ -178,7 +178,7 @@ import warnings
 def deprecated_function():
    warnings.warn(
       "The function qiskit.deprecated_function() is deprecated since "
-      "Qiskit 0.44.0, and will be removed 3 months or more later. "
+      "Qiskit 1.2, and will be removed in 2.0 or a later major release."
       "Instead, you should use qiskit.other_function().",
       category=DeprecationWarning,
       stacklevel=2,
@@ -235,9 +235,9 @@ def deprecated_function():
     """
     Short description of the deprecated function.
 
-    .. deprecated:: 0.44.0
+    .. deprecated:: 1.2
        The function qiskit.deprecated_function() is deprecated since
-       Qiskit 0.44.0, and will be removed 3 months or more later.
+       Qiskit 1.2, and will be removed in 2.0 or a later major release.
        Instead, you should use qiskit.other_function().
 
     <rest of the docstring>

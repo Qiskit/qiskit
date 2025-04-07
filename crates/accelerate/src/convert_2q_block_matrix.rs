@@ -72,7 +72,7 @@ pub fn blocks_to_matrix(
     let mut one_qubit_components_modified = false;
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
-        let inst = dag.dag()[*node].unwrap_operation();
+        let inst = dag[*node].unwrap_operation();
         let op_matrix = get_matrix_from_inst(py, inst)?;
         match dag
             .get_qargs(inst.qubits)

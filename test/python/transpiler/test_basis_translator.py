@@ -567,78 +567,6 @@ class TestUnrollerCompatability(QiskitTestCase):
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx", "sx"])
 
-    def test_unroll_1q_chain_conditional(self):
-        """Test unroll chain of 1-qubit gates interrupted by conditional."""
-
-        #     ┌───┐┌─────┐┌───┐┌───┐┌─────────┐┌─────────┐┌─────────┐┌─┐ ┌───┐  ┌───┐ »
-        # qr: ┤ H ├┤ Tdg ├┤ Z ├┤ T ├┤ Ry(0.5) ├┤ Rz(0.3) ├┤ Rx(0.1) ├┤M├─┤ X ├──┤ Y ├─»
-        #     └───┘└─────┘└───┘└───┘└─────────┘└─────────┘└─────────┘└╥┘ └─╥─┘  └─╥─┘ »
-        #                                                             ║ ┌──╨──┐┌──╨──┐»
-        # cr: 1/══════════════════════════════════════════════════════╩═╡ 0x1 ╞╡ 0x1 ╞»
-        #                                                             0 └─────┘└─────┘»
-        # «       ┌───┐
-        # «  qr: ─┤ Z ├─
-        # «       └─╥─┘
-        # «      ┌──╨──┐
-        # «cr: 1/╡ 0x1 ╞
-        # «      └─────┘
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr)
-        circuit.tdg(qr)
-        circuit.z(qr)
-        circuit.t(qr)
-        circuit.ry(0.5, qr)
-        circuit.rz(0.3, qr)
-        circuit.rx(0.1, qr)
-        circuit.measure(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.y(qr).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.z(qr).c_if(cr, 1)
-        dag = circuit_to_dag(circuit)
-        pass_ = UnrollCustomDefinitions(std_eqlib, ["u1", "u2", "u3"])
-        dag = pass_.run(dag)
-
-        pass_ = BasisTranslator(std_eqlib, ["u1", "u2", "u3"])
-        unrolled_dag = pass_.run(dag)
-
-        # Pick up -1 * 0.3 / 2 global phase for one RZ -> U1.
-        #
-        # global phase: 6.1332
-        #     ┌─────────┐┌──────────┐┌───────┐┌─────────┐┌─────────────┐┌─────────┐»
-        # qr: ┤ U2(0,π) ├┤ U1(-π/4) ├┤ U1(π) ├┤ U1(π/4) ├┤ U3(0.5,0,0) ├┤ U1(0.3) ├»
-        #     └─────────┘└──────────┘└───────┘└─────────┘└─────────────┘└─────────┘»
-        # cr: 1/═══════════════════════════════════════════════════════════════════»
-        #                                                                          »
-        # «      ┌──────────────────┐┌─┐┌───────────┐┌───────────────┐┌───────┐
-        # «  qr: ┤ U3(0.1,-π/2,π/2) ├┤M├┤ U3(π,0,π) ├┤ U3(π,π/2,π/2) ├┤ U1(π) ├
-        # «      └──────────────────┘└╥┘└─────╥─────┘└───────╥───────┘└───╥───┘
-        # «                           ║    ┌──╨──┐        ┌──╨──┐      ┌──╨──┐
-        # «cr: 1/═════════════════════╩════╡ 0x1 ╞════════╡ 0x1 ╞══════╡ 0x1 ╞═
-        # «                           0    └─────┘        └─────┘      └─────┘
-        ref_circuit = QuantumCircuit(qr, cr, global_phase=-0.3 / 2)
-        ref_circuit.append(U2Gate(0, pi), [qr[0]])
-        ref_circuit.append(U1Gate(-pi / 4), [qr[0]])
-        ref_circuit.append(U1Gate(pi), [qr[0]])
-        ref_circuit.append(U1Gate(pi / 4), [qr[0]])
-        ref_circuit.append(U3Gate(0.5, 0, 0), [qr[0]])
-        ref_circuit.append(U1Gate(0.3), [qr[0]])
-        ref_circuit.append(U3Gate(0.1, -pi / 2, pi / 2), [qr[0]])
-        ref_circuit.measure(qr[0], cr[0])
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.append(U3Gate(pi, 0, pi), [qr[0]]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.append(U3Gate(pi, pi / 2, pi / 2), [qr[0]]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            ref_circuit.append(U1Gate(pi), [qr[0]]).c_if(cr, 1)
-        ref_dag = circuit_to_dag(ref_circuit)
-
-        self.assertEqual(unrolled_dag, ref_dag)
-
     def test_unroll_no_basis(self):
         """Test when a given gate has no decompositions."""
         qr = QuantumRegister(1, "qr")
@@ -1080,43 +1008,14 @@ class TestBasisExamples(QiskitTestCase):
         )
         self.assertEqual(Operator(dag_to_circuit(out_dag)), Operator(expected))
 
-    def test_condition_set_substitute_node(self):
-        """Verify condition is set in BasisTranslator on substitute_node"""
-
-        #      ┌───┐         ┌───┐
-        # q_0: ┤ H ├──■──────┤ H ├─
-        #      └───┘┌─┴─┐┌─┐ └─╥─┘
-        # q_1: ─────┤ X ├┤M├───╫───
-        #           └───┘└╥┘┌──╨──┐
-        # c: 2/═══════════╩═╡ 0x1 ╞
-        #                 1 └─────┘
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(2, "c")
-        circ = QuantumCircuit(qr, cr)
-        circ.h(0)
-        circ.cx(0, 1)
-        circ.measure(1, 1)
-        with self.assertWarns(DeprecationWarning):
-            circ.h(0).c_if(cr, 1)
-        circ_transpiled = transpile(circ, optimization_level=3, basis_gates=["cx", "id", "u"])
-
-        #      ┌────────────┐        ┌────────────┐
-        # q_0: ┤ U(π/2,0,π) ├──■─────┤ U(π/2,0,π) ├
-        #      └────────────┘┌─┴─┐┌─┐└─────╥──────┘
-        # q_1: ──────────────┤ X ├┤M├──────╫───────
-        #                    └───┘└╥┘   ┌──╨──┐
-        # c: 2/════════════════════╩════╡ 0x1 ╞════
-        #                          1    └─────┘
-        qr = QuantumRegister(2, "q")
-        cr = ClassicalRegister(2, "c")
-        expected = QuantumCircuit(qr, cr)
-        expected.u(pi / 2, 0, pi, 0)
-        expected.cx(0, 1)
-        expected.measure(1, 1)
-        with self.assertWarns(DeprecationWarning):
-            expected.u(pi / 2, 0, pi, 0).c_if(cr, 1)
-
-        self.assertEqual(circ_transpiled, expected)
+    def test_rx_to_rz(self):
+        """Verify global phase is updated correctly in basis translation.
+        See https://github.com/Qiskit/qiskit/issues/14074."""
+        theta = 0.5 * pi
+        circ = QuantumCircuit(1)
+        circ.rx(theta, 0)
+        out_circ = BasisTranslator(std_eqlib, ["h", "rz"])(circ)
+        self.assertEqual(Operator(circ), Operator(out_circ))
 
     def test_skip_target_basis_equivalences_1(self):
         """Test that BasisTranslator skips gates in the target_basis - #6085"""

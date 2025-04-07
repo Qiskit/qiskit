@@ -19,8 +19,8 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, PyInstruction};
-use qiskit_circuit::{imports, Clbit, Qubit};
+use qiskit_circuit::operations::{Param, StandardInstruction};
+use qiskit_circuit::{Clbit, Qubit};
 
 use itertools::izip;
 
@@ -193,7 +193,7 @@ pub fn n_local(
 
     // This struct can be used to yield barrier if insert_barriers is true, otherwise
     // it returns an empty iterator. For conveniently injecting barriers in-between operations.
-    let maybe_barrier = MaybeBarrier::new(py, num_qubits, insert_barriers)?;
+    let maybe_barrier = MaybeBarrier::new(num_qubits, insert_barriers)?;
 
     let packed_insts = (0..reps).flat_map(|layer| {
         rotation_layer(
@@ -280,23 +280,14 @@ struct MaybeBarrier {
 }
 
 impl MaybeBarrier {
-    fn new(py: Python, num_qubits: u32, insert_barriers: bool) -> PyResult<Self> {
+    fn new(num_qubits: u32, insert_barriers: bool) -> PyResult<Self> {
         if !insert_barriers {
             Ok(Self { barrier: None })
         } else {
-            let barrier_cls = imports::BARRIER.get_bound(py);
-            let py_barrier = barrier_cls.call1((num_qubits,))?;
-            let py_inst = PyInstruction {
-                qubits: num_qubits,
-                clbits: 0,
-                params: 0,
-                op_name: "barrier".to_string(),
-                control_flow: false,
-                instruction: py_barrier.into(),
-            };
-
             let inst = (
-                py_inst.into(),
+                PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
+                    num_qubits,
+                )),
                 smallvec![],
                 (0..num_qubits).map(Qubit).collect(),
                 vec![] as Vec<Clbit>,

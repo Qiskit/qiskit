@@ -186,7 +186,7 @@ class PermutationGate(Gate):
 
         return PermutationGate(pattern=_inverse_pattern(self.pattern))
 
-    def _qasm2_decomposition(self):
+    def _qasm_decomposition(self):
         # pylint: disable=cyclic-import
         from qiskit.synthesis.permutation import synth_permutation_basic
 

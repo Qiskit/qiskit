@@ -39,13 +39,13 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyList, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
     angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
 };
-use crate::utils;
 use crate::QiskitError;
 
 use rand::prelude::*;
@@ -54,12 +54,14 @@ use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SX_GATE, X_GATE};
+use qiskit_circuit::gate_matrix::{
+    CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, SX_GATE, S_GATE, X_GATE,
+};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
@@ -164,6 +166,15 @@ fn py_trace_to_fid(trace: Complex64) -> PyResult<f64> {
     Ok(fid)
 }
 
+/// Return indices that sort partially ordered data.
+/// If `data` contains two elements that are incomparable,
+/// an error will be thrown.
+fn arg_sort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
+    let mut indices = (0..data.len()).collect::<Vec<_>>();
+    indices.sort_by(|&a, &b| data[a].partial_cmp(&data[b]).unwrap());
+    indices
+}
+
 fn decompose_two_qubit_product_gate(
     special_unitary: ArrayView2<Complex64>,
 ) -> PyResult<(Array2<Complex64>, Array2<Complex64>, f64)> {
@@ -211,8 +222,8 @@ fn py_decompose_two_qubit_product_gate(
     let view = special_unitary.as_array();
     let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
     Ok((
-        l.into_pyarray_bound(py).unbind().into(),
-        r.into_pyarray_bound(py).unbind().into(),
+        l.into_pyarray(py).into_any().unbind(),
+        r.into_pyarray(py).into_any().unbind(),
         phase,
     ))
 }
@@ -229,8 +240,9 @@ fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyObjec
     let array = unitary.as_array();
     __weyl_coordinates(array.into_faer_complex())
         .to_vec()
-        .into_pyarray_bound(py)
-        .into()
+        .into_pyarray(py)
+        .into_any()
+        .unbind()
 }
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
@@ -250,7 +262,7 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
         .map(|x| x.rem_euclid(PI2))
         .map(|x| x.min(PI2 - x))
         .collect();
-    let mut order = utils::arg_sort(&cstemp);
+    let mut order = arg_sort(&cstemp);
     (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
     (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
 
@@ -383,7 +395,7 @@ fn ud(a: f64, b: f64, c: f64) -> Array2<Complex64> {
 #[pyo3(name = "Ud")]
 fn py_ud(py: Python, a: f64, b: f64, c: f64) -> Py<PyArray2<Complex64>> {
     let ud_mat = ud(a, b, c);
-    ud_mat.into_pyarray_bound(py).unbind()
+    ud_mat.into_pyarray(py).unbind()
 }
 
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
@@ -398,10 +410,10 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
             // sequence. If we get a different gate this is getting called
             // by something else and is invalid.
             let gate_matrix = match inst.0.as_ref() {
-                Some(StandardGate::SXGate) => aview2(&SX_GATE).to_owned(),
-                Some(StandardGate::RZGate) => rz_matrix(inst.1[0]),
-                Some(StandardGate::CXGate) => aview2(&CX_GATE).to_owned(),
-                Some(StandardGate::XGate) => aview2(&X_GATE).to_owned(),
+                Some(StandardGate::SX) => aview2(&SX_GATE).to_owned(),
+                Some(StandardGate::RZ) => rz_matrix(inst.1[0]),
+                Some(StandardGate::CX) => aview2(&CX_GATE).to_owned(),
+                Some(StandardGate::X) => aview2(&X_GATE).to_owned(),
                 _ => unreachable!("Undefined gate"),
             };
             (gate_matrix, &inst.2)
@@ -443,6 +455,7 @@ pub enum Specialization {
     #[allow(non_camel_case_types)]
     fSimabmbEquiv,
 }
+impl_intopyobject_for_copy_pyclass!(Specialization);
 
 #[pymethods]
 impl Specialization {
@@ -461,7 +474,7 @@ impl Specialization {
             Self::fSimabbEquiv => 8,
             Self::fSimabmbEquiv => 9,
         };
-        Ok((py.get_type_bound::<Self>().getattr("_from_u8")?, (val,)).into_py(py))
+        (py.get_type::<Self>().getattr("_from_u8")?, (val,)).into_py_any(py)
     }
 
     #[staticmethod]
@@ -520,6 +533,23 @@ impl TwoQubitWeylDecomposition {
     pub fn c(&self) -> f64 {
         self.c
     }
+
+    pub fn k1l_view(&self) -> ArrayView2<Complex64> {
+        self.K1l.view()
+    }
+
+    pub fn k2l_view(&self) -> ArrayView2<Complex64> {
+        self.K2l.view()
+    }
+
+    pub fn k1r_view(&self) -> ArrayView2<Complex64> {
+        self.K1r.view()
+    }
+
+    pub fn k2r_view(&self) -> ArrayView2<Complex64> {
+        self.K2r.view()
+    }
+
     fn weyl_gate(
         &self,
         simplify: bool,
@@ -529,36 +559,36 @@ impl TwoQubitWeylDecomposition {
     ) -> PyResult<()> {
         match self.specialization {
             Specialization::MirrorControlledEquiv => {
-                sequence.push_standard_gate(StandardGate::SwapGate, &[], &[Qubit(0), Qubit(1)])?;
+                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
                 sequence.push_standard_gate(
-                    StandardGate::RZZGate,
+                    StandardGate::RZZ,
                     &[Param::Float((PI4 - self.c) * 2.)],
                     &[Qubit(0), Qubit(1)],
                 )?;
                 *global_phase += PI4
             }
             Specialization::SWAPEquiv => {
-                sequence.push_standard_gate(StandardGate::SwapGate, &[], &[Qubit(0), Qubit(1)])?;
+                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
                 *global_phase -= 3. * PI / 4.
             }
             _ => {
                 if !simplify || self.a.abs() > atol {
                     sequence.push_standard_gate(
-                        StandardGate::RXXGate,
+                        StandardGate::RXX,
                         &[Param::Float(-self.a * 2.)],
                         &[Qubit(0), Qubit(1)],
                     )?;
                 }
                 if !simplify || self.b.abs() > atol {
                     sequence.push_standard_gate(
-                        StandardGate::RYYGate,
+                        StandardGate::RYY,
                         &[Param::Float(-self.b * 2.)],
                         &[Qubit(0), Qubit(1)],
                     )?;
                 }
                 if !simplify || self.c.abs() > atol {
                     sequence.push_standard_gate(
-                        StandardGate::RZZGate,
+                        StandardGate::RZZ,
                         &[Param::Float(-self.c * 2.)],
                         &[Qubit(0), Qubit(1)],
                     )?;
@@ -660,7 +690,7 @@ impl TwoQubitWeylDecomposition {
             .map(|x| x.rem_euclid(PI2))
             .map(|x| x.min(PI2 - x))
             .collect();
-        let mut order = utils::arg_sort(&cstemp);
+        let mut order = arg_sort(&cstemp);
         (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
         (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
         (d[0], d[1], d[2]) = (d[order[0]], d[order[1]], d[order[2]]);
@@ -1084,16 +1114,16 @@ impl TwoQubitWeylDecomposition {
     }
 
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
-        Ok((
-            py.get_type_bound::<Self>().getattr("_from_state")?,
+        (
+            py.get_type::<Self>().getattr("_from_state")?,
             (
                 [self.a, self.b, self.c, self.global_phase],
                 [
-                    self.K1l.to_pyarray_bound(py),
-                    self.K1r.to_pyarray_bound(py),
-                    self.K2l.to_pyarray_bound(py),
-                    self.K2r.to_pyarray_bound(py),
-                    self.unitary_matrix.to_pyarray_bound(py),
+                    self.K1l.to_pyarray(py),
+                    self.K1r.to_pyarray(py),
+                    self.K2l.to_pyarray(py),
+                    self.K2r.to_pyarray(py),
+                    self.unitary_matrix.to_pyarray(py),
                 ],
                 self.specialization,
                 self.default_euler_basis,
@@ -1101,7 +1131,7 @@ impl TwoQubitWeylDecomposition {
                 self.requested_fidelity,
             ),
         )
-            .into_py(py))
+            .into_py_any(py)
     }
 
     #[new]
@@ -1117,36 +1147,35 @@ impl TwoQubitWeylDecomposition {
     #[allow(non_snake_case)]
     #[getter]
     pub fn K1l(&self, py: Python) -> PyObject {
-        self.K1l.to_pyarray_bound(py).into()
+        self.K1l.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     pub fn K1r(&self, py: Python) -> PyObject {
-        self.K1r.to_pyarray_bound(py).into()
+        self.K1r.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K2l(&self, py: Python) -> PyObject {
-        self.K2l.to_pyarray_bound(py).into()
+        self.K2l.to_pyarray(py).into_any().unbind()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K2r(&self, py: Python) -> PyObject {
-        self.K2r.to_pyarray_bound(py).into()
+        self.K2r.to_pyarray(py).into_any().unbind()
     }
 
     #[getter]
     fn unitary_matrix(&self, py: Python) -> PyObject {
-        self.unitary_matrix.to_pyarray_bound(py).into()
+        self.unitary_matrix.to_pyarray(py).into_any().unbind()
     }
 
     #[pyo3(signature = (euler_basis=None, simplify=false, atol=None))]
     fn circuit(
         &self,
-        py: Python,
         euler_basis: Option<PyBackedStr>,
         simplify: bool,
         atol: Option<f64>,
@@ -1158,7 +1187,7 @@ impl TwoQubitWeylDecomposition {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(euler_basis);
 
-        let mut gate_sequence = CircuitData::with_capacity(py, 2, 0, 21, Param::Float(0.))?;
+        let mut gate_sequence = CircuitData::with_capacity(2, 0, 21, Param::Float(0.))?;
         let mut global_phase: f64 = self.global_phase;
 
         let c2r = unitary_to_gate_sequence_inner(
@@ -1234,7 +1263,7 @@ impl TwoQubitWeylDecomposition {
                 &[Qubit(1)],
             )?
         }
-        gate_sequence.set_global_phase(py, Param::Float(global_phase))?;
+        gate_sequence.set_global_phase(Param::Float(global_phase))?;
         Ok(gate_sequence)
     }
 }
@@ -1295,11 +1324,16 @@ impl TwoQubitGateSequence {
 
     fn __getitem__(&self, py: Python, idx: PySequenceIndex) -> PyResult<PyObject> {
         match idx.with_len(self.gates.len())? {
-            SequenceIndex::Int(idx) => Ok(self.gates[idx].to_object(py)),
-            indices => Ok(PyList::new_bound(
+            SequenceIndex::Int(idx) => {
+                let item = &self.gates[idx];
+                (item.0, PyList::new(py, &item.1)?, PyList::new(py, &item.2)?).into_py_any(py)
+            }
+            indices => Ok(PyList::new(
                 py,
-                indices.iter().map(|pos| self.gates[pos].to_object(py)),
-            )
+                indices
+                    .iter()
+                    .map(|pos| self.gates[pos].clone().into_pyobject(py).unwrap()),
+            )?
             .into_any()
             .unbind()),
         }
@@ -1437,21 +1471,21 @@ impl TwoQubitBasisDecomposer {
         let mut euler_matrix_q1 = rz_matrix(euler_q1[0][1]).dot(&rx_matrix(euler_q1[0][0]));
         euler_matrix_q1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]).dot(&euler_matrix_q1);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
-        gates.push((Some(StandardGate::CXGate), smallvec![], smallvec![0, 1]));
-        gates.push((Some(StandardGate::SXGate), smallvec![], smallvec![0]));
+        gates.push((Some(StandardGate::CX), smallvec![], smallvec![0, 1]));
+        gates.push((Some(StandardGate::SX), smallvec![], smallvec![0]));
         gates.push((
-            Some(StandardGate::RZGate),
+            Some(StandardGate::RZ),
             smallvec![euler_q0[1][1] - PI],
             smallvec![0],
         ));
-        gates.push((Some(StandardGate::SXGate), smallvec![], smallvec![0]));
+        gates.push((Some(StandardGate::SX), smallvec![], smallvec![0]));
         gates.push((
-            Some(StandardGate::RZGate),
+            Some(StandardGate::RZ),
             smallvec![euler_q1[1][1]],
             smallvec![1],
         ));
         global_phase += PI2;
-        gates.push((Some(StandardGate::CXGate), smallvec![], smallvec![0, 1]));
+        gates.push((Some(StandardGate::CX), smallvec![], smallvec![0, 1]));
         let mut euler_matrix_q0 =
             rx_matrix(euler_q0[2][1]).dot(&rz_matrix(euler_q0[1][2] + euler_q0[2][0] + PI2));
         euler_matrix_q0 = rz_matrix(euler_q0[2][2]).dot(&euler_matrix_q0);
@@ -1536,7 +1570,7 @@ impl TwoQubitBasisDecomposer {
         euler_matrix_q1 = aview2(&H_GATE).dot(&euler_matrix_q1);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
 
-        gates.push((Some(StandardGate::CXGate), smallvec![], smallvec![1, 0]));
+        gates.push((Some(StandardGate::CX), smallvec![], smallvec![1, 0]));
 
         if x12_is_pi_mult {
             // even or odd multiple
@@ -1545,13 +1579,13 @@ impl TwoQubitBasisDecomposer {
             }
             if x12_is_non_zero && x12_is_old_mult.unwrap() {
                 gates.push((
-                    Some(StandardGate::RZGate),
+                    Some(StandardGate::RZ),
                     smallvec![-euler_q0[1][1]],
                     smallvec![0],
                 ));
             } else {
                 gates.push((
-                    Some(StandardGate::RZGate),
+                    Some(StandardGate::RZ),
                     smallvec![euler_q0[1][1]],
                     smallvec![0],
                 ));
@@ -1559,7 +1593,7 @@ impl TwoQubitBasisDecomposer {
             }
         }
         if x12_is_half_pi {
-            gates.push((Some(StandardGate::SXGate), smallvec![], smallvec![0]));
+            gates.push((Some(StandardGate::SX), smallvec![], smallvec![0]));
             global_phase -= PI4;
         } else if x12_is_non_zero && !x12_is_pi_mult {
             if self.pulse_optimize.is_none() {
@@ -1569,7 +1603,7 @@ impl TwoQubitBasisDecomposer {
             }
         }
         if abs_diff_eq!(euler_q1[1][1], PI2, epsilon = atol) {
-            gates.push((Some(StandardGate::SXGate), smallvec![], smallvec![1]));
+            gates.push((Some(StandardGate::SX), smallvec![], smallvec![1]));
             global_phase -= PI4
         } else if self.pulse_optimize.is_none() {
             self.append_1q_sequence(
@@ -1582,18 +1616,18 @@ impl TwoQubitBasisDecomposer {
             return None;
         }
         gates.push((
-            Some(StandardGate::RZGate),
+            Some(StandardGate::RZ),
             smallvec![euler_q1[1][2] + euler_q1[2][0]],
             smallvec![1],
         ));
-        gates.push((Some(StandardGate::CXGate), smallvec![], smallvec![1, 0]));
+        gates.push((Some(StandardGate::CX), smallvec![], smallvec![1, 0]));
         gates.push((
-            Some(StandardGate::RZGate),
+            Some(StandardGate::RZ),
             smallvec![euler_q0[2][1]],
             smallvec![0],
         ));
         if abs_diff_eq!(euler_q1[2][1], PI2, epsilon = atol) {
-            gates.push((Some(StandardGate::SXGate), smallvec![], smallvec![1]));
+            gates.push((Some(StandardGate::SX), smallvec![], smallvec![1]));
             global_phase -= PI4;
         } else if self.pulse_optimize.is_none() {
             self.append_1q_sequence(
@@ -1605,7 +1639,7 @@ impl TwoQubitBasisDecomposer {
         } else {
             return None;
         }
-        gates.push((Some(StandardGate::CXGate), smallvec![], smallvec![1, 0]));
+        gates.push((Some(StandardGate::CX), smallvec![], smallvec![1, 0]));
         let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]).dot(&aview2(&H_GATE));
         euler_matrix = rx_matrix(euler_q0[3][1]).dot(&euler_matrix);
         euler_matrix = rz_matrix(euler_q0[3][2]).dot(&euler_matrix);
@@ -1965,8 +1999,9 @@ impl TwoQubitBasisDecomposer {
             self.gate.clone(),
             self.basis_decomposer
                 .unitary_matrix
-                .to_pyarray_bound(py)
-                .into(),
+                .to_pyarray(py)
+                .into_any()
+                .unbind(),
             self.basis_fidelity,
             self.euler_basis.as_str(),
             self.pulse_optimize,
@@ -2023,7 +2058,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp0(py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 2]> {
         decomp0_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -2040,7 +2075,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp1(&self, py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 4]> {
         self.decomp1_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -2065,7 +2100,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[PyObject; 6]> {
         self.decomp2_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -2080,7 +2115,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[PyObject; 8]> {
         self.decomp3_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray_bound(py).into())
+            .map(|x| x.into_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -2228,7 +2263,7 @@ impl TwoQubitBasisDecomposer {
                     .into_iter()
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
-                            PackedOperation::from_standard(gate),
+                            PackedOperation::from_standard_gate(gate),
                             params.into_iter().map(Param::Float).collect(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
@@ -2299,12 +2334,12 @@ fn two_qubit_decompose_up_to_diagonal(
                     param_floats.into_iter().map(Param::Float).collect();
                 let qubits: SmallVec<[Qubit; 2]> =
                     qubit_index.into_iter().map(|x| Qubit(x as u32)).collect();
-                (gate.unwrap_or(StandardGate::CXGate), params, qubits)
+                (gate.unwrap_or(StandardGate::CX), params, qubits)
             }),
         Param::Float(circ_seq.global_phase + phase),
     )?;
     real_map.mapv_inplace(|x| x.conj());
-    Ok((real_map.into_pyarray_bound(py).into(), circ))
+    Ok((real_map.into_pyarray(py).into_any().unbind(), circ))
 }
 
 static MAGIC: GateArray2Q = [
@@ -2431,23 +2466,47 @@ pub enum RXXEquivalent {
 }
 
 impl RXXEquivalent {
-    fn matrix(&self, py: Python, param: f64) -> PyResult<Array2<Complex64>> {
+    fn matrix(&self, param: f64) -> PyResult<Array2<Complex64>> {
         match self {
             Self::Standard(gate) => Ok(gate.matrix(&[Param::Float(param)]).unwrap()),
-            Self::CustomPython(gate_cls) => {
+            Self::CustomPython(gate_cls) => Python::with_gil(|py: Python| {
                 let gate_obj = gate_cls.bind(py).call1((param,))?;
                 let raw_matrix = gate_obj
                     .call_method0(intern!(py, "to_matrix"))?
                     .extract::<PyReadonlyArray2<Complex64>>()?;
                 Ok(raw_matrix.as_array().to_owned())
-            }
+            }),
+        }
+    }
+}
+impl<'a, 'py> IntoPyObject<'py> for &'a RXXEquivalent {
+    type Target = PyAny;
+    type Output = Borrowed<'a, 'py, Self::Target>;
+    type Error = PyErr;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind_borrowed(py)),
+            RXXEquivalent::CustomPython(gate) => Ok(gate.as_any().bind_borrowed(py)),
+        }
+    }
+}
+impl<'py> IntoPyObject<'py> for RXXEquivalent {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind(py).clone()),
+            RXXEquivalent::CustomPython(gate) => Ok(gate.bind(py).clone().into_any()),
         }
     }
 }
 
+#[derive(Clone, Debug)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitControlledUDecomposer {
     rxx_equivalent_gate: RXXEquivalent,
+    euler_basis: EulerBasis,
     #[pyo3(get)]
     scale: f64,
 }
@@ -2459,10 +2518,19 @@ type InverseReturn = (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]
 ///  :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
 ///  gate that is locally equivalent to an :class:`.RXXGate`.
 impl TwoQubitControlledUDecomposer {
+    /// Compute the number of basis gates needed for a given unitary
+    pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> PyResult<usize> {
+        let target_decomposed =
+            TwoQubitWeylDecomposition::new_inner(unitary, Some(DEFAULT_FIDELITY), None)?;
+        let num_basis_gates = (((target_decomposed.a).abs() > DEFAULT_ATOL) as usize)
+            + (((target_decomposed.b).abs() > DEFAULT_ATOL) as usize)
+            + (((target_decomposed.c).abs() > DEFAULT_ATOL) as usize);
+        Ok(num_basis_gates)
+    }
+
     /// invert 2q gate sequence
     fn invert_2q_gate(
         &self,
-        py: Python,
         gate: (Option<StandardGate>, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>),
     ) -> PyResult<InverseReturn> {
         let (gate, params, qubits) = gate;
@@ -2499,8 +2567,8 @@ impl TwoQubitControlledUDecomposer {
                         .collect::<SmallVec<_>>();
                     Ok((Some(inv_gate.0), inv_gate_params, qubits))
                 }
-                RXXEquivalent::CustomPython(gate_cls) => {
-                    let gate_obj = gate_cls.bind(py).call1(PyTuple::new_bound(py, params))?;
+                RXXEquivalent::CustomPython(gate_cls) => Python::with_gil(|py: Python| {
+                    let gate_obj = gate_cls.bind(py).call1(PyTuple::new(py, params)?)?;
                     let raw_inverse = gate_obj.call_method0(intern!(py, "inverse"))?;
                     let inverse: OperationFromPython = raw_inverse.extract()?;
                     let params: SmallVec<[f64; 3]> = inverse
@@ -2520,7 +2588,7 @@ impl TwoQubitControlledUDecomposer {
                             "rxx gate inverse is not valid for this decomposer",
                         ))
                     }
-                }
+                }),
             }
         }
     }
@@ -2533,22 +2601,21 @@ impl TwoQubitControlledUDecomposer {
     ///      Circuit: Circuit equivalent to an RXXGate.
     ///  Raises:
     ///      QiskitError: If the circuit is not equivalent to an RXXGate.
-    fn to_rxx_gate(&self, py: Python, angle: f64) -> PyResult<TwoQubitGateSequence> {
-        // The user-provided RXXGate equivalent gate may be locally equivalent to the RXXGate
-        // but with some scaling in the rotation angle. For example, RXXGate(angle) has Weyl
+    fn to_rxx_gate(&self, angle: f64) -> PyResult<TwoQubitGateSequence> {
+        // The user-provided RXX equivalent gate may be locally equivalent to the RXX gate
+        // but with some scaling in the rotation angle. For example, RXX(angle) has Weyl
         // parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
         // :code:`self.rxx_equivalent_gate(angle)` might produce the Weyl parameters
-        // (scale * angle, 0, 0) where scale != 1. This is the case for the CPhaseGate.
+        // (scale * angle, 0, 0) where scale != 1. This is the case for the CPhase gate.
 
-        let mat = self.rxx_equivalent_gate.matrix(py, self.scale * angle)?;
+        let mat = self.rxx_equivalent_gate.matrix(self.scale * angle)?;
         let decomposer_inv =
             TwoQubitWeylDecomposition::new_inner(mat.view(), Some(DEFAULT_FIDELITY), None)?;
 
-        let euler_basis = EulerBasis::ZYZ;
         let mut target_1q_basis_list = EulerBasisSet::new();
-        target_1q_basis_list.add_basis(euler_basis);
+        target_1q_basis_list.add_basis(self.euler_basis);
 
-        // Express the RXXGate in terms of the user-provided RXXGate equivalent gate.
+        // Express the RXX in terms of the user-provided RXX equivalent gate.
         let mut gates = Vec::with_capacity(13);
         let mut global_phase = -decomposer_inv.global_phase;
 
@@ -2583,14 +2650,14 @@ impl TwoQubitControlledUDecomposer {
         gates.push((None, smallvec![self.scale * angle], smallvec![0, 1]));
 
         if let Some(unitary_k1r) = unitary_k1r {
-            global_phase += unitary_k1r.global_phase;
+            global_phase -= unitary_k1r.global_phase;
             for gate in unitary_k1r.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![0]));
             }
         }
         if let Some(unitary_k1l) = unitary_k1l {
-            global_phase += unitary_k1l.global_phase;
+            global_phase -= unitary_k1l.global_phase;
             for gate in unitary_k1l.gates.into_iter().rev() {
                 let (inv_gate_name, inv_gate_params) = invert_1q_gate(gate);
                 gates.push((Some(inv_gate_name), inv_gate_params, smallvec![1]));
@@ -2606,69 +2673,127 @@ impl TwoQubitControlledUDecomposer {
     /// Appends U_d(a, b, c) to the circuit.
     fn weyl_gate(
         &self,
-        py: Python,
         circ: &mut TwoQubitGateSequence,
         target_decomposed: TwoQubitWeylDecomposition,
         atol: f64,
     ) -> PyResult<()> {
-        let circ_a = self.to_rxx_gate(py, -2.0 * target_decomposed.a)?;
+        let circ_a = self.to_rxx_gate(-2.0 * target_decomposed.a)?;
         circ.gates.extend(circ_a.gates);
         let mut global_phase = circ_a.global_phase;
 
-        // translate the RYYGate(b) into a circuit based on the desired Ctrl-U gate.
+        let mut target_1q_basis_list = EulerBasisSet::new();
+        target_1q_basis_list.add_basis(self.euler_basis);
+
+        let s_decomp = unitary_to_gate_sequence_inner(
+            aview2(&S_GATE),
+            &target_1q_basis_list,
+            0,
+            None,
+            true,
+            None,
+        );
+        let sdg_decomp = unitary_to_gate_sequence_inner(
+            aview2(&SDG_GATE),
+            &target_1q_basis_list,
+            0,
+            None,
+            true,
+            None,
+        );
+        let h_decomp = unitary_to_gate_sequence_inner(
+            aview2(&H_GATE),
+            &target_1q_basis_list,
+            0,
+            None,
+            true,
+            None,
+        );
+
+        // translate RYY(b) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.b).abs() > atol {
-            let circ_b = self.to_rxx_gate(py, -2.0 * target_decomposed.b)?;
+            let circ_b = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
             global_phase += circ_b.global_phase;
-            circ.gates
-                .push((Some(StandardGate::SdgGate), smallvec![], smallvec![0]));
-            circ.gates
-                .push((Some(StandardGate::SdgGate), smallvec![], smallvec![1]));
+            if let Some(sdg_decomp) = sdg_decomp {
+                global_phase += 2.0 * sdg_decomp.global_phase;
+                for gate in sdg_decomp.gates.into_iter() {
+                    let gate_params = gate.1;
+                    circ.gates
+                        .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                    circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                }
+            }
             circ.gates.extend(circ_b.gates);
-            circ.gates
-                .push((Some(StandardGate::SGate), smallvec![], smallvec![0]));
-            circ.gates
-                .push((Some(StandardGate::SGate), smallvec![], smallvec![1]));
+            if let Some(s_decomp) = s_decomp {
+                global_phase += 2.0 * s_decomp.global_phase;
+                for gate in s_decomp.gates.into_iter() {
+                    let gate_params = gate.1;
+                    circ.gates
+                        .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                    circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                }
+            }
         }
 
-        // # translate the RZZGate(c) into a circuit based on the desired Ctrl-U gate.
+        // translate RZZ(c) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.c).abs() > atol {
             // Since the Weyl chamber is here defined as a > b > |c| we may have
             // negative c. This will cause issues in _to_rxx_gate
             // as TwoQubitWeylControlledEquiv will map (c, 0, 0) to (|c|, 0, 0).
-            // We therefore produce RZZGate(|c|) and append its inverse to the
+            // We therefore produce RZZ(|c|) and append its inverse to the
             // circuit if c < 0.
             let mut gamma = -2.0 * target_decomposed.c;
             if gamma <= 0.0 {
-                let circ_c = self.to_rxx_gate(py, gamma)?;
+                let circ_c = self.to_rxx_gate(gamma)?;
                 global_phase += circ_c.global_phase;
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
+
+                if let Some(ref h_decomp) = h_decomp {
+                    global_phase += 2.0 * h_decomp.global_phase;
+                    for gate in h_decomp.gates.clone().into_iter() {
+                        let gate_params = gate.1;
+                        circ.gates
+                            .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                        circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                    }
+                }
                 circ.gates.extend(circ_c.gates);
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
+                if let Some(ref h_decomp) = h_decomp {
+                    global_phase += 2.0 * h_decomp.global_phase;
+                    for gate in h_decomp.gates.clone().into_iter() {
+                        let gate_params = gate.1;
+                        circ.gates
+                            .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                        circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                    }
+                }
             } else {
                 // invert the circuit above
                 gamma *= -1.0;
-                let circ_c = self.to_rxx_gate(py, gamma)?;
+                let circ_c = self.to_rxx_gate(gamma)?;
                 global_phase -= circ_c.global_phase;
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
+                if let Some(ref h_decomp) = h_decomp {
+                    global_phase += 2.0 * h_decomp.global_phase;
+                    for gate in h_decomp.gates.clone().into_iter() {
+                        let gate_params = gate.1;
+                        circ.gates
+                            .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                        circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                    }
+                }
                 for gate in circ_c.gates.into_iter().rev() {
                     let (inv_gate_name, inv_gate_params, inv_gate_qubits) =
-                        self.invert_2q_gate(py, gate)?;
+                        self.invert_2q_gate(gate)?;
                     circ.gates
                         .push((inv_gate_name, inv_gate_params, inv_gate_qubits));
                 }
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![0]));
-                circ.gates
-                    .push((Some(StandardGate::HGate), smallvec![], smallvec![1]));
+                if let Some(ref h_decomp) = h_decomp {
+                    global_phase += 2.0 * h_decomp.global_phase;
+                    for gate in h_decomp.gates.clone().into_iter() {
+                        let gate_params = gate.1;
+                        circ.gates
+                            .push((Some(gate.0), gate_params.clone(), smallvec![0]));
+                        circ.gates.push((Some(gate.0), gate_params, smallvec![1]));
+                    }
+                }
             }
         }
 
@@ -2678,18 +2803,16 @@ impl TwoQubitControlledUDecomposer {
 
     ///  Returns the Weyl decomposition in circuit form.
     ///  Note: atol is passed to OneQubitEulerDecomposer.
-    fn call_inner(
+    pub fn call_inner(
         &self,
-        py: Python,
         unitary: ArrayView2<Complex64>,
-        atol: f64,
+        atol: Option<f64>,
     ) -> PyResult<TwoQubitGateSequence> {
         let target_decomposed =
             TwoQubitWeylDecomposition::new_inner(unitary, Some(DEFAULT_FIDELITY), None)?;
 
-        let euler_basis = EulerBasis::ZYZ;
         let mut target_1q_basis_list = EulerBasisSet::new();
-        target_1q_basis_list.add_basis(euler_basis);
+        target_1q_basis_list.add_basis(self.euler_basis);
 
         let c1r = target_decomposed.K1r.view();
         let c2r = target_decomposed.K2r.view();
@@ -2724,17 +2847,17 @@ impl TwoQubitControlledUDecomposer {
             gates,
             global_phase,
         };
-        self.weyl_gate(py, &mut gates1, target_decomposed, atol)?;
+        self.weyl_gate(&mut gates1, target_decomposed, atol.unwrap_or(DEFAULT_ATOL))?;
         global_phase += gates1.global_phase;
 
         if let Some(unitary_c1r) = unitary_c1r {
-            global_phase -= unitary_c1r.global_phase;
+            global_phase += unitary_c1r.global_phase;
             for gate in unitary_c1r.gates.into_iter() {
                 gates1.gates.push((Some(gate.0), gate.1, smallvec![0]));
             }
         }
         if let Some(unitary_c1l) = unitary_c1l {
-            global_phase -= unitary_c1l.global_phase;
+            global_phase += unitary_c1l.global_phase;
             for gate in unitary_c1l.gates.into_iter() {
                 gates1.gates.push((Some(gate.0), gate.1, smallvec![1]));
             }
@@ -2743,19 +2866,9 @@ impl TwoQubitControlledUDecomposer {
         gates1.global_phase = global_phase;
         Ok(gates1)
     }
-}
 
-#[pymethods]
-impl TwoQubitControlledUDecomposer {
-    ///  Initialize the KAK decomposition.
-    ///  Args:
-    ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
-    ///      :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
-    ///  Raises:
-    ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
-    #[new]
-    #[pyo3(signature=(rxx_equivalent_gate))]
-    pub fn new(py: Python, rxx_equivalent_gate: RXXEquivalent) -> PyResult<Self> {
+    /// Initialize the KAK decomposition.
+    pub fn new_inner(rxx_equivalent_gate: RXXEquivalent, euler_basis: &str) -> PyResult<Self> {
         let atol = DEFAULT_ATOL;
         let test_angles = [0.2, 0.3, PI2];
 
@@ -2771,17 +2884,20 @@ impl TwoQubitControlledUDecomposer {
                         }
                     }
                     RXXEquivalent::CustomPython(gate_cls) => {
-                        if gate_cls.bind(py).call1((test_angle,)).ok().is_none() {
+                        let takes_param = Python::with_gil(|py: Python| {
+                            gate_cls.bind(py).call1((test_angle,)).ok().is_none()
+                        });
+                        if takes_param {
                             return Err(QiskitError::new_err(
                                 "Equivalent gate needs to take exactly 1 angle parameter.",
                             ));
                         }
                     }
                 };
-                let mat = rxx_equivalent_gate.matrix(py, test_angle)?;
+                let mat = rxx_equivalent_gate.matrix(test_angle)?;
                 let decomp =
                     TwoQubitWeylDecomposition::new_inner(mat.view(), Some(DEFAULT_FIDELITY), None)?;
-                let mat_rxx = StandardGate::RXXGate
+                let mat_rxx = StandardGate::RXX
                     .matrix(&[Param::Float(test_angle)])
                     .unwrap();
                 let decomposer_rxx = TwoQubitWeylDecomposition::new_inner(
@@ -2797,7 +2913,7 @@ impl TwoQubitControlledUDecomposer {
                 let scale_a = decomposer_rxx.a / decomposer_equiv.a;
                 if (decomp.a * 2.0 - test_angle / scale_a).abs() > atol {
                     return Err(QiskitError::new_err(
-                        "The provided gate is not equivalent to an RXXGate.",
+                        "The provided gate is not equivalent to an RXX.",
                     ));
                 }
                 Ok(scale_a)
@@ -2819,17 +2935,39 @@ impl TwoQubitControlledUDecomposer {
         Ok(TwoQubitControlledUDecomposer {
             scale,
             rxx_equivalent_gate,
+            euler_basis: EulerBasis::__new__(euler_basis)?,
         })
     }
+}
 
-    #[pyo3(signature=(unitary, atol))]
+#[pymethods]
+impl TwoQubitControlledUDecomposer {
+    fn __getnewargs__(&self) -> (&RXXEquivalent, &str) {
+        (&self.rxx_equivalent_gate, self.euler_basis.as_str())
+    }
+
+    ///  Initialize the KAK decomposition.
+    ///  Args:
+    ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
+    ///      :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+    ///     euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
+    ///     for 1Q synthesis.
+    ///  Raises:
+    ///      QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
+    #[new]
+    #[pyo3(signature=(rxx_equivalent_gate, euler_basis="ZXZ"))]
+    pub fn new(rxx_equivalent_gate: RXXEquivalent, euler_basis: &str) -> PyResult<Self> {
+        TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, euler_basis)
+    }
+
+    #[pyo3(signature=(unitary, atol=None))]
     fn __call__(
         &self,
         py: Python,
         unitary: PyReadonlyArray2<Complex64>,
-        atol: f64,
+        atol: Option<f64>,
     ) -> PyResult<CircuitData> {
-        let sequence = self.call_inner(py, unitary.as_array(), atol)?;
+        let sequence = self.call_inner(unitary.as_array(), atol)?;
         match &self.rxx_equivalent_gate {
             RXXEquivalent::Standard(rxx_gate) => CircuitData::from_standard_gates(
                 py,
@@ -2860,14 +2998,14 @@ impl TwoQubitControlledUDecomposer {
                     .into_iter()
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
-                            PackedOperation::from_standard(gate),
+                            PackedOperation::from_standard_gate(gate),
                             params.into_iter().map(Param::Float).collect(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
                         )),
                         None => {
                             let raw_gate_obj =
-                                gate_cls.bind(py).call1(PyTuple::new_bound(py, params))?;
+                                gate_cls.bind(py).call1(PyTuple::new(py, params)?)?;
                             let op: OperationFromPython = raw_gate_obj.extract()?;
 
                             Ok((

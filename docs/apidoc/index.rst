@@ -15,7 +15,6 @@ Circuit construction:
    circuit
    qiskit.circuit.QuantumCircuit
    circuit_classical
-   classicalfunction
    circuit_library
    circuit_singleton
 
@@ -51,7 +50,6 @@ Primitives and providers:
    providers
    providers_basic_provider
    providers_fake_provider
-   providers_models
 
 Results and visualizations:
 
@@ -70,21 +68,11 @@ Serialization:
    qasm3
    qpy
 
-Pulse-level programming:
-
-.. toctree::
-   :maxdepth: 1
-
-   pulse
-   scheduler
-
 Other:
 
 .. toctree::
    :maxdepth: 1
 
-   assembler
    compiler
    exceptions
-   qobj
    utils

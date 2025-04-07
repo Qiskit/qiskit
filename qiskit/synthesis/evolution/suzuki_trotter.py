@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import inspect
 import typing
 from collections.abc import Callable
 from itertools import chain
@@ -22,8 +21,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.quantum_info import SparsePauliOp, Pauli
 
 from .product_formula import ProductFormula, reorder_paulis
 
@@ -60,21 +58,6 @@ class SuzukiTrotter(ProductFormula):
         `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
     """
 
-    @deprecate_arg(
-        name="atomic_evolution",
-        since="1.2",
-        predicate=lambda callable: callable is not None
-        and len(inspect.signature(callable).parameters) == 2,
-        deprecation_description=(
-            "The 'Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]' signature of the "
-            "'atomic_evolution' argument"
-        ),
-        additional_msg=(
-            "Instead you should update your 'atomic_evolution' function to be of the following "
-            "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
-        ),
-        pending=True,
-    )
     def __init__(
         self,
         order: int = 2,
@@ -82,14 +65,14 @@ class SuzukiTrotter(ProductFormula):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]
-            | Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]
-            | None
+            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,
+        *,
+        atomic_evolution_sparse_observable: bool = False,
     ) -> None:
-        """
+        r"""
         Args:
             order: The order of the product formula.
             reps: The number of time steps.
@@ -102,23 +85,26 @@ class SuzukiTrotter(ProductFormula):
                 three arguments: the circuit to append the evolution to, the Pauli operator to
                 evolve, and the evolution time. By default, a single Pauli evolution is decomposed
                 into a chain of ``CX`` gates and a single ``RZ`` gate.
-                Alternatively, the function can also take Pauli operator and evolution time as
-                inputs and returns the circuit that will be appended to the overall circuit being
-                built.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
             preserve_order: If ``False``, allows reordering the terms of the operator to
                 potentially yield a shallower evolution circuit. Not relevant
                 when synthesizing operator with a single term.
+            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+                which does not yet support :class:`.SparseObservable`\ s as input, set this
+                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+                are required to support :class:`.SparseObservable`\ s as input.
+
         Raises:
             ValueError: If order is not even
         """
-
         if order > 1 and order % 2 == 1:
             raise ValueError(
                 "Suzuki product formulae are symmetric and therefore only defined "
                 f"for when the order is 1 or even, not {order}."
             )
+
         super().__init__(
             order,
             reps,
@@ -127,6 +113,7 @@ class SuzukiTrotter(ProductFormula):
             atomic_evolution,
             wrap,
             preserve_order=preserve_order,
+            atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
 
     def expand(
@@ -140,7 +127,7 @@ class SuzukiTrotter(ProductFormula):
 
         .. code-block:: text
 
-            ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], 2)
+            ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], t)
 
         Note that the rotation angle contains a factor of 2, such that that evolution
         of a Pauli :math:`P` over time :math:`t`, which is :math:`e^{itP}`, is represented
@@ -155,13 +142,18 @@ class SuzukiTrotter(ProductFormula):
         Returns:
             The Pauli network implementing the Trotter expansion.
         """
-        operators = evolution.operator  # type: SparsePauliOp | list[SparsePauliOp]
+        operators = evolution.operator
         time = evolution.time
 
         def to_sparse_list(operator):
+            sparse_list = (
+                operator.to_sparse_list()
+                if isinstance(operator, SparsePauliOp)
+                else operator.to_sparse_list()
+            )
             paulis = [
                 (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
-                for pauli, indices, coeff in operator.to_sparse_list()
+                for pauli, indices, coeff in sparse_list
             ]
             if not self.preserve_order:
                 return reorder_paulis(paulis)

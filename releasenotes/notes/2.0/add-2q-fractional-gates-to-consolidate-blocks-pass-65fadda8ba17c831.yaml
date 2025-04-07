@@ -1,0 +1,25 @@
+---
+features_transpiler:
+  - |
+    Added support for two-qubit fractional basis gates, such as :class:`.RZZGate`, to the
+    :class:`.ConsolidateBlocks` transpiler pass. The decomposition itself is done using the
+    :class:`.TwoQubitControlledUDecomposer`.
+
+    For example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.transpiler import generate_preset_pass_manager
+      from qiskit.transpiler.passes import ConsolidateBlocks
+
+      qc = QuantumCircuit(2)
+      qc.rzz(0.1, 0, 1)
+      qc.rzz(0.2, 0, 1)
+      consolidate_pass = ConsolidateBlocks(basis_gates=["rz", "rzz", "sx", "x", "rx"])
+      block = consolidate_pass(qc)  # consolidate the circuit into a single unitary block
+      block.draw(output='mpl')
+
+      pm = generate_preset_pass_manager(
+          optimization_level=2, basis_gates=["rz", "rzz", "sx", "x", "rx"]
+      )
+      tqc = pm.run(qc)  # synthesizing the circuit into basis gates
+      tqc.draw(output='mpl')

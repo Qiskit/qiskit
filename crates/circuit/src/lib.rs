@@ -10,20 +10,24 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod bit_data;
+pub mod bit;
+pub mod bit_locator;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod converters;
 pub mod dag_circuit;
 pub mod dag_node;
 mod dot_utils;
+pub mod duration;
 pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
+pub mod object_registry;
 pub mod operations;
 pub mod packed_instruction;
 pub mod parameter_table;
+pub mod register_data;
 pub mod slice;
 pub mod util;
 
@@ -87,12 +91,12 @@ impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let value = match ob.downcast::<PySequence>() {
             Ok(seq) => seq.to_tuple()?,
-            Err(_) => PyTuple::new_bound(
+            Err(_) => PyTuple::new(
                 ob.py(),
-                ob.iter()?
+                ob.try_iter()?
                     .map(|o| Ok(o?.unbind()))
                     .collect::<PyResult<Vec<PyObject>>>()?,
-            ),
+            )?,
         };
         Ok(TupleLikeArg { value })
     }
@@ -122,7 +126,50 @@ impl From<Clbit> for BitType {
     }
 }
 
+/// Implement `IntoPyObject` for the reference to a struct or enum declared as `#[pyclass]` that is
+/// also `Copy`.
+///
+/// For example:
+/// ```
+/// #[derive(Clone, Copy)]
+/// #[pyclass(frozen)]
+/// struct MyStruct(u32);
+///
+/// impl_intopyobject_for_copy_pyclass!(MyStruct);
+/// ```
+///
+/// The `pyclass` attribute macro already ensures that `IntoPyObject` is implemented for `MyStruct`,
+/// but it doesn't implement it for `&MyStruct` - for non-copy structs, the implementation of that
+/// is not obvious and may be surprising to users if it existed.  If the struct is `Copy`, though,
+/// it's explicitly "free" to make new copies and convert them, so we can do that and delegate.
+///
+/// Usually this doesn't matter much to code authors, but it can help a lot when dealing with
+/// references nested in ad-hoc structures, like `(&T1, &T2)`.
+#[macro_export]
+macro_rules! impl_intopyobject_for_copy_pyclass {
+    ($ty:ty) => {
+        impl<'py> ::pyo3::conversion::IntoPyObject<'py> for &$ty {
+            type Target = <$ty as ::pyo3::conversion::IntoPyObject<'py>>::Target;
+            type Output = <$ty as ::pyo3::conversion::IntoPyObject<'py>>::Output;
+            type Error = <$ty as ::pyo3::conversion::IntoPyObject<'py>>::Error;
+
+            fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+                (*self).into_pyobject(py)
+            }
+        }
+    };
+}
+
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<bit::PyBit>()?;
+    m.add_class::<bit::PyClbit>()?;
+    m.add_class::<bit::PyQubit>()?;
+    m.add_class::<bit::PyAncillaQubit>()?;
+    m.add_class::<bit::PyRegister>()?;
+    m.add_class::<bit::PyClassicalRegister>()?;
+    m.add_class::<bit::PyQuantumRegister>()?;
+    m.add_class::<bit::PyAncillaRegister>()?;
+    m.add_class::<duration::Duration>()?;
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
@@ -130,7 +177,9 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
+    m.add_class::<dag_circuit::PyBitLocations>()?;
     m.add_class::<operations::StandardGate>()?;
+    m.add_class::<operations::StandardInstructionType>()?;
     Ok(())
 }
 

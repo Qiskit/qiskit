@@ -18,7 +18,6 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 import numpy as np
 from ddt import idata, ddt
 
-from qiskit import ClassicalRegister
 from qiskit.circuit import (
     AnnotatedOperation,
     ControlModifier,
@@ -45,6 +44,7 @@ from qiskit.circuit.library import (
     PauliGate,
     PhaseGate,
     Reset,
+    RGate,
     RXGate,
     RXXGate,
     RYGate,
@@ -54,8 +54,11 @@ from qiskit.circuit.library import (
     RZZGate,
     SGate,
     XGate,
+    YGate,
     ZGate,
     HGate,
+    UnitaryGate,
+    UGate,
 )
 from qiskit.dagcircuit import DAGOpNode
 
@@ -64,14 +67,14 @@ ROTATION_GATES = [
     RYGate,
     RZGate,
     PhaseGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    CPhaseGate,
     RXXGate,
     RYYGate,
     RZZGate,
     RZXGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
 ]
 
 
@@ -110,41 +113,51 @@ class TestCommutationChecker(QiskitTestCase):
         different orders of gates, different orders of qubits, different sets of
         qubits over which gates are defined, and so on."""
 
-        # should commute
+        self.assertTrue(scc.commute(HGate(), [0], [], HGate(), [0], []))
+
         self.assertTrue(scc.commute(ZGate(), [0], [], CXGate(), [0, 1], []))
-        # should not commute
         self.assertFalse(scc.commute(ZGate(), [1], [], CXGate(), [0, 1], []))
-        # should not commute
+
         self.assertFalse(scc.commute(XGate(), [0], [], CXGate(), [0, 1], []))
-        # should commute
         self.assertTrue(scc.commute(XGate(), [1], [], CXGate(), [0, 1], []))
-        # should not commute
         self.assertFalse(scc.commute(XGate(), [1], [], CXGate(), [1, 0], []))
-        # should commute
         self.assertTrue(scc.commute(XGate(), [0], [], CXGate(), [1, 0], []))
-        # should commute
         self.assertTrue(scc.commute(CXGate(), [1, 0], [], XGate(), [0], []))
-        # should not commute
         self.assertFalse(scc.commute(CXGate(), [1, 0], [], XGate(), [1], []))
-        # should commute
+
         self.assertTrue(scc.commute(CXGate(), [1, 0], [], CXGate(), [1, 0], []))
-        # should not commute
         self.assertFalse(scc.commute(CXGate(), [1, 0], [], CXGate(), [0, 1], []))
-        # should commute
         self.assertTrue(scc.commute(CXGate(), [1, 0], [], CXGate(), [1, 2], []))
-        # should not commute
         self.assertFalse(scc.commute(CXGate(), [1, 0], [], CXGate(), [2, 1], []))
-        # should commute
         self.assertTrue(scc.commute(CXGate(), [1, 0], [], CXGate(), [2, 3], []))
+
         self.assertTrue(scc.commute(XGate(), [2], [], CCXGate(), [0, 1, 2], []))
         self.assertFalse(scc.commute(CCXGate(), [0, 1, 2], [], CCXGate(), [0, 2, 1], []))
+
+        # these would commute up to a global phase
+        self.assertFalse(scc.commute(HGate(), [0], [], YGate(), [0], []))
+
+    def test_simple_matrices(self):
+        """Test simple gates but matrix-based."""
+        x = UnitaryGate(XGate())
+        had = UnitaryGate(HGate())
+        had2 = UnitaryGate(np.kron(HGate(), HGate()))
+        cx = UnitaryGate(CXGate())
+
+        self.assertTrue(scc.commute(x, [0], [], x, [0], []))
+        self.assertTrue(scc.commute(had, [0], [], had, [0], []))
+
+        self.assertTrue(scc.commute(had2, [0, 1], [], had2, [1, 0], []))
+        self.assertFalse(scc.commute(had2, [0, 1], [], cx, [1, 0], []))
+        self.assertTrue(scc.commute(cx, [0, 1], [], cx, [0, 1], []))
+
+        self.assertFalse(scc.commute(x, [0], [], cx, [0, 1], []))
+        self.assertTrue(scc.commute(x, [1], [], cx, [0, 1], []))
 
     def test_passing_quantum_registers(self):
         """Check that passing QuantumRegisters works correctly."""
         qr = QuantumRegister(4)
-        # should commute
         self.assertTrue(scc.commute(CXGate(), [qr[1], qr[0]], [], CXGate(), [qr[1], qr[2]], []))
-        # should not commute
         self.assertFalse(scc.commute(CXGate(), [qr[0], qr[1]], [], CXGate(), [qr[1], qr[2]], []))
 
     def test_standard_gates_commutations(self):
@@ -294,41 +307,6 @@ class TestCommutationChecker(QiskitTestCase):
         # A gate should commute with reset when the qubits are disjoint.
         self.assertTrue(scc.commute(Reset(), [0], [], CXGate(), [1, 2], []))
 
-    def test_conditional_gates(self):
-        """Check commutativity involving conditional gates."""
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(2)
-
-        # Currently, in all cases commutativity checker should returns False.
-        # This is definitely suboptimal.
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(
-                scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[2]], [])
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(
-                scc.commute(CXGate().c_if(cr[0], 0), [qr[0], qr[1]], [], XGate(), [qr[1]], [])
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(
-                scc.commute(
-                    CXGate().c_if(cr[0], 0),
-                    [qr[0], qr[1]],
-                    [],
-                    CXGate().c_if(cr[0], 0),
-                    [qr[0], qr[1]],
-                    [],
-                )
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(
-                scc.commute(
-                    XGate().c_if(cr[0], 0), [qr[0]], [], XGate().c_if(cr[0], 1), [qr[0]], []
-                )
-            )
-        with self.assertWarns(DeprecationWarning):
-            self.assertFalse(scc.commute(XGate().c_if(cr[0], 0), [qr[0]], [], XGate(), [qr[0]], []))
-
     def test_complex_gates(self):
         """Check commutativity involving more complex gates."""
         lf1 = LinearFunction([[0, 1, 0], [1, 0, 0], [0, 0, 1]])
@@ -420,38 +398,47 @@ class TestCommutationChecker(QiskitTestCase):
 
         generic_gate = DCXGate()  # gate that does not commute with any rotation gate
 
-        cutoff_angle = 1e-5  # this is the cutoff we use in the CommutationChecker
+        # the cutoff angle depends on the average gate fidelity; i.e. it is the angle
+        # for which the average gate fidelity is smaller than 1e-12
+        if gate_cls in [CPhaseGate, CRXGate, CRYGate, CRZGate]:
+            cutoff_angle = 3.16e-6
+        else:
+            cutoff_angle = 2.2e-6
 
         for i in range(1, max_power + 1):
             angle = 2 ** (-i)
             gate = gate_cls(angle)
             qargs = list(range(gate.num_qubits))
-
             if angle < cutoff_angle:
                 self.assertTrue(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
             else:
                 self.assertFalse(scc.commute(generic_gate, [0, 1], [], gate, qargs, []))
 
     @idata(ROTATION_GATES)
-    def test_rotation_mod_2pi(self, gate_cls):
-        """Test the rotations modulo 2pi commute with any gate."""
+    def test_rotations_pi_multiples(self, gate_cls):
+        """Test the rotations modulo 2pi (crx/cry/crz modulo 4pi) commute with any gate."""
         generic_gate = HGate()  # does not commute with any rotation gate
-        even = np.arange(-6, 7, 2)
+        multiples = np.arange(-6, 7)
 
-        with self.subTest(msg="even multiples"):
-            for multiple in even:
+        for multiple in multiples:
+            with self.subTest(multiple=multiple):
                 gate = gate_cls(multiple * np.pi)
-                self.assertTrue(
-                    scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
+                numeric = UnitaryGate(gate.to_matrix())
+
+                # compute a numeric reference, that doesn't go through any special cases and
+                # uses a matrix-based commutation check
+                expected = scc.commute(
+                    generic_gate,
+                    [0],
+                    [],
+                    numeric,
+                    list(range(gate.num_qubits)),
+                    [],
+                    approximation_degree=1 - 1e-5,
                 )
 
-        odd = np.arange(-5, 6, 2)
-        with self.subTest(msg="odd multiples"):
-            for multiple in odd:
-                gate = gate_cls(multiple * np.pi)
-                self.assertFalse(
-                    scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
-                )
+                result = scc.commute(generic_gate, [0], [], gate, list(range(gate.num_qubits)), [])
+                self.assertEqual(expected, result)
 
     def test_custom_gate(self):
         """Test a custom gate."""
@@ -482,6 +469,34 @@ class TestCommutationChecker(QiskitTestCase):
         rx_gate_theta = RXGate(Parameter("Theta"))
         self.assertTrue(scc.commute(pauli_gate, [0, 1], [], rx_gate_theta, [0], []))
         self.assertTrue(scc.commute(rx_gate_theta, [0], [], pauli_gate, [0, 1], []))
+
+    def test_2q_pauli_rot_with_non_cached(self):
+        """Test the 2q-Pauli rotations with a gate that is not cached."""
+        x_equiv = UGate(np.pi, -np.pi / 2, np.pi / 2)
+        self.assertTrue(scc.commute(x_equiv, [0], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertTrue(scc.commute(x_equiv, [1], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(x_equiv, [0], [], RYYGate(np.pi), [1, 0], []))
+        self.assertFalse(scc.commute(x_equiv, [1], [], RYYGate(np.pi), [1, 0], []))
+
+        something_else = RGate(1, 2)
+        self.assertFalse(scc.commute(something_else, [0], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(something_else, [1], [], RXXGate(np.pi / 2), [0, 1], []))
+        self.assertFalse(scc.commute(something_else, [0], [], RYYGate(np.pi), [1, 0], []))
+        self.assertFalse(scc.commute(something_else, [1], [], RYYGate(np.pi), [1, 0], []))
+
+    def test_approximation_degree(self):
+        """Test setting the approximation degree."""
+
+        almost_identity = RZGate(1e-5)
+        other = HGate()
+
+        self.assertFalse(scc.commute(almost_identity, [0], [], other, [0], []))
+        self.assertFalse(
+            scc.commute(almost_identity, [0], [], other, [0], [], approximation_degree=1)
+        )
+        self.assertTrue(
+            scc.commute(almost_identity, [0], [], other, [0], [], approximation_degree=1 - 1e-4)
+        )
 
 
 if __name__ == "__main__":

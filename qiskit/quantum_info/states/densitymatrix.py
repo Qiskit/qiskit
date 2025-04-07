@@ -180,7 +180,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
     def _ipython_display_(self):
         out = self.draw()
         if isinstance(out, str):
-            print(out)
+            print(out)  # pylint: disable=bad-builtin
         else:
             from IPython.display import display
 

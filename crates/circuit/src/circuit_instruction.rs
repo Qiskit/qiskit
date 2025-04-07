@@ -13,183 +13,27 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use numpy::IntoPyArray;
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PyString, PyTuple, PyType};
-use pyo3::{intern, IntoPy, PyObject, PyResult};
 
+use pyo3::types::{PyBool, PyList, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
+use pyo3::{intern, PyObject, PyResult};
+
+use nalgebra::{MatrixView2, MatrixView4};
+use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::imports::{
     CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
 };
 use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
-
-/// This is a private struct used to hold the actual attributes, which we store
-/// on the heap using the [Box] within [ExtraInstructionAttributes].
-#[derive(Debug, Clone)]
-struct ExtraAttributes {
-    label: Option<String>,
-    duration: Option<PyObject>,
-    unit: Option<String>,
-    condition: Option<PyObject>,
-}
-
-/// Extra mutable attributes for a circuit instruction's state. In general we don't
-/// typically deal with this in rust space and the majority of the time they're not used in Python
-/// space either. To save memory, the attributes are stored inside a `Box` internally, so this
-/// struct is no larger than that.
-#[derive(Default, Debug, Clone)]
-pub struct ExtraInstructionAttributes(Option<Box<ExtraAttributes>>);
-
-impl ExtraInstructionAttributes {
-    /// Construct a new set of the extra attributes if any of the elements are not `None`, or return
-    /// `None` if there is no need for an object.
-    #[inline]
-    pub fn new(
-        label: Option<String>,
-        duration: Option<Py<PyAny>>,
-        unit: Option<String>,
-        condition: Option<Py<PyAny>>,
-    ) -> Self {
-        ExtraInstructionAttributes(
-            if label.is_some() || duration.is_some() || unit.is_some() || condition.is_some() {
-                Some(Box::new(ExtraAttributes {
-                    label,
-                    duration,
-                    unit,
-                    condition,
-                }))
-            } else {
-                None
-            },
-        )
-    }
-
-    /// Get the Python-space version of the stored `unit`.
-    /// This evaluates the Python-space default (`"dt"`) value if we're storing a `None`.
-    pub fn py_unit(&self, py: Python) -> Py<PyString> {
-        self.0
-            .as_deref()
-            .and_then(|attrs| {
-                attrs
-                    .unit
-                    .as_deref()
-                    .map(|unit| <&str as IntoPy<Py<PyString>>>::into_py(unit, py))
-            })
-            .unwrap_or_else(|| Self::default_unit(py).clone().unbind())
-    }
-
-    /// Get the Python-space default value for the `unit` field.
-    pub fn default_unit(py: Python) -> &Bound<PyString> {
-        intern!(py, "dt")
-    }
-
-    /// Get the stored label attribute.
-    pub fn label(&self) -> Option<&str> {
-        self.0.as_deref().and_then(|attrs| attrs.label.as_deref())
-    }
-
-    /// Set the stored label attribute, or clear it if `label` is `None`.
-    pub fn set_label(&mut self, label: Option<String>) {
-        if let Some(attrs) = &mut self.0 {
-            attrs.label = label;
-            self.shrink_if_empty();
-            return;
-        }
-        if label.is_some() {
-            self.0 = Some(Box::new(ExtraAttributes {
-                label,
-                duration: None,
-                unit: None,
-                condition: None,
-            }))
-        }
-    }
-
-    /// Get the stored duration attribute.
-    pub fn duration(&self) -> Option<&PyObject> {
-        self.0.as_deref().and_then(|attrs| attrs.duration.as_ref())
-    }
-
-    /// Set the stored duration attribute, or clear it if `duration` is `None`.
-    pub fn set_duration(&mut self, duration: Option<PyObject>) {
-        if let Some(attrs) = &mut self.0 {
-            attrs.duration = duration;
-            self.shrink_if_empty();
-            return;
-        }
-        if duration.is_some() {
-            self.0 = Some(Box::new(ExtraAttributes {
-                label: None,
-                duration,
-                unit: None,
-                condition: None,
-            }))
-        }
-    }
-
-    /// Get the unit attribute.
-    pub fn unit(&self) -> Option<&str> {
-        self.0.as_deref().and_then(|attrs| attrs.unit.as_deref())
-    }
-
-    /// Set the stored unit attribute, or clear it if `unit` is `None`.
-    pub fn set_unit(&mut self, unit: Option<String>) {
-        if let Some(attrs) = &mut self.0 {
-            attrs.unit = unit;
-            self.shrink_if_empty();
-            return;
-        }
-        if unit.is_some() {
-            self.0 = Some(Box::new(ExtraAttributes {
-                label: None,
-                duration: None,
-                unit,
-                condition: None,
-            }))
-        }
-    }
-
-    /// Get the condition attribute.
-    pub fn condition(&self) -> Option<&PyObject> {
-        self.0.as_deref().and_then(|attrs| attrs.condition.as_ref())
-    }
-
-    /// Set the stored condition attribute, or clear it if `condition` is `None`.
-    pub fn set_condition(&mut self, condition: Option<PyObject>) {
-        if let Some(attrs) = &mut self.0 {
-            attrs.condition = condition;
-            self.shrink_if_empty();
-            return;
-        }
-        if condition.is_some() {
-            self.0 = Some(Box::new(ExtraAttributes {
-                label: None,
-                duration: None,
-                unit: None,
-                condition,
-            }))
-        }
-    }
-
-    fn shrink_if_empty(&mut self) {
-        if let Some(attrs) = &self.0 {
-            if attrs.label.is_none()
-                && attrs.duration.is_none()
-                && attrs.unit.is_none()
-                && attrs.condition.is_none()
-            {
-                self.0 = None;
-            }
-        }
-    }
-}
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
 /// various operands.
@@ -234,7 +78,7 @@ pub struct CircuitInstruction {
     #[pyo3(get)]
     pub clbits: Py<PyTuple>,
     pub params: SmallVec<[Param; 3]>,
-    pub extra_attrs: ExtraInstructionAttributes,
+    pub label: Option<Box<String>>,
     #[cfg(feature = "cache_pygates")]
     pub py_op: OnceLock<Py<PyAny>>,
 }
@@ -256,10 +100,6 @@ impl CircuitInstruction {
             out.call_method0(intern!(py, "to_mutable"))
         }
     }
-
-    pub fn condition(&self) -> Option<&PyObject> {
-        self.extra_attrs.condition()
-    }
 }
 
 #[pymethods]
@@ -279,9 +119,9 @@ impl CircuitInstruction {
             qubits: as_tuple(py, qubits)?.unbind(),
             clbits: as_tuple(py, clbits)?.unbind(),
             params: op_parts.params,
-            extra_attrs: op_parts.extra_attrs,
+            label: op_parts.label,
             #[cfg(feature = "cache_pygates")]
-            py_op: operation.into_py(py).into(),
+            py_op: operation.clone().unbind().into(),
         })
     }
 
@@ -297,9 +137,9 @@ impl CircuitInstruction {
         Ok(Self {
             operation: standard.into(),
             qubits: as_tuple(py, qubits)?.unbind(),
-            clbits: PyTuple::empty_bound(py).unbind(),
+            clbits: PyTuple::empty(py).unbind(),
             params,
-            extra_attrs: ExtraInstructionAttributes::new(label, None, None, None),
+            label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         })
@@ -329,12 +169,26 @@ impl CircuitInstruction {
         }
 
         let out = match self.operation.view() {
-            OperationRef::Standard(standard) => standard
-                .create_py_op(py, Some(&self.params), &self.extra_attrs)?
+            OperationRef::StandardGate(standard) => standard
+                .create_py_op(
+                    py,
+                    Some(&self.params),
+                    self.label.as_ref().map(|x| x.as_str()),
+                )?
+                .into_any(),
+            OperationRef::StandardInstruction(instruction) => instruction
+                .create_py_op(
+                    py,
+                    Some(&self.params),
+                    self.label.as_ref().map(|x| x.as_str()),
+                )?
                 .into_any(),
             OperationRef::Gate(gate) => gate.gate.clone_ref(py),
             OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+            OperationRef::Unitary(unitary) => unitary
+                .create_py_op(py, self.label.as_ref().map(|x| x.as_str()))?
+                .into_any(),
         };
 
         #[cfg(feature = "cache_pygates")]
@@ -347,41 +201,24 @@ impl CircuitInstruction {
 
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
-    fn get_name(&self, py: Python) -> PyObject {
-        self.operation.name().to_object(py)
+    fn get_name(&self) -> &str {
+        self.operation.name()
     }
 
     #[getter]
-    fn get_params(&self, py: Python) -> PyObject {
-        self.params.to_object(py)
+    fn get_params(&self) -> &[Param] {
+        self.params.as_slice()
     }
 
     #[getter]
-    fn matrix(&self, py: Python) -> Option<PyObject> {
+    fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
         let matrix = self.operation.view().matrix(&self.params);
-        matrix.map(|mat| mat.into_pyarray_bound(py).into())
+        matrix.map(move |mat| mat.into_pyarray(py))
     }
 
     #[getter]
     fn label(&self) -> Option<&str> {
-        self.extra_attrs.label()
-    }
-
-    #[getter]
-    fn get_condition(&self, py: Python) -> Option<PyObject> {
-        self.extra_attrs.condition().map(|x| x.clone_ref(py))
-    }
-
-    #[getter]
-    fn duration(&self, py: Python) -> Option<PyObject> {
-        self.extra_attrs.duration().map(|x| x.clone_ref(py))
-    }
-
-    #[getter]
-    fn unit(&self, py: Python) -> Py<PyString> {
-        // Python space uses `"dt"` as the default, whereas we simply don't store the extra
-        // attributes at all if they're none.
-        self.extra_attrs.py_unit(py)
+        self.label.as_ref().map(|label| label.as_str())
     }
 
     /// Is the :class:`.Operation` contained in this instruction a Qiskit standard gate?
@@ -393,7 +230,7 @@ impl CircuitInstruction {
     /// :class:`.ControlledGate`?
     pub fn is_controlled_gate(&self, py: Python) -> PyResult<bool> {
         match self.operation.view() {
-            OperationRef::Standard(standard) => Ok(standard.num_ctrl_qubits() != 0),
+            OperationRef::StandardGate(standard) => Ok(standard.num_ctrl_qubits() != 0),
             OperationRef::Gate(gate) => gate
                 .gate
                 .bind(py)
@@ -452,9 +289,9 @@ impl CircuitInstruction {
                 qubits,
                 clbits,
                 params: params.unwrap_or(op_parts.params),
-                extra_attrs: op_parts.extra_attrs,
+                label: op_parts.label,
                 #[cfg(feature = "cache_pygates")]
-                py_op: operation.into_py(py).into(),
+                py_op: operation.clone().unbind().into(),
             })
         } else {
             Ok(Self {
@@ -462,7 +299,7 @@ impl CircuitInstruction {
                 qubits,
                 clbits,
                 params: params.unwrap_or_else(|| self.params.clone()),
-                extra_attrs: self.extra_attrs.clone(),
+                label: self.label.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: self.py_op.clone(),
             })
@@ -470,12 +307,12 @@ impl CircuitInstruction {
     }
 
     pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
-        Ok((
+        (
             self.get_operation(py)?,
             self.qubits.bind(py),
             self.clbits.bind(py),
         )
-            .into_py(py))
+            .into_py_any(py)
     }
 
     pub fn __repr__(self_: &Bound<Self>, py: Python<'_>) -> PyResult<String> {
@@ -497,24 +334,30 @@ impl CircuitInstruction {
     // like that via unpacking or similar.  That means that the `parameters` field is completely
     // absent, and the qubits and clbits must be converted to lists.
     pub fn _legacy_format<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        Ok(PyTuple::new_bound(
+        PyTuple::new(
             py,
             [
                 self.get_operation(py)?,
                 self.qubits.bind(py).to_list().into(),
                 self.clbits.bind(py).to_list().into(),
             ],
-        ))
+        )
     }
 
     pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
-        Ok(self._legacy_format(py)?.as_any().get_item(key)?.into_py(py))
+        self._legacy_format(py)?
+            .as_any()
+            .get_item(key)?
+            .into_py_any(py)
     }
 
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
         warn_on_legacy_circuit_instruction_iteration(py)?;
-        Ok(self._legacy_format(py)?.as_any().iter()?.into_py(py))
+        self._legacy_format(py)?
+            .as_any()
+            .try_iter()?
+            .into_py_any(py)
     }
 
     pub fn __len__(&self, py: Python) -> PyResult<usize> {
@@ -582,15 +425,17 @@ impl CircuitInstruction {
             ))
         }
 
-        match op {
-            CompareOp::Eq => Ok(eq(py, self_, other)?
-                .map(|b| b.into_py(py))
-                .unwrap_or_else(|| py.NotImplemented())),
-            CompareOp::Ne => Ok(eq(py, self_, other)?
-                .map(|b| (!b).into_py(py))
-                .unwrap_or_else(|| py.NotImplemented())),
-            _ => Ok(py.NotImplemented()),
-        }
+        Ok(match op {
+            CompareOp::Eq => match eq(py, self_, other)? {
+                Some(res) => PyBool::new(py, res).to_owned().into_any().unbind(),
+                None => py.NotImplemented(),
+            },
+            CompareOp::Ne => match eq(py, self_, other)? {
+                Some(res) => PyBool::new(py, !res).to_owned().into_any().unbind(),
+                None => py.NotImplemented(),
+            },
+            _ => py.NotImplemented(),
+        })
     }
 }
 
@@ -615,7 +460,7 @@ impl CircuitInstruction {
 pub struct OperationFromPython {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
-    pub extra_attrs: ExtraInstructionAttributes,
+    pub label: Option<Box<String>>,
 }
 
 impl<'py> FromPyObject<'py> for OperationFromPython {
@@ -635,38 +480,34 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 .transpose()
                 .map(|params| params.unwrap_or_default())
         };
-        let extract_extra = || -> PyResult<_> {
-            let unit = {
-                // We accept Python-space `None` or `"dt"` as both meaning the default `"dt"`.
-                let raw_unit = ob.getattr(intern!(py, "_unit"))?;
-                (!(raw_unit.is_none()
-                    || raw_unit.eq(ExtraInstructionAttributes::default_unit(py))?))
-                .then(|| raw_unit.extract::<String>())
-                .transpose()?
-            };
-            // Delay uses the `duration` attr as an alias for param[0] which isn't deprecated
-            // while all other instructions have deprecated `duration` so we want to access
-            // the inner _duration to avoid the deprecation warning's run time overhead.
-            let duration = if ob.getattr(intern!(py, "name"))?.extract::<String>()? != "delay" {
-                ob.getattr(intern!(py, "_duration"))?.extract()?
-            } else {
-                ob.getattr(intern!(py, "duration"))?.extract()?
-            };
-            Ok(ExtraInstructionAttributes::new(
-                ob.getattr(intern!(py, "label"))?.extract()?,
-                duration,
-                unit,
-                ob.getattr(intern!(py, "_condition"))?.extract()?,
-            ))
+
+        let extract_params_no_coerce = || {
+            ob.getattr(intern!(py, "params"))
+                .ok()
+                .map(|params| {
+                    params
+                        .try_iter()?
+                        .map(|p| Param::extract_no_coerce(&p?))
+                        .collect()
+                })
+                .transpose()
+                .map(|params| params.unwrap_or_default())
         };
 
-        'standard: {
+        let extract_label = || -> PyResult<Option<Box<String>>> {
+            let raw = ob.getattr(intern!(py, "label"))?;
+            Ok(raw.extract::<Option<String>>()?.map(Box::new))
+        };
+
+        'standard_gate: {
+            // Our Python standard gates have a `_standard_gate` field at the class level so we can
+            // quickly identify them here without an `isinstance` check.
             let Some(standard) = ob_type
                 .getattr(intern!(py, "_standard_gate"))
                 .and_then(|standard| standard.extract::<StandardGate>())
                 .ok()
             else {
-                break 'standard;
+                break 'standard_gate;
             };
 
             // If the instruction is a controlled gate with a not-all-ones control state, it doesn't
@@ -687,14 +528,92 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                         .getattr(intern!(py, "label"))?
                         .is_none())
             {
-                break 'standard;
+                break 'standard_gate;
             }
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_standard(standard),
+                operation: PackedOperation::from_standard_gate(standard),
                 params: extract_params()?,
-                extra_attrs: extract_extra()?,
+                label: extract_label()?,
             });
         }
+        'standard_instr: {
+            // Our Python standard instructions have a `_standard_instruction_type` field at the
+            // class level so we can quickly identify them here without an `isinstance` check.
+            // Once we know the type, we query the object for any type-specific fields we need to
+            // read (e.g. a Barrier's number of qubits) to build the Rust representation.
+            let Some(standard_type) = ob_type
+                .getattr(intern!(py, "_standard_instruction_type"))
+                .and_then(|standard| standard.extract::<StandardInstructionType>())
+                .ok()
+            else {
+                break 'standard_instr;
+            };
+            let standard = match standard_type {
+                StandardInstructionType::Barrier => {
+                    let num_qubits = ob.getattr(intern!(py, "num_qubits"))?.extract()?;
+                    StandardInstruction::Barrier(num_qubits)
+                }
+                StandardInstructionType::Delay => {
+                    let unit = ob.getattr(intern!(py, "unit"))?.extract()?;
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_standard_instruction(
+                            StandardInstruction::Delay(unit),
+                        ),
+                        // If the delay's duration is a Python int, we preserve it rather than
+                        // coercing it to a float (e.g. when unit is 'dt').
+                        params: extract_params_no_coerce()?,
+                        label: extract_label()?,
+                    });
+                }
+                StandardInstructionType::Measure => StandardInstruction::Measure,
+                StandardInstructionType::Reset => StandardInstruction::Reset,
+            };
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_standard_instruction(standard),
+                params: extract_params()?,
+                label: extract_label()?,
+            });
+        }
+
+        // We need to check by name here to avoid a circular import during initial loading
+        if ob.getattr(intern!(py, "name"))?.extract::<String>()? == "unitary" {
+            let params = extract_params()?;
+            if let Some(Param::Obj(data)) = params.first() {
+                let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
+                let matrix: Option<MatrixView2<Complex64>> = py_matrix.try_as_matrix();
+                if let Some(x) = matrix {
+                    let unitary_gate = Box::new(UnitaryGate {
+                        array: ArrayType::OneQ(x.into_owned()),
+                    });
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_unitary(unitary_gate),
+                        params: SmallVec::new(),
+                        label: extract_label()?,
+                    });
+                }
+                let matrix: Option<MatrixView4<Complex64>> = py_matrix.try_as_matrix();
+                if let Some(x) = matrix {
+                    let unitary_gate = Box::new(UnitaryGate {
+                        array: ArrayType::TwoQ(x.into_owned()),
+                    });
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_unitary(unitary_gate),
+                        params: SmallVec::new(),
+                        label: extract_label()?,
+                    });
+                } else {
+                    let unitary_gate = Box::new(UnitaryGate {
+                        array: ArrayType::NDArray(py_matrix.as_array().to_owned()),
+                    });
+                    return Ok(OperationFromPython {
+                        operation: PackedOperation::from_unitary(unitary_gate),
+                        params: SmallVec::new(),
+                        label: extract_label()?,
+                    });
+                };
+            }
+        }
+
         if ob_type.is_subclass(GATE.get_bound(py))? {
             let params = extract_params()?;
             let gate = Box::new(PyGate {
@@ -702,12 +621,12 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: 0,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.into_py(py),
+                gate: ob.clone().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_gate(gate),
                 params,
-                extra_attrs: extract_extra()?,
+                label: extract_label()?,
             });
         }
         if ob_type.is_subclass(INSTRUCTION.get_bound(py))? {
@@ -718,12 +637,12 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
                 control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
-                instruction: ob.into_py(py),
+                instruction: ob.clone().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_instruction(instruction),
                 params,
-                extra_attrs: extract_extra()?,
+                label: extract_label()?,
             });
         }
         if ob_type.is_subclass(OPERATION.get_bound(py))? {
@@ -733,12 +652,12 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.into_py(py),
+                operation: ob.clone().unbind(),
             });
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_operation(operation),
                 params,
-                extra_attrs: ExtraInstructionAttributes::default(),
+                label: None,
             });
         }
         Err(PyTypeError::new_err(format!("invalid input: {}", ob)))
@@ -748,7 +667,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
 /// Convert a sequence-like Python object to a tuple.
 fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bound<'py, PyTuple>> {
     let Some(seq) = seq else {
-        return Ok(PyTuple::empty_bound(py));
+        return Ok(PyTuple::empty(py));
     };
     if seq.is_instance_of::<PyTuple>() {
         Ok(seq.downcast_into_exact::<PyTuple>()?)
@@ -756,12 +675,12 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
         Ok(seq.downcast_exact::<PyList>()?.to_tuple())
     } else {
         // New tuple from iterable.
-        Ok(PyTuple::new_bound(
+        PyTuple::new(
             py,
-            seq.iter()?
+            seq.try_iter()?
                 .map(|o| Ok(o?.unbind()))
                 .collect::<PyResult<Vec<PyObject>>>()?,
-        ))
+        )
     }
 }
 
@@ -779,11 +698,11 @@ fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
                 py,
                 concat!(
                     "Treating CircuitInstruction as an iterable is deprecated legacy behavior",
-                    " since Qiskit 1.2, and will be removed in Qiskit 2.0.",
+                    " since Qiskit 1.2, and will be removed in Qiskit 3.0.",
                     " Instead, use the `operation`, `qubits` and `clbits` named attributes."
                 )
             ),
-            py.get_type_bound::<PyDeprecationWarning>(),
+            py.get_type::<PyDeprecationWarning>(),
             // Stack level.  Compared to Python-space calls to `warn`, this is unusually low
             // beacuse all our internal call structure is now Rust-space and invisible to Python.
             1,

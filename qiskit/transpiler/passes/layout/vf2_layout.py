@@ -80,7 +80,6 @@ class VF2Layout(AnalysisPass):
         seed=None,
         call_limit=None,
         time_limit=None,
-        properties=None,
         max_trials=None,
         target=None,
     ):
@@ -94,16 +93,13 @@ class VF2Layout(AnalysisPass):
             call_limit (int): The number of state visits to attempt in each execution of
                 VF2.
             time_limit (float): The total time limit in seconds to run ``VF2Layout``
-            properties (BackendProperties): The backend properties for the backend. If
-                :meth:`~qiskit.providers.models.BackendProperties.readout_error` is available
-                it is used to score the layout.
             max_trials (int): The maximum number of trials to run VF2 to find
                 a layout. If this is not specified the number of trials will be limited
                 based on the number of edges in the interaction graph or the coupling graph
                 (whichever is larger) if no other limits are set. If set to a value <= 0 no
                 limit on the number of trials will be set.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
-                If specified it will supersede a set value for ``properties`` and
+                If specified it will supersede a set value for
                 ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
                 of ``target`` models an ideal backend without any constraints then the value of
                 ``coupling_map``
@@ -121,7 +117,6 @@ class VF2Layout(AnalysisPass):
             self.coupling_map = target_coupling_map
         else:
             self.coupling_map = coupling_map
-        self.properties = properties
         self.strict_direction = strict_direction
         self.seed = seed
         self.call_limit = call_limit
@@ -135,9 +130,7 @@ class VF2Layout(AnalysisPass):
             raise TranspilerError("coupling_map or target must be specified.")
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
         if self.avg_error_map is None:
-            self.avg_error_map = vf2_utils.build_average_error_map(
-                self.target, self.properties, self.coupling_map
-            )
+            self.avg_error_map = vf2_utils.build_average_error_map(self.target, self.coupling_map)
 
         result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
         if result is None:

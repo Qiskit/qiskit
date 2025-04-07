@@ -10,8 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for the DropNegligible transpiler pass."""
+"""Tests for the RemoveIdentityEquivalent transpiler pass."""
 
+import ddt
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister, Gate
@@ -26,6 +27,7 @@ from qiskit.circuit.library import (
     XXMinusYYGate,
     XXPlusYYGate,
     GlobalPhaseGate,
+    UnitaryGate,
 )
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
@@ -34,10 +36,11 @@ from qiskit.transpiler.target import Target, InstructionProperties
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-class TestDropNegligible(QiskitTestCase):
-    """Test the DropNegligible pass."""
+@ddt.ddt
+class TestRemoveIdentityEquivalent(QiskitTestCase):
+    """Test the RemoveIdentityEquivalent pass."""
 
-    def test_drops_negligible_gates(self):
+    def test_remove_identity_equiv_pass(self):
         """Test that negligible gates are dropped."""
         qubits = QuantumRegister(2)
         circuit = QuantumCircuit(qubits)
@@ -173,13 +176,36 @@ class TestDropNegligible(QiskitTestCase):
         expected = QuantumCircuit(3)
         self.assertEqual(expected, transpiled)
 
-    def test_global_phase_ignored(self):
-        """Test that global phase gate isn't considered."""
-
-        qc = QuantumCircuit(1)
-        qc.id(0)
-        qc.append(GlobalPhaseGate(0))
+    @ddt.data(
+        RXGate(0),
+        RXGate(2 * np.pi),
+        RYGate(0),
+        RYGate(2 * np.pi),
+        RZGate(0),
+        RZGate(2 * np.pi),
+        UnitaryGate(np.array([[1, 0], [0, 1]])),
+        UnitaryGate(np.array([[-1, 0], [0, -1]])),
+        UnitaryGate(np.array([[np.exp(1j * np.pi / 4), 0], [0, np.exp(1j * np.pi / 4)]])),
+        GlobalPhaseGate(0),
+        GlobalPhaseGate(np.pi / 4),
+        UnitaryGate(np.exp(-0.123j) * np.eye(2)),
+        UnitaryGate(np.exp(-0.123j) * np.eye(4)),
+        UnitaryGate(np.exp(-0.123j) * np.eye(8)),
+    )
+    def test_remove_identity_up_to_global_phase(self, gate):
+        """Test that gates equivalent to identity up to a global phase are removed from the circuit,
+        and the global phase of the circuit is updated correctly.
+        """
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
         transpiled = RemoveIdentityEquivalent()(qc)
-        expected = QuantumCircuit(1)
-        expected.append(GlobalPhaseGate(0))
-        self.assertEqual(transpiled, expected)
+        self.assertEqual(transpiled.size(), 0)
+        self.assertEqual(Operator(qc), Operator(transpiled))
+
+    def test_parameterized_global_phase_ignored(self):
+        """Test that parameterized global phase gates are not removed by the pass."""
+        theta = Parameter("theta")
+        qc = QuantumCircuit(1)
+        qc.append(GlobalPhaseGate(theta), [])
+        transpiled = RemoveIdentityEquivalent()(qc)
+        self.assertEqual(qc, transpiled)

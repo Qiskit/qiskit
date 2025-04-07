@@ -19,7 +19,6 @@ import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.qasm2 import dumps
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -39,7 +38,6 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         self.circuit = bell
 
         self.seed = 88
-        self.backend = BasicSimulator()
         qasm_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "qasm"
         )
@@ -153,156 +151,6 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         }
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_if_statement(self):
-        """Test if statements."""
-        shots = 100
-        qr = QuantumRegister(3, "qr")
-        cr = ClassicalRegister(3, "cr")
-
-        #       ┌───┐┌─┐          ┌─┐
-        # qr_0: ┤ X ├┤M├──────────┤M├──────
-        #       ├───┤└╥┘┌─┐       └╥┘┌─┐
-        # qr_1: ┤ X ├─╫─┤M├────────╫─┤M├───
-        #       └───┘ ║ └╥┘ ┌───┐  ║ └╥┘┌─┐
-        # qr_2: ──────╫──╫──┤ X ├──╫──╫─┤M├
-        #             ║  ║  └─╥─┘  ║  ║ └╥┘
-        #             ║  ║ ┌──╨──┐ ║  ║  ║
-        # cr: 3/══════╩══╩═╡ 0x3 ╞═╩══╩══╩═
-        #             0  1 └─────┘ 0  1  2
-        circuit_if_true = QuantumCircuit(qr, cr)
-        circuit_if_true.x(qr[0])
-        circuit_if_true.x(qr[1])
-        circuit_if_true.measure(qr[0], cr[0])
-        circuit_if_true.measure(qr[1], cr[1])
-        with self.assertWarns(DeprecationWarning):
-            circuit_if_true.x(qr[2]).c_if(cr, 0x3)
-        circuit_if_true.measure(qr[0], cr[0])
-        circuit_if_true.measure(qr[1], cr[1])
-        circuit_if_true.measure(qr[2], cr[2])
-
-        #       ┌───┐┌─┐       ┌─┐
-        # qr_0: ┤ X ├┤M├───────┤M├──────
-        #       └┬─┬┘└╥┘       └╥┘┌─┐
-        # qr_1: ─┤M├──╫─────────╫─┤M├───
-        #        └╥┘  ║  ┌───┐  ║ └╥┘┌─┐
-        # qr_2: ──╫───╫──┤ X ├──╫──╫─┤M├
-        #         ║   ║  └─╥─┘  ║  ║ └╥┘
-        #         ║   ║ ┌──╨──┐ ║  ║  ║
-        # cr: 3/══╩═══╩═╡ 0x3 ╞═╩══╩══╩═
-        #         1   0 └─────┘ 0  1  2
-        circuit_if_false = QuantumCircuit(qr, cr)
-        circuit_if_false.x(qr[0])
-        circuit_if_false.measure(qr[0], cr[0])
-        circuit_if_false.measure(qr[1], cr[1])
-        with self.assertWarns(DeprecationWarning):
-            circuit_if_false.x(qr[2]).c_if(cr, 0x3)
-        circuit_if_false.measure(qr[0], cr[0])
-        circuit_if_false.measure(qr[1], cr[1])
-        circuit_if_false.measure(qr[2], cr[2])
-        job = self.backend.run(
-            transpile([circuit_if_true, circuit_if_false], self.backend),
-            shots=shots,
-            seed_simulator=self.seed,
-        )
-        result = job.result()
-        counts_if_true = result.get_counts(circuit_if_true)
-        counts_if_false = result.get_counts(circuit_if_false)
-        self.assertEqual(counts_if_true, {"111": 100})
-        self.assertEqual(counts_if_false, {"001": 100})
-
-    def test_bit_cif_crossaffect(self):
-        """Test if bits in a classical register other than
-        the single conditional bit affect the conditioned operation."""
-        #               ┌───┐          ┌─┐
-        # q0_0: ────────┤ H ├──────────┤M├
-        #       ┌───┐   └─╥─┘    ┌─┐   └╥┘
-        # q0_1: ┤ X ├─────╫──────┤M├────╫─
-        #       ├───┤     ║      └╥┘┌─┐ ║
-        # q0_2: ┤ X ├─────╫───────╫─┤M├─╫─
-        #       └───┘┌────╨─────┐ ║ └╥┘ ║
-        # c0: 3/═════╡ c0_0=0x1 ╞═╩══╩══╬═
-        #            └──────────┘ 1  2  ║
-        # c1: 1/════════════════════════╩═
-        #                               0
-        shots = 100
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(3)
-        cr1 = ClassicalRegister(1)
-        circuit = QuantumCircuit(qr, cr, cr1)
-        circuit.x([qr[1], qr[2]])
-        circuit.measure(qr[1], cr[1])
-        circuit.measure(qr[2], cr[2])
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[0]).c_if(cr[0], True)
-        circuit.measure(qr[0], cr1[0])
-        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
-        result = job.result().get_counts()
-        target = {"0 110": 100}
-        self.assertEqual(result, target)
-
-    def test_teleport(self):
-        """Test teleportation as in tutorials"""
-        #       ┌─────────┐          ┌───┐ ░ ┌─┐
-        # qr_0: ┤ Ry(π/4) ├───────■──┤ H ├─░─┤M├────────────────────
-        #       └──┬───┬──┘     ┌─┴─┐└───┘ ░ └╥┘┌─┐
-        # qr_1: ───┤ H ├─────■──┤ X ├──────░──╫─┤M├─────────────────
-        #          └───┘   ┌─┴─┐└───┘      ░  ║ └╥┘ ┌───┐  ┌───┐ ┌─┐
-        # qr_2: ───────────┤ X ├───────────░──╫──╫──┤ Z ├──┤ X ├─┤M├
-        #                  └───┘           ░  ║  ║  └─╥─┘  └─╥─┘ └╥┘
-        #                                     ║  ║ ┌──╨──┐   ║    ║
-        # cr0: 1/═════════════════════════════╩══╬═╡ 0x1 ╞═══╬════╬═
-        #                                     0  ║ └─────┘┌──╨──┐ ║
-        # cr1: 1/════════════════════════════════╩════════╡ 0x1 ╞═╬═
-        #                                        0        └─────┘ ║
-        # cr2: 1/═════════════════════════════════════════════════╩═
-        #                                                         0
-        self.log.info("test_teleport")
-        pi = np.pi
-        shots = 4000
-        qr = QuantumRegister(3, "qr")
-        cr0 = ClassicalRegister(1, "cr0")
-        cr1 = ClassicalRegister(1, "cr1")
-        cr2 = ClassicalRegister(1, "cr2")
-        circuit = QuantumCircuit(qr, cr0, cr1, cr2, name="teleport")
-        circuit.h(qr[1])
-        circuit.cx(qr[1], qr[2])
-        circuit.ry(pi / 4, qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.h(qr[0])
-        circuit.barrier(qr)
-        circuit.measure(qr[0], cr0[0])
-        circuit.measure(qr[1], cr1[0])
-        with self.assertWarns(DeprecationWarning):
-            circuit.z(qr[2]).c_if(cr0, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr[2]).c_if(cr1, 1)
-        circuit.measure(qr[2], cr2[0])
-        job = self.backend.run(
-            transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
-        )
-        results = job.result()
-        data = results.get_counts("teleport")
-        alice = {
-            "00": data["0 0 0"] + data["1 0 0"],
-            "01": data["0 1 0"] + data["1 1 0"],
-            "10": data["0 0 1"] + data["1 0 1"],
-            "11": data["0 1 1"] + data["1 1 1"],
-        }
-        bob = {
-            "0": data["0 0 0"] + data["0 1 0"] + data["0 0 1"] + data["0 1 1"],
-            "1": data["1 0 0"] + data["1 1 0"] + data["1 0 1"] + data["1 1 1"],
-        }
-        self.log.info("test_teleport: circuit:")
-        self.log.info(dumps(circuit))
-        self.log.info("test_teleport: data %s", data)
-        self.log.info("test_teleport: alice %s", alice)
-        self.log.info("test_teleport: bob %s", bob)
-        alice_ratio = 1 / np.tan(pi / 8) ** 2
-        bob_ratio = bob["0"] / float(bob["1"])
-        error = abs(alice_ratio - bob_ratio) / alice_ratio
-        self.log.info("test_teleport: relative error = %s", error)
-        self.assertLess(error, 0.05)
-
     def test_memory(self):
         """Test memory."""
         #       ┌───┐        ┌─┐
@@ -365,6 +213,80 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target_counts)
+
+    def test_options(self):
+        """Test setting custom backend options during init and run."""
+        init_statevector = np.zeros(2**2, dtype=complex)
+        init_statevector[2] = 1
+        in_options = {
+            "initial_statevector": init_statevector,
+            "seed_simulator": 42,
+            "shots": 100,
+            "memory": True,
+        }
+        backend = BasicSimulator()
+        backend_with_options = BasicSimulator(
+            initial_statevector=in_options["initial_statevector"],
+            seed_simulator=in_options["seed_simulator"],
+            shots=in_options["shots"],
+            memory=in_options["memory"],
+        )
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+
+        with self.subTest(msg="Test init options"):
+            out_options = backend_with_options.options
+            for key in out_options:
+                if key != "initial_statevector":
+                    self.assertEqual(getattr(out_options, key), in_options.get(key))
+                else:
+                    np.testing.assert_array_equal(getattr(out_options, key), in_options.get(key))
+
+        with self.subTest(msg="Test run options"):
+            out_1 = backend_with_options.run(bell).result().get_counts()
+            out_2 = (
+                backend.run(
+                    bell,
+                    initial_statevector=in_options["initial_statevector"],
+                    seed_simulator=in_options["seed_simulator"],
+                    shots=in_options["shots"],
+                    memory=in_options["memory"],
+                )
+                .result()
+                .get_counts()
+            )
+            self.assertEqual(out_1, out_2)
+
+        with self.subTest(msg="Test run options don't overwrite init"):
+            init_statevector = np.zeros(2**2, dtype=complex)
+            init_statevector[3] = 1
+            other_options = {
+                "initial_statevector": init_statevector,
+                "seed_simulator": 0,
+                "shots": 1000,
+                "memory": True,
+            }
+            out_1 = backend_with_options.run(bell).result().get_counts()
+            out_2 = (
+                backend_with_options.run(
+                    bell,
+                    initial_statevector=other_options["initial_statevector"],
+                    seed_simulator=other_options["seed_simulator"],
+                    shots=other_options["shots"],
+                    memory=other_options["memory"],
+                )
+                .result()
+                .get_counts()
+            )
+            self.assertNotEqual(out_1, out_2)
+            out_options = backend_with_options.options
+            for key in out_options:
+                if key != "initial_statevector":
+                    self.assertEqual(getattr(out_options, key), in_options.get(key))
+                else:
+                    np.testing.assert_array_equal(getattr(out_options, key), in_options.get(key))
 
 
 if __name__ == "__main__":
