@@ -2002,9 +2002,7 @@ impl SymbolExpr {
 
     /// Div with heuristic optimization
     fn div_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        if self.is_zero() {
-            Some(self.clone())
-        } else if rhs.is_zero() {
+        if rhs.is_zero() {
             // return inf to detect divide by zero without panic
             Some(SymbolExpr::Value(Value::Real(f64::INFINITY)))
         } else if rhs.is_one() {
@@ -2723,8 +2721,14 @@ impl Value {
     }
     pub fn log(&self) -> Value {
         match self {
-            Value::Real(e) => Value::Real(e.ln()),
-            Value::Int(e) => Value::Real((*e as f64).ln()),
+            Value::Real(e) => {
+                if *e < 0.0 {
+                    Value::Complex(Complex64::from(e)).log()
+                } else {
+                    Value::Real(e.ln())
+                }
+            }
+            Value::Int(e) => Value::Real(*e as f64).log(),
             Value::Complex(e) => {
                 let t = Value::Complex(e.ln());
                 match t.opt_complex() {
@@ -2738,14 +2742,14 @@ impl Value {
         match self {
             Value::Real(e) => {
                 if *e < 0.0 {
-                    Value::Complex(Complex64::from(e).powf(0.5))
+                    Value::Complex(Complex64::from(e)).sqrt()
                 } else {
                     Value::Real(e.sqrt())
                 }
             }
             Value::Int(e) => {
                 if *e < 0 {
-                    Value::Complex(Complex64::from(*e as f64).powf(0.5))
+                    Value::Complex(Complex64::from(*e as f64)).pow(&Value::Real(0.5))
                 } else {
                     let t = (*e as f64).sqrt();
                     let d = t.floor() - t;
@@ -2770,18 +2774,18 @@ impl Value {
             Value::Real(e) => match p {
                 Value::Real(r) => {
                     if *e < 0.0 && r.fract() != 0. {
-                        Value::Complex(Complex64::from(e).powf(*r))
+                        Value::Complex(Complex64::from(e)).pow(p)
                     } else {
                         Value::Real(e.powf(*r))
                     }
                 }
                 Value::Int(i) => Value::Real(e.powf(*i as f64)),
-                Value::Complex(r) => Value::Complex(Complex64::from(e).powc(*r)),
+                Value::Complex(_) => Value::Complex(Complex64::from(e)).pow(p),
             },
             Value::Int(e) => match p {
                 Value::Real(r) => {
                     if *e < 0 && r.fract() != 0. {
-                        Value::Complex(Complex64::from(*e as f64).powf(*r))
+                        Value::Complex(Complex64::from(*e as f64)).pow(p)
                     } else {
                         let t = (*e as f64).powf(*r);
                         let d = t.floor() - t;
@@ -2794,12 +2798,12 @@ impl Value {
                 }
                 Value::Int(r) => {
                     if *r < 0 {
-                        Value::Real((*e as f64).powf(*r as f64))
+                        Value::Real(*e as f64).pow(p)
                     } else {
                         Value::Int(e.pow(*r as u32))
                     }
                 }
-                Value::Complex(c) => Value::Complex(Complex64::from(*e as f64).powc(*c)),
+                Value::Complex(_) => Value::Complex(Complex64::from(*e as f64)).pow(p),
             },
             Value::Complex(e) => {
                 let t = match p {
