@@ -657,7 +657,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 optimization.append(
                     VF2PostLayout(
                         target=pass_manager_config.target,
-                        seed=pass_manager_config.seed_transpiler,
+                        seed=-1,
                         call_limit=vf2_call_limit,
                         max_trials=vf2_max_trials,
                         strict_direction=True,
