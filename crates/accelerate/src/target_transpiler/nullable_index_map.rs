@@ -55,6 +55,11 @@ where
 }
 
 impl<K, V> NullableIndexMap<K, V> {
+    /// Creates an instance of `NullableIndexMap<K, V>`.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Creates an instance of `NullableIndexMap<K, V>` with capacity to hold `n`+1 key-value
     /// pairs.
     ///
@@ -130,7 +135,7 @@ where
         match key {
             Some(key) => self.map.insert(key, value),
             None => {
-                let mut old_val = Some((self.len() - 1, value));
+                let mut old_val = Some((self.len(), value));
                 swap(&mut old_val, &mut self.null_val);
                 old_val.map(|val| val.1)
             }
@@ -456,11 +461,7 @@ where
     }
 }
 
-impl<K, V> Default for NullableIndexMap<K, V>
-where
-    K: Eq + Hash + Clone,
-    V: Clone,
-{
+impl<K, V> Default for NullableIndexMap<K, V> {
     fn default() -> Self {
         Self {
             map: IndexMap::default(),
@@ -514,5 +515,35 @@ where
             py_dict.set_item(key, value)?;
         }
         Ok(py_dict)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::NullableIndexMap;
+
+    #[test]
+    fn test_insert_index() {
+        let mut map: NullableIndexMap<&str, &str> = NullableIndexMap::new();
+
+        // Add a non-null value.
+        map.insert(Some("Hello"), "Hi!");
+        assert_eq!(map.len(), 1);
+        assert_eq!("Hi!", map[Some(&"Hello")]);
+        assert_eq!((Some(&"Hello"), &"Hi!"), map.get_index(0).unwrap());
+
+        // Add a null value.
+        map.insert(None, "Bye!");
+        assert_eq!(map.len(), 2);
+        assert_eq!((None, &"Bye!"), map.get_index(1).unwrap());
+        assert_eq!("Bye!", map[None]);
+        assert_eq!((Some(&"Hello"), &"Hi!"), map.get_index(0).unwrap());
+
+        // Add another non-null value.
+        map.insert(Some("Goodbye"), "See ya!");
+        assert_eq!("See ya!", map[Some(&"Goodbye")]);
+        assert_eq!((Some(&"Hello"), &"Hi!"), map.get_index(0).unwrap());
+        assert_eq!((None, &"Bye!"), map.get_index(1).unwrap());
+        assert_eq!((Some(&"Goodbye"), &"See ya!"), map.get_index(2).unwrap());
     }
 }
