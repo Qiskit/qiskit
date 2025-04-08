@@ -1579,8 +1579,8 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @combine(
         optimization_level=[0, 1, 2, 3],
         layout_method=["default", "dense", "sabre"],
-        routing_method=["default", "sabre"],
-        translation_method=["default", "translator"],
+        routing_method=["sabre", "lookahead"],
+        translation_method=["translator", "synthesis"],
     )
     def test_preserves_circuit_metadata(
         self, optimization_level, layout_method, routing_method, translation_method
