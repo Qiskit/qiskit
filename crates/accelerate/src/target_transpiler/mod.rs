@@ -302,7 +302,7 @@ impl Target {
                 if let Some(mut properties) = properties {
                     qargs_val = PropsMap::with_capacity(properties.len());
                     let inst_num_qubits = normal.operation.view().num_qubits();
-                    if properties.contains_key(None) {
+                    if properties.contains_key(None::<&[PhysicalQubit]>) {
                         self.global_operations
                             .entry(inst_num_qubits)
                             .and_modify(|e| {
@@ -483,7 +483,7 @@ impl Target {
     ///     KeyError: If ``qargs`` is not in target
     #[pyo3(name = "operation_names_for_qargs", signature=(qargs=None, /))]
     pub fn py_operation_names_for_qargs(&self, qargs: Option<Qargs>) -> PyResult<HashSet<&str>> {
-        match self.operation_names_for_qargs(qargs.as_ref()) {
+        match self.operation_names_for_qargs(qargs.as_deref()) {
             Ok(set) => Ok(set),
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
@@ -596,7 +596,7 @@ impl Target {
                                     if gate_map_name.contains_key(qargs.as_ref()) {
                                         return Ok(true);
                                     }
-                                    if gate_map_name.contains_key(None) {
+                                    if gate_map_name.contains_key(None::<&[PhysicalQubit]>) {
                                         let qubit_comparison =
                                             self._gate_name_map[op_name].num_qubits();
                                         return Ok(qubit_comparison == _qargs.len() as u32
@@ -653,7 +653,7 @@ impl Target {
                     return Ok(true);
                 }
             }
-            Ok(self.instruction_supported(&operation_name, qargs.as_ref()))
+            Ok(self.instruction_supported(&operation_name, qargs.as_deref()))
         } else {
             Ok(false)
         }
@@ -937,10 +937,12 @@ impl Target {
 // Rust native methods
 impl Target {
     /// Returns an iterator over all the instructions present in the `Target`
-    /// as pair of `&OperationType`, `&SmallVec<[Param; 3]>` and `Option<&Qargs>`.
+    /// as pair of `&OperationType`, `&SmallVec<[Param; 3]>` and `Option<&[PhysicalQubit]>`.
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
-    pub fn instructions(&self) -> impl Iterator<Item = (&NormalOperation, Option<&Qargs>)> {
+    pub fn instructions(
+        &self,
+    ) -> impl Iterator<Item = (&NormalOperation, Option<&[PhysicalQubit]>)> {
         self._instructions()
             .filter_map(|(operation, qargs)| match &operation {
                 TargetOperation::Normal(oper) => Some((oper, qargs)),
@@ -949,12 +951,17 @@ impl Target {
     }
 
     /// Returns an iterator over all the instructions present in the `Target`
-    /// as pair of `&TargetOperation` and `Option<&Qargs>`.
-    fn _instructions(&self) -> impl Iterator<Item = (&TargetOperation, Option<&Qargs>)> {
-        self.gate_map.iter().flat_map(move |(op, props_map)| {
-            props_map
-                .keys()
-                .map(move |qargs| (&self._gate_name_map[op], qargs))
+    /// as pair of `&TargetOperation` and `Option<&[PhysicalQubit]>`.
+    fn _instructions(
+        &self,
+    ) -> impl Iterator<Item = (&TargetOperation, Option<&[PhysicalQubit]>)> + '_ {
+        self.gate_map.iter().flat_map(|(op, props_map)| {
+            props_map.keys().map(|qargs| {
+                (
+                    &self._gate_name_map[op.as_str()],
+                    qargs.map(|qargs| qargs.as_slice()),
+                )
+            })
         })
     }
     /// Returns an iterator over the operation names in the target.
@@ -1076,7 +1083,7 @@ impl Target {
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
     pub fn operation_names_for_qargs(
         &self,
-        qargs: Option<&Qargs>,
+        qargs: Option<&[PhysicalQubit]>,
     ) -> Result<HashSet<&str>, TargetKeyError> {
         // When num_qubits == 0 we return globally defined operators
         let mut res: HashSet<&str> = HashSet::default();
@@ -1084,7 +1091,7 @@ impl Target {
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = None;
         }
-        if let Some(qargs) = qargs.as_ref() {
+        if let Some(qargs) = qargs {
             if qargs
                 .iter()
                 .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
@@ -1122,7 +1129,7 @@ impl Target {
     #[allow(dead_code)]
     pub fn operations_for_qargs(
         &self,
-        qargs: Option<&Qargs>,
+        qargs: Option<&[PhysicalQubit]>,
     ) -> Result<impl Iterator<Item = &NormalOperation>, TargetKeyError> {
         self.operation_names_for_qargs(qargs).map(|operations| {
             operations
@@ -1140,12 +1147,12 @@ impl Target {
     pub fn qargs_for_operation_name(
         &self,
         operation: &str,
-    ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetKeyError> {
+    ) -> Result<Option<impl Iterator<Item = &[PhysicalQubit]>>, TargetKeyError> {
         if let Some(gate_map_oper) = self.gate_map.get(operation) {
-            if gate_map_oper.contains_key(None) {
+            if gate_map_oper.contains_key(None::<&[PhysicalQubit]>) {
                 return Ok(None);
             }
-            let qargs = gate_map_oper.keys().flatten();
+            let qargs = gate_map_oper.keys().flatten().map(|qarg| qarg.as_slice());
             Ok(Some(qargs))
         } else {
             Err(TargetKeyError::new_err(format!(
@@ -1184,14 +1191,14 @@ impl Target {
     }
 
     /// Returns an iterator over all the qargs of a specific Target object
-    pub fn qargs(&self) -> Option<impl Iterator<Item = Option<&Qargs>>> {
+    pub fn qargs(&self) -> Option<impl Iterator<Item = Option<&[PhysicalQubit]>>> {
         let mut qargs = self.qarg_gate_map.keys().peekable();
         let next_entry = qargs.peek();
         let is_none = next_entry.is_none() || next_entry.unwrap().is_none();
         if qargs.len() == 1 && is_none {
             return None;
         }
-        Some(qargs)
+        Some(qargs.map(|qargs| qargs.map(|qargs| qargs.as_slice())))
     }
 
     pub fn num_qargs(&self) -> usize {
@@ -1199,9 +1206,13 @@ impl Target {
     }
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
-    pub fn instruction_supported(&self, operation_name: &str, qargs: Option<&Qargs>) -> bool {
+    pub fn instruction_supported(
+        &self,
+        operation_name: &str,
+        qargs: Option<&[PhysicalQubit]>,
+    ) -> bool {
         // Handle case where num_qubits is None by checking globally supported operations
-        let qargs: Option<&Qargs> = if self.num_qubits.is_none() {
+        let qargs: Option<&[PhysicalQubit]> = if self.num_qubits.is_none() {
             None
         } else {
             qargs
@@ -1213,7 +1224,7 @@ impl Target {
                     if gate_prop_name.contains_key(qargs) {
                         return true;
                     }
-                    if gate_prop_name.contains_key(None) {
+                    if gate_prop_name.contains_key(None::<&[PhysicalQubit]>) {
                         let obj = &self._gate_name_map[operation_name];
                         match obj {
                             TargetOperation::Variadic(_) => {

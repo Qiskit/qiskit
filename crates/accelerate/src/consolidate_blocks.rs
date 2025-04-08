@@ -26,6 +26,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::smallvec;
+use smallvec::SmallVec;
 
 use crate::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
 use crate::euler_one_qubit_decomposer::matmul_1q;
@@ -48,7 +49,8 @@ fn is_supported(
 ) -> bool {
     match target {
         Some(target) => {
-            let physical_qargs = qargs.iter().map(|bit| PhysicalQubit(bit.0)).collect();
+            let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
+                qargs.iter().map(|bit| PhysicalQubit(bit.0)).collect();
             target.instruction_supported(name, Some(&physical_qargs))
         }
         None => match basis_gates {
