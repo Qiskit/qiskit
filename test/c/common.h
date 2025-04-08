@@ -10,7 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#include <complex.h>
+#include <qiskit.h>
 #include <stdio.h>
+
+#ifdef _MSC_VER
+QkComplex64 make_complex_double(double real, double imag) { return (QkComplex64){real, imag}; }
+#else
+QkComplex64 make_complex_double(double real, double imag) { return real + I * imag; }
+#endif
 
 // An enumeration of test results. These should be returned by test functions to
 // indicate what kind of error occurred. This will be used to produce more
