@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Added missing ``repr`` support for :class:`~.Duration`.
+    Added missing ``repr`` support for :class:`qiskit.circuit.Duration`.
   - |
     Added missing support for Python pickling of :class:`qiskit.circuit.Duration`.
     This was preventing parallel transpilation of circuits with 
