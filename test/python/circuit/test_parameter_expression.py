@@ -12,6 +12,7 @@
 
 """Test parameter expression."""
 
+import cmath
 import math
 
 from test import combine
@@ -60,6 +61,8 @@ operands = [
     nested_vector_expr,
 ]
 
+bind_values = [math.pi, -math.pi, 5, -5, complex(2, 1), complex(-1, 2), 0, complex(0, 0)]
+
 
 @ddt.ddt
 class TestParameterExpression(QiskitTestCase):
@@ -68,59 +71,67 @@ class TestParameterExpression(QiskitTestCase):
     @combine(
         left=operands,
         right=operands,
+        bind_value=bind_values,
+        name="{left}_plus_{right}_bind_{bind_value}",
     )
-    def test_addition_simple(self, left, right):
+    def test_addition_simple(self, left, right, bind_value):
         """Test expression addition."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
             expr = left + right
-            res = expr.bind({x: 1.0 for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertEqual(res, 2.0)
+                self.assertAlmostEqual(res.numeric(), 2.0 * bind_value)
             elif not isinstance(left, ParameterExpression):
-                self.assertEqual(res, left + 1.0)
+                self.assertAlmostEqual(res.numeric(), left + bind_value)
             elif not isinstance(right, ParameterExpression):
-                self.assertEqual(res, right + 1.0)
+                self.assertAlmostEqual(res.numeric(), right + bind_value)
 
     @combine(
         left=operands,
         right=operands,
+        bind_value=bind_values,
+        name="{left}_minus_{right}_bind_{bind_value}",
     )
-    def test_subtraction_simple(self, left, right):
+    def test_subtraction_simple(self, left, right, bind_value):
         """Test expression subtraction."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
             expr = left - right
-            res = expr.bind({x: 1.0 for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertEqual(res, 0.0)
+                self.assertAlmostEqual(res.numeric(), 0.0)
             elif not isinstance(left, ParameterExpression):
-                self.assertEqual(res, left - 1.0)
+                self.assertAlmostEqual(res.numeric(), left - bind_value)
             elif not isinstance(right, ParameterExpression):
-                self.assertEqual(res, 1.0 - right)
+                self.assertAlmostEqual(res.numeric(), bind_value - right)
 
     @combine(
         left=operands,
         right=operands,
+        bind_value=bind_values,
+        name="{left}_mul_{right}_bind_{bind_value}",
     )
-    def test_multiplication_simple(self, left, right):
+    def test_multiplication_simple(self, left, right, bind_value):
         """Test expression multiplication."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
             expr = left * right
-            res = expr.bind({x: 1.0 for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertEqual(res, 1.0)
+                self.assertAlmostEqual(res.numeric(), bind_value * bind_value)
             elif not isinstance(left, ParameterExpression):
-                self.assertEqual(res, left)
+                self.assertAlmostEqual(res.numeric(), left * bind_value)
             elif not isinstance(right, ParameterExpression):
-                self.assertEqual(res, right)
+                self.assertAlmostEqual(res.numeric(), bind_value * right)
 
     @combine(
         left=operands,
         right=operands,
+        bind_value=bind_values,
+        name="{left}_div_{right}_bind_{bind_value}",
     )
-    def test_division_simple(self, left, right):
+    def test_division_simple(self, left, right, bind_value):
         """Test expression division."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
             if not isinstance(right, ParameterExpression) and right == 0:
@@ -128,18 +139,24 @@ class TestParameterExpression(QiskitTestCase):
                     _ = left / right
                 return
             expr = left / right
-            res = expr.bind({x: 1.0 for x in expr.parameters})
+            try:
+                res = expr.bind({x: bind_value for x in expr.parameters})
+            except ZeroDivisionError:
+                self.assertIsInstance(right, ParameterExpression)
+                self.assertAlmostEqual(bind_value, 0)
+                return
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertEqual(res, 1.0)
+                self.assertAlmostEqual(res.numeric(), 1.0)
             elif not isinstance(left, ParameterExpression):
-                self.assertEqual(res, left)
+                self.assertAlmostEqual(res.numeric(), left / bind_value)
             elif not isinstance(right, ParameterExpression):
-                self.assertEqual(res, 1.0 / right)
+                self.assertAlmostEqual(res.numeric(), bind_value / right)
 
     @combine(
         left=operands,
         right=operands,
+        name="{left}_pow_{right}",
     )
     def test_pow_simple(self, left, right):
         """Test expression pow."""
@@ -148,18 +165,19 @@ class TestParameterExpression(QiskitTestCase):
             res = expr.bind({x: 1.0 for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertEqual(res, 1.0)
+                self.assertAlmostEqual(res.numeric(), 1.0)
             elif not isinstance(left, ParameterExpression):
                 if isinstance(left, complex):
-                    self.assertAlmostEqual(complex(res), left)
+                    self.assertAlmostEqual(res.numeric(), left)
                 else:
-                    self.assertEqual(res, left)
+                    self.assertAlmostEqual(res.numeric(), left)
             elif not isinstance(right, ParameterExpression):
-                self.assertEqual(res, 1.0**right)
+                self.assertAlmostEqual(res.numeric(), 1.0**right)
 
     @combine(
         left=operands,
         right=operands,
+        name="{left}_pow_{right}",
     )
     def test_pow_complex_binding(self, left, right):
         """Test expression pow with complex binding."""
@@ -192,19 +210,14 @@ class TestParameterExpression(QiskitTestCase):
         # Expected is sqrt(-10):
         self.assertAlmostEqual(complex(0, 3.1622776601683795), complex(res))
 
-    @combine(expression=operands)
-    def test_abs_simple(self, expression):
+    @combine(expression=operands, bind_value=bind_values, name="{expression}_bind_{bind_value}")
+    def test_abs_simple(self, expression, bind_value):
         """Test expression abs."""
         if isinstance(expression, ParameterExpression):
             expr = abs(expression)
-            res = expr.bind({x: 1.0 for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, 1.0)
-            # Test negative
-            expr = abs(expression)
-            res = expr.bind({x: -2.4 for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, 2.4)
+            self.assertEqual(res, abs(bind_value))
 
     @combine(expression=operands)
     def test_acos_simple(self, expression):
@@ -248,102 +261,86 @@ class TestParameterExpression(QiskitTestCase):
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, math.atan(-0.3))
 
-    @combine(expression=operands)
-    def test_conjugate_simple(self, expression):
+    @combine(expression=operands, bind_value=bind_values, name="{expression}_bind_{bind_value}")
+    def test_conjugate_simple(self, expression, bind_value):
         """Test expression conjugate."""
         if isinstance(expression, ParameterExpression):
             expr = expression.conjugate()
-            res = expr.bind({x: complex(1.4, 0.2) for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, complex(1.4, -0.2))
+            numeric = res.numeric()
+            if isinstance(numeric, complex):
+                self.assertEqual(res, bind_value.conjugate())
+            else:
+                self.assertEqual(res, bind_value)
 
-    @combine(expression=operands)
-    def test_conjugate_float_bind(self, expression):
-        """Test expression conjugate with float binding."""
-        if isinstance(expression, ParameterExpression):
-            expr = expression.conjugate()
-            res = expr.bind({x: 0.2 for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, 0.2)
-
-    @combine(expression=operands)
-    def test_conjugate_int_bind(self, expression):
-        """Test expression conjugate with int binding."""
-        if isinstance(expression, ParameterExpression):
-            expr = expression.conjugate()
-            res = expr.bind({x: int(2) for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, 2)
-
-    @combine(expression=operands)
-    def test_cos_simple(self, expression):
+    @combine(expression=operands, bind_value=bind_values, name="{expression}_bind_{bind_value}")
+    def test_cos_simple(self, expression, bind_value):
         """Test expression cos."""
         if isinstance(expression, ParameterExpression):
             expr = expression.cos()
-            res = expr.bind({x: math.pi for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.cos(math.pi))
-            # Test negative
-            expr = expression.cos()
-            res = expr.bind({x: -math.pi for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.cos(-math.pi))
+            if isinstance(bind_value, complex):
+                self.assertAlmostEqual(res.numeric(), cmath.cos(bind_value))
+            else:
+                self.assertAlmostEqual(res.numeric(), math.cos(bind_value))
 
-    @combine(expression=operands)
-    def test_sin_simple(self, expression):
+    @combine(expression=operands, bind_value=bind_values, name="{expression}_bind_{bind_value}")
+    def test_sin_simple(self, expression, bind_value):
         """Test expression sin."""
         if isinstance(expression, ParameterExpression):
             expr = expression.sin()
-            res = expr.bind({x: math.pi for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.sin(math.pi))
-            # Test negative
-            expr = expression.sin()
-            res = expr.bind({x: -math.pi for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.sin(-math.pi))
+            if isinstance(bind_value, complex):
+                self.assertAlmostEqual(res.numeric(), cmath.sin(bind_value))
+            else:
+                self.assertAlmostEqual(res.numeric(), math.sin(bind_value))
 
-    @combine(expression=operands)
-    def test_tan_simple(self, expression):
+    @combine(expression=operands, bind_value=bind_values, name="{expression}_bind_{bind_value}")
+    def test_tan_simple(self, expression, bind_value):
         """Test expression tan."""
         if isinstance(expression, ParameterExpression):
             expr = expression.tan()
-            res = expr.bind({x: math.pi for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.tan(math.pi))
-            # Test negative
-            expr = expression.tan()
-            res = expr.bind({x: -math.pi for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.tan(-math.pi))
+            if isinstance(bind_value, complex):
+                self.assertAlmostEqual(res.numeric(), cmath.tan(bind_value))
+            else:
+                self.assertAlmostEqual(res.numeric(), math.tan(bind_value))
 
-    @combine(expression=operands)
-    def test_exp_simple(self, expression):
+    @combine(expression=operands, bind_value=bind_values, name="{expression}_bind_{bind_value}")
+    def test_exp_simple(self, expression, bind_value):
         """Test expression exp."""
         if isinstance(expression, ParameterExpression):
             expr = expression.exp()
-            res = expr.bind({x: math.pi for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.exp(math.pi))
-            # Test negative
-            expr = expression.exp()
-            res = expr.bind({x: -math.pi for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.exp(-math.pi))
+            if isinstance(bind_value, complex):
+                self.assertAlmostEqual(res.numeric(), cmath.exp(bind_value))
+            else:
+                self.assertAlmostEqual(res.numeric(), math.exp(bind_value))
 
-    @combine(expression=operands)
-    def test_log_simple(self, expression):
+    @combine(expression=operands, bind_value=bind_values, name="{expression}_bind_{bind_value}")
+    def test_log_simple(self, expression, bind_value):
         """Test expression log."""
-        if isinstance(expression, ParameterExpression):
+        if isinstance(expression, ParameterExpression) and bind_value != 0:
             expr = expression.log()
-            res = expr.bind({x: math.pi for x in expr.parameters})
+            res = expr.bind({x: bind_value for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
-            self.assertEqual(res, math.log(math.pi))
+            if isinstance(bind_value, complex):
+                self.assertAlmostEqual(res.numeric(), cmath.log(bind_value))
+            else:
+                if bind_value > 0:
+                    self.assertAlmostEqual(res.numeric(), math.log(bind_value))
+                else:
+                    self.assertAlmostEqual(res.numeric(), cmath.log(bind_value))
 
     @combine(expression=operands)
     def test_sign_simple(self, expression):
         """Test expression sign."""
-        if isinstance(expression, ParameterExpression):
+        if isinstance(expression, ParameterExpression) and expression.is_real():
             expr = expression.sign()
             res = expr.bind({x: -0.1 for x in expr.parameters})
             self.assertIsInstance(res, ParameterExpression)
@@ -364,78 +361,6 @@ class TestParameterExpression(QiskitTestCase):
             expr = expression.sign()
             res = expr.bind({x: 0 for x in expr.parameters})
             self.assertEqual(res, 0)
-
-    @combine(
-        left=operands,
-        right=operands,
-    )
-    def test_addition_simple_complex_bind(self, left, right):
-        """Test expression addition with complex bindings."""
-        if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
-            expr = left + right
-            res = expr.bind({x: complex(1.2, 1.2) for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertAlmostEqual(complex(res), complex(2.4, 2.4))
-            elif not isinstance(left, ParameterExpression):
-                self.assertAlmostEqual(complex(res), left + complex(1.2, 1.2))
-            elif not isinstance(right, ParameterExpression):
-                self.assertAlmostEqual(complex(res), right + complex(1.2, 1.2))
-
-    @combine(
-        left=operands,
-        right=operands,
-    )
-    def test_subtraction_simple_complex_bind(self, left, right):
-        """Test expression subtraction with complex binding."""
-        if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
-            expr = left - right
-            res = expr.bind({x: complex(2.4, -2.3) for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertEqual(res, complex(0.0))
-            elif not isinstance(left, ParameterExpression):
-                self.assertAlmostEqual(complex(res), left - complex(2.4, -2.3))
-            elif not isinstance(right, ParameterExpression):
-                self.assertAlmostEqual(complex(res), complex(2.4, -2.3) - right)
-
-    @combine(
-        left=operands,
-        right=operands,
-    )
-    def test_multiplication_simple_complex_bind(self, left, right):
-        """Test expression multiplication with complex binding."""
-        if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
-            expr = left * right
-            res = expr.bind({x: complex(2.4, -2.3) for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertAlmostEqual(complex(res), complex(2.4, -2.3) ** 2)
-            elif not isinstance(left, ParameterExpression):
-                self.assertAlmostEqual(complex(res), left * complex(2.4, -2.3))
-            elif not isinstance(right, ParameterExpression):
-                self.assertAlmostEqual(complex(res), complex(2.4, -2.3) * right)
-
-    @combine(
-        left=operands,
-        right=operands,
-    )
-    def test_division_simple_complex_bind(self, left, right):
-        """Test expression division with complex binding."""
-        if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
-            if not isinstance(right, ParameterExpression) and right == 0:
-                with self.assertRaises(ZeroDivisionError):
-                    _ = left / right
-                return
-            expr = left / right
-            res = expr.bind({x: complex(2.4, -2.3) for x in expr.parameters})
-            self.assertIsInstance(res, ParameterExpression)
-            if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
-                self.assertEqual(res, complex(1))
-            elif not isinstance(left, ParameterExpression):
-                self.assertAlmostEqual(complex(res), left / complex(2.4, -2.3))
-            elif not isinstance(right, ParameterExpression):
-                self.assertAlmostEqual(complex(res), complex(2.4, -2.3) / right)
 
     @combine(expression=operands)
     def test_is_real(self, expression):
