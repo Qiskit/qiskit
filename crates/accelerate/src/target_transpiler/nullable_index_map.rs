@@ -16,10 +16,10 @@ use indexmap::{
     Equivalent, IndexMap,
 };
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use rustworkx_core::dictmap::InitWithHasher;
 use std::ops::Index;
 use std::{hash::Hash, mem::swap};
-
 type BaseMap<K, V> = IndexMap<K, V, RandomState>;
 
 ///
@@ -37,7 +37,7 @@ type BaseMap<K, V> = IndexMap<K, V, RandomState>;
 #[derive(Debug)]
 pub struct NullableIndexMap<K, V> {
     map: BaseMap<K, V>,
-    null_val: Option<V>,
+    null_val: Option<(usize, V)>,
 }
 
 // Implement `Clone` manually to make it an implicit trait.
@@ -67,6 +67,22 @@ impl<K, V> NullableIndexMap<K, V> {
         }
     }
 
+    /// Queries into the index of the element within the `IndexMap` if it exists.
+    // TODO: Remove once `NullableIndexMap` is being consumed.
+    #[allow(dead_code)]
+    pub fn get_index(&self, key: usize) -> Option<(Option<&K>, &V)> {
+        if let Some((index, val)) = self.null_val.as_ref() {
+            if index == &key {
+                Some((None, val))
+            } else {
+                let key = if &key > index { key - 1 } else { key };
+                self.map.get_index(key).map(|(k, v)| (Some(k), v))
+            }
+        } else {
+            self.map.get_index(key).map(|(k, v)| (Some(k), v))
+        }
+    }
+
     /// Returns an iterator over references of the key-value pairs of the map.
     // TODO: Remove once `NullableIndexMap` is being consumed.
     #[allow(dead_code)]
@@ -74,6 +90,7 @@ impl<K, V> NullableIndexMap<K, V> {
         Iter {
             map: self.map.iter(),
             null_value: self.null_val.as_ref(),
+            current_index: 0,
         }
     }
 
@@ -81,7 +98,8 @@ impl<K, V> NullableIndexMap<K, V> {
     pub fn keys(&self) -> Keys<K, V> {
         Keys {
             map_keys: self.map.keys(),
-            null_value: self.null_val.is_some(),
+            null_value: self.null_val.as_ref().map(|(i, _)| *i),
+            current_index: 0,
         }
     }
 
@@ -89,7 +107,8 @@ impl<K, V> NullableIndexMap<K, V> {
     pub fn values(&self) -> Values<K, V> {
         Values {
             map_values: self.map.values(),
-            null_value: &self.null_val,
+            null_value: self.null_val.as_ref(),
+            current_index: 0,
         }
     }
 
@@ -111,9 +130,9 @@ where
         match key {
             Some(key) => self.map.insert(key, value),
             None => {
-                let mut old_val = Some(value);
+                let mut old_val = Some((self.len() - 1, value));
                 swap(&mut old_val, &mut self.null_val);
-                old_val
+                old_val.map(|val| val.1)
             }
         }
     }
@@ -128,7 +147,7 @@ impl<K, V> NullableIndexMap<K, V> {
     {
         match key {
             Some(key) => self.map.get(key),
-            None => self.null_val.as_ref(),
+            None => self.null_val.as_ref().map(|val| &val.1),
         }
     }
 
@@ -140,7 +159,7 @@ impl<K, V> NullableIndexMap<K, V> {
     {
         match key {
             Some(key) => self.map.get_mut(key),
-            None => self.null_val.as_mut(),
+            None => self.null_val.as_mut().map(|val| &mut val.1),
         }
     }
 
@@ -161,15 +180,38 @@ impl<K, V> NullableIndexMap<K, V> {
     /// `None` will be returned if the `key` is not present in the map.
     pub fn swap_remove<Q>(&mut self, key: Option<&Q>) -> Option<V>
     where
-        Q: ?Sized + Hash + Eq + Equivalent<K> + ToOwned<Owned = K>,
+        Q: ?Sized + Hash + Eq + Equivalent<K>,
     {
         match key {
             Some(key) => self.map.swap_remove(key),
             None => {
                 let mut ret_val = None;
                 swap(&mut ret_val, &mut self.null_val);
-                ret_val
+                ret_val.map(|val| val.1)
             }
+        }
+    }
+
+    /// Queries into the index of the element within the `IndexMap` if it exists.
+    // TODO: Remove once `NullableIndexMap` is being consumed.
+    #[allow(dead_code)]
+    pub fn get_index_of<Q>(&self, key: Option<&Q>) -> Option<usize>
+    where
+        Q: ?Sized + Hash + Eq + Equivalent<K>,
+    {
+        match key {
+            Some(key) => self.map.get_index_of(key).map(|idx| {
+                if self
+                    .null_val
+                    .as_ref()
+                    .is_some_and(|(n_idx, _)| &idx > n_idx)
+                {
+                    idx + 1
+                } else {
+                    idx
+                }
+            }),
+            None => self.null_val.as_ref().map(|(idx, _)| *idx),
         }
     }
 }
@@ -180,13 +222,16 @@ where
 {
     fn from_iter<T: IntoIterator<Item = (Option<K>, V)>>(iter: T) -> Self {
         let mut null_val = None;
-        let filtered = iter.into_iter().filter_map(|item| match item {
-            (Some(key), value) => Some((key, value)),
-            (None, value) => {
-                null_val = Some(value);
-                None
-            }
-        });
+        let filtered = iter
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, item)| match item {
+                (Some(key), value) => Some((key, value)),
+                (None, value) => {
+                    null_val = Some((index, value));
+                    None
+                }
+            });
         Self {
             map: IndexMap::from_iter(filtered),
             null_val,
@@ -199,22 +244,21 @@ where
     K: Hash + Eq,
 {
     fn extend<T: IntoIterator<Item = (Option<K>, V)>>(&mut self, iter: T) {
-        let filtered = iter.into_iter().filter_map(|item| match item {
-            (Some(key), value) => Some((key, value)),
-            (None, value) => {
-                self.null_val = Some(value);
-                None
-            }
-        });
+        let filtered = iter
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, item)| match item {
+                (Some(key), value) => Some((key, value)),
+                (None, value) => {
+                    self.null_val = Some((index, value));
+                    None
+                }
+            });
         self.map.extend(filtered)
     }
 }
 
-impl<K, V> IntoIterator for NullableIndexMap<K, V>
-where
-    K: Eq + Hash + Clone,
-    V: Clone,
-{
+impl<K, V> IntoIterator for NullableIndexMap<K, V> {
     type Item = (Option<K>, V);
     type IntoIter = IntoIter<K, V>;
 
@@ -222,6 +266,7 @@ where
         IntoIter {
             map: self.map.into_iter(),
             null_value: self.null_val,
+            current_index: 0,
         }
     }
 }
@@ -229,18 +274,25 @@ where
 /// Iterator for the key-value pairs in `NullableIndexMap`.
 pub struct Iter<'a, K, V> {
     map: BaseIter<'a, K, V>,
-    null_value: Option<&'a V>,
+    null_value: Option<&'a (usize, V)>,
+    current_index: usize,
 }
 
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (Option<&'a K>, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((key, val)) = self.map.next() {
-            Some((Some(key), val))
+        let val = if self
+            .null_value
+            .as_ref()
+            .is_some_and(|(index, _)| *index == self.current_index)
+        {
+            Some((None, &self.null_value.take().unwrap().1))
         } else {
-            self.null_value.take().map(|value| (None, value))
-        }
+            self.map.next().map(|(k, v)| (Some(k), v))
+        };
+        self.current_index += 1;
+        val
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -261,30 +313,27 @@ impl<K, V> ExactSizeIterator for Iter<'_, K, V> {
 }
 
 /// Owned iterator over the key-value pairs in `NullableIndexMap`.
-pub struct IntoIter<K, V>
-where
-    V: Clone,
-{
+pub struct IntoIter<K, V> {
     map: BaseIntoIter<K, V>,
-    null_value: Option<V>,
+    null_value: Option<(usize, V)>,
+    current_index: usize,
 }
 
-impl<K, V> Iterator for IntoIter<K, V>
-where
-    V: Clone,
-{
+impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (Option<K>, V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((key, val)) = self.map.next() {
-            Some((Some(key), val))
-        } else if self.null_value.is_some() {
-            let mut value = None;
-            swap(&mut value, &mut self.null_value);
-            Some((None, value.unwrap()))
+        let val = if self
+            .null_value
+            .as_ref()
+            .is_some_and(|(index, _)| *index == self.current_index)
+        {
+            Some((None, self.null_value.take().unwrap().1))
         } else {
-            None
-        }
+            self.map.next().map(|(k, v)| (Some(k), v))
+        };
+        self.current_index += 1;
+        val
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -310,59 +359,67 @@ where
 /// Iterator over the keys of a `NullableIndexMap`.
 pub struct Keys<'a, K, V> {
     map_keys: BaseKeys<'a, K, V>,
-    null_value: bool,
+    null_value: Option<usize>,
+    current_index: usize,
 }
 
 impl<'a, K, V> Iterator for Keys<'a, K, V> {
     type Item = Option<&'a K>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(key) = self.map_keys.next() {
-            Some(Some(key))
-        } else if self.null_value {
-            self.null_value = false;
+        let val = if self
+            .null_value
+            .as_ref()
+            .is_some_and(|index| *index == self.current_index)
+        {
             Some(None)
         } else {
-            None
-        }
+            self.map_keys.next().map(Some)
+        };
+
+        self.current_index += 1;
+        val
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         (
-            self.map_keys.size_hint().0 + self.null_value as usize,
+            self.map_keys.size_hint().0 + self.null_value.is_some() as usize,
             self.map_keys
                 .size_hint()
                 .1
-                .map(|hint| hint + self.null_value as usize),
+                .map(|hint| hint + self.null_value.is_some() as usize),
         )
     }
 }
 
 impl<K, V> ExactSizeIterator for Keys<'_, K, V> {
     fn len(&self) -> usize {
-        self.map_keys.len() + self.null_value as usize
+        self.map_keys.len() + self.null_value.is_some() as usize
     }
 }
 
 /// Iterator over the values of a `NullableIndexMap`.
 pub struct Values<'a, K, V> {
     map_values: BaseValues<'a, K, V>,
-    null_value: &'a Option<V>,
+    null_value: Option<&'a (usize, V)>,
+    current_index: usize,
 }
 
 impl<'a, K, V> Iterator for Values<'a, K, V> {
     type Item = &'a V;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.map_values.next() {
-            Some(value)
-        } else if self.null_value.is_some() {
-            let return_value = self.null_value;
-            self.null_value = &None;
-            return_value.as_ref()
+        let val = if self
+            .null_value
+            .as_ref()
+            .is_some_and(|(index, _)| *index == self.current_index)
+        {
+            Some(&self.null_value.take().unwrap().1)
         } else {
-            None
-        }
+            self.map_values.next()
+        };
+        self.current_index += 1;
+        val
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -392,7 +449,7 @@ where
         match index {
             Some(k) => self.map.index(k),
             None => match &self.null_val {
-                Some(val) => val,
+                Some(val) => &val.1,
                 None => panic!("The provided key is not present in map: None"),
             },
         }
@@ -414,24 +471,48 @@ where
 
 impl<'py, K, V> FromPyObject<'py> for NullableIndexMap<K, V>
 where
-    K: IntoPyObject<'py> + FromPyObject<'py> + Eq + Hash + Clone,
-    V: IntoPyObject<'py> + FromPyObject<'py> + Clone,
+    K: FromPyObject<'py> + Eq + Hash,
+    V: FromPyObject<'py>,
 {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let map: IndexMap<Option<K>, V, RandomState> = ob.extract()?;
-        let mut null_val: Option<V> = None;
-        let filtered = map
-            .into_iter()
-            .filter_map(|(key, value)| match (key, value) {
-                (Some(key), value) => Some((key, value)),
-                (None, value) => {
-                    null_val = Some(value);
-                    None
+        let ob_as_dict = ob.downcast::<PyDict>()?;
+        let mut null_val: Option<(usize, V)> = None;
+        // For this capacity we might be off by 1 item exactly.
+        let mut indexmap: IndexMap<K, V, RandomState> =
+            IndexMap::with_capacity_and_hasher(ob.len()?, RandomState::new());
+        for (idx, (key, val)) in ob_as_dict.iter().enumerate() {
+            let key_as_type: Option<K> = key.extract()?;
+            let val_as_type: V = val.extract()?;
+            match key_as_type {
+                Some(key) => {
+                    indexmap.insert(key, val_as_type);
                 }
-            });
+                None => {
+                    null_val = Some((idx, val_as_type));
+                }
+            }
+        }
         Ok(Self {
-            map: filtered.collect(),
+            map: indexmap,
             null_val,
         })
+    }
+}
+
+impl<'py, K, V> IntoPyObject<'py> for NullableIndexMap<K, V>
+where
+    K: IntoPyObject<'py>,
+    V: IntoPyObject<'py>,
+{
+    type Target = PyDict;
+    type Output = Bound<'py, PyDict>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let py_dict = PyDict::new(py);
+        for (key, value) in self.into_iter() {
+            py_dict.set_item(key, value)?;
+        }
+        Ok(py_dict)
     }
 }
