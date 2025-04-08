@@ -13,7 +13,7 @@
 use ahash::RandomState;
 use indexmap::{
     map::{IntoIter as BaseIntoIter, Iter as BaseIter, Keys as BaseKeys, Values as BaseValues},
-    IndexMap,
+    Equivalent, IndexMap,
 };
 use pyo3::prelude::*;
 use rustworkx_core::dictmap::InitWithHasher;
@@ -34,54 +34,27 @@ type BaseMap<K, V> = IndexMap<K, V, RandomState>;
 ///
 /// **Warning:** This is an experimental feature and should be used with care as it does not
 /// fully implement all the methods present in `IndexMap<K, V>` due to API limitations.
-#[derive(Debug, Clone, IntoPyObject, IntoPyObjectRef)]
-pub struct NullableIndexMap<K, V>
-where
-    K: Eq + Hash + Clone,
-    V: Clone,
-{
+#[derive(Debug)]
+pub struct NullableIndexMap<K, V> {
     map: BaseMap<K, V>,
     null_val: Option<V>,
 }
 
-impl<K, V> NullableIndexMap<K, V>
+// Implement `Clone` manually to make it an implicit trait.
+impl<K, V> Clone for NullableIndexMap<K, V>
 where
-    K: Eq + Hash + Clone,
+    K: Clone,
     V: Clone,
 {
-    /// Returns a reference to the value stored at `key`, if it does not exist
-    /// `None` is returned instead.
-    pub fn get(&self, key: Option<&K>) -> Option<&V> {
-        match key {
-            Some(key) => self.map.get(key),
-            None => self.null_val.as_ref(),
+    fn clone(&self) -> Self {
+        Self {
+            map: self.map.clone(),
+            null_val: self.null_val.clone(),
         }
     }
+}
 
-    /// Returns a mutable reference to the value stored at `key`, if it does not
-    /// exist `None` is returned instead.
-    pub fn get_mut(&mut self, key: Option<&K>) -> Option<&mut V> {
-        match key {
-            Some(key) => self.map.get_mut(key),
-            None => self.null_val.as_mut(),
-        }
-    }
-
-    /// Inserts a `value` in the slot alotted to `key`.
-    ///
-    /// If a previous value existed there previously it will be returned, otherwise
-    /// `None` will be returned.
-    pub fn insert(&mut self, key: Option<K>, value: V) -> Option<V> {
-        match key {
-            Some(key) => self.map.insert(key, value),
-            None => {
-                let mut old_val = Some(value);
-                swap(&mut old_val, &mut self.null_val);
-                old_val
-            }
-        }
-    }
-
+impl<K, V> NullableIndexMap<K, V> {
     /// Creates an instance of `NullableIndexMap<K, V>` with capacity to hold `n`+1 key-value
     /// pairs.
     ///
@@ -91,68 +64,6 @@ where
         Self {
             map: BaseMap::with_capacity(n),
             null_val: None,
-        }
-    }
-
-    /// Creates an instance of `NullableIndexMap<K, V>` from an iterator over instances of
-    /// `(Option<K>, V)`.
-    pub fn from_iter<'a, I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = (Option<K>, V)> + 'a,
-    {
-        let mut null_val = None;
-        let filtered = iter.into_iter().filter_map(|item| match item {
-            (Some(key), value) => Some((key, value)),
-            (None, value) => {
-                null_val = Some(value);
-                None
-            }
-        });
-        Self {
-            map: IndexMap::from_iter(filtered),
-            null_val,
-        }
-    }
-
-    /// Returns `true` if the map contains a slot indexed by `key`, otherwise `false`.
-    pub fn contains_key(&self, key: Option<&K>) -> bool {
-        match key {
-            Some(key) => self.map.contains_key(key),
-            None => self.null_val.is_some(),
-        }
-    }
-
-    /// Extends the key-value pairs in the map with the contents of an iterator over
-    /// `(Option<K>, V)`.
-    ///
-    /// If an already existent key is provided, it will be replaced by the entry provided
-    /// in the iterator.
-    pub fn extend<'a, I>(&mut self, iter: I)
-    where
-        I: IntoIterator<Item = (Option<K>, V)> + 'a,
-    {
-        let filtered = iter.into_iter().filter_map(|item| match item {
-            (Some(key), value) => Some((key, value)),
-            (None, value) => {
-                self.null_val = Some(value);
-                None
-            }
-        });
-        self.map.extend(filtered)
-    }
-
-    /// Removes the entry allotted to `key` from the map and returns it. The index of
-    /// this entry is then replaced by the entry located at the last index.
-    ///
-    /// `None` will be returned if the `key` is not present in the map.
-    pub fn swap_remove(&mut self, key: Option<&K>) -> Option<V> {
-        match key {
-            Some(key) => self.map.swap_remove(key),
-            None => {
-                let mut ret_val = None;
-                swap(&mut ret_val, &mut self.null_val);
-                ret_val
-            }
         }
     }
 
@@ -185,6 +96,117 @@ where
     /// Returns the number of key-value pairs present in the map.
     pub fn len(&self) -> usize {
         self.map.len() + self.null_val.is_some() as usize
+    }
+}
+
+impl<K, V> NullableIndexMap<K, V>
+where
+    K: Hash + Eq,
+{
+    /// Inserts a `value` in the slot alotted to `key`.
+    ///
+    /// If a previous value existed there previously it will be returned, otherwise
+    /// `None` will be returned.
+    pub fn insert(&mut self, key: Option<K>, value: V) -> Option<V> {
+        match key {
+            Some(key) => self.map.insert(key, value),
+            None => {
+                let mut old_val = Some(value);
+                swap(&mut old_val, &mut self.null_val);
+                old_val
+            }
+        }
+    }
+}
+
+impl<K, V> NullableIndexMap<K, V> {
+    /// Returns a reference to the value stored at `key`, if it does not exist
+    /// `None` is returned instead.
+    pub fn get<Q>(&self, key: Option<&Q>) -> Option<&V>
+    where
+        Q: ?Sized + Hash + Equivalent<K>,
+    {
+        match key {
+            Some(key) => self.map.get(key),
+            None => self.null_val.as_ref(),
+        }
+    }
+
+    /// Returns a mutable reference to the value stored at `key`, if it does not
+    /// exist `None` is returned instead.
+    pub fn get_mut<Q>(&mut self, key: Option<&Q>) -> Option<&mut V>
+    where
+        Q: ?Sized + Hash + Equivalent<K>,
+    {
+        match key {
+            Some(key) => self.map.get_mut(key),
+            None => self.null_val.as_mut(),
+        }
+    }
+
+    /// Returns `true` if the map contains a slot indexed by `key`, otherwise `false`.
+    pub fn contains_key<Q>(&self, key: Option<&Q>) -> bool
+    where
+        Q: ?Sized + Hash + Equivalent<K>,
+    {
+        match key {
+            Some(key) => self.map.contains_key(key),
+            None => self.null_val.is_some(),
+        }
+    }
+
+    /// Removes the entry allotted to `key` from the map and returns it. The index of
+    /// this entry is then replaced by the entry located at the last index.
+    ///
+    /// `None` will be returned if the `key` is not present in the map.
+    pub fn swap_remove<Q>(&mut self, key: Option<&Q>) -> Option<V>
+    where
+        Q: ?Sized + Hash + Eq + Equivalent<K> + ToOwned<Owned = K>,
+    {
+        match key {
+            Some(key) => self.map.swap_remove(key),
+            None => {
+                let mut ret_val = None;
+                swap(&mut ret_val, &mut self.null_val);
+                ret_val
+            }
+        }
+    }
+}
+
+impl<K, V> FromIterator<(Option<K>, V)> for NullableIndexMap<K, V>
+where
+    K: Hash + Eq,
+{
+    fn from_iter<T: IntoIterator<Item = (Option<K>, V)>>(iter: T) -> Self {
+        let mut null_val = None;
+        let filtered = iter.into_iter().filter_map(|item| match item {
+            (Some(key), value) => Some((key, value)),
+            (None, value) => {
+                null_val = Some(value);
+                None
+            }
+        });
+        Self {
+            map: IndexMap::from_iter(filtered),
+            null_val,
+        }
+    }
+}
+
+impl<K, V> Extend<(Option<K>, V)> for NullableIndexMap<K, V>
+where
+    K: Hash + Eq,
+{
+    fn extend<T: IntoIterator<Item = (Option<K>, V)>>(&mut self, iter: T) {
+        let filtered = iter.into_iter().filter_map(|item| match item {
+            (Some(key), value) => Some((key, value)),
+            (None, value) => {
+                self.null_val = Some(value);
+                None
+            }
+        });
+        self.map.extend(filtered)
     }
 }
 
