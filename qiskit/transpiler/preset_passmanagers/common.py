@@ -46,6 +46,7 @@ from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ConstrainedReschedule
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
+from qiskit.transpiler.passes import SolovayKitaev
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
@@ -485,6 +486,61 @@ def generate_translation_passmanager(
             translator,
         ]
         fix_1q = [translator]
+    elif method == "discrete":
+
+        # "cx" should be included in basis_gates
+        extended_basis_gates = basis_gates + ["u"]
+
+        unroll = [
+            # First, synthesize remaining 2q blocks with UnitarySynthesis and HLS.
+            # Keep extended discrete basis set in mind.
+            UnitarySynthesis(
+                basis_gates=extended_basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=None,
+            ),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=None,
+                use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=extended_basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
+            ),
+
+            # We may have 1q unitary gates; these we synthesize using SK.
+            # We may also have 1q/2q gates that are not in the basis but are in 
+            # the equivalence library.
+            BasisTranslator(sel, extended_basis_gates, None),
+
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=None,
+                target=None,
+                approximation_degree=approximation_degree,
+                force_consolidate=True,
+            ),
+
+            #
+            # SolovayKitaev(),
+            UnitarySynthesis(
+                # basis_gates=["h", "s", "sdg", "t", "tdg"],
+                basis_gates=["h", "t", "tdg"],
+
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method="sk",
+                min_qubits=1,
+                target=None,
+            ),
+
+        ]
+        fix_1q = [BasisTranslator(sel, extended_basis_gates, None)]
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
