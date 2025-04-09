@@ -269,7 +269,13 @@ class SabreLayout(TransformationPass):
                 self._inner_run, starting_layouts=self.property_set["sabre_starting_layouts"]
             )
         if self.target is not None:
-            components = disjoint_utils.run_pass_over_connected_components(dag, self.target, inner_run)
+            components = disjoint_utils.run_pass_over_connected_components(
+                dag, self.target, inner_run
+            )
+            # If components is None we can't build a coupling map from the target so we must have
+            # one provided:
+            if components is None:
+                components = disjoint_py.run_pass_over_connected_components(dag, target, inner_run)
         else:
             components = disjoint_py.run_pass_over_connected_components(dag, target, inner_run)
         self.property_set["layout"] = Layout(

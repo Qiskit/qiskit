@@ -73,6 +73,12 @@ class DenseLayout(AnalysisPass):
                 self.target,
                 self._inner_run,
             )
+            if layout_components is None:
+                layout_components = disjoint_py.run_pass_over_connected_components(
+                    dag,
+                    self.coupling_map,
+                    self._inner_run,
+                )
         else:
             layout_components = disjoint_py.run_pass_over_connected_components(
                 dag,
