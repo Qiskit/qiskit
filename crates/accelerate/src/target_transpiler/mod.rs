@@ -1192,10 +1192,8 @@ impl Target {
 
     /// Returns an iterator over all the qargs of a specific Target object
     pub fn qargs(&self) -> Option<impl Iterator<Item = Option<&[PhysicalQubit]>>> {
-        let mut qargs = self.qarg_gate_map.keys().peekable();
-        let next_entry = qargs.peek();
-        let is_none = next_entry.is_none() || next_entry.unwrap().is_none();
-        if qargs.len() == 1 && is_none {
+        let qargs = self.qarg_gate_map.keys();
+        if qargs.len() == 1 && self.qarg_gate_map.contains_key(None::<&[PhysicalQubit]>) {
             return None;
         }
         Some(qargs.map(|qargs| qargs.map(|qargs| qargs.as_slice())))
