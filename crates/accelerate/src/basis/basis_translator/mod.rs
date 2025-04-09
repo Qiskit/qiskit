@@ -576,7 +576,6 @@ fn apply_translation(
         }
         is_updated = true;
     }
-    // Kill the concatenator
     Ok((out_dag_concat.end(), is_updated))
 }
 

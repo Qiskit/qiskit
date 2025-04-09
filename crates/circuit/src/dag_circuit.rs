@@ -6439,7 +6439,6 @@ impl DAGCircuit {
         PyErr: From<E>,
     {
         let mut new_nodes = Vec::new();
-        // TODO: Find a less hacky way of doing this
         let mut replacement_dag = DAGCircuit::new()?;
         std::mem::swap(self, &mut replacement_dag);
         let mut dag_concat = replacement_dag.into_builder();

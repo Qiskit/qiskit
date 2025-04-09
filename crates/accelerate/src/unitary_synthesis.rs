@@ -375,7 +375,7 @@ fn py_run_main_loop(
                     out_dag.push_back(py, packed_instr.clone())?;
                     Ok(())
                 };
-                let mut concatenable_dag = out_dag.into_builder();
+                let mut builder = out_dag.into_builder();
                 run_2q_unitary_synthesis(
                     py,
                     unitary,
