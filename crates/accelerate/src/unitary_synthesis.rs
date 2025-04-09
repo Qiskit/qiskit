@@ -386,11 +386,11 @@ fn py_run_main_loop(
                     approximation_degree,
                     natural_direction,
                     pulse_optimize,
-                    &mut concatenable_dag,
+                    &mut builder,
                     out_qargs,
                     apply_original_op,
                 )?;
-                out_dag = concatenable_dag.end()
+                out_dag = builder.end()
             }
             // Run 3q+ synthesis
             _ => {

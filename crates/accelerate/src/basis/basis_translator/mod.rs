@@ -462,7 +462,7 @@ fn apply_translation(
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
     let out_dag = dag.copy_empty_like(py, "alike")?;
-    let mut out_dag_concat = out_dag.into_builder();
+    let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
@@ -506,7 +506,7 @@ fn apply_translation(
                 new_op = Some(replaced_blocks.extract()?);
             }
             if let Some(new_op) = new_op {
-                out_dag_concat.apply_operation_back(
+                out_dag_builder.apply_operation_back(
                     py,
                     new_op.operation,
                     Some(node_qarg.into()),
@@ -521,7 +521,7 @@ fn apply_translation(
                     None,
                 )?;
             } else {
-                out_dag_concat.apply_operation_back(
+                out_dag_builder.apply_operation_back(
                     py,
                     node_obj.op.clone(),
                     Some(node_qarg.into()),
@@ -539,7 +539,7 @@ fn apply_translation(
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
-            out_dag_concat.apply_operation_back(
+            out_dag_builder.apply_operation_back(
                 py,
                 node_obj.op.clone(),
                 Some(node_qarg.into()),
@@ -560,14 +560,14 @@ fn apply_translation(
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
                 py,
-                &mut out_dag_concat,
+                &mut out_dag_builder,
                 node_obj.clone(),
                 &extra_inst_map[&unique_qargs],
             )?;
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(py, &mut out_dag_concat, node_obj.clone(), instr_map)?;
+            replace_node(py, &mut out_dag_builder, node_obj.clone(), instr_map)?;
         } else {
             return Err(TranspilerError::new_err(format!(
                 "BasisTranslator did not map {}",
@@ -576,7 +576,7 @@ fn apply_translation(
         }
         is_updated = true;
     }
-    Ok((out_dag_concat.end(), is_updated))
+    Ok((out_dag_builder.end(), is_updated))
 }
 
 fn replace_node(

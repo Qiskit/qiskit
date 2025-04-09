@@ -4947,7 +4947,9 @@ impl DAGCircuit {
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
     pub fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
-        let initial_parse = self._push_back(py, instr)?;
+        // Increment the operation count
+        self.increment_op(instr.op.name());
+        let initial_parse = self.get_classical_resources(py, instr)?;
 
         let (all_cbits, vars, qubits_id, new_node) = (
             initial_parse.all_clbits,
@@ -4991,15 +4993,17 @@ impl DAGCircuit {
         Ok(new_node)
     }
 
-    fn _push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<DAGNodeInfo> {
-        let op_name = instr.op.name();
+    fn get_classical_resources(
+        &mut self,
+        py: Python,
+        instr: PackedInstruction,
+    ) -> PyResult<DAGNodeInfo> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(py, &instr) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
-                let (additional_clbits, additional_vars) = self
-                    .additional_wires(py, instr.op.view())
-                    .expect("Error trying to find additional wires for instruction");
+                let (additional_clbits, additional_vars) =
+                    self.additional_wires(py, instr.op.view())?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -5012,9 +5016,6 @@ impl DAGCircuit {
                 (self.cargs_interner.get(instr.clbits).to_vec(), None)
             }
         };
-
-        // Increment the operation count
-        self.increment_op(op_name);
 
         // Get the correct qubit indices
         let qubits_id = instr.qubits;
@@ -7234,7 +7235,9 @@ impl DAGCircuitBuilder {
 
     /// Pushes a valid [PackedInstruction] to the back ot the circuit.
     pub fn push_back(&mut self, py: Python<'_>, inst: PackedInstruction) -> PyResult<NodeIndex> {
-        let initial_parse = self.dag._push_back(py, inst)?;
+        // Increment the operation count
+        self.dag.increment_op(inst.op.name());
+        let initial_parse = self.dag.get_classical_resources(py, inst)?;
 
         let (all_cbits, vars, qubits_id, new_node) = (
             initial_parse.all_clbits,
