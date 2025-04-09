@@ -48,7 +48,6 @@ use std::f64::consts::PI;
 ///        *Implementation of Shor's algorithm on a linear nearest neighbour qubit array*,
 ///        Quantum Info. Comput. 4, 4 (July 2004), 237–251.
 ///        `arXiv:quant-ph/0402196 [quant-ph] <https://arxiv.org/abs/quant-ph/0402196>`_
-
 #[pyfunction]
 #[pyo3(signature=(num_qubits, do_swaps=true, approximation_degree=0))]
 pub fn synth_qft_line(
@@ -71,12 +70,8 @@ pub fn synth_qft_line(
     let mut instructions: LnnGatesVec = Vec::with_capacity(no_of_gates);
 
     for i in 0..num_qubits {
-        // Hadamard
-        instructions.push((
-            StandardGate::H,
-            smallvec![],
-            smallvec![Qubit::new(num_qubits - 1)],
-        ));
+        append_h(&mut instructions, num_qubits - 1);
+
         for j in i..num_qubits - 1 {
             let q0 = num_qubits - j + i - 1;
             let q1 = num_qubits - j + i - 2;
@@ -106,6 +101,12 @@ pub fn synth_qft_line(
     CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
 }
 
+#[inline]
+fn append_h(instructions: &mut LnnGatesVec, q0: usize) {
+    instructions.push((StandardGate::H, smallvec![], smallvec![Qubit::new(q0)]));
+}
+
+#[inline]
 fn append_cx(instructions: &mut LnnGatesVec, q0: usize, q1: usize) {
     instructions.push((
         StandardGate::CX,
@@ -114,6 +115,7 @@ fn append_cx(instructions: &mut LnnGatesVec, q0: usize, q1: usize) {
     ));
 }
 
+#[inline]
 fn append_phase(instructions: &mut LnnGatesVec, q0: usize, phase: f64) {
     instructions.push((
         StandardGate::Phase,
