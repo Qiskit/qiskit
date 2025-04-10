@@ -22,7 +22,7 @@
 /**
  * Test the zero constructor.
  */
-int test_empty() {
+int test_empty(void) {
     QkCircuit *qc = qk_circuit_new(0, 0);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
     uint32_t num_clbits = qk_circuit_num_clbits(qc);
@@ -32,7 +32,7 @@ int test_empty() {
     return (num_qubits != 0 || num_clbits != 0 || num_instructions != 0) ? EqualityError : Ok;
 }
 
-int test_no_gate_1000_bits() {
+int test_no_gate_1000_bits(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
     uint32_t num_clbits = qk_circuit_num_clbits(qc);
@@ -42,7 +42,7 @@ int test_no_gate_1000_bits() {
     return (num_qubits != 1000 || num_clbits != 1000 || num_instructions != 0) ? EqualityError : Ok;
 }
 
-int test_gate_num_qubits() {
+int test_gate_num_qubits(void) {
     for (uint8_t i = 0; i < 52; i++) {
         if (i == 0) {
             if (qk_gate_num_qubits(i) != 0) {
@@ -78,7 +78,7 @@ bool value_in_array(uint8_t val, uint8_t *arr, size_t n) {
     return false;
 }
 
-int test_gate_num_params() {
+int test_gate_num_params(void) {
 
     uint8_t zero_param_gates[29] = {1,  2,  3,  4,  5,  11, 12, 13, 14, 15, 16, 21, 22, 23, 24,
                                     25, 26, 27, 28, 33, 34, 35, 45, 46, 47, 48, 49, 50, 51};
@@ -112,7 +112,7 @@ int test_gate_num_params() {
     return Ok;
 }
 
-int test_get_gate_counts_bv_no_measure() {
+int test_get_gate_counts_bv_no_measure(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
     uint32_t i = 0;
@@ -166,7 +166,7 @@ cleanup:
     return result;
 }
 
-int test_get_gate_counts_bv_measures() {
+int test_get_gate_counts_bv_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
     uint32_t i = 0;
@@ -311,7 +311,7 @@ cleanup:
     return result;
 }
 
-int test_get_gate_counts_bv_resets_barrier_and_measures() {
+int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
     uint32_t i = 0;
@@ -533,7 +533,7 @@ cleanup:
     return result;
 }
 
-int test_circuit() {
+int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
