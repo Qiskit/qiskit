@@ -16,6 +16,7 @@ Circuit construction:
    qiskit.circuit.QuantumCircuit
    circuit_classical
    circuit_library
+   circuit_random
    circuit_singleton
 
 Quantum information:

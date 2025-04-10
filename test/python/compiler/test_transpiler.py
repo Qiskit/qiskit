@@ -1318,7 +1318,7 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             self.assertEqual(out.unit, "dt")
             self.assertEqual(out.duration, 1200)
 
@@ -1356,7 +1356,7 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             self.assertEqual(out.unit, "dt")
             self.assertEqual(out.duration, 1200)
 
@@ -1581,7 +1581,7 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(
             qc,
-            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"]),
+            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"], seed=0),
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
@@ -1649,7 +1649,7 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_instruction_constraints(self):
@@ -1674,7 +1674,7 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_dt_constraints(self):
@@ -1687,12 +1687,12 @@ class TestTranspile(QiskitTestCase):
         qc.x(0)
         qc.measure(0, 0)
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap")
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             original_duration = scheduled.duration
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             self.assertEqual(scheduled.duration, original_duration * 2)
 
     @data(1, 2, 3)
