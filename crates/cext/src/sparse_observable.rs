@@ -13,6 +13,7 @@
 use std::ffi::{c_char, CString};
 
 use crate::exit_codes::{CInputError, ExitCode};
+use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use num_complex::Complex64;
 
 use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
@@ -69,41 +70,6 @@ impl TryFrom<&CSparseTerm> for SparseTermView<'_> {
             indices,
         })
     }
-}
-
-/// Check the pointer is not null and is aligned.
-fn check_ptr<T>(ptr: *const T) -> Result<(), CInputError> {
-    if ptr.is_null() {
-        return Err(CInputError::NullPointerError);
-    };
-    if !ptr.is_aligned() {
-        return Err(CInputError::AlignmentError);
-    };
-    Ok(())
-}
-
-/// Casts a const pointer to a reference. Panics is the pointer is null or not aligned.
-///
-/// # Safety
-///
-/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
-/// While the resulting reference exists, the memory pointed to must not be mutated.
-unsafe fn const_ptr_as_ref<'a, T>(ptr: *const T) -> &'a T {
-    check_ptr(ptr).unwrap();
-    let as_ref = unsafe { ptr.as_ref() };
-    as_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
-}
-
-/// Casts a mut pointer to a mut reference. Panics is the pointer is null or not aligned.
-///
-/// # Safety
-///
-/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
-/// While the resulting reference exists, the memory pointed to must not be accessed otherwise.
-unsafe fn mut_ptr_as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
-    check_ptr(ptr).unwrap();
-    let as_mut_ref = unsafe { ptr.as_mut() };
-    as_mut_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
 }
 
 /// @ingroup QkObs
