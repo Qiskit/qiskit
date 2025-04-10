@@ -37,8 +37,8 @@ type Instruction = (
 ///     time: The rotation angle. Note that this will directly be used as input of the
 ///         rotation gate and not be multiplied by a factor of 2 (that should be done before so
 ///         that this function can remain Rust-only).
-///     phase_gate_for_paulis: If ``true``, use the ``PhaseGate`` instead of ``RZGate`` as
-///         single-qubit Pauli rotations.
+///     phase_gate_for_paulis: If ``true``, use the [StandardGate::Phase] instead of
+///         [StandardGate::RZ] single-qubit Pauli rotations.
 ///     do_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
 ///         CX uses the top qubit as target. If ``false``, uses a "chain" shape, where CX in between
 ///         neighboring qubits are used.
@@ -85,23 +85,23 @@ fn single_qubit_evolution(
 ) -> Box<dyn Iterator<Item = Instruction>> {
     let qubit = vec![Qubit(index)];
 
-    // We don't need to explictly cover the |1><1| projector case (which is the PhaseGate),
+    // We don't need to explictly cover the |1><1| projector case (which is the Phase gate),
     // which will be handled by the multi-qubit evolution.
     match pauli {
         'x' => Box::new(std::iter::once((
-            StandardGate::RXGate.into(),
+            StandardGate::RX.into(),
             smallvec![time],
             qubit,
             vec![],
         ))),
         'y' => Box::new(std::iter::once((
-            StandardGate::RYGate.into(),
+            StandardGate::RY.into(),
             smallvec![time],
             qubit,
             vec![],
         ))),
         'z' => Box::new(std::iter::once((
-            StandardGate::RZGate.into(),
+            StandardGate::RZ.into(),
             smallvec![time],
             qubit,
             vec![],
@@ -130,36 +130,36 @@ fn two_qubit_evolution<'a>(
     let qubits = vec![Qubit(indices[0]), Qubit(indices[1])];
     let paulistring: String = pauli.iter().collect();
 
-    // We don't need to explictly cover the |11><11| projector case (which is the CPhaseGate),
+    // We don't need to explictly cover the |11><11| projector case (which is the CPhase gate),
     // which will be handled by the multi-qubit evolution. The Paulis need special treatment here
     // since the generic code would use CX-RZ-CX instead of the two-qubit Pauli standard gates.
     match paulistring.as_str() {
         "xx" => Box::new(std::iter::once((
-            StandardGate::RXXGate.into(),
+            StandardGate::RXX.into(),
             smallvec![time],
             qubits,
             vec![],
         ))),
         "zx" => Box::new(std::iter::once((
-            StandardGate::RZXGate.into(),
+            StandardGate::RZX.into(),
             smallvec![time],
             qubits,
             vec![],
         ))),
         "xz" => Box::new(std::iter::once((
-            StandardGate::RZXGate.into(),
+            StandardGate::RZX.into(),
             smallvec![time],
             vec![qubits[1], qubits[0]],
             vec![],
         ))),
         "yy" => Box::new(std::iter::once((
-            StandardGate::RYYGate.into(),
+            StandardGate::RYY.into(),
             smallvec![time],
             qubits,
             vec![],
         ))),
         "zz" => Box::new(std::iter::once((
-            StandardGate::RZZGate.into(),
+            StandardGate::RZZ.into(),
             smallvec![time],
             qubits,
             vec![],
@@ -194,13 +194,13 @@ fn multi_qubit_evolution(
         let q = Qubit(*index);
         match bit_term {
             'x' | '+' | '-' => basis_change.push((
-                StandardGate::HGate.into(),
+                StandardGate::H.into(),
                 smallvec![],
                 vec![q],
                 empty_clbits.clone(),
             )),
             'y' | 'r' | 'l' => basis_change.push((
-                StandardGate::SXGate.into(),
+                StandardGate::SX.into(),
                 smallvec![],
                 vec![q],
                 empty_clbits.clone(),
@@ -220,14 +220,14 @@ fn multi_qubit_evolution(
     let inverse_basis_change: Vec<Instruction> = basis_change
         .iter()
         .map(|(gate, _, qubit, _)| match gate.standard_gate() {
-            StandardGate::HGate => (
-                StandardGate::HGate.into(),
+            StandardGate::H => (
+                StandardGate::H.into(),
                 smallvec![],
                 qubit.clone(),
                 empty_clbits.clone(),
             ),
-            StandardGate::SXGate => (
-                StandardGate::SXdgGate.into(),
+            StandardGate::SX => (
+                StandardGate::SXdg.into(),
                 smallvec![],
                 qubit.clone(),
                 empty_clbits.clone(),
@@ -255,9 +255,9 @@ fn multi_qubit_evolution(
         // per default (unless the user specified otherwise)
         let params: SmallVec<[Param; 3]> = smallvec![time];
         let base_gate = if phase_gate_for_paulis {
-            StandardGate::PhaseGate
+            StandardGate::Phase
         } else {
-            StandardGate::RZGate
+            StandardGate::RZ
         };
 
         let (packed, qubits) = if control_qubits.is_empty() {
@@ -281,10 +281,10 @@ fn multi_qubit_evolution(
         let params: SmallVec<[Param; 3]> =
             Python::with_gil(|py| smallvec![multiply_param(&time, -0.5, py)]);
         let (packed, qubits) = if control_qubits.len() == 1 {
-            let gate: PackedOperation = StandardGate::PhaseGate.into();
+            let gate: PackedOperation = StandardGate::Phase.into();
             (gate, vec![control_qubits[0]])
         } else {
-            let controlled = add_control(StandardGate::PhaseGate, &params, &control_states[1..]);
+            let controlled = add_control(StandardGate::Phase, &params, &control_states[1..]);
             control_qubits.reverse();
             (controlled, control_qubits)
         };
@@ -293,7 +293,7 @@ fn multi_qubit_evolution(
         if control_states[0] {
             // sandwich in X gates for the correct projector
             let x: Instruction = (
-                StandardGate::XGate.into(),
+                StandardGate::X.into(),
                 smallvec![],
                 vec![*qubits.last().unwrap()],
                 empty_clbits.clone(),
@@ -430,7 +430,7 @@ fn cx_chain(qubits: Vec<Qubit>) -> Box<dyn DoubleEndedIterator<Item = Instructio
             .map(move |i| (qubits[i], qubits[i + 1]))
             .map(|(target, ctrl)| {
                 (
-                    StandardGate::CXGate.into(),
+                    StandardGate::CX.into(),
                     smallvec![],
                     vec![ctrl, target],
                     vec![],
@@ -462,7 +462,7 @@ fn cx_fountain(qubits: Vec<Qubit>) -> Box<dyn DoubleEndedIterator<Item = Instruc
     Box::new((1..num_terms).rev().map(move |i| {
         let ctrl = qubits[i];
         (
-            StandardGate::CXGate.into(),
+            StandardGate::CX.into(),
             smallvec![],
             vec![ctrl, first_qubit],
             vec![],

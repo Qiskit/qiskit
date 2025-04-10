@@ -34,6 +34,9 @@ class Result:
             each experiment success)
         results (list[ExperimentResult]): corresponding results for array of
             experiments of the input
+        date (str): optional date field
+        status (str): optional status field
+        header (dict): an optional free form dictionary header
     """
 
     _metadata = {}
@@ -88,7 +91,7 @@ class Result:
             "backend_name": self.backend_name,
             "backend_version": self.backend_version,
             "date": self.date,
-            "header": None if self.header is None else self.header.to_dict(),
+            "header": self.header,
             "job_id": self.job_id,
             "status": self.status,
             "success": self.success,
@@ -128,11 +131,10 @@ class Result:
         the get_xxx method, and the data will be post-processed for the data type.
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment. Several types are accepted for convenience::
                 * str: the name of the experiment.
                 * QuantumCircuit: the name of the circuit instance will be used.
-                * Schedule: the name of the schedule instance will be used.
                 * int: the position of the experiment.
                 * None: if there is only one experiment, returns it.
 
@@ -179,7 +181,7 @@ class Result:
         ['00000', '01000', '10100', '10100', '11101', '11100', '00101', ..., '01010']
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
 
         Returns:
@@ -231,7 +233,7 @@ class Result:
         """Get the histogram data of an experiment.
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data([experiment])``.
 
         Returns:
@@ -283,7 +285,7 @@ class Result:
         """Get the final statevector of an experiment.
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the statevector.
                 If None, does not round.
@@ -305,7 +307,7 @@ class Result:
         """Get the final unitary of an experiment.
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the unitary.
                 If None, does not round.
@@ -326,7 +328,7 @@ class Result:
         """Return a single experiment result from a given key.
 
         Args:
-            key (str or QuantumCircuit or Schedule or int or None): the index of the
+            key (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
 
         Returns:

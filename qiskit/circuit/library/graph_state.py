@@ -48,6 +48,7 @@ class GraphState(QuantumCircuit):
        import rustworkx as rx
        G = rx.generators.cycle_graph(5)
        circuit = GraphState(rx.adjacency_matrix(G))
+       circuit.name = "Graph state"
        _generate_circuit_library_visualization(circuit)
 
     **References:**

@@ -47,7 +47,7 @@ class IGate(SingletonGate):
              └───┘
     """
 
-    _standard_gate = StandardGate.IGate
+    _standard_gate = StandardGate.I
 
     def __init__(self, label: Optional[str] = None):
         """Create new Identity gate."""

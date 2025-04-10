@@ -70,7 +70,7 @@ class YGate(SingletonGate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
-    _standard_gate = StandardGate.YGate
+    _standard_gate = StandardGate.Y
 
     def __init__(self, label: Optional[str] = None):
         """Create new Y gate."""
@@ -200,7 +200,7 @@ class CYGate(SingletonControlledGate):
 
     """
 
-    _standard_gate = StandardGate.CYGate
+    _standard_gate = StandardGate.CY
 
     def __init__(
         self,

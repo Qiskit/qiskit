@@ -92,7 +92,7 @@ pub fn split_2q_unitaries(
                     }
                 };
                 dag.replace_node_with_1q_ops(py, node, insert_fn)?;
-                dag.add_global_phase(py, &Param::Float(decomp.global_phase))?;
+                dag.add_global_phase(&Param::Float(decomp.global_phase))?;
             }
         }
     }
@@ -161,7 +161,7 @@ pub fn split_2q_unitaries(
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
-                    new_dag.add_global_phase(py, &Param::Float(decomp.global_phase + PI4))?;
+                    new_dag.add_global_phase(&Param::Float(decomp.global_phase + PI4))?;
                     continue; // skip the general instruction handling code
                 }
             }
