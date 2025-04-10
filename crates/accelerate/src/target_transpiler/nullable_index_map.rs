@@ -296,7 +296,7 @@ where
             .filter_map(|(index, item)| match item {
                 (Some(key), value) => Some((key, value)),
                 (None, value) => {
-                    self.null_val = Some((len + index - 1, value));
+                    self.null_val = Some(((len + index).checked_sub(1).unwrap_or_default(), value));
                     None
                 }
             });
