@@ -312,7 +312,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         print(f"=> Attempting to Cliffordize unitary")
         try:
             cliff = Clifford(unitary.copy())
-            print(f"Success!")
+            print(f"Cliffordize Success!")
         except:
             print(f"Did not succeed (cliffortize)!")
 
@@ -322,5 +322,6 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
             print(f"Success!")
         except:
             print(f"Did not succeed (synthesize)!")
+            assert False
         dag_circuit = circuit_to_dag(approximate_circuit)
         return dag_circuit

@@ -114,6 +114,8 @@ class SolovayKitaevDecomposition:
         Returns:
             A one-qubit circuit approximating the ``gate_matrix`` in the specified discrete basis.
         """
+        print("")
+        print("============= RUNNING SK PASS ON GATE ==================")
         # make input matrix SU(2) and get the according global phase
         z = 1 / np.sqrt(np.linalg.det(gate_matrix))
         gate_matrix_su2 = GateSequence.from_matrix(z * gate_matrix)
@@ -133,7 +135,8 @@ class SolovayKitaevDecomposition:
             out = decomposition.to_circuit()
 
         out.global_phase = decomposition.global_phase - global_phase
-
+        print("============= END RUNNING SK PASS ON GATE ==================")
+        print("")
         return out
 
     def _recurse(self, sequence: GateSequence, n: int, check_input: bool = True) -> GateSequence:
@@ -154,16 +157,26 @@ class SolovayKitaevDecomposition:
         if sequence.product.shape != (3, 3):
             raise ValueError("Shape of U must be (3, 3) but is", sequence.shape)
 
+        print(f"======> Called SK-recurse {n = }")
+        print(f"sequence:\n{sequence.product}")
+
         if n == 0:
+            print(f"==> returning basic approximation")
             return self.find_basic_approximation(sequence)
 
+        print(f"==> Running SK-recurse for U_{n-1}")
         u_n1 = self._recurse(sequence, n - 1, check_input=check_input)
+
+        print(f"u_{n-1}:\n{u_n1.product}")
+
 
         v_n, w_n = commutator_decompose(
             sequence.dot(u_n1.adjoint()).product, check_input=check_input
         )
 
+        # print(f"==> Running SK-recurse for V_{n-1}")
         v_n1 = self._recurse(v_n, n - 1, check_input=check_input)
+        # print(f"==> Running SK-recurse for W_{n-1}")
         w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
@@ -182,6 +195,7 @@ class SolovayKitaevDecomposition:
             return np.linalg.norm(np.subtract(x.product, sequence.product))
 
         best = min(self.basic_approximations, key=key)
+        # print(f"==> find_basic_approximation: {best = }, {key(best) = } ")
         return best
 
 
