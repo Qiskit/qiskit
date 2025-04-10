@@ -121,6 +121,11 @@ impl<K, V> NullableIndexMap<K, V> {
     pub fn len(&self) -> usize {
         self.map.len() + self.null_val.is_some() as usize
     }
+
+    /// Returns whether the map is empty or not.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<K, V> NullableIndexMap<K, V>
@@ -284,13 +289,14 @@ where
     K: Hash + Eq,
 {
     fn extend<T: IntoIterator<Item = (Option<K>, V)>>(&mut self, iter: T) {
+        let len = self.len();
         let filtered = iter
             .into_iter()
             .enumerate()
             .filter_map(|(index, item)| match item {
                 (Some(key), value) => Some((key, value)),
                 (None, value) => {
-                    self.null_val = Some((index, value));
+                    self.null_val = Some((len + index - 1, value));
                     None
                 }
             });
@@ -662,7 +668,8 @@ mod test {
         let mut ind_map: NullableIndexMap<i32, &str> = k_v_pairs.into_iter().collect();
 
         // Test extend
-        let k_v_pairs_extend: [(Option<i32>, &str); 2] = [(Some(3), "Whaddis"), (None, "Cat")];
+        let k_v_pairs_extend: [(Option<i32>, &str); 3] =
+            [(Some(3), "Whaddis"), (None, "Cat"), (Some(0), "Neko")];
         ind_map.extend(k_v_pairs_extend);
 
         for (key, value) in k_v_pairs_extend.iter() {
@@ -677,6 +684,7 @@ mod test {
             (Some(4), "Schrodinger"),
             (Some(3), "Whaddis"),
             (None, "Cat"),
+            (Some(0), "Neko"),
         ];
         assert_eq!(&ideal, ind_map.into_iter().collect::<Vec<_>>().as_slice());
     }
