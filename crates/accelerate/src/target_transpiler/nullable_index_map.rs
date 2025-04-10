@@ -182,18 +182,53 @@ impl<K, V> NullableIndexMap<K, V> {
     /// Removes the entry allotted to `key` from the map and returns it. The index of
     /// this entry is then replaced by the entry located at the last index.
     ///
+    /// In the case of a `None` entry, the index of `None` will be preserved relative
+    /// to the length of the map, while the last "real" value will be swapped.
+    ///
     /// `None` will be returned if the `key` is not present in the map.
     pub fn swap_remove<Q>(&mut self, key: Option<&Q>) -> Option<V>
     where
         Q: ?Sized + Hash + Eq + Equivalent<K>,
     {
         match key {
-            Some(key) => self.map.swap_remove(key),
-            None => {
-                let mut ret_val = None;
-                swap(&mut ret_val, &mut self.null_val);
-                ret_val.map(|val| val.1)
+            Some(key) => {
+                let ret = self.map.swap_remove(key);
+                if self
+                    .null_val
+                    .as_ref()
+                    .is_some_and(|(idx, _)| self.len() <= *idx)
+                {
+                    if let Some((key, _)) = self.null_val.as_mut() {
+                        *key -= 1;
+                    }
+                }
+                ret
             }
+            None => self.null_val.take().map(|(_, val)| val),
+        }
+    }
+
+    /// Removes the entry allotted to `key` from the map and returns it.
+    /// The indices of the elements following it will then shift.
+    ///
+    /// `None` will be returned if the `key` is not present in the map.
+    pub fn shift_remove<Q>(&mut self, key: Option<&Q>) -> Option<V>
+    where
+        Q: ?Sized + Hash + Eq + Equivalent<K>,
+    {
+        match key {
+            Some(key) => {
+                if let Some(index) = self.map.get_index_of(key) {
+                    if self.null_val.as_ref().is_some_and(|(idx, _)| index < *idx) {
+                        if let Some((key, _)) = self.null_val.as_mut() {
+                            *key -= 1;
+                        }
+                    }
+                    return self.map.shift_remove(key);
+                }
+                None
+            }
+            None => self.null_val.take().map(|(_, val)| val),
         }
     }
 
@@ -296,8 +331,9 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
         } else {
             self.map.next().map(|(k, v)| (Some(k), v))
         };
-        self.current_index += 1;
-        val
+        val.inspect(|_| {
+            self.current_index += 1;
+        })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -337,8 +373,9 @@ impl<K, V> Iterator for IntoIter<K, V> {
         } else {
             self.map.next().map(|(k, v)| (Some(k), v))
         };
-        self.current_index += 1;
-        val
+        val.inspect(|_| {
+            self.current_index += 1;
+        })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -382,8 +419,9 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
             self.map_keys.next().map(Some)
         };
 
-        self.current_index += 1;
-        val
+        val.inspect(|_| {
+            self.current_index += 1;
+        })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -423,8 +461,9 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
         } else {
             self.map_values.next()
         };
-        self.current_index += 1;
-        val
+        val.inspect(|_| {
+            self.current_index += 1;
+        })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -458,6 +497,24 @@ where
                 None => panic!("The provided key is not present in map: None"),
             },
         }
+    }
+}
+
+impl<K, V> Index<usize> for NullableIndexMap<K, V>
+where
+    K: Eq + Hash + Clone,
+    V: Clone,
+{
+    type Output = V;
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get_index(index)
+            .unwrap_or_else(|| {
+                panic!(
+                    "index out of bounds: the len is {len} but the index is {index}",
+                    len = self.len()
+                );
+            })
+            .1
     }
 }
 
@@ -524,6 +581,7 @@ mod test {
 
     #[test]
     fn test_insert_index() {
+        // Test adding items and testing insertion order.
         let mut map: NullableIndexMap<&str, &str> = NullableIndexMap::new();
 
         // Add a non-null value.
@@ -545,5 +603,360 @@ mod test {
         assert_eq!((Some(&"Hello"), &"Hi!"), map.get_index(0).unwrap());
         assert_eq!((None, &"Bye!"), map.get_index(1).unwrap());
         assert_eq!((Some(&"Goodbye"), &"See ya!"), map.get_index(2).unwrap());
+    }
+
+    #[test]
+    fn test_from_iter() {
+        let k_v_pairs: [(Option<i32>, &str); 4] = [
+            (Some(2), "Yay"),
+            (Some(1), "Nay"),
+            (None, "..."),
+            (Some(4), "Schrodinger"),
+        ];
+        let ind_map: NullableIndexMap<i32, &str> = k_v_pairs.into_iter().collect();
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len());
+        // Check item order
+        assert_eq!(
+            &k_v_pairs,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            k_v_pairs
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            k_v_pairs.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
+
+        for index in 0..ind_map.len() {
+            // Check key indexing access
+            assert_eq!(
+                k_v_pairs[index].0,
+                ind_map.get_index(index).unwrap().0.copied()
+            );
+            // Check value indexing access
+            assert_eq!(k_v_pairs[index].1, ind_map[index])
+        }
+    }
+
+    #[test]
+    fn test_extend() {
+        let k_v_pairs: [(Option<i32>, &str); 4] = [
+            (Some(2), "Yay"),
+            (Some(1), "Nay"),
+            (None, "..."),
+            (Some(4), "Schrodinger"),
+        ];
+        let mut ind_map: NullableIndexMap<i32, &str> = k_v_pairs.into_iter().collect();
+
+        // Test extend
+        let k_v_pairs_extend: [(Option<i32>, &str); 2] = [(Some(3), "Whaddis"), (None, "Cat")];
+        ind_map.extend(k_v_pairs_extend);
+
+        for (key, value) in k_v_pairs_extend.iter() {
+            // Check if new values are updated.
+            assert_eq!(ind_map[key.as_ref()], *value)
+        }
+
+        // Check complete map
+        let ideal = [
+            (Some(2), "Yay"),
+            (Some(1), "Nay"),
+            (Some(4), "Schrodinger"),
+            (Some(3), "Whaddis"),
+            (None, "Cat"),
+        ];
+        assert_eq!(&ideal, ind_map.into_iter().collect::<Vec<_>>().as_slice());
+    }
+
+    #[test]
+    fn test_swap_remove() {
+        let k_v_pairs = [
+            (Some(2), "Yay"),
+            (Some(1), "Nay"),
+            (None, "..."),
+            (Some(4), "Schrodinger"),
+            (Some(3), "OIIAI"),
+        ];
+        let mut ind_map: NullableIndexMap<i32, &str> = k_v_pairs.into_iter().collect();
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len());
+
+        // Remove first element
+        // Shift should happen between the first and last real elements
+        // Null should remain unaffected
+        ind_map.swap_remove(Some(&2));
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len() - 1);
+        // Check order
+        let new_order = [
+            (Some(3), "OIIAI"),
+            (Some(1), "Nay"),
+            (None, "..."),
+            (Some(4), "Schrodinger"),
+        ];
+        // Check item order
+        assert_eq!(
+            &new_order,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            new_order
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            new_order.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
+
+        // Remove last element
+        // Nothing should change within the map
+        ind_map.swap_remove(Some(&4));
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len() - 2);
+        // Check order
+        let new_order = [(Some(3), "OIIAI"), (Some(1), "Nay"), (None, "...")];
+        // Check item order
+        assert_eq!(
+            &new_order,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            new_order
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            new_order.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
+
+        // Remove element before a `None` element, but not first
+        // Nothing should change within the map
+        ind_map.swap_remove(Some(&1));
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len() - 3);
+        // Check order
+        let new_order = [(Some(3), "OIIAI"), (None, "...")];
+        // Check item order
+        assert_eq!(
+            &new_order,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            new_order
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            new_order.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
+
+        // Remove `None` element
+        // Nothing should change within the map
+        ind_map.swap_remove(None::<&i32>);
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len() - 4);
+        // Check order
+        let new_order = [(Some(3), "OIIAI")];
+        // Check item order
+        assert_eq!(
+            &new_order,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            new_order
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            new_order.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn test_shift_remove() {
+        let mut k_v_pairs = vec![
+            (Some(2), "Yay"),
+            (Some(1), "Nay"),
+            (None, "..."),
+            (Some(4), "Schrodinger"),
+            (Some(3), "OIIAI"),
+        ];
+        let mut ind_map: NullableIndexMap<i32, &str> = k_v_pairs.clone().into_iter().collect();
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len());
+
+        // Remove first element
+        // Order should be preserved
+        ind_map.shift_remove(Some(&2));
+        k_v_pairs.remove(0);
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len());
+        // Check item order
+        assert_eq!(
+            &k_v_pairs,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            k_v_pairs
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            k_v_pairs.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
+
+        // Remove last element
+        // Order should be preserved
+        ind_map.shift_remove(Some(&4));
+        k_v_pairs.remove(2);
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len());
+        // Check item order
+        assert_eq!(
+            &k_v_pairs,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            k_v_pairs
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            k_v_pairs.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
+
+        // Remove element before a `None` element, but not first
+        // Order should be preserved
+        ind_map.shift_remove(Some(&1));
+        k_v_pairs.remove(0);
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len());
+        // Check item order
+        assert_eq!(
+            &k_v_pairs,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            k_v_pairs
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            k_v_pairs.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
+
+        // Remove `None` element
+        // Order should be preserved
+        ind_map.shift_remove(None::<&i32>);
+        k_v_pairs.remove(0);
+
+        // Check length
+        assert_eq!(ind_map.len(), k_v_pairs.len());
+        // Check item order
+        assert_eq!(
+            &k_v_pairs,
+            ind_map
+                .iter()
+                .map(|(k, v)| (k.cloned(), *v))
+                .collect::<Vec<(Option<i32>, &str)>>()
+                .as_slice()
+        );
+        // Check key order
+        assert_eq!(
+            k_v_pairs
+                .iter()
+                .map(|(k, _)| k.as_ref())
+                .collect::<Vec<_>>(),
+            ind_map.keys().collect::<Vec<_>>()
+        );
+        // Check value order
+        assert_eq!(
+            k_v_pairs.iter().map(|(_, v)| v).collect::<Vec<_>>(),
+            ind_map.values().collect::<Vec<_>>()
+        );
     }
 }
