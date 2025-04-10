@@ -24,9 +24,20 @@ import subprocess
 import site
 import sysconfig
 
+from pathlib import Path
+
 # This allows the Python interpreter baked into our test executable to find the
 # Qiskit installed in the active environment.
-os.environ["PYTHONPATH"] = os.pathsep.join([os.getcwd()] + site.getsitepackages())
+os.environ["PYTHONPATH"] = os.pathsep.join(
+    [
+        os.getcwd(),
+        # This contains a sitecustomize.py which imports qiskit fully so that
+        # our Rust PyO3 tests (which run in parallel) don't attempt to import
+        # it at the same time!
+        f"{Path(__file__).resolve().parent}/pyo3-tests",
+    ]
+    + site.getsitepackages()
+)
 
 # Uncomment to debug PyO3's build / link against Python.
 # os.environ["PYO3_PRINT_CONFIG"] = "1"
