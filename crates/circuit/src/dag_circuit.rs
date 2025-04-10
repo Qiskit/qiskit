@@ -2249,10 +2249,10 @@ impl DAGCircuit {
             node_match(n1, n2).map(|ok| ok.then_some(()))
         };
 
-        vf2::is_isomorphic(
+        vf2::is_isomorphic_with_semantics(
             &self.dag,
             &other.dag,
-            (node_match, vf2::NoSemanticMatch),
+            (node_match, vf2::NoSemantics::new()),
             true,
             vf2::Problem::Exact,
             None,
