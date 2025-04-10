@@ -35,7 +35,7 @@ use pyo3::{
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
 
@@ -84,6 +84,17 @@ impl TargetOperation {
             }
         }
     }
+
+    /// Creates a of [TargetOperation] from an instance of [PackedOperation]
+    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+        NormalOperation::from_packed_operation(operation, params).into()
+    }
+}
+
+impl From<NormalOperation> for TargetOperation {
+    fn from(value: NormalOperation) -> Self {
+        TargetOperation::Normal(value)
+    }
 }
 
 /// Represents a Qiskit `Gate` object, keeps a reference to its Python
@@ -113,23 +124,12 @@ impl NormalOperation {
         };
         Ok(obj)
     }
-}
 
-impl From<PackedOperation> for NormalOperation {
-    fn from(value: PackedOperation) -> Self {
+    /// Creates a of [TargetOperation] from an instance of [PackedOperation]
+    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
         Self {
-            operation: value,
-            params: smallvec![],
-            op_object: OnceLock::new(),
-        }
-    }
-}
-
-impl From<(PackedOperation, SmallVec<[Param; 3]>)> for NormalOperation {
-    fn from(value: (PackedOperation, SmallVec<[Param; 3]>)) -> Self {
-        Self {
-            operation: value.0,
-            params: value.1,
+            operation,
+            params,
             op_object: OnceLock::new(),
         }
     }
@@ -1415,12 +1415,13 @@ mod test {
             .lock()
             .map_err(|_| PyRuntimeError::new_err("Error avoiding deadlock"))?;
         Python::with_gil(|py| -> PyResult<()> {
-            let rxgate = PackedOperation::from_standard_gate(StandardGate::RXGate);
+            let rxgate = PackedOperation::from_standard_gate(StandardGate::RX);
             let mut test_target = Target::default();
             test_target
                 .add_instruction(
-                    TargetOperation::Normal(
-                        (rxgate, smallvec![std::f64::consts::PI.into(),]).into(),
+                    TargetOperation::from_packed_operation(
+                        rxgate,
+                        smallvec![std::f64::consts::PI.into(),],
                     ),
                     "rx",
                     None,
@@ -1452,7 +1453,11 @@ mod test {
                 PackedOperation::from_standard_instruction(StandardInstruction::Barrier(0));
             let mut test_target = Target::default();
             test_target
-                .add_instruction(TargetOperation::Normal(barrier.into()), "barrier", None)
+                .add_instruction(
+                    TargetOperation::from_packed_operation(barrier, smallvec![]),
+                    "barrier",
+                    None,
+                )
                 .unwrap();
             let op = test_target.py_operation_from_name(py, "barrier")?;
             assert!(
@@ -1484,7 +1489,7 @@ mod test {
             let mut test_target = Target::default();
             test_target
                 .add_instruction(
-                    TargetOperation::Normal(unitary_gate.into()),
+                    TargetOperation::from_packed_operation(unitary_gate, smallvec![]),
                     "unitary",
                     None,
                 )
