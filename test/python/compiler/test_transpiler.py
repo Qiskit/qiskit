@@ -1581,7 +1581,7 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(
             qc,
-            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"]),
+            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"], seed=0),
             optimization_level=optimization_level,
             seed_transpiler=42,
         )

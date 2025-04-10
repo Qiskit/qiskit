@@ -13,12 +13,15 @@
 # pylint: disable=missing-function-docstring
 
 """Test delay instruction for quantum circuits."""
+import copy
+import pickle
 
 import numpy as np
 
-from qiskit.circuit import Delay
+from qiskit.circuit import Delay, Duration
 from qiskit.circuit import Parameter, ParameterVector
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
+from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -135,6 +138,21 @@ class TestDelayClass(QiskitTestCase):
             self.assertNotEqual(circuit_from(Delay(2, "dt")), circuit_from(Delay(2, unit)))
             self.assertNotEqual(Delay(a, unit), Delay(a, "dt"))
             self.assertNotEqual(circuit_from(Delay(a, unit)), circuit_from(Delay(a, "dt")))
+
+    def test_delay_clone(self):
+        """Test that circuits with delays can be copied or pickled."""
+        qc = QuantumCircuit(3)
+        stretch = qc.add_stretch("a")
+        qc.delay(100, qc.qubits[0])
+        qc.delay(expr.lift(Duration.us(1)), 0)
+        qc.delay(expr.lift(Duration.ns(2)), 0)
+        qc.delay(expr.lift(Duration.ms(3)), 0)
+        qc.delay(expr.lift(Duration.s(4)), 0)
+        qc.delay(expr.lift(Duration.dt(5)), 0)
+        qc.delay(stretch, [0, 1])
+        self.assertEqual(qc, pickle.loads(pickle.dumps(qc)))
+        self.assertEqual(qc, copy.copy(qc))
+        self.assertEqual(qc, copy.deepcopy(qc))
 
 
 class TestParameterizedDelay(QiskitTestCase):
