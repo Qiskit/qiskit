@@ -372,12 +372,6 @@ enum DAGVarType {
     Declare = 2,
 }
 
-#[derive(Copy, Clone, Debug)]
-enum DAGStretchType {
-    Capture = 0,
-    Declare = 1,
-}
-
 #[derive(Clone, Debug)]
 struct DAGVarInfo {
     var: Var,
@@ -389,7 +383,7 @@ struct DAGVarInfo {
 impl DAGVarInfo {
     fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
         (
-            self.var.clone_ref(py),
+            self.var.0,
             self.type_ as u8,
             self.in_node.index(),
             self.out_node.index(),
@@ -400,7 +394,7 @@ impl DAGVarInfo {
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
         let val_tuple = ob.downcast::<PyTuple>()?;
         Ok(DAGVarInfo {
-            var: val_tuple.get_item(0)?.unbind(),
+            var: Var(val_tuple.get_item(0)?.extract()?),
             type_: match val_tuple.get_item(1)?.extract::<u8>()? {
                 0 => DAGVarType::Input,
                 1 => DAGVarType::Capture,
@@ -413,21 +407,27 @@ impl DAGVarInfo {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+enum DAGStretchType {
+    Capture = 0,
+    Declare = 1,
+}
+
 #[derive(Clone, Debug)]
 struct DAGStretchInfo {
-    stretch: PyObject,
+    stretch: Stretch,
     type_: DAGStretchType,
 }
 
 impl DAGStretchInfo {
     fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
-        (self.stretch.clone_ref(py), self.type_ as u8).into_py_any(py)
+        (self.stretch.0, self.type_ as u8).into_py_any(py)
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
         let val_tuple = ob.downcast::<PyTuple>()?;
         Ok(DAGStretchInfo {
-            stretch: val_tuple.get_item(0)?.unbind(),
+            stretch: Stretch(val_tuple.get_item(0)?.extract()?),
             type_: match val_tuple.get_item(1)?.extract::<u8>()? {
                 0 => DAGStretchType::Capture,
                 1 => DAGStretchType::Declare,
@@ -460,103 +460,6 @@ impl DAGIdentifierInfo {
             1 => Ok(DAGIdentifierInfo::Var(DAGVarInfo::from_pickle(
                 &val_tuple.get_item(1)?,
             )?)),
-            _ => Err(PyValueError::new_err("Invalid identifier info type")),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-struct DAGStretchInfo {
-    stretch: Stretch,
-    type_: DAGStretchType,
-}
-
-#[derive(Clone, Debug)]
-enum DAGIdentifierInfo {
-    Stretch(DAGStretchInfo),
-    Var(DAGVarInfo),
-}
-
-impl<'py> IntoPyObject<'py> for DAGVarInfo {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        (
-            self.var.0,
-            self.type_ as u8,
-            self.in_node.index(),
-            self.out_node.index(),
-        )
-            .into_bound_py_any(py)
-    }
-}
-
-impl<'py> FromPyObject<'py> for DAGVarInfo {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
-        Ok(DAGVarInfo {
-            var: Var(val_tuple.get_item(0)?.extract()?),
-            type_: match val_tuple.get_item(1)?.extract::<u8>()? {
-                0 => DAGVarType::Input,
-                1 => DAGVarType::Capture,
-                2 => DAGVarType::Declare,
-                _ => return Err(PyValueError::new_err("Invalid var type")),
-            },
-            in_node: NodeIndex::new(val_tuple.get_item(2)?.extract()?),
-            out_node: NodeIndex::new(val_tuple.get_item(3)?.extract()?),
-        })
-    }
-}
-
-impl<'py> IntoPyObject<'py> for DAGStretchInfo {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        (self.stretch.0, self.type_ as u8).into_bound_py_any(py)
-    }
-}
-
-impl<'py> FromPyObject<'py> for DAGStretchInfo {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
-        Ok(DAGStretchInfo {
-            stretch: Stretch(val_tuple.get_item(0)?.extract()?),
-            type_: match val_tuple.get_item(1)?.extract::<u8>()? {
-                0 => DAGStretchType::Capture,
-                1 => DAGStretchType::Declare,
-                _ => return Err(PyValueError::new_err("Invalid stretch type")),
-            },
-        })
-    }
-}
-
-impl<'py> IntoPyObject<'py> for DAGIdentifierInfo {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self {
-            DAGIdentifierInfo::Stretch(info) => {
-                (0, info.into_bound_py_any(py)?).into_bound_py_any(py)
-            }
-            DAGIdentifierInfo::Var(info) => (1, info.into_bound_py_any(py)?).into_bound_py_any(py),
-        }
-    }
-}
-
-impl<'py> FromPyObject<'py> for DAGIdentifierInfo {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
-        match val_tuple.get_item(0)?.extract::<u8>()? {
-            0 => Ok(DAGIdentifierInfo::Stretch(
-                val_tuple.get_item(1)?.extract()?,
-            )),
-            1 => Ok(DAGIdentifierInfo::Var(val_tuple.get_item(1)?.extract()?)),
             _ => Err(PyValueError::new_err("Invalid identifier info type")),
         }
     }
@@ -890,7 +793,7 @@ impl DAGCircuit {
             IndexMap::with_capacity_and_hasher(identifier_info_raw.len(), RandomState::default());
         for (key, value) in identifier_info_raw.iter() {
             let name = key.extract()?;
-            let info = value.extract()?;
+            let info = DAGIdentifierInfo::from_pickle(&value)?;
             match &info {
                 DAGIdentifierInfo::Stretch(info) => match info.type_ {
                     DAGStretchType::Capture => {
@@ -2073,7 +1976,7 @@ impl DAGCircuit {
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
     fn size(&self, py: Python, recurse: bool) -> PyResult<usize> {
-        let mut length = self.dag.node_count() - (self.width(py) * 2);
+        let mut length = self.dag.node_count() - (self.width() * 2);
         if !self.has_control_flow() {
             return Ok(length);
         }
@@ -4312,7 +4215,7 @@ impl DAGCircuit {
         Ok(HashMap::from_iter([
             ("size", self.size(py, false)?.into_py_any(py)?),
             ("depth", self.depth(py, false)?.into_py_any(py)?),
-            ("width", self.width(py).into_py_any(py)?),
+            ("width", self.width().into_py_any(py)?),
             ("qubits", self.num_qubits().into_py_any(py)?),
             ("bits", self.num_clbits().into_py_any(py)?),
             ("factors", self.num_tensor_factors().into_py_any(py)?),
@@ -4537,13 +4440,13 @@ impl DAGCircuit {
     /// Args:
     ///     var: the stretch or name to check.
     fn has_stretch(&self, var: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(name) = stretch.extract::<String>() {
+        if let Ok(name) = var.extract::<String>() {
             Ok(matches!(
                 self.identifier_info.get(&name),
                 Some(DAGIdentifierInfo::Stretch(_))
             ))
         } else {
-            let stretch = stretch.extract::<expr::Stretch>()?;
+            let stretch = var.extract::<expr::Stretch>()?;
             if let Some(DAGIdentifierInfo::Stretch(info)) = self.identifier_info.get(&stretch.name)
             {
                 return Ok(&stretch == self.stretches.get(info.stretch).unwrap());
@@ -4587,9 +4490,8 @@ impl DAGCircuit {
     fn iter_input_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let result = PySet::new(
             py,
-            self.vars_input
-                .iter()
-                .map(|v| self.vars.get(*v).cloned().unwrap().into_py_any(py).unwrap()),
+            self.input_vars()
+                .map(|v| v.clone().into_py_any(py).unwrap()),
         )?;
         Ok(result.into_any().try_iter()?.unbind())
     }
@@ -4598,9 +4500,8 @@ impl DAGCircuit {
     fn iter_captured_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let result = PySet::new(
             py,
-            self.vars_capture
-                .iter()
-                .map(|v| self.vars.get(*v).cloned().unwrap().into_py_any(py).unwrap()),
+            self.captured_vars()
+                .map(|v| v.clone().into_py_any(py).unwrap()),
         )?;
         Ok(result.into_any().try_iter()?.unbind())
     }
@@ -4609,14 +4510,8 @@ impl DAGCircuit {
     fn iter_captured_stretches(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let result = PySet::new(
             py,
-            self.stretches_capture.iter().map(|v| {
-                self.stretches
-                    .get(*v)
-                    .cloned()
-                    .unwrap()
-                    .into_py_any(py)
-                    .unwrap()
-            }),
+            self.captured_stretches()
+                .map(|v| v.clone().into_py_any(py).unwrap()),
         )?;
         Ok(result.into_any().try_iter()?.unbind())
     }
@@ -4624,11 +4519,11 @@ impl DAGCircuit {
     /// Iterable over all captured identifiers tracked by the circuit.
     fn iter_captures(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let out_set = PySet::empty(py)?;
-        for var in &self.vars_capture {
-            out_set.add(self.vars.get(*var).unwrap().clone())?;
+        for var in self.captured_vars() {
+            out_set.add(var.clone())?;
         }
-        for stretch in &self.stretches_capture {
-            out_set.add(self.stretches.get(*stretch).unwrap().clone())?;
+        for stretch in self.captured_stretches() {
+            out_set.add(stretch.clone())?;
         }
         Ok(out_set.into_any().try_iter()?.unbind())
     }
@@ -4637,9 +4532,8 @@ impl DAGCircuit {
     fn iter_declared_vars(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let result = PySet::new(
             py,
-            self.vars_declare
-                .iter()
-                .map(|v| self.vars.get(*v).cloned().unwrap().into_py_any(py).unwrap()),
+            self.declared_vars()
+                .map(|v| v.clone().into_py_any(py).unwrap()),
         )?;
         Ok(result.into_any().try_iter()?.unbind())
     }
@@ -4648,14 +4542,8 @@ impl DAGCircuit {
     fn iter_declared_stretches(&self, py: Python) -> PyResult<Py<PyIterator>> {
         let result = PyList::new(
             py,
-            self.stretches_declare.iter().map(|v| {
-                self.stretches
-                    .get(*v)
-                    .cloned()
-                    .unwrap()
-                    .into_py_any(py)
-                    .unwrap()
-            }),
+            self.declared_stretches()
+                .map(|v| v.clone().into_py_any(py).unwrap()),
         )?;
         Ok(result.into_any().try_iter()?.unbind())
     }
@@ -4914,6 +4802,35 @@ impl DAGCircuit {
     #[inline(always)]
     pub fn vars(&self) -> &ObjectRegistry<Var, expr::Var> {
         &self.vars
+    }
+
+    /// Returns an iterator over the input variables used by the circuit.
+    pub fn input_vars(&self) -> impl ExactSizeIterator<Item = &expr::Var> {
+        self.vars_input.iter().map(|v| self.vars.get(*v).unwrap())
+    }
+
+    /// Returns an iterator over the variables captured by the circuit.
+    pub fn captured_vars(&self) -> impl ExactSizeIterator<Item = &expr::Var> {
+        self.vars_capture.iter().map(|v| self.vars.get(*v).unwrap())
+    }
+
+    /// Returns an iterator over the variables declared within the circuit.
+    pub fn declared_vars(&self) -> impl ExactSizeIterator<Item = &expr::Var> {
+        self.vars_declare.iter().map(|v| self.vars.get(*v).unwrap())
+    }
+
+    /// Returns an iterator over the stretches captured by the circuit.
+    pub fn captured_stretches(&self) -> impl ExactSizeIterator<Item = &expr::Stretch> {
+        self.stretches_capture
+            .iter()
+            .map(|v| self.stretches.get(*v).unwrap())
+    }
+
+    /// Returns an iterator over the stretches declared within the circuit.
+    pub fn declared_stretches(&self) -> impl ExactSizeIterator<Item = &expr::Stretch> {
+        self.stretches_declare
+            .iter()
+            .map(|v| self.stretches.get(*v).unwrap())
     }
 
     /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.
@@ -7072,32 +6989,50 @@ impl DAGCircuit {
         //
         // Notably if there's no remapping, there's no need to recurse into control-flow or to do any
         // Var rewriting during the Expr visits.
-        for var in other.iter_input_vars(py)?.bind(py) {
-            self.add_input_var(py, &var?)?;
+        for var in &other.vars_input {
+            self.add_input_var(other.vars.get(*var).unwrap().clone())?;
         }
         if inline_captures {
-            for var in other.iter_captures(py)?.bind(py) {
-                let var = var?;
-                if !self.has_identifier(&var)? {
+            for var in other
+                .vars_capture
+                .iter()
+                .map(|v| other.vars.get(*v).unwrap())
+            {
+                if self.vars.find(var).is_none() {
+                    let expr::Var::Standalone { name, .. } = var else {
+                        panic!("var capture not standalone");
+                    };
                     return Err(DAGCircuitError::new_err(format!(
                         "Variable '{}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.",
-                        var
+                        name
+                    )));
+                }
+            }
+            for stretch in other
+                .stretches_capture
+                .iter()
+                .map(|v| other.stretches.get(*v).unwrap())
+            {
+                if self.stretches.find(stretch).is_none() {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "Stretch '{}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.",
+                        stretch.name
                     )));
                 }
             }
         } else {
-            for var in other.iter_captured_vars(py)?.bind(py) {
-                self.add_captured_var(py, &var?)?;
+            for var in &other.vars_capture {
+                self.add_captured_var(other.vars.get(*var).unwrap().clone())?;
             }
-            for stretch in other.iter_captured_stretches(py)?.bind(py) {
-                self.add_captured_stretch(py, &stretch?)?;
+            for stretch in &other.stretches_capture {
+                self.add_captured_stretch(other.stretches.get(*stretch).unwrap().clone())?;
             }
         }
-        for var in other.iter_declared_vars(py)?.bind(py) {
-            self.add_declared_var(py, &var?)?;
+        for var in &other.vars_declare {
+            self.add_declared_var(other.vars.get(*var).unwrap().clone())?;
         }
-        for var in other.iter_declared_stretches(py)?.bind(py) {
-            self.add_declared_stretch(py, &var?)?;
+        for stretch in &other.stretches_declare {
+            self.add_declared_stretch(other.stretches.get(*stretch).unwrap().clone())?;
         }
         let build_var_mapper =
             |cregs: &RegisterData<ClassicalRegister>| -> PyResult<PyVariableMapper> {
