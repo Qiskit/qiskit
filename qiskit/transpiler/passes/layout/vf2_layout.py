@@ -23,6 +23,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
+from qiskit._accelerate.vf2_layout import vf2_layout_pass, MultiQEncountered
 
 
 logger = logging.getLogger(__name__)
@@ -129,6 +130,34 @@ class VF2Layout(AnalysisPass):
         if self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
+        # Run rust fast path if we have a target and no randomization
+        if self.seed == -1 and self.target is not None:
+            try:
+                layout = vf2_layout_pass(
+                    dag,
+                    self.target,
+                    self.strict_direction,
+                    self.call_limit,
+                    self.time_limit,
+                    self.max_trials,
+                    self.avg_error_map,
+                )
+            except MultiQEncountered:
+                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
+                return
+            if layout is None:
+                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
+                return
+
+            self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.SOLUTION_FOUND
+            mapping = {dag.qubits[virt]: phys for virt, phys in layout.items()}
+            chosen_layout = Layout(mapping)
+            self.property_set["layout"] = chosen_layout
+            for reg in dag.qregs.values():
+                self.property_set["layout"].add_register(reg)
+            return
+        # We can't use the rust fast path because we have a seed set, or no target so continue with
+        # the python path
         if self.avg_error_map is None:
             self.avg_error_map = vf2_utils.build_average_error_map(self.target, self.coupling_map)
 
