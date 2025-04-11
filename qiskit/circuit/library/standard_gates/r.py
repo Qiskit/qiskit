@@ -63,17 +63,17 @@ class RGate(Gate):
 
     def _define(self):
         """
-        gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
+        gate r(θ, φ) a {u(θ, φ - π/2, -φ + π/2) a;}
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u3 import U3Gate
+        from .u import UGate
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
         theta = self.params[0]
         phi = self.params[1]
-        rules = [(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])]
+        rules = [(UGate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 

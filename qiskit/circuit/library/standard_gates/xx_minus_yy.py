@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import math
 from cmath import exp
-from math import pi
 from typing import Optional
 
 import numpy as np
@@ -83,42 +82,30 @@ class XXMinusYYGate(Gate):
         super().__init__("xx_minus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
-        """
-        gate xx_minus_yy(theta, beta) a, b {
-            rz(-beta) b;
-            rz(-pi/2) a;
-            sx a;
-            rz(pi/2) a;
-            s b;
-            cx a, b;
-            ry(theta/2) a;
-            ry(-theta/2) b;
-            cx a, b;
-            sdg b;
-            rz(-pi/2) a;
-            sxdg a;
-            rz(pi/2) a;
-            rz(beta) b;
-        }
-        """
+        #       ┌─────┐  ┌────┐┌───┐     ┌─────────┐      ┌─────┐ ┌──────┐┌───┐
+        # q_0: ─┤ Sdg ├──┤ √X ├┤ S ├──■──┤ Ry(θ/2) ├───■──┤ Sdg ├─┤ √Xdg ├┤ S ├
+        #      ┌┴─────┴─┐├───┬┘└───┘┌─┴─┐├─────────┴┐┌─┴─┐├─────┤┌┴──────┤└───┘
+        # q_1: ┤ Rz(-β) ├┤ S ├──────┤ X ├┤ Ry(-θ/2) ├┤ X ├┤ Sdg ├┤ Rz(β) ├─────
+        #      └────────┘└───┘      └───┘└──────────┘└───┘└─────┘└───────┘
+
         theta, beta = self.params
         register = QuantumRegister(2, "q")
         circuit = QuantumCircuit(register, name=self.name)
         a, b = register
         rules = [
             (RZGate(-beta), [b], []),
-            (RZGate(-pi / 2), [a], []),
+            (SdgGate(), [a], []),
             (SXGate(), [a], []),
-            (RZGate(pi / 2), [a], []),
+            (SGate(), [a], []),
             (SGate(), [b], []),
             (CXGate(), [a, b], []),
             (RYGate(theta / 2), [a], []),
             (RYGate(-theta / 2), [b], []),
             (CXGate(), [a, b], []),
             (SdgGate(), [b], []),
-            (RZGate(-pi / 2), [a], []),
+            (SdgGate(), [a], []),
             (SXdgGate(), [a], []),
-            (RZGate(pi / 2), [a], []),
+            (SGate(), [a], []),
             (RZGate(beta), [b], []),
         ]
         for instr, qargs, cargs in rules:

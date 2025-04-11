@@ -68,17 +68,14 @@ class SGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate s a { u1(pi/2) a; }
-        """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
 
-        from .u1 import U1Gate
+        from .p import PhaseGate
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(pi / 2), [q[0]], [])]
+        rules = [(PhaseGate(pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -180,17 +177,14 @@ class SdgGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate sdg a { u1(-pi/2) a; }
-        """
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, QuantumRegister
 
-        from .u1 import U1Gate
+        from .p import PhaseGate
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(-pi / 2), [q[0]], [])]
+        rules = [(PhaseGate(-pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -306,12 +300,30 @@ class CSGate(SingletonControlledGate):
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate cs a,b { h b; cp(pi/2) a,b; h b; }
-        """
-        from .p import CPhaseGate
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from .t import TGate, TdgGate
+        from .x import CXGate
 
-        self.definition = CPhaseGate(theta=pi / 2).definition
+        #      ┌───┐
+        # q_0: ┤ T ├──■───────────■───────
+        #      └───┘┌─┴─┐┌─────┐┌─┴─┐┌───┐
+        # q_1: ─────┤ X ├┤ Tdg ├┤ X ├┤ T ├
+        #           └───┘└─────┘└───┘└───┘
+
+        q = QuantumRegister(2, "q")
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (TGate(), [q[0]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (TdgGate(), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (TGate(), [q[1]], []),
+        ]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
 
     def inverse(self, annotated: bool = False):
         """Return inverse of CSGate (CSdgGate).
@@ -389,12 +401,30 @@ class CSdgGate(SingletonControlledGate):
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
-        """
-        from .p import CPhaseGate
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from .t import TGate, TdgGate
+        from .x import CXGate
 
-        self.definition = CPhaseGate(theta=-pi / 2).definition
+        #      ┌─────┐
+        # q_0: ┤ Tdg ├──■─────────■─────────
+        #      └─────┘┌─┴─┐┌───┐┌─┴─┐┌─────┐
+        # q_1: ───────┤ X ├┤ T ├┤ X ├┤ Tdg ├
+        #             └───┘└───┘└───┘└─────┘
+
+        q = QuantumRegister(2, "q")
+        qc = QuantumCircuit(q, name=self.name)
+        rules = [
+            (TdgGate(), [q[0]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (TGate(), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (TdgGate(), [q[1]], []),
+        ]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
+        self.definition = qc
 
     def inverse(self, annotated: bool = False):
         """Return inverse of CSdgGate (CSGate).
