@@ -15,13 +15,7 @@ use hashbrown::HashMap;
 use std::fmt::Write;
 
 use crate::ast::{
-    Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast, ClassicalDeclaration,
-    ClassicalType, Constant, DurationLiteral, Expression, Float, GateCall, Header, Identifier,
-    Include, Index, IndexSet, Int, IntegerLiteral, Node, Parameter, Program, ProgramBlock,
-    QuantumBlock, QuantumDeclaration, QuantumGateDefinition, QuantumGateModifier,
-    QuantumGateModifierName, QuantumGateSignature, QuantumInstruction, QuantumMeasurement,
-    QuantumMeasurementAssignment, Range, Reset, Statement, SubscriptedIdentifier, Uint, Unary,
-    UnaryOp, Version, OP,
+    Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast, ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float, GateCall, Header, Identifier, IdentifierOrSubscripted, Include, Index, IndexSet, Int, IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration, QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature, QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment, Range, Reset, Statement, SubscriptedIdentifier, Uint, Unary, UnaryOp, Version, OP
 };
 
 #[derive(Debug)]
@@ -240,6 +234,12 @@ impl<'a> BasicPrinter<'a> {
     fn visit_quantum_declaration(&mut self, statement: &QuantumDeclaration) {
         self.start_line();
         write!(self.stream, "qubit").unwrap();
+        if let Some(designator) = &statement.designator {
+            write!(self.stream, "[").unwrap();
+            self.visit_expression(&designator.expression);
+            write!(self.stream, "]").unwrap();
+
+        }
         write!(self.stream, " ").unwrap();
         self.visit_identifier(&statement.identifier);
         self.end_statement();
@@ -259,7 +259,7 @@ impl<'a> BasicPrinter<'a> {
             QuantumInstruction::GateCall(instruction) => self.visit_quantum_gate_call(instruction),
             QuantumInstruction::Reset(instruction) => self.visit_quantum_reset(instruction),
             QuantumInstruction::Barrier(instruction) => self.visit_quantum_barrier(instruction),
-            QuantumInstruction::Delay(_instruction) => todo!(),
+            QuantumInstruction::Delay(instruction) => self.visit_quantum_delay(instruction),
         }
     }
 
@@ -276,7 +276,12 @@ impl<'a> BasicPrinter<'a> {
         let index_identifier_list: Vec<Expression> = instruction
             .index_identifier_list
             .iter()
-            .map(|identifier| Expression::Identifier(identifier.clone()))
+            .map(|identifier| match identifier {
+                IdentifierOrSubscripted::Identifier(id) => Expression::Identifier(id.clone()),
+                IdentifierOrSubscripted::Subscripted(sub_id) => {
+                    Expression::SubscriptedIdentifier(sub_id.clone())
+                }
+            })
             .collect();
         self.visit_expression_sequence(&index_identifier_list, "", "", ", ");
         self.end_statement();
@@ -288,7 +293,10 @@ impl<'a> BasicPrinter<'a> {
         let index_identifier_vec: Vec<Expression> = instruction
             .index_identifier_list
             .iter()
-            .map(|identifier| Expression::Identifier(identifier.clone()))
+            .map(|identifier| match identifier {
+                IdentifierOrSubscripted::Identifier(id) => Expression::Identifier(id.clone()),
+                IdentifierOrSubscripted::Subscripted(sub_id) => Expression::SubscriptedIdentifier(sub_id.clone()),
+            })
             .collect();
         let index_identifier_list: &[Expression] = &index_identifier_vec;
         self.visit_expression_sequence(index_identifier_list, "", "", ", ");
@@ -298,7 +306,28 @@ impl<'a> BasicPrinter<'a> {
     fn visit_quantum_reset(&mut self, instruction: &Reset) {
         self.start_line();
         write!(self.stream, "reset ").unwrap();
-        self.visit_identifier(&instruction.identifier);
+        match &instruction.identifier {
+            IdentifierOrSubscripted::Identifier(id) => self.visit_identifier(id),
+            IdentifierOrSubscripted::Subscripted(sub_id) => self.visit_subscript_identifier(sub_id),
+        }
+        self.end_statement();
+    }
+
+    fn visit_quantum_delay(&mut self, instruction: &Delay) {
+        self.start_line();
+        write!(self.stream, "delay[").unwrap();
+        self.visit_duration_literal(&instruction.duration);
+        write!(self.stream, "] ").unwrap();
+        for qubit in &instruction.qubits {
+            match qubit {
+                IdentifierOrSubscripted::Identifier(id) => {
+                    self.visit_identifier(id);
+                }
+                IdentifierOrSubscripted::Subscripted(sub_id) => {
+                    self.visit_subscript_identifier(sub_id);
+                }
+            }
+        }
         self.end_statement();
     }
 
@@ -313,7 +342,7 @@ impl<'a> BasicPrinter<'a> {
         let qarg_list: Vec<Expression> = node
             .qarg_list
             .iter()
-            .map(|qarg| Expression::Identifier(qarg.clone()))
+            .map(|qarg| Expression::Identifier(qarg.to_owned()))
             .collect();
         self.visit_expression_sequence(&qarg_list, "", "", ", ");
     }
@@ -323,7 +352,10 @@ impl<'a> BasicPrinter<'a> {
         let identifier_vec: Vec<Expression> = node
             .identifier_list
             .iter()
-            .map(|identifier| Expression::Identifier(identifier.clone()))
+            .map(|identifier| match identifier {
+                IdentifierOrSubscripted::Identifier(id) => Expression::Identifier(id.clone()),
+                IdentifierOrSubscripted::Subscripted(sub_id) => Expression::SubscriptedIdentifier(sub_id.clone()),
+            })
             .collect();
         let identifier_list = &identifier_vec;
         self.visit_expression_sequence(identifier_list, "", "", ", ");
@@ -331,7 +363,10 @@ impl<'a> BasicPrinter<'a> {
 
     fn visit_quantum_measurement_assignment(&mut self, node: &QuantumMeasurementAssignment) {
         self.start_line();
-        self.visit_identifier(&node.identifier);
+        match &node.identifier {
+            IdentifierOrSubscripted::Identifier(id) => self.visit_identifier(id),
+            IdentifierOrSubscripted::Subscripted(sub_id) => self.visit_subscript_identifier(sub_id),
+        }
         write!(self.stream, " = ").unwrap();
         self.visit_quantum_measurement(&node.quantum_measurement);
         self.end_statement();
@@ -407,7 +442,7 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_bit_array_type(&mut self, type_: &BitArray) {
-        write!(self.stream, "bit[{}]", type_.size).unwrap()
+        write!(self.stream, "bit[{}]", type_.0).unwrap()
     }
 
     fn visit_expression(&mut self, node: &Expression) {
@@ -470,14 +505,14 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_integer_literal(&mut self, expression: &IntegerLiteral) {
-        write!(self.stream, "{}", expression.value).unwrap();
+        write!(self.stream, "{}", expression.0).unwrap();
     }
 
     fn visit_boolean_literal(&mut self, expression: &BooleanLiteral) {
         write!(
             self.stream,
             "{}",
-            if expression.value { "true" } else { "false" }
+            if expression.0 { "true" } else { "false" }
         )
         .unwrap();
     }
