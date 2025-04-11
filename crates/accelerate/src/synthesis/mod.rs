@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod clifford;
+mod discrete_basis;
 mod evolution;
 pub mod linear;
 pub mod linear_phase;
@@ -43,6 +44,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let evolution_mod = PyModule::new(m.py(), "evolution")?;
     evolution::evolution(&evolution_mod)?;
     m.add_submodule(&evolution_mod)?;
+
+    let discrete_basis_mod = PyModule::new(m.py(), "discrete_basis")?;
+    discrete_basis::discrete_basis(&discrete_basis_mod)?;
+    m.add_submodule(&discrete_basis_mod)?;
 
     Ok(())
 }

@@ -22,6 +22,7 @@ import qiskit.circuit.library.standard_gates as gates
 from qiskit.circuit import Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.utils import optionals
+from qiskit.utils.deprecation import deprecate_func
 
 from .gate_sequence import GateSequence
 
@@ -120,6 +121,14 @@ def _process_node(node: Node, basis: list[str], sequences: list[GateSequence]):
     return node.children
 
 
+@deprecate_func(
+    since="2.1",
+    additional_msg=(
+        "Use the SolovayKitaevCompiler class instead, which generates the basic approximations "
+        "in the class itself."
+    ),
+    pending=True,
+)
 def generate_basic_approximations(
     basis_gates: list[str | Gate], depth: int, filename: str | None = None
 ) -> list[GateSequence]:

@@ -29,6 +29,8 @@ qiskit-circuit.workspace = true
 thiserror.workspace = true
 ndarray-einsum = "0.8.0"
 rustiq-core = "0.0.10"
+num-bigfloat = "1.7.1"
+rstar = "0.12.2"
 bytemuck.workspace = true
 nalgebra.workspace = true
 
