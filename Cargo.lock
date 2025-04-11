@@ -691,6 +691,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash32"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47d60b12902ba28e2730cd37e95b8c9223af2808df9e902d4df49588d1470606"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -715,6 +724,16 @@ dependencies = [
  "equivalent",
  "foldhash",
  "rayon",
+]
+
+[[package]]
+name = "heapless"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bfb9eb618601c89945a70e254898da93b13be0388091d42117462b265bb3fad"
+dependencies = [
+ "hash32",
+ "stable_deref_trait",
 ]
 
 [[package]]
@@ -1009,6 +1028,17 @@ dependencies = [
  "byteorder",
  "num-bigint",
  "py_literal",
+]
+
+[[package]]
+name = "num-bigfloat"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5ee1e61b978cc2196731ebb9e349d6f27b99750ad674ae7a2f26ae6e93be7e4"
+dependencies = [
+ "num-traits",
+ "rand 0.8.5",
+ "serde",
 ]
 
 [[package]]
@@ -1423,6 +1453,7 @@ dependencies = [
  "nalgebra",
  "ndarray",
  "ndarray-einsum",
+ "num-bigfloat",
  "num-bigint",
  "num-complex",
  "num-traits",
@@ -1434,6 +1465,7 @@ dependencies = [
  "rand_distr 0.5.1",
  "rand_pcg 0.9.0",
  "rayon",
+ "rstar",
  "rustiq-core",
  "rustworkx-core",
  "smallvec",
@@ -1715,6 +1747,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rstar"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "421400d13ccfd26dfa5858199c30a5d76f9c54e0dba7575273025b43c5175dbb"
+dependencies = [
+ "heapless",
+ "num-traits",
+ "smallvec",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1885,6 +1928,12 @@ checksum = "dd538fb6910ac1099850255cf94a94df6551fbdd602454387d0adb2d1ca6dead"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "stable_deref_trait"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "strsim"
