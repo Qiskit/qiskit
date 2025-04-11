@@ -36,7 +36,7 @@ for i in range(1000):
 
 operands = [
     Parameter("a"),
-    Parameter("大"),
+    Parameter("dai"),
     ParameterVector("a", 100)[42],
     complex(3.14, -3.14),
     complex(1.0, 1.0),
