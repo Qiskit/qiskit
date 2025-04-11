@@ -20,8 +20,6 @@ import struct
 import uuid
 
 import numpy as np
-import symengine
-
 
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
@@ -34,7 +32,6 @@ from qiskit.circuit.parameterexpression import (
 )
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
-from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
 
 
 def _write_parameter(file_obj, obj):
@@ -475,8 +472,9 @@ def _read_parameter_expression(file_obj):
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
 
-    sympy_str = file_obj.read(data.expr_size).decode(common.ENCODE)
-    expr_ = symengine.sympify(parse_sympy_repr(sympy_str))
+    from sympy.parsing.sympy_parser import parse_expr
+
+    expr_ = parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE))
     symbol_map = {}
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM(
@@ -503,7 +501,7 @@ def _read_parameter_expression(file_obj):
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         symbol_map[symbol] = value
 
-    return ParameterExpression(symbol_map, expr_)
+    return ParameterExpression(symbol_map, str(expr_))
 
 
 def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
@@ -515,8 +513,9 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     if use_symengine:
         expr_ = common.load_symengine_payload(payload)
     else:
-        sympy_str = payload.decode(common.ENCODE)
-        expr_ = symengine.sympify(parse_sympy_repr(sympy_str))
+        from sympy.parsing.sympy_parser import parse_expr
+
+        expr_ = parse_expr(payload.decode(common.ENCODE))
 
     symbol_map = {}
     for _ in range(data.map_elements):
@@ -556,7 +555,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         symbol_map[symbol] = value
 
-    return ParameterExpression(symbol_map, expr_)
+    return ParameterExpression(symbol_map, str(expr_))
 
 
 def _read_parameter_expression_v13(file_obj, vectors, version):
