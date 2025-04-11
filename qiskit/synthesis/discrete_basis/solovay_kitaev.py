@@ -174,12 +174,12 @@ class SolovayKitaevDecomposition:
 
         self.basic_approximations = self.load_basic_approximations(basic_approximations)
 
+    @staticmethod
     @deprecate_func(
         since="2.1",
         additional_msg="Use the SolovayKitaevCompiler class instead.",
         pending=True,
     )
-    @staticmethod
     def load_basic_approximations(data: list | str | dict) -> list[GateSequence]:
         """Load basic approximations.
 
