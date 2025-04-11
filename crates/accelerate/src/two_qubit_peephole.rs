@@ -21,7 +21,6 @@ use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -133,10 +132,10 @@ fn get_decomposers_from_target(
         .collect();
     let mut decomposers = decomposers?;
     for gate in [
-        StandardGate::RXXGate,
-        StandardGate::RZZGate,
-        StandardGate::RYYGate,
-        StandardGate::RZXGate,
+        StandardGate::RXX,
+        StandardGate::RZZ,
+        StandardGate::RYY,
+        StandardGate::RZX,
     ] {
         if gate_names.contains(&(gate.name(), false)) {
             let op = target.operation_from_name(gate.name()).unwrap();
@@ -469,7 +468,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     qubits.as_slice(),
                                     &[],
                                     out_params,
-                                    ExtraInstructionAttributes::default(),
+                                    None,
                                     None,
                                 )
                             }
@@ -481,7 +480,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     qubits.as_slice(),
                                     &[],
                                     out_params,
-                                    ExtraInstructionAttributes::default(),
+                                    None,
                                 )
                             }
                         }
@@ -495,7 +494,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     qubits.as_slice(),
                                     &[],
                                     Some(gate.params.clone()),
-                                    ExtraInstructionAttributes::default(),
+                                    None,
                                     None,
                                 )
                             }
@@ -507,13 +506,13 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     qubits.as_slice(),
                                     &[],
                                     Some(gate.params.clone()),
-                                    ExtraInstructionAttributes::default(),
+                                    None,
                                 )
                             }
                         }
                     }?;
                 }
-                out_dag.add_global_phase(py, &Param::Float(sequence.0.global_phase))?;
+                out_dag.add_global_phase(&Param::Float(sequence.0.global_phase))?;
                 processed_runs.insert(*run_index);
             }
             None => {

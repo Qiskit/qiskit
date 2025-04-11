@@ -101,6 +101,7 @@ class FakeBackend5QV2(GenericBackendV2):
             ecr_props[(2, 1)] = InstructionProperties(duration=5.52e-9, error=0.0000232115)
             ecr_props[(3, 2)] = InstructionProperties(duration=5.52e-9, error=0.0000232115)
 
+
 @ddt
 class TestTwoQubitPeepholeOptimization(QiskitTestCase):
     """Test TwoQubitPeepholeOptimization."""
@@ -351,7 +352,6 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
-
 
     def test_rxx_gate_in_target(self):
         """Test synthesis with custom parameterized gate in target."""
