@@ -56,7 +56,7 @@ pub struct ProgramBlock {
     pub statements: Vec<Statement>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuantumBlock {
     pub statements: Vec<Statement>,
 }
@@ -119,11 +119,9 @@ pub struct Uint {
 }
 
 #[derive(Debug, Clone)]
-pub struct BitArray {
-    pub size: u32,
-}
+pub struct BitArray(pub(crate) u32);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DurationLiteral {
     pub value: f64,
     pub unit: DurationUnit,
@@ -178,28 +176,26 @@ pub struct IODeclaration {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuantumDeclaration {
     pub identifier: Identifier,
     pub designator: Option<Designator>,
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum Designator {
-    Literal(usize),
-    Expression(String),
+#[derive(Debug, Clone)]
+pub struct Designator {
+    pub expression: Expression,
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Delay {
     pub duration: DurationLiteral,
-    pub qubits: Vec<Identifier>,
+    pub qubits: Vec<IdentifierOrSubscripted>,
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     QuantumDeclaration(QuantumDeclaration),
     ClassicalDeclaration(ClassicalDeclaration),
@@ -212,7 +208,7 @@ pub enum Statement {
     Continue(Continue),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum QuantumInstruction {
     GateCall(GateCall),
     Reset(Reset),
@@ -220,43 +216,43 @@ pub enum QuantumInstruction {
     Delay(Delay),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GateCall {
     pub quantum_gate_name: Identifier,
-    pub index_identifier_list: Vec<Identifier>,
+    pub index_identifier_list: Vec<IdentifierOrSubscripted>,
     pub parameters: Vec<Expression>,
     pub modifiers: Option<Vec<QuantumGateModifier>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Barrier {
-    pub index_identifier_list: Vec<Identifier>,
+    pub index_identifier_list: Vec<IdentifierOrSubscripted>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Reset {
-    pub identifier: Identifier,
+    pub identifier: IdentifierOrSubscripted,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuantumMeasurement {
-    pub identifier_list: Vec<Identifier>,
+    pub identifier_list: Vec<IdentifierOrSubscripted>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuantumMeasurementAssignment {
-    pub identifier: Identifier,
+    pub identifier: IdentifierOrSubscripted,
     pub quantum_measurement: QuantumMeasurement,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuantumGateSignature {
     pub name: Identifier,
     pub qarg_list: Vec<Identifier>,
     pub params: Option<Vec<Expression>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuantumGateDefinition {
     pub quantum_gate_signature: QuantumGateSignature,
     pub quantum_block: QuantumBlock,
@@ -271,7 +267,7 @@ pub struct QuantumGateCall {
     pub modifiers: Option<Vec<QuantumGateModifier>>,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug,Clone, Hash, Eq, PartialEq)]
 pub enum QuantumGateModifierName {
     Ctrl,
     Negctrl,
@@ -279,26 +275,26 @@ pub enum QuantumGateModifierName {
     Pow,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QuantumGateModifier {
     pub modifier: QuantumGateModifierName,
     pub argument: Option<Expression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assignment {
     pub lvalue: Identifier,
     pub rvalue: Vec<Identifier>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Break {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Continue {}
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Constant(Constant),
     Parameter(Parameter),
@@ -315,43 +311,45 @@ pub enum Expression {
     Index(Index),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Parameter {
     pub obj: String,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug,Clone, Hash, Eq, PartialEq)]
 pub enum Constant {
     PI,
     Euler,
     Tau,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Range {
     pub start: Option<Box<Expression>>,
     pub end: Option<Box<Expression>>,
     pub step: Option<Box<Expression>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SubscriptedIdentifier {
     pub string: String,
     pub subscript: Box<Expression>,
 }
 
 #[derive(Debug, Clone)]
-pub struct IntegerLiteral {
-    pub value: i32,
+pub enum IdentifierOrSubscripted {
+    Identifier(Identifier),
+    Subscripted(SubscriptedIdentifier),
 }
 
-#[derive(Debug)]
-pub struct BooleanLiteral {
-    pub value: bool,
-}
+#[derive(Debug, Clone)]
+pub struct IntegerLiteral(pub(crate) i32);
+
+#[derive(Debug, Clone)]
+pub struct BooleanLiteral(pub(crate) bool);
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BitstringLiteral {
     pub value: String,
     pub width: u32,
@@ -363,14 +361,14 @@ pub enum OP<'a> {
     BinaryOp(&'a BinaryOp),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Unary {
     pub op: UnaryOp,
     pub operand: Box<Expression>,
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum UnaryOp {
     LogicNot,
     BitNot,
@@ -388,7 +386,7 @@ impl Display for UnaryOp {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum BinaryOp {
     BitAnd,
     BitOr,
@@ -426,20 +424,20 @@ impl Display for BinaryOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Binary {
     pub op: BinaryOp,
     pub left: Box<Expression>,
     pub right: Box<Expression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cast {
     pub type_: ClassicalType,
     pub operand: Box<Expression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Index {
     pub target: Box<Expression>,
     pub index: Box<Expression>,
