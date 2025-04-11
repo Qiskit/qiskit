@@ -96,9 +96,9 @@ fn _append_phase_gate(pat_val: usize, gates: &mut LnnGatesVec, qubit: usize) {
     let gate_id = pat_val % 4;
     if gate_id != 0 {
         let gate = match gate_id {
-            1 => StandardGate::SdgGate,
-            2 => StandardGate::ZGate,
-            3 => StandardGate::SGate,
+            1 => StandardGate::Sdg,
+            2 => StandardGate::Z,
+            3 => StandardGate::S,
             _ => unreachable!(), // unreachable as we have modulo 4
         };
         gates.push((gate, smallvec![], smallvec![Qubit(qubit as u32)]));
@@ -132,7 +132,7 @@ pub(super) fn synth_cz_depth_line_mr_inner(matrix: ArrayView2<bool>) -> (usize, 
         }
     }
 
-    for i in 0..((num_qubits + 1) / 2) {
+    for i in 0..num_qubits.div_ceil(2) {
         for j in 0..num_qubits {
             let pat_val = pats[&(i, j)];
             if patlist.contains(&pat_val) {

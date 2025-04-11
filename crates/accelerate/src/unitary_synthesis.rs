@@ -22,7 +22,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use smallvec::{smallvec, SmallVec};
 
 use pyo3::intern;
@@ -148,7 +148,7 @@ fn apply_synth_dag(
         out_packed_instr.qubits = out_dag.qargs_interner.insert(&mapped_qargs);
         out_dag.push_back(py, out_packed_instr)?;
     }
-    out_dag.add_global_phase(py, &synth_dag.get_global_phase())?;
+    out_dag.add_global_phase(&synth_dag.get_global_phase())?;
     Ok(())
 }
 
@@ -217,14 +217,14 @@ fn apply_synth_sequence(
             qubits: out_dag.qargs_interner.insert(&mapped_qargs),
             clbits: out_dag.cargs_interner.get_default(),
             params: new_params,
-            extra_attrs: ExtraInstructionAttributes::default(),
+            label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         };
         instructions.push(instruction);
     }
     out_dag.extend(py, instructions.into_iter())?;
-    out_dag.add_global_phase(py, &Param::Float(sequence.gate_sequence.global_phase()))?;
+    out_dag.add_global_phase(&Param::Float(sequence.gate_sequence.global_phase()))?;
     Ok(())
 }
 
@@ -307,7 +307,7 @@ fn py_run_main_loop(
                 qubits: packed_instr.qubits,
                 clbits: packed_instr.clbits,
                 params: (!new_node_op.params.is_empty()).then(|| Box::new(new_node_op.params)),
-                extra_attrs: new_node_op.extra_attrs,
+                label: new_node_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: new_node.unbind().into(),
             };
@@ -353,12 +353,12 @@ fn py_run_main_loop(
                                 &[qubit],
                                 &[],
                                 Some(new_params),
-                                ExtraInstructionAttributes::default(),
+                                None,
                                 #[cfg(feature = "cache_pygates")]
                                 None,
                             )?;
                         }
-                        out_dag.add_global_phase(py, &Param::Float(sequence.global_phase))?;
+                        out_dag.add_global_phase(&Param::Float(sequence.global_phase))?;
                     }
                     None => {
                         out_dag.push_back(py, packed_instr)?;
@@ -427,23 +427,23 @@ fn get_2q_decomposer_from_basis(
 ) -> PyResult<Option<DecomposerElement>> {
     // Non-parametrized 2q basis candidates (TwoQubitBasisDecomposer)
     let basis_names: IndexMap<&str, StandardGate> = [
-        ("cx", StandardGate::CXGate),
-        ("cz", StandardGate::CZGate),
-        ("iswap", StandardGate::ISwapGate),
-        ("ecr", StandardGate::ECRGate),
+        ("cx", StandardGate::CX),
+        ("cz", StandardGate::CZ),
+        ("iswap", StandardGate::ISwap),
+        ("ecr", StandardGate::ECR),
     ]
     .into_iter()
     .collect();
     // Parametrized 2q basis candidates (TwoQubitControlledUDecomposer)
     let param_basis_names: IndexMap<&str, StandardGate> = [
-        ("rxx", StandardGate::RXXGate),
-        ("rzx", StandardGate::RZXGate),
-        ("rzz", StandardGate::RZZGate),
-        ("ryy", StandardGate::RYYGate),
-        ("cphase", StandardGate::CPhaseGate),
-        ("crx", StandardGate::CRXGate),
-        ("cry", StandardGate::CRYGate),
-        ("crz", StandardGate::CRZGate),
+        ("rxx", StandardGate::RXX),
+        ("rzx", StandardGate::RZX),
+        ("rzz", StandardGate::RZZ),
+        ("ryy", StandardGate::RYY),
+        ("cphase", StandardGate::CPhase),
+        ("crx", StandardGate::CRX),
+        ("cry", StandardGate::CRY),
+        ("crz", StandardGate::CRZ),
     ]
     .into_iter()
     .collect();
@@ -598,7 +598,44 @@ fn get_2q_decomposers_from_target(
     // If there are available 2q gates, start search for decomposers:
     let mut decomposers: Vec<DecomposerElement> = Vec::new();
 
-    // Step 1: Try TwoQubitBasisDecomposers
+    // Step 1: Try TwoQubitControlledUDecomposers
+    for basis_1q in &available_1q_basis {
+        for (_, (gate, _)) in available_2q_param_basis.iter() {
+            let rxx_equivalent_gate = if let Some(std_gate) = gate.operation.try_standard_gate() {
+                RXXEquivalent::Standard(std_gate)
+            } else {
+                let module = PyModule::import(py, "builtins")?;
+                let py_type = module.getattr("type")?;
+                let gate_type = py_type
+                    .call1((gate.clone().into_pyobject(py)?,))?
+                    .downcast_into::<PyType>()?
+                    .unbind();
+
+                RXXEquivalent::CustomPython(gate_type)
+            };
+
+            match TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, basis_1q) {
+                Ok(decomposer) => {
+                    decomposers.push(DecomposerElement {
+                        decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
+                        packed_op: gate.operation.clone(),
+                        params: gate.params.clone(),
+                    });
+                }
+                Err(_) => continue,
+            };
+        }
+    }
+    // If the 2q basis gates are a subset of PARAM_SET, exit here
+    if available_2q_param_basis
+        .keys()
+        .all(|gate| PARAM_SET.contains(gate))
+        && !available_2q_param_basis.is_empty()
+    {
+        return Ok(Some(decomposers));
+    }
+
+    // Step 2: Try TwoQubitBasisDecomposers
     #[inline]
     fn is_supercontrolled(op: &NormalOperation) -> bool {
         match op.operation.matrix(&op.params) {
@@ -644,43 +681,6 @@ fn get_2q_decomposers_from_target(
         .keys()
         .all(|gate| GOODBYE_SET.contains(gate))
         && !available_2q_basis.is_empty()
-    {
-        return Ok(Some(decomposers));
-    }
-
-    // Step 2: Try TwoQubitControlledUDecomposers
-    for basis_1q in &available_1q_basis {
-        for (_, (gate, _)) in available_2q_param_basis.iter() {
-            let rxx_equivalent_gate = if let Some(std_gate) = gate.operation.try_standard_gate() {
-                RXXEquivalent::Standard(std_gate)
-            } else {
-                let module = PyModule::import(py, "builtins")?;
-                let py_type = module.getattr("type")?;
-                let gate_type = py_type
-                    .call1((gate.clone().into_pyobject(py)?,))?
-                    .downcast_into::<PyType>()?
-                    .unbind();
-
-                RXXEquivalent::CustomPython(gate_type)
-            };
-
-            match TwoQubitControlledUDecomposer::new_inner(rxx_equivalent_gate, basis_1q) {
-                Ok(decomposer) => {
-                    decomposers.push(DecomposerElement {
-                        decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
-                        packed_op: gate.operation.clone(),
-                        params: gate.params.clone(),
-                    });
-                }
-                Err(_) => continue,
-            };
-        }
-    }
-    // If the 2q basis gates are a subset of PARAM_SET, exit here
-    if available_2q_param_basis
-        .keys()
-        .all(|gate| PARAM_SET.contains(gate))
-        && !available_2q_param_basis.is_empty()
     {
         return Ok(Some(decomposers));
     }
@@ -756,7 +756,7 @@ fn get_2q_decomposers_from_target(
                     };
                     Some(TwoQubitBasisDecomposer::new_inner(
                         pi_2_basis.to_string(),
-                        StandardGate::CXGate.matrix(&[]).unwrap().view(),
+                        StandardGate::CX.matrix(&[]).unwrap().view(),
                         fidelity,
                         EulerBasis::__new__(basis_1q)?,
                         Some(true),
@@ -1346,7 +1346,6 @@ fn run_2q_unitary_synthesis(
     Ok(())
 }
 
-#[pymodule]
 pub fn unitary_synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_run_main_loop))?;
     Ok(())

@@ -16,14 +16,11 @@ import copy
 import warnings
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import statevector
-from qiskit.result.models import ExperimentResult
+from qiskit.result.models import ExperimentResult, MeasLevel
 from qiskit.result import postprocess
 from qiskit.result.counts import Counts
-from qiskit.qobj.utils import MeasLevel
-from qiskit.qobj import QobjHeader
 
 
 class Result:
@@ -32,24 +29,26 @@ class Result:
     Attributes:
         backend_name (str): backend name.
         backend_version (str): backend version, in the form X.Y.Z.
-        qobj_id (str): user-generated Qobj id.
         job_id (str): unique execution id from the backend.
-        success (bool): True if complete input qobj executed correctly. (Implies
+        success (bool): True if complete input executed correctly. (Implies
             each experiment success)
         results (list[ExperimentResult]): corresponding results for array of
-            experiments of the input qobj
+            experiments of the input
+        date (str): optional date field
+        status (str): optional status field
+        header (dict): an optional free form dictionary header
     """
 
     _metadata = {}
 
     def __init__(
         self,
-        backend_name,
-        backend_version,
-        qobj_id,
-        job_id,
-        success,
-        results,
+        *,
+        backend_name=None,
+        backend_version=None,
+        job_id=None,
+        success=None,
+        results=None,
         date=None,
         status=None,
         header=None,
@@ -58,7 +57,6 @@ class Result:
         self._metadata = {}
         self.backend_name = backend_name
         self.backend_version = backend_version
-        self.qobj_id = qobj_id
         self.job_id = job_id
         self.success = success
         self.results = results
@@ -70,7 +68,7 @@ class Result:
     def __repr__(self):
         out = (
             f"Result(backend_name='{self.backend_name}', backend_version='{self.backend_version}',"
-            f" qobj_id='{self.qobj_id}', job_id='{self.job_id}', success={self.success},"
+            f" job_id='{self.job_id}', success={self.success},"
             f" results={self.results}"
         )
         out += f", date={self.date}, status={self.status}, header={self.header}"
@@ -93,8 +91,7 @@ class Result:
             "backend_name": self.backend_name,
             "backend_version": self.backend_version,
             "date": self.date,
-            "header": None if self.header is None else self.header.to_dict(),
-            "qobj_id": self.qobj_id,
+            "header": self.header,
             "job_id": self.job_id,
             "status": self.status,
             "success": self.success,
@@ -124,10 +121,6 @@ class Result:
 
         in_data = copy.copy(data)
         in_data["results"] = [ExperimentResult.from_dict(x) for x in in_data.pop("results")]
-        if in_data.get("header") is not None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-                in_data["header"] = QobjHeader.from_dict(in_data.pop("header"))
         return cls(**in_data)
 
     def data(self, experiment=None):
@@ -138,11 +131,10 @@ class Result:
         the get_xxx method, and the data will be post-processed for the data type.
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment. Several types are accepted for convenience::
                 * str: the name of the experiment.
                 * QuantumCircuit: the name of the circuit instance will be used.
-                * Schedule: the name of the schedule instance will be used.
                 * int: the position of the experiment.
                 * None: if there is only one experiment, returns it.
 
@@ -189,7 +181,7 @@ class Result:
         ['00000', '01000', '10100', '10100', '11101', '11100', '00101', ..., '01010']
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
 
         Returns:
@@ -212,7 +204,7 @@ class Result:
         exp_result = self._get_experiment(experiment)
         try:
             try:  # header is not available
-                header = exp_result.header.to_dict()
+                header = exp_result.header
             except (AttributeError, QiskitError):
                 header = None
 
@@ -241,7 +233,7 @@ class Result:
         """Get the histogram data of an experiment.
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data([experiment])``.
 
         Returns:
@@ -263,7 +255,7 @@ class Result:
         for key in exp_keys:
             exp = self._get_experiment(key)
             try:
-                header = exp.header.to_dict()
+                header = exp.header
             except (AttributeError, QiskitError):  # header is not available
                 header = None
 
@@ -293,7 +285,7 @@ class Result:
         """Get the final statevector of an experiment.
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the statevector.
                 If None, does not round.
@@ -315,7 +307,7 @@ class Result:
         """Get the final unitary of an experiment.
 
         Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+            experiment (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the unitary.
                 If None, does not round.
@@ -336,7 +328,7 @@ class Result:
         """Return a single experiment result from a given key.
 
         Args:
-            key (str or QuantumCircuit or Schedule or int or None): the index of the
+            key (str or QuantumCircuit or int or None): the index of the
                 experiment, as specified by ``data()``.
 
         Returns:
@@ -354,8 +346,8 @@ class Result:
                 )
             key = 0
 
-        # Key is a QuantumCircuit/Schedule or str: retrieve result by name.
-        if isinstance(key, (QuantumCircuit, Schedule)):
+        # Key is a QuantumCircuit or str: retrieve result by name.
+        if isinstance(key, QuantumCircuit):
             key = key.name
         # Key is an integer: return result by index.
         if isinstance(key, int):
@@ -364,11 +356,12 @@ class Result:
             except IndexError as ex:
                 raise QiskitError(f'Result for experiment "{key}" could not be found.') from ex
         else:
-            # Look into `result[x].header.name` for the names.
+            # Look into `result[x].header["name"]` for the names.
             exp = [
                 result
                 for result in self.results
-                if getattr(getattr(result, "header", None), "name", "") == key
+                if getattr(result, "header", None) is not None
+                and getattr(result, "header").get("name", "") == key
             ]
 
             if len(exp) == 0:

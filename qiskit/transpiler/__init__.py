@@ -505,6 +505,9 @@ is ``qiskit.transpiler.routing``.  The built-in plugins are:
     * - Method
       - Summary
 
+    * - :ref:`default <transpiler-preset-stage-routing-default>`
+      - Use a Qiskit-chosen default routing method.
+
     * - :ref:`sabre <transpiler-preset-stage-routing-sabre>`
       - Default.  Uses `Qiskit's modified Sabre routing algorithm <sabre-lightsabre-paper_>`_ to
         swap map.
@@ -515,12 +518,18 @@ is ``qiskit.transpiler.routing``.  The built-in plugins are:
     * - :ref:`basic <transpiler-preset-stage-routing-basic>`
       - Greedy swap insertion to route a single operation at a time.
 
-    * - :ref:`stochastic <transpiler-preset-stage-routing-stochastic>`
-      - Consider operations layer-by-layer, using a stochastic algorithm to find swap networks that
-        implement a suitable permutation to make the layer executable.
-
     * - :ref:`lookahead <transpiler-preset-stage-routing-lookahead>`
       - Breadth-first search with heuristic pruning to find swaps that make gates executable.
+
+.. _transpiler-preset-stage-routing-default:
+
+Built-in ``default`` plugin
+...........................
+
+Use a Qiskit-chosen default method for routing.  As of Qiskit 2.0, the chosen algorithm is the same
+as :ref:`transpiler-preset-stage-routing-sabre`, though in practice, usually the :ref:`built-in
+default layout-stage plugin <transpiler-preset-stage-layout-default>` will run the Sabre-based
+routing algorithm, and the routing stage will only be used to run :class:`.VF2PostLayout`.
 
 .. _transpiler-preset-stage-routing-none:
 
@@ -543,25 +552,6 @@ The optimization level only affects the amount of work the :class:`.VF2PostLayou
 attempt to improve the initial layout after routing.
 
 This method typically has poor output quality.
-
-.. _transpiler-preset-stage-routing-stochastic:
-
-Built-in ``stochastic`` plugin
-..............................
-
-.. deprecated:: 1.3
-    Use :ref:`transpiler-preset-stage-routing-sabre` instead.
-
-Uses the :class:`.StochasticSwap` algorithm to route.  In short, this stratifies the circuit into
-layers, then uses a stochastic algorithm to find a permutation that will allow the layer to execute,
-and a series of swaps that will implement that permutation in a hardware-valid way.
-
-The optimization level affects the number of stochastic trials used for each layer, and the amount
-of work spent in :class:`.VF2PostLayout` to optimize the initial layout.
-
-This was Qiskit's primary routing algorithm for several years, until approximately 2021.  Now, it
-is reliably beaten in runtime and output quality by :ref:`Qiskit's custom Sabre-based routing
-algorithm <transpiler-preset-stage-routing-sabre>`.
 
 .. _transpiler-preset-stage-routing-lookahead:
 
@@ -1244,7 +1234,7 @@ also look at it with the :func:`.timeline.draw` function:
 
    circ = transpile(ghz, backend, scheduling_method="asap")
 
-   timeline_draw(circ)
+   timeline_draw(circ, target=backend.target)
 
 The scheduling of a circuit involves two parts: analysis and constraint mapping, followed by a
 padding pass. The first part requires running a scheduling analysis pass such as
@@ -1259,202 +1249,6 @@ set in the property set to the constraints of the target backend. Once all
 the scheduling and adjustments/rescheduling are finished, a padding pass,
 such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
 to insert the instructions into the circuit, which completes the scheduling.
-
-Scheduling analysis with control-flow instructions
---------------------------------------------------
-
-When running scheduling analysis passes on a circuit, you must keep in mind that there
-are additional constraints on classical conditions and control flow instructions. This section
-covers the details of these additional
-constraints that any scheduling pass will need to account for.
-
-Topological node ordering in scheduling
-.......................................
-
-The DAG representation of ``QuantumCircuit`` respects the node ordering in the
-classical register wires, though theoretically two conditional instructions
-conditioned on the same register could commute, i.e. read-access to the
-classical register doesn't change its state.
-
-.. code-block:: text
-
-    qc = QuantumCircuit(2, 1)
-    qc.delay(100, 0)
-    qc.x(0).c_if(0, True)
-    qc.x(1).c_if(0, True)
-
-The scheduler SHOULD comply with the above topological ordering policy of the
-DAG circuit.
-Accordingly, the `asap`-scheduled circuit will become
-
-.. code-block:: text
-
-         ┌────────────────┐   ┌───┐
-    q_0: ┤ Delay(100[dt]) ├───┤ X ├──────────────
-         ├────────────────┤   └─╥─┘      ┌───┐
-    q_1: ┤ Delay(100[dt]) ├─────╫────────┤ X ├───
-         └────────────────┘     ║        └─╥─┘
-                           ┌────╨────┐┌────╨────┐
-    c: 1/══════════════════╡ c_0=0x1 ╞╡ c_0=0x1 ╞
-                           └─────────┘└─────────┘
-
-Note that this scheduling might be inefficient in some cases,
-because the second conditional operation could start without waiting
-for the 100 dt delay.
-However, any additional optimization should be done in a different pass,
-not to break the topological ordering of the original circuit.
-
-Realistic control flow scheduling (respecting microarchitecture)
-................................................................
-
-In the dispersive QND readout scheme, the qubit (Q) is measured by sending
-a microwave stimulus, followed by a resonator ring-down (depopulation). This
-microwave signal is recorded in the buffer memory (B) with the hardware kernel,
-then a discriminated (D) binary value is moved to the classical register (C).
-A sequence from t0 to t1 of the measure instruction interval could be
-modeled as follows:
-
-.. code-block:: text
-
-    Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-    B ░░▒▒▒▒▒▒▒▒░░░░░░░░░
-    D ░░░░░░░░░░▒▒▒▒▒▒░░░
-    C ░░░░░░░░░░░░░░░░▒▒░
-
-However, the :class:`.QuantumCircuit` representation is not accurate enough to represent
-this model. In the circuit representation, the corresponding :class:`.circuit.Qubit` is occupied
-by the stimulus microwave signal during the first half of the interval,
-and the :class:`.Clbit` is only occupied at the very end of the interval.
-
-The lack of precision representing the physical model may induce
-edge cases in the scheduling:
-
-.. code-block:: text
-
-            ┌───┐
-    q_0: ───┤ X ├──────
-            └─╥─┘   ┌─┐
-    q_1: ─────╫─────┤M├
-         ┌────╨────┐└╥┘
-    c: 1/╡ c_0=0x1 ╞═╩═
-         └─────────┘ 0
-
-In this example, a user may intend to measure the state of ``q_1`` after the
-:class:`.XGate` is applied to ``q_0``. This is the correct interpretation from
-the viewpoint of topological node ordering, i.e. The :class:`.XGate` node comes in
-front of the :class:`.Measure` node.
-However, according to the measurement model above, the data in the register
-is unchanged during the application of the stimulus, so two nodes are
-simultaneously operated.
-If one tries to `alap`-schedule this circuit, it may return following circuit:
-
-.. code-block:: text
-
-         ┌────────────────┐   ┌───┐
-    q_0: ┤ Delay(500[dt]) ├───┤ X ├──────
-         └────────────────┘   └─╥─┘   ┌─┐
-    q_1: ───────────────────────╫─────┤M├
-                           ┌────╨────┐└╥┘
-    c: 1/══════════════════╡ c_0=0x1 ╞═╩═
-                           └─────────┘ 0
-
-Note that there is no delay on the ``q_1`` wire, and the measure instruction
-immediately starts after t=0, while the conditional gate starts after the delay.
-It looks like the topological ordering between the nodes is flipped in the
-scheduled view.
-This behavior can be understood by considering the control flow model described above,
-
-.. code-block:: text
-
-    : Quantum Circuit, first-measure
-    0 ░░░░░░░░░░░░▒▒▒▒▒▒░
-    1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-
-    : In wire q0
-    Q ░░░░░░░░░░░░░░░▒▒▒░
-    C ░░░░░░░░░░░░▒▒░░░░░
-
-    : In wire q1
-    Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-    B ░░▒▒▒▒▒▒▒▒░░░░░░░░░
-    D ░░░░░░░░░░▒▒▒▒▒▒░░░
-    C ░░░░░░░░░░░░░░░░▒▒░
-
-Since there is no qubit register overlap between Q0 and Q1, the node ordering is
-determined by the shared classical register C. As you can see, the execution order is still
-preserved on C, i.e. read C then apply ``XGate``, finally store the measured outcome in C.
-But because ``DAGOpNode`` cannot define different durations for the associated registers,
-the time ordering of the two nodes is inverted.
-
-This behavior can be controlled by ``clbit_write_latency`` and ``conditional_latency``.
-``clbit_write_latency`` determines the delay of the register write-access from
-the beginning of the measure instruction (t0), while ``conditional_latency`` determines
-the delay of conditional gate operations with respect to t0, which is determined
-by the register read-access.
-This information is accessible in the backend configuration and should
-be copied to the pass manager property set before the pass is called.
-
-Due to default latencies, the `alap`-scheduled circuit of above example may become
-
-.. code-block:: text
-
-            ┌───┐
-    q_0: ───┤ X ├──────
-            └─╥─┘   ┌─┐
-    q_1: ─────╫─────┤M├
-         ┌────╨────┐└╥┘
-    c: 1/╡ c_0=0x1 ╞═╩═
-         └─────────┘ 0
-
-If the backend microarchitecture supports smart scheduling of the control flow
-instructions, such as separately scheduling qubits and classical registers,
-the insertion of the delay yields an unnecessarily longer total execution time.
-
-.. code-block:: text
-
-    : Quantum Circuit, first-XGate
-    0 ░▒▒▒░░░░░░░░░░░░░░░
-    1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-
-    : In wire q0
-    Q ░▒▒▒░░░░░░░░░░░░░░░
-    C ░░░░░░░░░░░░░░░░░░░ (zero latency)
-
-    : In wire q1
-    Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-    C ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░ (zero latency, scheduled after C0 read-access)
-
-However, this result is much more intuitive in the topological ordering view.
-If a finite conditional latency value is provided, for example, 30 dt, the circuit
-is scheduled as follows:
-
-.. code-block:: text
-
-         ┌───────────────┐   ┌───┐
-    q_0: ┤ Delay(30[dt]) ├───┤ X ├──────
-         ├───────────────┤   └─╥─┘   ┌─┐
-    q_1: ┤ Delay(30[dt]) ├─────╫─────┤M├
-         └───────────────┘┌────╨────┐└╥┘
-    c: 1/═════════════════╡ c_0=0x1 ╞═╩═
-                          └─────────┘ 0
-
-with the timing model:
-
-.. code-block:: text
-
-    : Quantum Circuit, first-xgate
-    0 ░░▒▒▒░░░░░░░░░░░░░░░
-    1 ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-
-    : In wire q0
-    Q ░░▒▒▒░░░░░░░░░░░░░░░
-    C ░▒░░░░░░░░░░░░░░░░░░ (30dt latency)
-
-    : In wire q1
-    Q ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-    C ░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-
-See https://arxiv.org/abs/2102.01682 for more details.
 
 Transpiler API
 ==============

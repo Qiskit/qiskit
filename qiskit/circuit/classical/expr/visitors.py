@@ -17,7 +17,9 @@ from __future__ import annotations
 __all__ = [
     "ExprVisitor",
     "iter_vars",
+    "iter_identifiers",
     "structurally_equivalent",
+    "is_lvalue",
 ]
 
 import typing
@@ -43,6 +45,9 @@ class ExprVisitor(typing.Generic[_T_co]):
     def visit_var(self, node: expr.Var, /) -> _T_co:  # pragma: no cover
         return self.visit_generic(node)
 
+    def visit_stretch(self, node: expr.Stretch, /) -> _T_co:  # pragma: no cover
+        return self.visit_generic(node)
+
     def visit_value(self, node: expr.Value, /) -> _T_co:  # pragma: no cover
         return self.visit_generic(node)
 
@@ -65,6 +70,36 @@ class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
     def visit_var(self, node, /):
         yield node
 
+    def visit_stretch(self, node, /):
+        yield from ()
+
+    def visit_value(self, node, /):
+        yield from ()
+
+    def visit_unary(self, node, /):
+        yield from node.operand.accept(self)
+
+    def visit_binary(self, node, /):
+        yield from node.left.accept(self)
+        yield from node.right.accept(self)
+
+    def visit_cast(self, node, /):
+        yield from node.operand.accept(self)
+
+    def visit_index(self, node, /):
+        yield from node.target.accept(self)
+        yield from node.index.accept(self)
+
+
+class _IdentWalkerImpl(ExprVisitor[typing.Iterable[typing.Union[expr.Var, expr.Stretch]]]):
+    __slots__ = ()
+
+    def visit_var(self, node, /):
+        yield node
+
+    def visit_stretch(self, node, /):
+        yield node
+
     def visit_value(self, node, /):
         yield from ()
 
@@ -84,6 +119,7 @@ class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
 
 
 _VAR_WALKER = _VarWalkerImpl()
+_IDENT_WALKER = _IdentWalkerImpl()
 
 
 def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
@@ -102,8 +138,37 @@ def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
             for node in expr.iter_vars(expr.bit_and(expr.bit_not(cr1), cr2)):
                 if isinstance(node.var, ClassicalRegister):
                     print(node.var.name)
+
+    .. seealso::
+        :func:`iter_identifiers`
+            Get an iterator over all identifier nodes in the expression, including
+            both :class:`~.expr.Var` and :class:`~.expr.Stretch` nodes.
     """
     yield from node.accept(_VAR_WALKER)
+
+
+def iter_identifiers(node: expr.Expr) -> typing.Iterator[typing.Union[expr.Var, expr.Stretch]]:
+    """Get an iterator over the :class:`~.expr.Var` and :class:`~.expr.Stretch`
+    nodes referenced at any level in the given :class:`~.expr.Expr`.
+
+    Examples:
+        Print out the name of each :class:`.ClassicalRegister` encountered::
+
+            from qiskit.circuit import ClassicalRegister
+            from qiskit.circuit.classical import expr
+
+            cr1 = ClassicalRegister(3, "a")
+            cr2 = ClassicalRegister(3, "b")
+
+            for node in expr.iter_vars(expr.bit_and(expr.bit_not(cr1), cr2)):
+                if isinstance(node.var, ClassicalRegister):
+                    print(node.var.name)
+
+    .. seealso::
+        :func:`iter_vars`
+            Get an iterator over just the :class:`~.expr.Var` nodes in the expression.
+    """
+    yield from node.accept(_IDENT_WALKER)
 
 
 class _StructuralEquivalenceImpl(ExprVisitor[bool]):
@@ -133,6 +198,11 @@ class _StructuralEquivalenceImpl(ExprVisitor[bool]):
         if self.other_key is None or (other_var := self.other_key(self.other.var)) is None:
             other_var = self.other.var
         return self_var == other_var
+
+    def visit_stretch(self, node, /):
+        if self.other.__class__ is not node.__class__:
+            return False
+        return node.var == self.other.var
 
     def visit_value(self, node, /):
         return (
@@ -240,6 +310,9 @@ class _IsLValueImpl(ExprVisitor[bool]):
     def visit_var(self, node, /):
         return True
 
+    def visit_stretch(self, node, /):
+        return False
+
     def visit_value(self, node, /):
         return False
 
@@ -267,6 +340,8 @@ def is_lvalue(node: expr.Expr, /) -> bool:
     permissible that a larger object containing this memory location may not allow writing from
     the scope that attempts to write to it.  This would be an access property of the containing
     program, however, and not an inherent property of the expression system.
+
+    A constant expression is never an lvalue.
 
     Examples:
         Literal values are never l-values; there's no memory location associated with (for example)

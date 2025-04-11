@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test cases for the schedule block qpy loading and saving."""
+"""Test cases for circuit qpy loading and saving."""
 
 import io
 import struct
@@ -30,7 +30,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyCircuitTestCase(QiskitTestCase):
-    """QPY schedule testing platform."""
+    """QPY circuit testing platform."""
 
     def assert_roundtrip_equal(self, circuit, version=None, use_symengine=None):
         """QPY roundtrip equal test."""
@@ -209,52 +209,6 @@ class TestLayout(QpyCircuitTestCase):
 class TestVersionArg(QpyCircuitTestCase):
     """Test explicitly setting a qpy version in dump()."""
 
-    def test_custom_gate_name_overlap_persists_with_minimum_version(self):
-        """Assert the fix in version 11 doesn't get used if an older version is request."""
-
-        class MyParamGate(Gate):
-            """Custom gate class with a parameter."""
-
-            def __init__(self, phi):
-                super().__init__("my_gate", 1, [phi])
-
-            def _define(self):
-                qc = QuantumCircuit(1)
-                qc.rx(self.params[0], 0)
-                self.definition = qc
-
-        theta = Parameter("theta")
-        two_theta = 2 * theta
-
-        qc = QuantumCircuit(1)
-        qc.append(MyParamGate(1.1), [0])
-        qc.append(MyParamGate(1.2), [0])
-        qc.append(MyParamGate(3.14159), [0])
-        qc.append(MyParamGate(theta), [0])
-        qc.append(MyParamGate(two_theta), [0])
-        with io.BytesIO() as qpy_file:
-            dump(qc, qpy_file, version=10)
-            qpy_file.seek(0)
-            new_circ = load(qpy_file)[0]
-        # Custom gate classes are lowered to Gate to avoid arbitrary code
-        # execution on deserialization. To compare circuit equality we
-        # need to go instruction by instruction and check that they're
-        # equivalent instead of doing a circuit equality check
-        first_gate = None
-        for new_inst, old_inst in zip(new_circ.data, qc.data):
-            new_gate = new_inst.operation
-            old_gate = old_inst.operation
-            self.assertIsInstance(new_gate, Gate)
-            self.assertEqual(new_gate.name, old_gate.name)
-            self.assertEqual(new_gate.params, old_gate.params)
-            if first_gate is None:
-                first_gate = new_gate
-                continue
-            # This is incorrect behavior. This test is explicitly validating
-            # that the version kwarg being set to 10 causes the buggy behavior
-            # on that version of qpy
-            self.assertEqual(new_gate.definition, first_gate.definition)
-
     def test_invalid_version_value(self):
         """Assert we raise an error with an invalid version request."""
         qc = QuantumCircuit(2)
@@ -346,7 +300,7 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
         qc.rx(two_theta, 0)
         qc.measure_all()
         # Assert Roundtrip works
-        self.assert_roundtrip_equal(qc, use_symengine=optionals.HAS_SYMENGINE, version=10)
+        self.assert_roundtrip_equal(qc, use_symengine=optionals.HAS_SYMENGINE, version=13)
         # Also check the qpy symbolic expression encoding is correct in the
         # payload
         with io.BytesIO() as file_obj:

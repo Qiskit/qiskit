@@ -1358,7 +1358,7 @@ mod tests {
     #[test]
     fn decompose_empty_operator_fails() {
         assert!(matches!(
-            decompose_dense_inner(aview2::<Complex64, [_; 0]>(&[]), 0.0),
+            decompose_dense_inner(aview2::<Complex64, 0>(&[]), 0.0),
             Err(DecomposeError::BadShape(_)),
         ));
     }
@@ -1408,7 +1408,7 @@ mod tests {
                 z_like,
             };
             let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
-                .into_shape((2, 2))
+                .into_shape_with_order((2, 2))
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();
@@ -1443,7 +1443,7 @@ mod tests {
                 z_like,
             };
             let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
-                .into_shape((8, 8))
+                .into_shape_with_order((8, 8))
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
             let actual: DecomposeMinimal = decompose_dense_inner(arr.view(), 0.0).unwrap().into();

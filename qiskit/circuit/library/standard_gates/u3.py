@@ -21,7 +21,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -84,7 +83,7 @@ class U3Gate(Gate):
         U3(\theta, 0, 0) = RY(\theta)
     """
 
-    _standard_gate = StandardGate.U3Gate
+    _standard_gate = StandardGate.U3
 
     def __init__(
         self,
@@ -92,12 +91,9 @@ class U3Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new U3 gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
+        super().__init__("u3", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted U3 gate.
@@ -155,7 +151,7 @@ class U3Gate(Gate):
         return gate
 
     def _define(self):
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
@@ -261,7 +257,7 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CU3Gate
+    _standard_gate = StandardGate.CU3
 
     def __init__(
         self,
@@ -271,8 +267,6 @@ class CU3Gate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CU3 gate."""
@@ -284,8 +278,6 @@ class CU3Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U3Gate(theta, phi, lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
@@ -300,7 +292,7 @@ class CU3Gate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
 

@@ -32,7 +32,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
@@ -59,7 +59,7 @@ type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionPropertie
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
 #[derive(FromPyObject, Debug, Clone, IntoPyObjectRef)]
-pub(crate) enum TargetOperation {
+pub enum TargetOperation {
     Normal(NormalOperation),
     Variadic(PyObject),
 }
@@ -89,7 +89,7 @@ impl TargetOperation {
 /// Represents a Qiskit `Gate` object, keeps a reference to its Python
 /// instance for caching purposes.
 #[derive(Debug, Clone)]
-pub(crate) struct NormalOperation {
+pub struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
     op_object: PyObject,
@@ -145,12 +145,11 @@ memory.
     module = "qiskit._accelerate.target"
 )]
 #[derive(Clone, Debug)]
-pub(crate) struct Target {
+pub struct Target {
     #[pyo3(get, set)]
     pub description: Option<String>,
     #[pyo3(get)]
     pub num_qubits: Option<usize>,
-    #[pyo3(get, set)]
     pub dt: Option<f64>,
     #[pyo3(get, set)]
     pub granularity: u32,
@@ -741,6 +740,17 @@ impl Target {
 
     // Instance attributes
 
+    /// The dt attribute.
+    #[getter(_dt)]
+    fn get_dt(&self) -> Option<f64> {
+        self.dt
+    }
+
+    #[setter(_dt)]
+    fn set_dt(&mut self, dt: Option<f64>) {
+        self.dt = dt
+    }
+
     /// The set of qargs in the target.
     #[getter]
     #[pyo3(name = "qargs")]
@@ -775,17 +785,15 @@ impl Target {
             let out_inst = match inst {
                 TargetOperation::Normal(op) => match op.operation.view() {
                     OperationRef::StandardGate(standard) => standard
-                        .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
+                        .create_py_op(py, Some(&op.params), None)?
                         .into_any(),
                     OperationRef::StandardInstruction(standard) => standard
-                        .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
+                        .create_py_op(py, Some(&op.params), None)?
                         .into_any(),
                     OperationRef::Gate(gate) => gate.gate.clone_ref(py),
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
                     OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-                    OperationRef::Unitary(unitary) => unitary
-                        .create_py_op(py, &ExtraInstructionAttributes::default())?
-                        .into_any(),
+                    OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };
@@ -1184,6 +1192,10 @@ impl Target {
             return None;
         }
         Some(qargs)
+    }
+
+    pub fn num_qargs(&self) -> usize {
+        self.qarg_gate_map.len()
     }
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
