@@ -851,7 +851,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         qc_transpiled = transpile(qc, backend, optimization_level=3, seed_transpiler=42)
         opcount = qc_transpiled.count_ops()
         self.assertTrue(set(opcount).issubset(basis_gates))
-        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
+        self.assertTrue(np.allclose(Operator.from_circuit(qc_transpiled), Operator(qc)))
 
     @data(1, 2, 3)
     def test_qsd(self, opt):
