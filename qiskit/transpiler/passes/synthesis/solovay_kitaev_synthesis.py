@@ -28,6 +28,7 @@ import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.gate import Gate
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.synthesis.clifford.clifford_decompose_bm import synth_clifford_bm
 from qiskit.synthesis.discrete_basis.solovay_kitaev import SolovayKitaevDecomposition
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
@@ -309,19 +310,29 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         from qiskit.quantum_info.operators.predicates import is_unitary_matrix
         print(f"is_unitary = {is_unitary_matrix(unitary)}")
 
-        print(f"=> Attempting to Cliffordize unitary")
+        approximate_circuit = None
+        
+        print(f"=> Attempting to Cliffordize unitary!")
         try:
-            cliff = Clifford(unitary.copy())
-            print(f"Cliffordize Success!")
+            print(unitary)
+            print(type(unitary))
+
+            cliff = Clifford.from_matrix(unitary.copy())
+
+            print(f"Cliffordize Success {cliff = }!")
+
+            approximate_circuit = synth_clifford_bm(cliff)
+            print(approximate_circuit)
         except:
             print(f"Did not succeed (cliffortize)!")
 
-        print(f"=> Attempting to synthesize unitary")
-        try:
-            approximate_circuit = SolovayKitaevSynthesis._sk.run(unitary, recursion_degree)
-            print(f"Success!")
-        except:
-            print(f"Did not succeed (synthesize)!")
-            assert False
+        if not approximate_circuit:
+            print(f"=> Attempting to synthesize unitary")
+            try:
+                approximate_circuit = SolovayKitaevSynthesis._sk.run(unitary, recursion_degree)
+                print(f"Success!")
+            except:
+                print(f"Did not succeed (synthesize)!")
+                assert False
         dag_circuit = circuit_to_dag(approximate_circuit)
         return dag_circuit
