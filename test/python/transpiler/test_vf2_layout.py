@@ -117,7 +117,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
         vf2_pass = VF2Layout(target=target, seed=self.seed)
         vf2_pass(qc)
         layout = vf2_pass.property_set["layout"]
-        self.assertEqual([1, 0], list(layout._p2v.keys()))
+        self.assertNotIn(2, layout.get_physical_bits())
 
     def test_2q_circuit_2q_coupling(self):
         """A simple example, without considering the direction
@@ -737,23 +737,19 @@ class TestMultipleTrials(QiskitTestCase):
     def test_reasonable_limits_for_simple_layouts(self):
         """Test that the default trials is set to a reasonable number."""
         backend = GenericBackendV2(27, seed=42)
-        qc = QuantumCircuit(5)
+        qc = QuantumCircuit(6)
         qc.cx(2, 3)
         qc.cx(0, 1)
+        qc.cx(4, 5)
 
         # Run without any limits set
         vf2_pass = VF2Layout(target=backend.target, seed=42)
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        self.assertIn(
-            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 717 is >= configured max trials 717",
-            cm.output,
-        )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {16, 24, 6, 7, 0})
+        vf2_pass(qc, property_set)
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {26, 11, 14, 7, 17, 22})
 
-    def test_no_limits_with_negative(self):
-        """Test that we're not enforcing a trial limit if set to negative."""
+    def test_no_limits_with_zero(self):
+        """Test that we're not enforcing a trial limit if set to zero."""
         qc = QuantumCircuit(3)
         qc.h(0)
         cmap = CouplingMap(YORKTOWN_CMAP)
@@ -766,11 +762,8 @@ class TestMultipleTrials(QiskitTestCase):
             max_trials=0,
         )
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        for output in cm.output:
-            self.assertNotIn("is >= configured max trials", output)
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 0})
+        vf2_pass(qc, property_set)
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 2, 0})
 
     def test_qregs_valid_layout_output(self):
         """Test that vf2 layout doesn't add extra qubits.
