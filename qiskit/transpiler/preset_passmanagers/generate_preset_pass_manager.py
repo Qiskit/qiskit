@@ -475,7 +475,7 @@ def generate_discrete_pass_manager(
         unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
         hls_config=hls_config,
         init_method="discrete",
-        optimization_method=optimization_method,
+        optimization_method="discrete",
         dt=dt,
         qubits_initially_zero=qubits_initially_zero,
         )

@@ -125,9 +125,15 @@ class ConsolidateBlocks(TransformationPass):
             return dag
 
         blocks = self.property_set["block_list"]
+
+        print(f"In Considate::run, have blocks = {blocks is not None}")
+
         if blocks is not None:
             blocks = [[node._node_id for node in block] for block in blocks]
         runs = self.property_set["run_list"]
+
+        print(f"In Considate::run, have runs = {runs is not None}")
+
         if runs is not None:
             runs = [[node._node_id for node in run] for run in runs]
 

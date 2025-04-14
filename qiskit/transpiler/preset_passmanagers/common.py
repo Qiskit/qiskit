@@ -487,8 +487,7 @@ def generate_translation_passmanager(
         ]
         fix_1q = [translator]
     elif method == "discrete":
-
-        # "cx" should be included in basis_gates
+        # "cx" should be already in basis_gates
         extended_basis_gates = basis_gates + ["u"]
 
         unroll = [
@@ -517,7 +516,14 @@ def generate_translation_passmanager(
             # the equivalence library.
             BasisTranslator(sel, extended_basis_gates, None),
 
+
+            # Note: SolovayKitaev transpiler pass currently synthesizes all 2-qubit gates.
+            # Calling it as a plugin allows to synthesize only 'unitary' gates,
+            # Moreover, I have hacked the plugin to extract Clifford gates when possible.
+            # SolovayKitaev(),
+
             Collect1qRuns(),
+
             ConsolidateBlocks(
                 basis_gates=None,
                 target=None,
@@ -525,12 +531,9 @@ def generate_translation_passmanager(
                 force_consolidate=True,
             ),
 
-            #
-            # SolovayKitaev(),
             UnitarySynthesis(
                 # basis_gates=["h", "s", "sdg", "t", "tdg"],
                 basis_gates=["h", "t", "tdg"],
-
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 plugin_config=unitary_synthesis_plugin_config,

@@ -36,6 +36,7 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
 )
 from qiskit.transpiler.passes.optimization import (
+    Collect1qRuns,
     Optimize1qGatesDecomposition,
     CommutativeCancellation,
     ConsolidateBlocks,
@@ -1134,3 +1135,172 @@ class DiscreteTranslatorPassManager(PassManagerStagePlugin):
             hls_config=pass_manager_config.hls_config,
             qubits_initially_zero=pass_manager_config.qubits_initially_zero,
         )
+
+
+class DiscreteOptimizationPassManager(PassManagerStagePlugin):
+    """Plugin class for optimization stage"""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        """Build pass manager for optimization stage."""
+
+        print(f"=> Call DiscreteOptimizationPassManager")
+
+        # Obtain the translation method required for this pass to work
+        optimization = PassManager()
+        if optimization_level != 0:
+            plugin_manager = PassManagerStagePluginManager()
+            _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+            _size_check = [Size(recurse=True), FixedPoint("size")]
+            # Minimum point check for optimization level 3.
+            _minimum_point_check = [
+                Depth(recurse=True),
+                Size(recurse=True),
+                MinimumPoint(["depth", "size"], "optimization_loop"),
+            ]
+
+            def _opt_control(property_set):
+                return (not property_set["depth_fixed_point"]) or (
+                    not property_set["size_fixed_point"]
+                )
+
+            translation = plugin_manager.get_passmanager_stage(
+                "translation",
+                "discrete",
+                pass_manager_config,
+                optimization_level=optimization_level,
+            )
+
+            # Basic steps for optimization level 1:
+            # 1. Optimize1qGatesDecomposition
+            # 2. InverseCancellation
+            if optimization_level == 1:
+
+                _opt = [
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
+
+            # Basic steps for optimization level 2:
+            # 1. RemoveIdentityEquivalent
+            # 2. Optimize1qGatesDecomposition
+            # 3. CommutativeCancellation
+            elif optimization_level == 2:
+                _opt = [
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    ),
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
+                ]
+
+            # Basic steps for optimization level 3:
+            # 1. ConsolidateBlocks
+            # 2. UnitarySynthesis
+            # 3. RemoveIdentityEquivalent
+            # 4. Optimize1qGatesDecomposition
+            # 5. CommutativeCancellation
+            elif optimization_level == 3:
+                _opt = [
+                    ConsolidateBlocks(
+                        basis_gates=pass_manager_config.basis_gates,
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                    ),
+                    UnitarySynthesis(
+                        pass_manager_config.basis_gates,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        coupling_map=pass_manager_config.coupling_map,
+                        method=pass_manager_config.unitary_synthesis_method,
+                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=pass_manager_config.target,
+                    ),
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    ),
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
+                ]
+
+                def _opt_control(property_set):
+                    return not property_set["optimization_loop_minimum_point"]
+
+            else:
+                raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
+
+            unroll = translation.to_flow_controller()
+
+            # Build nested flow controllers
+            def _unroll_condition(property_set):
+                return not property_set["all_gates_in_basis"]
+
+            # Check if any gate is not in the basis, and if so, run unroll/translation passes
+            _unroll_if_out_of_basis = [
+                GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
+                ConditionalController(unroll, condition=_unroll_condition),
+            ]
+
+            if optimization_level == 3:
+                optimization.append(_minimum_point_check)
+            elif optimization_level == 2:
+                # optimization.append(
+                #     [
+
+                #         Collect1qRuns(),
+
+                #         ConsolidateBlocks(
+                #             basis_gates=None,
+                #             target=None,
+                #             approximation_degree=pass_manager_config.approximation_degree,
+                #         ),
+
+                #         UnitarySynthesis(
+                #             # basis_gates=["h", "s", "sdg", "t", "tdg"],
+                #             basis_gates=["h", "t", "tdg"],
+                #             approximation_degree=pass_manager_config.approximation_degree,
+                #             coupling_map=pass_manager_config.coupling_map,
+                #             plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                #             method="sk",
+                #             min_qubits=1,
+                #             target=None,
+                #         ),
+
+                #     ]
+                # )
+                optimization.append(_depth_check + _size_check)
+            else:
+                optimization.append(_depth_check + _size_check)
+            opt_loop = (
+                _opt + _unroll_if_out_of_basis + _minimum_point_check
+                if optimization_level == 3
+                else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
+            )
+            optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
+            return optimization
+        else:
+            return None

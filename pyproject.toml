@@ -146,6 +146,7 @@ sabre = "qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassMana
 
 [project.entry-points."qiskit.transpiler.optimization"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager"
+discrete = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DiscreteOptimizationPassManager"
 
 [project.entry-points."qiskit.transpiler.layout"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager"
