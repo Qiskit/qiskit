@@ -24,6 +24,7 @@ pub mod commutation_cancellation;
 pub mod commutation_checker;
 pub mod consolidate_blocks;
 pub mod convert_2q_block_matrix;
+pub mod cos_sin_decomp;
 pub mod dense_layout;
 pub mod elide_permutations;
 pub mod equivalence;
