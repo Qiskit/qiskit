@@ -153,9 +153,16 @@ pub fn transpile(
                 target.num_qubits.unwrap(),
                 |x| PhysicalQubit(x.0),
             );
-        } else if let Some(vf2_result) =
-            vf2_layout_pass(&dag, target, false, Some(5_000_000), None, Some(2500), None)?
-        {
+        } else if let Some(vf2_result) = vf2_layout_pass(
+            &dag,
+            target,
+            false,
+            Some(5_000_000),
+            None,
+            Some(2500),
+            None,
+            None,
+        )? {
             apply_layout(
                 &mut dag,
                 &mut transpile_layout,
@@ -179,9 +186,16 @@ pub fn transpile(
                 layout_from_sabre_result(&dag, initial_layout, &final_layout, &transpile_layout);
         }
     } else if optimization_level == OptimizationLevel::Level2 {
-        if let Some(vf2_result) =
-            vf2_layout_pass(&dag, target, false, Some(5_000_000), None, Some(2500), None)?
-        {
+        if let Some(vf2_result) = vf2_layout_pass(
+            &dag,
+            target,
+            false,
+            Some(5_000_000),
+            None,
+            Some(2500),
+            None,
+            None,
+        )? {
             apply_layout(
                 &mut dag,
                 &mut transpile_layout,
@@ -211,6 +225,7 @@ pub fn transpile(
         Some(30_000_000),
         None,
         Some(250_000),
+        None,
         None,
     )? {
         apply_layout(
