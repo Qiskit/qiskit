@@ -20,8 +20,6 @@ import struct
 import uuid
 
 import numpy as np
-import symengine
-
 
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
@@ -34,12 +32,18 @@ from qiskit.circuit.parameterexpression import (
 )
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
-from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
+
+import qiskit._accelerate.circuit
+SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
 
 
 def _write_parameter(file_obj, obj):
     name_bytes = obj.name.encode(common.ENCODE)
-    file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj.uuid.bytes))
+    if isinstance(obj, SymbolExpr):
+        id = uuid.UUID(int=obj.uuid)
+        file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), id.bytes))
+    else:
+        file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj.uuid.bytes))
     file_obj.write(name_bytes)
 
 
@@ -66,72 +70,78 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
     elif isinstance(inst, Parameter):
         inst_type = "p"
         inst_data = inst.uuid.bytes
-    elif isinstance(inst, complex):
-        inst_type = "c"
-        inst_data = struct.pack("!dd", inst.real, inst.imag)
-    elif isinstance(inst, float):
-        inst_type = "f"
-        inst_data = struct.pack("!Qd", 0, inst)
-    elif isinstance(inst, int):
-        inst_type = "i"
-        inst_data = struct.pack("!Qq", 0, inst)
-    elif isinstance(inst, ParameterExpression):
-        if not r_side:
-            entry = struct.pack(
-                formats.PARAM_EXPR_ELEM_V13_PACK,
-                255,
-                "s".encode("utf8"),
-                b"\x00",
-                "n".encode("utf8"),
-                b"\x00",
-            )
-        else:
-            entry = struct.pack(
-                formats.PARAM_EXPR_ELEM_V13_PACK,
-                255,
-                "n".encode("utf8"),
-                b"\x00",
-                "s".encode("utf8"),
-                b"\x00",
-            )
-        file_obj.write(entry)
-        _write_parameter_expression_v13(file_obj, inst, version)
-        if not r_side:
-            entry = struct.pack(
-                formats.PARAM_EXPR_ELEM_V13_PACK,
-                255,
-                "e".encode("utf8"),
-                b"\x00",
-                "n".encode("utf8"),
-                b"\x00",
-            )
-        else:
-            entry = struct.pack(
-                formats.PARAM_EXPR_ELEM_V13_PACK,
-                255,
-                "n".encode("utf8"),
-                b"\x00",
-                "e".encode("utf8"),
-                b"\x00",
-            )
-        file_obj.write(entry)
-        inst_type = "n"
-        inst_data = b"\x00"
     else:
-        raise exceptions.QpyError("Invalid parameter expression type")
+        if inst.is_numeric:
+            val = inst.value()
+
+            if isinstance(val, complex):
+                inst_type = "c"
+                inst_data = struct.pack("!dd", val.real, val.imag)
+            elif isinstance(val, float):
+                inst_type = "f"
+                inst_data = struct.pack("!Qd", 0, val)
+            elif isinstance(val, int):
+                inst_type = "i"
+                inst_data = struct.pack("!Qq", 0, val)
+        else:
+            if inst.is_symbol:
+                inst_type = "p"
+                inst_data = uuid.UUID(int=inst.uuid).bytes
+            else:
+                if not r_side:
+                    entry = struct.pack(
+                        formats.PARAM_EXPR_ELEM_V13_PACK,
+                        255,
+                        "s".encode("utf8"),
+                        b"\x00",
+                        "n".encode("utf8"),
+                        b"\x00",
+                    )
+                else:
+                    entry = struct.pack(
+                        formats.PARAM_EXPR_ELEM_V13_PACK,
+                        255,
+                        "n".encode("utf8"),
+                        b"\x00",
+                        "s".encode("utf8"),
+                        b"\x00",
+                    )
+                file_obj.write(entry)
+                _write_parameter_expression_v13(file_obj, inst, version)
+                if not r_side:
+                    entry = struct.pack(
+                        formats.PARAM_EXPR_ELEM_V13_PACK,
+                        255,
+                        "e".encode("utf8"),
+                        b"\x00",
+                        "n".encode("utf8"),
+                        b"\x00",
+                    )
+                else:
+                    entry = struct.pack(
+                        formats.PARAM_EXPR_ELEM_V13_PACK,
+                        255,
+                        "n".encode("utf8"),
+                        b"\x00",
+                        "e".encode("utf8"),
+                        b"\x00",
+                    )
+                file_obj.write(entry)
+                inst_type = "n"
+                inst_data = b"\x00"
     return inst_type, inst_data
 
 
 def _encode_replay_subs(subs, file_obj, version):
     with io.BytesIO() as mapping_buf:
-        subs_dict = {k.name: v for k, v in subs.binds.items()}
+        subs_dict = {k.name: p for k, p in subs.binds.items()}
         common.write_mapping(
             mapping_buf, mapping=subs_dict, serializer=dumps_value, version=version
         )
         data = mapping_buf.getvalue()
     entry = struct.pack(
         formats.PARAM_EXPR_ELEM_V13_PACK,
-        subs.op,
+        int(subs.op),
         "u".encode("utf8"),
         struct.pack("!QQ", len(data), 0),
         "n".encode("utf8"),
@@ -146,15 +156,15 @@ def _write_parameter_expression_v13(file_obj, obj, version):
     # A symbol is `Parameter` or `ParameterVectorElement`.
     # `symbol_map` maps symbols to ParameterExpression (which may be a symbol).
     symbol_map = {}
-    for inst in obj._qpy_replay:
-        if isinstance(inst, _SUBS):
+    for inst in obj.replay():
+        if inst.op == _OPCode.SUBSTITUTE:
             symbol_map.update(_encode_replay_subs(inst, file_obj, version))
             continue
         lhs_type, lhs = _encode_replay_entry(inst.lhs, file_obj, version)
         rhs_type, rhs = _encode_replay_entry(inst.rhs, file_obj, version, True)
         entry = struct.pack(
             formats.PARAM_EXPR_ELEM_V13_PACK,
-            inst.op,
+            int(inst.op),
             lhs_type.encode("utf8"),
             lhs,
             rhs_type.encode("utf8"),
@@ -169,7 +179,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     with io.BytesIO() as buf:
         extra_symbols = _write_parameter_expression_v13(buf, obj, version)
         expr_bytes = buf.getvalue()
-    symbol_table_len = len(obj._parameter_symbols)
+    symbol_table_len = len(obj.parameter_symbols)
     if extra_symbols:
         symbol_table_len += 2 * len(extra_symbols)
     param_expr_header_raw = struct.pack(
@@ -177,7 +187,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     )
     file_obj.write(param_expr_header_raw)
     file_obj.write(expr_bytes)
-    for symbol, value in obj._parameter_symbols.items():
+    for symbol in obj.parameter_symbols.items():
         symbol_key = type_keys.Value.assign(symbol)
 
         # serialize key
@@ -187,7 +197,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             symbol_data = common.data_to_binary(symbol, _write_parameter)
 
         # serialize value
-        if value == symbol._symbol_expr:
+        if isinstance(obj, SymbolExpr):
             value_key = symbol_key
             value_data = bytes()
         else:
@@ -475,8 +485,9 @@ def _read_parameter_expression(file_obj):
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
 
-    sympy_str = file_obj.read(data.expr_size).decode(common.ENCODE)
-    expr_ = symengine.sympify(parse_sympy_repr(sympy_str))
+    from sympy.parsing.sympy_parser import parse_expr
+
+    expr_ = parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE))
     symbol_map = {}
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM(
@@ -503,7 +514,7 @@ def _read_parameter_expression(file_obj):
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         symbol_map[symbol] = value
 
-    return ParameterExpression(symbol_map, expr_)
+    return ParameterExpression(symbol_map, str(expr_))
 
 
 def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
@@ -515,8 +526,9 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     if use_symengine:
         expr_ = common.load_symengine_payload(payload)
     else:
-        sympy_str = payload.decode(common.ENCODE)
-        expr_ = symengine.sympify(parse_sympy_repr(sympy_str))
+        from sympy.parsing.sympy_parser import parse_expr
+
+        expr_ = parse_expr(payload.decode(common.ENCODE))
 
     symbol_map = {}
     for _ in range(data.map_elements):
@@ -556,7 +568,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         symbol_map[symbol] = value
 
-    return ParameterExpression(symbol_map, expr_)
+    return ParameterExpression(symbol_map, str(expr_))
 
 
 def _read_parameter_expression_v13(file_obj, vectors, version):
