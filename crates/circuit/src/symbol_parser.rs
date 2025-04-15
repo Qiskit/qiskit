@@ -70,13 +70,20 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr> {
         )),
         |(v, array_idx)| -> Result<SymbolExpr, &str> {
             match array_idx {
-                Some(i) => {
-                    match i.parse::<usize>() {
-                        Ok(i) => Ok(SymbolExpr::Symbol{name: Box::new(v.to_string()), index: Some(i)}),
-                        Err(_) => Ok(SymbolExpr::Symbol{name: Box::new(v.to_string()), index: None}),
-                    }
-                }
-                None => Ok(SymbolExpr::Symbol{name: Box::new(v.to_string()), index: None}),
+                Some(i) => match i.parse::<usize>() {
+                    Ok(i) => Ok(SymbolExpr::Symbol {
+                        name: Box::new(v.to_string()),
+                        index: Some(i),
+                    }),
+                    Err(_) => Ok(SymbolExpr::Symbol {
+                        name: Box::new(v.to_string()),
+                        index: None,
+                    }),
+                },
+                None => Ok(SymbolExpr::Symbol {
+                    name: Box::new(v.to_string()),
+                    index: None,
+                }),
             }
         },
     )(s)

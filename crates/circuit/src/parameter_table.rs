@@ -103,7 +103,9 @@ impl VectorUuid {
     /// Extract a UUID from a Python-space `ParameterVector` object. This assumes that the object is
     /// the correct type.
     fn from_vector(ob: &Bound<PyAny>) -> PyResult<Self> {
-        ob.getattr(intern!(ob.py(), "_root_uuid"))?.extract().map(Self)
+        ob.getattr(intern!(ob.py(), "_root_uuid"))?
+            .extract()
+            .map(Self)
     }
 }
 impl<'py> FromPyObject<'py> for VectorUuid {

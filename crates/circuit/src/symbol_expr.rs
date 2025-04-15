@@ -18,8 +18,8 @@ use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
 use std::fmt;
-use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::hash::{Hash, Hasher};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use num_complex::Complex64;
 
@@ -57,8 +57,6 @@ impl Hash for Value {
         self.to_string().hash(state);
     }
 }
-
-
 
 /// definition of unary operations
 #[derive(Debug, Clone, PartialEq, Hash)]
@@ -182,7 +180,7 @@ impl fmt::Display for SymbolExpr {
             f,
             "{}",
             match self {
-                SymbolExpr::Symbol{name, index} => match index {
+                SymbolExpr::Symbol { name, index } => match index {
                     Some(i) => format!("{}[{}]", name.to_string(), i),
                     None => name.to_string(),
                 },
@@ -396,7 +394,7 @@ impl SymbolExpr {
     /// bind value to symbol node
     pub fn bind(&self, maps: &HashMap<String, Value>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol{name, index} => {
+            SymbolExpr::Symbol { name, index } => {
                 let key = match index {
                     Some(i) => format!("{}[{}]", name, i),
                     None => name.to_string(),
@@ -405,7 +403,7 @@ impl SymbolExpr {
                     Some(v) => SymbolExpr::Value(v.clone()),
                     None => self.clone(),
                 }
-            },
+            }
             SymbolExpr::Value(e) => SymbolExpr::Value(e.clone()),
             SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
                 op: op.clone(),
@@ -428,7 +426,7 @@ impl SymbolExpr {
     /// substitute symbol node to other expression
     pub fn subs(&self, maps: &HashMap<String, SymbolExpr>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol{name, index} => {
+            SymbolExpr::Symbol { name, index } => {
                 let key = match index {
                     Some(i) => format!("{}[{}]", name, i),
                     None => name.to_string(),
@@ -436,8 +434,8 @@ impl SymbolExpr {
                 match maps.get(&key) {
                     Some(v) => v.clone(),
                     None => self.clone(),
-                    }
-            },
+                }
+            }
             SymbolExpr::Value(e) => SymbolExpr::Value(e.clone()),
             SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
                 op: op.clone(),
@@ -461,7 +459,7 @@ impl SymbolExpr {
     /// if recursive is false, only this node will be evaluated
     pub fn eval(&self, recurse: bool) -> Option<Value> {
         match self {
-            SymbolExpr::Symbol{name: _, index: _} => None,
+            SymbolExpr::Symbol { name: _, index: _ } => None,
             SymbolExpr::Value(e) => Some(e.clone()),
             SymbolExpr::Unary { op, expr } => {
                 let val: Value;
@@ -553,7 +551,9 @@ impl SymbolExpr {
             SymbolExpr::Value(Value::Real(1.0))
         } else {
             match self {
-                SymbolExpr::Value(_) | SymbolExpr::Symbol{name: _, index:_ } => SymbolExpr::Value(Value::Real(0.0)),
+                SymbolExpr::Value(_) | SymbolExpr::Symbol { name: _, index: _ } => {
+                    SymbolExpr::Value(Value::Real(0.0))
+                }
                 SymbolExpr::Unary { op, expr } => {
                     let expr_d = expr.derivative(param);
                     match op {
@@ -690,7 +690,7 @@ impl SymbolExpr {
     /// expand the equation
     pub fn expand(&self) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol{name: _, index: _} => self.clone(),
+            SymbolExpr::Symbol { name: _, index: _ } => self.clone(),
             SymbolExpr::Value(_) => self.clone(),
             SymbolExpr::Unary { op, expr } => {
                 let ex = expr.expand();
@@ -774,7 +774,7 @@ impl SymbolExpr {
     /// return hashset of all symbols this equation contains
     pub fn symbols(&self) -> HashSet<Self> {
         match self {
-            SymbolExpr::Symbol{name: _, index: _} => HashSet::<Self>::from([self.clone()]),
+            SymbolExpr::Symbol { name: _, index: _ } => HashSet::<Self>::from([self.clone()]),
             SymbolExpr::Value(_) => HashSet::<Self>::new(),
             SymbolExpr::Unary { op: _, expr } => expr.symbols(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
@@ -790,7 +790,7 @@ impl SymbolExpr {
     /// return hashset of all symbols this equation contains
     pub fn symbols_in_string(&self) -> HashSet<String> {
         match self {
-            SymbolExpr::Symbol{name, index} => match index {
+            SymbolExpr::Symbol { name, index } => match index {
                 Some(i) => HashSet::<String>::from([format!("{}[{}]", name.as_ref().clone(), i)]),
                 None => HashSet::<String>::from([name.as_ref().clone()]),
             },
@@ -809,7 +809,7 @@ impl SymbolExpr {
     /// return all numbers in the equation
     pub fn values(&self) -> Vec<Value> {
         match self {
-            SymbolExpr::Symbol{name: _, index: _} => Vec::<Value>::new(),
+            SymbolExpr::Symbol { name: _, index: _ } => Vec::<Value>::new(),
             SymbolExpr::Value(v) => Vec::<Value>::from([v.clone()]),
             SymbolExpr::Unary { op: _, expr } => expr.values(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
@@ -824,7 +824,7 @@ impl SymbolExpr {
     /// check if a symbol is in this equation
     pub fn has_symbol(&self, param: &String) -> bool {
         match self {
-            SymbolExpr::Symbol{name: _, index: _} => &self.to_string() == param,
+            SymbolExpr::Symbol { name: _, index: _ } => &self.to_string() == param,
             SymbolExpr::Value(_) => false,
             SymbolExpr::Unary { op: _, expr } => expr.has_symbol(param),
             SymbolExpr::Binary { op: _, lhs, rhs } => lhs.has_symbol(param) | rhs.has_symbol(param),
@@ -834,10 +834,9 @@ impl SymbolExpr {
     /// return reciprocal of the equation
     pub fn rcp(&self) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol{name: _, index: _} => _div(
-                SymbolExpr::Value(Value::Real(1.0)),
-                self.clone(),
-            ),
+            SymbolExpr::Symbol { name: _, index: _ } => {
+                _div(SymbolExpr::Value(Value::Real(1.0)), self.clone())
+            }
             SymbolExpr::Value(e) => SymbolExpr::Value(e.rcp()),
             SymbolExpr::Unary { op: _, expr: _ } => {
                 _div(SymbolExpr::Value(Value::Real(1.0)), self.clone())
@@ -863,7 +862,7 @@ impl SymbolExpr {
     /// return conjugate of the equation
     pub fn conjugate(&self) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol{name: _, index: _} => SymbolExpr::Unary {
+            SymbolExpr::Symbol { name: _, index: _ } => SymbolExpr::Unary {
                 op: UnaryOp::Conj,
                 expr: Box::new(self.clone()),
             },
@@ -945,7 +944,7 @@ impl SymbolExpr {
     fn is_negative(&self) -> bool {
         match self {
             SymbolExpr::Value(v) => v.is_negative(),
-            SymbolExpr::Symbol{name: _, index: _} => false,
+            SymbolExpr::Symbol { name: _, index: _ } => false,
             SymbolExpr::Unary { op, expr } => match op {
                 UnaryOp::Abs => false,
                 UnaryOp::Neg => !expr.is_negative(),
@@ -1154,9 +1153,9 @@ impl SymbolExpr {
                     }
                     _ => None,
                 },
-                SymbolExpr::Symbol{name: _, index: _} => match rhs {
+                SymbolExpr::Symbol { name: _, index: _ } => match rhs {
                     SymbolExpr::Value(_) => Some(_add(rhs.clone(), self.clone())),
-                    SymbolExpr::Symbol{name: _, index: _} => {
+                    SymbolExpr::Symbol { name: _, index: _ } => {
                         let l = self.to_string();
                         let r = rhs.to_string();
                         if r == l {
@@ -1175,7 +1174,7 @@ impl SymbolExpr {
                         if let (
                             BinaryOp::Mul | BinaryOp::Div,
                             SymbolExpr::Value(v),
-                            SymbolExpr::Symbol{name: _, index: _},
+                            SymbolExpr::Symbol { name: _, index: _ },
                         ) = (op, r_lhs.as_ref(), r_rhs.as_ref())
                         {
                             let l = self.to_string();
@@ -1280,11 +1279,11 @@ impl SymbolExpr {
                                 }
                             }
                         }
-                    } else if let SymbolExpr::Symbol{name: _, index: _} = rhs {
+                    } else if let SymbolExpr::Symbol { name: _, index: _ } = rhs {
                         if let (
                             BinaryOp::Mul | BinaryOp::Div,
                             SymbolExpr::Value(v),
-                            SymbolExpr::Symbol{name: _, index: _},
+                            SymbolExpr::Symbol { name: _, index: _ },
                         ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
                         {
                             let r = rhs.to_string();
@@ -1456,9 +1455,9 @@ impl SymbolExpr {
                     }
                     _ => None,
                 },
-                SymbolExpr::Symbol{name: _, index: _} => match &rhs {
+                SymbolExpr::Symbol { name: _, index: _ } => match &rhs {
                     SymbolExpr::Value(r) => Some(_add(SymbolExpr::Value(-r), self.clone())),
-                    SymbolExpr::Symbol{name: _, index: _} => {
+                    SymbolExpr::Symbol { name: _, index: _ } => {
                         let l = self.to_string();
                         let r = rhs.to_string();
                         if r == l {
@@ -1477,7 +1476,7 @@ impl SymbolExpr {
                         if let (
                             BinaryOp::Mul | BinaryOp::Div,
                             SymbolExpr::Value(v),
-                            SymbolExpr::Symbol{name: _, index: _},
+                            SymbolExpr::Symbol { name: _, index: _ },
                         ) = (op, r_lhs.as_ref(), r_rhs.as_ref())
                         {
                             let l = self.to_string();
@@ -1586,11 +1585,11 @@ impl SymbolExpr {
                                 }
                             }
                         }
-                    } else if let SymbolExpr::Symbol{name: _, index: _} = rhs {
+                    } else if let SymbolExpr::Symbol { name: _, index: _ } = rhs {
                         if let (
                             BinaryOp::Mul | BinaryOp::Div,
                             SymbolExpr::Value(v),
-                            SymbolExpr::Symbol{name: _, index: _},
+                            SymbolExpr::Symbol { name: _, index: _ },
                         ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
                         {
                             let r = rhs.to_string();
@@ -1697,7 +1696,7 @@ impl SymbolExpr {
                 None => Some(_neg(self.clone())),
             }
         } else {
-            if let SymbolExpr::Value(_) | SymbolExpr::Symbol{name: _, index: _} = rhs {
+            if let SymbolExpr::Value(_) | SymbolExpr::Symbol { name: _, index: _ } = rhs {
                 if let SymbolExpr::Unary { op: _, expr: _ } = self {
                     return match rhs.mul_opt(self, recursive) {
                         Some(e) => Some(e),
@@ -1708,9 +1707,9 @@ impl SymbolExpr {
 
             match self {
                 SymbolExpr::Value(e) => e.mul_opt(rhs, recursive),
-                SymbolExpr::Symbol{name: _, index: _} => match rhs {
+                SymbolExpr::Symbol { name: _, index: _ } => match rhs {
                     SymbolExpr::Value(_) => Some(_mul(rhs.clone(), self.clone())),
-                    SymbolExpr::Symbol{name: _, index: _} => {
+                    SymbolExpr::Symbol { name: _, index: _ } => {
                         let e = self.to_string();
                         let r = rhs.to_string();
                         if r < e {
@@ -1724,7 +1723,7 @@ impl SymbolExpr {
                         expr,
                     } => match expr.as_ref() {
                         SymbolExpr::Value(v) => Some(_mul(SymbolExpr::Value(-v), self.clone())),
-                        SymbolExpr::Symbol{name: _, index: _} => {
+                        SymbolExpr::Symbol { name: _, index: _ } => {
                             let e = self.to_string();
                             let s = expr.to_string();
                             if s < e {
@@ -2112,7 +2111,7 @@ impl SymbolExpr {
 
             match self {
                 SymbolExpr::Value(e) => e.div_opt(rhs, recursive),
-                SymbolExpr::Symbol{name: _, index: _} => None,
+                SymbolExpr::Symbol { name: _, index: _ } => None,
                 SymbolExpr::Unary { op, expr } => match op {
                     UnaryOp::Neg => match expr.div_opt(rhs, recursive) {
                         Some(e) => match e.neg_opt() {
@@ -2369,7 +2368,7 @@ impl SymbolExpr {
     pub fn optimize(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(_) => self.clone(),
-            SymbolExpr::Symbol{name: _, index: _} => self.clone(),
+            SymbolExpr::Symbol { name: _, index: _ } => self.clone(),
             SymbolExpr::Unary { op, expr } => {
                 let opt = expr.optimize();
                 match op {
@@ -2502,7 +2501,10 @@ impl PartialEq for SymbolExpr {
         }
 
         match (self, rexpr) {
-            (SymbolExpr::Symbol{name: _, index: _}, SymbolExpr::Symbol{name: _, index: _}) => self.to_string() == rexpr.to_string(),
+            (
+                SymbolExpr::Symbol { name: _, index: _ },
+                SymbolExpr::Symbol { name: _, index: _ },
+            ) => self.to_string() == rexpr.to_string(),
             (SymbolExpr::Value(l), SymbolExpr::Value(r)) => l == r,
             (
                 SymbolExpr::Binary {
@@ -2569,7 +2571,6 @@ impl PartialEq for SymbolExpr {
 
 impl Eq for SymbolExpr {}
 
-
 impl PartialEq<f64> for SymbolExpr {
     fn eq(&self, r: &f64) -> bool {
         match self.eval(true) {
@@ -2596,9 +2597,15 @@ impl PartialOrd for SymbolExpr {
                 SymbolExpr::Value(r) => l.partial_cmp(r),
                 _ => Some(Ordering::Less),
             },
-            SymbolExpr::Symbol{name: nl, index: il} => match rhs {
+            SymbolExpr::Symbol {
+                name: nl,
+                index: il,
+            } => match rhs {
                 SymbolExpr::Value(_) => Some(Ordering::Greater),
-                SymbolExpr::Symbol{name: nr, index: ir} => {
+                SymbolExpr::Symbol {
+                    name: nr,
+                    index: ir,
+                } => {
                     if nr > nl {
                         return Some(Ordering::Less);
                     } else if nr < nl {
@@ -2606,22 +2613,24 @@ impl PartialOrd for SymbolExpr {
                     } else {
                         return match il {
                             Some(il) => match ir {
-                                Some(ir) => if ir > il {
-                                    Some(Ordering::Less)
-                                } else if ir < il {
-                                    Some(Ordering::Greater)
-                                } else {
-                                    Some(Ordering::Equal)
-                                },
+                                Some(ir) => {
+                                    if ir > il {
+                                        Some(Ordering::Less)
+                                    } else if ir < il {
+                                        Some(Ordering::Greater)
+                                    } else {
+                                        Some(Ordering::Equal)
+                                    }
+                                }
                                 None => Some(Ordering::Greater),
                             },
                             None => match ir {
                                 Some(_) => Some(Ordering::Less),
                                 None => Some(Ordering::Equal),
                             },
-                        }
+                        };
                     }
-                },
+                }
                 SymbolExpr::Unary { op: _, expr } => self.partial_cmp(expr),
                 _ => Some(Ordering::Less),
             },
@@ -2635,7 +2644,7 @@ impl PartialOrd for SymbolExpr {
                 lhs: ll,
                 rhs: lr,
             } => match rhs {
-                SymbolExpr::Value(_) | SymbolExpr::Symbol{name: _, index: _} => match op {
+                SymbolExpr::Value(_) | SymbolExpr::Symbol { name: _, index: _ } => match op {
                     BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow => Some(Ordering::Greater),
                     _ => Some(Ordering::Equal),
                 },
@@ -2668,7 +2677,10 @@ impl PartialOrd for SymbolExpr {
 
 impl From<&str> for SymbolExpr {
     fn from(v: &str) -> Self {
-        SymbolExpr::Symbol{name: Box::new(v.to_string()), index: None}
+        SymbolExpr::Symbol {
+            name: Box::new(v.to_string()),
+            index: None,
+        }
     }
 }
 

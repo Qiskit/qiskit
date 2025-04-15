@@ -33,8 +33,7 @@ pub mod slice;
 pub mod symbol_expr;
 pub mod symbol_parser;
 pub mod util;
-
-mod rustworkx_core_vnext;
+pub mod rustworkx_core_vnext;
 
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
