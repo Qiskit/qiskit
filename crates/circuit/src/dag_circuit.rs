@@ -6514,7 +6514,7 @@ impl DAGCircuit {
         let mut new_nodes = Vec::new();
         let mut replacement_dag = DAGCircuit::new()?;
         std::mem::swap(self, &mut replacement_dag);
-        let mut dag_concat = replacement_dag.into_builder();
+        let mut dag_concat = replacement_dag.into_builder(py);
         for inst in iter {
             new_nodes.push(dag_concat.push_back(py, inst?)?);
         }
@@ -7202,8 +7202,8 @@ impl DAGCircuit {
 
     /// Returns version of the DAGCircuit optimized for efficient addition
     /// of multiple new instructions to the [DAGCircuit].
-    pub fn into_builder(self) -> DAGCircuitBuilder {
-        DAGCircuitBuilder::new(self)
+    pub fn into_builder(self, py: Python) -> DAGCircuitBuilder {
+        DAGCircuitBuilder::new(self, py)
     }
 }
 
@@ -7217,10 +7217,10 @@ pub struct DAGCircuitBuilder {
 impl DAGCircuitBuilder {
     /// Builds a new instance of [DAGCircuitConcat] which allows instructions to
     /// be added continuously into the [DAGCircuit].
-    pub fn new(dag: DAGCircuit) -> DAGCircuitBuilder {
+    pub fn new(dag: DAGCircuit, py: Python) -> DAGCircuitBuilder {
         let num_qubits = dag.num_qubits();
         let num_clbits = dag.num_clbits();
-        let num_vars = dag.num_vars();
+        let num_vars = dag.num_vars(py);
         Self {
             dag,
             last_qubits: vec![None; num_qubits],
