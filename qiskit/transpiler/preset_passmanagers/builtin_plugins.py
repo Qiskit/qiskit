@@ -1098,7 +1098,7 @@ class DiscreteInitPassManager(PassManagerStagePlugin):
                 ]
             )
             init.append(CommutativeCancellation())
-            init.append(ConsolidateBlocks())
+            # init.append(ConsolidateBlocks())
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
