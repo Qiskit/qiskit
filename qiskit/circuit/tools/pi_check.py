@@ -48,7 +48,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
-        values = inpt.values()
+        values = inpt._symbol_expr.values()
         for val in values:
             pi = pi_check(abs(float(val)), eps=eps, output=output, ndigits=ndigits)
             try:
