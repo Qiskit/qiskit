@@ -785,6 +785,21 @@ impl Target {
             .unbind())
     }
 
+    // TODO: Add flag for custom tests
+    /// Private method for development purposes only
+    fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(gate) = self._gate_name_map.get(name) {
+            match gate {
+                TargetOperation::Normal(normal_operation) => {
+                    normal_operation.create_py_op(py, None)
+                }
+                TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
+            }
+        } else {
+            Ok(py.None())
+        }
+    }
+
     // Instance attributes
 
     /// The dt attribute.
@@ -1390,123 +1405,3 @@ pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
 }
 
 // TODO: Add rust-based unit testing.
-#[cfg(all(test, not(miri)))]
-mod test {
-    use std::sync::Mutex;
-
-    use crate::target_transpiler::{Target, TargetOperation};
-    use nalgebra::Matrix2;
-    use numpy::Complex64;
-    use pyo3::{exceptions::PyRuntimeError, prelude::*};
-    use qiskit_circuit::{
-        imports::ImportOnceCell,
-        operations::{Param, StandardGate, StandardInstruction, UnitaryGate},
-    };
-    use qiskit_circuit::{imports::UNITARY_GATE, packed_instruction::PackedOperation};
-    use smallvec::smallvec;
-
-    static PY_RXGATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "RXGate");
-    static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "Barrier");
-    static IMPORT_LOCK: Mutex<()> = Mutex::new(());
-
-    #[test]
-    fn add_standard_gate_without_python() -> PyResult<()> {
-        let _lock = IMPORT_LOCK
-            .lock()
-            .map_err(|_| PyRuntimeError::new_err("Error avoiding deadlock"))?;
-        Python::with_gil(|py| -> PyResult<()> {
-            let rxgate = PackedOperation::from_standard_gate(StandardGate::RX);
-            let mut test_target = Target::default();
-            test_target
-                .add_instruction(
-                    TargetOperation::from_packed_operation(
-                        rxgate,
-                        smallvec![std::f64::consts::PI.into(),],
-                    ),
-                    "rx",
-                    None,
-                )
-                .unwrap();
-            let op = test_target.py_operation_from_name(py, "rx")?;
-
-            let py_rx_gate = PY_RXGATE.get_bound(py);
-
-            assert!(
-                op.is_instance(py_rx_gate)?,
-                "The resulting operation in python did not have the correct type."
-            );
-            assert!(
-                op.eq(py_rx_gate.call1((Param::from(std::f64::consts::PI),))?)?,
-                "The resulting operation did not contain the correct parameters."
-            );
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn add_standard_instruction_without_python() -> PyResult<()> {
-        let _lock = IMPORT_LOCK
-            .lock()
-            .map_err(|_| PyRuntimeError::new_err("Error avoiding deadlock"))?;
-        Python::with_gil(|py| -> PyResult<()> {
-            let barrier =
-                PackedOperation::from_standard_instruction(StandardInstruction::Barrier(0));
-            let mut test_target = Target::default();
-            test_target
-                .add_instruction(
-                    TargetOperation::from_packed_operation(barrier, smallvec![]),
-                    "barrier",
-                    None,
-                )
-                .unwrap();
-            let op = test_target.py_operation_from_name(py, "barrier")?;
-            assert!(
-                op.is_instance(BARRIER.get_bound(py))?,
-                "The resulting operation in python did not have the correct type."
-            );
-            Ok(())
-        })
-    }
-
-    #[test]
-    fn add_unitary_gate_without_python() -> PyResult<()> {
-        let _lock = IMPORT_LOCK
-            .lock()
-            .map_err(|_| PyRuntimeError::new_err("Error avoiding deadlock"))?;
-        Python::with_gil(|py| -> PyResult<()> {
-            let unitary: Matrix2<Complex64> = Matrix2::new(
-                Complex64::new(0.0, 0.0),
-                Complex64::new(1.0, 0.0),
-                Complex64::new(1.0, 0.0),
-                Complex64::new(0.0, 0.0),
-            );
-            let unitary_gate = PackedOperation::from_unitary(
-                UnitaryGate {
-                    array: qiskit_circuit::operations::ArrayType::OneQ(unitary),
-                }
-                .into(),
-            );
-            let mut test_target = Target::default();
-            test_target
-                .add_instruction(
-                    TargetOperation::from_packed_operation(unitary_gate, smallvec![]),
-                    "unitary",
-                    None,
-                )
-                .unwrap();
-            let op = test_target.py_operation_from_name(py, "unitary")?;
-            assert!(
-                op.is_instance(UNITARY_GATE.get_bound(py))?,
-                "The resulting operation in python did not have the correct type."
-            );
-            let py_gate = UNITARY_GATE
-                .get_bound(py)
-                .call1(([[0.0, 1.0], [1.0, 0.0]],))?;
-            assert!(
-                op.eq(py_gate)?,
-                "The resulting unitaries did not contain the same matrices"
-            );
-            Ok(())
-        })
-    }
-}
