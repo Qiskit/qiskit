@@ -44,7 +44,8 @@ use smallvec::SmallVec;
 use crate::equivalence::EquivalenceLibrary;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
-use crate::target_transpiler::{Qargs, Target};
+use crate::target_transpiler::qargs::Qargs;
+use crate::target_transpiler::Target;
 
 type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
 type ExtraInstructionMap<'a> = IndexMap<&'a Option<Qargs>, InstMap, ahash::RandomState>;
