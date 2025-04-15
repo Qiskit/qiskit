@@ -17,6 +17,7 @@ use std::{fmt, vec};
 use crate::circuit_data::CircuitData;
 use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
+use crate::parameterexpression::ParameterExpression;
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use nalgebra::{Matrix2, Matrix4};
@@ -116,6 +117,34 @@ impl Param {
             Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
+        }
+    }
+
+    /// extract ParameterExpression object
+    pub fn extract_parameter_expression(&self, py: Python) -> Option<ParameterExpression> {
+        match self {
+            Param::ParameterExpression(e) => {
+                match e.bind(py).getattr(intern!(py, "_symbol_expr")) {
+                    Ok(s) => match s.extract::<ParameterExpression>() {
+                        Ok(p) => Some(p),
+                        _ => None,
+                    },
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// set ParameterExpression
+    pub fn set_parameter_expression(&self, expr: &ParameterExpression, py: Python) {
+        match self {
+            Param::ParameterExpression(e) => {
+                if let Ok(out_expr) = expr.clone().into_pyobject(py) {
+                    e.bind(py).setattr(intern!(py, "_symbol_expr"), out_expr);
+                }
+            }
+            _ => return,
         }
     }
 }

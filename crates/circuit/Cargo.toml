@@ -53,6 +53,10 @@ features = ["union", "const_generics"]
 workspace = true
 features = ["nalgebra"]
 
+[dependencies.uuid]
+workspace = true
+features = ["v4"]
+
 [features]
 cache_pygates = []
 

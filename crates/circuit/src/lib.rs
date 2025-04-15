@@ -34,65 +34,57 @@ pub mod symbol_expr;
 pub mod symbol_parser;
 pub mod util;
 
-pub mod rustworkx_core_vnext;
+mod rustworkx_core_vnext;
 
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
-use pyo3::PyTypeInfo;
 
+pub type BitType = u32;
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
-pub struct Qubit(pub u32);
+pub struct Qubit(pub BitType);
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
-pub struct Clbit(pub u32);
+impl Qubit {
+    /// Construct a new Qubit object from a usize, if you have a u32 you can
+    /// create a `Qubit` object directly with `Qubit(0u32)`. This will panic
+    /// if the `usize` index exceeds `u32::MAX`.
+    #[inline(always)]
+    pub fn new(index: usize) -> Self {
+        Qubit(
+            index.try_into().unwrap_or_else(|_| {
+                panic!("Index value '{}' exceeds the maximum bit width!", index)
+            }),
+        )
+    }
 
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub struct Var(u32);
-
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub struct Stretch(u32);
-
-macro_rules! impl_circuit_identifier {
-    ($type:ident) => {
-        impl $type {
-            /// Construct a new identifier from a usize, if you have a u32 you can
-            /// construct one directly via [$type()]. This will panic if the `usize`
-            /// index exceeds `u32::MAX`.
-            #[inline(always)]
-            pub fn new(index: usize) -> Self {
-                $type(index.try_into().unwrap_or_else(|_| {
-                    panic!(
-                        "Index value '{}' exceeds the maximum identifier width!",
-                        index
-                    )
-                }))
-            }
-
-            /// Convert to a usize.
-            #[inline(always)]
-            pub fn index(&self) -> usize {
-                self.0 as usize
-            }
-        }
-
-        impl From<u32> for $type {
-            fn from(value: u32) -> Self {
-                $type(value)
-            }
-        }
-
-        impl From<$type> for u32 {
-            fn from(value: $type) -> Self {
-                value.0
-            }
-        }
-    };
+    /// Convert a Qubit to a usize
+    #[inline(always)]
+    pub fn index(&self) -> usize {
+        self.0 as usize
+    }
 }
 
-impl_circuit_identifier!(Qubit);
-impl_circuit_identifier!(Clbit);
-impl_circuit_identifier!(Var);
-impl_circuit_identifier!(Stretch);
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Clbit(pub BitType);
+
+impl Clbit {
+    /// Construct a new Clbit object from a usize. if you have a u32 you can
+    /// create a `Clbit` object directly with `Clbit(0u32)`. This will panic
+    /// if the `usize` index exceeds `u32::MAX`.
+    #[inline(always)]
+    pub fn new(index: usize) -> Self {
+        Clbit(
+            index.try_into().unwrap_or_else(|_| {
+                panic!("Index value '{}' exceeds the maximum bit width!", index)
+            }),
+        )
+    }
+
+    /// Convert a Clbit to a usize
+    #[inline(always)]
+    pub fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
 
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
@@ -110,6 +102,30 @@ impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
             )?,
         };
         Ok(TupleLikeArg { value })
+    }
+}
+
+impl From<BitType> for Qubit {
+    fn from(value: BitType) -> Self {
+        Qubit(value)
+    }
+}
+
+impl From<Qubit> for BitType {
+    fn from(value: Qubit) -> Self {
+        value.0
+    }
+}
+
+impl From<BitType> for Clbit {
+    fn from(value: BitType) -> Self {
+        Clbit(value)
+    }
+}
+
+impl From<Clbit> for BitType {
+    fn from(value: Clbit) -> Self {
+        value.0
     }
 }
 
@@ -156,31 +172,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bit::PyClassicalRegister>()?;
     m.add_class::<bit::PyQuantumRegister>()?;
     m.add_class::<bit::PyAncillaRegister>()?;
-
-    // We need to explicitly add the auto-generated Python subclasses of Duration
-    // to the module so that pickle can find them during deserialization.
     m.add_class::<duration::Duration>()?;
-    m.add(
-        "Duration_ns",
-        duration::Duration::type_object(m.py()).getattr("ns")?,
-    )?;
-    m.add(
-        "Duration_us",
-        duration::Duration::type_object(m.py()).getattr("us")?,
-    )?;
-    m.add(
-        "Duration_ms",
-        duration::Duration::type_object(m.py()).getattr("ms")?,
-    )?;
-    m.add(
-        "Duration_s",
-        duration::Duration::type_object(m.py()).getattr("s")?,
-    )?;
-    m.add(
-        "Duration_dt",
-        duration::Duration::type_object(m.py()).getattr("dt")?,
-    )?;
-
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
@@ -192,6 +184,8 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     m.add_class::<parameterexpression::ParameterExpression>()?;
+    m.add_class::<parameterexpression::OPReplay>()?;
+    m.add_class::<parameterexpression::ParameterVector>()?;
     Ok(())
 }
 
