@@ -189,10 +189,25 @@ class TestCircuitVars(QiskitTestCase):
         b = expr.Stretch.new("b")
         c = expr.Stretch.new("c")
 
+        # Capture order doesn't matter in circuit equality!
         qc1 = QuantumCircuit(captures=[a, b, c])
         self.assertEqual(qc1, QuantumCircuit(captures=[a, b, c]))
-        self.assertNotEqual(qc1, QuantumCircuit(captures=[c, b, a]))
+        self.assertEqual(qc1, QuantumCircuit(captures=[c, b, a]))
 
+        qc1 = QuantumCircuit()
+        qc1.add_stretch(a)
+        qc1.add_stretch(b)
+        qc1.add_stretch(c)
+
+        qc2 = QuantumCircuit()
+        qc2.add_stretch(c)
+        qc2.add_stretch(b)
+        qc2.add_stretch(a)
+
+        # But declaration order does!
+        self.assertNotEqual(qc1, qc2)
+
+        qc1 = QuantumCircuit(captures=[a, b, c])
         qc2 = QuantumCircuit(captures=[a])
         qc2.add_stretch(b)
         qc2.add_stretch(c)

@@ -42,8 +42,26 @@ pub struct SabreDAG {
     pub num_clbits: usize,
     pub dag: DiGraph<DAGNode, ()>,
     pub first_layer: Vec<NodeIndex>,
-    pub nodes: Vec<(usize, Vec<VirtualQubit>, HashSet<usize>, bool)>,
     pub node_blocks: HashMap<usize, Vec<SabreDAG>>,
+}
+
+impl SabreDAG {
+    pub fn reverse_dag(&self) -> Self {
+        let mut out_dag = self.clone();
+        out_dag.dag.reverse();
+        out_dag.first_layer = out_dag
+            .dag
+            .node_indices()
+            .filter(|idx| {
+                out_dag
+                    .dag
+                    .neighbors_directed(*idx, Incoming)
+                    .next()
+                    .is_none()
+            })
+            .collect();
+        out_dag
+    }
 }
 
 #[pymethods]
@@ -105,7 +123,6 @@ impl SabreDAG {
             num_clbits,
             dag,
             first_layer,
-            nodes,
             node_blocks,
         })
     }

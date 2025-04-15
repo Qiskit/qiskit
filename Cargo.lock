@@ -1729,9 +1729,9 @@ checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
 
 [[package]]
 name = "rustiq-core"
-version = "0.0.10"
+version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "666b580cb45b60a39f5a17b284bbe8343cfcd67929931729b4afee19ec94d308"
+checksum = "51bfa802a80a4fa591941e4caaf2d6d7793ae3ffd307022afe0739453fae07a6"
 dependencies = [
  "itertools 0.10.5",
  "petgraph 0.6.5",
