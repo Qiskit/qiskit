@@ -317,7 +317,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
             print(unitary)
             print(type(unitary))
 
-            cliff = Clifford.from_matrix(unitary.copy())
+            cliff = Clifford.from_matrix(unitary)
 
             print(f"Cliffordize Success {cliff = }!")
 

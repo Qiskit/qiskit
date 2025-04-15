@@ -543,7 +543,9 @@ def generate_translation_passmanager(
             ),
 
         ]
-        fix_1q = [BasisTranslator(sel, extended_basis_gates, None)]
+
+        # todo: why is this?
+        fix_1q = []
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
