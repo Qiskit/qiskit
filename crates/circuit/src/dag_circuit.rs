@@ -399,13 +399,6 @@ impl PyBitLocations {
     }
 }
 
-struct DAGNodeInfo {
-    all_clbits: Vec<Clbit>,
-    vars: Option<Vec<Var>>,
-    node: NodeIndex,
-    qubits_id: Interned<[Qubit]>,
-}
-
 #[derive(Copy, Clone, Debug)]
 enum DAGVarType {
     Input = 0,
@@ -4947,16 +4940,13 @@ impl DAGCircuit {
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
     pub fn push_back(&mut self, py: Python, instr: PackedInstruction) -> PyResult<NodeIndex> {
+        let (all_cbits, vars) = self.get_classical_resources(py, &instr)?;
+
         // Increment the operation count
         self.increment_op(instr.op.name());
-        let initial_parse = self.get_classical_resources(py, instr)?;
 
-        let (all_cbits, vars, qubits_id, new_node) = (
-            initial_parse.all_clbits,
-            initial_parse.vars,
-            initial_parse.qubits_id,
-            initial_parse.node,
-        );
+        let qubits_id = instr.qubits;
+        let new_node = self.dag.add_node(NodeType::Operation(instr));
 
         // Put the new node in-between the previously "last" nodes on each wire
         // and the output map.
@@ -4996,10 +4986,10 @@ impl DAGCircuit {
     fn get_classical_resources(
         &mut self,
         py: Python,
-        instr: PackedInstruction,
-    ) -> PyResult<DAGNodeInfo> {
+        instr: &PackedInstruction,
+    ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(py, &instr) {
+            if self.may_have_additional_wires(py, instr) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
@@ -5016,19 +5006,8 @@ impl DAGCircuit {
                 (self.cargs_interner.get(instr.clbits).to_vec(), None)
             }
         };
-
-        // Get the correct qubit indices
-        let qubits_id = instr.qubits;
-
-        let result = DAGNodeInfo {
-            all_clbits,
-            vars,
-            node: self.dag.add_node(NodeType::Operation(instr)),
-            qubits_id,
-        };
-
         // Insert op-node to graph.
-        Ok(result)
+        Ok((all_clbits, vars))
     }
 
     /// Apply a [PackedInstruction] to the front of the circuit.
@@ -7234,17 +7213,14 @@ impl DAGCircuitBuilder {
     }
 
     /// Pushes a valid [PackedInstruction] to the back ot the circuit.
-    pub fn push_back(&mut self, py: Python<'_>, inst: PackedInstruction) -> PyResult<NodeIndex> {
-        // Increment the operation count
-        self.dag.increment_op(inst.op.name());
-        let initial_parse = self.dag.get_classical_resources(py, inst)?;
+    pub fn push_back(&mut self, py: Python<'_>, instr: PackedInstruction) -> PyResult<NodeIndex> {
+        let (all_cbits, vars) = self.dag.get_classical_resources(py, &instr)?;
 
-        let (all_cbits, vars, qubits_id, new_node) = (
-            initial_parse.all_clbits,
-            initial_parse.vars,
-            initial_parse.qubits_id,
-            initial_parse.node,
-        );
+        // Increment the operation count
+        self.dag.increment_op(instr.op.name());
+
+        let qubits_id = instr.qubits;
+        let new_node = self.dag.dag.add_node(NodeType::Operation(instr));
 
         // Check all the qubits in this instruction.
         for qubit in self.dag.qargs_interner.get(qubits_id) {
