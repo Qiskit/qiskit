@@ -28,7 +28,7 @@ itertools.workspace = true
 qiskit-circuit.workspace = true
 thiserror.workspace = true
 ndarray-einsum = "0.8.0"
-rustiq-core = "0.0.10"
+rustiq-core = "0.0.11"
 bytemuck.workspace = true
 nalgebra.workspace = true
 
