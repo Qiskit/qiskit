@@ -205,7 +205,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
 
     def test_init_validate_true(self):
         """Test init validate kwarg"""
-        obj = [["X", "Y", "Z"], ["I", "0", "1"]]
+        obj = [["A", "B", "C"], ["D", "E", "F"]]
         with self.assertRaises(ValueError):
             ObservablesArray(obj, validate=True)
 
