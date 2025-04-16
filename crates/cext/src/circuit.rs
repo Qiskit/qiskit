@@ -427,7 +427,6 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
     circuit.__len__()
 }
 
-
 /// @ingroup QkCircuit
 ///
 /// A circuit instruction representation.
