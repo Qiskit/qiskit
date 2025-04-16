@@ -259,10 +259,9 @@ class ObservablesArray(ShapedMixin):
         """Validate the consistency in observables array."""
         num_qubits = None
         for obs in self._array.reshape(-1):
-            basis_num_qubits = len(next(iter(obs)))
             if num_qubits is None:
-                num_qubits = basis_num_qubits
-            elif basis_num_qubits != num_qubits:
+                num_qubits = obs.num_qubits
+            elif obs.num_qubits != num_qubits:
                 raise ValueError(
                     "The number of qubits must be the same for all observables in the "
                     "observables array."
