@@ -362,7 +362,7 @@ pub unsafe extern "C" fn qk_circuit_append_barrier(
 
 #[repr(C)]
 pub struct OpCount {
-    name: *mut c_char,
+    name: *const c_char,
     count: usize,
 }
 
@@ -429,7 +429,7 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
 
 #[repr(C)]
 pub struct CInstruction {
-    name: *mut c_char,
+    name: *const c_char,
     num_qubits: u32,
     qubits: *mut u32,
     num_clbits: u32,
