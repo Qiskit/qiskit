@@ -342,3 +342,16 @@ def load(
             )
         )
     return programs
+
+
+def get_qpy_version(
+    file_obj: BinaryIO,
+) -> int:
+    """Get the current QPY version.
+
+    Returns:
+        The current QPY version.
+    """
+
+    version = struct.unpack("!6sB", file_obj.read(7))[1]
+    return version
