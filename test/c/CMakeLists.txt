@@ -32,11 +32,12 @@ if (MSVC)
     # Store the directory where the qiskit_cext.dll is located.
     get_filename_component(qiskit_dll_dir ${qiskit} DIRECTORY)
 
-    # Get the Python runtime library, which has been stored into a config file during the 
+    # Get the Python runtime library, which has been stored into a config file during the
     # crate build process. This is to ensure we link against the same library that PyO3 is using.
     file(READ "${CMAKE_SOURCE_DIR}/target/pyo3_python.config" pyo3_config)
     string(REGEX MATCH "PYO3_PYTHON_LIB_DIR=([^\n]*)" _match "${pyo3_config}")
     set(pyo3_python_lib_dir ${CMAKE_MATCH_1})
+    cmake_path(GET pyo3_python_lib_dir PARENT_PATH pyo3_python_path)
 endif ()
 
 # Finally, we must define each test to be executed through `ctest` which we do
@@ -56,7 +57,7 @@ foreach (test ${discovered_tests})
     # add Python dll to the PATH of the tests
     if (MSVC)
         set_tests_properties(
-            ${test_name} PROPERTIES ENVIRONMENT "PATH=%PATH%\;${qiskit_dll_dir}\;${pyo3_python_lib_dir}"
+            ${test_name} PROPERTIES ENVIRONMENT "PATH=%PATH%\;${qiskit_dll_dir}\;${pyo3_python_lib_dir}\;${pyo3_python_path}"
         )
     endif ()
 endforeach ()
