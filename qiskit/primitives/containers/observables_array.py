@@ -98,16 +98,15 @@ class ObservablesArray(ShapedMixin):
                 for qubit, pauli in zip(pauli_qubits, sparse_pauli_str):
                     full_pauli_str += "I" * (qubit - prev_qubit - 1) + pauli
                     prev_qubit = qubit
-                
+
                 full_pauli_str += "I" * (obs.num_qubits - pauli_qubits[-1] - 1)
                 full_pauli_str = full_pauli_str[::-1]
 
             # We know that the dictionary doesn't contain yet full_pauli_str as a key
             # because the observable is guaranteed to be simplified
             result[full_pauli_str] = np.real(coeff)
-        
-        return result
 
+        return result
 
     def __repr__(self):
         prefix = f"{type(self).__name__}("
@@ -158,7 +157,7 @@ class ObservablesArray(ShapedMixin):
         item = self._array[args]
         if not isinstance(item, np.ndarray):
             return self.obs_to_dict(item)
-        
+
         result = np.ndarray(item.shape, dtype=dict)
         for ndi, obs in np.ndenumerate(item):
             result[ndi] = self.obs_to_dict(obs)

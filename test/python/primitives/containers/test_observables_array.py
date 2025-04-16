@@ -274,7 +274,9 @@ class ObservablesArrayTestCase(QiskitTestCase):
 
     def test_array_2d(self):
         """Test __array__ dunder method"""
-        obj = np.array([[{"II": 1}, {"XI": 2}, {"IY": 3}], [{"XX": 1}, {"XY": 2}, {"YY": 3}]], dtype=object)
+        obj = np.array(
+            [[{"II": 1}, {"XI": 2}, {"IY": 3}], [{"XX": 1}, {"XY": 2}, {"YY": 3}]], dtype=object
+        )
         obs = ObservablesArray(obj)
         self.assertTrue(np.all(np.array(obs) == obj))
 
@@ -287,7 +289,9 @@ class ObservablesArrayTestCase(QiskitTestCase):
 
     def test_getitem_2d(self):
         """Test __getitem__ for 2D array"""
-        obj = np.array([[{"II": 1}, {"XI": 2}, {"IY": 3}], [{"XX": 1}, {"XY": 2}, {"YY": 3}]], dtype=object)
+        obj = np.array(
+            [[{"II": 1}, {"XI": 2}, {"IY": 3}], [{"XX": 1}, {"XY": 2}, {"YY": 3}]], dtype=object
+        )
         obs = ObservablesArray(obj)
         for i in range(obj.shape[0]):
             row = obs[i]
@@ -343,4 +347,3 @@ class ObservablesArrayTestCase(QiskitTestCase):
                             {labels_rs[idx]: 1},
                             msg=f"failed for shape {shape} with input format {input_shape}",
                         )
-
