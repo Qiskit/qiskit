@@ -43,7 +43,6 @@ Routing
 
    BasicSwap
    LookaheadSwap
-   StochasticSwap
    SabreSwap
    Commuting2qGateRouter
    StarPreRouting
@@ -88,18 +87,10 @@ Optimizations
    ResetAfterMeasureSimplification
    OptimizeCliffords
    ElidePermutations
-   NormalizeRXAngle
    OptimizeAnnotated
    Split2QUnitaries
    RemoveIdentityEquivalent
-
-Calibration
-=============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-.. autofunction:: rzx_templates
+   ContractIdleWiresInControlFlow
 
 Scheduling
 =============
@@ -173,7 +164,6 @@ Additional Passes
    MinimumPoint
    ContainsInstruction
    GatesInBasis
-   ConvertConditionsToIfOps
    UnrollForLoops
    FilterOpNodes
 """
@@ -196,7 +186,6 @@ from .layout import SabrePreLayout
 from .routing import BasicSwap
 from .routing import LayoutTransformation
 from .routing import LookaheadSwap
-from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import Commuting2qGateRouter
 from .routing import StarPreRouting
@@ -232,10 +221,10 @@ from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 from .optimization import ElidePermutations
-from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
 from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
+from .optimization import ContractIdleWiresInControlFlow
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -256,9 +245,6 @@ from .synthesis import HLSConfig
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
 from .synthesis import AQCSynthesisPlugin
-
-# calibration
-from .calibration.rzx_templates import rzx_templates
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
@@ -284,6 +270,5 @@ from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
-from .utils import ConvertConditionsToIfOps
 from .utils import UnrollForLoops
 from .utils import FilterOpNodes

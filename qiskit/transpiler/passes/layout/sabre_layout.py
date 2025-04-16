@@ -39,7 +39,7 @@ from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, Neighb
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 
 logger = logging.getLogger(__name__)
 
@@ -176,11 +176,11 @@ class SabreLayout(TransformationPass):
         self.max_iterations = max_iterations
         self.trials = swap_trials
         if swap_trials is None:
-            self.swap_trials = CPU_COUNT
+            self.swap_trials = default_num_processes()
         else:
             self.swap_trials = swap_trials
         if layout_trials is None:
-            self.layout_trials = CPU_COUNT
+            self.layout_trials = default_num_processes()
         else:
             self.layout_trials = layout_trials
         self.skip_routing = skip_routing
@@ -305,6 +305,9 @@ class SabreLayout(TransformationPass):
         # the layout and routing together as part of resolving the Sabre result.
         physical_qubits = QuantumRegister(self.coupling_map.size(), "q")
         mapped_dag = DAGCircuit()
+        mapped_dag.name = dag.name
+        mapped_dag.metadata = dag.metadata
+        mapped_dag.global_phase = dag.global_phase
         mapped_dag.add_qreg(physical_qubits)
         mapped_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
@@ -315,7 +318,10 @@ class SabreLayout(TransformationPass):
             mapped_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             mapped_dag.add_declared_var(var)
-        mapped_dag.global_phase = dag.global_phase
+        for stretch in dag.iter_captured_stretches():
+            mapped_dag.add_captured_stretch(stretch)
+        for stretch in dag.iter_declared_stretches():
+            mapped_dag.add_declared_stretch(stretch)
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }

@@ -194,6 +194,26 @@ not sufficient, the corresponding synthesis method will return `None`.
       - `0`
       - `k-2`
       - at most `8*k-6` CX gates
+    * - ``"2_clean_kg24"``
+      - :class:`~.MCXSynthesis2CleanKG24`
+      - `2`
+      - `0`
+      - at most `12*k-18` CX gates
+    * - ``"2_dirty_kg24"``
+      - :class:`~.MCXSynthesis2DirtyKG24`
+      - `0`
+      - `2`
+      - at most `24*k-48` CX gates
+    * - ``"1_clean_kg24"``
+      - :class:`~.MCXSynthesis1CleanKG24`
+      - `1`
+      - `0`
+      - at most `12*k-18` CX gates
+    * - ``"1_dirty_kg24"``
+      - :class:`~.MCXSynthesis1DirtyKG24`
+      - `0`
+      - `1`
+      - at most `24*k-48` CX gates
     * - ``"1_clean_b95"``
       - :class:`~.MCXSynthesis1CleanB95`
       - `1`
@@ -212,6 +232,10 @@ not sufficient, the corresponding synthesis method will return `None`.
    MCXSynthesisNoAuxV24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
+   MCXSynthesis2CleanKG24
+   MCXSynthesis2DirtyKG24
+   MCXSynthesis1CleanKG24
+   MCXSynthesis1DirtyKG24
    MCXSynthesis1CleanB95
    MCXSynthesisDefault
 
@@ -249,6 +273,58 @@ MCMT Synthesis
    MCMTSynthesisVChain
    MCMTSynthesisNoAux
    MCMTSynthesisDefault
+
+   
+Integer comparators
+'''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.IntegerComparatorGate` (key = ``"IntComp"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Description
+      - Auxiliary qubits
+    * - ``"twos"``
+      - :class:`~.IntComparatorSynthesis2s`
+      - use addition with two's complement 
+      - ``n - 1`` clean 
+    * - ``"noaux"``
+      - :class:`~.IntComparatorSynthesisNoAux`
+      - flip the target controlled on all :math:`O(2^l)` allowed integer values
+      - none
+    * - ``"default"``
+      - :class:`~.IntComparatorSynthesisDefault`
+      - use the best algorithm depending on the available auxiliary qubits
+      - any
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   IntComparatorSynthesis2s
+   IntComparatorSynthesisNoAux
+   IntComparatorSynthesisDefault
+
+   
+Sums
+''''
+
+.. list-table:: Plugins for :class:`.WeightedSumGate` (key = ``"WeightedSum"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Description
+      - Auxiliary qubits
+    * - ``"default"``
+      - :class:`.WeightedSumSynthesisDefault`
+      - use a V-chain based synthesis
+      - given ``s`` sum qubits, used ``s - 1 + int(s > 2)`` clean auxiliary qubits
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   WeightedSumSynthesisDefault
 
 
 Pauli Evolution Synthesis
@@ -413,6 +489,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.operation import Operation
 from qiskit.circuit.library import (
     LinearFunction,
     QFTGate,
@@ -426,9 +503,24 @@ from qiskit.circuit.library import (
     HalfAdderGate,
     FullAdderGate,
     MultiplierGate,
+    WeightedSumGate,
+    GlobalPhaseGate,
+)
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    Modifier,
+    ControlModifier,
+    InverseModifier,
+    PowerModifier,
+    _canonicalize_modifiers,
 )
 from qiskit.transpiler.coupling import CouplingMap
 
+from qiskit.synthesis.arithmetic import (
+    synth_integer_comparator_2s,
+    synth_integer_comparator_greedy,
+    synth_weighted_sum_carry,
+)
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -454,7 +546,11 @@ from qiskit.synthesis.qft import (
 )
 from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15,
+    synth_mcx_2_dirty_kg24,
+    synth_mcx_1_dirty_kg24,
     synth_mcx_n_clean_m15,
+    synth_mcx_2_clean_kg24,
+    synth_mcx_1_clean_kg24,
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
@@ -470,6 +566,10 @@ from qiskit.synthesis.arithmetic import (
 )
 from qiskit.quantum_info.operators import Clifford
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
+
+from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
 
 
@@ -938,9 +1038,10 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
     This plugin name is :``mcx.n_dirty_i15`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis
+    For a multi-controlled X gate with :math:`k\ge 4` control qubits this synthesis
     method requires :math:`k - 2` additional dirty auxiliary qubits. The synthesized
     circuit consists of :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates.
+    For :math:`k\le 3` explicit efficient circuits are used instead.
 
     The plugin supports the following plugin-specific options:
 
@@ -1035,14 +1136,14 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 5` control qubits this synthesis
     method requires a single additional clean auxiliary qubit. The synthesized
-    circuit consists of :math:`k + 2` qubits and at most :math:`16 * k - 8` CX gates.
+    circuit consists of :math:`k + 2` qubits and at most :math:`16 * k - 24` CX gates.
 
     The plugin supports the following plugin-specific options:
 
     * num_clean_ancillas: The number of clean auxiliary qubits available.
 
     References:
-        1. Barenco et. al., Phys.Rev. A52 3457 (1995),
+        1. Barenco et. al., *Elementary gates for quantum computation*, Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
     """
 
@@ -1069,6 +1170,174 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
             return None
 
         decomposition = synth_mcx_1_clean_b95(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesis2CleanKG24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
+    Gidney (2024).
+
+    See [1] for details.
+
+    The plugin name is :``mcx.2_clean_kg24`` which can be used as the key on an :class:`~.HLSConfig`
+    object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
+    :math:`2` additional clean ancillary qubits. The synthesized circuit consists of :math:`k + 2`
+    qubits and at most :math:`12 * k - 18` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean ancillary qubits available.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_clean_ancillas = options.get("num_clean_ancillas", 0)
+
+        if num_clean_ancillas < 2:
+            return None
+
+        decomposition = synth_mcx_2_clean_kg24(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
+    Gidney (2024).
+
+    See [1] for details.
+
+    The plugin name is :``mcx.2_dirty_kg24`` which can be used as the key on an :class:`~.HLSConfig`
+    object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
+    :math:`2` additional dirty ancillary qubits. The synthesized circuit consists of :math:`k + 2`
+    qubits and at most :math:`24 * k - 48` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean ancillary qubits available.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+
+        if num_dirty_ancillas < 2:
+            return None
+
+        decomposition = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesis1CleanKG24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
+    Gidney (2024).
+
+    See [1] for details.
+
+    The plugin name is :``mcx.1_clean_kg24`` which can be used as the key on an :class:`~.HLSConfig`
+    object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
+    :math:`1` additional clean ancillary qubit. The synthesized circuit consists of :math:`k + 2`
+    qubits and at most :math:`12 * k - 18` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean ancillary qubits available.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_clean_ancillas = options.get("num_clean_ancillas", 0)
+
+        if num_clean_ancillas < 1:
+            return None
+
+        decomposition = synth_mcx_1_clean_kg24(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the paper by Khattar and
+    Gidney (2024).
+
+    See [1] for details.
+
+    The plugin name is :``mcx.1_dirty_kg24`` which can be used as the key on an :class:`~.HLSConfig`
+    object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
+    :math:`1` additional dirty ancillary qubit. The synthesized circuit consists of :math:`k + 2`
+    qubits and at most :math:`24 * k - 48` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean ancillary qubits available.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+
+        if num_dirty_ancillas < 1:
+            return None
+
+        decomposition = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
         return decomposition
 
 
@@ -1155,27 +1424,23 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
         # Iteratively run other synthesis methods available
 
-        if (
-            decomposition := MCXSynthesisNCleanM15().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
+        for synthesis_method in [
+            MCXSynthesisNCleanM15,
+            MCXSynthesisNDirtyI15,
+            MCXSynthesis2CleanKG24,
+            MCXSynthesis2DirtyKG24,
+            MCXSynthesis1CleanKG24,
+            MCXSynthesis1DirtyKG24,
+            MCXSynthesis1CleanB95,
+        ]:
+            if (
+                decomposition := synthesis_method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
+                return decomposition
 
-        if (
-            decomposition := MCXSynthesisNDirtyI15().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
-        if (
-            decomposition := MCXSynthesis1CleanB95().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
+        # If no synthesis method was successful, fall back to the default
         return MCXSynthesisNoAuxV24().run(
             high_level_object, coupling_map, target, qubits, **options
         )
@@ -1244,6 +1509,47 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
             high_level_object.num_ctrl_qubits,
             high_level_object.num_target_qubits,
             ctrl_state,
+        )
+
+
+class IntComparatorSynthesisDefault(HighLevelSynthesisPlugin):
+    """The default synthesis for ``IntegerComparatorGate``.
+
+    Currently this is only supporting an ancilla-based decomposition.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        num_state_qubits = high_level_object.num_qubits - 1
+        num_aux = num_state_qubits - 1
+        if options.get("num_clean_ancillas", 0) < num_aux:
+            return synth_integer_comparator_greedy(
+                num_state_qubits, high_level_object.value, high_level_object.geq
+            )
+
+        return synth_integer_comparator_2s(
+            num_state_qubits, high_level_object.value, high_level_object.geq
+        )
+
+
+class IntComparatorSynthesisNoAux(HighLevelSynthesisPlugin):
+    """A potentially exponentially expensive comparison w/o auxiliary qubits."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        return synth_integer_comparator_greedy(
+            high_level_object.num_state_qubits, high_level_object.value, high_level_object.geq
+        )
+
+
+class IntComparatorSynthesis2s(HighLevelSynthesisPlugin):
+    """An integer comparison based on 2s complement."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        num_aux = high_level_object.num_state_qubits - 1
+        if options.get("num_clean_ancillas", 0) < num_aux:
+            return None
+
+        return synth_integer_comparator_2s(
+            high_level_object.num_state_qubits, high_level_object.value, high_level_object.geq
         )
 
 
@@ -1352,7 +1658,7 @@ class ModularAdderSynthesisD00(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed")
+        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed", annotated=True)
 
 
 class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
@@ -1464,7 +1770,7 @@ class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="half")
+        return adder_qft_d00(high_level_object.num_state_qubits, kind="half", annotated=True)
 
 
 class FullAdderSynthesisDefault(HighLevelSynthesisPlugin):
@@ -1663,3 +1969,339 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+
+
+class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
+    """Synthesize an :class:`.AnnotatedOperation` using the default synthesis algorithm.
+
+    This plugin name is:``annotated.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        # The plugin is triggered based on the name (i.e. for operations called "annotated").
+        # However, we should only do something when the operation is truthfully an AnnotatedOperation.
+        if not isinstance(high_level_object, AnnotatedOperation):
+            return None
+
+        # Combine the modifiers. If there were no modifiers, or the modifiers magically canceled out,
+        # return the quantum circuit containing the base operation.
+        high_level_object = self._canonicalize_op(high_level_object)
+        if not isinstance(high_level_object, AnnotatedOperation):
+            return self._instruction_to_circuit(high_level_object)
+
+        operation = high_level_object
+        modifiers = high_level_object.modifiers
+
+        # The plugin needs additional information that is not yet passed via the run's method
+        # arguments: namely high-level-synthesis data and options, the global qubits over which
+        # the operation is defined, and the initial state of each global qubit.
+        tracker = options.get("qubit_tracker", None)
+        data = options.get("hls_data", None)
+        input_qubits = options.get("input_qubits", None)
+
+        if data is None or input_qubits is None:
+            raise TranspilerError(
+                "The AnnotatedSynthesisDefault plugin should receive data and input_qubits via options."
+            )
+
+        # The synthesis consists of two steps:
+        #   - First, we synthesize the base operation.
+        #   - Second, we apply modifiers to this circuit.
+        #
+        # An important optimization (similar to the code in ``add_control.py``) is to synthesize
+        # the base operation with respect to a larger set of "basis" gates, to which the control
+        # logic can be added more efficiently. In addition, we add annotated operations to be
+        # in this larger set, exploiting the fact that adding control to annotated operations
+        # returns a new annotated operation with an extended list of modifiers.
+        #
+        # Note that it is fine for this function to return a circuit with high-level objects
+        # (including annotated operations) as the HighLevelSynthesis transpiler pass will
+        # recursively re-synthesize this circuit, However, we should always guarantee that some
+        # progress is made.
+        basis = set(EFFICIENTLY_CONTROLLED_GATES + ["annotated", "mcx", "qft"])
+
+        base_synthesis_data = HighLevelSynthesisData(
+            hls_config=data.hls_config,
+            hls_plugin_manager=data.hls_plugin_manager,
+            coupling_map=None,
+            target=None,
+            equivalence_library=data.equivalence_library,
+            hls_op_names=data.hls_op_names,
+            device_insts=basis,
+            use_physical_indices=data.use_physical_indices,
+            min_qubits=0,
+            unroll_definitions=data.unroll_definitions,
+        )
+
+        num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))
+        power = sum(mod.power for mod in modifiers if isinstance(mod, PowerModifier))
+        is_inverted = sum(1 for mod in modifiers if isinstance(mod, InverseModifier)) % 2
+
+        # First, synthesize the base operation of this annotated operation.
+        # As this step cannot use any control qubits as auxiliary qubits, we use a dedicated
+        # tracker (annotated_tracker).
+        # The logic is as follows:
+        # - annotated_tracker.disable control qubits
+        # - if have power or inverse modifiers, annotated_tracker.set_dirty(base_qubits)
+        # - synthesize the base operation using annotated tracker
+        # - main_tracker.set_dirty(base_qubits)
+        #
+        # Note that we need to set the base_qubits to dirty if we have power or inverse
+        # modifiers. For power: even if the power is a positive integer (that is, we need
+        # to repeat the same circuit multiple times), even if the target is initially at |0>,
+        # it will generally not be at |0> after one iteration. For inverse: as we
+        # flip the order of operations, we cannot exploit which qubits are at |0> as "viewed from
+        # the back of the circuit". If we just have control modifiers, we can use the state
+        # of base qubits when synthesizing the controlled operation.
+        #
+        # In addition, all of the other global qubits that are not a part of the annotated
+        # operation can be used as they are in all cases, since we are assuming that all of
+        # the synthesis methods preserve the states of ancilla qubits.
+        annotated_tracker = tracker.copy()
+        control_qubits = input_qubits[:num_ctrl]
+        base_qubits = input_qubits[num_ctrl:]
+        annotated_tracker.disable(control_qubits)  # do not access control qubits
+        if power != 0 or is_inverted:
+            annotated_tracker.set_dirty(base_qubits)
+
+        # Note that synthesize_operation also returns the output qubits on which the
+        # operation is defined, however currently the plugin mechanism has no way
+        # to return these (and instead the upstream code greedily grabs some ancilla
+        # qubits from the circuit). We should refactor the plugin "run" iterface to
+        # return the actual ancilla qubits used.
+        synthesized_base_op_result = synthesize_operation(
+            operation.base_op, base_qubits, base_synthesis_data, annotated_tracker
+        )
+
+        # The base operation does not need to be synthesized.
+        # For simplicity, we wrap the instruction into a circuit. Note that
+        # this should not deteriorate the quality of the result.
+        if synthesized_base_op_result is None:
+            synthesized_base_op = self._instruction_to_circuit(operation.base_op)
+        else:
+            synthesized_base_op = QuantumCircuit._from_circuit_data(synthesized_base_op_result[0])
+        tracker.set_dirty(base_qubits)
+
+        # As one simple optimization, we apply conjugate decomposition to the circuit obtained
+        # while synthesizing the base operator.
+        conjugate_decomp = self._conjugate_decomposition(synthesized_base_op)
+
+        if conjugate_decomp is None:
+            # Apply annotations to the whole circuit.
+            # This step currently does not introduce ancilla qubits. However it makes
+            # a lot of sense to allow this in the future.
+            synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
+        else:
+            # Apply annotations only to the middle part of the circuit.
+            (front, middle, back) = conjugate_decomp
+            synthesized = QuantumCircuit(operation.num_qubits)
+            synthesized.compose(
+                front, synthesized.qubits[num_ctrl : operation.num_qubits], inplace=True
+            )
+            synthesized.compose(
+                self._apply_annotations(middle, operation.modifiers),
+                synthesized.qubits,
+                inplace=True,
+            )
+            synthesized.compose(
+                back, synthesized.qubits[num_ctrl : operation.num_qubits], inplace=True
+            )
+
+        return synthesized
+
+    @staticmethod
+    def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> QuantumCircuit:
+        """
+        Applies modifiers to a quantum circuit.
+        """
+        for modifier in modifiers:
+            if isinstance(modifier, InverseModifier):
+                circuit = circuit.inverse()
+
+            elif isinstance(modifier, ControlModifier):
+                if circuit.num_clbits > 0:
+                    raise TranspilerError(
+                        "AnnotatedSynthesisDefault: cannot control a circuit with classical bits."
+                    )
+
+                # Apply the control modifier to each gate in the circuit.
+                controlled_circuit = QuantumCircuit(modifier.num_ctrl_qubits + circuit.num_qubits)
+                if circuit.global_phase != 0:
+                    controlled_op = GlobalPhaseGate(circuit.global_phase).control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                    controlled_circuit.append(controlled_op, controlled_qubits)
+                for inst in circuit:
+                    inst_op = inst.operation
+                    inst_qubits = inst.qubits
+                    controlled_op = inst_op.control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
+                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                        modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
+                    ]
+                    controlled_circuit.append(controlled_op, controlled_qubits)
+
+                circuit = controlled_circuit
+
+                if isinstance(circuit, AnnotatedOperation):
+                    raise TranspilerError(
+                        "AnnotatedSynthesisDefault: failed to synthesize the control modifier."
+                    )
+
+            elif isinstance(modifier, PowerModifier):
+                circuit = circuit.power(modifier.power)
+
+            else:
+                raise TranspilerError(f"AnnotatedSynthesisDefault: Unknown modifier {modifier}.")
+
+        return circuit
+
+    @staticmethod
+    def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
+        """Wraps a single operation into a quantum circuit."""
+        circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
+        circuit.append(op, circuit.qubits, circuit.clbits)
+        return circuit
+
+    @staticmethod
+    def _instruction_to_circuit(op: Operation) -> QuantumCircuit:
+        """Wraps a single operation into a quantum circuit."""
+        circuit = QuantumCircuit(op.num_qubits, op.num_clbits)
+        circuit.append(op, circuit.qubits, circuit.clbits)
+        return circuit
+
+    @staticmethod
+    def _canonicalize_op(op: Operation) -> Operation:
+        """
+        Combines recursive annotated operations and canonicalizes modifiers.
+        """
+        cur = op
+        all_modifiers = []
+
+        while isinstance(cur, AnnotatedOperation):
+            all_modifiers.append(cur.modifiers)
+            cur = cur.base_op
+
+        new_modifiers = []
+        for modifiers in all_modifiers[::-1]:
+            new_modifiers.extend(modifiers)
+
+        canonical_modifiers = _canonicalize_modifiers(new_modifiers)
+
+        if not canonical_modifiers:
+            return cur
+
+        return AnnotatedOperation(cur, canonical_modifiers)
+
+    @staticmethod
+    def _are_inverse_ops(inst1: "CircuitInstruction", inst2: "CircuitInstruction"):
+        """A very naive function that checks whether two circuit instructions are inverse of
+        each other. The main use-case covered is a ``QFTGate`` and its inverse, represented as
+        an ``AnnotatedOperation`` with a single ``InverseModifier``.
+        """
+        res = False
+
+        if (
+            inst1.qubits != inst2.qubits
+            or inst1.clbits != inst2.clbits
+            or len(inst1.params) != len(inst2.params)
+        ):
+            return False
+
+        op1 = inst1.operation
+        op2 = inst2.operation
+
+        ann1 = isinstance(op1, AnnotatedOperation)
+        ann2 = isinstance(op2, AnnotatedOperation)
+
+        if not ann1 and not ann2:
+            res = op1 == op2.inverse()
+        elif not ann1 and ann2 and op2.modifiers == [InverseModifier()]:
+            res = op1 == op2.base_op
+        elif not ann2 and ann1 and op1.modifiers == [InverseModifier()]:
+            res = op1.base_op == op2
+
+        return res
+
+    @staticmethod
+    def _conjugate_decomposition(
+        circuit: QuantumCircuit,
+    ) -> tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit] | None:
+        """
+        Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
+        ``A = P -- Q -- R`` and ``R = P^{-1}``.
+
+        This is accomplished by iteratively finding inverse nodes at the front and at the back of the
+        circuit.
+
+        The function returns ``None`` when ``P`` and ``R`` are empty.
+        """
+        num_gates = circuit.size()
+
+        idx = 0
+        ridx = num_gates - 1
+
+        while True:
+            if idx >= ridx:
+                break
+            if AnnotatedSynthesisDefault._are_inverse_ops(circuit[idx], circuit[ridx]):
+                idx += 1
+                ridx -= 1
+            else:
+                break
+
+        if idx == 0:
+            return None
+
+        front_circuit = circuit.copy_empty_like()
+        front_circuit.global_phase = 0
+        for i in range(0, idx):
+            front_circuit.append(circuit[i])
+        middle_circuit = circuit.copy_empty_like()  # inherits the global phase
+        for i in range(idx, ridx + 1):
+            middle_circuit.append(circuit[i])
+        back_circuit = circuit.copy_empty_like()
+        back_circuit.global_phase = 0
+        for i in range(ridx + 1, num_gates):
+            back_circuit.append(circuit[i])
+        return (front_circuit, middle_circuit, back_circuit)
+
+
+class WeightedSumSynthesisDefault(HighLevelSynthesisPlugin):
+    """Synthesize a :class:`.WeightedSumGate` using the default synthesis algorithm.
+
+    This plugin name is:``WeightedSum.default`` which can be used as the key on
+    an :class:`.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    .. note::
+
+        This default plugin requires auxiliary qubits. There is currently no implementation
+        available without auxiliary qubits.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, WeightedSumGate):
+            return None
+
+        required_auxiliaries = (
+            high_level_object.num_sum_qubits - 1 + int(high_level_object.num_sum_qubits > 2)
+        )
+        if (num_clean := options.get("num_clean_ancillas", 0)) < required_auxiliaries:
+            warnings.warn(
+                f"Cannot synthesize a WeightedSumGate on {high_level_object.num_state_qubits} state "
+                f"qubits with less than {required_auxiliaries} clean auxiliary qubits. Only "
+                f"{num_clean} are available. This will likely lead to a error in HighLevelSynthesis."
+            )
+            return None
+
+        return synth_weighted_sum_carry(high_level_object)

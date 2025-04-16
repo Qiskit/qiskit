@@ -16,63 +16,35 @@
 import logging
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
-import warnings
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
-from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
-from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.target import Target
-from qiskit.utils import deprecate_arg
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
 
 logger = logging.getLogger(__name__)
 
 _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
 
 
-@deprecate_arg(
-    name="instruction_durations",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined instruction durations with "
-    "`Target.from_configuration(..., instruction_durations=...)`",
-)
-@deprecate_arg(
-    name="timing_constraints",
-    since="1.3",
-    package_name="Qiskit",
-    removal_timeline="in Qiskit 2.0",
-    additional_msg="The `target` parameter should be used instead. You can build a `Target` instance "
-    "with defined timing constraints with "
-    "`Target.from_configuration(..., timing_constraints=...)`",
-)
-@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
 def transpile(  # pylint: disable=too-many-return-statements
     circuits: _CircuitT,
     backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
-    inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
     layout_method: Optional[str] = None,
     routing_method: Optional[str] = None,
     translation_method: Optional[str] = None,
     scheduling_method: Optional[str] = None,
-    instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = 1.0,
-    timing_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
@@ -95,25 +67,21 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     The prioritization of transpilation target constraints works as follows: if a ``target``
     input is provided, it will take priority over any ``backend`` input or loose constraints
-    (``basis_gates``, ``inst_map``, ``coupling_map``, ``instruction_durations``,
-    ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
+    (``basis_gates``, ``coupling_map``, or ``dt``). If a ``backend`` is provided
+    together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
-    constraint. This behavior is independent of whether the ``backend`` instance is of type
-    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
+    constraint. This behavior is summarized in the table below. The first column
     in the table summarizes the potential user-provided constraints, and each cell shows whether
     the priority is assigned to that specific constraint input or another input
-    (`target`/`backend(V1)`/`backend(V2)`).
+    (`target`/`backend(V2)`).
 
-    ============================ ========= ======================== =======================
-    User Provided                target    backend(V1)              backend(V2)
-    ============================ ========= ======================== =======================
-    **basis_gates**              target    basis_gates              basis_gates
-    **coupling_map**             target    coupling_map             coupling_map
-    **instruction_durations**    target    instruction_durations    instruction_durations
-    **inst_map**                 target    inst_map                 inst_map
-    **dt**                       target    dt                       dt
-    **timing_constraints**       target    timing_constraints       timing_constraints
-    ============================ ========= ======================== =======================
+    ============================ ========= ========================
+    User Provided                target    backend(V2)
+    ============================ ========= ========================
+    **basis_gates**              target    basis_gates
+    **coupling_map**             target    coupling_map
+    **dt**                       target    dt
+    ============================ ========= ========================
 
     Args:
         circuits: Circuit(s) to transpile
@@ -122,12 +90,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             will override the backend's.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
-        inst_map: DEPRECATED. Mapping of unrolled gates to pulse schedules. If this is not provided,
-            transpiler tries to get from the backend. If any user defined calibration
-            is found in the map and this is used in a circuit, transpiler attaches
-            the custom gate definition to the circuit. This enables one to flexibly
-            override the low-level instruction implementation. This feature is available
-            iff the backend supports the pulse gate experiment.
         coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
             the coupling map is symmetric, both directions need to be specified.
 
@@ -189,40 +151,10 @@ def transpile(  # pylint: disable=too-many-return-statements
             to use for the ``scheduling`` stage. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"scheduling"`` for the ``stage_name``
             argument.
-        instruction_durations: Durations of instructions.
-            Applicable only if scheduling_method is specified.
-            The gate lengths defined in ``backend.properties`` are used as default.
-            They are overwritten if this ``instruction_durations`` is specified.
-            The format of ``instruction_durations`` must be as follows.
-            The `instruction_durations` must be given as a list of tuples
-            [(instruction_name, qubits, duration, unit), ...].
-            | [('cx', [0, 1], 12.3, 'ns'), ('u3', [0], 4.56, 'ns')]
-            | [('cx', [0, 1], 1000), ('u3', [0], 300)]
-            If unit is omitted, the default is 'dt', which is a sample time depending on backend.
-            If the time unit is 'dt', the duration must be an integer.
         dt: Backend sample time (resolution) in seconds.
-            If ``None`` (default), ``backend.configuration().dt`` is used.
+            If ``None`` (default), ``backend.dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
-        timing_constraints: An optional control hardware restriction on instruction time resolution.
-            A quantum computer backend may report a set of restrictions, namely:
-
-            - granularity: An integer value representing minimum pulse gate
-              resolution in units of ``dt``. A user-defined pulse gate should have
-              duration of a multiple of this granularity value.
-            - min_length: An integer value representing minimum pulse gate
-              length in units of ``dt``. A user-defined pulse gate should be longer
-              than this length.
-            - pulse_alignment: An integer value representing a time resolution of gate
-              instruction starting time. Gate instruction should start at time which
-              is a multiple of the alignment value.
-            - acquire_alignment: An integer value representing a time resolution of measure
-              instruction starting time. Measure instruction should start at time which
-              is a multiple of the alignment value.
-
-            This information will be provided by the backend configuration.
-            If the backend doesn't have any restriction on the instruction time allocation,
-            then ``timing_constraints`` is None and no adjustment will be performed.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -314,57 +246,12 @@ def transpile(  # pylint: disable=too-many-return-statements
     if not circuits:
         return []
 
-    # transpiling schedules is not supported yet.
     start_time = time()
-    if all(isinstance(c, Schedule) for c in circuits):
-        warnings.warn("Transpiling schedules is not supported yet.", UserWarning)
-        end_time = time()
-        _log_transpile_time(start_time, end_time)
-        if arg_circuits_list:
-            return circuits
-        else:
-            return circuits[0]
 
     if optimization_level is None:
-        # Take optimization level from the configuration or 1 as default.
+        # Take optimization level from the configuration or 2 as default.
         config = user_config.get_config()
         optimization_level = config.get("transpile_optimization_level", 2)
-
-    if backend is not None and getattr(backend, "version", 0) <= 1:
-        warnings.warn(
-            "The `transpile` function will stop supporting inputs of "
-            f"type `BackendV1` ( {backend} ) in the `backend` parameter in a future "
-            "release no earlier than 2.0. `BackendV1` is deprecated and implementations "
-            "should move to `BackendV2`.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        with warnings.catch_warnings():
-            # This is a temporary conversion step to allow for a smoother transition
-            # to a fully target-based transpiler pipeline while maintaining the behavior
-            # of `transpile` with BackendV1 inputs.
-            # TODO BackendV1 is deprecated and this path can be
-            #   removed once it gets removed:
-            #   https://github.com/Qiskit/qiskit/pull/12850
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=r".+qiskit\.providers\.backend_compat\.BackendV2Converter.+",
-                module="qiskit",
-            )
-            backend = BackendV2Converter(backend)
-
-    if (
-        scheduling_method is not None
-        and backend is None
-        and target is None
-        and not instruction_durations
-    ):
-        warnings.warn(
-            "When scheduling circuits without backend,"
-            " 'instruction_durations' should be usually provided.",
-            UserWarning,
-        )
 
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
@@ -379,50 +266,27 @@ def transpile(  # pylint: disable=too-many-return-statements
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
-    # Filter instruction_durations, timing_constraints and inst_map deprecation
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``inst_map`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``timing_constraints`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=".*``instruction_durations`` is deprecated as of Qiskit 1.3.*",
-            module="qiskit",
-        )
-        pm = generate_preset_pass_manager(
-            optimization_level,
-            target=target,
-            backend=backend,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            instruction_durations=instruction_durations,
-            timing_constraints=timing_constraints,
-            inst_map=inst_map,
-            initial_layout=initial_layout,
-            layout_method=layout_method,
-            routing_method=routing_method,
-            translation_method=translation_method,
-            scheduling_method=scheduling_method,
-            approximation_degree=approximation_degree,
-            seed_transpiler=seed_transpiler,
-            unitary_synthesis_method=unitary_synthesis_method,
-            unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-            hls_config=hls_config,
-            init_method=init_method,
-            optimization_method=optimization_method,
-            dt=dt,
-            qubits_initially_zero=qubits_initially_zero,
-        )
+    pm = generate_preset_pass_manager(
+        optimization_level,
+        target=target,
+        backend=backend,
+        basis_gates=basis_gates,
+        coupling_map=coupling_map,
+        initial_layout=initial_layout,
+        layout_method=layout_method,
+        routing_method=routing_method,
+        translation_method=translation_method,
+        scheduling_method=scheduling_method,
+        approximation_degree=approximation_degree,
+        seed_transpiler=seed_transpiler,
+        unitary_synthesis_method=unitary_synthesis_method,
+        unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
+        hls_config=hls_config,
+        init_method=init_method,
+        optimization_method=optimization_method,
+        dt=dt,
+        qubits_initially_zero=qubits_initially_zero,
+    )
 
     out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
 

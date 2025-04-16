@@ -23,11 +23,10 @@ import numpy as np
 from numpy.typing import NDArray
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
-from qiskit.circuit import ControlFlowOp
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
-from .base.validation import _has_measure
+from .base.validation_v1 import _has_measure
 from .containers import (
     BitArray,
     DataBin,
@@ -212,7 +211,7 @@ def _preprocess_circuit(circuit: QuantumCircuit):
     qargs_index = {v: k for k, v in enumerate(qargs)}
     circuit = circuit.remove_final_measurements(inplace=False)
     if _has_control_flow(circuit):
-        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp and c_if")
+        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp")
     if _has_measure(circuit):
         raise QiskitError("StatevectorSampler cannot handle mid-circuit measurements")
     # num_qubits is used as sentinel to fill 0 in _samples_to_packed_array
@@ -288,7 +287,4 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
 
 
 def _has_control_flow(circuit: QuantumCircuit) -> bool:
-    return any(
-        isinstance((op := instruction.operation), ControlFlowOp) or op._condition
-        for instruction in circuit
-    )
+    return any(instruction.is_control_flow() for instruction in circuit)

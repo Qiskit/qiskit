@@ -585,7 +585,7 @@ class Pauli(BasePauli):
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
             frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for
-            Schrödinger framework.
+                Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C^\dagger.P.C` (Heisenberg picture)

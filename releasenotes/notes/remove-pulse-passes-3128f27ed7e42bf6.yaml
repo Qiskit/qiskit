@@ -1,7 +1,0 @@
----
-upgrade_transpiler:
-  - |
-    The ``PulseGates``, ``ValidatePulseGates``, ``RXCalibrationBuilder``, ``RZXCalibrationBuilder``,
-    ``RZXCalibrationBuilderNoEcho`` and ``EchoRZXWeylDecomposition`` passes have been removed,
-    following their deprecation in Qiskit 1.3. These passes depend on and relate to the Pulse
-    package which is also being removed in Qiskit 2.0.

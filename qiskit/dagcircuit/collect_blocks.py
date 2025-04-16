@@ -392,10 +392,7 @@ class BlockCollapser:
             wire_pos_map.update({qb: ix for ix, qb in enumerate(sorted_clbits)})
 
             for node in block:
-                instructions = qc.append(CircuitInstruction(node.op, node.qargs, node.cargs))
-                cond = getattr(node.op, "_condition", None)
-                if cond is not None:
-                    instructions.c_if(*cond)
+                qc.append(CircuitInstruction(node.op, node.qargs, node.cargs))
 
             # Collapse this quantum circuit into an operation.
             op = collapse_fn(qc)

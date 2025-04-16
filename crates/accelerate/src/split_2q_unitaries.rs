@@ -18,7 +18,6 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::circuit_instruction::ExtraInstructionAttributes;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -93,7 +92,7 @@ pub fn split_2q_unitaries(
                     }
                 };
                 dag.replace_node_with_1q_ops(py, node, insert_fn)?;
-                dag.add_global_phase(py, &Param::Float(decomp.global_phase))?;
+                dag.add_global_phase(&Param::Float(decomp.global_phase))?;
             }
         }
     }
@@ -148,7 +147,7 @@ pub fn split_2q_unitaries(
                         &[Qubit::new(mapping[index0])],
                         &[],
                         None,
-                        ExtraInstructionAttributes::default(),
+                        None,
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
@@ -158,11 +157,11 @@ pub fn split_2q_unitaries(
                         &[Qubit::new(mapping[index1])],
                         &[],
                         None,
-                        ExtraInstructionAttributes::default(),
+                        None,
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
-                    new_dag.add_global_phase(py, &Param::Float(decomp.global_phase + PI4))?;
+                    new_dag.add_global_phase(&Param::Float(decomp.global_phase + PI4))?;
                     continue; // skip the general instruction handling code
                 }
             }
@@ -180,7 +179,7 @@ pub fn split_2q_unitaries(
                 &mapped_qargs,
                 cargs,
                 inst.params.as_deref().cloned(),
-                inst.extra_attrs.clone(),
+                inst.label.as_ref().map(|x| x.to_string()),
                 #[cfg(feature = "cache_pygates")]
                 inst.py_op.get().map(|x| x.clone_ref(py)),
             )?;
