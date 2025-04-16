@@ -204,32 +204,34 @@ impl ParameterExpression {
         &self,
         other: &ParameterExpression,
     ) -> Option<HashSet<Arc<ParameterExpression>>> {
-        match &self.parameter_symbols {
-            Some(s) => match &other.parameter_symbols {
-                Some(o) => {
-                    let mut ret = s.clone();
-                    for v in o {
-                        ret.insert(v.clone());
-                    }
-                    Some(ret)
+        let mut ret: HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
+            Some(s) => s.clone(),
+            None => HashSet::from([Arc::new(self.to_owned())]),
+        };
+        match &other.parameter_symbols {
+            Some(o) => {
+                for v in o {
+                    ret.insert(v.clone());
                 }
-                None => self.parameter_symbols.clone(),
-            },
-            None => other.parameter_symbols.clone(),
+                Some(ret)
+            }
+            None => Some(ret),
         }
     }
 
     // get conflict parameters
     fn get_conflict_parameters(&self, other: &ParameterExpression) -> HashSet<String> {
         let mut conflicts = HashSet::<String>::new();
-        if let Some(my_symbols) = &self.parameter_symbols {
-            if let Some(other_symbols) = &other.parameter_symbols {
-                for o in other_symbols {
-                    // find symbol with different uuid
-                    if let Some(m) = my_symbols.get(o) {
-                        if m.uuid != o.uuid {
-                            conflicts.insert(o.to_string());
-                        }
+        let my_symbols = match &self.parameter_symbols {
+            Some(s) => s,
+            None => &HashSet::from([Arc::new(self.to_owned())]),
+        };
+        if let Some(other_symbols) = &other.parameter_symbols {
+            for o in other_symbols {
+                // find symbol with different uuid
+                if let Some(m) = my_symbols.get(o) {
+                    if m.uuid != o.uuid {
+                        conflicts.insert(o.to_string());
                     }
                 }
             }
@@ -775,11 +777,8 @@ div_impl_expr! {f64 i32 u32 ParameterExpression}
 #[pymethods]
 impl ParameterExpression {
     #[new]
-    pub fn __new__(
-        name: Option<String>,
-        uuid: Option<u128>,
-        vec_idx: Option<usize>,
-    ) -> PyResult<Self> {
+    #[pyo3(signature = (name=None, uuid = None, vec_idx = None))]
+    pub fn new(name: Option<String>, uuid: Option<u128>, vec_idx: Option<usize>) -> PyResult<Self> {
         match name {
             Some(name) => {
                 // check if expr contains replacements for sympy
@@ -801,11 +800,8 @@ impl ParameterExpression {
                     parameter_symbols: None,
                     parameter_vector: None,
                 };
-                ret.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([Arc::<
-                    ParameterExpression,
-                >::new(
-                    ret.to_owned(),
-                )]));
+                let t = Arc::<ParameterExpression>::new(ret.to_owned());
+                ret.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([t]));
                 Ok(ret)
             }
             None => Ok(ParameterExpression::default()),
@@ -815,8 +811,9 @@ impl ParameterExpression {
     /// create new expression as a symbol
     #[allow(non_snake_case)]
     #[staticmethod]
+    #[pyo3(signature = (name, uuid = None))]
     pub fn Symbol(name: String, uuid: Option<u128>) -> PyResult<Self> {
-        ParameterExpression::__new__(Some(name), uuid, None)
+        ParameterExpression::new(Some(name), uuid, None)
     }
 
     /// create new expression as a value
@@ -1138,17 +1135,17 @@ impl ParameterExpression {
 
                 let mut ret = HashSet::<ParameterExpression>::new();
                 for s in ret_vec {
-                    let mut p = Arc::unwrap_or_clone(s.clone());
-                    p.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([Arc::<
-                        ParameterExpression,
-                    >::new(
-                        p.to_owned(),
-                    )]));
-                    ret.insert(p);
+                    let tt = s.clone();
+                    let mut t = Arc::unwrap_or_clone(s);
+                    t.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([tt]));
+                    ret.insert(t);
                 }
                 ret
             }
-            None => HashSet::<ParameterExpression>::new(),
+            None => match self.expr {
+                SymbolExpr::Symbol { name: _, index: _ } => HashSet::from([self.clone()]),
+                _ => HashSet::<ParameterExpression>::new(),
+            },
         }
     }
     #[getter]
@@ -1212,7 +1209,12 @@ impl ParameterExpression {
         let mut unknown_params: HashSet<String> = HashSet::new();
         let mut symbols: HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
             Some(s) => s.clone(),
-            None => HashSet::new(),
+            None => match self.expr {
+                SymbolExpr::Symbol { name: _, index: _ } => {
+                    HashSet::from([Arc::new(self.to_owned())])
+                }
+                _ => HashSet::new(),
+            },
         };
 
         for (key, expr) in &in_map {
@@ -1331,6 +1333,7 @@ impl ParameterExpression {
     }
 
     /// bind values to symbols given by input hashmap
+    #[pyo3(signature = (in_map, allow_unknown_parameters = None))]
     pub fn bind(
         &self,
         py: Python,
@@ -1352,6 +1355,7 @@ impl ParameterExpression {
     }
 
     /// substitute symbols to expressions (or values) given by hash map
+    #[pyo3(signature = (map, allow_unknown_parameters = None))]
     pub fn subs(
         &self,
         map: HashMap<ParameterExpression, Self>,
@@ -1615,7 +1619,7 @@ impl ParameterExpression {
 
     pub fn __hash__(&self, py: Python) -> PyResult<isize> {
         match self.expr.eval(true) {
-            Some(v) => match (v) {
+            Some(v) => match v {
                 Value::Int(i) => i.into_pyobject(py)?.hash(),
                 Value::Real(r) => r.into_pyobject(py)?.hash(),
                 Value::Complex(c) => c.into_pyobject(py)?.hash(),
@@ -1701,44 +1705,42 @@ pub struct ParameterVector {
 #[pymethods]
 impl ParameterVector {
     #[new]
-    pub fn __new__(name: Option<String>, length: Option<usize>) -> PyResult<Self> {
-        match (name, length) {
-            (Some(name), Some(length)) => {
-                // check if expr contains replacements for sympy
-                let name = name
-                    .replace("__begin_sympy_replace__", "$\\")
-                    .replace("__end_sympy_replace__", "$");
+    #[pyo3(signature = (name="".to_string(), length = 0, uuid = None))]
+    pub fn new(name: String, length: usize, uuid: Option<u128>) -> PyResult<Self> {
+        // check if expr contains replacements for sympy
+        let name = name
+            .replace("__begin_sympy_replace__", "$\\")
+            .replace("__end_sympy_replace__", "$");
 
-                let root_uuid = Uuid::new_v4().as_u128();
-                let mut ret = ParameterVector {
-                    name: name.clone(),
-                    root_uuid: root_uuid,
-                    params: Vec::with_capacity(length),
-                };
+        let root_uuid = match uuid {
+            Some(uuid) => uuid,
+            None => Uuid::new_v4().as_u128(),
+        };
+        let mut ret = ParameterVector {
+            name: name.clone(),
+            root_uuid: root_uuid,
+            params: Vec::with_capacity(length),
+        };
 
-                for i in 0..length {
-                    let mut pe = ParameterExpression {
-                        expr: SymbolExpr::Symbol {
-                            name: Box::new(name.clone()),
-                            index: Some(i),
-                        },
-                        uuid: root_uuid + i as u128,
-                        qpy_replay: None,
-                        parameter_symbols: None,
-                        parameter_vector: Some(Arc::<ParameterVector>::new(ret.clone())),
-                    };
-                    let pr = Arc::<ParameterExpression>::new(pe.to_owned());
-                    pe.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([pr]));
-                    ret.params.push(pe);
-                }
-                Ok(ret)
-            }
-            (_, _) => Ok(ParameterVector {
-                name: "".to_string(),
-                root_uuid: Uuid::new_v4().as_u128(),
-                params: Vec::new(),
-            }),
+        for i in 0..length {
+            let pe = ParameterExpression {
+                expr: SymbolExpr::Symbol {
+                    name: Box::new(name.clone()),
+                    index: Some(i),
+                },
+                uuid: root_uuid + i as u128,
+                qpy_replay: None,
+                parameter_symbols: None,
+                parameter_vector: None,
+            };
+            ret.params.push(pe);
         }
+        let t = Arc::<ParameterVector>::new(ret.to_owned());
+        for pe in &mut ret.params {
+            pe.parameter_vector = Some(t.clone());
+        }
+
+        Ok(ret)
     }
 
     /// """The name of the :class:`ParameterVector`."""
@@ -1794,9 +1796,10 @@ impl ParameterVector {
             if i != params.len() - 1 {
                 out += &format!("'{}', ", p);
             } else {
-                out += &format!("'{}']", p);
+                out += &format!("'{}'", p);
             }
         }
+        out += "]";
         out
     }
 
@@ -1831,7 +1834,7 @@ impl ParameterVector {
         if length > self.params.len() {
             let root_uuid = self.root_uuid;
             for i in self.params.len()..length {
-                let mut pe = ParameterExpression {
+                let pe = ParameterExpression {
                     expr: SymbolExpr::Symbol {
                         name: Box::new(self.name.clone()),
                         index: Some(i),
@@ -1839,11 +1842,13 @@ impl ParameterVector {
                     uuid: root_uuid + i as u128,
                     qpy_replay: None,
                     parameter_symbols: None,
-                    parameter_vector: Some(Arc::<ParameterVector>::new(self.clone())),
+                    parameter_vector: None,
                 };
-                let pr = Arc::<ParameterExpression>::new(pe.to_owned());
-                pe.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([pr]));
                 self.params.push(pe);
+            }
+            let t = Arc::<ParameterVector>::new(self.to_owned());
+            for pe in &mut self.params {
+                pe.parameter_vector = Some(t.clone());
             }
         } else {
             self.params.resize(length, ParameterExpression::default());
@@ -1859,7 +1864,7 @@ impl ParameterVector {
         let length = state.1;
         self.params = Vec::with_capacity(length);
         for i in 0..length {
-            let mut pe = ParameterExpression {
+            let pe = ParameterExpression {
                 expr: SymbolExpr::Symbol {
                     name: Box::new(self.name.clone()),
                     index: Some(i),
@@ -1867,11 +1872,13 @@ impl ParameterVector {
                 uuid: self.root_uuid + i as u128,
                 qpy_replay: None,
                 parameter_symbols: None,
-                parameter_vector: Some(Arc::<ParameterVector>::new(self.clone())),
+                parameter_vector: None,
             };
-            let pr = Arc::<ParameterExpression>::new(pe.to_owned());
-            pe.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([pr]));
             self.params.push(pe);
+        }
+        let t = Arc::<ParameterVector>::new(self.to_owned());
+        for pe in &mut self.params {
+            pe.parameter_vector = Some(t.clone());
         }
         Ok(())
     }

@@ -193,6 +193,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<operations::StandardInstructionType>()?;
     m.add_class::<parameterexpression::ParameterExpression>()?;
     m.add_class::<parameterexpression::ParameterVector>()?;
+    m.add_class::<parameterexpression::OPReplay>()?;
     Ok(())
 }
 
