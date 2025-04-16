@@ -85,25 +85,22 @@ class ObservablesArray(ShapedMixin):
         result = {}
         for pauli_term in sparse_list:
             sparse_pauli_str, pauli_qubits, coeff = pauli_term
-            next_index_in_pauli_qubits = 0
+
             if len(sparse_pauli_str) == 0:
-                next_pauli_qubit = -1
+                full_pauli_str = "I" * obs.num_qubits
             else:
                 sorted_lists = sorted(zip(pauli_qubits, sparse_pauli_str))
                 pauli_qubits = [pq for pq, _ in sorted_lists]
                 sparse_pauli_str = [spstr for _, spstr in sorted_lists]
-                next_pauli_qubit = pauli_qubits[0]
-            full_pauli_str = ""
-            for qubit_id in range(obs.num_qubits):
-                if qubit_id == next_pauli_qubit:
-                    full_pauli_str += sparse_pauli_str[next_index_in_pauli_qubits]
-                    next_index_in_pauli_qubits += 1
-                    if next_index_in_pauli_qubits != len(pauli_qubits):
-                        next_pauli_qubit = pauli_qubits[next_index_in_pauli_qubits]
-                else:
-                    full_pauli_str += "I"
 
-            full_pauli_str = full_pauli_str[::-1]
+                full_pauli_str = ""
+                prev_qubit = -1
+                for qubit, pauli in zip(pauli_qubits, sparse_pauli_str):
+                    full_pauli_str += "I" * (qubit - prev_qubit - 1) + pauli
+                    prev_qubit = qubit
+                
+                full_pauli_str += "I" * (obs.num_qubits - pauli_qubits[-1] - 1)
+                full_pauli_str = full_pauli_str[::-1]
 
             # We know that the dictionary doesn't contain yet full_pauli_str as a key
             # because the observable is guaranteed to be simplified
