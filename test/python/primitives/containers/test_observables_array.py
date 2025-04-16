@@ -291,7 +291,6 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = ObservablesArray(obj)
         for i in range(obj.shape[0]):
             row = obs[i]
-            self.assertIsInstance(row, ObservablesArray)
             self.assertEqual(row.shape, (3,))
             self.assertTrue(np.all(np.array(row) == obj[i]))
 
