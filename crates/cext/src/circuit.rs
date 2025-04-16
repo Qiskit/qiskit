@@ -408,7 +408,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 /// @ingroup QkCircuit
 /// Return the number of instructions in the circuit
 ///
-/// @param circuit A pointer to the circuit to get the counts for.
+/// @param circuit A pointer to the circuit to get the total number of instructions for.
 ///
 /// # Example
 ///
@@ -427,21 +427,42 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
     circuit.__len__()
 }
 
+
+/// @ingroup QkCircuit
+///
+/// A circuit instruction representation.
+///
+/// This struct represents the data contained in an individual instruction in a ``QkCircuit``.
+/// It is not a pointer to the underlying object, but contains a copy of the properties of the
+/// instruction for inspection.
 #[repr(C)]
 pub struct CInstruction {
+    /// The instruction name
     name: *const c_char,
+    /// The number of qubits for this instruction.
     num_qubits: u32,
+    /// A pointer to an array of qubit indices this instruction operates on.
     qubits: *mut u32,
+    /// The number of clbits for this instruction.
     num_clbits: u32,
+    /// A pointer to an array of clbit indices this instruction operates on.
     clbits: *mut u32,
+    /// The number of parameters for this instruction.
     num_params: u32,
+    /// A pointer to an array of parameter values for this instruction.
     params: *mut f64,
 }
 
 /// @ingroup QkCircuit
-/// Return the number of instructions in the circuit
+/// Return the instruction details for an instruction in the circuit
 ///
-/// @param circuit A pointer to the circuit to get the counts for.
+/// This function is used to get the instruction details for a given instruction in
+/// the circuit. It returns
+///
+/// @param circuit A pointer to the circuit to get the instruction details for.
+/// @param index The instruction index to get the instruction details of.
+///
+/// @return The instruction details for the specified instructions
 ///
 /// # Example
 ///
@@ -451,7 +472,9 @@ pub struct CInstruction {
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
+/// value for ``index`` must be less than the value returned by `qk_circuit_num_instructions`
+/// otherwise this function will panic
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_get_instruction(
