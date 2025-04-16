@@ -29,7 +29,19 @@ int test_empty(void) {
     size_t num_instructions = qk_circuit_num_instructions(qc);
     qk_circuit_free(qc);
 
-    return (num_qubits != 0 || num_clbits != 0 || num_instructions != 0) ? EqualityError : Ok;
+    if (num_qubits != 0) {
+        printf("The number of qubits %d is not 0", num_qubits);
+        return EqualityError;
+    }
+    if (num_clbits != 0) {
+        printf("The number of clbits %d is not 0", num_clbits);
+        return EqualityError;
+    }
+    if (num_instructions != 0) {
+        printf("The number of instructions %lu is not 0", num_instructions);
+        return EqualityError;
+    }
+    return Ok;
 }
 
 int test_no_gate_1000_bits(void) {
@@ -39,7 +51,20 @@ int test_no_gate_1000_bits(void) {
     size_t num_instructions = qk_circuit_num_instructions(qc);
     qk_circuit_free(qc);
 
-    return (num_qubits != 1000 || num_clbits != 1000 || num_instructions != 0) ? EqualityError : Ok;
+    if (num_qubits != 1000) {
+        printf("The number of qubits %d is not 1000", num_qubits);
+        return EqualityError;
+    }
+    if (num_clbits != 1000) {
+        printf("The number of clbits %d is not 1000", num_clbits);
+        return EqualityError;
+    }
+    if (num_instructions != 0) {
+        printf("The number of instructions %lu is not 0", num_instructions);
+        return EqualityError;
+    }
+
+    return Ok;
 }
 
 int test_gate_num_qubits(void) {
