@@ -5079,7 +5079,7 @@ impl DAGCircuit {
     }
 
     fn get_classical_resources(
-        &mut self,
+        &self,
         py: Python,
         instr: &PackedInstruction,
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
@@ -6517,7 +6517,7 @@ impl DAGCircuit {
         for inst in iter {
             new_nodes.push(dag_builder.push_back(py, inst?)?);
         }
-        std::mem::swap(self, &mut dag_builder.end());
+        std::mem::swap(self, &mut dag_builder.build());
         Ok(new_nodes)
     }
 

@@ -576,7 +576,7 @@ fn apply_translation(
         }
         is_updated = true;
     }
-    Ok((out_dag_builder.end(), is_updated))
+    Ok((out_dag_builder.build(), is_updated))
 }
 
 fn replace_node(

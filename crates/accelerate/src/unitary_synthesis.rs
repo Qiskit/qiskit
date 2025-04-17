@@ -390,7 +390,7 @@ fn py_run_main_loop(
                     out_qargs,
                     apply_original_op,
                 )?;
-                out_dag = builder.end()
+                out_dag = builder.build()
             }
             // Run 3q+ synthesis
             _ => {
@@ -410,7 +410,7 @@ fn py_run_main_loop(
                     let out_qargs = dag.get_qargs(packed_instr.qubits);
                     let mut dag_builder = out_dag.into_builder(py);
                     apply_synth_dag(py, &mut dag_builder, out_qargs, &synth_dag)?;
-                    out_dag = dag_builder.end();
+                    out_dag = dag_builder.build();
                 }
             }
         }
@@ -1088,7 +1088,7 @@ fn reversed_synth_su4_dag(
         inst.qubits = target_dag_builder.insert_qargs(qubits.into());
         target_dag_builder.push_back(py, inst)?;
     }
-    Ok(target_dag_builder.end())
+    Ok(target_dag_builder.build())
 }
 
 /// Score the synthesis output (DAG or sequence) based on the expected gate fidelity/error score.
