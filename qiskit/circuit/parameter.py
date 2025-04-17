@@ -16,4 +16,5 @@ Parameter Class for variable parameters.
 from __future__ import annotations
 
 import qiskit._accelerate.circuit
+
 Parameter = qiskit._accelerate.circuit.ParameterExpression

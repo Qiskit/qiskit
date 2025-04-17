@@ -20,6 +20,7 @@ from enum import IntEnum
 from typing import Union
 
 import qiskit._accelerate.circuit
+
 ParameterExpression = qiskit._accelerate.circuit.ParameterExpression
 
 
@@ -91,5 +92,3 @@ class _INSTRUCTION:
 class _SUBS:
     binds: dict
     op: _OPCode = _OPCode.SUBSTITUTE
-
-

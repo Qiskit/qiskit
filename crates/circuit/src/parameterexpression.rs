@@ -281,6 +281,18 @@ impl ParameterExpression {
         }
     }
 
+    fn _update_uuid(&mut self) {
+        if let Some(symbols) = &self.parameter_symbols {
+            if symbols.len() == 1 {
+                self.uuid = symbols.iter().next().unwrap().uuid;
+            } else if let SymbolExpr::Symbol { name: _, index: _ } = self.expr {
+                if let Some(s) = symbols.get(self) {
+                    self.uuid = s.uuid;
+                }
+            }
+        }
+    }
+
     // default functions for unary operations
     fn _neg(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -296,13 +308,15 @@ impl ParameterExpression {
             Some(self),
             Some(&neg),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: -&self.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self._my_parameters(),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _pos(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -318,13 +332,15 @@ impl ParameterExpression {
             Some(self),
             Some(&pos),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: self.expr.clone(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self._my_parameters(),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _sin(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -456,13 +472,15 @@ impl ParameterExpression {
             Some(self),
             Some(rhs),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: &self.expr + &rhs.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(rhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _radd(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -471,13 +489,15 @@ impl ParameterExpression {
             Some(lhs),
             Some(self),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: &lhs.expr + &self.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(lhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _sub(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -486,13 +506,15 @@ impl ParameterExpression {
             Some(self),
             Some(rhs),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: &self.expr - &rhs.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(rhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _rsub(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -501,13 +523,15 @@ impl ParameterExpression {
             Some(lhs),
             Some(self),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: &lhs.expr - &self.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(lhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _mul(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -516,13 +540,15 @@ impl ParameterExpression {
             Some(self),
             Some(rhs),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: &self.expr * &rhs.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(rhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _rmul(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -531,13 +557,15 @@ impl ParameterExpression {
             Some(lhs),
             Some(self),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: &lhs.expr * &self.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(lhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _div(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -546,13 +574,15 @@ impl ParameterExpression {
             Some(self),
             Some(rhs),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: &self.expr / &rhs.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(rhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _rdiv(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -561,13 +591,15 @@ impl ParameterExpression {
             Some(lhs),
             Some(self),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: &lhs.expr / &self.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(lhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _pow(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -576,13 +608,15 @@ impl ParameterExpression {
             Some(self),
             Some(rhs),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: self.expr.pow(&rhs.expr),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(rhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
     fn _rpow(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
@@ -591,13 +625,15 @@ impl ParameterExpression {
             Some(lhs),
             Some(self),
         ));
-        ParameterExpression {
+        let mut ret = ParameterExpression {
             expr: lhs.expr.pow(&self.expr),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
             parameter_symbols: self.merge_parameter_symbols(lhs),
             parameter_vector: None,
-        }
+        };
+        ret._update_uuid();
+        ret
     }
 
     fn _derivative(&self, param: &ParameterExpression) -> ParameterExpression {
@@ -861,31 +897,55 @@ impl ParameterExpression {
     }
 
     /// create new expression from string
+    /// This method is used to initialize like ParameterExpression.__init__
+    /// as implemented in Python
     #[allow(non_snake_case)]
     #[staticmethod]
-    pub fn Expression(str_expr: String) -> Self {
+    pub fn Expression(
+        str_expr: String,
+        map: Option<HashMap<ParameterExpression, PyObject>>,
+    ) -> Self {
         // check if expr contains replacements for sympy
         let str_expr = str_expr
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
         let expr = parse_expression(&str_expr);
-        let symbols = expr.symbols();
-        if symbols.len() > 0 {
+        if let Some(map) = map {
             let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
             let mut uuid: u128 = 0;
-            for s in symbols {
-                uuid = Uuid::new_v4().as_u128();
-                let p = ParameterExpression {
-                    expr: s.clone(),
-                    uuid: uuid.clone(),
-                    qpy_replay: None,
-                    parameter_symbols: None,
-                    parameter_vector: None,
-                };
-                parameter_symbols.insert(Arc::<ParameterExpression>::new(p.to_owned()));
+            for (param, _) in map {
+                uuid = param.uuid;
+                parameter_symbols.insert(Arc::new(param.to_owned()));
             }
-
-            if parameter_symbols.len() == 1 {
+            if parameter_symbols.len() > 1 {
+                uuid = 0;
+            }
+            ParameterExpression {
+                expr: expr,
+                uuid: uuid,
+                qpy_replay: None,
+                parameter_symbols: Some(parameter_symbols),
+                parameter_vector: None,
+            }
+        } else {
+            let symbols = expr.symbols();
+            if symbols.len() > 0 {
+                let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
+                let mut uuid: u128 = 0;
+                for s in symbols {
+                    uuid = Uuid::new_v4().as_u128();
+                    let p = ParameterExpression {
+                        expr: s.clone(),
+                        uuid: uuid.clone(),
+                        qpy_replay: None,
+                        parameter_symbols: None,
+                        parameter_vector: None,
+                    };
+                    parameter_symbols.insert(Arc::<ParameterExpression>::new(p.to_owned()));
+                }
+                if parameter_symbols.len() > 1 {
+                    uuid = 0;
+                }
                 ParameterExpression {
                     expr: expr,
                     uuid: uuid,
@@ -898,17 +958,9 @@ impl ParameterExpression {
                     expr: expr,
                     uuid: 0,
                     qpy_replay: None,
-                    parameter_symbols: Some(parameter_symbols),
+                    parameter_symbols: None,
                     parameter_vector: None,
                 }
-            }
-        } else {
-            ParameterExpression {
-                expr: expr,
-                uuid: 0,
-                qpy_replay: None,
-                parameter_symbols: None,
-                parameter_vector: None,
             }
         }
     }
@@ -918,6 +970,13 @@ impl ParameterExpression {
         let ret = self.expr.optimize().to_string();
         ret.replace("$\\", "__begin_sympy_replace__")
             .replace('$', "__end_sympy_replace__")
+    }
+
+    // for backward compatibility
+    // just return myself
+    #[getter]
+    pub fn _symbol_expr(&self) -> ParameterExpression {
+        self.clone()
     }
 
     /// return value if expression does not contain any symbols
@@ -979,6 +1038,10 @@ impl ParameterExpression {
                 "Not a vector element",
             )),
         }
+    }
+    #[getter]
+    pub fn _vector(&self) -> PyResult<ParameterVector> {
+        self.vector()
     }
 
     #[getter]
@@ -1067,7 +1130,7 @@ impl ParameterExpression {
             parameter_vector: self.parameter_vector.clone(),
         }
     }
-    pub fn __deepcopy__(&self) -> Self {
+    pub fn __deepcopy__(&self, _memo: Option<PyObject>) -> Self {
         Self {
             expr: self.expr.clone(),
             uuid: self.uuid.clone(),
@@ -1126,14 +1189,15 @@ impl ParameterExpression {
             let mut replay = self.clone_replay();
             replay.push(OPReplay::new_instruction(_OPCode::GRAD, Some(self), None));
 
-            return Self {
+            let mut ret = Self {
                 expr: expr_grad,
                 uuid: self.uuid.clone(),
                 qpy_replay: Some(replay),
                 parameter_symbols: Some(new_map),
                 parameter_vector: None,
-            }
-            .into_py_any(py);
+            };
+            ret._update_uuid();
+            ret.into_py_any(py)
         } else {
             return 0.into_py_any(py);
         }
@@ -1347,7 +1411,7 @@ impl ParameterExpression {
                 binds: subs_map,
                 op: _OPCode::SUBSTITUTE,
             });
-            Ok(ParameterExpression {
+            let mut ret = ParameterExpression {
                 expr: bound,
                 uuid: self.uuid.clone(),
                 qpy_replay: Some(replay),
@@ -1357,7 +1421,9 @@ impl ParameterExpression {
                     None
                 },
                 parameter_vector: None,
-            })
+            };
+            ret._update_uuid();
+            Ok(ret)
         }
     }
 

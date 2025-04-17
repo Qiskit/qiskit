@@ -15,7 +15,8 @@
 from uuid import uuid4, UUID
 
 import qiskit._accelerate.circuit
+
 ParameterVectorElement = qiskit._accelerate.circuit.ParameterExpression
 import qiskit._accelerate.circuit
-ParameterVector = qiskit._accelerate.circuit.ParameterVector
 
+ParameterVector = qiskit._accelerate.circuit.ParameterVector
