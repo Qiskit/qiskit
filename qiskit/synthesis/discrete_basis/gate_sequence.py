@@ -55,7 +55,6 @@ class GateSequence:
         self.name = " ".join(self.labels)
         self.global_phase = global_phase
         self.product = so3_matrix
-        self.product_su2 = su2_matrix
 
     def remove_cancelling_pair(self, indices: Sequence[int]) -> None:
         """Remove a pair of indices that cancel each other and *do not* change the matrices."""
@@ -94,6 +93,10 @@ class GateSequence:
         If no gates set but the product is not the identity, returns a circuit with a
         unitary operation to implement the matrix.
         """
+        # Note: returning the circuit with the unitary matrix instead of its decomposition
+        # into gates seems very strange and breaks the purpose of the pass. Unfortunately,
+        # this behavior is documented in the method's docstring. For backward-compatibility
+        # this method is left as is, however a new method ``_to_circuit`` is used instead.
         if len(self.gates) == 0 and not np.allclose(self.product, np.identity(3)):
             circuit = QuantumCircuit(1, global_phase=self.global_phase)
             su2 = _convert_so3_to_su2(self.product)
@@ -104,6 +107,27 @@ class GateSequence:
         for gate in self.gates:
             circuit.append(gate, [0])
 
+        return circuit
+
+    def _to_u2(self):
+        """Creates the U2 matrix corresponding to the stored sequence of gates
+        and the global phase.
+        """
+        u2 = np.eye(2, dtype=complex)
+        for mat in self.gates:
+            u2 = mat.to_matrix().dot(u2)
+        u2 = np.exp(1j * self.global_phase) * u2
+        return u2
+
+    def _to_circuit(self, adjust_phase: bool):
+        """Converts to a :class:`.QuantumCircuit`.
+
+        Adds ``pi`` to the global phase if ``adjust_phase`` is ``True``.
+        """
+        adjusted_phase = self.global_phase + np.pi if adjust_phase else self.global_phase
+        circuit = QuantumCircuit(1, global_phase=adjusted_phase)
+        for gate in self.gates:
+            circuit.append(gate, [0])
         return circuit
 
     def to_dag(self):
@@ -118,12 +142,33 @@ class GateSequence:
         dag = DAGCircuit()
         dag.add_qubits(qreg)
 
+        # Note: returning the circuit with the unitary matrix instead of its decomposition
+        # into gates seems very strange and breaks the purpose of the pass. Unfortunately,
+        # this behavior is documented in the method's docstring. For backward-compatibility
+        # this method is left as is, however a new method ``_to_circuit`` is used instead.
         if len(self.gates) == 0 and not np.allclose(self.product, np.identity(3)):
             su2 = _convert_so3_to_su2(self.product)
             dag.apply_operation_back(UnitaryGate(su2), qreg, check=False)
             return dag
 
         dag.global_phase = self.global_phase
+        for gate in self.gates:
+            dag.apply_operation_back(gate, qreg, check=False)
+
+        return dag
+
+    def _to_dag(self, adjust_phase: bool):
+        """Convert to a :class:`.DAGCircuit`.
+
+        Adds ``pi`` to the global phase if ``adjust_phase`` is ``True``.
+        """
+        from qiskit.dagcircuit import DAGCircuit
+
+        qreg = (Qubit(),)
+        dag = DAGCircuit()
+        dag.add_qubits(qreg)
+
+        dag.global_phase = self.global_phase + np.pi if adjust_phase else self.global_phase
         for gate in self.gates:
             dag.apply_operation_back(gate, qreg, check=False)
 
@@ -149,7 +194,6 @@ class GateSequence:
         so3 = _convert_su2_to_so3(su2)
 
         self.product = so3.dot(self.product)
-        self.product_su2 = su2.dot(self.product_su2)
         self.global_phase = self.global_phase + phase
 
         self.gates.append(gate)
@@ -172,7 +216,6 @@ class GateSequence:
         adjoint.labels = [inv.name for inv in adjoint.gates]
         adjoint.name = " ".join(adjoint.labels)
         adjoint.product = np.conj(self.product).T
-        adjoint.product_su2 = np.conj(self.product_su2).T
         adjoint.global_phase = -self.global_phase
 
         return adjoint
@@ -190,7 +233,6 @@ class GateSequence:
         out.matrices = self.matrices.copy()
         out.global_phase = self.global_phase
         out.product = self.product.copy()
-        out.product_su2 = self.product_su2.copy()
         out.name = self.name
         out._eulers = self._eulers
         return out

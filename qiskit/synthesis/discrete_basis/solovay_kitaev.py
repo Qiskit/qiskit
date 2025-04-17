@@ -126,13 +126,14 @@ class SolovayKitaevDecomposition:
         _remove_identities(decomposition)
         _remove_inverse_follows_gate(decomposition)
 
+        adjust_phase = _should_adjust_phase(decomposition._to_u2(), gate_matrix_su2._to_u2())
+
         # convert to a circuit and attach the right phases
         if return_dag:
-            out = decomposition.to_dag()
+            out = decomposition._to_dag(adjust_phase)
         else:
-            out = decomposition.to_circuit()
-
-        out.global_phase = decomposition.global_phase - global_phase
+            out = decomposition._to_circuit(adjust_phase)
+        out.global_phase -= global_phase
 
         return out
 
@@ -155,17 +156,20 @@ class SolovayKitaevDecomposition:
             raise ValueError("Shape of U must be (3, 3) but is", sequence.shape)
 
         if n == 0:
-            return self.find_basic_approximation(sequence)
+            res = self.find_basic_approximation(sequence)
 
-        u_n1 = self._recurse(sequence, n - 1, check_input=check_input)
+        else:
+            u_n1 = self._recurse(sequence, n - 1, check_input=check_input)
 
-        v_n, w_n = commutator_decompose(
-            sequence.dot(u_n1.adjoint()).product, check_input=check_input
-        )
+            v_n, w_n = commutator_decompose(
+                sequence.dot(u_n1.adjoint()).product, check_input=check_input
+            )
 
-        v_n1 = self._recurse(v_n, n - 1, check_input=check_input)
-        w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
-        return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
+            v_n1 = self._recurse(v_n, n - 1, check_input=check_input)
+            w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
+            res = v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
+
+        return res
 
     def find_basic_approximation(self, sequence: GateSequence) -> GateSequence:
         """Find ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
@@ -215,3 +219,13 @@ def _remove_identities(sequence):
             sequence.gates.pop(index)
         else:
             index += 1
+
+
+def _should_adjust_phase(computed: np.ndarray, target: np.ndarray) -> bool:
+    """
+    The implemented SolovayKitaevDecomposition has a global phase uncertainty of +-1,
+    due to approximating not the original SU(2) matrix but its projection onto SO(3).
+    This function returns ``True`` if the global phase of the computed approximation
+    should be adjusted (by adding pi) to better much the target.
+    """
+    return np.linalg.norm(-computed - target) < np.linalg.norm(computed - target)
