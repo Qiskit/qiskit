@@ -116,7 +116,7 @@ fn get_decomposers_from_target(
         .filter_map(|(two_qubit_name, two_qubit_gate, params, rev)| {
             let matrix = two_qubit_gate.matrix(params);
             matrix.map(|matrix| {
-                target_basis_set.get_bases().map(move |euler_basis| {
+                target_basis_set.get_bases().filter_map(move |euler_basis| {
                     TwoQubitBasisDecomposer::new_inner(
                         two_qubit_name.to_string(),
                         matrix.view(),
@@ -124,7 +124,14 @@ fn get_decomposers_from_target(
                         euler_basis,
                         None,
                     )
-                    .map(|x| (TwoQubitDecomposer::Basis(x), *rev))
+                    .map(|decomp| {
+                        if !decomp.super_controlled() {
+                            None
+                        } else {
+                            Some((TwoQubitDecomposer::Basis(decomp), *rev))
+                        }
+                    })
+                    .transpose()
                 })
             })
         })
@@ -493,7 +500,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     gate.operation.clone(),
                                     qubits.as_slice(),
                                     &[],
-                                    Some(gate.params.clone()),
+                                    Some(out_params.unwrap_or(gate.params.clone())),
                                     None,
                                     None,
                                 )
@@ -505,7 +512,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                                     gate.operation.clone(),
                                     qubits.as_slice(),
                                     &[],
-                                    Some(gate.params.clone()),
+                                    Some(out_params.unwrap_or(gate.params.clone())),
                                     None,
                                 )
                             }

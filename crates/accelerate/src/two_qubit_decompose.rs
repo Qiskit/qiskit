@@ -1383,6 +1383,12 @@ impl TwoQubitBasisDecomposer {
         __num_basis_gates(self.basis_decomposer.b, self.basis_fidelity, u)
     }
 
+    /// Is the gate super controlled
+    #[inline]
+    pub fn super_controlled(&self) -> bool {
+        self.super_controlled
+    }
+
     fn decomp1_inner(
         &self,
         target: &TwoQubitWeylDecomposition,
