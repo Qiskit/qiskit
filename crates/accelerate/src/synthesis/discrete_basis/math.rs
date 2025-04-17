@@ -106,14 +106,16 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, tol: f64) -> Matrix3x1<f64> {
     }
 
     if trace >= tol - 1. {
-        // try skew symmetric case
+        // there's a skew symmetric part which we can use to get the rotation axis
         let theta = ((trace - 1.) / 2.).acos();
+        let skew = (matrix - matrix.transpose()) / 2.;
+
         if theta.sin() > tol {
             let coeff = 1. / 2. / theta.sin();
             let axis = Matrix3x1::new(
-                coeff * (matrix[(2, 1)] - matrix[(1, 2)]),
-                coeff * (matrix[(0, 2)] - matrix[(2, 0)]),
-                coeff * (matrix[(1, 0)] - matrix[(0, 1)]),
+                coeff * (skew[(2, 1)] - skew[(1, 2)]),
+                coeff * (skew[(0, 2)] - skew[(2, 0)]),
+                coeff * (skew[(1, 0)] - skew[(0, 1)]),
             );
 
             // this might fail due to numerical error, in that case go to diagonal case
@@ -123,16 +125,46 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, tol: f64) -> Matrix3x1<f64> {
         }
     }
 
-    // this is a 180 degree rotation about any of X, Y, or Z axis (then the trace is -1)
-    let index = matrix
-        .diagonal()
+    // this is a 180 degree rotation
+    let mut axis = Matrix3x1::new(
+        ((1. + matrix[(0, 0)]) / 2.).sqrt(),
+        ((1. + matrix[(1, 1)]) / 2.).sqrt(),
+        ((1. + matrix[(2, 2)]) / 2.).sqrt(),
+    );
+
+    // fix the signs by setting the first non-zero element to +1 and determine the rest from there
+    let index = axis
         .iter()
         .enumerate()
-        .find(|(_index, el)| el.is_sign_positive())
-        .expect("At least one diagonal element must be 1")
+        .find(|(_, &el)| el.abs() > tol)
+        .expect("At least one element must be nonzero.")
         .0;
-    let mut axis = Matrix3x1::zeros();
-    axis[index] = 1.;
+    match index {
+        0 => {
+            if matrix[(0, 1)] < 0. {
+                axis[1] *= -1.;
+            };
+            if matrix[(0, 2)] < 0. {
+                axis[2] *= -1.;
+            }
+        }
+        1 => {
+            if matrix[(1, 2)] < 0. {
+                axis[2] *= -1.;
+            }
+        }
+        _ => (),
+    };
+    // // this is a 180 degree rotation about any of X, Y, or Z axis (then the trace is -1)
+    // let index = matrix
+    //     .diagonal()
+    //     .iter()
+    //     .enumerate()
+    //     .find(|(_index, el)| el.is_sign_positive())
+    //     .expect("At least one diagonal element must be 1")
+    //     .0;
+    // let mut axis = Matrix3x1::zeros();
+    // axis[index] = 1.;
     axis
 }
 

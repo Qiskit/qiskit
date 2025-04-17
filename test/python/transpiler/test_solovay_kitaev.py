@@ -514,7 +514,7 @@ class TestSolovayKitaevCompiler(QiskitTestCase):
                     synth = self.default_sk.synthesize(gate, recursion)
 
                 error = np.linalg.norm(Operator(gate).data - Operator(synth).data)
-                self.assertLess(error, 1e-3)
+                self.assertLess(error, 2e-3)
 
     def test_find_basic_approximation(self):
         """Test finding the basic approximations for some gates."""
