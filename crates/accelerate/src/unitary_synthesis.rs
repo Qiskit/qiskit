@@ -42,7 +42,7 @@ use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
 };
 use crate::nlayout::PhysicalQubit;
-use crate::target_transpiler::{NormalOperation, Target};
+use crate::target_transpiler::{NormalOperation, Target, TargetOperation};
 use crate::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
     TwoQubitWeylDecomposition,
@@ -550,43 +550,41 @@ fn get_2q_decomposers_from_target(
         IndexMap::new();
     for (q_pair, gates) in qubit_gate_map {
         for key in gates {
-            match target.operation_from_name(key) {
-                Ok(op) => {
-                    match op.operation.view() {
-                        OperationRef::Gate(_) => (),
-                        OperationRef::StandardGate(_) => (),
-                        _ => continue,
-                    }
-                    // Filter out non-2q-gate candidates
-                    if op.operation.num_qubits() != 2 {
-                        continue;
-                    }
-                    // Add to param_basis if the gate parameters aren't bound (not Float)
-                    if !op.params.iter().all(|p| matches!(p, Param::Float(_))) {
-                        available_2q_param_basis.insert(
-                            key,
-                            (
-                                op.clone(),
-                                match &target[key].get(Some(q_pair)) {
-                                    Some(Some(props)) => props.error,
-                                    _ => None,
-                                },
-                            ),
-                        );
-                    }
-                    available_2q_basis.insert(
-                        key,
-                        (
-                            op.clone(),
-                            match &target[key].get(Some(q_pair)) {
-                                Some(Some(props)) => props.error,
-                                _ => None,
-                            },
-                        ),
-                    );
-                }
+            let Some(TargetOperation::Normal(op)) = target.operation_from_name(key) else {
+                continue;
+            };
+            match op.operation.view() {
+                OperationRef::Gate(_) => (),
+                OperationRef::StandardGate(_) => (),
                 _ => continue,
             }
+            // Filter out non-2q-gate candidates
+            if op.operation.num_qubits() != 2 {
+                continue;
+            }
+            // Add to param_basis if the gate parameters aren't bound (not Float)
+            if !op.params.iter().all(|p| matches!(p, Param::Float(_))) {
+                available_2q_param_basis.insert(
+                    key,
+                    (
+                        op.clone(),
+                        match &target[key].get(Some(q_pair)) {
+                            Some(Some(props)) => props.error,
+                            _ => None,
+                        },
+                    ),
+                );
+            }
+            available_2q_basis.insert(
+                key,
+                (
+                    op.clone(),
+                    match &target[key].get(Some(q_pair)) {
+                        Some(Some(props)) => props.error,
+                        _ => None,
+                    },
+                ),
+            );
         }
     }
     if available_2q_basis.is_empty() && available_2q_param_basis.is_empty() {
@@ -1112,30 +1110,32 @@ fn synth_error(
          inst_qubits: &SmallVec<[PhysicalQubit; 2]>| {
             if let Ok(names) = target.operation_names_for_qargs(Some(inst_qubits)) {
                 for name in names {
-                    if let Ok(target_op) = target.operation_from_name(name) {
-                        let are_params_close = if let Some(params) = inst_params {
-                            params.iter().zip(target_op.params.iter()).all(|(p1, p2)| {
-                                p1.is_close(py, p2, 1e-10)
-                                    .expect("Unexpected parameter expression error.")
-                            })
-                        } else {
-                            false
-                        };
-                        let is_parametrized = target_op
-                            .params
-                            .iter()
-                            .any(|param| matches!(param, Param::ParameterExpression(_)));
-                        if target_op.operation.name() == inst_name
-                            && (is_parametrized || are_params_close)
-                        {
-                            match target[name].get(Some(inst_qubits)) {
-                                Some(Some(props)) => {
-                                    gate_fidelities.push(1.0 - props.error.unwrap_or(0.0))
-                                }
-                                _ => gate_fidelities.push(1.0),
+                    let Some(TargetOperation::Normal(target_op)) = target.operation_from_name(name)
+                    else {
+                        continue;
+                    };
+                    let are_params_close = if let Some(params) = inst_params {
+                        params.iter().zip(target_op.params.iter()).all(|(p1, p2)| {
+                            p1.is_close(py, p2, 1e-10)
+                                .expect("Unexpected parameter expression error.")
+                        })
+                    } else {
+                        false
+                    };
+                    let is_parametrized = target_op
+                        .params
+                        .iter()
+                        .any(|param| matches!(param, Param::ParameterExpression(_)));
+                    if target_op.operation.name() == inst_name
+                        && (is_parametrized || are_params_close)
+                    {
+                        match target[name].get(Some(inst_qubits)) {
+                            Some(Some(props)) => {
+                                gate_fidelities.push(1.0 - props.error.unwrap_or(0.0))
                             }
-                            break;
+                            _ => gate_fidelities.push(1.0),
                         }
+                        break;
                     }
                 }
             }
