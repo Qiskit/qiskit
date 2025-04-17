@@ -408,9 +408,9 @@ fn py_run_main_loop(
                         None,
                     )?;
                     let out_qargs = dag.get_qargs(packed_instr.qubits);
-                    let mut concatenable_dag = out_dag.into_builder(py);
-                    apply_synth_dag(py, &mut concatenable_dag, out_qargs, &synth_dag)?;
-                    out_dag = concatenable_dag.end();
+                    let mut dag_builder = out_dag.into_builder(py);
+                    apply_synth_dag(py, &mut dag_builder, out_qargs, &synth_dag)?;
+                    out_dag = dag_builder.end();
                 }
             }
         }
@@ -1076,7 +1076,7 @@ fn reversed_synth_su4_dag(
 
     let target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
-    let mut target_dag_concat = target_dag.into_builder(py);
+    let mut target_dag_builder = target_dag.into_builder(py);
     for node in synth_dag.topological_op_nodes()? {
         let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
@@ -1085,10 +1085,10 @@ fn reversed_synth_su4_dag(
             .iter()
             .map(|x| flip_bits[x.0 as usize])
             .collect();
-        inst.qubits = target_dag_concat.insert_qargs(qubits.into());
-        target_dag_concat.push_back(py, inst)?;
+        inst.qubits = target_dag_builder.insert_qargs(qubits.into());
+        target_dag_builder.push_back(py, inst)?;
     }
-    Ok(target_dag_concat.end())
+    Ok(target_dag_builder.end())
 }
 
 /// Score the synthesis output (DAG or sequence) based on the expected gate fidelity/error score.

@@ -5101,7 +5101,6 @@ impl DAGCircuit {
                 (self.cargs_interner.get(instr.clbits).to_vec(), None)
             }
         };
-        // Insert op-node to graph.
         Ok((all_clbits, vars))
     }
 
@@ -6514,11 +6513,11 @@ impl DAGCircuit {
         let mut new_nodes = Vec::new();
         let mut replacement_dag = DAGCircuit::new()?;
         std::mem::swap(self, &mut replacement_dag);
-        let mut dag_concat = replacement_dag.into_builder(py);
+        let mut dag_builder = replacement_dag.into_builder(py);
         for inst in iter {
-            new_nodes.push(dag_concat.push_back(py, inst?)?);
+            new_nodes.push(dag_builder.push_back(py, inst?)?);
         }
-        std::mem::swap(self, &mut dag_concat.end());
+        std::mem::swap(self, &mut dag_builder.end());
         Ok(new_nodes)
     }
 
@@ -7215,7 +7214,7 @@ pub struct DAGCircuitBuilder {
 }
 
 impl DAGCircuitBuilder {
-    /// Builds a new instance of [DAGCircuitConcat] which allows instructions to
+    /// Creates a new instance of [DAGCircuitBuilder] which allows instructions to
     /// be added continuously into the [DAGCircuit].
     pub fn new(dag: DAGCircuit, py: Python) -> DAGCircuitBuilder {
         let num_qubits = dag.num_qubits();
@@ -7231,7 +7230,7 @@ impl DAGCircuitBuilder {
 
     /// Finishes up the changes by re-connecting all of the output nodes back to the last
     /// recorded nodes.
-    pub fn end(mut self) -> DAGCircuit {
+    pub fn build(mut self) -> DAGCircuit {
         // Re-connects all of the output nodes with their respective last nodes.
         // Add the output_nodes back to qargs
         for (qubit, node) in self
