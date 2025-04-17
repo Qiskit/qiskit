@@ -16,23 +16,18 @@
 Tests for the default UnitarySynthesis transpiler pass.
 """
 
-import unittest
 import math
 import numpy as np
-import scipy
-from ddt import ddt, data
+import ddt
 
-from qiskit import transpile, generate_preset_pass_manager
+from qiskit import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.library import quantum_volume
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
-from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import TwoQubitPeepholeOptimization, TrivialLayout
 from qiskit.circuit.library import (
     IGate,
@@ -48,14 +43,10 @@ from qiskit.circuit.library import (
     RYYGate,
     RZZGate,
     RXXGate,
-    PauliEvolutionGate,
-    CPhaseGate,
 )
-from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
-from qiskit.synthesis.unitary.qsd import qs_decomposition
 
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -352,18 +343,8 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         result_qc = dag_to_circuit(result_dag)
         self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
 
-    @unittest.skip("Add support for custom parameterized gates")
     def test_custom_rxx_gate_in_target(self):
         """Test synthesis with custom parameterized gate in target."""
-
-        class CustomXXGate(RXXGate):
-            """Custom RXXGate subclass that's not a standard gate"""
-
-            _standard_gate = None
-
-            def __init__(self, theta, label=None):
-                super().__init__(theta, label)
-                self.name = "MyCustomXXGate"
 
         theta = Parameter("θ")
         lam = Parameter("λ")
