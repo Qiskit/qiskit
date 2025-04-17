@@ -23,13 +23,13 @@ from qiskit._accelerate.two_qubit_peephole import two_qubit_unitary_peephole_opt
 class TwoQubitPeepholeOptimization(TransformationPass):
     """Unified two qubit unitary peephole optimization
 
-    This transpiler pass is designed to perform two qubit unitary peephole optimization. This pass
-    finds all the 2 qubit blocks in the circuit, computes the unitary of
-    that block, and then synthesizes that unitary. If the synthesized two
-    qubit unitary is "better" than the original subcircuit that subcircuit
-    is used to replace the original. The heuristic used to determine if
-    it's better first looks at the two qubit gate count in the circuit, and
-    prefers the synthesis with fewer two qubit gates.
+    This transpiler pass is designed to perform two qubit unitary peephole
+    optimization. This pass finds all the 2 qubit blocks in the circuit,
+    computes the unitary of that block, and then synthesizes that unitary.
+    If the synthesized two qubit unitary is "better" than the original
+    subcircuit that subcircuit is used to replace the original. The heuristic
+    used to determine if it's better first looks at the two qubit gate count
+    in the circuit, and prefers the synthesis with fewer two qubit gates.
 
     In case the target is overcomplete the pass will try all the
     decomposers supported for all the gates supported on a given qubit.
@@ -39,15 +39,22 @@ class TwoQubitPeepholeOptimization(TransformationPass):
     This pass is multithreaded, and will perform the analysis in parallel
     and use all the cores available on your local system. You can refer to
     the `configuration guide <https://docs.quantum.ibm.com/guides/configure-qiskit-local>`__
-    for details on how to control the threading behavior
+    for details on how to control the threading behavior for Qiskit more broadly
+    which will also control this pass.
+
+    Unlike :class:`.UnitarySynthesis` pass this does not use the :ref`unitary-synth-plugin`.
+    This is a tradeoff for performance and it forgoes the pluggability exposed
+    via that interface. Internally it currently only uses the :class:`.TwoQubitBasisDecomposer`
+    and :class:`.TwoQubitControlledUDecomposer` for synthesizing the two qubit unitaries.
+    You should not use this pass if you need to use the pluggable interface and the ability
+    to use different synthesis algorithms, instead you should use a combination of
+    :class:`.ConsolidateBlocks` and :class:`.UnitarySynthesis` to use the plugin mechanism
     """
 
     def __init__(
         self,
         target: Target,
         approximation_degree: float | None = 1.0,
-        method: str = "default",
-        plugin_config: dict = None,
     ):
         """Initialize the pass
 
@@ -58,45 +65,11 @@ class TwoQubitPeepholeOptimization(TransformationPass):
                 of gates used in the synthesized unitaries smaller at the cost of straying from the
                 original unitary. If ``None``, approximation is done based on gate fidelities
                 specified in the ``target``.
-            method: The optional unitary synthesis plugin to run. If this is specified the pass
-                behaves identically to running :class:`.ConsolidateBlocks` and
-                :class:`.UnitarySynthesis` in sequence. The heuristic described above doesn't apply
-                and the block is only resynthesized if
-                :meth:`.TwoQubitBasisDecomposer.num_basis_gates` predicts fewer 2q gates are
-                required than the original block.
-            plugin_config: The optional configuration dictionary if a plugin method is
-                specified. Refer to the documentation for the plugin being used for
-                the options accepted and how to configure the plugin.
         """
 
         super().__init__()
         self._target = target
         self._approximation_degree = approximation_degree
-        self._pm = None
-        if method != "default":
-            from qiskit.transpiler.passes.optimization import (
-                ConsolidateBlocks,
-            )  # pylint: disable=cyclic-import
-            from qiskit.transpiler.passes.synthesis import (
-                UnitarySynthesis,
-            )  # pylint: disable=cyclic-import
-            from qiskit.transpiler.passmanager import PassManager  # pylint: disable=cyclic-import
-
-            self._pm = PassManager(
-                [
-                    ConsolidateBlocks(
-                        target=self._target, approximation_degree=self._approximation_degree
-                    ),
-                    UnitarySynthesis(
-                        target=target,
-                        approximation_degree=approximation_degree,
-                        method=method,
-                        plugin_config=plugin_config,
-                    ),
-                ]
-            )
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        if self._pm is not None:
-            return self._pm.run(dag)
         return two_qubit_unitary_peephole_optimize(dag, self._target, self._approximation_degree)
