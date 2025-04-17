@@ -44,11 +44,11 @@ use smallvec::SmallVec;
 use crate::equivalence::EquivalenceLibrary;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
-use crate::target_transpiler::qargs::Qargs;
+use crate::target_transpiler::qargs::TargetQargs;
 use crate::target_transpiler::Target;
 
 type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
-type ExtraInstructionMap<'a> = IndexMap<&'a Option<Qargs>, InstMap, ahash::RandomState>;
+type ExtraInstructionMap<'a> = IndexMap<&'a Option<TargetQargs>, InstMap, ahash::RandomState>;
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
@@ -56,7 +56,7 @@ fn run(
     py: Python<'_>,
     dag: DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
-    qargs_with_non_global_operation: HashMap<Option<Qargs>, HashSet<String>>,
+    qargs_with_non_global_operation: HashMap<Option<TargetQargs>, HashSet<String>>,
     min_qubits: usize,
     target_basis: Option<HashSet<String>>,
     target: Option<&Target>,
@@ -67,7 +67,7 @@ fn run(
     }
 
     let qargs_with_non_global_operation: IndexMap<
-        Option<Qargs>,
+        Option<TargetQargs>,
         IndexSet<String, ahash::RandomState>,
         ahash::RandomState,
     > = qargs_with_non_global_operation
@@ -84,7 +84,7 @@ fn run(
     let mut source_basis: IndexSet<GateIdentifier, ahash::RandomState> = IndexSet::default();
     let mut new_target_basis: IndexSet<String, ahash::RandomState>;
     let mut qargs_local_source_basis: IndexMap<
-        Option<Qargs>,
+        Option<TargetQargs>,
         IndexSet<GateIdentifier, ahash::RandomState>,
         ahash::RandomState,
     > = IndexMap::default();
@@ -133,7 +133,7 @@ fn run(
     }
     let basis_transforms = basis_search(equiv_lib, &source_basis, &new_target_basis);
     let mut qarg_local_basis_transforms: IndexMap<
-        Option<Qargs>,
+        Option<TargetQargs>,
         Vec<(GateIdentifier, BasisTransformIn)>,
         ahash::RandomState,
     > = IndexMap::default();
@@ -290,13 +290,13 @@ fn extract_basis_target(
     dag: &DAGCircuit,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
-        Option<Qargs>,
+        Option<TargetQargs>,
         IndexSet<GateIdentifier, ahash::RandomState>,
         ahash::RandomState,
     >,
     min_qubits: usize,
     qargs_with_non_global_operation: &IndexMap<
-        Option<Qargs>,
+        Option<TargetQargs>,
         IndexSet<String, ahash::RandomState>,
         ahash::RandomState,
     >,
@@ -373,13 +373,13 @@ fn extract_basis_target_circ(
     circuit: &Bound<PyAny>,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
-        Option<Qargs>,
+        Option<TargetQargs>,
         IndexSet<GateIdentifier, ahash::RandomState>,
         ahash::RandomState,
     >,
     min_qubits: usize,
     qargs_with_non_global_operation: &IndexMap<
-        Option<Qargs>,
+        Option<TargetQargs>,
         IndexSet<String, ahash::RandomState>,
         ahash::RandomState,
     >,
@@ -455,7 +455,7 @@ fn apply_translation(
     extra_inst_map: &ExtraInstructionMap,
     min_qubits: usize,
     qargs_with_non_global_operation: &IndexMap<
-        Option<Qargs>,
+        Option<TargetQargs>,
         IndexSet<String, ahash::RandomState>,
         ahash::RandomState,
     >,
@@ -543,7 +543,7 @@ fn apply_translation(
             }
             continue;
         }
-        let node_qarg_as_physical: Option<Qargs> =
+        let node_qarg_as_physical: Option<TargetQargs> =
             Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect());
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
@@ -571,7 +571,7 @@ fn apply_translation(
             continue;
         }
 
-        let unique_qargs: Option<Qargs> = if qubit_set.is_empty() {
+        let unique_qargs: Option<TargetQargs> = if qubit_set.is_empty() {
             None
         } else {
             Some(qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect())

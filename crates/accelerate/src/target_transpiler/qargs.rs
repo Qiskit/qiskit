@@ -18,7 +18,7 @@ use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
 
-pub type Qargs = SmallVec<[PhysicalQubit; 2]>;
+pub type TargetQargs = SmallVec<[PhysicalQubit; 2]>;
 
 /// Representation of quantum args for a [Target].
 ///
@@ -31,14 +31,14 @@ pub type Qargs = SmallVec<[PhysicalQubit; 2]>;
 /// This enumeration represents these two conditions efficiently while
 /// solving certain ownership issues that [Option] currently has.
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub enum TargetQargs {
+pub enum Qargs {
     #[default]
     Global,
-    Concrete(Qargs),
+    Concrete(TargetQargs),
 }
 
-impl From<Option<Qargs>> for TargetQargs {
-    fn from(value: Option<Qargs>) -> Self {
+impl From<Option<TargetQargs>> for Qargs {
+    fn from(value: Option<TargetQargs>) -> Self {
         match value {
             Some(qargs) => Self::Concrete(qargs),
             None => Self::Global,
@@ -46,18 +46,18 @@ impl From<Option<Qargs>> for TargetQargs {
     }
 }
 
-impl From<Qargs> for TargetQargs {
-    fn from(value: Qargs) -> Self {
+impl From<TargetQargs> for Qargs {
+    fn from(value: TargetQargs) -> Self {
         Self::Concrete(value)
     }
 }
 
-impl TargetQargs {
+impl Qargs {
     /// Returns a reference version of a qarg.
-    pub fn as_ref(&self) -> TargetQargsRef<'_> {
+    pub fn as_ref(&self) -> QargsRef<'_> {
         match self {
-            TargetQargs::Global => TargetQargsRef::Global,
-            TargetQargs::Concrete(small_vec) => TargetQargsRef::Concrete(small_vec),
+            Qargs::Global => QargsRef::Global,
+            Qargs::Concrete(small_vec) => QargsRef::Concrete(small_vec),
         }
     }
 
@@ -85,7 +85,7 @@ impl TargetQargs {
     /// Returns the enclosed qargs in the case of `Concrete` variant.
     ///
     /// This function may `panic!`, and its unsafe use is discouraged.
-    pub fn unwrap(self) -> Qargs {
+    pub fn unwrap(self) -> TargetQargs {
         match self {
             Self::Global => panic!("Attempted to unwrap a 'Global' variant of 'TargetQargs'"),
             Self::Concrete(small_vec) => small_vec,
@@ -94,7 +94,7 @@ impl TargetQargs {
 
     /// Returns the enclosed qargs in the case of `Concrete` variant, otherwise
     /// return an empty [SmallVec].
-    pub fn unwrap_or_default(self) -> Qargs {
+    pub fn unwrap_or_default(self) -> TargetQargs {
         match self {
             Self::Global => SmallVec::default(),
             Self::Concrete(small_vec) => small_vec,
@@ -102,8 +102,8 @@ impl TargetQargs {
     }
 }
 
-impl IntoIterator for TargetQargs {
-    type Item = Qargs;
+impl IntoIterator for Qargs {
+    type Item = TargetQargs;
 
     type IntoIter = IntoIter;
 
@@ -112,7 +112,7 @@ impl IntoIterator for TargetQargs {
     }
 }
 
-impl<'py> IntoPyObject<'py> for TargetQargs {
+impl<'py> IntoPyObject<'py> for Qargs {
     type Target = PyAny;
 
     type Output = Bound<'py, PyAny>;
@@ -127,27 +127,27 @@ impl<'py> IntoPyObject<'py> for TargetQargs {
     }
 }
 
-impl<'py> FromPyObject<'py> for TargetQargs {
+impl<'py> FromPyObject<'py> for Qargs {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let qargs: Option<Qargs> = ob.extract()?;
+        let qargs: Option<TargetQargs> = ob.extract()?;
         Ok(qargs.into())
     }
 }
 
-impl Equivalent<TargetQargs> for TargetQargsRef<'_> {
-    fn equivalent(&self, key: &TargetQargs) -> bool {
+impl Equivalent<Qargs> for QargsRef<'_> {
+    fn equivalent(&self, key: &Qargs) -> bool {
         *self == key.as_ref()
     }
 }
 
 /// Reference representation of [TargetQargs].
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TargetQargsRef<'a> {
+pub enum QargsRef<'a> {
     Global,
     Concrete(&'a [PhysicalQubit]),
 }
 
-impl<'a> TargetQargsRef<'a> {
+impl<'a> QargsRef<'a> {
     /// Checks if the qargs in question are `Global`.
     pub fn is_global(&self) -> bool {
         matches!(self, Self::Global)
@@ -167,8 +167,8 @@ impl<'a> TargetQargsRef<'a> {
     /// Turns the qargs into an option view
     pub fn as_option(&self) -> Option<&'a [PhysicalQubit]> {
         match self {
-            TargetQargsRef::Global => None,
-            TargetQargsRef::Concrete(qargs) => Some(qargs),
+            QargsRef::Global => None,
+            QargsRef::Concrete(qargs) => Some(qargs),
         }
     }
 
@@ -192,7 +192,7 @@ impl<'a> TargetQargsRef<'a> {
     }
 }
 
-impl<'a> From<Option<&'a [PhysicalQubit]>> for TargetQargsRef<'a> {
+impl<'a> From<Option<&'a [PhysicalQubit]>> for QargsRef<'a> {
     fn from(value: Option<&'a [PhysicalQubit]>) -> Self {
         match value {
             Some(qargs) => Self::Concrete(qargs),
@@ -201,13 +201,13 @@ impl<'a> From<Option<&'a [PhysicalQubit]>> for TargetQargsRef<'a> {
     }
 }
 
-impl<'a> From<&'a [PhysicalQubit]> for TargetQargsRef<'a> {
+impl<'a> From<&'a [PhysicalQubit]> for QargsRef<'a> {
     fn from(value: &'a [PhysicalQubit]) -> Self {
         Self::Concrete(value)
     }
 }
 
-impl<'py> IntoPyObject<'py> for TargetQargsRef<'_> {
+impl<'py> IntoPyObject<'py> for QargsRef<'_> {
     type Target = PyAny;
 
     type Output = Bound<'py, PyAny>;
@@ -227,18 +227,18 @@ impl<'py> IntoPyObject<'py> for TargetQargsRef<'_> {
 #[doc(hidden)]
 /// Owning iterator for [TargetQargs].
 pub struct IntoIter {
-    inner: TargetQargs,
+    inner: Qargs,
 }
 
 impl Iterator for IntoIter {
-    type Item = Qargs;
+    type Item = TargetQargs;
 
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.inner {
-            TargetQargs::Global => None,
-            TargetQargs::Concrete(small_vec) => {
+            Qargs::Global => None,
+            Qargs::Concrete(small_vec) => {
                 let vec = std::mem::take(small_vec);
-                self.inner = TargetQargs::Global;
+                self.inner = Qargs::Global;
                 Some(vec)
             }
         }
@@ -248,7 +248,7 @@ impl Iterator for IntoIter {
 #[doc(hidden)]
 /// Borrowed iterator for [TargetQargs]
 pub struct Iter<'a> {
-    inner: TargetQargsRef<'a>,
+    inner: QargsRef<'a>,
 }
 
 impl<'a> Iterator for Iter<'a> {
@@ -256,10 +256,10 @@ impl<'a> Iterator for Iter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.inner {
-            TargetQargsRef::Global => None,
-            TargetQargsRef::Concrete(small_vec) => {
+            QargsRef::Global => None,
+            QargsRef::Concrete(small_vec) => {
                 let vec = small_vec;
-                self.inner = TargetQargsRef::Global;
+                self.inner = QargsRef::Global;
                 Some(vec)
             }
         }

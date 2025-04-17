@@ -42,7 +42,7 @@ use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
 };
 use crate::nlayout::PhysicalQubit;
-use crate::target_transpiler::qargs::TargetQargsRef;
+use crate::target_transpiler::qargs::QargsRef;
 use crate::target_transpiler::{NormalOperation, Target};
 use crate::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
@@ -550,7 +550,7 @@ fn get_2q_decomposers_from_target(
     let mut available_2q_param_basis: IndexMap<&str, (NormalOperation, Option<f64>)> =
         IndexMap::new();
     for (q_pair, gates) in qubit_gate_map {
-        let q_pair: TargetQargsRef = Some(q_pair.as_slice()).into();
+        let q_pair: QargsRef = Some(q_pair.as_slice()).into();
         for key in gates {
             match target.operation_from_name(key) {
                 Ok(op) => {
@@ -749,7 +749,7 @@ fn get_2q_decomposers_from_target(
         for basis_1q in available_1q_basis {
             let pi2_decomposer = if let Some(pi_2_basis) = pi2_basis {
                 if pi_2_basis == "cx" && basis_1q == "ZSX" {
-                    let qargs: TargetQargsRef = Some(qubits.as_slice()).into();
+                    let qargs: QargsRef = Some(qubits.as_slice()).into();
                     let fidelity = match approximation_degree {
                         Some(approx_degree) => approx_degree,
                         None => match &target["cx"][&qargs] {
@@ -831,7 +831,7 @@ fn preferred_direction(
                                     .qargs_for_operation_name(decomposer.packed_op.name())
                                 {
                                     Ok(_) => match target[decomposer.packed_op.name()]
-                                        .get::<TargetQargsRef>(&Some(q_tuple.as_slice()).into())
+                                        .get::<QargsRef>(&Some(q_tuple.as_slice()).into())
                                     {
                                         Some(Some(_props)) => {
                                             if lengths {
@@ -1111,7 +1111,7 @@ fn synth_error(
         |inst_name: &str,
          inst_params: &Option<SmallVec<[Param; 3]>>,
          inst_qubits: &SmallVec<[PhysicalQubit; 2]>| {
-            let inst_qubits: TargetQargsRef = Some(inst_qubits.as_slice()).into();
+            let inst_qubits: QargsRef = Some(inst_qubits.as_slice()).into();
             if let Ok(names) = target.operation_names_for_qargs(inst_qubits.as_option()) {
                 for name in names {
                     if let Ok(target_op) = target.operation_from_name(name) {
