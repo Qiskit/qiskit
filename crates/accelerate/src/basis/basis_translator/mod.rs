@@ -145,21 +145,30 @@ fn run(
         // subset non-local operations in the check here.
         let mut expanded_target = new_target_basis.clone();
         if let Qargs::Concrete(qargs) = qargs {
-            let qarg_as_set: IndexSet<PhysicalQubit> = IndexSet::from_iter(qargs.iter().copied());
-            for (non_local_qarg, local_basis) in qargs_with_non_global_operation.iter() {
-                if let Qargs::Concrete(non_local_qarg) = non_local_qarg {
-                    let non_local_qarg_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
-                        IndexSet::from_iter(non_local_qarg.iter().copied());
-                    if qarg_as_set.is_superset(&non_local_qarg_as_set) {
-                        expanded_target = expanded_target.union(local_basis).cloned().collect();
+            // Qargs are always guaranteed to be concrete based on `extract_basis_target`.
+            if qargs.len() > 1 {
+                let qarg_as_set: IndexSet<PhysicalQubit> =
+                    IndexSet::from_iter(qargs.iter().copied());
+                for (non_local_qarg, local_basis) in qargs_with_non_global_operation.iter() {
+                    if let Qargs::Concrete(non_local_qarg) = non_local_qarg {
+                        let non_local_qarg_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
+                            IndexSet::from_iter(non_local_qarg.iter().copied());
+                        if qarg_as_set.is_superset(&non_local_qarg_as_set) {
+                            expanded_target = expanded_target.union(local_basis).cloned().collect();
+                        }
                     }
                 }
+            } else {
+                expanded_target = expanded_target
+                    .union(
+                        &qargs_with_non_global_operation[&Qargs::from_iter(qargs.iter().copied())],
+                    )
+                    .cloned()
+                    .collect();
             }
         } else {
-            expanded_target = expanded_target
-                .union(&qargs_with_non_global_operation[qargs])
-                .cloned()
-                .collect();
+            // `extract_basis_target` should never add a 'Global' qarg into this mapping.
+            unreachable!("Attempted expanding the target with a 'Global' qarg.")
         }
         let local_basis_transforms = basis_search(equiv_lib, local_source_basis, &expanded_target);
         if let Some(local_basis_transforms) = local_basis_transforms {

@@ -376,8 +376,7 @@ impl Target {
         if !(prop_map.contains_key(&qargs.as_ref())) {
             return Err(PyKeyError::new_err(format!(
                 "Provided qarg {:?} not in this Target for {:?}.",
-                &qargs.unwrap_or_default(),
-                &instruction
+                &qargs, &instruction
             )));
         }
         if let Some(e) = prop_map.get_mut(&qargs.as_ref()) {
@@ -469,7 +468,7 @@ impl Target {
     ///     KeyError: If ``qargs`` is not in target
     #[pyo3(name = "operation_names_for_qargs", signature=(qargs=Qargs::Global, /))]
     pub fn py_operation_names_for_qargs(&self, qargs: Qargs) -> PyResult<HashSet<&str>> {
-        match self.operation_names_for_qargs(qargs.as_option()) {
+        match self.operation_names_for_qargs(&qargs) {
             Ok(set) => Ok(set),
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
@@ -609,12 +608,13 @@ impl Target {
             if let Some(parameters) = parameters {
                 if let Some(obj) = self._gate_name_map.get(&operation_name) {
                     if matches!(obj, TargetOperation::Variadic(_)) {
-                        if let Qargs::Concrete(_qargs) = qargs {
-                            let qarg_set: HashSet<PhysicalQubit> = _qargs.iter().cloned().collect();
-                            return Ok(_qargs
+                        if let Qargs::Concrete(qargs_vec) = qargs {
+                            let qarg_set: HashSet<PhysicalQubit> =
+                                qargs_vec.iter().cloned().collect();
+                            return Ok(qargs_vec
                                 .iter()
                                 .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
-                                && qarg_set.len() == _qargs.len());
+                                && qarg_set.len() == qargs_vec.len());
                         } else {
                             return Ok(true);
                         }
@@ -639,7 +639,7 @@ impl Target {
                     return Ok(true);
                 }
             }
-            Ok(self.instruction_supported(&operation_name, qargs.as_option()))
+            Ok(self.instruction_supported(&operation_name, &qargs))
         } else {
             Ok(false)
         }
@@ -742,11 +742,7 @@ impl Target {
     #[pyo3(name = "qargs")]
     fn py_qargs(&self, py: Python) -> PyResult<PyObject> {
         if let Some(qargs) = self.qargs() {
-            let qargs = qargs.map(|qargs| QargsRef::from(qargs).into_pyobject(py));
-            let set = PySet::empty(py)?;
-            for qargs in qargs {
-                set.add(qargs?)?;
-            }
+            let set = PySet::new(py, qargs)?;
             Ok(set.into_any().unbind())
         } else {
             Ok(py.None())
@@ -936,23 +932,29 @@ impl Target {
     }
 
     /// Get the error rate of a given instruction in the target
-    pub fn get_error(&self, name: &str, qargs: &[PhysicalQubit]) -> Option<f64> {
-        self.gate_map.get(name).and_then(|gate_props| {
-            match gate_props.get(&QargsRef::Concrete(qargs)) {
+    pub fn get_error<'a, T>(&self, name: &str, qargs: T) -> Option<f64>
+    where
+        T: Into<QargsRef<'a>>,
+    {
+        self.gate_map
+            .get(name)
+            .and_then(|gate_props| match gate_props.get(&qargs.into()) {
                 Some(props) => props.as_ref().and_then(|inst_props| inst_props.error),
                 None => None,
-            }
-        })
+            })
     }
 
     /// Get the duration of a given instruction in the target
-    pub fn get_duration(&self, name: &str, qargs: &[PhysicalQubit]) -> Option<f64> {
-        self.gate_map.get(name).and_then(|gate_props| {
-            match gate_props.get(&QargsRef::Concrete(qargs)) {
+    pub fn get_duration<'a, T>(&self, name: &str, qargs: T) -> Option<f64>
+    where
+        T: Into<QargsRef<'a>>,
+    {
+        self.gate_map
+            .get(name)
+            .and_then(|gate_props| match gate_props.get(&qargs.into()) {
                 Some(props) => props.as_ref().and_then(|inst_props| inst_props.duration),
                 None => None,
-            }
-        })
+            })
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
@@ -1167,15 +1169,12 @@ impl Target {
     }
 
     /// Returns an iterator over all the qargs of a specific Target object
-    pub fn qargs(&self) -> Option<impl Iterator<Item = Option<&[PhysicalQubit]>>> {
+    pub fn qargs(&self) -> Option<impl Iterator<Item = &Qargs>> {
         let qargs = self.qarg_gate_map.keys();
         if qargs.len() == 1 && self.qarg_gate_map.contains_key(&Qargs::Global) {
             return None;
         }
-        Some(qargs.map(|qargs| match qargs.as_ref() {
-            QargsRef::Global => None,
-            QargsRef::Concrete(qargs) => Some(qargs),
-        }))
+        Some(qargs)
     }
 
     pub fn num_qargs(&self) -> usize {

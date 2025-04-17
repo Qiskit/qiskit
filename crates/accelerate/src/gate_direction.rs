@@ -73,12 +73,12 @@ fn py_check_direction_coupling_map(
 #[pyo3(name = "check_gate_direction_target")]
 fn py_check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = &[
+        let qargs = [
             PhysicalQubit::new(op_args[0].0),
             PhysicalQubit::new(op_args[1].0),
         ];
 
-        target.instruction_supported(inst.op.name(), qargs)
+        target.instruction_supported(inst.op.name(), &qargs)
     };
 
     check_gate_direction(py, dag, &target_check, None)
@@ -226,7 +226,7 @@ fn py_fix_direction_target(
             }
         }
         // This will come back to bite me :)
-        target.instruction_supported(inst.op.name(), &*qargs)
+        target.instruction_supported(inst.op.name(), &qargs)
     };
 
     fix_gate_direction(py, dag, &target_check, None).cloned()

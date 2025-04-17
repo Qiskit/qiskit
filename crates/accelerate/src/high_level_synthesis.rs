@@ -348,7 +348,7 @@ fn all_instructions_supported(
                 if borrowed_data.use_physical_indices {
                     return Ok(false);
                 }
-                Ok(op_keys.all(|name| target.instruction_supported(name, None)))
+                Ok(op_keys.all(|name| target.instruction_supported(name, &Qargs::Global)))
             } else {
                 // If we do not have the target, we check whether every operation
                 // in op_names is inside the basis gates.

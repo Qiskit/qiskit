@@ -31,7 +31,7 @@ use qiskit_circuit::Qubit;
 
 use crate::error_map::ErrorMap;
 use crate::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
-use crate::target_transpiler::Target;
+use crate::target_transpiler::{Qargs, Target};
 
 const PARALLEL_THRESHOLD: usize = 50;
 
@@ -53,15 +53,18 @@ create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 fn build_average_error_map(target: &Target) -> ErrorMap {
     let qargs_count = target.qargs().unwrap().count();
     let mut error_map = ErrorMap::new(Some(qargs_count));
-    for qargs in target.qargs().unwrap().flatten() {
+    for qargs in target.qargs().unwrap() {
         let mut qarg_error: f64 = 0.;
         let mut count: usize = 0;
-        for op in target.operation_names_for_qargs(Some(qargs)).unwrap() {
+        for op in target.operation_names_for_qargs(qargs).unwrap() {
             if let Some(error) = target.get_error(op, qargs) {
                 count += 1;
                 qarg_error += error;
             }
         }
+        let Qargs::Concrete(qargs) = qargs else {
+            continue;
+        };
         if count > 0 {
             let out_qargs = if qargs.len() == 1 {
                 [qargs[0], qargs[0]]
@@ -258,12 +261,13 @@ fn build_coupling_map<Ty: EdgeType>(
     for _ in 0..num_qubits {
         cm_graph.add_node(HashSet::new());
     }
-    let qargs = target.qargs();
-    qargs.as_ref()?;
-    for qarg in qargs.unwrap().flatten() {
+    for qarg in target.qargs()? {
+        let Qargs::Concrete(qarg) = qarg else {
+            continue;
+        };
         if qarg.len() == 1 {
             let node_index = NodeIndex::new(qarg[0].index());
-            let op_names = target.operation_names_for_qargs(Some(qarg)).unwrap();
+            let op_names = target.operation_names_for_qargs(qarg).unwrap();
             for name in op_names {
                 cm_graph
                     .node_weight_mut(node_index)
@@ -275,7 +279,7 @@ fn build_coupling_map<Ty: EdgeType>(
                 NodeIndex::new(qarg[0].index()),
                 NodeIndex::new(qarg[1].index()),
             );
-            let op_names = target.operation_names_for_qargs(Some(qarg)).unwrap();
+            let op_names = target.operation_names_for_qargs(qarg).unwrap();
             match edge_index {
                 Some(edge_index) => {
                     let edge_weight: &mut HashSet<String> =
