@@ -206,33 +206,54 @@ impl ParameterExpression {
     ) -> Option<HashSet<Arc<ParameterExpression>>> {
         let mut ret: HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
             Some(s) => s.clone(),
-            None => HashSet::from([Arc::new(self.to_owned())]),
-        };
-        match &other.parameter_symbols {
-            Some(o) => {
-                for v in o {
-                    ret.insert(v.clone());
+            None => match self.expr {
+                SymbolExpr::Symbol { name: _, index: _ } => {
+                    HashSet::from([Arc::new(self.to_owned())])
                 }
-                Some(ret)
-            }
-            None => Some(ret),
+                _ => HashSet::new(),
+            },
+        };
+        let other_symbols: &HashSet<Arc<ParameterExpression>> = match &other.parameter_symbols {
+            Some(s) => s,
+            None => match other.expr {
+                SymbolExpr::Symbol { name: _, index: _ } => {
+                    &HashSet::from([Arc::new(other.to_owned())])
+                }
+                _ => &HashSet::new(),
+            },
+        };
+        for o in other_symbols {
+            ret.insert(o.clone());
         }
+        Some(ret)
     }
 
     // get conflict parameters
     fn get_conflict_parameters(&self, other: &ParameterExpression) -> HashSet<String> {
         let mut conflicts = HashSet::<String>::new();
-        let my_symbols = match &self.parameter_symbols {
+        let my_symbols: &HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
             Some(s) => s,
-            None => &HashSet::from([Arc::new(self.to_owned())]),
+            None => match self.expr {
+                SymbolExpr::Symbol { name: _, index: _ } => {
+                    &HashSet::from([Arc::new(self.to_owned())])
+                }
+                _ => &HashSet::new(),
+            },
         };
-        if let Some(other_symbols) = &other.parameter_symbols {
-            for o in other_symbols {
-                // find symbol with different uuid
-                if let Some(m) = my_symbols.get(o) {
-                    if m.uuid != o.uuid {
-                        conflicts.insert(o.to_string());
-                    }
+        let other_symbols: &HashSet<Arc<ParameterExpression>> = match &other.parameter_symbols {
+            Some(s) => s,
+            None => match other.expr {
+                SymbolExpr::Symbol { name: _, index: _ } => {
+                    &HashSet::from([Arc::new(other.to_owned())])
+                }
+                _ => &HashSet::new(),
+            },
+        };
+        for o in other_symbols {
+            // find symbol with different uuid
+            if let Some(m) = my_symbols.get(o) {
+                if m.uuid != o.uuid {
+                    conflicts.insert(o.to_string());
                 }
             }
         }
@@ -244,6 +265,19 @@ impl ParameterExpression {
         match &self.qpy_replay {
             Some(r) => r.clone(),
             None => Vec::<OPReplay>::new(),
+        }
+    }
+
+    #[inline(always)]
+    fn _my_parameters(&self) -> Option<HashSet<Arc<ParameterExpression>>> {
+        match self.parameter_symbols {
+            Some(_) => self.parameter_symbols.clone(),
+            None => match self.expr {
+                SymbolExpr::Symbol { name: _, index: _ } => {
+                    Some(HashSet::from([Arc::new(self.to_owned())]))
+                }
+                _ => None,
+            },
         }
     }
 
@@ -266,7 +300,7 @@ impl ParameterExpression {
             expr: -&self.expr,
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -288,7 +322,7 @@ impl ParameterExpression {
             expr: self.expr.clone(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -299,7 +333,7 @@ impl ParameterExpression {
             expr: self.expr.sin(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -310,7 +344,7 @@ impl ParameterExpression {
             expr: self.expr.cos(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -321,7 +355,7 @@ impl ParameterExpression {
             expr: self.expr.tan(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -332,7 +366,7 @@ impl ParameterExpression {
             expr: self.expr.asin(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -343,7 +377,7 @@ impl ParameterExpression {
             expr: self.expr.acos(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -354,7 +388,7 @@ impl ParameterExpression {
             expr: self.expr.atan(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -365,7 +399,7 @@ impl ParameterExpression {
             expr: self.expr.exp(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -376,7 +410,7 @@ impl ParameterExpression {
             expr: self.expr.log(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -387,7 +421,7 @@ impl ParameterExpression {
             expr: self.expr.abs(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -398,7 +432,7 @@ impl ParameterExpression {
             expr: self.expr.sign(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -409,7 +443,7 @@ impl ParameterExpression {
             expr: self.expr.conjugate(),
             uuid: self.uuid.clone(),
             qpy_replay: Some(replay),
-            parameter_symbols: self.parameter_symbols.clone(),
+            parameter_symbols: self._my_parameters(),
             parameter_vector: None,
         }
     }
@@ -790,7 +824,7 @@ impl ParameterExpression {
                     Some(u) => u,
                     None => Uuid::new_v4().as_u128(),
                 };
-                let mut ret = ParameterExpression {
+                let ret = ParameterExpression {
                     expr: SymbolExpr::Symbol {
                         name: Box::new(name.clone()),
                         index: vec_idx,
@@ -800,8 +834,6 @@ impl ParameterExpression {
                     parameter_symbols: None,
                     parameter_vector: None,
                 };
-                let t = Arc::<ParameterExpression>::new(ret.to_owned());
-                ret.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([t]));
                 Ok(ret)
             }
             None => Ok(ParameterExpression::default()),
@@ -1126,19 +1158,9 @@ impl ParameterExpression {
     pub fn parameters(&self) -> HashSet<ParameterExpression> {
         match &self.parameter_symbols {
             Some(symbols) => {
-                let mut ret_vec: Vec<Arc<ParameterExpression>> = Vec::new();
-                // temporary copy in Vec to sort hashset
-                for s in symbols {
-                    ret_vec.push(s.clone());
-                }
-                ret_vec.sort_by(|a, b| *&b.expr.partial_cmp(&a.expr).unwrap());
-
                 let mut ret = HashSet::<ParameterExpression>::new();
-                for s in ret_vec {
-                    let tt = s.clone();
-                    let mut t = Arc::unwrap_or_clone(s);
-                    t.parameter_symbols = Some(HashSet::<Arc<ParameterExpression>>::from([tt]));
-                    ret.insert(t);
+                for s in symbols {
+                    ret.insert(Arc::<ParameterExpression>::unwrap_or_clone(s.clone()));
                 }
                 ret
             }
@@ -1246,9 +1268,16 @@ impl ParameterExpression {
                 unknown_params.insert(key.to_string());
             }
 
-            if let Some(o) = &expr.parameter_symbols {
-                for k in o {
-                    symbols.insert(k.clone());
+            match &expr.parameter_symbols {
+                Some(o) => {
+                    for k in o {
+                        symbols.insert(k.clone());
+                    }
+                }
+                None => {
+                    if let SymbolExpr::Symbol { name: _, index: _ } = expr.expr {
+                        symbols.insert(Arc::new(expr.to_owned()));
+                    }
                 }
             }
         }

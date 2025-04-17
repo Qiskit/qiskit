@@ -2063,9 +2063,7 @@ impl SymbolExpr {
 
     /// Div with heuristic optimization
     fn div_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        if self.is_zero() {
-            Some(self.clone())
-        } else if rhs.is_zero() {
+        if rhs.is_zero() {
             // return inf to detect divide by zero without panic
             Some(SymbolExpr::Value(Value::Real(f64::INFINITY)))
         } else if rhs.is_one() {
