@@ -429,10 +429,7 @@ impl Target {
         instruction: &str,
     ) -> PyResult<Bound<'py, PyAny>> {
         match self.operation_from_name(instruction) {
-            Some(TargetOperation::Normal(operation)) => {
-                operation.into_pyobject(py).map(|x| x.to_owned())
-            }
-            Some(TargetOperation::Variadic(ob)) => Ok(ob.bind(py).clone()),
+            Some(op) => op.into_bound_py_any(py),
             None => Err(PyKeyError::new_err(format!(
                 "Instruction {instruction} not in target"
             ))),
