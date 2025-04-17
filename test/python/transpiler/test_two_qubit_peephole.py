@@ -93,7 +93,7 @@ class FakeBackend5QV2(GenericBackendV2):
             ecr_props[(3, 2)] = InstructionProperties(duration=5.52e-9, error=0.0000232115)
 
 
-@ddt
+@ddt.ddt
 class TestTwoQubitPeepholeOptimization(QiskitTestCase):
     """Test TwoQubitPeepholeOptimization."""
 
