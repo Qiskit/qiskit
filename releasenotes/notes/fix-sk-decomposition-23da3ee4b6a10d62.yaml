@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a problem in the :class:`.SolovayKitaev` transpiler pass where the pass would crash due
+    to incorrectly computing the unitary matrix corresponding to a 180 degree rotation.
+  - Fixed a problem in the :class:`.SolovayKitaev` transpiler pass where the pass would produce
+    an incorrect global phase due to internally approximating the SO(3) and not the SU(2) matrices.
