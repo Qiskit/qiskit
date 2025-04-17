@@ -359,7 +359,7 @@ impl Target {
     ///     properties (InstructionProperties): The properties to set for this instruction
     /// Raises:
     ///     KeyError: If ``instruction`` or ``qarg`` are not in the target
-    #[pyo3(signature = (instruction, qargs=Qargs::Global, properties=None))]
+    #[pyo3(signature = (instruction, qargs, properties))]
     fn update_instruction_properties(
         &mut self,
         instruction: String,
