@@ -24,7 +24,7 @@ from .generate_basis_approximations import generate_basic_approximations, _1q_ga
 class SolovayKitaevDecomposition:
     """The Solovay Kitaev discrete decomposition algorithm.
 
-    This class is called recursively by the transpiler pass, which is why it is separeted.
+    This class is called recursively by the transpiler pass, which is why it is separated.
     See :class:`qiskit.transpiler.passes.SolovayKitaev` for more information.
     """
 
@@ -33,7 +33,7 @@ class SolovayKitaevDecomposition:
     ) -> None:
         """
         Args:
-            basic_approximations: A specification of the basic SU(2) approximations in terms
+            basic_approximations: A specification of the basic SO(3) approximations in terms
                 of discrete gates. At each iteration this algorithm, the remaining error is
                 approximated with the closest sequence of gates in this set.
                 If a ``str``, this specifies a ``.npy`` filename from which to load the
@@ -116,18 +116,21 @@ class SolovayKitaevDecomposition:
         """
         # make input matrix SU(2) and get the according global phase
         z = 1 / np.sqrt(np.linalg.det(gate_matrix))
-        gate_matrix_su2 = GateSequence.from_matrix(z * gate_matrix)
+
+        gate_matrix_su2 = z * gate_matrix
+        gate_matrix_as_sequence = GateSequence.from_matrix(gate_matrix_su2)
         global_phase = np.arctan2(np.imag(z), np.real(z))
 
         # get the decomposition as GateSequence type
-        decomposition = self._recurse(gate_matrix_su2, recursion_degree, check_input=check_input)
+        decomposition = self._recurse(
+            gate_matrix_as_sequence, recursion_degree, check_input=check_input
+        )
 
         # simplify
         _remove_identities(decomposition)
         _remove_inverse_follows_gate(decomposition)
 
-        adjust_phase = _should_adjust_phase(decomposition._to_u2(), gate_matrix_su2._to_u2())
-
+        adjust_phase = _should_adjust_phase(decomposition._to_u2(), gate_matrix_su2)
         # convert to a circuit and attach the right phases
         if return_dag:
             out = decomposition._to_dag(adjust_phase)
