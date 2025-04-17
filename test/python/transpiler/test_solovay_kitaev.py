@@ -292,6 +292,15 @@ class TestSolovayKitaev(QiskitTestCase):
         transpiled = SolovayKitaev()(qc)
         self.assertEqual(set(transpiled.count_ops()), {"initialize"})
 
+    def test_y_gate(self):
+        """Test the Solovay-Kitaev decomposition on the circuit with a Y-gate (see issue #9552)."""
+        circuit = QuantumCircuit(1)
+        circuit.y(0)
+
+        transpiled = SolovayKitaev()(circuit)
+        diff = _trace_distance(circuit, transpiled)
+        self.assertLess(diff, 1e-6)
+
 
 @ddt
 class TestGateSequence(QiskitTestCase):
