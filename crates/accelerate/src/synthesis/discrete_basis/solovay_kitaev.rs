@@ -55,7 +55,7 @@ impl SolovayKitaevSynthesis {
     ///
     /// This matrix is given using [Complex64] numbers, which can limit the precision of the
     /// algorithm. It is preferred to run the algorithm using [synthesize_std], which let's Qiskit
-    /// attempt to construct the underlying SO(3) matrix representation using [BigFloat] at
+    /// attempt to construct the underlying SO(3) matrix representation using [f64] at
     /// quadruple precision, instead of inferring it from the double precision U(2) matrix.
     pub fn synthesize_matrix(
         &self,

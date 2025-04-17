@@ -13,7 +13,6 @@
 use hashbrown::HashMap;
 use nalgebra::{Matrix2, Matrix3};
 use ndarray::ArrayView2;
-use num_bigfloat::{BigFloat, FRAC_1_SQRT_2, ONE, TWO, ZERO};
 use num_complex::{Complex, ComplexFloat};
 use num_traits::FloatConst;
 use numpy::Complex64;
@@ -24,6 +23,7 @@ use qiskit_circuit::{
     Qubit,
 };
 use rstar::{Point, RTree};
+use std::f64::consts::FRAC_1_SQRT_2;
 use std::{fmt::Debug, ops::Div};
 use thiserror::Error;
 
@@ -57,12 +57,12 @@ pub struct GateSequence {
     // SO(3) matrix and phase, which is useful for lookup of matrices.
     pub gates: Option<Vec<StandardGate>>,
     // The SO(3) representation of the sequence. Note that this is only equal to SU(2) up to a sign.
-    pub matrix_so3: Matrix3<BigFloat>,
+    pub matrix_so3: Matrix3<f64>,
     // A global phase taking the U(2) representation of the sequence to SU(2).
-    pub phase: BigFloat,
+    pub phase: f64,
     // Optional, the U(2) matrix of the gates, which can be cached for efficiency.
     // This is invalidated upon any operation and can be recomputed via the ``u2`` method.
-    pub matrix_u2: Option<Matrix2<Complex<BigFloat>>>,
+    pub matrix_u2: Option<Matrix2<Complex<f64>>>,
 }
 
 impl GateSequence {
@@ -71,7 +71,7 @@ impl GateSequence {
         Self {
             gates: Some(vec![]),
             matrix_so3: Matrix3::identity(),
-            phase: ZERO,
+            phase: 0.,
             matrix_u2: None,
         }
     }
@@ -100,13 +100,13 @@ impl GateSequence {
         Self {
             gates: None,
             matrix_so3,
-            phase: BigFloat::from_f64(phase),
-            matrix_u2: Some(matrix_c64_to_cbig(matrix_u2)),
+            phase: (phase),
+            matrix_u2: Some(matrix_u2.clone()),
         }
     }
 
     /// Initialize from a SO(3) matrix. This sequence does not have gates.
-    pub fn from_so3(matrix_so3: &Matrix3<BigFloat>, do_checks: bool) -> Self {
+    pub fn from_so3(matrix_so3: &Matrix3<f64>, do_checks: bool) -> Self {
         if do_checks {
             math::assert_so3("SO(3) input matrix", matrix_so3);
         }
@@ -114,7 +114,7 @@ impl GateSequence {
         Self {
             gates: None,
             matrix_so3: *matrix_so3,
-            phase: ZERO,
+            phase: 0.,
             matrix_u2: None,
         }
     }
@@ -217,7 +217,7 @@ impl GateSequence {
 
     /// Get the U(2) matrix implemented by the gates. Fails if the gates are ``None`` and no U(2)
     /// matrix is cached.
-    pub fn u2(&self) -> Result<Matrix2<Complex<BigFloat>>, DiscreteBasisError> {
+    pub fn u2(&self) -> Result<Matrix2<Complex<f64>>, DiscreteBasisError> {
         if let Some(matrix_u2) = self.matrix_u2 {
             return Ok(matrix_u2);
         }
@@ -239,20 +239,20 @@ impl GateSequence {
     ///
     /// This assumes that [self] is a good approximation to ``target``, otherwise the result
     /// may not make sense.
-    pub fn compute_phase(&self, target: &GateSequence) -> Result<BigFloat, DiscreteBasisError> {
+    pub fn compute_phase(&self, target: &GateSequence) -> Result<f64, DiscreteBasisError> {
         let self_u2 = self.u2()?;
         let target_u2 = target.u2()?;
         let (target_first, self_first) = target_u2
             .iter()
             .zip(self_u2.iter())
-            .find(|(&el, _)| el.abs() >= ONE / TWO)
+            .find(|(&el, _)| el.abs() >= 1. / 2.)
             .expect("At least one element in the unitary must be >= 1/2.");
 
         // When we convert SU(2) to SO(3) we lose sign information, which translates to a
         // global phase uncertainty of +-1 = exp(i pi). We fix this here by checking which phase
         // is a better match (one should be clearly correct if the algorithm converged).
         let phase_candidate = self.phase - target.phase;
-        let coeff_candidate = Complex::new(ZERO, phase_candidate).exp();
+        let coeff_candidate = Complex::new(0., phase_candidate).exp();
         let candidate = self_first * coeff_candidate;
 
         if (target_first - candidate).abs() < (target_first + candidate).abs() {
@@ -260,7 +260,7 @@ impl GateSequence {
             Ok(phase_candidate)
         } else {
             // off by a -1 sign, so shift by PI
-            Ok(phase_candidate + BigFloat::PI())
+            Ok(phase_candidate + f64::PI())
         }
     }
 
@@ -277,8 +277,8 @@ impl GateSequence {
         };
 
         let global_phase = match target {
-            Some(target) => Param::Float(self.compute_phase(target)?.to_f64()),
-            None => Param::Float(self.phase.to_f64()),
+            Some(target) => Param::Float(self.compute_phase(target)?),
+            None => Param::Float(self.phase),
         };
 
         let mut circuit = CircuitData::with_capacity(1, 0, gates.len(), global_phase).unwrap();
@@ -322,22 +322,22 @@ fn array2_to_matrix2<T: Copy>(view: &ArrayView2<T>) -> Matrix2<T> {
     Matrix2::new(view[[0, 0]], view[(0, 1)], view[(1, 0)], view[(1, 1)])
 }
 
-fn su2_to_so3(view: &Matrix2<Complex64>) -> Matrix3<BigFloat> {
+fn su2_to_so3(view: &Matrix2<Complex64>) -> Matrix3<f64> {
     let a = view[(0, 0)].re;
     let b = view[(0, 0)].im;
     let c = -view[(0, 1)].re;
     let d = -view[(0, 1)].im;
 
     Matrix3::new(
-        BigFloat::from_f64(a.powi(2) - b.powi(2) - c.powi(2) + d.powi(2)),
-        BigFloat::from_f64(2.0 * (a * b + c * d)),
-        BigFloat::from_f64(2.0 * (b * d - a * c)),
-        BigFloat::from_f64(2.0 * (c * d - a * b)),
-        BigFloat::from_f64(a.powi(2) - b.powi(2) + c.powi(2) - d.powi(2)),
-        BigFloat::from_f64(2.0 * (a * d + b * c)),
-        BigFloat::from_f64(2.0 * (a * c + b * d)),
-        BigFloat::from_f64(2.0 * (b * c - a * d)),
-        BigFloat::from_f64(a.powi(2) + b.powi(2) - c.powi(2) - d.powi(2)),
+        a.powi(2) - b.powi(2) - c.powi(2) + d.powi(2),
+        2.0 * (a * b + c * d),
+        2.0 * (b * d - a * c),
+        2.0 * (c * d - a * b),
+        a.powi(2) - b.powi(2) + c.powi(2) - d.powi(2),
+        2.0 * (a * d + b * c),
+        2.0 * (a * c + b * d),
+        2.0 * (b * c - a * d),
+        a.powi(2) + b.powi(2) - c.powi(2) - d.powi(2),
     )
 }
 
@@ -345,7 +345,7 @@ fn su2_to_so3(view: &Matrix2<Complex64>) -> Matrix3<BigFloat> {
 /// optional index to retrieve the gate sequence.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BasicPoint {
-    point: [BigFloat; 9], // SO(3) representation
+    point: [f64; 9],      // SO(3) representation
     index: Option<usize>, // index to a gate sequence -- could explore using GateSequence directly
 }
 
@@ -359,7 +359,7 @@ impl BasicPoint {
 }
 
 impl Point for BasicPoint {
-    type Scalar = BigFloat;
+    type Scalar = f64;
     const DIMENSIONS: usize = 9;
 
     fn generate(generator: impl FnMut(usize) -> Self::Scalar) -> Self {
@@ -378,84 +378,80 @@ impl Point for BasicPoint {
     }
 }
 
-/// Get the SO(3) representation of a standard gate.
-///
-/// Attempts to directly construct the matrix using [BigFloat] accuracy, otherwise falls back
-/// to [f64] matrix construction and conversion.
+/// Get the U(2) representation of a standard gate.
 pub fn standard_gates_to_u2(
     gate: &StandardGate,
     params: &[Param],
-) -> Result<Matrix2<Complex<BigFloat>>, DiscreteBasisError> {
-    // TODO add hardcoded standard gates
+) -> Result<Matrix2<Complex<f64>>, DiscreteBasisError> {
     let matrix_c64 = gate.matrix(params).expect("Failed to get matrix.");
-    Ok(matrix_c64_to_cbig(&matrix_c64))
+    Ok(array2_to_matrix2(&matrix_c64.view()))
 }
 
 /// Get the SO(3) representation of a standard gate.
 ///
-/// Attempts to directly construct the matrix using [BigFloat] accuracy, otherwise falls back
-/// to [f64] matrix construction and conversion.
+/// Attempts to directly construct the matrix using [f64] accuracy, otherwise falls back
+/// to matrix construction and conversion.
 fn standard_gates_to_so3(
     gate: &StandardGate,
     params: &[Param],
-) -> Result<(Matrix3<BigFloat>, BigFloat), DiscreteBasisError> {
+) -> Result<(Matrix3<f64>, f64), DiscreteBasisError> {
     match gate {
         StandardGate::T => {
             let so3 = Matrix3::new(
                 FRAC_1_SQRT_2,
                 -FRAC_1_SQRT_2,
-                ZERO,
+                0.,
                 FRAC_1_SQRT_2,
                 FRAC_1_SQRT_2,
-                ZERO,
-                ZERO,
-                ZERO,
-                ONE,
+                0.,
+                0.,
+                0.,
+                1.,
             );
-            let phase = -BigFloat::FRAC_PI_8();
+            let phase = -f64::FRAC_PI_8();
             Ok((so3, phase))
         }
         StandardGate::Tdg => {
             let so3 = Matrix3::new(
                 FRAC_1_SQRT_2,
                 FRAC_1_SQRT_2,
-                ZERO,
+                0.,
                 -FRAC_1_SQRT_2,
                 FRAC_1_SQRT_2,
-                ZERO,
-                ZERO,
-                ZERO,
-                ONE,
+                0.,
+                0.,
+                0.,
+                1.,
             );
-            let phase = BigFloat::FRAC_PI_8();
+            let phase = f64::FRAC_PI_8();
             Ok((so3, phase))
         }
         StandardGate::S => {
-            let so3 = Matrix3::new(ZERO, -ONE, ZERO, ONE, ZERO, ZERO, ZERO, ZERO, ONE);
-            let phase = -BigFloat::FRAC_PI_4();
+            let so3 = Matrix3::new(0., -1., 0., 1., 0., 0., 0., 0., 1.);
+            let phase = -f64::FRAC_PI_4();
             Ok((so3, phase))
         }
         StandardGate::Sdg => {
-            let so3 = Matrix3::new(ZERO, ONE, ZERO, -ONE, ZERO, ZERO, ZERO, ZERO, ONE);
-            let phase = BigFloat::FRAC_PI_4();
+            let so3 = Matrix3::new(0., 1., 0., -1., 0., 0., 0., 0., 1.);
+            let phase = f64::FRAC_PI_4();
             Ok((so3, phase))
         }
         StandardGate::H => {
-            let so3 = Matrix3::new(ZERO, ZERO, -ONE, ZERO, -ONE, ZERO, -ONE, ZERO, ZERO);
-            let phase = BigFloat::FRAC_PI_2();
+            let so3 = Matrix3::new(0., 0., -1., 0., -1., 0., -1., 0., 0.);
+            let phase = f64::FRAC_PI_2();
             Ok((so3, phase))
         }
         StandardGate::RZ => {
             let angle = match params[0] {
-                Param::Float(angle) => BigFloat::from_f64(angle),
+                Param::Float(angle) => angle,
                 _ => return Err(DiscreteBasisError::ParameterizedGate),
             };
-            let cos = num_traits::Float::cos(angle / TWO);
-            let sin = num_traits::Float::sin(angle / TWO);
-            let so3_00 = num_traits::Float::powi(cos, 2) - num_traits::Float::powi(sin, 2);
-            let so3_10 = TWO * cos * sin;
-            let so3 = Matrix3::new(so3_00, -so3_10, ZERO, so3_10, so3_00, ZERO, ZERO, ZERO, ONE);
-            Ok((so3, ZERO))
+            let cos = (angle / 2.).cos();
+            let sin = (angle / 2.).sin();
+            let so3_00 = cos.powi(2) - sin.powi(2);
+            let so3_10 = 2. * cos * sin;
+            let so3 = Matrix3::new(so3_00, -so3_10, 0., so3_10, so3_00, 0., 0., 0., 1.);
+            Ok((so3, 0.))
         }
         _ => {
             let array_u2 = gate
@@ -467,35 +463,9 @@ fn standard_gates_to_so3(
             let so3 = su2_to_so3(&smatrix_u2);
 
             let phase = det.sqrt().arg();
-            Ok((so3, BigFloat::from_f64(phase)))
+            Ok((so3, (phase)))
         }
     }
-}
-
-/// Convert a matrix of Complex64 to a nalgebra matrix of Complex<BigFloat>.
-fn matrix_c64_to_cbig<M>(matrix_c64: &M) -> Matrix2<Complex<BigFloat>>
-where
-    // use the Index trait to support both nalgebra and ndarray matrices
-    M: ::std::ops::Index<(usize, usize), Output = Complex64>,
-{
-    Matrix2::new(
-        Complex::new(
-            BigFloat::from_f64(matrix_c64[(0, 0)].re),
-            BigFloat::from_f64(matrix_c64[(0, 0)].im),
-        ),
-        Complex::new(
-            BigFloat::from_f64(matrix_c64[(0, 1)].re),
-            BigFloat::from_f64(matrix_c64[(0, 1)].im),
-        ),
-        Complex::new(
-            BigFloat::from_f64(matrix_c64[(1, 0)].re),
-            BigFloat::from_f64(matrix_c64[(1, 0)].im),
-        ),
-        Complex::new(
-            BigFloat::from_f64(matrix_c64[(1, 1)].re),
-            BigFloat::from_f64(matrix_c64[(1, 1)].im),
-        ),
-    )
 }
 
 /// The basic approximations for Solovay Kitaev.
@@ -544,7 +514,7 @@ impl BasicApproximations {
 
         let mut this_level: Vec<GateSequence> = vec![GateSequence::new()];
         let mut next_level: Vec<GateSequence> = Vec::new();
-        let radius_sq = BigFloat::from_f64(tol.unwrap_or(1e-14));
+        let radius_sq = tol.unwrap_or(1e-14);
 
         for _ in 0..depth {
             for node in this_level.iter() {
