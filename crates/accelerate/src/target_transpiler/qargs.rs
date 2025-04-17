@@ -52,6 +52,12 @@ impl From<TargetQargs> for Qargs {
     }
 }
 
+impl<const N: usize> From<[PhysicalQubit; N]> for Qargs {
+    fn from(value: [PhysicalQubit; N]) -> Self {
+        Self::Concrete(SmallVec::from_iter(value))
+    }
+}
+
 impl Qargs {
     /// Returns a reference version of a qarg.
     pub fn as_ref(&self) -> QargsRef<'_> {
@@ -102,6 +108,12 @@ impl Qargs {
     }
 }
 
+impl FromIterator<PhysicalQubit> for Qargs {
+    fn from_iter<T: IntoIterator<Item = PhysicalQubit>>(iter: T) -> Self {
+        Qargs::Concrete(iter.into_iter().collect())
+    }
+}
+
 impl IntoIterator for Qargs {
     type Item = TargetQargs;
 
@@ -120,9 +132,21 @@ impl<'py> IntoPyObject<'py> for Qargs {
     type Error = PyErr;
 
     fn into_pyobject(self, py: pyo3::Python<'py>) -> Result<Self::Output, Self::Error> {
+        (&self).into_pyobject(py)
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &Qargs {
+    type Target = PyAny;
+
+    type Output = Bound<'py, PyAny>;
+
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self {
-            Self::Global => Ok(py.None().into_bound(py)),
-            Self::Concrete(small_vec) => Ok(PyTuple::new(py, small_vec)?.into_any()),
+            Qargs::Global => Ok(py.None().into_bound(py)),
+            Qargs::Concrete(small_vec) => Ok(PyTuple::new(py, small_vec)?.into_any()),
         }
     }
 }
@@ -192,6 +216,15 @@ impl<'a> QargsRef<'a> {
     }
 }
 
+impl<'a> From<&'a Qargs> for QargsRef<'a> {
+    fn from(value: &'a Qargs) -> Self {
+        match value {
+            Qargs::Global => Self::Global,
+            Qargs::Concrete(qargs) => QargsRef::Concrete(qargs),
+        }
+    }
+}
+
 impl<'a> From<Option<&'a [PhysicalQubit]>> for QargsRef<'a> {
     fn from(value: Option<&'a [PhysicalQubit]>) -> Self {
         match value {
@@ -203,6 +236,12 @@ impl<'a> From<Option<&'a [PhysicalQubit]>> for QargsRef<'a> {
 
 impl<'a> From<&'a [PhysicalQubit]> for QargsRef<'a> {
     fn from(value: &'a [PhysicalQubit]) -> Self {
+        Self::Concrete(value)
+    }
+}
+
+impl<'a, const N: usize> From<&'a [PhysicalQubit; N]> for QargsRef<'a> {
+    fn from(value: &'a [PhysicalQubit; N]) -> Self {
         Self::Concrete(value)
     }
 }

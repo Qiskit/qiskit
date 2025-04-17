@@ -44,11 +44,12 @@ use smallvec::SmallVec;
 use crate::equivalence::EquivalenceLibrary;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
-use crate::target_transpiler::qargs::TargetQargs;
+use crate::target_transpiler::Qargs;
+use crate::target_transpiler::QargsRef;
 use crate::target_transpiler::Target;
 
 type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
-type ExtraInstructionMap<'a> = IndexMap<&'a Option<TargetQargs>, InstMap, ahash::RandomState>;
+type ExtraInstructionMap<'a> = IndexMap<&'a Qargs, InstMap, ahash::RandomState>;
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
@@ -56,7 +57,7 @@ fn run(
     py: Python<'_>,
     dag: DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
-    qargs_with_non_global_operation: HashMap<Option<TargetQargs>, HashSet<String>>,
+    qargs_with_non_global_operation: HashMap<Qargs, HashSet<String>>,
     min_qubits: usize,
     target_basis: Option<HashSet<String>>,
     target: Option<&Target>,
@@ -67,7 +68,7 @@ fn run(
     }
 
     let qargs_with_non_global_operation: IndexMap<
-        Option<TargetQargs>,
+        Qargs,
         IndexSet<String, ahash::RandomState>,
         ahash::RandomState,
     > = qargs_with_non_global_operation
@@ -84,7 +85,7 @@ fn run(
     let mut source_basis: IndexSet<GateIdentifier, ahash::RandomState> = IndexSet::default();
     let mut new_target_basis: IndexSet<String, ahash::RandomState>;
     let mut qargs_local_source_basis: IndexMap<
-        Option<TargetQargs>,
+        Qargs,
         IndexSet<GateIdentifier, ahash::RandomState>,
         ahash::RandomState,
     > = IndexMap::default();
@@ -133,21 +134,20 @@ fn run(
     }
     let basis_transforms = basis_search(equiv_lib, &source_basis, &new_target_basis);
     let mut qarg_local_basis_transforms: IndexMap<
-        Option<TargetQargs>,
+        &Qargs,
         Vec<(GateIdentifier, BasisTransformIn)>,
         ahash::RandomState,
     > = IndexMap::default();
-    for (qarg, local_source_basis) in qargs_local_source_basis.iter() {
+    for (qargs, local_source_basis) in qargs_local_source_basis.iter() {
         // For any multiqubit operation that contains a subset of qubits that
         // has a non-local operation, include that non-local operation in the
         // search. This matches with the check we did above to include those
         // subset non-local operations in the check here.
         let mut expanded_target = new_target_basis.clone();
-        if qarg.as_ref().is_some_and(|qarg| qarg.len() > 1) {
-            let qarg_as_set: IndexSet<PhysicalQubit> =
-                IndexSet::from_iter(qarg.as_ref().unwrap().iter().copied());
+        if let Qargs::Concrete(qargs) = qargs {
+            let qarg_as_set: IndexSet<PhysicalQubit> = IndexSet::from_iter(qargs.iter().copied());
             for (non_local_qarg, local_basis) in qargs_with_non_global_operation.iter() {
-                if let Some(non_local_qarg) = non_local_qarg {
+                if let Qargs::Concrete(non_local_qarg) = non_local_qarg {
                     let non_local_qarg_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
                         IndexSet::from_iter(non_local_qarg.iter().copied());
                     if qarg_as_set.is_superset(&non_local_qarg_as_set) {
@@ -157,13 +157,13 @@ fn run(
             }
         } else {
             expanded_target = expanded_target
-                .union(&qargs_with_non_global_operation[qarg])
+                .union(&qargs_with_non_global_operation[qargs])
                 .cloned()
                 .collect();
         }
         let local_basis_transforms = basis_search(equiv_lib, local_source_basis, &expanded_target);
         if let Some(local_basis_transforms) = local_basis_transforms {
-            qarg_local_basis_transforms.insert(qarg.clone(), local_basis_transforms);
+            qarg_local_basis_transforms.insert(qargs, local_basis_transforms);
         } else {
             return Err(TranspilerError::new_err(format!(
                 "Unable to translate the operations in the circuit: \
@@ -201,8 +201,8 @@ fn run(
         .iter()
         .map(|(qarg, transform)| -> PyResult<_> {
             Ok((
-                qarg,
-                compose_transforms(py, transform, &qargs_local_source_basis[qarg], &dag)?,
+                *qarg,
+                compose_transforms(py, transform, &qargs_local_source_basis[*qarg], &dag)?,
             ))
         })
         .collect::<PyResult<_>>()?;
@@ -290,18 +290,18 @@ fn extract_basis_target(
     dag: &DAGCircuit,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
-        Option<TargetQargs>,
+        Qargs,
         IndexSet<GateIdentifier, ahash::RandomState>,
         ahash::RandomState,
     >,
     min_qubits: usize,
     qargs_with_non_global_operation: &IndexMap<
-        Option<TargetQargs>,
+        Qargs,
         IndexSet<String, ahash::RandomState>,
         ahash::RandomState,
     >,
 ) -> PyResult<()> {
-    for (_node, node_obj) in dag.op_nodes(true) {
+    for (_, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
         if qargs.len() < min_qubits {
             continue;
@@ -319,18 +319,26 @@ fn extract_basis_target(
             qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
         let physical_qargs_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
             IndexSet::from_iter(physical_qargs.iter().copied());
-        if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
+        let physical_qargs: Qargs = physical_qargs.into();
+        if qargs_with_non_global_operation.contains_key(&physical_qargs)
             || qargs_with_non_global_operation
                 .keys()
-                .flatten()
+                .filter_map(|qargs| {
+                    if let QargsRef::Concrete(qargs) = qargs.as_ref() {
+                        Some(qargs)
+                    } else {
+                        None
+                    }
+                })
                 .any(|incomplete_qargs| {
                     let incomplete_qargs: IndexSet<PhysicalQubit, ahash::RandomState> =
                         IndexSet::from_iter(incomplete_qargs.iter().copied());
                     physical_qargs_as_set.is_superset(&incomplete_qargs)
                 })
         {
+            let qargs_from_set: Qargs = physical_qargs_as_set.into_iter().collect();
             qargs_local_source_basis
-                .entry(Some(physical_qargs_as_set.into_iter().collect()))
+                .entry(qargs_from_set)
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
@@ -373,13 +381,13 @@ fn extract_basis_target_circ(
     circuit: &Bound<PyAny>,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
-        Option<TargetQargs>,
+        Qargs,
         IndexSet<GateIdentifier, ahash::RandomState>,
         ahash::RandomState,
     >,
     min_qubits: usize,
     qargs_with_non_global_operation: &IndexMap<
-        Option<TargetQargs>,
+        Qargs,
         IndexSet<String, ahash::RandomState>,
         ahash::RandomState,
     >,
@@ -405,18 +413,26 @@ fn extract_basis_target_circ(
             qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
         let physical_qargs_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
             IndexSet::from_iter(physical_qargs.iter().copied());
-        if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
+        let physical_qargs: Qargs = physical_qargs.into();
+        if qargs_with_non_global_operation.contains_key(&physical_qargs)
             || qargs_with_non_global_operation
                 .keys()
-                .flatten()
+                .filter_map(|qargs| {
+                    if let QargsRef::Concrete(qargs) = qargs.as_ref() {
+                        Some(qargs)
+                    } else {
+                        None
+                    }
+                })
                 .any(|incomplete_qargs| {
                     let incomplete_qargs: IndexSet<PhysicalQubit, ahash::RandomState> =
                         IndexSet::from_iter(incomplete_qargs.iter().copied());
                     physical_qargs_as_set.is_superset(&incomplete_qargs)
                 })
         {
+            let qargs_from_set: Qargs = physical_qargs_as_set.into_iter().collect();
             qargs_local_source_basis
-                .entry(Some(physical_qargs_as_set.into_iter().collect()))
+                .entry(qargs_from_set)
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
@@ -455,7 +471,7 @@ fn apply_translation(
     extra_inst_map: &ExtraInstructionMap,
     min_qubits: usize,
     qargs_with_non_global_operation: &IndexMap<
-        Option<TargetQargs>,
+        Qargs,
         IndexSet<String, ahash::RandomState>,
         ahash::RandomState,
     >,
@@ -543,8 +559,7 @@ fn apply_translation(
             }
             continue;
         }
-        let node_qarg_as_physical: Option<TargetQargs> =
-            Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect());
+        let node_qarg_as_physical: Qargs = node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect();
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
@@ -571,11 +586,7 @@ fn apply_translation(
             continue;
         }
 
-        let unique_qargs: Option<TargetQargs> = if qubit_set.is_empty() {
-            None
-        } else {
-            Some(qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect())
-        };
+        let unique_qargs: Qargs = qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect();
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
                 py,

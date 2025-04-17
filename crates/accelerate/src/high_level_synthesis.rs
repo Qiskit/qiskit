@@ -44,6 +44,7 @@ use crate::euler_one_qubit_decomposer::angles_from_unitary;
 use crate::euler_one_qubit_decomposer::EulerBasis;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
+use crate::target_transpiler::Qargs;
 use crate::target_transpiler::Target;
 use crate::two_qubit_decompose::TwoQubitBasisDecomposer;
 
@@ -371,11 +372,11 @@ fn instruction_supported(
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
                 if borrowed_data.use_physical_indices {
-                    let physical_qubits: SmallVec<[PhysicalQubit; 2]> =
+                    let physical_qubits: Qargs =
                         qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
-                    target.instruction_supported(name, Some(&physical_qubits))
+                    target.instruction_supported(name, &physical_qubits)
                 } else {
-                    target.instruction_supported(name, None)
+                    target.instruction_supported(name, &Qargs::Global)
                 }
             } else {
                 borrowed_data.device_insts.contains(name)

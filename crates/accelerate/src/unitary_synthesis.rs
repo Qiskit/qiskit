@@ -42,7 +42,7 @@ use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
 };
 use crate::nlayout::PhysicalQubit;
-use crate::target_transpiler::qargs::QargsRef;
+use crate::target_transpiler::QargsRef;
 use crate::target_transpiler::{NormalOperation, Target};
 use crate::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
@@ -115,7 +115,7 @@ fn get_euler_basis_set(basis_list: IndexSet<&str>) -> EulerBasisSet {
 /// This will determine the available 1q synthesis basis for different decomposers.
 fn get_target_basis_set(target: &Target, qubit: PhysicalQubit) -> EulerBasisSet {
     let mut target_basis_set: EulerBasisSet = EulerBasisSet::new();
-    let target_basis_list = target.operation_names_for_qargs(Some(&[qubit]));
+    let target_basis_list = target.operation_names_for_qargs(&[qubit]);
     match target_basis_list {
         Ok(basis_list) => {
             target_basis_set = get_euler_basis_set(basis_list.into_iter().collect());
@@ -520,15 +520,15 @@ fn get_2q_decomposers_from_target(
     let qubits: SmallVec<[PhysicalQubit; 2]> = SmallVec::from_buf(*qubits);
     let reverse_qubits: SmallVec<[PhysicalQubit; 2]> = qubits.iter().rev().copied().collect();
     let mut qubit_gate_map = IndexMap::new();
-    match target.operation_names_for_qargs(Some(&qubits)) {
+    match target.operation_names_for_qargs(&*qubits) {
         Ok(direct_keys) => {
             qubit_gate_map.insert(&qubits, direct_keys);
-            if let Ok(reverse_keys) = target.operation_names_for_qargs(Some(&reverse_qubits)) {
+            if let Ok(reverse_keys) = target.operation_names_for_qargs(&*reverse_qubits) {
                 qubit_gate_map.insert(&reverse_qubits, reverse_keys);
             }
         }
         Err(_) => {
-            if let Ok(reverse_keys) = target.operation_names_for_qargs(Some(&reverse_qubits)) {
+            if let Ok(reverse_keys) = target.operation_names_for_qargs(&*reverse_qubits) {
                 qubit_gate_map.insert(&reverse_qubits, reverse_keys);
             } else {
                 return Err(QiskitError::new_err(

@@ -14,7 +14,7 @@
 
 mod errors;
 mod instruction_properties;
-pub mod qargs;
+mod qargs;
 
 use std::ops::Index;
 
@@ -32,7 +32,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 
-use qargs::{Qargs, QargsRef};
+pub use qargs::{Qargs, QargsRef};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -396,22 +396,9 @@ impl Target {
     /// Returns:
     ///     set: The set of qargs the gate instance applies to.
     #[pyo3(name = "qargs_for_operation_name")]
-    pub fn py_qargs_for_operation_name(
-        &self,
-        py: Python,
-        operation: &str,
-    ) -> PyResult<Option<Vec<PyObject>>> {
+    pub fn py_qargs_for_operation_name(&self, operation: &str) -> PyResult<Option<Vec<&Qargs>>> {
         match self.qargs_for_operation_name(operation) {
-            Ok(option_set) => Ok(option_set.map(|qargs| {
-                qargs
-                    .map(|qargs| {
-                        QargsRef::Concrete(qargs)
-                            .into_pyobject(py)
-                            .unwrap()
-                            .unbind()
-                    })
-                    .collect()
-            })),
+            Ok(option_set) => Ok(option_set.map(|qargs| qargs.collect())),
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
     }
@@ -913,9 +900,7 @@ impl Target {
     /// as pair of `&OperationType`, `&SmallVec<[Param; 3]>` and `Option<&TargetQargs>`.
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
-    pub fn instructions(
-        &self,
-    ) -> impl Iterator<Item = (&NormalOperation, Option<&[PhysicalQubit]>)> {
+    pub fn instructions(&self) -> impl Iterator<Item = (&NormalOperation, &Qargs)> {
         self._instructions()
             .filter_map(|(operation, qargs)| match &operation {
                 TargetOperation::Normal(oper) => Some((oper, qargs)),
@@ -925,11 +910,11 @@ impl Target {
 
     /// Returns an iterator over all the instructions present in the `Target`
     /// as pair of `&TargetOperation` and `Option<&TargetQargs>`.
-    fn _instructions(&self) -> impl Iterator<Item = (&TargetOperation, Option<&[PhysicalQubit]>)> {
+    fn _instructions(&self) -> impl Iterator<Item = (&TargetOperation, &Qargs)> {
         self.gate_map.iter().flat_map(move |(op, props_map)| {
             props_map
                 .keys()
-                .map(move |qargs| (&self._gate_name_map[op], qargs.as_option()))
+                .map(move |qargs| (&self._gate_name_map[op], qargs))
         })
     }
 
@@ -1066,10 +1051,13 @@ impl Target {
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
-    pub fn operation_names_for_qargs(
+    pub fn operation_names_for_qargs<'a, T>(
         &self,
-        qargs: Option<&[PhysicalQubit]>,
-    ) -> Result<HashSet<&str>, TargetKeyError> {
+        qargs: T,
+    ) -> Result<HashSet<&str>, TargetKeyError>
+    where
+        T: Into<QargsRef<'a>>,
+    {
         // When num_qubits == 0 we return globally defined operators
         let mut res: HashSet<&str> = HashSet::default();
         let mut qargs: QargsRef = qargs.into();
@@ -1112,10 +1100,13 @@ impl Target {
     /// Returns an iterator of `OperationType` instances and parameters present in the Target that affect the provided qargs.
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
-    pub fn operations_for_qargs(
+    pub fn operations_for_qargs<'a, T>(
         &self,
-        qargs: Option<&[PhysicalQubit]>,
-    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetKeyError> {
+        qargs: T,
+    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetKeyError>
+    where
+        T: Into<QargsRef<'a>>,
+    {
         self.operation_names_for_qargs(qargs).map(|operations| {
             operations
                 .into_iter()
@@ -1132,17 +1123,12 @@ impl Target {
     pub fn qargs_for_operation_name(
         &self,
         operation: &str,
-    ) -> Result<Option<impl Iterator<Item = &[PhysicalQubit]>>, TargetKeyError> {
+    ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetKeyError> {
         if let Some(gate_map_oper) = self.gate_map.get(operation) {
             if gate_map_oper.contains_key(&Qargs::Global) {
                 return Ok(None);
             }
-            let qargs = gate_map_oper
-                .keys()
-                .filter_map(|qargs| match qargs.as_ref() {
-                    QargsRef::Global => None,
-                    QargsRef::Concrete(qargs) => Some(qargs),
-                });
+            let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
             Ok(Some(qargs))
         } else {
             Err(TargetKeyError::new_err(format!(
@@ -1197,11 +1183,10 @@ impl Target {
     }
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
-    pub fn instruction_supported(
-        &self,
-        operation_name: &str,
-        qargs: Option<&[PhysicalQubit]>,
-    ) -> bool {
+    pub fn instruction_supported<'a, T>(&self, operation_name: &str, qargs: T) -> bool
+    where
+        T: Into<QargsRef<'a>>,
+    {
         // Handle case where num_qubits is None by checking globally supported operations
         let qargs: QargsRef = if self.num_qubits.is_none() {
             QargsRef::Global
