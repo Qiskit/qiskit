@@ -437,7 +437,7 @@ impl Target {
     ///
     /// Raises:
     ///     KeyError: If qargs is not in target
-    #[pyo3(name = "operations_for_qargs", signature=(qargs=Qargs::Global, /))]
+    #[pyo3(name = "operations_for_qargs", signature=(qargs, /))]
     pub fn py_operations_for_qargs(&self, py: Python, qargs: Qargs) -> PyResult<Vec<PyObject>> {
         // Move to rust native once Gates are in rust
         Ok(self
@@ -466,7 +466,7 @@ impl Target {
     ///
     /// Raises:
     ///     KeyError: If ``qargs`` is not in target
-    #[pyo3(name = "operation_names_for_qargs", signature=(qargs=Qargs::Global, /))]
+    #[pyo3(name = "operation_names_for_qargs", signature=(qargs, /))]
     pub fn py_operation_names_for_qargs(&self, qargs: Qargs) -> PyResult<HashSet<&str>> {
         match self.operation_names_for_qargs(&qargs) {
             Ok(set) => Ok(set),
