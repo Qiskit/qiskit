@@ -150,7 +150,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_append_standard_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_gate(qc, HGate, *[0], *[]);
 ///
 /// # Safety
 ///
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_append_standard_gate(
+pub unsafe extern "C" fn qk_circuit_gate(
     circuit: *mut CircuitData,
     gate: StandardGate,
     qubits: *const u32,
@@ -262,14 +262,14 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100, 1);
-///     qk_circuit_append_measure(qc, 0, 0);
+///     qk_circuit_measure(qc, 0, 0);
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_append_measure(
+pub unsafe extern "C" fn qk_circuit_measure(
     circuit: *mut CircuitData,
     qubit: u32,
     clbit: u32,
@@ -294,7 +294,7 @@ pub unsafe extern "C" fn qk_circuit_append_measure(
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_append_reset(qc, 0);
+///     qk_circuit_reset(qc, 0);
 ///
 ///
 /// # Safety
@@ -302,10 +302,7 @@ pub unsafe extern "C" fn qk_circuit_append_measure(
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_append_reset(
-    circuit: *mut CircuitData,
-    qubit: u32,
-) -> ExitCode {
+pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     circuit.push_packed_operation(
@@ -328,7 +325,7 @@ pub unsafe extern "C" fn qk_circuit_append_reset(
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
 ///     uint32_t qubits[5] = {0, 1, 2, 3, 4};
-///     qk_circuit_append_barrier(qc, 5, qubits);
+///     qk_circuit_barrier(qc, 5, qubits);
 ///
 /// # Safety
 ///
@@ -338,7 +335,7 @@ pub unsafe extern "C" fn qk_circuit_append_reset(
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_append_barrier(
+pub unsafe extern "C" fn qk_circuit_barrier(
     circuit: *mut CircuitData,
     num_qubits: u32,
     qubits: *const u32,
@@ -380,7 +377,7 @@ pub struct OpCounts {
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_append_standard_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_gate(qc, HGate, *[0], *[]);
 ///     qk_circuit_count_ops(qc);
 ///
 /// # Safety
@@ -413,7 +410,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_append_standard_gate(qc, QkGate_H, *[0], *[]);
+///     qk_circuit_gate(qc, QkGate_H, *[0], *[]);
 ///     qk_circuit_num_instructions(qc); // 1
 ///
 /// # Safety
@@ -466,7 +463,7 @@ pub struct CInstruction {
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_append_standard_gate(qc, QkGate_H, *[0], *[]);
+///     qk_circuit_gate(qc, QkGate_H, *[0], *[]);
 ///     QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
 ///
 /// # Safety
@@ -525,7 +522,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// Behavior is undefined if ``inst`` is not an object returned by ``qk_circuit_get_instruction``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_free_circuit_instruction(inst: CInstruction) {
+pub unsafe extern "C" fn qk_circuit_instruction_free(inst: CInstruction) {
     // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
     // created by rust code and are constructed from Vecs internally or CStrings.
     unsafe {

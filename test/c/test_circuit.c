@@ -142,18 +142,18 @@ int test_get_gate_counts_bv_no_measure(void) {
     double *params = NULL;
     uint32_t i = 0;
     uint32_t qubits[1] = {999};
-    qk_circuit_append_standard_gate(qc, QkGate_X, qubits, params);
+    qk_circuit_gate(qc, QkGate_X, qubits, params);
     for (i = 0; i < 1000; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_standard_gate(qc, QkGate_H, qubits, params);
+        qk_circuit_gate(qc, QkGate_H, qubits, params);
     }
     for (i = 0; i < 1000; i += 2) {
         uint32_t qubits[2] = {i, 999};
-        qk_circuit_append_standard_gate(qc, QkGate_CX, qubits, params);
+        qk_circuit_gate(qc, QkGate_CX, qubits, params);
     }
     for (i = 0; i < 999; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_standard_gate(qc, QkGate_H, qubits, params);
+        qk_circuit_gate(qc, QkGate_H, qubits, params);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     int result = Ok;
@@ -196,21 +196,21 @@ int test_get_gate_counts_bv_measures(void) {
     double *params = NULL;
     uint32_t i = 0;
     uint32_t qubits[1] = {999};
-    qk_circuit_append_standard_gate(qc, QkGate_X, qubits, params);
+    qk_circuit_gate(qc, QkGate_X, qubits, params);
     for (i = 0; i < 1000; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_standard_gate(qc, QkGate_H, qubits, params);
+        qk_circuit_gate(qc, QkGate_H, qubits, params);
     }
     for (i = 0; i < 1000; i += 2) {
         uint32_t qubits[2] = {i, 999};
-        qk_circuit_append_standard_gate(qc, QkGate_CX, qubits, params);
+        qk_circuit_gate(qc, QkGate_CX, qubits, params);
     }
     for (i = 0; i < 999; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_standard_gate(qc, QkGate_H, qubits, params);
+        qk_circuit_gate(qc, QkGate_H, qubits, params);
     }
     for (i = 0; i < 999; i++) {
-        qk_circuit_append_measure(qc, i, i);
+        qk_circuit_measure(qc, i, i);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     int result = Ok;
@@ -261,27 +261,27 @@ int test_get_gate_counts_bv_barrier_and_measures() {
     double *params = NULL;
     uint32_t i = 0;
     uint32_t qubits[1] = {999};
-    qk_circuit_append_standard_gate(qc, QkGate_X, qubits, params);
+    qk_circuit_gate(qc, QkGate_X, qubits, params);
     for (i = 0; i < 1000; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_standard_gate(qc, QkGate_H, qubits, params);
+        qk_circuit_gate(qc, QkGate_H, qubits, params);
     }
     uint32_t barrier_qubits[1000];
     for (i = 0; i < 1000; i++) {
         barrier_qubits[i] = i;
     }
-    qk_circuit_append_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, 1000, barrier_qubits);
     for (i = 0; i < 1000; i += 2) {
         uint32_t qubits[2] = {i, 999};
-        qk_circuit_append_standard_gate(qc, QkGate_CX, qubits, params);
+        qk_circuit_gate(qc, QkGate_CX, qubits, params);
     }
-    qk_circuit_append_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, 1000, barrier_qubits);
     for (i = 0; i < 999; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_standard_gate(qc, QkGate_H, qubits, params);
+        qk_circuit_gate(qc, QkGate_H, qubits, params);
     }
     for (i = 0; i < 999; i++) {
-        qk_circuit_append_measure(qc, i, i);
+        qk_circuit_measure(qc, i, i);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     int result = Ok;
@@ -343,29 +343,29 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
     uint32_t qubits[1] = {999};
     for (i = 0; i < 1000; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_reset(qc, i);
+        qk_circuit_reset(qc, i);
     }
-    qk_circuit_append_standard_gate(qc, QkGate_X, qubits, params);
+    qk_circuit_gate(qc, QkGate_X, qubits, params);
     for (i = 0; i < 1000; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_standard_gate(qc, QkGate_H, qubits, params);
+        qk_circuit_gate(qc, QkGate_H, qubits, params);
     }
     uint32_t barrier_qubits[1000];
     for (i = 0; i < 1000; i++) {
         barrier_qubits[i] = i;
     }
-    qk_circuit_append_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, 1000, barrier_qubits);
     for (i = 0; i < 1000; i += 2) {
         uint32_t qubits[2] = {i, 999};
-        qk_circuit_append_standard_gate(qc, QkGate_CX, qubits, params);
+        qk_circuit_gate(qc, QkGate_CX, qubits, params);
     }
-    qk_circuit_append_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, 1000, barrier_qubits);
     for (i = 0; i < 999; i++) {
         uint32_t qubits[1] = {i};
-        qk_circuit_append_standard_gate(qc, QkGate_H, qubits, params);
+        qk_circuit_gate(qc, QkGate_H, qubits, params);
     }
     for (i = 0; i < 999; i++) {
-        qk_circuit_append_measure(qc, i, i);
+        qk_circuit_measure(qc, i, i);
     }
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     int result = Ok;
@@ -547,7 +547,7 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
             }
         }
     loop_exit:
-        qk_free_circuit_instruction(inst);
+        qk_circuit_instruction_free(inst);
         if (result != 0) {
             break;
         }
