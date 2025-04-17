@@ -428,9 +428,14 @@ impl Target {
         py: Python<'py>,
         instruction: &str,
     ) -> PyResult<Bound<'py, PyAny>> {
-        match self._operation_from_name(instruction) {
-            Ok(instruction) => instruction.into_pyobject(py),
-            Err(e) => Err(PyKeyError::new_err(e.message)),
+        match self.operation_from_name(instruction) {
+            Some(TargetOperation::Normal(operation)) => {
+                operation.into_pyobject(py).map(|x| x.to_owned())
+            }
+            Some(TargetOperation::Variadic(ob)) => Ok(ob.bind(py).clone()),
+            None => Err(PyKeyError::new_err(format!(
+                "Instruction {instruction} not in target"
+            ))),
         }
     }
 
@@ -1154,33 +1159,9 @@ impl Target {
         }
     }
 
-    /// Gets a tuple of Operation object and Parameters based on the operation name if present in the Target.
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
-    pub fn operation_from_name(
-        &self,
-        instruction: &str,
-    ) -> Result<&NormalOperation, TargetKeyError> {
-        match self._operation_from_name(instruction) {
-            Ok(TargetOperation::Normal(operation)) => Ok(operation),
-            Ok(TargetOperation::Variadic(_)) => Err(TargetKeyError::new_err(format!(
-                "Instruction {:?} was found in the target, but the instruction is Varidic.",
-                instruction
-            ))),
-            Err(e) => Err(e),
-        }
-    }
-
-    /// Gets the instruction object based on the operation name
-    fn _operation_from_name(&self, instruction: &str) -> Result<&TargetOperation, TargetKeyError> {
-        if let Some(gate_obj) = self._gate_name_map.get(instruction) {
-            Ok(gate_obj)
-        } else {
-            Err(TargetKeyError::new_err(format!(
-                "Instruction {:?} not in target",
-                instruction
-            )))
-        }
+    /// Retrieve the backing representation of an operation name in the target, if it exists.
+    pub fn operation_from_name(&self, instruction: &str) -> Option<&TargetOperation> {
+        self._gate_name_map.get(instruction)
     }
 
     /// Returns an iterator over all the qargs of a specific Target object
