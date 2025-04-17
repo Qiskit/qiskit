@@ -32,7 +32,7 @@ use crate::euler_one_qubit_decomposer::{
 };
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::PhysicalQubit;
-use crate::target_transpiler::Target;
+use crate::target_transpiler::{Target, TargetOperation};
 use crate::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
 };
@@ -71,13 +71,19 @@ fn get_decomposers_from_target(
     let available_kak_gate: Vec<(&str, &PackedOperation, &[Param], bool)> = gate_names
         .iter()
         .filter_map(|(name, rev)| match target.operation_from_name(name) {
-            Ok(raw_op) => match raw_op.operation.view() {
-                OperationRef::StandardGate(_) | OperationRef::Gate(_) => {
-                    Some((*name, &raw_op.operation, raw_op.params.as_slice(), *rev))
+            Some(raw_op) => {
+                if let TargetOperation::Normal(op) = raw_op {
+                    match op.operation.view() {
+                        OperationRef::StandardGate(_) | OperationRef::Gate(_) => {
+                            Some((*name, &op.operation, op.params.as_slice(), *rev))
+                        }
+                        _ => None,
+                    }
+                } else {
+                    None
                 }
-                _ => None,
-            },
-            Err(_) => None,
+            }
+            None => None,
         })
         .collect();
 
@@ -147,7 +153,7 @@ fn get_decomposers_from_target(
         if gate_names.contains(&(gate.name(), false)) {
             let op = target.operation_from_name(gate.name()).unwrap();
             if op
-                .params
+                .params()
                 .iter()
                 .all(|x| matches!(x, Param::ParameterExpression(_)))
             {
@@ -492,7 +498,11 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                             }
                         }
                         None => {
-                            let gate = target.operation_from_name(sequence.1.as_str()).unwrap();
+                            let Some(TargetOperation::Normal(gate)) =
+                                target.operation_from_name(sequence.1.as_str())
+                            else {
+                                unreachable!()
+                            };
                             #[cfg(feature = "cache_pygates")]
                             {
                                 out_dag.apply_operation_back(
