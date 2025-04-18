@@ -445,7 +445,8 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
     let run_mapping = run_mapping?;
     // After we've computed all the sequences to execute now serially build up a new dag.
     let mut processed_runs: HashSet<usize> = HashSet::with_capacity(run_mapping.len());
-    let mut out_dag = dag.copy_empty_like(py, "alike")?;
+    let out_dag = dag.copy_empty_like(py, "alike")?;
+    let mut out_dag_builder = out_dag.into_builder(py);
     let node_mapping = locked_node_mapping.into_inner().unwrap();
     for node in dag.topological_op_nodes()? {
         match node_mapping.get(&node) {
@@ -457,7 +458,7 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                     let NodeType::Operation(ref instr) = dag.dag()[node] else {
                         unreachable!("Must be an op node")
                     };
-                    out_dag.push_back(py, instr.clone())?;
+                    out_dag_builder.push_back(py, instr.clone())?;
                     continue;
                 }
                 let (sequence, qubit_map) = &run_mapping[*run_index].as_ref().unwrap();
@@ -469,17 +470,17 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                     let out_params = if params.is_empty() {
                         None
                     } else {
-                        Some(params.iter().map(|val| Param::Float(*val)).collect())
+                        Some(params.into_iter().map(|val| Param::Float(*val)).collect())
                     };
                     match gate {
                         Some(gate) => {
                             #[cfg(feature = "cache_pygates")]
                             {
-                                out_dag.apply_operation_back(
+                                out_dag_builder.apply_operation_back(
                                     py,
                                     PackedOperation::from_standard_gate(*gate),
-                                    qubits.as_slice(),
-                                    &[],
+                                    Some(&qubits),
+                                    None,
                                     out_params,
                                     None,
                                     None,
@@ -487,11 +488,11 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                             }
                             #[cfg(not(feature = "cache_pygates"))]
                             {
-                                out_dag.apply_operation_back(
+                                out_dag_builder.apply_operation_back(
                                     py,
                                     PackedOperation::from_standard_gate(*gate),
-                                    qubits.as_slice(),
-                                    &[],
+                                    Some(&qubits),
+                                    None,
                                     out_params,
                                     None,
                                 )
@@ -505,11 +506,11 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                             };
                             #[cfg(feature = "cache_pygates")]
                             {
-                                out_dag.apply_operation_back(
+                                out_dag_builder.apply_operation_back(
                                     py,
                                     gate.operation.clone(),
-                                    qubits.as_slice(),
-                                    &[],
+                                    Some(&qubits),
+                                    None,
                                     Some(out_params.unwrap_or(gate.params.clone())),
                                     None,
                                     None,
@@ -517,11 +518,11 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                             }
                             #[cfg(not(feature = "cache_pygates"))]
                             {
-                                out_dag.apply_operation_back(
+                                out_dag_builder.apply_operation_back(
                                     py,
                                     gate.operation.clone(),
-                                    qubits.as_slice(),
-                                    &[],
+                                    Some(&qubits),
+                                    None,
                                     Some(out_params.unwrap_or(gate.params.clone())),
                                     None,
                                 )
@@ -529,18 +530,18 @@ pub(crate) fn two_qubit_unitary_peephole_optimize(
                         }
                     }?;
                 }
-                out_dag.add_global_phase(&Param::Float(sequence.0.global_phase))?;
+                out_dag_builder.add_global_phase(&Param::Float(sequence.0.global_phase))?;
                 processed_runs.insert(*run_index);
             }
             None => {
                 let NodeType::Operation(ref instr) = dag.dag()[node] else {
                     unreachable!("Must be an op node")
                 };
-                out_dag.push_back(py, instr.clone())?;
+                out_dag_builder.push_back(py, instr.clone())?;
             }
         }
     }
-    Ok(out_dag)
+    Ok(out_dag_builder.build())
 }
 
 pub fn two_qubit_peephole_mod(m: &Bound<PyModule>) -> PyResult<()> {
