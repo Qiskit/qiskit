@@ -34,6 +34,36 @@ use pyo3::IntoPyObjectExt;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
+// enum for acceptable types for parameter
+#[derive(IntoPyObject, FromPyObject, Clone, Debug)]
+pub enum ParameterValueType {
+    Int(i64),
+    Float(f64),
+    Complex(Complex64),
+    Expression(ParameterExpression),
+}
+
+impl ParameterValueType {
+    fn clone_expr_for_replay(expr: &ParameterExpression) -> ParameterValueType {
+        if expr.is_numeric() {
+            if let Some(v) = expr.expr.eval(true) {
+                return match v {
+                    Value::Int(i) => ParameterValueType::Int(i),
+                    Value::Real(r) => ParameterValueType::Float(r),
+                    Value::Complex(c) => ParameterValueType::Complex(c),
+                };
+            }
+        }
+        ParameterValueType::Expression(ParameterExpression {
+            expr: expr.expr.clone(),
+            uuid: expr.uuid.clone(),
+            qpy_replay: expr.qpy_replay.clone(),
+            parameter_symbols: None,
+            parameter_vector: expr.parameter_vector.clone(),
+        })
+    }
+}
+
 #[pyfunction]
 fn _extract_value(py: Python, value: PyObject) -> Option<ParameterExpression> {
     if let Ok(e) = value.extract::<ParameterExpression>(py) {
@@ -108,11 +138,11 @@ pub enum _OPCode {
 pub enum OPReplay {
     _INSTRUCTION {
         op: _OPCode,
-        lhs: Option<ParameterExpression>,
-        rhs: Option<ParameterExpression>,
+        lhs: Option<ParameterValueType>,
+        rhs: Option<ParameterValueType>,
     },
     _SUBS {
-        binds: HashMap<ParameterExpression, ParameterExpression>,
+        binds: HashMap<ParameterExpression, ParameterValueType>,
         op: _OPCode,
     },
 }
@@ -120,32 +150,10 @@ pub enum OPReplay {
 impl OPReplay {
     pub fn new_instruction(
         op: _OPCode,
-        lhs: Option<&ParameterExpression>,
-        rhs: Option<&ParameterExpression>,
+        lhs: Option<ParameterValueType>,
+        rhs: Option<ParameterValueType>,
     ) -> OPReplay {
-        OPReplay::_INSTRUCTION {
-            op,
-            lhs: match lhs {
-                Some(lhs) => Some(ParameterExpression {
-                    expr: lhs.expr.clone(),
-                    uuid: lhs.uuid.clone(),
-                    qpy_replay: None,
-                    parameter_symbols: None,
-                    parameter_vector: None,
-                }),
-                None => None,
-            },
-            rhs: match rhs {
-                Some(rhs) => Some(ParameterExpression {
-                    expr: rhs.expr.clone(),
-                    uuid: rhs.uuid.clone(),
-                    qpy_replay: None,
-                    parameter_symbols: None,
-                    parameter_vector: None,
-                }),
-                None => None,
-            },
-        }
+        OPReplay::_INSTRUCTION { op, lhs, rhs }
     }
 }
 
@@ -296,18 +304,11 @@ impl ParameterExpression {
     // default functions for unary operations
     fn _neg(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        let neg = ParameterExpression {
-            expr: SymbolExpr::Value(Value::Int(-1)),
-            uuid: 0,
-            qpy_replay: None,
-            parameter_symbols: None,
-            parameter_vector: None,
-        };
-        replay.push(OPReplay::new_instruction(
-            _OPCode::MUL,
-            Some(self),
-            Some(&neg),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::MUL,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::Int(-1)),
+        });
         let mut ret = ParameterExpression {
             expr: -&self.expr,
             uuid: self.uuid.clone(),
@@ -320,18 +321,11 @@ impl ParameterExpression {
     }
     fn _pos(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        let pos = ParameterExpression {
-            expr: SymbolExpr::Value(Value::Int(1)),
-            uuid: 0,
-            qpy_replay: None,
-            parameter_symbols: None,
-            parameter_vector: None,
-        };
-        replay.push(OPReplay::new_instruction(
-            _OPCode::MUL,
-            Some(self),
-            Some(&pos),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::MUL,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::Int(1)),
+        });
         let mut ret = ParameterExpression {
             expr: self.expr.clone(),
             uuid: self.uuid.clone(),
@@ -344,7 +338,11 @@ impl ParameterExpression {
     }
     fn _sin(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::SIN, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::SIN,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.sin(),
             uuid: self.uuid.clone(),
@@ -355,7 +353,11 @@ impl ParameterExpression {
     }
     fn _cos(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::COS, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::COS,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.cos(),
             uuid: self.uuid.clone(),
@@ -366,7 +368,11 @@ impl ParameterExpression {
     }
     fn _tan(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::TAN, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::TAN,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.tan(),
             uuid: self.uuid.clone(),
@@ -377,7 +383,11 @@ impl ParameterExpression {
     }
     fn _asin(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::ASIN, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::ASIN,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.asin(),
             uuid: self.uuid.clone(),
@@ -388,7 +398,11 @@ impl ParameterExpression {
     }
     fn _acos(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::ACOS, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::ACOS,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.acos(),
             uuid: self.uuid.clone(),
@@ -399,7 +413,11 @@ impl ParameterExpression {
     }
     fn _atan(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::ATAN, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::ATAN,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.atan(),
             uuid: self.uuid.clone(),
@@ -410,7 +428,11 @@ impl ParameterExpression {
     }
     fn _exp(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::EXP, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::EXP,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.exp(),
             uuid: self.uuid.clone(),
@@ -421,7 +443,11 @@ impl ParameterExpression {
     }
     fn _log(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::LOG, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::LOG,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.log(),
             uuid: self.uuid.clone(),
@@ -432,7 +458,11 @@ impl ParameterExpression {
     }
     fn _abs(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::ABS, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::ABS,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.abs(),
             uuid: self.uuid.clone(),
@@ -443,7 +473,11 @@ impl ParameterExpression {
     }
     fn _sign(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::SIGN, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::SIGN,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.sign(),
             uuid: self.uuid.clone(),
@@ -454,7 +488,11 @@ impl ParameterExpression {
     }
     fn _conjugate(&self) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(_OPCode::CONJ, Some(self), None));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::CONJ,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: None,
+        });
         ParameterExpression {
             expr: self.expr.conjugate(),
             uuid: self.uuid.clone(),
@@ -467,11 +505,11 @@ impl ParameterExpression {
     // default functions for binary operations
     fn _add(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::ADD,
-            Some(self),
-            Some(rhs),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::ADD,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(rhs)),
+        });
         let mut ret = ParameterExpression {
             expr: &self.expr + &rhs.expr,
             uuid: self.uuid.clone(),
@@ -484,11 +522,11 @@ impl ParameterExpression {
     }
     fn _radd(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::ADD,
-            Some(lhs),
-            Some(self),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::ADD,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+        });
         let mut ret = ParameterExpression {
             expr: &lhs.expr + &self.expr,
             uuid: self.uuid.clone(),
@@ -501,11 +539,11 @@ impl ParameterExpression {
     }
     fn _sub(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::SUB,
-            Some(self),
-            Some(rhs),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::SUB,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(rhs)),
+        });
         let mut ret = ParameterExpression {
             expr: &self.expr - &rhs.expr,
             uuid: self.uuid.clone(),
@@ -518,11 +556,11 @@ impl ParameterExpression {
     }
     fn _rsub(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::SUB,
-            Some(lhs),
-            Some(self),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::SUB,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
+        });
         let mut ret = ParameterExpression {
             expr: &lhs.expr - &self.expr,
             uuid: self.uuid.clone(),
@@ -535,11 +573,11 @@ impl ParameterExpression {
     }
     fn _mul(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::MUL,
-            Some(self),
-            Some(rhs),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::MUL,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(rhs)),
+        });
         let mut ret = ParameterExpression {
             expr: &self.expr * &rhs.expr,
             uuid: self.uuid.clone(),
@@ -552,11 +590,11 @@ impl ParameterExpression {
     }
     fn _rmul(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::MUL,
-            Some(lhs),
-            Some(self),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::MUL,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+        });
         let mut ret = ParameterExpression {
             expr: &lhs.expr * &self.expr,
             uuid: self.uuid.clone(),
@@ -569,11 +607,11 @@ impl ParameterExpression {
     }
     fn _div(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::DIV,
-            Some(self),
-            Some(rhs),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::DIV,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(rhs)),
+        });
         let mut ret = ParameterExpression {
             expr: &self.expr / &rhs.expr,
             uuid: self.uuid.clone(),
@@ -586,11 +624,11 @@ impl ParameterExpression {
     }
     fn _rdiv(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::DIV,
-            Some(lhs),
-            Some(self),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::DIV,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
+        });
         let mut ret = ParameterExpression {
             expr: &lhs.expr / &self.expr,
             uuid: self.uuid.clone(),
@@ -603,11 +641,11 @@ impl ParameterExpression {
     }
     fn _pow(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::POW,
-            Some(self),
-            Some(rhs),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::POW,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(rhs)),
+        });
         let mut ret = ParameterExpression {
             expr: self.expr.pow(&rhs.expr),
             uuid: self.uuid.clone(),
@@ -620,11 +658,11 @@ impl ParameterExpression {
     }
     fn _rpow(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
-        replay.push(OPReplay::new_instruction(
-            _OPCode::POW,
-            Some(lhs),
-            Some(self),
-        ));
+        replay.push(OPReplay::_INSTRUCTION {
+            op: _OPCode::POW,
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
+        });
         let mut ret = ParameterExpression {
             expr: lhs.expr.pow(&self.expr),
             uuid: self.uuid.clone(),
@@ -1024,6 +1062,18 @@ impl ParameterExpression {
         }
     }
 
+    /// check if ParameterVectorElement
+    #[getter]
+    pub fn is_vector_element(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
+            return match index {
+                Some(_) => true,
+                None => false,
+            };
+        }
+        false
+    }
+
     /// get uuid for this symbol
     #[getter]
     pub fn uuid(&self) -> u128 {
@@ -1187,8 +1237,11 @@ impl ParameterExpression {
             }
 
             let mut replay = self.clone_replay();
-            replay.push(OPReplay::new_instruction(_OPCode::GRAD, Some(self), None));
-
+            replay.push(OPReplay::_INSTRUCTION {
+                op: _OPCode::GRAD,
+                lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+                rhs: None,
+            });
             let mut ret = Self {
                 expr: expr_grad,
                 uuid: self.uuid.clone(),
@@ -1291,7 +1344,7 @@ impl ParameterExpression {
         allow_unknown_parameters: bool,
     ) -> PyResult<ParameterExpression> {
         let mut map: HashMap<String, SymbolExpr> = HashMap::new();
-        let mut subs_map: HashMap<ParameterExpression, ParameterExpression> = HashMap::new();
+        let mut subs_map: HashMap<ParameterExpression, ParameterValueType> = HashMap::new();
         let mut unknown_params: HashSet<String> = HashSet::new();
         let mut symbols: HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
             Some(s) => s.clone(),
@@ -1325,7 +1378,7 @@ impl ParameterExpression {
                 self._raise_if_parameter_conflict(&expr)?;
                 map.insert(key.to_string(), expr.expr.clone());
             }
-            subs_map.insert(key.clone(), expr.clone());
+            subs_map.insert(key.clone(), ParameterValueType::clone_expr_for_replay(expr));
             if symbols.contains(key) {
                 symbols.remove(key);
             } else if !allow_unknown_parameters {
@@ -1766,6 +1819,10 @@ impl ParameterExpression {
 
     /// return QPY replay
     pub fn replay(&self) -> Option<Vec<OPReplay>> {
+        self.qpy_replay.clone()
+    }
+    #[getter]
+    pub fn _qpy_replay(&self) -> Option<Vec<OPReplay>> {
         self.qpy_replay.clone()
     }
 }
