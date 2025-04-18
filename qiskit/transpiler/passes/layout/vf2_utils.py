@@ -189,11 +189,8 @@ def build_average_error_map(target, coupling_map):
         coupling_map = target.build_coupling_map()
     if not built and coupling_map is not None and num_qubits is not None:
         for qubit in range(num_qubits):
-            avg_map.add_error(
-                (qubit, qubit),
-                (coupling_map.graph.out_degree(qubit) + coupling_map.graph.in_degree(qubit))
-                / num_qubits,
-            )
+            degree = len(set(coupling_map.graph.neighbors_undirected(qubit)))
+            avg_map.add_error((qubit, qubit), degree / num_qubits)
         for edge in coupling_map.graph.edge_list():
             avg_map.add_error(edge, (avg_map[edge[0], edge[0]] + avg_map[edge[1], edge[1]]) / 2)
             built = True
