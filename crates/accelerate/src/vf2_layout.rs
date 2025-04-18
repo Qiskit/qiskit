@@ -257,7 +257,8 @@ fn build_coupling_map<Ty: EdgeType>(
     if target.num_qargs() == 0 {
         return None;
     }
-    let mut cm_graph = StableGraph::with_capacity(num_qubits, target.num_qargs() - num_qubits);
+    let mut cm_graph =
+        StableGraph::with_capacity(num_qubits, target.num_qargs().saturating_sub(num_qubits));
     for _ in 0..num_qubits {
         cm_graph.add_node(HashSet::new());
     }
