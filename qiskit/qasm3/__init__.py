@@ -372,7 +372,16 @@ def load_experimental(pathlike_or_filelike, /, *, custom_gates=None, include_pat
 
 
 @functools.wraps(_qasm3.dumps)
-def dumps_experimental(circuit):
+def dumps_experimental(
+    circuit,
+    *,
+    includes=None,
+    basis_gates=None,
+    disable_constants=True,
+    alias_classical_registers=False,
+    allow_aliasing=False,
+    indent="  ",
+):
     """<overridden by functools.wraps>"""
     warnings.warn(
         "This is an experimental version of serialization of a :class:`~qiskit.circuit.QuantumCircuit`"
@@ -380,4 +389,52 @@ def dumps_experimental(circuit):
         " Beware that its interface might change, and it might be missing features.",
         category=ExperimentalWarning,
     )
-    return _qasm3.dumps(circuit)
+    if includes is None:
+        includes = ["stdgates.inc"]
+    if basis_gates is None:
+        basis_gates = []
+    return _qasm3.dumps(
+        circuit,
+        includes=includes,
+        basis_gates=basis_gates,
+        disable_constants=disable_constants,
+        alias_classical_registers=alias_classical_registers,
+        allow_aliasing=allow_aliasing,
+        indent=indent,
+    )
+
+
+@functools.wraps(_qasm3.dump)
+def dump_experimental(
+    circuit,
+    stream,
+    *,
+    includes=None,
+    basis_gates=None,
+    disable_constants=True,
+    alias_classical_registers=False,
+    allow_aliasing=False,
+    indent="  ",
+):
+    """<overridden by functools.wraps>"""
+    warnings.warn(
+        "This is an experimental version of serialization of a :class:`~qiskit.circuit.QuantumCircuit`"
+        " object in an OpenQASM 3 string."
+        " Beware that its interface might change, and it might be missing features.",
+        category=ExperimentalWarning,
+    )
+    if includes is None:
+        includes = ["stdgates.inc"]
+    if basis_gates is None:
+        basis_gates = []
+
+    return _qasm3.dump(
+        circuit,
+        stream,
+        includes=includes,
+        basis_gates=basis_gates,
+        disable_constants=disable_constants,
+        alias_classical_registers=alias_classical_registers,
+        allow_aliasing=allow_aliasing,
+        indent=indent,
+    )

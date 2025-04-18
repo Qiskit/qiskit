@@ -401,7 +401,7 @@ class BasicPrinter:
         self.visit(node.identifier)
         self._end_statement()
 
-    def _visit_AliasStatement(self, node: ast.AliasStatement) -> None:
+    def _visit_alias_statement(self, node: ast.AliasStatement) -> None:
         self._start_line()
         self.stream.write("let ")
         self.visit(node.identifier)
