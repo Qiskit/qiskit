@@ -41,7 +41,7 @@ from typing import Type
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier

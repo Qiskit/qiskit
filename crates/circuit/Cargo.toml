@@ -22,6 +22,8 @@ num-complex.workspace = true
 thiserror.workspace = true
 itertools.workspace = true
 nalgebra.workspace = true
+nom.workspace = true
+nom-unicode.workspace = true
 
 [dependencies.pyo3]
 workspace = true
@@ -50,6 +52,10 @@ features = ["union", "const_generics"]
 [dependencies.numpy]
 workspace = true
 features = ["nalgebra"]
+
+[dependencies.uuid]
+workspace = true
+features = ["v4"]
 
 [features]
 cache_pygates = []

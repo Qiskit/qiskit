@@ -597,7 +597,7 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(pqc.parameters, {phi})
 
         self.assertTrue(isinstance(pqc.data[0].operation.params[0], ParameterExpression))
-        self.assertEqual(str(pqc.data[0].operation.params[0]), "phi + 2")
+        self.assertEqual(str(pqc.data[0].operation.params[0]), "2 + phi")
 
         fbqc = pqc.assign_parameters({phi: 1.0})
 
