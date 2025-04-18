@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::borrow::Cow;
 use std::hash::Hash;
 use std::sync::OnceLock;
 
@@ -7278,9 +7277,9 @@ impl DAGCircuitBuilder {
         &mut self,
         py: Python,
         op: PackedOperation,
-        qubits: Option<Cow<[Qubit]>>,
-        clbits: Option<Cow<[Clbit]>>,
-        params: Option<Box<SmallVec<[Param; 3]>>>,
+        qubits: Option<&[Qubit]>,
+        clbits: Option<&[Clbit]>,
+        params: Option<SmallVec<[Param; 3]>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -7386,9 +7385,9 @@ impl DAGCircuitBuilder {
     pub fn pack_instruction(
         &mut self,
         op: PackedOperation,
-        qubits: Option<Cow<[Qubit]>>,
-        clbits: Option<Cow<[Clbit]>>,
-        params: Option<Box<SmallVec<[Param; 3]>>>,
+        qubits: Option<&[Qubit]>,
+        clbits: Option<&[Clbit]>,
+        params: Option<SmallVec<[Param; 3]>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PackedInstruction {
@@ -7412,7 +7411,7 @@ impl DAGCircuitBuilder {
             op,
             qubits,
             clbits,
-            params,
+            params: params.map(Box::new),
             label: label.map(|label| label.into()),
             #[cfg(feature = "cache_pygates")]
             py_op,
@@ -7430,13 +7429,13 @@ impl DAGCircuitBuilder {
     }
 
     /// Packs qargs into the circuit.
-    pub fn insert_qargs(&mut self, qargs: Cow<[Qubit]>) -> Interned<[Qubit]> {
-        self.dag.qargs_interner.insert_cow(qargs)
+    pub fn insert_qargs(&mut self, qargs: &[Qubit]) -> Interned<[Qubit]> {
+        self.dag.qargs_interner.insert(qargs)
     }
 
     /// Packs qargs into the circuit.
-    pub fn insert_cargs(&mut self, cargs: Cow<[Clbit]>) -> Interned<[Clbit]> {
-        self.dag.cargs_interner.insert_cow(cargs)
+    pub fn insert_cargs(&mut self, cargs: &[Clbit]) -> Interned<[Clbit]> {
+        self.dag.cargs_interner.insert(cargs)
     }
 
     /// Adds a new value to the global phase of the inner [DAGCircuit].
