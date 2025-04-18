@@ -38,6 +38,114 @@ use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
 
+// These are the prefixes used for the loose qubit and bit names.
+lazy_static! {
+    static ref BIT_PREFIX: &'static str = "_bit";
+}
+lazy_static! {
+    static ref QUBIT_PREFIX: &'static str = "_qubit";
+}
+
+// These are the prefixes used for the gate parameters and qubits.
+lazy_static! {
+    static ref GATE_PARAM_PREFIX: &'static str = "_gate_p";
+}
+lazy_static! {
+    static ref GATE_QUBIT_PREFIX: &'static str = "_gate_q";
+}
+
+// These are the gates that are defined by the standard library.
+lazy_static! {
+    static ref GATES_DEFINED_BY_STDGATES: HashSet<&'static str> = [
+        "p", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz", "cx", "cy", "cz",
+        "rzz", "cp", "crx", "cry", "crz", "ch", "swap", "ccx", "cswap", "cu", "CX", "phase",
+        "cphase", "id", "u1", "u2", "u3",
+    ]
+    .into_iter()
+    .collect();
+}
+
+// These are the reserved keywords in QASM3.
+lazy_static! {
+    static ref RESERVED_KEYWORDS: HashSet<&'static str> = [
+        "OPENQASM",
+        "angle",
+        "array",
+        "barrier",
+        "bit",
+        "bool",
+        "box",
+        "break",
+        "cal",
+        "complex",
+        "const",
+        "continue",
+        "creg",
+        "ctrl",
+        "def",
+        "defcal",
+        "defcalgrammar",
+        "delay",
+        "duration",
+        "durationof",
+        "else",
+        "end",
+        "extern",
+        "float",
+        "for",
+        "gate",
+        "gphase",
+        "if",
+        "in",
+        "include",
+        "input",
+        "int",
+        "inv",
+        "let",
+        "measure",
+        "mutable",
+        "negctrl",
+        "output",
+        "pow",
+        "qreg",
+        "qubit",
+        "reset",
+        "return",
+        "sizeof",
+        "stretch",
+        "uint",
+        "while"
+    ]
+    .into_iter()
+    .collect();
+}
+
+lazy_static! {
+    static ref VALID_IDENTIFIER: Regex = Regex::new(r"(^[\w][\w\d]*$|^\$\d+$)").unwrap();
+}
+
+lazy_static! {
+    static ref _BAD_IDENTIFIER_CHARACTERS: Regex = Regex::new(r"[^\w\d]").unwrap();
+}
+
+lazy_static! {
+    static ref _VALID_HARDWARE_QUBIT: Regex = Regex::new(r"\$\d+").unwrap();
+}
+
+#[derive(Error, Debug)]
+pub enum QASM3ExporterError {
+    #[error("Error: {0}")]
+    Error(String),
+    #[error("PyError: {0}")]
+    PyErr(PyErr),
+}
+
+impl From<PyErr> for QASM3ExporterError {
+    fn from(err: PyErr) -> Self {
+        QASM3ExporterError::PyErr(err)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 enum BitType {
     ShareableQubit(ShareableQubit),
@@ -69,6 +177,27 @@ impl RegisterType {
                 .map(BitType::ShareableClbit)
                 .collect(),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Counter {
+    current: usize,
+}
+
+impl Counter {
+    fn new() -> Self {
+        Self { current: 0 }
+    }
+}
+
+impl Iterator for Counter {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let n = self.current;
+        self.current = self.current.wrapping_add(1);
+        Some(n)
     }
 }
 
@@ -185,7 +314,7 @@ impl SymbolTable {
 
     fn escaped_declarable_name(
         &mut self,
-        name: &str,
+        mut name: String,
         allow_rename: bool,
         unique: bool,
     ) -> ExporterResult<String> {
@@ -195,32 +324,30 @@ impl SymbolTable {
             |n: &str, this: &SymbolTable| this.can_shadow_symbol(n)
         };
         if allow_rename {
-            let mut name = name.to_string();
             if !VALID_IDENTIFIER.is_match(&name) {
                 name = format!("_{}", _BAD_IDENTIFIER_CHARACTERS.replace_all(&name, "_"));
             }
-            let base = name.clone();
             while !name_allowed(&name, self) {
-                name = format!("{}{}", base, self._counter.next().unwrap());
+                name = format!("{}{}", name, self._counter.next().unwrap());
             }
             return Ok(name);
         }
-        if !VALID_IDENTIFIER.is_match(name) {
+        if !VALID_IDENTIFIER.is_match(&name) {
             return Err(QASM3ExporterError::Error(format!(
                 "cannot use '{}' as a name; it is not a valid identifier",
                 name
             )));
         }
 
-        if RESERVED_KEYWORDS.contains(name) {
+        if RESERVED_KEYWORDS.contains(name.as_str()) {
             return Err(QASM3ExporterError::Error(format!(
                 "cannot use the keyword '{}' as a variable name",
                 name
             )));
         }
 
-        if !name_allowed(name, self) {
-            if self.gates.contains_key(name) {
+        if !name_allowed(&name, self) {
+            if self.gates.contains_key(name.as_str()) {
                 return Err(QASM3ExporterError::Error(format!(
                     "cannot shadow variable '{}', as it is already defined as a gate",
                     name
@@ -228,7 +355,7 @@ impl SymbolTable {
             }
 
             for scope in self.symbols.iter().rev() {
-                if let Some(other) = scope.get(name) {
+                if let Some(other) = scope.get(&name) {
                     return Err(QASM3ExporterError::Error(format!(
                         "cannot shadow variable '{}', as it is already defined as '{:?}'",
                         name, other
@@ -280,18 +407,16 @@ impl SymbolTable {
 
     fn register_gate(
         &mut self,
-        op_name: &str,
+        op_name: String,
         params_def: Vec<Identifier>,
         qubits: Vec<Identifier>,
         body: QuantumBlock,
     ) -> ExporterResult<()> {
         // Changing the name is not allowed when defining new gates.
-        let name = self.escaped_declarable_name(op_name, false, false)?;
-        if !self.contains_name(&name) {
-            let _ = self.bind(&name);
-        }
+        let name = self.escaped_declarable_name(op_name.clone(), false, false)?;
+        let _ = self.bind(&name);
         self.gates.insert(
-            op_name.to_string(),
+            op_name,
             QuantumGateDefinition {
                 quantum_gate_signature: QuantumGateSignature {
                     name: Identifier { string: name },
@@ -328,7 +453,7 @@ impl SymbolTable {
                 )));
             }
         } else {
-            self.escaped_declarable_name(&name, allow_rename, false)?;
+            self.escaped_declarable_name(name.clone(), allow_rename, false)?;
         }
         let identifier = Identifier {
             string: name.clone(),
@@ -346,7 +471,7 @@ impl SymbolTable {
         name: String,
         register: &RegisterType,
     ) -> ExporterResult<Identifier> {
-        let name = self.escaped_declarable_name(&name, true, false)?;
+        let name = self.escaped_declarable_name(name.clone(), true, false)?;
         let identifier = Identifier {
             string: name.clone(),
         };
@@ -378,113 +503,10 @@ impl SymbolTable {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum QASM3ExporterError {
-    #[error("Error: {0}")]
-    Error(String),
-    #[error("PyError: {0}")]
-    PyErr(PyErr),
-}
-
-impl From<PyErr> for QASM3ExporterError {
-    fn from(err: PyErr) -> Self {
-        QASM3ExporterError::PyErr(err)
-    }
-}
-
-lazy_static! {
-    static ref BIT_PREFIX: &'static str = "_bit";
-}
-lazy_static! {
-    static ref QUBIT_PREFIX: &'static str = "_qubit";
-}
-lazy_static! {
-    static ref GATE_PARAM_PREFIX: &'static str = "_gate_p";
-}
-lazy_static! {
-    static ref GATE_QUBIT_PREFIX: &'static str = "_gate_q";
-}
-lazy_static! {
-    static ref GATES_DEFINED_BY_STDGATES: HashSet<&'static str> = [
-        "p", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz", "cx", "cy", "cz",
-        "rzz", "cp", "crx", "cry", "crz", "ch", "swap", "ccx", "cswap", "cu", "CX", "phase",
-        "cphase", "id", "u1", "u2", "u3",
-    ]
-    .into_iter()
-    .collect();
-}
-
-lazy_static! {
-    static ref RESERVED_KEYWORDS: HashSet<&'static str> = [
-        "OPENQASM",
-        "angle",
-        "array",
-        "barrier",
-        "bit",
-        "bool",
-        "box",
-        "break",
-        "cal",
-        "complex",
-        "const",
-        "continue",
-        "creg",
-        "ctrl",
-        "def",
-        "defcal",
-        "defcalgrammar",
-        "delay",
-        "duration",
-        "durationof",
-        "else",
-        "end",
-        "extern",
-        "float",
-        "for",
-        "gate",
-        "gphase",
-        "if",
-        "in",
-        "include",
-        "input",
-        "int",
-        "inv",
-        "let",
-        "measure",
-        "mutable",
-        "negctrl",
-        "output",
-        "pow",
-        "qreg",
-        "qubit",
-        "reset",
-        "return",
-        "sizeof",
-        "stretch",
-        "uint",
-        "while"
-    ]
-    .into_iter()
-    .collect();
-}
-
-lazy_static! {
-    static ref VALID_IDENTIFIER: Regex = Regex::new(r"(^[\w][\w\d]*$|^\$\d+$)").unwrap();
-}
-
-lazy_static! {
-    static ref _BAD_IDENTIFIER_CHARACTERS: Regex = Regex::new(r"[^\w\d]").unwrap();
-}
-
-lazy_static! {
-    static ref _VALID_HARDWARE_QUBIT: Regex = Regex::new(r"\$\d+").unwrap();
-}
-
 pub struct Exporter {
     includes: Vec<String>,
     basis_gates: Vec<String>,
     disable_constants: bool,
-    _alias_classical_registers: bool,
     allow_aliasing: bool,
     indent: String,
 }
@@ -494,7 +516,6 @@ impl Exporter {
         includes: Vec<String>,
         basis_gates: Vec<String>,
         disable_constants: bool,
-        alias_classical_registers: bool,
         allow_aliasing: bool,
         indent: String,
     ) -> Self {
@@ -502,7 +523,6 @@ impl Exporter {
             includes,
             basis_gates,
             disable_constants,
-            _alias_classical_registers: alias_classical_registers,
             allow_aliasing,
             indent,
         }
@@ -554,27 +574,6 @@ impl Exporter {
             }
             Err(e) => Err(QASM3ExporterError::Error(e.to_string())),
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Counter {
-    current: usize,
-}
-
-impl Counter {
-    fn new() -> Self {
-        Self { current: 0 }
-    }
-}
-
-impl Iterator for Counter {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let n = self.current;
-        self.current = self.current.wrapping_add(1);
-        Some(n)
     }
 }
 
@@ -1395,9 +1394,12 @@ impl<'a> QASM3Builder {
                 }
             })?;
 
-            let _ = self
-                .symbol_table
-                .register_gate(operation.name(), params_def, qubits, body);
+            let _ = self.symbol_table.register_gate(
+                operation.name().to_string(),
+                params_def,
+                qubits,
+                body,
+            );
             Ok(())
         } else {
             Err(QASM3ExporterError::Error(format!(

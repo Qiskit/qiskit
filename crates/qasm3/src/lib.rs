@@ -159,7 +159,6 @@ struct DumpOptions {
     includes: Vec<String>,
     basis_gates: Vec<String>,
     disable_constants: bool,
-    alias_classical_registers: bool,
     allow_aliasing: bool,
     indent: String,
 }
@@ -170,7 +169,6 @@ impl Default for DumpOptions {
             includes: vec!["stdgates.inc".to_string()],
             basis_gates: vec![],
             disable_constants: true,
-            alias_classical_registers: false,
             allow_aliasing: false,
             indent: "  ".to_string(),
         }
@@ -197,9 +195,6 @@ pub fn dumps(
         if let Ok(val) = kw.get_item("disable_constants") {
             options.disable_constants = val.extract::<bool>()?;
         }
-        if let Ok(val) = kw.get_item("alias_classical_registers") {
-            options.alias_classical_registers = val.extract::<bool>()?;
-        }
         if let Ok(val) = kw.get_item("allow_aliasing") {
             options.allow_aliasing = val.extract::<bool>()?;
         }
@@ -218,7 +213,6 @@ pub fn dumps(
         options.includes,
         options.basis_gates,
         options.disable_constants,
-        options.alias_classical_registers,
         options.allow_aliasing,
         options.indent,
     );
@@ -254,9 +248,6 @@ pub fn dump(
         if let Ok(val) = kw.get_item("disable_constants") {
             options.disable_constants = val.extract::<bool>()?;
         }
-        if let Ok(val) = kw.get_item("alias_classical_registers") {
-            options.alias_classical_registers = val.extract::<bool>()?;
-        }
         if let Ok(val) = kw.get_item("allow_aliasing") {
             options.allow_aliasing = val.extract::<bool>()?;
         }
@@ -275,7 +266,6 @@ pub fn dump(
         options.includes,
         options.basis_gates,
         options.disable_constants,
-        options.alias_classical_registers,
         options.allow_aliasing,
         options.indent,
     );
