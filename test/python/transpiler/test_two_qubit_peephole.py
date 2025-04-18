@@ -20,7 +20,7 @@ import math
 import numpy as np
 import ddt
 
-from qiskit import generate_preset_pass_manager
+from qiskit import generate_preset_pass_manager, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -41,7 +41,7 @@ from qiskit.circuit.library import (
     UGate,
     ZGate,
     RYYGate,
-    RZZGate,
+    CZGate,
     RXXGate,
 )
 from qiskit.circuit import Measure
@@ -437,3 +437,127 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
         self.assertEqual(Operator(qc), Operator(qc_out))
+
+    def test_swap_on_cz_target(self):
+        """Test that a cz target synthesizes simple circuits correctly."""
+        target = Target(num_qubits=2)
+        target.add_instruction(
+            CZGate(),
+            {
+                (0, 1): InstructionProperties(error=3.058e-3, duration=6.8e-8),
+                (1, 0): InstructionProperties(error=3.058e-3, duration=6.8e-8),
+            },
+        )
+        target.add_instruction(
+            RZGate(Parameter("theta")),
+            {
+                (0,): InstructionProperties(error=0, duration=0),
+                (1,): InstructionProperties(error=0, duration=0),
+            },
+        )
+        target.add_instruction(
+            SXGate(),
+            {
+                (0,): InstructionProperties(error=2.421e-4, duration=2.4e-8),
+                (1,): InstructionProperties(error=2.229e-4, duration=2.41e-8),
+            },
+        )
+        target.add_instruction(
+            XGate(),
+            {
+                (0,): InstructionProperties(error=2.41e-4, duration=3.4e-8),
+                (1,): InstructionProperties(error=2.29e-4, duration=3.41e-8),
+            },
+        )
+        peephole = TwoQubitPeepholeOptimization(target)
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        qc = transpile(qc, target=target, seed_transpiler=1234, optimization_level=0)
+        res = peephole(qc)
+        self.assertEqual(res, qc)
+        # Check run of swaps
+        qc_duplicated = QuantumCircuit(2)
+        for _ in range(100):
+            qc_duplicated.swap(0, 1)
+        qc_duplicated = transpile(
+            qc_duplicated, target=target, seed_transpiler=1234, optimization_level=0
+        )
+        res = peephole(qc_duplicated)
+        self.assertEqual(res, QuantumCircuit(2))
+
+        qc_duplicated = QuantumCircuit(2)
+        for _ in range(101):
+            qc_duplicated.swap(0, 1)
+        qc_duplicated = transpile(
+            qc_duplicated, target=target, seed_transpiler=1234, optimization_level=0
+        )
+        res = peephole(qc_duplicated)
+        self.assertEqual(Operator(res), Operator(qc))
+
+    def test_pass_respects_directionality(self):
+        """Test that a cz target synthesizes simple circuits correctly."""
+        target = Target(num_qubits=2)
+        target.add_instruction(
+            CXGate(),
+            {
+                (1, 0): InstructionProperties(error=3.058e-3, duration=6.8e-8),
+            },
+        )
+        target.add_instruction(
+            RZGate(Parameter("theta")),
+            {
+                (0,): InstructionProperties(error=0, duration=0),
+                (1,): InstructionProperties(error=0, duration=0),
+            },
+        )
+        target.add_instruction(
+            SXGate(),
+            {
+                (0,): InstructionProperties(error=2.421e-4, duration=2.4e-8),
+                (1,): InstructionProperties(error=2.229e-4, duration=2.41e-8),
+            },
+        )
+        target.add_instruction(
+            XGate(),
+            {
+                (0,): InstructionProperties(error=2.41e-4, duration=3.4e-8),
+                (1,): InstructionProperties(error=2.29e-4, duration=3.41e-8),
+            },
+        )
+        peephole = TwoQubitPeepholeOptimization(target)
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        qc = transpile(qc, target=target, seed_transpiler=1234, optimization_level=0)
+        res = peephole(qc)
+        self.assertTrue(self.all_inst_in_target(res, target))
+        self.assertEqual(res, qc)
+        # Check run of swaps
+        qc_duplicated = QuantumCircuit(2)
+        for _ in range(100):
+            qc_duplicated.swap(0, 1)
+        qc_duplicated = transpile(
+            qc_duplicated, target=target, seed_transpiler=1234, optimization_level=0
+        )
+        res = peephole(qc_duplicated)
+        self.assertTrue(self.all_inst_in_target(res, target))
+        self.assertEqual(Operator(res), QuantumCircuit(2))
+
+        qc_duplicated = QuantumCircuit(2)
+        for _ in range(101):
+            qc_duplicated.swap(0, 1)
+        qc_duplicated = transpile(
+            qc_duplicated, target=target, seed_transpiler=1234, optimization_level=0
+        )
+        res = peephole(qc_duplicated)
+        self.assertTrue(self.all_inst_in_target(res, target))
+        self.assertEqual(Operator(res), Operator(qc))
+
+    def all_inst_in_target(self, circuit: QuantumCircuit, target: Target):
+        for inst in circuit.data:
+            if not target.instruction_supported(
+                inst.name, tuple(circuit.find_bit(x).index for x in inst.qubits)
+            ):
+                raise self.fail(
+                    f"{inst.name} {tuple(circuit.find_bit(x).index for x in inst.qubits)} not supported"
+                )
+        return True
