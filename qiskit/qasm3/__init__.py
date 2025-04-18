@@ -392,15 +392,17 @@ def dumps_experimental(
     if includes is None:
         includes = ["stdgates.inc"]
     if basis_gates is None:
-        basis_gates = []
+        basis_gates = ["U"]
     return _qasm3.dumps(
         circuit,
-        includes=includes,
-        basis_gates=basis_gates,
-        disable_constants=disable_constants,
-        alias_classical_registers=alias_classical_registers,
-        allow_aliasing=allow_aliasing,
-        indent=indent,
+        {
+            "includes": includes,
+            "basis_gates": basis_gates,
+            "disable_constants": disable_constants,
+            "alias_classical_registers": alias_classical_registers,
+            "allow_aliasing": allow_aliasing,
+            "indent": indent,
+        },
     )
 
 
@@ -426,15 +428,17 @@ def dump_experimental(
     if includes is None:
         includes = ["stdgates.inc"]
     if basis_gates is None:
-        basis_gates = []
+        basis_gates = ["U"]
 
     return _qasm3.dump(
         circuit,
         stream,
-        includes=includes,
-        basis_gates=basis_gates,
-        disable_constants=disable_constants,
-        alias_classical_registers=alias_classical_registers,
-        allow_aliasing=allow_aliasing,
-        indent=indent,
+        {
+            "includes": includes,
+            "basis_gates": basis_gates,
+            "disable_constants": disable_constants,
+            "alias_classical_registers": alias_classical_registers,
+            "allow_aliasing": allow_aliasing,
+            "indent": indent,
+        },
     )
