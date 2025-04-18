@@ -698,7 +698,7 @@ fn extract_definition(
                         "cx".to_string(),
                         aview2(&CX_GATE),
                         1.0,
-                        "U",
+                        EulerBasis::U,
                         None,
                     )?;
                     let two_qubit_sequence =
