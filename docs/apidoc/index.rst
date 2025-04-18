@@ -18,6 +18,7 @@ Circuit construction:
    circuit_library
    circuit_random
    circuit_singleton
+   template_circuits
 
 Quantum information:
 
