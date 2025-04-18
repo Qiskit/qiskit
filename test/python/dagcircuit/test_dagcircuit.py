@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Test for the DAGCircuit object"""
 
 from __future__ import annotations
@@ -509,13 +511,16 @@ class TestDagWireRemoval(QiskitTestCase):
         dag.add_input_var(expr.Var.new("b", types.Uint(8)))
         dag.add_declared_var(expr.Var.new("c", types.Bool()))
         dag.add_declared_var(expr.Var.new("d", types.Uint(8)))
+        dag.add_declared_stretch(expr.Stretch.new("e"))
         self.assertEqual(dag, dag.copy_empty_like())
 
         dag = DAGCircuit()
         dag.add_captured_var(expr.Var.new("a", types.Bool()))
         dag.add_captured_var(expr.Var.new("b", types.Uint(8)))
-        dag.add_declared_var(expr.Var.new("c", types.Bool()))
-        dag.add_declared_var(expr.Var.new("d", types.Uint(8)))
+        dag.add_declared_stretch(expr.Stretch.new("c"))
+        dag.add_declared_var(expr.Var.new("d", types.Bool()))
+        dag.add_declared_var(expr.Var.new("e", types.Uint(8)))
+        dag.add_declared_stretch(expr.Stretch.new("f"))
         self.assertEqual(dag, dag.copy_empty_like())
 
     def test_copy_empty_like_vars_captures(self):
@@ -524,15 +529,18 @@ class TestDagWireRemoval(QiskitTestCase):
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
+        e = expr.Stretch.new("e")
         all_captures = DAGCircuit()
         for var in [a, b, c, d]:
             all_captures.add_captured_var(var)
+        all_captures.add_captured_stretch(e)
 
         dag = DAGCircuit()
         dag.add_input_var(a)
         dag.add_input_var(b)
         dag.add_declared_var(c)
         dag.add_declared_var(d)
+        dag.add_declared_stretch(e)
         self.assertEqual(all_captures, dag.copy_empty_like(vars_mode="captures"))
 
         dag = DAGCircuit()
@@ -540,6 +548,7 @@ class TestDagWireRemoval(QiskitTestCase):
         dag.add_captured_var(b)
         dag.add_declared_var(c)
         dag.add_declared_var(d)
+        dag.add_declared_stretch(e)
         self.assertEqual(all_captures, dag.copy_empty_like(vars_mode="captures"))
 
     def test_copy_empty_like_vars_drop(self):
@@ -548,12 +557,14 @@ class TestDagWireRemoval(QiskitTestCase):
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
+        e = expr.Stretch.new("e")
 
         dag = DAGCircuit()
         dag.add_input_var(a)
         dag.add_input_var(b)
         dag.add_declared_var(c)
         dag.add_declared_var(d)
+        dag.add_declared_stretch(e)
         self.assertEqual(DAGCircuit(), dag.copy_empty_like(vars_mode="drop"))
 
         dag = DAGCircuit()
@@ -561,6 +572,7 @@ class TestDagWireRemoval(QiskitTestCase):
         dag.add_captured_var(b)
         dag.add_declared_var(c)
         dag.add_declared_var(d)
+        dag.add_captured_stretch(e)
         self.assertEqual(DAGCircuit(), dag.copy_empty_like(vars_mode="drop"))
 
     def test_remove_busy_clbit(self):
@@ -1851,8 +1863,10 @@ class TestDagEquivalence(QiskitTestCase):
         """The vars should be compared whether or not they're used."""
         a_bool = expr.Var.new("a", types.Bool())
         a_u8 = expr.Var.new("a", types.Uint(8))
+        a_stretch = expr.Stretch.new("a")
         a_u8_other = expr.Var.new("a", types.Uint(8))
         b_bool = expr.Var.new("b", types.Bool())
+        b_stretch = expr.Stretch.new("b")
 
         left = DAGCircuit()
         left.add_input_var(a_bool)
@@ -1897,6 +1911,17 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertNotEqual(left, right)
 
         right = DAGCircuit()
+        right.add_captured_stretch(a_stretch)
+        right.add_captured_stretch(b_stretch)
+        self.assertEqual(right.num_input_vars, 0)
+        self.assertEqual(right.num_captured_vars, 0)
+        self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(right.num_captured_stretches, 2)
+        self.assertEqual(right.num_declared_stretches, 0)
+        self.assertEqual(right.num_stretches, 2)
+        self.assertNotEqual(left, right)
+
+        right = DAGCircuit()
         right.add_declared_var(a_bool)
         right.add_declared_var(b_bool)
         self.assertEqual(right.num_input_vars, 0)
@@ -1905,11 +1930,24 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_vars, 2)
         self.assertNotEqual(left, right)
 
+        right = DAGCircuit()
+        right.add_declared_stretch(a_stretch)
+        right.add_declared_stretch(b_stretch)
+        self.assertEqual(right.num_input_vars, 0)
+        self.assertEqual(right.num_captured_vars, 0)
+        self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(right.num_captured_stretches, 0)
+        self.assertEqual(right.num_declared_stretches, 2)
+        self.assertEqual(right.num_stretches, 2)
+        self.assertNotEqual(left, right)
+
         left = DAGCircuit()
         left.add_captured_var(a_u8)
+        left.add_captured_stretch(b_stretch)
 
         right = DAGCircuit()
         right.add_captured_var(a_u8)
+        right.add_captured_stretch(b_stretch)
         self.assertEqual(left, right)
 
         right = DAGCircuit()
@@ -2112,6 +2150,7 @@ class TestDagEquivalence(QiskitTestCase):
         """Test that a DAG can't have both captures and inputs."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
+        c = expr.Stretch.new("c")
 
         dag = DAGCircuit()
         dag.add_input_var(a)
@@ -2119,6 +2158,10 @@ class TestDagEquivalence(QiskitTestCase):
             DAGCircuitError, "cannot add captures to a circuit with inputs"
         ):
             dag.add_captured_var(b)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "cannot add captures to a circuit with inputs"
+        ):
+            dag.add_captured_stretch(c)
 
         dag = DAGCircuit()
         dag.add_captured_var(a)
@@ -2126,6 +2169,13 @@ class TestDagEquivalence(QiskitTestCase):
             DAGCircuitError, "cannot add inputs to a circuit with captures"
         ):
             dag.add_input_var(b)
+
+        dag = DAGCircuit()
+        dag.add_captured_stretch(c)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "cannot add inputs to a circuit with captures"
+        ):
+            dag.add_input_var(a)
 
     def test_forbid_adding_nonstandalone_var(self):
         """Temporary "wrapping" vars aren't standalone and can't be tracked separately."""
@@ -2139,12 +2189,69 @@ class TestDagEquivalence(QiskitTestCase):
         """Can't re-add a variable that exists, nor a shadowing variable in the same scope."""
         a1 = expr.Var.new("a", types.Bool())
         a2 = expr.Var.new("a", types.Bool())
+        a3 = expr.Stretch.new("a")
         dag = DAGCircuit()
         dag.add_declared_var(a1)
         with self.assertRaisesRegex(DAGCircuitError, "already present in the circuit"):
             dag.add_declared_var(a1)
         with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
             dag.add_declared_var(a2)
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
+            dag.add_declared_stretch(a3)
+
+        dag = DAGCircuit()
+        dag.add_declared_stretch(a3)
+        with self.assertRaisesRegex(DAGCircuitError, "already present in the circuit"):
+            dag.add_captured_stretch(a3)
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
+            dag.add_declared_var(a1)
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
+            dag.add_declared_var(a2)
+
+    def test_pickle_stretches(self):
+        """Test stretches preserved through pickle."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_stretch(a)
+        dag.add_captured_stretch(b)
+
+        self.assertEqual(dag.num_stretches, 2)
+        self.assertEqual(dag.num_captured_stretches, 1)
+        self.assertEqual(dag.num_declared_stretches, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_stretches, 2)
+        self.assertEqual(output.num_captured_stretches, 1)
+        self.assertEqual(output.num_declared_stretches, 1)
+        self.assertEqual(output, dag)
+
+    def test_deepcopy_stretches(self):
+        """Test stretches preserved through deepcopy."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_stretch(a)
+        dag.add_captured_stretch(b)
+
+        self.assertEqual(dag.num_stretches, 2)
+        self.assertEqual(dag.num_captured_stretches, 1)
+        self.assertEqual(dag.num_declared_stretches, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_stretches, 2)
+        self.assertEqual(output.num_captured_stretches, 1)
+        self.assertEqual(output.num_declared_stretches, 1)
+        self.assertEqual(output, dag)
 
 
 class TestDagSubstitute(QiskitTestCase):
