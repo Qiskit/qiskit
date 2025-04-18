@@ -204,6 +204,7 @@ pub enum Statement {
     QuantumMeasurementAssignment(QuantumMeasurementAssignment),
     Assignment(Assignment),
     QuantumGateDefinition(QuantumGateDefinition),
+    Alias(Alias),
     Break(Break),
     Continue(Continue),
 }
@@ -267,7 +268,7 @@ pub struct QuantumGateCall {
     pub modifiers: Option<Vec<QuantumGateModifier>>,
 }
 
-#[derive(Debug,Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum QuantumGateModifierName {
     Ctrl,
     Negctrl,
@@ -288,6 +289,12 @@ pub struct Assignment {
 }
 
 #[derive(Debug, Clone)]
+pub struct Alias {
+    pub identifier: Identifier,
+    pub value: Expression,
+}
+
+#[derive(Debug, Clone)]
 pub struct Break {}
 
 #[derive(Debug, Clone)]
@@ -299,8 +306,7 @@ pub enum Expression {
     Constant(Constant),
     Parameter(Parameter),
     Range(Range),
-    Identifier(Identifier),
-    SubscriptedIdentifier(SubscriptedIdentifier),
+    IdentifierOrSubscripted(IdentifierOrSubscripted),
     IntegerLiteral(IntegerLiteral),
     BooleanLiteral(BooleanLiteral),
     BitstringLiteral(BitstringLiteral),
@@ -309,6 +315,7 @@ pub enum Expression {
     Binary(Binary),
     Cast(Cast),
     Index(Index),
+    IndexSet(IndexSet),
 }
 
 #[derive(Debug, Clone)]
@@ -316,7 +323,7 @@ pub struct Parameter {
     pub obj: String,
 }
 
-#[derive(Debug,Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum Constant {
     PI,
     Euler,
@@ -443,7 +450,7 @@ pub struct Index {
     pub index: Box<Expression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IndexSet {
     pub values: Vec<Expression>,
 }

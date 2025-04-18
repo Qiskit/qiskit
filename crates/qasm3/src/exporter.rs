@@ -11,24 +11,26 @@
 // that they have been altered from the originals.
 
 use crate::ast::{
-    Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Constant, Continue, Delay, Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration, IOModifier, Identifier, IdentifierOrSubscripted, Include, IntegerLiteral, Node, Parameter, Program, QuantumBlock, QuantumDeclaration, QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature, QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment, Reset, Statement, SubscriptedIdentifier, Version
+    Alias, Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Continue, Delay,
+    Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
+    IOModifier, Identifier, IdentifierOrSubscripted, Include, IndexSet, IntegerLiteral, Node,
+    Parameter, Program, QuantumBlock, QuantumDeclaration, QuantumGateDefinition,
+    QuantumGateSignature, QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment,
+    Reset, Statement, SubscriptedIdentifier, Version,
 };
+use std::io::Write;
 
 use crate::printer::BasicPrinter;
 use hashbrown::{HashMap, HashSet};
-use oq3_syntax::ted::replace;
 use pyo3::prelude::*;
-use pyo3::types::PyString;
-use pyo3::PyRef;
 use pyo3::Python;
-use qiskit_circuit::bit::{Register, ShareableBit, ShareableClbit, ShareableQubit};
+use qiskit_circuit::bit::{
+    ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
+};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::duration;
 use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use std::result;
-use std::sync::Mutex;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
@@ -36,48 +38,83 @@ use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
 
-struct BuildScope {
-    circuit_data: CircuitData,
-    qubit_map: HashMap<ShareableQubit, ShareableQubit>,
-    clbit_map: HashMap<ShareableClbit, ShareableClbit>,
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+enum BitType {
+    ShareableQubit(ShareableQubit),
+    ShareableClbit(ShareableClbit),
 }
 
-impl BuildScope {
-    fn new(circuit_data: &CircuitData, qubits: &Vec<ShareableQubit>, clbits: &Vec<ShareableClbit>) -> Self {
-        let qubit_map = qubits
-            .iter()
-            .map(|q| (q.clone(), q.clone()))
-            .collect();
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+enum RegisterType {
+    QuantumRegister(QuantumRegister),
+    ClassicalRegister(ClassicalRegister),
+}
 
-        let clbit_map = clbits
-            .iter()
-            .map(|c| (c.clone(), c.clone()))
-            .collect();
-
-        Self {
-            circuit_data: circuit_data.clone(),
-            qubit_map,
-            clbit_map,
+impl RegisterType {
+    fn name(&self) -> &str {
+        match self {
+            RegisterType::QuantumRegister(q) => q.name(),
+            RegisterType::ClassicalRegister(c) => c.name(),
         }
     }
 
-    fn with_mappings(
-        circuit_data: CircuitData,
-        qubit_map: HashMap<ShareableQubit, ShareableQubit>,
-        clbit_map: HashMap<ShareableClbit, ShareableClbit>,
+    fn bits(&self) -> Vec<BitType> {
+        match self {
+            RegisterType::QuantumRegister(quantum_register) => quantum_register
+                .bits()
+                .map(BitType::ShareableQubit)
+                .collect(),
+            RegisterType::ClassicalRegister(classical_register) => classical_register
+                .bits()
+                .map(BitType::ShareableClbit)
+                .collect(),
+        }
+    }
+}
+
+struct BuildScope {
+    circuit_data: CircuitData,
+    bit_map: HashMap<BitType, BitType>,
+}
+
+impl BuildScope {
+    fn new(
+        circuit_data: &CircuitData,
+        qubits: &[ShareableQubit],
+        clbits: &[ShareableClbit],
     ) -> Self {
+        let mut bit_map: HashMap<BitType, BitType> = HashMap::new();
+        for q in qubits.iter() {
+            bit_map.insert(
+                BitType::ShareableQubit(q.clone()),
+                BitType::ShareableQubit(q.clone()),
+            );
+        }
+
+        for c in clbits.iter() {
+            bit_map.insert(
+                BitType::ShareableClbit(c.clone()),
+                BitType::ShareableClbit(c.clone()),
+            );
+        }
+        Self {
+            circuit_data: circuit_data.clone(),
+            bit_map,
+        }
+    }
+
+    fn with_mappings(circuit_data: CircuitData, bit_map: HashMap<BitType, BitType>) -> Self {
         Self {
             circuit_data,
-            qubit_map,
-            clbit_map,
+            bit_map,
         }
     }
 }
 
 struct SymbolTable {
     symbols: Vec<HashMap<String, Identifier>>,
-    clbitinfo: Vec<HashMap<ShareableClbit, IdentifierOrSubscripted>>,
-    qubitinfo: Vec<HashMap<ShareableQubit, IdentifierOrSubscripted>>,
+    bitinfo: Vec<HashMap<BitType, IdentifierOrSubscripted>>,
+    reginfo: Vec<HashMap<RegisterType, IdentifierOrSubscripted>>,
     gates: HashMap<String, QuantumGateDefinition>,
     stdgates: HashSet<String>,
     _counter: Counter,
@@ -86,12 +123,12 @@ struct SymbolTable {
 impl SymbolTable {
     fn new() -> Self {
         let symbols = vec![HashMap::new()];
-        let clbitinfo = vec![HashMap::new()];
-        let qubitinfo = vec![HashMap::new()];
+        let bitinfo = vec![HashMap::new()];
+        let reginfo = vec![HashMap::new()];
         Self {
             symbols,
-            clbitinfo,
-            qubitinfo,
+            bitinfo,
+            reginfo,
             gates: HashMap::new(),
             stdgates: HashSet::new(),
             _counter: Counter::new(),
@@ -109,7 +146,6 @@ impl SymbolTable {
                 name
             )));
         }
-
 
         Ok(())
     }
@@ -132,14 +168,27 @@ impl SymbolTable {
     }
 
     fn symbol_defined(&self, name: &str) -> bool {
-        RESERVED_KEYWORDS.contains(name) || self.gates.contains_key(name) || self.symbols.iter().rev().any(|symbol| symbol.contains_key(name))
+        RESERVED_KEYWORDS.contains(name)
+            || self.gates.contains_key(name)
+            || self
+                .symbols
+                .iter()
+                .rev()
+                .any(|symbol| symbol.contains_key(name))
     }
 
     fn can_shadow_symbol(&self, name: &str) -> bool {
-        !self.symbols.last().unwrap().contains_key(name) && !self.gates.contains_key(name) && !RESERVED_KEYWORDS.contains(name)
+        !self.symbols.last().unwrap().contains_key(name)
+            && !self.gates.contains_key(name)
+            && !RESERVED_KEYWORDS.contains(name)
     }
 
-    fn escaped_declarable_name(&mut self, name: &str, allow_rename: bool, unique: bool) -> ExporterResult<String> {
+    fn escaped_declarable_name(
+        &mut self,
+        name: &str,
+        allow_rename: bool,
+        unique: bool,
+    ) -> ExporterResult<String> {
         let name_allowed = if unique {
             |n: &str, this: &SymbolTable| !this.symbol_defined(n)
         } else {
@@ -148,10 +197,7 @@ impl SymbolTable {
         if allow_rename {
             let mut name = name.to_string();
             if !VALID_IDENTIFIER.is_match(&name) {
-                name = format!(
-                    "_{}",
-                    _BAD_IDENTIFIER_CHARACTERS.replace_all(&name, "_")
-                );
+                name = format!("_{}", _BAD_IDENTIFIER_CHARACTERS.replace_all(&name, "_"));
             }
             let base = name.clone();
             while !name_allowed(&name, self) {
@@ -205,59 +251,61 @@ impl SymbolTable {
         }
     }
 
-    fn set_clbitinfo(&mut self, id: IdentifierOrSubscripted, clbit: ShareableClbit) {
-        if self.clbitinfo.is_empty() {
-            self.clbitinfo.push(HashMap::new());
+    fn set_bitinfo(&mut self, id: IdentifierOrSubscripted, bit: BitType) {
+        if self.bitinfo.is_empty() {
+            self.bitinfo.push(HashMap::new());
         }
-        if let Some(last) = self.clbitinfo.last_mut() {
-            last.insert(clbit, id);
-        }
-    }
-
-    fn set_qubitinfo(&mut self, id: IdentifierOrSubscripted, qubit: ShareableQubit) {
-        if self.qubitinfo.is_empty() {
-            self.qubitinfo.push(HashMap::new());
-        }
-        if let Some(last) = self.qubitinfo.last_mut() {
-            last.insert(qubit, id);
+        if let Some(last) = self.bitinfo.last_mut() {
+            last.insert(bit, id);
         }
     }
 
-    fn get_qubitinfo(&self, qubit: &ShareableQubit) -> Option<&IdentifierOrSubscripted> {
-        for info in self.qubitinfo.iter().rev() {
-            if let Some(id) = info.get(qubit) {
+    fn get_bitinfo(&self, bit: &BitType) -> Option<&IdentifierOrSubscripted> {
+        for info in self.bitinfo.iter().rev() {
+            if let Some(id) = info.get(bit) {
                 return Some(id);
             }
         }
         None
     }
-    fn get_clbitinfo(&self, clbit: &ShareableClbit) -> Option<&IdentifierOrSubscripted> {
-        for info in self.clbitinfo.iter().rev() {
-            if let Some(id) = info.get(clbit) {
-                return Some(id);
-            }
+
+    fn set_reginfo(&mut self, id: IdentifierOrSubscripted, reg: RegisterType) {
+        if self.reginfo.is_empty() {
+            self.reginfo.push(HashMap::new());
         }
-        None
+        if let Some(last) = self.reginfo.last_mut() {
+            last.insert(reg, id);
+        }
     }
 
     fn register_gate(
         &mut self,
-        stdgate: StandardGate,
+        op_name: &str,
         params_def: Vec<Identifier>,
         qubits: Vec<Identifier>,
         body: QuantumBlock,
     ) -> ExporterResult<()> {
-        let name = self.escaped_declarable_name(&stdgate.name(), true, false)?;
+        // Changing the name is not allowed when defining new gates.
+        let name = self.escaped_declarable_name(op_name, false, false)?;
         if !self.contains_name(&name) {
             let _ = self.bind(&name);
         }
         self.gates.insert(
-            stdgate.name().to_string(),
+            op_name.to_string(),
             QuantumGateDefinition {
                 quantum_gate_signature: QuantumGateSignature {
                     name: Identifier { string: name },
                     qarg_list: qubits,
-                    params: Some(params_def.into_iter().map(Expression::Identifier).collect()),
+                    params: Some(
+                        params_def
+                            .into_iter()
+                            .map(|id| {
+                                Expression::IdentifierOrSubscripted(
+                                    IdentifierOrSubscripted::Identifier(id),
+                                )
+                            })
+                            .collect(),
+                    ),
                 },
                 quantum_block: body,
             },
@@ -265,22 +313,67 @@ impl SymbolTable {
         Ok(())
     }
 
+    fn register_bits(
+        &mut self,
+        name: String,
+        bit: &BitType,
+        allow_rename: bool,
+        allow_hardware_qubit: bool,
+    ) -> ExporterResult<Identifier> {
+        if allow_hardware_qubit && _VALID_HARDWARE_QUBIT.is_match(&name) {
+            if self.symbol_defined(&name) {
+                return Err(QASM3ExporterError::Error(format!(
+                    "internal error: cannot redeclare hardware qubit {}",
+                    name
+                )));
+            }
+        } else {
+            self.escaped_declarable_name(&name, allow_rename, false)?;
+        }
+        let identifier = Identifier {
+            string: name.clone(),
+        };
+        let _ = self.bind(&name);
+        self.set_bitinfo(
+            IdentifierOrSubscripted::Identifier(identifier.clone()),
+            (*bit).to_owned(),
+        );
+        Ok(identifier)
+    }
+
+    fn register_registers(
+        &mut self,
+        name: String,
+        register: &RegisterType,
+    ) -> ExporterResult<Identifier> {
+        let name = self.escaped_declarable_name(&name, true, false)?;
+        let identifier = Identifier {
+            string: name.clone(),
+        };
+        let _ = self.bind(&name);
+        self.set_reginfo(
+            IdentifierOrSubscripted::Identifier(identifier.clone()),
+            (*register).to_owned(),
+        );
+        Ok(identifier)
+    }
+
     fn push_scope(&mut self) {
         self.symbols.push(HashMap::new());
-        self.qubitinfo.push(HashMap::new());
-        self.clbitinfo.push(HashMap::new());
+        self.bitinfo.push(HashMap::new());
+        self.reginfo.push(HashMap::new());
     }
 
     fn pop_scope(&mut self) {
         self.symbols.pop();
-        self.qubitinfo.pop();
-        self.clbitinfo.pop();
+        self.bitinfo.pop();
+        self.reginfo.pop();
     }
 
     fn new_context(&mut self) -> Self {
         let mut new_table = SymbolTable::new();
-        new_table.gates = self.gates.clone();
-        new_table.stdgates = self.stdgates.clone();
+        new_table.gates.clone_from(&self.gates);
+        new_table.stdgates.clone_from(&self.stdgates);
         new_table
     }
 }
@@ -289,8 +382,6 @@ impl SymbolTable {
 pub enum QASM3ExporterError {
     #[error("Error: {0}")]
     Error(String),
-    #[error("Symbol '{0}' is not found in the table")]
-    SymbolNotFound(String),
     #[error("PyError: {0}")]
     PyErr(PyErr),
 }
@@ -302,16 +393,16 @@ impl From<PyErr> for QASM3ExporterError {
 }
 
 lazy_static! {
-    static ref BIT_PREFIX:&'static str =  "_bit";
+    static ref BIT_PREFIX: &'static str = "_bit";
 }
 lazy_static! {
-    static ref QUBIT_PREFIX:&'static str =  "_qubit";
+    static ref QUBIT_PREFIX: &'static str = "_qubit";
 }
 lazy_static! {
-    static ref GATE_PARAM_PREFIX:&'static str =  "_gate_p";
+    static ref GATE_PARAM_PREFIX: &'static str = "_gate_p";
 }
 lazy_static! {
-    static ref GATE_QUBIT_PREFIX:&'static str =  "_gate_q";
+    static ref GATE_QUBIT_PREFIX: &'static str = "_gate_q";
 }
 lazy_static! {
     static ref GATES_DEFINED_BY_STDGATES: HashSet<&'static str> = [
@@ -385,23 +476,27 @@ lazy_static! {
     static ref _BAD_IDENTIFIER_CHARACTERS: Regex = Regex::new(r"[^\w\d]").unwrap();
 }
 
+lazy_static! {
+    static ref _VALID_HARDWARE_QUBIT: Regex = Regex::new(r"\$\d+").unwrap();
+}
+
 pub struct Exporter {
-    includes: Vec<&'static str>,
-    basis_gates: Vec<&'static str>,
+    includes: Vec<String>,
+    basis_gates: Vec<String>,
     disable_constants: bool,
     _alias_classical_registers: bool,
     allow_aliasing: bool,
-    indent: &'static str,
+    indent: String,
 }
 
 impl Exporter {
     pub fn new(
-        includes: Vec<&'static str>,
-        basis_gates: Vec<&'static str>,
+        includes: Vec<String>,
+        basis_gates: Vec<String>,
         disable_constants: bool,
         alias_classical_registers: bool,
         allow_aliasing: bool,
-        indent: &'static str,
+        indent: String,
     ) -> Self {
         Self {
             includes,
@@ -432,8 +527,35 @@ impl Exporter {
             Err(e) => Err(QASM3ExporterError::Error(e.to_string())),
         }
     }
-}
 
+    pub fn dump<W: Write>(
+        &self,
+        circuit_data: &CircuitData,
+        islayout: bool,
+        writer: &mut W,
+    ) -> ExporterResult<()> {
+        let mut builder = QASM3Builder::new(
+            circuit_data,
+            islayout,
+            self.includes.clone(),
+            self.basis_gates.clone(),
+            self.disable_constants,
+            self.allow_aliasing,
+        );
+
+        match builder.build_program() {
+            Ok(program) => {
+                let mut output = String::new();
+                let mut printer = BasicPrinter::new(&mut output, self.indent.to_string(), false);
+                printer.visit(&Node::Program(&program));
+                drop(printer);
+                let _ = writer.write_all(output.as_bytes());
+                Ok(())
+            }
+            Err(e) => Err(QASM3ExporterError::Error(e.to_string())),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 struct Counter {
@@ -466,19 +588,18 @@ pub struct QASM3Builder {
     is_layout: bool,
     symbol_table: SymbolTable,
     global_io_decls: Vec<IODeclaration>,
-    global_classical_decls: Vec<ClassicalDeclaration>,
-    includes: Vec<&'static str>,
-    basis_gates: Vec<&'static str>,
+    includes: Vec<String>,
+    basis_gates: Vec<String>,
     disable_constants: bool,
-    _allow_aliasing: bool,
+    allow_aliasing: bool,
 }
 
 impl<'a> QASM3Builder {
     pub fn new(
         circuit_data: &'a CircuitData,
         is_layout: bool,
-        includes: Vec<&'static str>,
-        basis_gates: Vec<&'static str>,
+        includes: Vec<String>,
+        basis_gates: Vec<String>,
         disable_constants: bool,
         allow_aliasing: bool,
     ) -> Self {
@@ -498,32 +619,35 @@ impl<'a> QASM3Builder {
             loose_qubit_prefix: &QUBIT_PREFIX,
             _gate_param_prefix: &GATE_PARAM_PREFIX,
             _gate_qubit_prefix: &GATE_QUBIT_PREFIX,
-            circuit_scope: BuildScope::new(circuit_data, circuit_data.qubits().objects(), circuit_data.clbits().objects()),
+            circuit_scope: BuildScope::new(
+                circuit_data,
+                circuit_data.qubits().objects(),
+                circuit_data.clbits().objects(),
+            ),
             is_layout,
             symbol_table: SymbolTable::new(),
             global_io_decls: Vec::new(),
-            global_classical_decls: Vec::new(),
             includes,
             basis_gates,
             disable_constants,
-            _allow_aliasing: allow_aliasing,
+            allow_aliasing,
         }
     }
 
+    #[allow(dead_code)]
     fn new_scope<F>(
         &mut self,
         circuit_data: &CircuitData,
-        qubits: Vec<ShareableQubit>,
-        clbits: Vec<ShareableClbit>,
-        f: F
+        qubits: Vec<BitType>,
+        clbits: Vec<BitType>,
+        f: F,
     ) -> ExporterResult<()>
     where
         F: FnOnce(&mut QASM3Builder) -> ExporterResult<()>,
     {
-        let current_qubitmap = &self.circuit_scope.qubit_map;
-        let current_clbitmap = &self.circuit_scope.clbit_map;
-        let new_qubits: Vec<ShareableQubit> = qubits.iter().map(|q| current_qubitmap[q].clone()).collect();
-        let new_clbits: Vec<ShareableClbit> = clbits.iter().map(|c| current_clbitmap[c].clone()).collect();
+        let current_bitmap = &self.circuit_scope.bit_map;
+        let new_qubits: Vec<BitType> = qubits.iter().map(|q| current_bitmap[q].clone()).collect();
+        let new_clbits: Vec<BitType> = clbits.iter().map(|c| current_bitmap[c].clone()).collect();
 
         if circuit_data.num_qubits() != new_qubits.len() {
             return Err(QASM3ExporterError::Error(format!(
@@ -541,23 +665,25 @@ impl<'a> QASM3Builder {
             )));
         }
 
-        let new_qubit_map: HashMap<ShareableQubit, ShareableQubit> = circuit_data
-            .qubits()
-            .objects()
-            .iter()
-            .map(|q| (q.clone(), q.clone()))
-            .collect();
+        let mut new_bit_map = HashMap::new();
 
-        let new_clbit_map: HashMap<ShareableClbit, ShareableClbit> = circuit_data
-            .clbits()
-            .objects()
-            .iter()
-            .map(|c| (c.clone(), c.clone()))
-            .collect();
+        for q in circuit_data.qubits().objects().iter() {
+            new_bit_map.insert(
+                BitType::ShareableQubit(q.clone()),
+                BitType::ShareableQubit(q.clone()),
+            );
+        }
+        for c in circuit_data.clbits().objects().iter() {
+            new_bit_map.insert(
+                BitType::ShareableClbit(c.clone()),
+                BitType::ShareableClbit(c.clone()),
+            );
+        }
+
         self.symbol_table.push_scope();
         let mut old_scope = std::mem::replace(
             &mut self.circuit_scope,
-            BuildScope::with_mappings(circuit_data.clone(), new_qubit_map, new_clbit_map),
+            BuildScope::with_mappings(circuit_data.clone(), new_bit_map),
         );
 
         let result = f(self);
@@ -568,30 +694,31 @@ impl<'a> QASM3Builder {
         result
     }
 
-    fn new_context<F>(
-        &mut self,
-       body: &'a CircuitData,
-        f: F
-    ) -> ExporterResult<QuantumBlock>
+    fn new_context<F>(&mut self, body: &'a CircuitData, f: F) -> ExporterResult<QuantumBlock>
     where
         F: FnOnce(&mut QASM3Builder) -> QuantumBlock,
     {
-        let qubit_map :HashMap<ShareableQubit, ShareableQubit> = 
-            body
-            .qubits()
-            .objects()
-            .iter()
-            .map(|q| (q.clone(), q.clone()))
-            .collect();
-        let clbit_map: HashMap<ShareableClbit, ShareableClbit> = body
-            .clbits()
-            .objects()
-            .iter()
-            .map(|c| (c.clone(), c.clone()))
-            .collect();
+        let mut bit_map = HashMap::new();
+
+        for q in body.qubits().objects().iter() {
+            bit_map.insert(
+                BitType::ShareableQubit(q.clone()),
+                BitType::ShareableQubit(q.clone()),
+            );
+        }
+        for c in body.clbits().objects().iter() {
+            bit_map.insert(
+                BitType::ShareableClbit(c.clone()),
+                BitType::ShareableClbit(c.clone()),
+            );
+        }
+
         let new_table = self.symbol_table.new_context();
         let mut old_symbol_table = std::mem::replace(&mut self.symbol_table, new_table);
-        let mut old_scope = std::mem::replace(&mut self.circuit_scope, BuildScope::with_mappings(body.clone(), qubit_map, clbit_map));
+        let mut old_scope = std::mem::replace(
+            &mut self.circuit_scope,
+            BuildScope::with_mappings(body.clone(), bit_map),
+        );
         let result = f(self);
         std::mem::swap(&mut self.circuit_scope, &mut old_scope);
         std::mem::swap(&mut self.symbol_table, &mut old_symbol_table);
@@ -600,23 +727,14 @@ impl<'a> QASM3Builder {
         Ok(result)
     }
 
-    fn lookup_qubit(&self, qubit: &ShareableQubit) -> ExporterResult<&IdentifierOrSubscripted> {
-        let qubit_ref = self.circuit_scope.qubit_map.get(qubit).ok_or_else(|| {
-            QASM3ExporterError::Error(format!("Qubit mapping not found for {:?}", qubit))
+    fn lookup_bit(&self, bit: &BitType) -> ExporterResult<&IdentifierOrSubscripted> {
+        let qubit_ref = self.circuit_scope.bit_map.get(bit).ok_or_else(|| {
+            QASM3ExporterError::Error(format!("Bit mapping not found for {:?}", bit))
         })?;
-        let id = self.symbol_table.get_qubitinfo(qubit_ref).ok_or_else(|| {
-            QASM3ExporterError::Error(format!("Qubit not found: {:?}", qubit))
-        })?;
-        Ok(id)
-    }
-
-    fn lookup_clbit(&self, clbit: &ShareableClbit) -> ExporterResult<&IdentifierOrSubscripted> {
-        let clbit_ref = self.circuit_scope.clbit_map.get(clbit).ok_or_else(|| {
-            QASM3ExporterError::Error(format!("Clbit mapping not found for {:?}", clbit))
-        })?;
-        let id = self.symbol_table.get_clbitinfo(clbit_ref).ok_or_else(|| {
-            QASM3ExporterError::Error(format!("Clbit not found: {:?}", clbit))
-        })?;
+        let id = self
+            .symbol_table
+            .get_bitinfo(qubit_ref)
+            .ok_or_else(|| QASM3ExporterError::Error(format!("Bit not found: {:?}", bit)))?;
         Ok(id)
     }
 
@@ -625,7 +743,7 @@ impl<'a> QASM3Builder {
         let header = self.build_header();
 
         self.hoist_global_params()?;
-        self.hoist_classical_bits()?;
+        let classical_decls = self.hoist_classical_bits()?;
         let qubit_decls = self.build_qubit_decls()?;
         let main_stmts = self.build_top_level_stmts()?;
 
@@ -636,11 +754,11 @@ impl<'a> QASM3Builder {
         for gate in self.symbol_table.gates.values() {
             all_stmts.push(Statement::QuantumGateDefinition(gate.clone()));
         }
-        for decl in &self.global_classical_decls {
-            all_stmts.push(Statement::ClassicalDeclaration(decl.clone()));
+        for decl in classical_decls {
+            all_stmts.push(decl);
         }
         for decl in qubit_decls {
-            all_stmts.push(Statement::QuantumDeclaration(decl));
+            all_stmts.push(decl);
         }
         all_stmts.extend(main_stmts);
 
@@ -701,134 +819,206 @@ impl<'a> QASM3Builder {
         })
     }
 
-    fn hoist_classical_bits(&mut self) -> ExporterResult<()> {
+    fn hoist_classical_bits(&mut self) -> ExporterResult<Vec<Statement>> {
         let clbit_indices = self.circuit_scope.circuit_data.clbit_indices();
         let clbits = self.circuit_scope.circuit_data.clbits().objects();
-        let has_multiple_registers = clbits.iter().any(
-            |clbit| {
-                let bit_info = self.circuit_scope.circuit_data.clbit_indices().get(clbit).unwrap();
-                bit_info.registers().len() > 1
-            }
-        );
+        let has_multiple_registers = clbits.iter().any(|clbit| {
+            let bit_info = self
+                .circuit_scope
+                .circuit_data
+                .clbit_indices()
+                .get(clbit)
+                .unwrap();
+            bit_info.registers().len() > 1
+        });
 
-        if has_multiple_registers {
-            return Err(QASM3ExporterError::Error(format!(
-                "Some classical registers in this circuit overlap."
-            )));
-        }
         let mut decls = Vec::new();
+        if has_multiple_registers {
+            if !self.allow_aliasing {
+                return Err(QASM3ExporterError::Error(
+                    "Some Classical registers in this circuit overlap.".to_string(),
+                ));
+            }
+            for (i, clbit) in clbits.iter().enumerate() {
+                let identifier = self.symbol_table.register_bits(
+                    format!("{}{}", self.loose_bit_prefix, i),
+                    &BitType::ShareableClbit(clbit.clone()),
+                    true,
+                    false,
+                )?;
+                decls.push(Statement::ClassicalDeclaration(ClassicalDeclaration {
+                    type_: ClassicalType::Bit,
+                    identifier,
+                }));
+            }
+            let registers: Vec<_> = self.circuit_scope.circuit_data.cregs().to_vec();
+            for register in registers {
+                let aliased =
+                    self.build_aliases(&RegisterType::ClassicalRegister(register.clone()))?;
+                decls.push(Statement::Alias(aliased));
+            }
+            return Ok(decls);
+        }
         for (i, clbit) in clbits.iter().enumerate() {
             if clbit_indices
                 .get(clbit)
                 .map_or(true, |bit_info| bit_info.registers().is_empty())
             {
-                let raw_name = format!("{}{}", self.loose_bit_prefix, i);
-                let identifier = Identifier {
-                    string: raw_name.clone(),
-                };
-                let _ = self.symbol_table.bind(&raw_name);
-                self.symbol_table.set_clbitinfo(
-                    IdentifierOrSubscripted::Identifier(identifier.clone()),
-                    clbit.to_owned()
-                );
-                decls.push(ClassicalDeclaration {
+                let identifier = self.symbol_table.register_bits(
+                    format!("{}{}", self.loose_bit_prefix, i),
+                    &BitType::ShareableClbit(clbit.clone()),
+                    true,
+                    false,
+                )?;
+
+                decls.push(Statement::ClassicalDeclaration(ClassicalDeclaration {
                     type_: ClassicalType::Bit,
                     identifier,
-                });
+                }));
             }
         }
         for creg in self.circuit_scope.circuit_data.cregs() {
-            let raw_name = creg.name();
-            let _ = self.symbol_table.bind(&raw_name);
+            let identifier = self.symbol_table.register_registers(
+                creg.name().to_string(),
+                &RegisterType::ClassicalRegister(creg.clone()),
+            )?;
+
             for (i, clbit) in creg.bits().enumerate() {
-                self.symbol_table.set_clbitinfo(
+                self.symbol_table.set_bitinfo(
                     IdentifierOrSubscripted::Subscripted(SubscriptedIdentifier {
-                        string: raw_name.to_string(),
+                        string: identifier.string.to_string(),
                         subscript: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
                     }),
-                    clbit
+                    BitType::ShareableClbit(clbit),
                 )
             }
-            let identifier = Identifier {
-                string: raw_name.to_string(),
-            };
-            decls.push(
-                ClassicalDeclaration {
-                    type_: ClassicalType::BitArray(BitArray(creg.len() as u32)),
-                    identifier,
-                }
-            )
-
+            decls.push(Statement::ClassicalDeclaration(ClassicalDeclaration {
+                type_: ClassicalType::BitArray(BitArray(creg.len() as u32)),
+                identifier,
+            }))
         }
-        self.global_classical_decls.extend(decls);
-        Ok(())
+        Ok(decls)
     }
-    
 
-    fn build_qubit_decls(&mut self) -> ExporterResult<Vec<QuantumDeclaration>> {
-        let qubit_indices = self.circuit_scope.circuit_data.qubit_indices();
-        let qubits = self.circuit_scope.circuit_data.qubits().objects();
-        let has_multiple_registers = qubits.iter().any(
-            |qubit| {
-                let bit_info = self.circuit_scope.circuit_data.qubit_indices().get(qubit).unwrap();
-                bit_info.registers().len() > 1
-            }
-        );
+    fn build_qubit_decls(&mut self) -> ExporterResult<Vec<Statement>> {
+        let qubits = self.circuit_scope.circuit_data.qubits().objects().clone();
+        let has_multiple_registers = qubits.iter().any(|qubit| {
+            let bit_info = self
+                .circuit_scope
+                .circuit_data
+                .qubit_indices()
+                .get(qubit)
+                .unwrap();
+            bit_info.registers().len() > 1
+        });
 
-        if has_multiple_registers {
-            return Err(QASM3ExporterError::Error(format!(
-                "Some quantum registers in this circuit overlap."
-            )));
-        }
-        let mut decls = Vec::new();
+        let mut decls: Vec<Statement> = Vec::new();
 
         if self.is_layout {
             self.loose_qubit_prefix = "$";
+            for (i, qubit) in qubits.iter().enumerate() {
+                self.symbol_table.register_bits(
+                    format!("${}", i),
+                    &BitType::ShareableQubit(qubit.clone()),
+                    false,
+                    true,
+                )?;
+            }
+            return Ok(decls);
         }
+
+        if has_multiple_registers {
+            if !self.allow_aliasing {
+                return Err(QASM3ExporterError::Error(
+                    "Some quantum registers in this circuit overlap.".to_string(),
+                ));
+            }
+
+            for (i, qubit) in qubits.iter().enumerate() {
+                let identifier = self.symbol_table.register_bits(
+                    format!("{}{}", self.loose_qubit_prefix, i),
+                    &BitType::ShareableQubit(qubit.clone()),
+                    true,
+                    false,
+                )?;
+                decls.push(Statement::QuantumDeclaration(QuantumDeclaration {
+                    identifier,
+                    designator: None,
+                }));
+            }
+            let registers: Vec<_> = self.circuit_scope.circuit_data.qregs().to_vec();
+            for register in registers {
+                let aliased =
+                    self.build_aliases(&RegisterType::QuantumRegister(register.clone()))?;
+                decls.push(Statement::Alias(aliased));
+            }
+            return Ok(decls);
+        }
+
+        let qubit_indices = self.circuit_scope.circuit_data.qubit_indices();
+
         for (i, qubit) in qubits.iter().enumerate() {
             if qubit_indices
                 .get(qubit)
                 .map_or(true, |bit_info| bit_info.registers().is_empty())
             {
-                let raw_name = format!("{}{}", self.loose_qubit_prefix, i);
-                let identifier = Identifier {
-                    string: raw_name.clone(),
-                };
-                let _ = self.symbol_table.bind(&raw_name);
-                self.symbol_table.set_qubitinfo(
-                    IdentifierOrSubscripted::Identifier(identifier.clone()),
-                    qubit.to_owned()
-                );
-                decls.push(QuantumDeclaration {
+                let identifier = self.symbol_table.register_bits(
+                    format!("{}{}", self.loose_qubit_prefix, i),
+                    &BitType::ShareableQubit(qubit.clone()),
+                    true,
+                    false,
+                )?;
+                decls.push(Statement::QuantumDeclaration(QuantumDeclaration {
                     identifier,
                     designator: None,
-                });
+                }));
             }
         }
         for qreg in self.circuit_scope.circuit_data.qregs() {
-            let raw_name = qreg.name();
-            self.symbol_table.bind(&raw_name)?;
+            let identifier = self.symbol_table.register_registers(
+                qreg.name().to_string(),
+                &RegisterType::QuantumRegister(qreg.clone()),
+            )?;
             for (i, qubit) in qreg.bits().enumerate() {
-                self.symbol_table.set_qubitinfo(
+                self.symbol_table.set_bitinfo(
                     IdentifierOrSubscripted::Subscripted(SubscriptedIdentifier {
-                        string: raw_name.to_string(),
+                        string: identifier.string.to_string(),
                         subscript: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
                     }),
-                    qubit
+                    BitType::ShareableQubit(qubit),
                 )
             }
-            let identifier = Identifier {
-                string: raw_name.to_string(),
-            };
-            decls.push(
-                QuantumDeclaration {
-                    identifier,
-                    designator: Some(Designator{expression: Expression::IntegerLiteral(IntegerLiteral(qreg.len() as i32))}),
-                }
-            )
-
+            decls.push(Statement::QuantumDeclaration(QuantumDeclaration {
+                identifier,
+                designator: Some(Designator {
+                    expression: Expression::IntegerLiteral(IntegerLiteral(qreg.len() as i32)),
+                }),
+            }))
         }
         Ok(decls)
+    }
+
+    fn build_aliases(&mut self, register: &RegisterType) -> ExporterResult<Alias> {
+        let name = self
+            .symbol_table
+            .register_registers(register.name().to_string(), register)?;
+        let mut elements = Vec::new();
+        for (i, bit) in register.bits().iter().enumerate() {
+            let id = {
+                let temp_id = self.lookup_bit(bit)?;
+                temp_id.clone()
+            };
+            let id2 = IdentifierOrSubscripted::Subscripted(SubscriptedIdentifier {
+                string: name.string.clone(),
+                subscript: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+            });
+            self.symbol_table.set_bitinfo(id2, bit.clone());
+            elements.push(Expression::IdentifierOrSubscripted(id.clone()));
+        }
+        Ok(Alias {
+            identifier: name,
+            value: Expression::IndexSet(IndexSet { values: elements }),
+        })
     }
 
     fn build_top_level_stmts(&mut self) -> ExporterResult<Vec<Statement>> {
@@ -848,10 +1038,10 @@ impl<'a> QASM3Builder {
         let name = instruction.op.name();
 
         if instruction.op.control_flow() {
-            return Err(QASM3ExporterError::Error(format!(
+            Err(QASM3ExporterError::Error(format!(
                 "Control flow {} is not supported",
                 name
-            )));
+            )))
         } else {
             match name {
                 "barrier" => self.handle_barrier(instruction, stmts),
@@ -894,7 +1084,9 @@ impl<'a> QASM3Builder {
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
-            let id = self.lookup_qubit(qubits_registry.get(*q).unwrap())?;
+            let id = self.lookup_bit(&BitType::ShareableQubit(
+                qubits_registry.get(*q).unwrap().clone(),
+            ))?;
             qubit_ids.push(id.to_owned());
         }
         stmts.push(Statement::QuantumInstruction(QuantumInstruction::Barrier(
@@ -919,7 +1111,9 @@ impl<'a> QASM3Builder {
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
-            let id = self.lookup_qubit(qubits_registry.get(*q).unwrap())?;
+            let id = self.lookup_bit(&BitType::ShareableQubit(
+                qubits_registry.get(*q).unwrap().clone(),
+            ))?;
             qubits.push(id.to_owned());
         }
         let measurement = QuantumMeasurement {
@@ -932,7 +1126,9 @@ impl<'a> QASM3Builder {
             .cargs_interner()
             .get(instr.clbits);
         let clbits_registry = self.circuit_scope.circuit_data.clbits();
-        let id = self.lookup_clbit(clbits_registry.get(cargs[0]).unwrap())?;
+        let id = self.lookup_bit(&BitType::ShareableClbit(
+            clbits_registry.get(cargs[0]).unwrap().clone(),
+        ))?;
         stmts.push(Statement::QuantumMeasurementAssignment(
             QuantumMeasurementAssignment {
                 identifier: id.to_owned(),
@@ -955,7 +1151,9 @@ impl<'a> QASM3Builder {
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
-            let id = self.lookup_qubit(qubits_registry.get(*q).unwrap())?;
+            let id = self.lookup_bit(&BitType::ShareableQubit(
+                qubits_registry.get(*q).unwrap().clone(),
+            ))?;
 
             stmts.push(Statement::QuantumInstruction(QuantumInstruction::Reset(
                 Reset {
@@ -984,16 +1182,6 @@ impl<'a> QASM3Builder {
     }
 
     fn build_delay(&self, instr: &PackedInstruction) -> ExporterResult<Delay> {
-
-        // let duration_value = instr.op.try_into();
-        // let duration_value = Python::with_gil(|py| {
-        //     let dur = instr.extra_attrs.duration().ok_or_else(|| {
-        //         QASM3ExporterError::Error("Failed to extract duration".to_string())
-        //     })?;
-        //     dur.bind(py).extract::<f64>().map_err(|_| {
-        //         QASM3ExporterError::Error("Failed to extract duration value".to_string())
-        //     })
-        // })?;
         let standard_instr = instr.op.standard_instruction();
         let delay_unit = if let StandardInstruction::Delay(delay) = standard_instr {
             delay
@@ -1003,42 +1191,33 @@ impl<'a> QASM3Builder {
             ));
         };
         let param = &instr.params_view()[0];
-        let duration: f64 = Python::with_gil(|py| {
-            match param {
-                Param::Float(val) => *val,
-                Param::ParameterExpression(p) => {
-                    let py_obj = p.bind(py);
-                    let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                    let name = py_str.str().expect("Failed to convert PyString to &str").to_string();
-                    match name.parse::<f64>() {
-                        Ok(val) => val,
-                        Err(_) => panic!("Failed to parse parameter value"),
-                    }
-                    // let name = Python::with_gil(|py| {
-                    //     let py_obj = p.bind(py);
-                    //     let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                    //     py_str.str().expect("Failed to convert PyString to &str").to_string()
-                    // });
-                },
-                Param::Obj(obj) => {
-                    let py_obj = obj.bind(py);
-                    let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                    let name = py_str.str().expect("Failed to convert PyString to &str").to_string();
-                    match name.parse::<f64>() {
-                        Ok(val) => val,
-                        Err(_) => panic!("Failed to parse parameter value"),
-                    }
-                    // Expression::Parameter(Parameter {
-                    //     obj: py_str.str().expect("Failed to convert PyString to &str").to_string(),
-                    // })
-                },
+        let duration: f64 = Python::with_gil(|py| match param {
+            Param::Float(val) => *val,
+            Param::ParameterExpression(p) => {
+                let py_obj = p.bind(py);
+                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
+                let name = py_str
+                    .str()
+                    .expect("Failed to convert PyString to &str")
+                    .to_string();
+                match name.parse::<f64>() {
+                    Ok(val) => val,
+                    Err(_) => panic!("Failed to parse parameter value"),
+                }
             }
-            });
-        // let name = Python::with_gil(|py| {
-        //     let py_obj = p.bind(py);
-        //     let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-        //     py_str.str().expect("Failed to convert PyString to &str").to_string()
-        // });
+            Param::Obj(obj) => {
+                let py_obj = obj.bind(py);
+                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
+                let name = py_str
+                    .str()
+                    .expect("Failed to convert PyString to &str")
+                    .to_string();
+                match name.parse::<f64>() {
+                    Ok(val) => val,
+                    Err(_) => panic!("Failed to parse parameter value"),
+                }
+            }
+        });
 
         let mut map = HashMap::new();
         map.insert(DelayUnit::NS, DurationUnit::Nanosecond);
@@ -1067,7 +1246,6 @@ impl<'a> QASM3Builder {
             }
         };
 
-
         let mut qubits = Vec::new();
         let qargs = self
             .circuit_scope
@@ -1077,7 +1255,9 @@ impl<'a> QASM3Builder {
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
-            let id = self.lookup_qubit(qubits_registry.get(*q).unwrap())?;
+            let id = self.lookup_bit(&BitType::ShareableQubit(
+                qubits_registry.get(*q).unwrap().clone(),
+            ))?;
             qubits.push(id.to_owned());
         }
         Ok(Delay {
@@ -1087,9 +1267,14 @@ impl<'a> QASM3Builder {
     }
 
     fn build_gate_call(&mut self, instr: &PackedInstruction) -> ExporterResult<GateCall> {
-        let op_name = instr.op.name();
-        if !self.symbol_table.contains_name(op_name) && !self.symbol_table.stdgates.contains(op_name) {
-            let _ = self.define_gate(instr);
+        let mut op_name = instr.op.name();
+        if op_name == "u" {
+            op_name = "U";
+        }
+        if !self.symbol_table.contains_name(op_name)
+            && !self.symbol_table.stdgates.contains(op_name)
+        {
+            self.define_gate(instr)?;
         }
         let params = if self.disable_constants {
             Python::with_gil(|_py| {
@@ -1103,17 +1288,23 @@ impl<'a> QASM3Builder {
                         Param::ParameterExpression(p) => {
                             let name = Python::with_gil(|py| {
                                 let py_obj = p.bind(py);
-                                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                                py_str.str().expect("Failed to convert PyString to &str").to_string()
+                                let py_str =
+                                    py_obj.str().expect("Failed to call str() on Parameter");
+                                py_str
+                                    .str()
+                                    .expect("Failed to convert PyString to &str")
+                                    .to_string()
                             });
                             Expression::Parameter(Parameter { obj: name })
-                        },
+                        }
                         Param::Obj(_) => panic!("Objects not supported yet"),
                     })
                     .collect::<Vec<_>>()
             })
         } else {
-            panic!("Constant parameters not supported yet");
+            return Err(QASM3ExporterError::Error(
+                "Constant parameters not supported yet".to_string(),
+            ));
         };
 
         let qargs = self
@@ -1124,7 +1315,9 @@ impl<'a> QASM3Builder {
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
         let mut qubit_ids = Vec::new();
         for q in qargs {
-            let id = self.lookup_qubit(qubits_registry.get(*q).unwrap())?;
+            let id = self.lookup_bit(&BitType::ShareableQubit(
+                qubits_registry.get(*q).unwrap().clone(),
+            ))?;
             qubit_ids.push(id.to_owned());
         }
         Ok(GateCall {
@@ -1141,125 +1334,76 @@ impl<'a> QASM3Builder {
     fn define_gate(&mut self, instr: &PackedInstruction) -> ExporterResult<()> {
         let operation = &instr.op;
         let params: Vec<Param> = Python::with_gil(|py| {
-            let qiskit_circuit = PyModule::import(py, "qiskit.circuit").expect("Failed to import qiskit.circuit");
-            let parameter_class = qiskit_circuit.getattr("Parameter").expect("No Parameter class in qiskit.circuit");
-        
+            let qiskit_circuit =
+                PyModule::import(py, "qiskit.circuit").expect("Failed to import qiskit.circuit");
+            let parameter_class = qiskit_circuit
+                .getattr("Parameter")
+                .expect("No Parameter class in qiskit.circuit");
+
             (0..instr.params_view().len())
                 .map(|i| {
-                    let name = format!("{}{}", self._gate_param_prefix, i);
-                    let py_param = parameter_class.call1((name,)).expect("Failed to create Parameter");
+                    let name = format!("{}_{}", self._gate_param_prefix, i);
+                    let py_param = parameter_class
+                        .call1((name,))
+                        .expect("Failed to create Parameter");
                     Param::ParameterExpression(py_param.into())
                 })
                 .collect()
         });
-        if let Ok(stdgate) = StandardGate::try_from(operation) {
-            if let Some(instruction) = stdgate.definition(&params) {
-                let params_def = params.iter().enumerate().map(
-                    |(i, p)| {
-                        let name = format!("{}{}", self._gate_param_prefix, i);
-                        Identifier {
-                            string: name.clone(),
-                        }
-                    }
-                ).collect::<Vec<_>>();
-                let qubits = (0..instruction.num_qubits())
-                .map(|i| {
-                    let name = format!("{}{}", self._gate_qubit_prefix, i);
+        if let Some(instruction) = operation.definition(&params) {
+            let params_def = params
+                .iter()
+                .enumerate()
+                .map(|(i, _p)| {
+                    let name = format!("{}_{}", self._gate_param_prefix, i);
                     Identifier {
                         string: name.clone(),
                     }
-                    // if !self.symbol_table.contains_name(&name) {
-                        //     let _ = self.symbol_table.bind(&name);
-                        // }
-                        // identifier
-                    })
-                    .collect::<Vec<_>>();
-                // let qubit_map :HashMap<ShareableQubit, ShareableQubit> = 
-                //         instruction.qubits().objects()
-                //         .iter()
-                //         .cloned()
-                //         .zip(instruction.qubits().objects().iter().cloned())
-                //         .collect();
-                // let clbit_map :HashMap<ShareableClbit, ShareableClbit> = 
-                //                         instruction.clbits().objects()
-                //                         .iter()
-                //                         .cloned()
-                //                         .zip(instruction.clbits().objects().iter().cloned())
-                //                         .collect();
-                // let new_table = self.symbol_table.new_context();
-                // let mut old_symbol_table = std::mem::replace(&mut self.symbol_table, new_table);
-                // let mut old_scope = std::mem::replace(&mut self.circuit_scope, BuildScope::with_mappings(instruction.clone(), qubit_map, clbit_map));
-
-                // for param in &params_def {
-                //     self.symbol_table.bind(&param.string)?;
-                // }
-                // for (i, q) in instruction.qubits().objects().iter().enumerate() {
-                //     let name = format!("{}{}", self._gate_qubit_prefix, i);
-                //     let qid = Identifier {
-                //         string: name.clone(),
-                //     };
-                //     let _ = self.symbol_table.bind(&qid.string);
-                //     self.symbol_table.set_qubitinfo(
-                //         IdentifierOrSubscripted::Identifier(qid.clone()),
-                //         q.to_owned(),
-                //     );
-                // }
-                // let mut stmts_tmp = Vec::new();
-                // for instr in instruction.data() {
-                //     let _ = self.build_instruction(instr, &mut stmts_tmp)?;
-                // }
-                // let body = QuantumBlock {
-                //     statements: stmts_tmp,
-                // };
-                // // self.circuit_scope = old_scope;
-                // std::mem::swap(&mut self.circuit_scope, &mut old_scope);
-                // std::mem::swap(&mut self.symbol_table, &mut old_symbol_table);
-                // self.symbol_table.gates = old_symbol_table.gates;
-                let body = self.new_context(&instruction, |builder| {
-                    for param in &params_def {
-                        builder.symbol_table.bind(&param.string);
+                })
+                .collect::<Vec<_>>();
+            let qubits = (0..instruction.num_qubits())
+                .map(|i| {
+                    let name = format!("{}_{}", self._gate_qubit_prefix, i);
+                    Identifier {
+                        string: name.clone(),
                     }
-                    for (i, q) in instruction.qubits().objects().iter().enumerate() {
-                        let name = format!("{}{}", builder._gate_qubit_prefix, i);
-                        let qid = Identifier {
-                            string: name.clone(),
-                        };
-                        let _ = builder.symbol_table.bind(&qid.string);
-                        builder.symbol_table.set_qubitinfo(
-                            IdentifierOrSubscripted::Identifier(qid.clone()),
-                            q.to_owned(),
-                        );
-                    }
+                })
+                .collect::<Vec<_>>();
 
+            let body = self.new_context(&instruction, |builder| {
+                for param in &params_def {
+                    let _ = builder.symbol_table.bind(&param.string);
+                }
+                for (i, q) in instruction.qubits().objects().iter().enumerate() {
+                    let name = format!("{}_{}", builder._gate_qubit_prefix, i);
+                    let qid = Identifier {
+                        string: name.clone(),
+                    };
+                    let _ = builder.symbol_table.bind(&qid.string);
+                    builder.symbol_table.set_bitinfo(
+                        IdentifierOrSubscripted::Identifier(qid.clone()),
+                        BitType::ShareableQubit(q.to_owned()),
+                    );
+                }
 
-                    let mut stmts_tmp = Vec::new();
-                    for instr in instruction.data() {
-                        let _ = builder.build_instruction(instr, &mut stmts_tmp);
-                    }
-                    QuantumBlock {
-                        statements: stmts_tmp,
-                    }
-                })?;
+                let mut stmts_tmp = Vec::new();
+                for instr in instruction.data() {
+                    let _ = builder.build_instruction(instr, &mut stmts_tmp);
+                }
+                QuantumBlock {
+                    statements: stmts_tmp,
+                }
+            })?;
 
-
-                let _ = self.symbol_table.register_gate(
-                    stdgate,
-                    params_def,
-                    qubits,
-                    body
-                );
-               Ok(())
-            } else {
-                return Err(QASM3ExporterError::Error(format!(
-                    "Failed to get definition for standard gate: {}",
-                    operation.name()
-                )));
-            }
+            let _ = self
+                .symbol_table
+                .register_gate(operation.name(), params_def, qubits, body);
+            Ok(())
         } else {
-            return Err(QASM3ExporterError::Error(format!(
-                "Non StandardGate is not supported: {}",
+            Err(QASM3ExporterError::Error(format!(
+                "Failed to get definition for this gate: {}",
                 operation.name()
-            )));
+            )))
         }
     }
 }
