@@ -32,6 +32,7 @@ use crate::euler_one_qubit_decomposer::{
 };
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::PhysicalQubit;
+use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::{Target, TargetOperation};
 use crate::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
@@ -57,7 +58,7 @@ fn get_decomposers_from_target(
     let reverse_qubits = physical_qubits.iter().rev().copied().collect();
     let mut gate_names: HashSet<(&str, bool)> = target
         .operation_names_for_qargs(Some(&physical_qubits))
-        .unwrap()
+        .map_err(|e| TranspilerError::new_err(e.message))?
         .into_iter()
         .map(|x| (x, false))
         .collect();
