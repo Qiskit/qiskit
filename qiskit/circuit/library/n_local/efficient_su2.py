@@ -42,7 +42,7 @@ def efficient_su2(
     parameter_prefix: str = "θ",
     insert_barriers: bool = False,
     name: str = "EfficientSU2",
-):
+) -> QuantumCircuit:
     r"""The hardware-efficient :math:`SU(2)` 2-local circuit.
 
     The ``efficient_su2`` circuit consists of layers of single qubit operations spanned by
