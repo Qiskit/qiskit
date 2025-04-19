@@ -86,6 +86,10 @@ class PhaseGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌──────────┐
+        # q: ┤ U(0,0,θ) ├
+        #    └──────────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.Phase._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -219,15 +223,14 @@ class CPhaseGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-
-        #      ┌────────┐
-        # q_0: ┤ P(λ/2) ├──■───────────────■────────────
-        #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
-        # q_1: ──────────┤ X ├┤ P(-λ/2) ├┤ X ├┤ P(λ/2) ├
-        #                └───┘└─────────┘└───┘└────────┘
-
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
+
+        #      ┌────────┐
+        # q_0: ┤ P(θ/2) ├──■───────────────■────────────
+        #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
+        # q_1: ──────────┤ X ├┤ P(-θ/2) ├┤ X ├┤ P(θ/2) ├
+        #                └───┘└─────────┘└───┘└────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.CPhase._get_definition(self.params), add_regs=True, name=self.name

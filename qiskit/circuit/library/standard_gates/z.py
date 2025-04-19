@@ -85,6 +85,10 @@ class ZGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌──────┐
+        # q: ┤ P(π) ├
+        #    └──────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.Z._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -204,6 +208,11 @@ class CZGate(SingletonControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        # q_0: ───────■───────
+        #      ┌───┐┌─┴─┐┌───┐
+        # q_1: ┤ H ├┤ X ├┤ H ├
+        #      └───┘└───┘└───┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.CZ._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -292,6 +301,13 @@ class CCZGate(SingletonControlledGate):
         """Default definition"""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
+
+        # q_0: ───────■───────
+        #             │
+        # q_1: ───────■───────
+        #      ┌───┐┌─┴─┐┌───┐
+        # q_2: ┤ H ├┤ X ├┤ H ├
+        #      └───┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.CCZ._get_definition(self.params), add_regs=True, name=self.name

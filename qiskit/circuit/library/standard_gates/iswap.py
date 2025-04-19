@@ -98,6 +98,12 @@ class iSwapGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #      ┌───┐┌───┐     ┌───┐
+        # q_0: ┤ S ├┤ H ├──■──┤ X ├─────
+        #      ├───┤└───┘┌─┴─┐└─┬─┘┌───┐
+        # q_1: ┤ S ├─────┤ X ├──■──┤ H ├
+        #      └───┘     └───┘     └───┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.ISwap._get_definition(self.params), add_regs=True, name=self.name
         )

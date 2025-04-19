@@ -76,6 +76,11 @@ class SXGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        # global phase: π/4
+        #    ┌─────┐┌───┐┌─────┐
+        # q: ┤ Sdg ├┤ H ├┤ Sdg ├
+        #    └─────┘└───┘└─────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.SX._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -172,6 +177,11 @@ class SXdgGate(SingletonGate):
         """Default definition"""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
+
+        # global phase: 7π/4
+        #    ┌───┐┌───┐┌───┐
+        # q: ┤ S ├┤ H ├┤ S ├
+        #    └───┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.SXdg._get_definition(self.params), add_regs=True, name=self.name

@@ -97,6 +97,13 @@ class ECRGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        # global phase: 7π/4
+        #      ┌───┐      ┌───┐
+        # q_0: ┤ S ├───■──┤ X ├
+        #      ├───┴┐┌─┴─┐└───┘
+        # q_1: ┤ √X ├┤ X ├─────
+        #      └────┘└───┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.ECR._get_definition(self.params), add_regs=True, name=self.name
         )

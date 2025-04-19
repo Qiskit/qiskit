@@ -82,6 +82,10 @@ class YGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌──────────────┐
+        # q: ┤ U(π,π/2,π/2) ├
+        #    └──────────────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.Y._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -221,6 +225,11 @@ class CYGate(SingletonControlledGate):
         """Default definition"""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
+
+        # q_0: ─────────■───────
+        #      ┌─────┐┌─┴─┐┌───┐
+        # q_1: ┤ Sdg ├┤ X ├┤ S ├
+        #      └─────┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.CY._get_definition(self.params), add_regs=True, name=self.name

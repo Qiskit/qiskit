@@ -65,6 +65,10 @@ class RGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌──────────────────────────┐
+        # q: ┤ U(θ,φ - π/2,π/2 - φ) ├
+        #    └──────────────────────────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.R._get_definition(self.params), add_regs=True, name=self.name
         )

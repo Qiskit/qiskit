@@ -67,6 +67,10 @@ class TGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌────────┐
+        # q: ┤ P(π/4) ├
+        #    └────────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.T._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -135,6 +139,10 @@ class TdgGate(SingletonGate):
         """Default definition"""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
+
+        #    ┌─────────┐
+        # q: ┤ P(-π/4) ├
+        #    └─────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.Tdg._get_definition(self.params), add_regs=True, name=self.name

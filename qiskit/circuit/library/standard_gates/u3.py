@@ -155,6 +155,10 @@ class U3Gate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌──────────┐
+        # q: ┤ U(θ,φ,λ) ├
+        #    └──────────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.U3._get_definition(self.params), add_regs=True, name=self.name
         )

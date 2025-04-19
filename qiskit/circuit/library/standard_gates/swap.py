@@ -73,6 +73,12 @@ class SwapGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #           ┌───┐
+        # q_0: ──■──┤ X ├──■──
+        #      ┌─┴─┐└─┬─┘┌─┴─┐
+        # q_1: ┤ X ├──■──┤ X ├
+        #      └───┘     └───┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.Swap._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -232,6 +238,13 @@ class CSwapGate(SingletonControlledGate):
         """Default definition"""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
+
+        # q_0: ───────■───────
+        #      ┌───┐  │  ┌───┐
+        # q_1: ┤ X ├──■──┤ X ├
+        #      └─┬─┘┌─┴─┐└─┬─┘
+        # q_2: ──■──┤ X ├──■──
+        #           └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.CSwap._get_definition(self.params), add_regs=True, name=self.name

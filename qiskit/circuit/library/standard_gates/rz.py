@@ -73,6 +73,11 @@ class RZGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        # global phase: -0.5*φ
+        #    ┌──────┐
+        # q: ┤ P(φ) ├
+        #    └──────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.RZ._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -240,7 +245,7 @@ class CRZGate(ControlledGate):
 
         # q_0: ─────────────■────────────────■──
         #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
-        # q_1: ┤ Rz(λ/2) ├┤ X ├┤ Rz(-λ/2) ├┤ X ├
+        # q_1: ┤ Rz(θ/2) ├┤ X ├┤ Rz(-θ/2) ├┤ X ├
         #      └─────────┘└───┘└──────────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(

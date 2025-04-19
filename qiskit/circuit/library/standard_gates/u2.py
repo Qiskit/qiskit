@@ -102,6 +102,10 @@ class U2Gate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌────────────┐
+        # q: ┤ U(π/2,φ,λ) ├
+        #    └────────────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.U2._get_definition(self.params), add_regs=True, name=self.name
         )

@@ -103,6 +103,10 @@ class U1Gate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌──────┐
+        # q: ┤ P(θ) ├
+        #    └──────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.U1._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -247,9 +251,9 @@ class CU1Gate(ControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         #      ┌────────┐
-        # q_0: ┤ P(λ/2) ├──■───────────────■────────────
+        # q_0: ┤ P(θ/2) ├──■───────────────■────────────
         #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
-        # q_1: ──────────┤ X ├┤ P(-λ/2) ├┤ X ├┤ P(λ/2) ├
+        # q_1: ──────────┤ X ├┤ P(-θ/2) ├┤ X ├┤ P(θ/2) ├
         #                └───┘└─────────┘└───┘└────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(

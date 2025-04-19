@@ -61,6 +61,10 @@ class RYGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌──────────┐
+        # q: ┤ R(θ,π/2) ├
+        #    └──────────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.RY._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -218,6 +222,11 @@ class CRYGate(ControlledGate):
         """Default definition"""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
+
+        # q_0: ─────────────■────────────────■──
+        #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
+        # q_1: ┤ Ry(θ/2) ├┤ X ├┤ Ry(-θ/2) ├┤ X ├
+        #      └─────────┘└───┘└──────────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.CRY._get_definition(self.params), add_regs=True, name=self.name

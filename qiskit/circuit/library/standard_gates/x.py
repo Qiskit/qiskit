@@ -84,6 +84,10 @@ class XGate(SingletonGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
+        #    ┌──────────┐
+        # q: ┤ U(π,0,π) ├
+        #    └──────────┘
+
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.X._get_definition(self.params), add_regs=True, name=self.name
         )
@@ -551,7 +555,6 @@ class C3SXGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
