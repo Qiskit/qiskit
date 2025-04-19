@@ -82,34 +82,19 @@ class RYYGate(Gate):
         super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
-        """Calculate a subcircuit that implements this unitary."""
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .x import CXGate
-        from .rx import RXGate
-        from .rz import RZGate
+        from qiskit.circuit import QuantumCircuit
 
-        #      ┌─────────┐                   ┌──────────┐
-        # q_0: ┤ Rx(π/2) ├──■─────────────■──┤ Rx(-π/2) ├
-        #      ├─────────┤┌─┴─┐┌───────┐┌─┴─┐├──────────┤
-        # q_1: ┤ Rx(π/2) ├┤ X ├┤ Rz(0) ├┤ X ├┤ Rx(-π/2) ├
-        #      └─────────┘└───┘└───────┘└───┘└──────────┘
-        q = QuantumRegister(2, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RXGate(np.pi / 2), [q[0]], []),
-            (RXGate(np.pi / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RXGate(-np.pi / 2), [q[0]], []),
-            (RXGate(-np.pi / 2), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #      ┌──────┐                   ┌────┐
+        # q_0: ┤ √Xdg ├──■─────────────■──┤ √X ├
+        #      ├──────┤┌─┴─┐┌───────┐┌─┴─┐├────┤
+        # q_1: ┤ √Xdg ├┤ X ├┤ Rz(θ) ├┤ X ├┤ √X ├
+        #      └──────┘└───┘└───────┘└───┘└────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RYY._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,
