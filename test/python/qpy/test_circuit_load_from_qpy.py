@@ -20,7 +20,7 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
+from qiskit.qpy import dump, load, formats, get_qpy_version, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
 from qiskit.transpiler import TranspileLayout
 from qiskit.compiler import transpile
@@ -66,6 +66,16 @@ class TestVersions(QpyCircuitTestCase):
             buf.seek(0)
             with self.assertRaisesRegex(QiskitError, str(QPY_VERSION + 4)):
                 load(buf)
+    
+    def test_get_qpy_version(self):
+        """Test the get_qpy_version function."""
+        qpy_file = io.BytesIO()
+        qpy_file.write(b"QISKIT")
+        qpy_file.write(bytes([QPY_VERSION]))
+        qpy_file.seek(0)
+
+        version = get_qpy_version(qpy_file)
+        self.assertEqual(version, QPY_VERSION)
 
 
 @ddt

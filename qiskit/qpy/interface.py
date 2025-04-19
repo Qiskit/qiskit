@@ -347,7 +347,11 @@ def load(
 def get_qpy_version(
     file_obj: BinaryIO,
 ) -> int:
-    """Get the current QPY version.
+    """This function identifies the QPY version of the file.
+
+    Args:
+        file_obj: A file like object that contains the QPY binary
+            data for a circuit.
 
     Returns:
         The current QPY version.

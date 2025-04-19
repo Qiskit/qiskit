@@ -99,6 +99,7 @@ API documentation
 
 .. autofunction:: load
 .. autofunction:: dump
+.. autofunction:: get_qpy_version
 
 These functions will raise a custom subclass of :exc:`.QiskitError` if they encounter problems
 during serialization or deserialization.
