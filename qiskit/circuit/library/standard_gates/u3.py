@@ -151,12 +151,13 @@ class U3Gate(Gate):
         return gate
 
     def _define(self):
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        """Default definition"""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.u(self.params[0], self.params[1], self.params[2], 0)
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the U3 gate."""
@@ -281,11 +282,9 @@ class CU3Gate(ControlledGate):
         )
 
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .p import PhaseGate
-        from .u import UGate
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
         #      ┌──────────────┐
         # q_0: ┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────
@@ -293,20 +292,9 @@ class CU3Gate(ControlledGate):
         # q_1: ┤ P(λ/2 - φ/2) ├┤ X ├┤ U(-θ/2,0,-λ/2 - φ/2) ├┤ X ├┤ U(θ/2,φ,0) ├
         #      └──────────────┘└───┘└──────────────────────┘└───┘└────────────┘
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (PhaseGate((self.params[2] + self.params[1]) / 2), [q[0]], []),
-            (PhaseGate((self.params[2] - self.params[1]) / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (UGate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (UGate(self.params[0] / 2, self.params[1], 0), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU3 gate.

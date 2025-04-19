@@ -17,9 +17,6 @@ import numpy as np
 from qiskit.circuit._utils import with_gate_array
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit._accelerate.circuit import StandardGate
-from .x import XGate, CXGate
-from .s import SGate
-from .sx import SXGate
 
 
 @with_gate_array(
@@ -96,24 +93,13 @@ class ECRGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        Definition in terms of simpler Clifford gates.
-        """
+        """Default definition (in terms of simpler Clifford gates)"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=-np.pi / 4)
-        rules = [
-            (SGate(), [q[0]], []),
-            (SXGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (XGate(), [q[0]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse ECR gate (itself).

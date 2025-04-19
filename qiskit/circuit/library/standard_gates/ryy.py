@@ -82,11 +82,9 @@ class RYYGate(Gate):
         super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .x import CXGate
-        from .sx import SXGate, SXdgGate
-        from .rz import RZGate
+        from qiskit.circuit import QuantumCircuit
 
         #      ┌──────┐                   ┌────┐
         # q_0: ┤ √Xdg ├──■─────────────■──┤ √X ├
@@ -94,22 +92,9 @@ class RYYGate(Gate):
         # q_1: ┤ √Xdg ├┤ X ├┤ Rz(θ) ├┤ X ├┤ √X ├
         #      └──────┘└───┘└───────┘└───┘└────┘
 
-        q = QuantumRegister(2, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (SXdgGate(), [q[0]], []),
-            (SXdgGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (SXGate(), [q[0]], []),
-            (SXGate(), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,

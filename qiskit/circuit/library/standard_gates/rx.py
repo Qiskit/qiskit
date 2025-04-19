@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import math
-from math import pi
 from typing import Optional, Union
 import numpy
 
@@ -59,20 +58,13 @@ class RXGate(Gate):
         super().__init__("rx", 1, [theta], label=label)
 
     def _define(self):
-        """
-        gate rx(theta) a {r(theta, 0) a;}
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .r import RGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(RGate(self.params[0], 0), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,
@@ -224,30 +216,18 @@ class CRXGate(ControlledGate):
         )
 
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u import UGate
-        from .x import CXGate
-        from .s import SGate
+        from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■───────────────────■───────────────────
         #      ┌───┐┌─┴─┐┌─────────────┐┌─┴─┐┌───────────────┐
         # q_1: ┤ S ├┤ X ├┤ U(-θ/2,0,0) ├┤ X ├┤ U(θ/2,-π/2,0) ├
         #      └───┘└───┘└─────────────┘└───┘└───────────────┘
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (SGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (UGate(-self.params[0] / 2, 0, 0), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (UGate(self.params[0] / 2, -pi / 2, 0), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse CRX gate (i.e. with the negative rotation angle).

@@ -1338,7 +1338,7 @@ impl Operation for StandardGate {
                             (Self::H, smallvec![], smallvec![Qubit(0)]),
                             (Self::Sdg, smallvec![], smallvec![Qubit(0)]),
                         ],
-                        FLOAT_ZERO,
+                        Param::Float(PI / 4.),
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
@@ -1353,7 +1353,7 @@ impl Operation for StandardGate {
                             (Self::H, smallvec![], smallvec![Qubit(0)]),
                             (Self::S, smallvec![], smallvec![Qubit(0)]),
                         ],
-                        FLOAT_ZERO,
+                        Param::Float(-PI / 4.),
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )

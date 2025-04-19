@@ -21,14 +21,8 @@ from typing import Optional
 import numpy as np
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit.library.standard_gates.s import SdgGate, SGate
-from qiskit.circuit.library.standard_gates.sx import SXdgGate, SXGate
-from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -82,36 +76,17 @@ class XXMinusYYGate(Gate):
         super().__init__("xx_minus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
+        """Default definition"""
+
         #       ┌─────┐  ┌────┐┌───┐     ┌─────────┐      ┌─────┐ ┌──────┐┌───┐
         # q_0: ─┤ Sdg ├──┤ √X ├┤ S ├──■──┤ Ry(θ/2) ├───■──┤ Sdg ├─┤ √Xdg ├┤ S ├
         #      ┌┴─────┴─┐├───┬┘└───┘┌─┴─┐├─────────┴┐┌─┴─┐├─────┤┌┴──────┤└───┘
         # q_1: ┤ Rz(-β) ├┤ S ├──────┤ X ├┤ Ry(-θ/2) ├┤ X ├┤ Sdg ├┤ Rz(β) ├─────
         #      └────────┘└───┘      └───┘└──────────┘└───┘└─────┘└───────┘
 
-        theta, beta = self.params
-        register = QuantumRegister(2, "q")
-        circuit = QuantumCircuit(register, name=self.name)
-        a, b = register
-        rules = [
-            (RZGate(-beta), [b], []),
-            (SdgGate(), [a], []),
-            (SXGate(), [a], []),
-            (SGate(), [a], []),
-            (SGate(), [b], []),
-            (CXGate(), [a, b], []),
-            (RYGate(theta / 2), [a], []),
-            (RYGate(-theta / 2), [b], []),
-            (CXGate(), [a, b], []),
-            (SdgGate(), [b], []),
-            (SdgGate(), [a], []),
-            (SXdgGate(), [a], []),
-            (SGate(), [a], []),
-            (RZGate(beta), [b], []),
-        ]
-        for instr, qargs, cargs in rules:
-            circuit._append(instr, qargs, cargs)
-
-        self.definition = circuit
+        self.definition = QuantumCircuit._from_circuit_data(
+            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,
