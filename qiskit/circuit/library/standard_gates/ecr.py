@@ -98,7 +98,7 @@ class ECRGate(SingletonGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.ECR._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

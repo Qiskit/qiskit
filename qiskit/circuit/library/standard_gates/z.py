@@ -86,7 +86,7 @@ class ZGate(SingletonGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.Z._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def control(
@@ -205,7 +205,7 @@ class CZGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CZ._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):
@@ -294,7 +294,7 @@ class CCZGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CCZ._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

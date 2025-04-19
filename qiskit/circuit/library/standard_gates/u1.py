@@ -104,7 +104,7 @@ class U1Gate(Gate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.U1._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def control(
@@ -253,7 +253,7 @@ class CU1Gate(ControlledGate):
         #                └───┘└─────────┘└───┘└────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CU1._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def control(

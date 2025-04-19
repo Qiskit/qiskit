@@ -62,7 +62,7 @@ class RYGate(Gate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RY._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def control(
@@ -220,7 +220,7 @@ class CRYGate(ControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CRY._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

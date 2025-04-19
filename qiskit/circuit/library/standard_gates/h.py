@@ -63,14 +63,12 @@ class HGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate h a { u(0,pi) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.H._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def control(
@@ -212,7 +210,7 @@ class CHGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CH._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def inverse(self, annotated: bool = False):

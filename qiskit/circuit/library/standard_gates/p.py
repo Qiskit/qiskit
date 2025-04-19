@@ -87,7 +87,7 @@ class PhaseGate(Gate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.Phase._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def control(
@@ -230,7 +230,7 @@ class CPhaseGate(ControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            self._standard_gate._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CPhase._get_definition(self.params), add_regs=True, name=self.name
         )
 
     def control(
