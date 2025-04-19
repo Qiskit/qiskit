@@ -29,6 +29,7 @@ use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
+use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
@@ -460,7 +461,8 @@ fn apply_translation(
     >,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
-    let mut out_dag = dag.copy_empty_like(py, "alike")?;
+    let out_dag = dag.copy_empty_like(py, "alike")?;
+    let mut out_dag_builder = out_dag.into_builder(py);
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
@@ -504,38 +506,28 @@ fn apply_translation(
                 new_op = Some(replaced_blocks.extract()?);
             }
             if let Some(new_op) = new_op {
-                out_dag.apply_operation_back(
+                out_dag_builder.apply_operation_back(
                     py,
                     new_op.operation,
-                    node_qarg,
-                    node_carg,
+                    Some(node_qarg.into()),
+                    Some(node_carg.into()),
                     if new_op.params.is_empty() {
                         None
                     } else {
-                        Some(new_op.params)
+                        Some(Box::new(new_op.params))
                     },
-                    new_op.label.map(|x| *x),
+                    new_op.label.as_deref().cloned(),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )?;
             } else {
-                out_dag.apply_operation_back(
+                out_dag_builder.apply_operation_back(
                     py,
                     node_obj.op.clone(),
-                    node_qarg,
-                    node_carg,
-                    if node_obj.params_view().is_empty() {
-                        None
-                    } else {
-                        Some(
-                            node_obj
-                                .params_view()
-                                .iter()
-                                .map(|param| param.clone_ref(py))
-                                .collect(),
-                        )
-                    },
-                    node_obj.label.as_ref().map(|x| x.as_ref().clone()),
+                    Some(node_qarg.into()),
+                    Some(node_carg.into()),
+                    node_obj.params.clone(),
+                    node_obj.label.as_deref().cloned(),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )?;
@@ -547,23 +539,13 @@ fn apply_translation(
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
-            out_dag.apply_operation_back(
+            out_dag_builder.apply_operation_back(
                 py,
                 node_obj.op.clone(),
-                node_qarg,
-                node_carg,
-                if node_obj.params_view().is_empty() {
-                    None
-                } else {
-                    Some(
-                        node_obj
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )
-                },
-                node_obj.label.as_ref().map(|x| x.as_ref().clone()),
+                Some(node_qarg.into()),
+                Some(node_carg.into()),
+                node_obj.params.clone(),
+                node_obj.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
@@ -578,14 +560,14 @@ fn apply_translation(
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
                 py,
-                &mut out_dag,
+                &mut out_dag_builder,
                 node_obj.clone(),
                 &extra_inst_map[&unique_qargs],
             )?;
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(py, &mut out_dag, node_obj.clone(), instr_map)?;
+            replace_node(py, &mut out_dag_builder, node_obj.clone(), instr_map)?;
         } else {
             return Err(TranspilerError::new_err(format!(
                 "BasisTranslator did not map {}",
@@ -594,13 +576,12 @@ fn apply_translation(
         }
         is_updated = true;
     }
-
-    Ok((out_dag, is_updated))
+    Ok((out_dag_builder.build(), is_updated))
 }
 
 fn replace_node(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
     instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
 ) -> PyResult<()> {
@@ -619,8 +600,8 @@ fn replace_node(
     if node.params_view().is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
-            let old_qargs = dag.get_qargs(node.qubits);
-            let old_cargs = dag.get_cargs(node.clbits);
+            let old_qargs = dag.qargs_interner().get(node.qubits);
+            let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
                 .get_qargs(inner_node.qubits)
                 .iter()
@@ -641,18 +622,17 @@ fn replace_node(
                 .iter()
                 .map(|param| param.clone_ref(py))
                 .collect();
-            let new_extra_props = node.label.as_ref().map(|x| x.as_ref().clone());
             dag.apply_operation_back(
                 py,
                 new_op,
-                &new_qubits,
-                &new_clbits,
+                Some(new_qubits.into()),
+                Some(new_clbits.into()),
                 if new_params.is_empty() {
                     None
                 } else {
-                    Some(new_params)
+                    Some(Box::new(new_params))
                 },
-                new_extra_props,
+                node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
@@ -665,8 +645,8 @@ fn replace_node(
             .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
-            let old_qargs = dag.get_qargs(node.qubits);
-            let old_cargs = dag.get_cargs(node.clbits);
+            let old_qargs = dag.qargs_interner().get(node.qubits);
+            let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
                 .get_qargs(inner_node.qubits)
                 .iter()
@@ -749,14 +729,14 @@ fn replace_node(
             dag.apply_operation_back(
                 py,
                 new_op,
-                &new_qubits,
-                &new_clbits,
+                Some(new_qubits.into()),
+                Some(new_clbits.into()),
                 if new_params.is_empty() {
                     None
                 } else {
-                    Some(new_params)
+                    Some(Box::new(new_params))
                 },
-                inner_node.label.as_ref().map(|x| x.as_ref().clone()),
+                inner_node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
