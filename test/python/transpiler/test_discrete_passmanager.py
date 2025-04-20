@@ -16,7 +16,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import QFTGate, iqp, GraphStateGate
-from qiskit.transpiler.preset_passmanagers.generate_preset_pass_manager import (
+from qiskit.transpiler.preset_passmanagers import (
     generate_discrete_pass_manager,
 )
 
