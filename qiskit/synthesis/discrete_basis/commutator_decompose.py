@@ -53,17 +53,18 @@ def _compute_rotation_axis(matrix: np.ndarray) -> np.ndarray:
     """
     _check_is_so3(matrix)
 
-    # Compute eigenvalues and eigenvectors
-    eigenvalues, eigenvectors = np.linalg.eig(matrix)
-    # print(f"{eigenvalues = }")
-    # print(f"{eigenvectors = }")
+    trace = _compute_trace_so3(matrix)
+    theta = math.acos(0.5 * (trace - 1))
+    if math.sin(theta) > 1e-10:
+        x = 1 / (2 * math.sin(theta)) * (matrix[2][1] - matrix[1][2])
+        y = 1 / (2 * math.sin(theta)) * (matrix[0][2] - matrix[2][0])
+        z = 1 / (2 * math.sin(theta)) * (matrix[1][0] - matrix[0][1])
+    else:
+        x = 1.0
+        y = 0.0
+        z = 0.0
+    return np.array([x, y, z])
 
-    # Find the index of the eigenvalue that is (approximately) 1
-    index = np.argmin(np.abs(eigenvalues - 1.0))
-    axis = eigenvectors[:, index].real
-    # Normalize the axis to ensure it's a unit vector
-    axis /= np.linalg.norm(axis)
-    return axis
 
 def _solve_decomposition_angle(matrix: np.ndarray) -> float:
     """Computes angle for balanced commutator of SO(3)-matrix ``matrix``.
@@ -215,28 +216,21 @@ def commutator_decompose(
         # assert that the input matrix is really SO(3)
         _check_is_so3(u_so3)
 
-        if not is_identity_matrix(u_so3.dot(u_so3.T), atol=1e-4):
+        if not is_identity_matrix(u_so3.dot(u_so3.T)):
             raise ValueError("Input matrix is not orthogonal.")
 
     angle = _solve_decomposition_angle(u_so3)
-    # print(f"=> commutator_decompose: {angle = }")
 
     # Compute rotation about x-axis with angle 'angle'
     vx = _compute_rotation_from_angle_and_axis(angle, np.array([1, 0, 0]))
-    # print(f"=> commutator_decompose: {vx = }")
 
     # Compute rotation about y-axis with angle 'angle'
     wy = _compute_rotation_from_angle_and_axis(angle, np.array([0, 1, 0]))
-    # print(f"=> commutator_decompose: {wy = }")
 
     commutator = _compute_commutator_so3(vx, wy)
-    # print(f"=> commutator: {commutator = }")
 
     u_so3_axis = _compute_rotation_axis(u_so3)
-    # print(f"=> u_so3_axis: {u_so3_axis = }")
-
     commutator_axis = _compute_rotation_axis(commutator)
-    # print(f"=> commutator_axis: {commutator_axis = }")
 
     sim_matrix = _compute_rotation_between(commutator_axis, u_so3_axis)
     sim_matrix_dagger = np.conj(sim_matrix).T
