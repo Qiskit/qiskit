@@ -17,11 +17,9 @@ ND-Array container class for Estimator observables.
 from __future__ import annotations
 
 import re
-from collections import defaultdict
 from collections.abc import Iterable, Mapping as _Mapping
 from functools import lru_cache
 from typing import Union, Mapping, overload
-from numbers import Complex
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -81,6 +79,7 @@ class ObservablesArray(ShapedMixin):
 
     @staticmethod
     def obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
+        """Convert a sparse observable to a mapping from Pauli strings to coefficients"""
         sparse_list = obs.to_sparse_list()
         result = {}
         for pauli_term in sparse_list:
@@ -135,8 +134,8 @@ class ObservablesArray(ShapedMixin):
         """
         return self.__array__().tolist()
 
-    def __array__(self, dtype=None, copy=None) -> np.ndarray:
-        """Convert to an Numpy.ndarray"""
+    def __array__(self, dtype=None) -> np.ndarray:
+        """Convert to a Numpy.ndarray"""
         if dtype is None or dtype == object:
             tmp_result = self.__getitem__(tuple(slice(None) for _ in self._array.shape))
             if len(self._array.shape) == 0:
