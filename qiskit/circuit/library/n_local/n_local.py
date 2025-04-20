@@ -1076,7 +1076,7 @@ class NLocal(BlueprintCircuit):
 
     def _parameterize_block(
         self, block, param_iter=None, rep_num=None, block_num=None, indices=None, params=None
-    ):
+    ) -> QuantumCircuit:
         """Convert ``block`` to a circuit of correct width and parameterized using the iterator."""
         if self._overwrite_block_parameters:
             # check if special parameters should be used
@@ -1091,7 +1091,7 @@ class NLocal(BlueprintCircuit):
 
         return block.copy()
 
-    def _build_rotation_layer(self, circuit, param_iter, i):
+    def _build_rotation_layer(self, circuit, param_iter, i) -> QuantumCircuit:
         """Build a rotation layer."""
         # if the unentangled qubits are skipped, compute the set of qubits that are not entangled
         if self._skip_unentangled_qubits:
@@ -1130,7 +1130,7 @@ class NLocal(BlueprintCircuit):
                     parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
                     circuit.compose(parameterized_block, indices, inplace=True, copy=False)
 
-    def _build_entanglement_layer(self, circuit, param_iter, i):
+    def _build_entanglement_layer(self, circuit, param_iter, i) -> QuantumCircuit:
         """Build an entanglement layer."""
         # iterate over all entanglement blocks
         target_qubits = circuit.qubits
@@ -1155,7 +1155,7 @@ class NLocal(BlueprintCircuit):
                     parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
                     circuit.compose(parameterized_block, indices, inplace=True, copy=False)
 
-    def _build_additional_layers(self, circuit, which):
+    def _build_additional_layers(self, circuit, which) -> QuantumCircuit:
         if which == "appended":
             blocks = self._appended_blocks
             entanglements = self._appended_entanglement
@@ -1406,7 +1406,6 @@ def _normalize_blocks(
 def _trivial_builder(
     gate: Gate,
 ) -> tuple[int, Callable[list[Parameter], tuple[Gate, list[ParameterValueType]]]]:
-
     def builder(_):
         copied = gate.copy()
         return copied, copied.params
@@ -1443,7 +1442,7 @@ def _get_gate_builder(
 
     sorted_parameters = _sort_parameters(free_parameters)
 
-    def builder(new_parameters):
+    def builder(new_parameters) -> tuple[Gate, list[ParameterValueType]]:
         out = gate.copy()
 
         # re-bind the ``Gate.params`` attribute
@@ -1466,10 +1465,10 @@ def _get_gate_builder(
     return num_parameters, builder
 
 
-def _sort_parameters(parameters):
+def _sort_parameters(parameters) -> list[ParameterValueType]:
     """Sort a list of Parameter objects."""
 
-    def key(parameter):
+    def key(parameter) -> tuple[str, int | None]:
         if isinstance(parameter, ParameterVectorElement):
             return (parameter.vector.name, parameter.index)
         return (parameter.name,)
