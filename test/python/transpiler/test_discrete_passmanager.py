@@ -101,6 +101,18 @@ class TestDiscretePassManager(QiskitTestCase):
         # Should get the efficient decomposition of the Toffoli gates into Clifford+T.
         self.assertEqual(transpiled.count_ops(), {"cx": 6, "t": 4, "tdg": 3, "h": 2})
 
+    def test_rx(self):
+        """Discrete transpilation of a circuit with a single-qubit rotation gate,
+        requiring the usage of the Solovay-Kitaev decomposition.
+        """
+        qc = QuantumCircuit(1)
+        qc.rx(0.8, 0)
+
+        transpiled = self.pm.run(qc)
+        self.assertLessEqual(
+            set(transpiled.count_ops().keys()), set(["cx", "h", "s", "sdg", "t", "tdg", "z"])
+        )
+
     def test_qft(self):
         """Discrete transpilation of a more complex circuit, requiring the usage of the
         Solovay-Kitaev decomposition.
