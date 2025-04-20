@@ -436,6 +436,7 @@ def _parse_seed_transpiler(seed_transpiler):
         raise ValueError("Expected non-negative integer as seed for transpiler.")
     return seed_transpiler
 
+
 def generate_discrete_pass_manager(
     optimization_level=2,
     backend=None,
@@ -445,19 +446,20 @@ def generate_discrete_pass_manager(
     initial_layout=None,
     layout_method=None,
     routing_method=None,
-    translation_method=None,
     scheduling_method=None,
     approximation_degree=1.0,
     seed_transpiler=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
-    optimization_method=None,
     dt=None,
     qubits_initially_zero=True,
     *,
     _skip_target=False,
 ):
+    """Generate a preset :class:`~.PassManager` optimized for transpilation into
+    discrete basis."""
+
     return generate_preset_pass_manager(
         optimization_level=optimization_level,
         backend=backend,
@@ -478,4 +480,4 @@ def generate_discrete_pass_manager(
         optimization_method="discrete",
         dt=dt,
         qubits_initially_zero=qubits_initially_zero,
-        )
+    )

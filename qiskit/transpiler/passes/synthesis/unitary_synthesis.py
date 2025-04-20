@@ -165,6 +165,7 @@ class UnitarySynthesis(TransformationPass):
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
         """
+
         # If there aren't any gates to synthesize in the circuit we can skip all the iteration
         # and just return.
         if not set(self._synth_gates).intersection(dag.count_ops()):

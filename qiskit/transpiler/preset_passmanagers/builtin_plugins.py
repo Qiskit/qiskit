@@ -36,7 +36,6 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
 )
 from qiskit.transpiler.passes.optimization import (
-    Collect1qRuns,
     Optimize1qGatesDecomposition,
     CommutativeCancellation,
     ConsolidateBlocks,
@@ -993,11 +992,19 @@ def _get_trial_count(default_trials=5):
         return max(default_num_processes(), default_trials)
     return default_trials
 
+
+# In the following, we adapt/simplify different transpiler stage plugins for transpilation into
+# discrete basis.
+#
+# The plan is to have something working and to imporve on that later.
+#
+# As a rule of thumb, if the original circuit already consists only of Clifford or only of
+# Clifford+T gates, then we don't want the transpilation to make it significantly worse.
+# In particular, we avoid collecting and resynthesizing 2-qubit blocks.
 class DiscreteInitPassManager(PassManagerStagePlugin):
     """Plugin class for discrete init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        print(f"=> Call DiscreteInitPassManager")
         if optimization_level == 0:
             init = None
             if (
@@ -1057,7 +1064,6 @@ class DiscreteInitPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
             )
-
         elif optimization_level in {2, 3}:
             init = common.generate_unroll_3q(
                 pass_manager_config.target,
@@ -1073,8 +1079,6 @@ class DiscreteInitPassManager(PassManagerStagePlugin):
             init.append(
                 [
                     RemoveDiagonalGatesBeforeMeasure(),
-                    # Target not set on RemoveIdentityEquivalent because we haven't applied a Layout
-                    # yet so doing anything relative to an error rate in the target is not valid.
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree
                     ),
@@ -1098,11 +1102,7 @@ class DiscreteInitPassManager(PassManagerStagePlugin):
                 ]
             )
             init.append(CommutativeCancellation())
-            # init.append(ConsolidateBlocks())
-            # If approximation degree is None that indicates a request to approximate up to the
-            # error rates in the target. However, in the init stage we don't yet know the target
-            # qubits being used to figure out the fidelity so just use the default fidelity parameter
-            # in this case.
+
             split_2q_unitaries_swap = False
             if pass_manager_config.routing_method != "none":
                 split_2q_unitaries_swap = True
@@ -1118,12 +1118,11 @@ class DiscreteInitPassManager(PassManagerStagePlugin):
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
 
+
 class DiscreteTranslatorPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        print(f"=> Call DiscreteTranslatorPassManager")
-
         return common.generate_translation_passmanager(
             pass_manager_config.target,
             basis_gates=pass_manager_config.basis_gates,
@@ -1142,8 +1141,6 @@ class DiscreteOptimizationPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
-
-        print(f"=> Call DiscreteOptimizationPassManager")
 
         # Obtain the translation method required for this pass to work
         optimization = PassManager()
@@ -1189,13 +1186,10 @@ class DiscreteOptimizationPassManager(PassManagerStagePlugin):
             else:
                 raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
 
-
             # Build nested flow controllers
             optimization.append(_depth_check + _size_check)
 
-            opt_loop = (
-                _opt + _depth_check + _size_check
-            )
+            opt_loop = _opt + _depth_check + _size_check
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
             return optimization
         else:

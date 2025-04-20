@@ -46,7 +46,6 @@ from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ConstrainedReschedule
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
-from qiskit.transpiler.passes import SolovayKitaev
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
@@ -487,12 +486,13 @@ def generate_translation_passmanager(
         ]
         fix_1q = [translator]
     elif method == "discrete":
-        # "cx" should be already in basis_gates
+        # The extended basis gates is the list of discrete basis gates (which includes "cx", "h", "t",
+        # and "tdg") and the 1q-gate "u".
         extended_basis_gates = basis_gates + ["u"]
 
         unroll = [
-            # First, synthesize remaining 2q blocks with UnitarySynthesis and HLS.
-            # Keep extended discrete basis set in mind.
+            # Use the UnitarySynthesis pass to unroll gates named "unitary".
+            # It is especially important to unroll 2-qubit "unitary" gates.
             UnitarySynthesis(
                 basis_gates=extended_basis_gates,
                 approximation_degree=approximation_degree,
@@ -501,6 +501,11 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=None,
             ),
+            # Use the HighLevelSynthesis pass to unroll all remaining custom 1q and 2q
+            # gates into ["cx", "t", "tdg", "u"] and the gates in the equivalence library.
+            # We use target=None to make sure extended_basis_gates is not overwritten by
+            # the target, and moreoever to make sure that only ["cx", "h", "t", "tdg", "u"]
+            # and the gates in the equivalence library remain.
             HighLevelSynthesis(
                 hls_config=hls_config,
                 coupling_map=coupling_map,
@@ -510,29 +515,23 @@ def generate_translation_passmanager(
                 basis_gates=extended_basis_gates,
                 qubits_initially_zero=qubits_initially_zero,
             ),
-
-            # We may have 1q unitary gates; these we synthesize using SK.
-            # We may also have 1q/2q gates that are not in the basis but are in 
-            # the equivalence library.
+            # Use the BasisTranslator pass to translate all gates into ["cx", "h", "t", "tdg", "u"].
             BasisTranslator(sel, extended_basis_gates, None),
-
-
-            # Note: SolovayKitaev transpiler pass currently synthesizes all 2-qubit gates.
-            # Calling it as a plugin allows to synthesize only 'unitary' gates,
-            # Moreover, I have hacked the plugin to extract Clifford gates when possible.
-            # SolovayKitaev(),
-
+            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
+            # gates.
             Collect1qRuns(),
-
             ConsolidateBlocks(
                 basis_gates=None,
                 target=None,
                 approximation_degree=approximation_degree,
                 force_consolidate=True,
             ),
-
+            # We can call the Solovay-Kitaev decomposition either via the SolovayKitaevtranspiler pass
+            # or via the plugin mechanism for "sk" UnitarySynthesisPlugin. Due to various differences
+            # in the two approaches it is slightly more convenient to use the plugin approach. Morover,
+            # the plugin has been extended to recognize 1q-Clifford gates.
             UnitarySynthesis(
-                # basis_gates=["h", "s", "sdg", "t", "tdg"],
                 basis_gates=["h", "t", "tdg"],
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
@@ -541,10 +540,7 @@ def generate_translation_passmanager(
                 min_qubits=1,
                 target=None,
             ),
-
         ]
-
-        # todo: why is this?
         fix_1q = []
     elif method == "synthesis":
         unroll = [
