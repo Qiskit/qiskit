@@ -11,12 +11,15 @@
 // that they have been altered from the originals.
 use std::io::Cursor;
 use pyo3::prelude::*;
-use pyo3::types::PyAny;
+use pyo3::exceptions::PyValueError;
+use pyo3::types::{PyAny, PyTuple};
 use pyo3::intern;
 use qiskit_circuit::imports::{BARRIER, DELAY, MEASURE, RESET};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
+use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
+
 use binrw::BinWrite;
 use crate::params::{SerializableParam, param_to_serializable};
 
@@ -35,6 +38,7 @@ struct CircuitInstructionV2Pack {
     ctrl_state: u32,
     gate_class_name: Vec<u8>,
     label_raw: Vec<u8>,
+    condition_raw: Vec<u8>,
     bit_data: Vec<CircuitInstructionArgPack>,
     params: Vec<SerializableParam>
 }
@@ -87,6 +91,14 @@ fn gate_class_name(py: Python, inst: &PackedInstruction) -> PyResult<Vec<u8>> {
         OperationRef::Gate(pygate) => {
             pygate
             .gate
+            .bind(py)
+            .getattr(intern!(py, "__class__"))?
+            .getattr(intern!(py, "__name__"))?
+            .extract::<String>()
+        }
+        OperationRef::Instruction(pyinst) => {
+            pyinst
+            .instruction
             .bind(py)
             .getattr(intern!(py, "__class__"))?
             .getattr(intern!(py, "__name__"))?
@@ -145,6 +157,68 @@ fn get_instruction_params(py: Python, instruction: &PackedInstruction) -> Vec<Se
     .collect()
 }
 
+fn dump_register(py:Python, register: Bound<PyAny>, circuit_data: &CircuitData) -> PyResult<Vec<u8>> {
+    if register.is_instance_of::<PyClassicalRegister>(){
+        Ok(register
+        .getattr("name")?
+        .extract::<String>()?
+        .into_bytes())
+    }
+    else if register.is_instance_of::<PyClbit>(){
+        let key = &register.extract::<ShareableClbit>()?;
+        let name= circuit_data
+        .get_clbit_indices(py)
+        .bind(py)
+        .get_item(key)?
+        .ok_or(PyErr::new::<PyValueError, _>("Clbit not found"))?
+        .getattr("index")?
+        .str()?;
+        let mut bytes: Vec<u8> = Vec::with_capacity(name.len()? + 1);
+        bytes.push(0u8);
+        bytes.extend_from_slice(name.extract::<String>()?.as_bytes());
+        Ok(bytes)
+    }
+    else {
+        Ok(Vec::new())
+    }
+        // return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
+}
+
+pub mod condition_types {
+    pub const NONE: u8 = 0;
+    pub const TWO_TUPLE: u8 = 1;
+    pub const EXPRESSION: u8 = 2;    
+}
+
+fn get_condition_data_from_inst(py:Python, inst: &Py<PyAny>, circuit_data: &CircuitData) -> PyResult<(u8, u16, i64, Vec<u8>)>{
+    let condition = inst
+    .bind(py)
+    .getattr("_condition")?;
+    if condition.is_instance_of::<PyTuple>() {
+        let condition_type = condition_types::TWO_TUPLE;
+        let condition_value = condition
+        .downcast::<PyTuple>()?
+        .get_item(1)?
+        .extract::<i64>()?;
+        let condition_register = dump_register(py, condition
+        .downcast::<PyTuple>()?
+        .get_item(0)?, circuit_data)?;
+        return Ok((condition_type, condition_register.len() as u16, condition_value, condition_register))
+    } else {
+        // TODO: handle expressions
+        return Ok((0,0,0, Vec::new()));
+    }
+}
+
+fn get_condition_data(py: Python, inst: &PackedInstruction, circuit_data: &CircuitData) -> (u8, u16, i64, Vec<u8>) {
+    //getattr(instruction.operation, "_condition"
+    let default_return_value = (condition_types::NONE,0,0, Vec::new());
+    match inst.op.view() {
+        OperationRef::Instruction(py_inst) => get_condition_data_from_inst(py, &py_inst.instruction, circuit_data).unwrap_or(default_return_value),
+        _ => default_return_value
+    }
+}
+
 fn instruction_raw(py: Python, instruction: &PackedInstruction, circuit_data: &CircuitData) -> CircuitInstructionV2Pack{
     let class_name = gate_class_name(py, instruction).unwrap();
     let label_raw = gate_label(instruction);
@@ -152,19 +226,21 @@ fn instruction_raw(py: Python, instruction: &PackedInstruction, circuit_data: &C
     let ctrl_state = get_ctrl_state(py, instruction, num_ctrl_qubits).unwrap_or(0);
     let instruction_params: Vec<SerializableParam> = get_instruction_params(py, instruction);
     let bit_data = get_packed_bit_list(instruction, circuit_data);
+    let (condition_type_value, condition_register_length, condition_value, condition_raw) = get_condition_data(py, instruction, circuit_data);
     CircuitInstructionV2Pack{
         gate_class_name_length: class_name.len() as u16,
         label_raw_length: label_raw.len() as u16,
         instruction_params_length: instruction_params.len() as u16,
         num_qubits: instruction.op.num_qubits(),
         num_clbits: instruction.op.num_clbits(),
-        condition_type_value: 0,
-        condition_register_length: 0,
-        condition_value: 0,
+        condition_type_value: condition_type_value,
+        condition_register_length: condition_register_length,
+        condition_value: condition_value,
         num_ctrl_qubits: num_ctrl_qubits,
         ctrl_state: ctrl_state,
         gate_class_name: class_name,
         label_raw: label_raw,
+        condition_raw: condition_raw,
         bit_data: bit_data,
         params: instruction_params,
     }

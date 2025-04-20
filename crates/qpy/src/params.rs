@@ -16,7 +16,7 @@ use pyo3::types::{PyAny, PyInt, PyFloat, PyComplex, PyString, PyDict};
 use pyo3::intern;
 use binrw::BinWrite;
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::imports::{PARAMETER, PARAMETER_EXPRESSION};
+use qiskit_circuit::imports::{PARAMETER, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 
 pub mod tags {
     pub const INTEGER: u8 = b'i';
@@ -32,6 +32,7 @@ pub mod tags {
     pub const NULL: u8 = b'z';
     pub const EXPRESSION: u8 = b'x';
     pub const MODIFIER: u8 = b'm';
+    pub const CIRCUIT: u8 = b'q';
     pub const NONE: u8 = b'n';
 }
 
@@ -40,6 +41,8 @@ fn get_type_key(py: Python, py_object: &Bound<PyAny>) -> u8 {
         return tags::PARAMETER;
     } else if py_object.is_instance(PARAMETER_EXPRESSION.get_bound(py)).unwrap() {
         return tags::PARAMETER_EXPRESSION;
+    } else if py_object.is_instance(QUANTUM_CIRCUIT.get_bound(py)).unwrap() {
+        return tags::CIRCUIT;
     } else if py_object.is_instance_of::<PyInt>() {
         return tags::INTEGER;
     } else if py_object.is_instance_of::<PyFloat>() {
@@ -243,9 +246,15 @@ fn serialize_parameters(py: Python, py_object: &Bound<PyAny>) -> PyResult<Serial
     }
 }
 
-fn serialize_object(py_object: &Py<PyAny>) -> SerializableParam {
+fn serialize_object(py: Python, py_object: &Py<PyAny>) -> SerializableParam {
     //TODO: placeholder for now
-    SerializableParam { type_key: (tags::NULL), data_len: (0), data: (Vec::new()) }
+    let type_key = get_type_key(py, py_object.bind(py));
+    match type_key {
+        tags::CIRCUIT => {
+            SerializableParam { type_key: (tags::NULL), data_len: (0), data: (Vec::new()) }
+        }
+        _ => SerializableParam { type_key: (tags::NULL), data_len: (0), data: (Vec::new()) }
+    }
 }
 
 
@@ -253,7 +262,7 @@ pub fn param_to_serializable(py: Python, param: &Param) -> SerializableParam {
     match param {
         Param::Float(val) => SerializableParam { type_key: (tags::FLOAT), data_len: (8), data: (val.to_le_bytes().to_vec()) },
         Param::ParameterExpression(py_object) => serialize_parameters(py, py_object.bind(py)).unwrap(),
-        Param::Obj(py_object) => serialize_object(py_object),
+        Param::Obj(py_object) => serialize_object(py, py_object),
     }
 }
 
