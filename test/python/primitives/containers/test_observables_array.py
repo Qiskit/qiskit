@@ -58,8 +58,12 @@ class ObservablesArrayTestCase(QiskitTestCase):
         else:
             obs = ObservablesArray.coerce_observable(pauli)
             self.assertIsInstance(obs, qi.SparseObservable)
-            obs_pauli, _, obs_coeff = obs.to_sparse_list()[0]
-            self.assertEqual(obs_pauli, "XYZ")
+            obs_pauli, obs_qubits, obs_coeff = obs.to_sparse_list()[0]
+
+            # ZYX and not XYZ because the qubits in `obs_qubits` are ascending
+            self.assertEqual(obs_pauli, "ZYX")
+            self.assertEqual(obs_qubits, [0, 1, 2])
+
             np.testing.assert_almost_equal(
                 obs_coeff, coeff, err_msg=f"Wrong value for Pauli {pauli}"
             )
@@ -75,8 +79,12 @@ class ObservablesArrayTestCase(QiskitTestCase):
         else:
             obs = ObservablesArray.coerce_observable(pauli)
             self.assertIsInstance(obs, qi.SparseObservable)
-            obs_pauli, _, obs_coeff = obs.to_sparse_list()[0]
-            self.assertEqual(obs_pauli, "XYZ")
+            obs_pauli, obs_qubits, obs_coeff = obs.to_sparse_list()[0]
+
+            # ZYX and not XYZ because the qubits in `obs_qubits` are ascending
+            self.assertEqual(obs_pauli, "ZYX")
+            self.assertEqual(obs_qubits, [0, 1, 2])
+
             np.testing.assert_almost_equal(
                 obs_coeff, coeff, err_msg=f"Wrong value for Pauli {pauli}"
             )
