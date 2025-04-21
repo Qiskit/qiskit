@@ -1795,6 +1795,37 @@ impl ParameterExpression {
         format!("ParameterExpression({})", self.expr.optimize().to_string())
     }
 
+    /// check if this is Parameter
+    #[allow(non_snake_case)]
+    pub fn is_Parameter(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
+            return match index {
+                Some(_) => false,
+                None => true,
+            };
+        }
+        false
+    }
+    /// check if this is ParameterExpression
+    #[allow(non_snake_case)]
+    pub fn is_ParameterExpression(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index: _ } = &self.expr {
+            return false;
+        }
+        true
+    }
+    /// check if this is Parameter
+    #[allow(non_snake_case)]
+    pub fn is_ParameterVectorElement(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
+            return match index {
+                Some(_) => true,
+                None => false,
+            };
+        }
+        false
+    }
+
     /// return QPY replay
     pub fn replay(&self) -> Option<Vec<OPReplay>> {
         self.qpy_replay.clone()

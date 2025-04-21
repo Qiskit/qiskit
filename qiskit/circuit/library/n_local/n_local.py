@@ -1470,7 +1470,7 @@ def _sort_parameters(parameters):
     """Sort a list of Parameter objects."""
 
     def key(parameter):
-        if isinstance(parameter, ParameterVectorElement):
+        if parameter.is_ParameterVectorElement():
             return (parameter.vector.name, parameter.index)
         return (parameter.name,)
 
