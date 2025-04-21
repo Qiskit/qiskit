@@ -335,77 +335,26 @@ impl Target {
     ///     AttributeError: If gate is already in map
     ///     TranspilerError: If an operation class is passed in for ``instruction`` and no name
     ///         is specified or ``properties`` is set.
-    #[pyo3(signature = (instruction, name, properties=None))]
-    fn add_instruction(
+    #[pyo3(name="add_instruction", signature = (instruction, name, properties=None))]
+    fn py_add_instruction(
         &mut self,
         instruction: TargetOperation,
-        name: &str,
+        name: String,
         properties: Option<PropsMap>,
     ) -> PyResult<()> {
-        if self.gate_map.contains_key(name) {
+        if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
                 "Instruction {:?} is already in the target",
                 name
             )));
         }
-        let mut qargs_val: PropsMap;
-        match &instruction {
-            TargetOperation::Variadic(_) => {
-                qargs_val = PropsMap::with_capacity(1);
-                qargs_val.extend([(Qargs::Global, None)]);
-            }
-            TargetOperation::Normal(normal) => {
-                if let Some(mut properties) = properties {
-                    qargs_val = PropsMap::with_capacity(properties.len());
-                    let inst_num_qubits = normal.operation.view().num_qubits();
-                    if properties.contains_key(&Qargs::Global) {
-                        self.global_operations
-                            .entry(inst_num_qubits)
-                            .and_modify(|e| {
-                                e.insert(name.to_string());
-                            })
-                            .or_insert(HashSet::from_iter([name.to_string()]));
-                    }
-                    let property_keys: Vec<Qargs> = properties.keys().cloned().collect();
-                    for qarg in property_keys {
-                        if let QargsRef::Concrete(qarg) = qarg.as_ref() {
-                            if qarg.len() != inst_num_qubits as usize {
-                                return Err(TranspilerError::new_err(format!(
-                                    "The number of qubits for {name} does not match\
-                                    the number of qubits in the properties dictionary: {:?}",
-                                    qarg
-                                )));
-                            }
-                            self.num_qubits =
-                                Some(self.num_qubits.unwrap_or_default().max(
-                                    qarg.iter().fold(0, |acc, x| {
-                                        if acc > x.index() {
-                                            acc
-                                        } else {
-                                            x.index()
-                                        }
-                                    }) + 1,
-                                ));
-                        }
-                        let inst_properties = properties.swap_remove(&qarg.as_ref()).unwrap();
-                        qargs_val.insert(qarg.clone(), inst_properties);
-                        if let Some(Some(value)) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
-                            value.insert(name.to_string());
-                        } else {
-                            self.qarg_gate_map
-                                .insert(qarg, Some(HashSet::from_iter([name.to_string()])));
-                        }
-                    }
-                } else {
-                    qargs_val = PropsMap::with_capacity(0);
-                }
-            }
-        }
-        self._gate_name_map.insert(name.to_string(), instruction);
-        self.gate_map.insert(name.to_string(), qargs_val);
-        self.non_global_basis = None;
-        self.non_global_strict_basis = None;
-        Ok(())
+        let props_map = if let Some(props_map) = properties {
+            props_map
+        } else {
+            IndexMap::from_iter([(Qargs::Global, None)])
+        };
+
+        self.inner_add_instruction(instruction, name, props_map)
     }
 
     /// Update the property object for an instruction qarg pair already in the `Target`
@@ -966,6 +915,99 @@ impl Target {
 
 // Rust native methods
 impl Target {
+    /// Adds a [PackedOperation] to the [Target].
+    ///
+    /// Said addition results in a [NormalOperation] in the [Target] as variadics
+    /// are not yet supported natively. If no properties are specified the operation
+    /// is believed to be `Global` with properties `{Qargs::Global: None}`.
+    pub fn add_instruction<T>(
+        &mut self,
+        operation: PackedOperation,
+        params: &[Param],
+        name: Option<&str>,
+        props_map: Option<T>,
+    ) -> PyResult<()>
+    where
+        T: Into<PropsMap>,
+    {
+        let name = if let Some(name) = name {
+            name.to_owned()
+        } else {
+            operation.name().to_string()
+        };
+        if self.gate_map.contains_key(&name) {
+            return Err(PyAttributeError::new_err(format!(
+                "Instruction {:?} is already in the target",
+                name
+            )));
+        }
+        let operation = TargetOperation::from_packed_operation(operation, params.into());
+        let props_map = if let Some(props_map) = props_map {
+            props_map.into()
+        } else {
+            IndexMap::from_iter([(Qargs::Global, None)])
+        };
+
+        self.inner_add_instruction(operation, name, props_map)
+    }
+
+    fn inner_add_instruction(
+        &mut self,
+        instruction: TargetOperation,
+        name: String,
+        mut props_map: PropsMap,
+    ) -> PyResult<()> {
+        match &instruction {
+            TargetOperation::Variadic(_) => {
+                props_map = IndexMap::from_iter([(Qargs::Global, None)]);
+            }
+            TargetOperation::Normal(_) => {
+                if props_map.contains_key(&Qargs::Global) {
+                    self.global_operations
+                        .entry(instruction.num_qubits())
+                        .and_modify(|e| {
+                            e.insert(name.to_string());
+                        })
+                        .or_insert(HashSet::from_iter([name.to_string()]));
+                }
+                for qarg in props_map.keys() {
+                    if let QargsRef::Concrete(qarg) = qarg.as_ref() {
+                        if qarg.len() != instruction.num_qubits() as usize {
+                            return Err(TranspilerError::new_err(format!(
+                                "The number of qubits for {name} does not match\
+                                the number of qubits in the properties dictionary: {:?}",
+                                qarg
+                            )));
+                        }
+                        self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
+                            qarg.iter().fold(
+                                0,
+                                |acc, x| {
+                                    if acc > x.index() {
+                                        acc
+                                    } else {
+                                        x.index()
+                                    }
+                                },
+                            ) + 1,
+                        ));
+                    }
+                    if let Some(Some(value)) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
+                        value.insert(name.to_string());
+                    } else {
+                        self.qarg_gate_map
+                            .insert(qarg.clone(), Some(HashSet::from_iter([name.to_string()])));
+                    }
+                }
+            }
+        }
+        self._gate_name_map.insert(name.to_string(), instruction);
+        self.gate_map.insert(name.to_string(), props_map);
+        self.non_global_basis = None;
+        self.non_global_strict_basis = None;
+        Ok(())
+    }
+
     /// Returns an iterator over all the instructions present in the `Target`
     /// as pair of `&OperationType`, `&SmallVec<[Param; 3]>` and `Option<&Qargs>`.
     // TODO: Remove once `Target` is being consumed.
@@ -1312,6 +1354,14 @@ impl Target {
     /// Checks if a key exists in the Target
     pub fn contains_key(&self, key: &str) -> bool {
         self.gate_map.contains_key(key)
+    }
+
+    pub fn len(&self) -> usize {
+        self.gate_map.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.gate_map.is_empty()
     }
 }
 
