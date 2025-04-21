@@ -7277,8 +7277,8 @@ impl DAGCircuitBuilder {
         &mut self,
         py: Python,
         op: PackedOperation,
-        qubits: Option<&[Qubit]>,
-        clbits: Option<&[Clbit]>,
+        qubits: &[Qubit],
+        clbits: &[Clbit],
         params: Option<SmallVec<[Param; 3]>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
@@ -7385,8 +7385,8 @@ impl DAGCircuitBuilder {
     pub fn pack_instruction(
         &mut self,
         op: PackedOperation,
-        qubits: Option<&[Qubit]>,
-        clbits: Option<&[Clbit]>,
+        qubits: &[Qubit],
+        clbits: &[Clbit],
         params: Option<SmallVec<[Param; 3]>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
@@ -7397,12 +7397,12 @@ impl DAGCircuitBuilder {
         } else {
             OnceLock::new()
         };
-        let qubits = if let Some(qubits) = qubits {
+        let qubits = if !qubits.is_empty() {
             self.insert_qargs(qubits)
         } else {
             self.dag.qargs_interner.get_default()
         };
-        let clbits = if let Some(clbits) = clbits {
+        let clbits = if !clbits.is_empty() {
             self.insert_cargs(clbits)
         } else {
             self.dag.cargs_interner.get_default()

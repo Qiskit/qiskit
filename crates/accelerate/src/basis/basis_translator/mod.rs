@@ -509,8 +509,8 @@ fn apply_translation(
                 out_dag_builder.apply_operation_back(
                     py,
                     new_op.operation,
-                    Some(node_qarg),
-                    Some(node_carg),
+                    node_qarg,
+                    node_carg,
                     if new_op.params.is_empty() {
                         None
                     } else {
@@ -524,8 +524,8 @@ fn apply_translation(
                 out_dag_builder.apply_operation_back(
                     py,
                     node_obj.op.clone(),
-                    Some(node_qarg),
-                    Some(node_carg),
+                    node_qarg,
+                    node_carg,
                     node_obj.params.as_ref().map(|x| *x.clone()),
                     node_obj.label.as_deref().cloned(),
                     #[cfg(feature = "cache_pygates")]
@@ -542,8 +542,8 @@ fn apply_translation(
             out_dag_builder.apply_operation_back(
                 py,
                 node_obj.op.clone(),
-                Some(node_qarg),
-                Some(node_carg),
+                node_qarg,
+                node_carg,
                 node_obj.params.as_ref().map(|x| *x.clone()),
                 node_obj.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
@@ -625,8 +625,8 @@ fn replace_node(
             dag.apply_operation_back(
                 py,
                 new_op,
-                Some(&new_qubits),
-                Some(&new_clbits),
+                &new_qubits,
+                &new_clbits,
                 if new_params.is_empty() {
                     None
                 } else {
@@ -729,8 +729,8 @@ fn replace_node(
             dag.apply_operation_back(
                 py,
                 new_op,
-                Some(&new_qubits),
-                Some(&new_clbits),
+                &new_qubits,
+                &new_clbits,
                 if new_params.is_empty() {
                     None
                 } else {

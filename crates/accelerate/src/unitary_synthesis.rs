@@ -212,8 +212,8 @@ fn apply_synth_sequence(
         out_dag.apply_operation_back(
             py,
             new_op,
-            Some(&mapped_qargs),
-            None,
+            &mapped_qargs,
+            &[],
             new_params,
             None,
             #[cfg(feature = "cache_pygates")]
