@@ -110,7 +110,7 @@ class TestDiscretePassManager(QiskitTestCase):
 
         transpiled = self.pm.run(qc)
         self.assertLessEqual(
-            set(transpiled.count_ops().keys()), set(["cx", "h", "s", "sdg", "t", "tdg", "z"])
+            set(transpiled.count_ops().keys()), {"cx", "h", "s", "sdg", "t", "tdg", "z"}
         )
 
     def test_qft(self):
@@ -122,7 +122,7 @@ class TestDiscretePassManager(QiskitTestCase):
 
         transpiled = self.pm.run(qc)
         self.assertLessEqual(
-            set(transpiled.count_ops().keys()), set(["cx", "h", "s", "sdg", "t", "tdg", "z"])
+            set(transpiled.count_ops().keys()), {"cx", "h", "s", "sdg", "t", "tdg", "z"}
         )
 
     def test_iqp(self):
@@ -133,9 +133,8 @@ class TestDiscretePassManager(QiskitTestCase):
         transpiled = self.pm.run(qc)
         transpiled_ops = transpiled.count_ops()
 
-        self.assertLessEqual(
-            set(transpiled_ops.keys()), set(["cx", "h", "s", "sdg", "t", "tdg", "z"])
-        )
+        self.assertLessEqual(set(transpiled_ops.keys()), {"cx", "h", "s", "sdg", "t", "tdg", "z"})
+
         # The transpiled circuit should be fairly efficient in terms of gates.
         self.assertLessEqual(transpiled.size(), 30)
 
