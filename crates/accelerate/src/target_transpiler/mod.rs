@@ -365,33 +365,14 @@ impl Target {
     ///     properties (InstructionProperties): The properties to set for this instruction
     /// Raises:
     ///     KeyError: If ``instruction`` or ``qarg`` are not in the target
-    #[pyo3(signature = (instruction, qargs, properties))]
-    fn update_instruction_properties(
+    #[pyo3(name = "update_instruction_properties", signature = (instruction, qargs, properties))]
+    fn py_update_instruction_properties(
         &mut self,
         instruction: String,
         qargs: Qargs,
         properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
-        if !self.contains_key(&instruction) {
-            return Err(PyKeyError::new_err(format!(
-                "Provided instruction: '{:?}' not in this Target.",
-                &instruction
-            )));
-        };
-        let mut prop_map = self[&instruction].clone();
-        if !(prop_map.contains_key(&qargs.as_ref())) {
-            return Err(PyKeyError::new_err(format!(
-                "Provided qarg {:?} not in this Target for {:?}.",
-                &qargs, &instruction
-            )));
-        }
-        if let Some(e) = prop_map.get_mut(&qargs.as_ref()) {
-            *e = properties;
-        }
-        self.gate_map
-            .entry(instruction)
-            .and_modify(|e| *e = prop_map);
-        Ok(())
+        self.update_instruction_properties(&instruction, &qargs, properties)
     }
 
     /// Get the qargs for a given operation name
@@ -1005,6 +986,35 @@ impl Target {
         self.gate_map.insert(name.to_string(), props_map);
         self.non_global_basis = None;
         self.non_global_strict_basis = None;
+        Ok(())
+    }
+
+    pub fn update_instruction_properties<'a, T>(
+        &mut self,
+        instruction: &'a str,
+        qargs: T,
+        properties: Option<InstructionProperties>,
+    ) -> PyResult<()>
+    where
+        T: Into<QargsRef<'a>>,
+    {
+        if !self.contains_key(instruction) {
+            return Err(PyKeyError::new_err(format!(
+                "Provided instruction: '{:?}' not in this Target.",
+                &instruction
+            )));
+        };
+        let qargs = qargs.into();
+        let prop_map = self.gate_map.get_mut(instruction).unwrap();
+        if !prop_map.contains_key(&qargs) {
+            return Err(PyKeyError::new_err(format!(
+                "Provided qarg {:?} not in this Target for {:?}.",
+                &qargs, &instruction
+            )));
+        }
+        if let Some(e) = prop_map.get_mut(&qargs) {
+            *e = properties;
+        }
         Ok(())
     }
 
