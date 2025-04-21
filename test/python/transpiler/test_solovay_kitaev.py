@@ -122,17 +122,14 @@ class TestSolovayKitaev(QiskitTestCase):
 
         # First, use the ["h", "t", "tdg"] set
         out = plugin.run(unitary, basis_gates=["h", "t", "tdg"])
-        print(out.count_ops())
         self.assertLessEqual(set(out.count_ops().keys()), {"h", "t", "tdg"})
 
         # Second, use the ["h", "s"] set
         out = plugin.run(unitary, basis_gates=["h", "s", "sdg"])
         self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "sdg"})
-        print(out.count_ops())
 
         # Third, use the ["h", "t", "tdg"] set again
         out = plugin.run(unitary, basis_gates=["h", "t", "tdg"])
-        print(out.count_ops())
         self.assertLessEqual(set(out.count_ops().keys()), {"h", "t", "tdg"})
 
     def test_generating_default_approximation(self):
