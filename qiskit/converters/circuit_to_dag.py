@@ -75,6 +75,6 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
 
     dagcircuit = core_circuit_to_dag(circuit, copy_operations, qubit_order, clbit_order)
 
-    dagcircuit.duration = circuit._duration
-    dagcircuit.unit = circuit._unit
+    dagcircuit._duration = circuit._duration
+    dagcircuit._unit = circuit._unit
     return dagcircuit
