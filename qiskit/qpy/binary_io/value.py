@@ -463,8 +463,8 @@ def _read_parameter_vec(file_obj, vectors):
     vector = vectors[name][0]
     if vector[data.index].uuid != int(param_uuid):
         vectors[name][1].add(data.index)
-        vector._params[data.index] = ParameterVectorElement(
-            vector, data.index, uuid=int(param_uuid)
+        vector.params[data.index] = ParameterVectorElement(
+            name, uuid=int(param_uuid), vec=vector, vec_idx=data.index
         )
     return vector[data.index]
 
@@ -678,7 +678,6 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
             rhs = stack.pop()
             lhs = stack.pop()
-            print(expression_data.OP_CODE, lhs, rhs)
             # Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
             # op codes 13 and 15 can never be reversed and 18, 19, 20
             # are the reversed versions of non-commuative operations
