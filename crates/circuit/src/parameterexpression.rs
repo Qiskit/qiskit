@@ -65,12 +65,12 @@ impl ParameterValueType {
 }
 
 #[pyfunction]
-fn _extract_value(py: Python, value: PyObject) -> Option<ParameterExpression> {
-    if let Ok(e) = value.extract::<ParameterExpression>(py) {
+fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
+    if let Ok(e) = value.extract::<ParameterExpression>() {
         Some(e)
-    } else if let Ok(_) = value.extract::<String>(py) {
+    } else if let Ok(_) = value.extract::<String>() {
         None
-    } else if let Ok(i) = value.extract::<i64>(py) {
+    } else if let Ok(i) = value.extract::<i64>() {
         Some(ParameterExpression {
             expr: SymbolExpr::Value(Value::from(i)),
             uuid: 0,
@@ -78,7 +78,7 @@ fn _extract_value(py: Python, value: PyObject) -> Option<ParameterExpression> {
             parameter_symbols: None,
             parameter_vector: None,
         })
-    } else if let Ok(c) = value.extract::<Complex64>(py) {
+    } else if let Ok(c) = value.extract::<Complex64>() {
         if c.is_infinite() || c.is_nan() {
             return None;
         }
@@ -89,7 +89,7 @@ fn _extract_value(py: Python, value: PyObject) -> Option<ParameterExpression> {
             parameter_symbols: None,
             parameter_vector: None,
         })
-    } else if let Ok(r) = value.extract::<f64>(py) {
+    } else if let Ok(r) = value.extract::<f64>() {
         if r.is_infinite() || r.is_nan() {
             return None;
         }
@@ -524,8 +524,8 @@ impl ParameterExpression {
         let mut replay = self.clone_replay();
         replay.push(OPReplay::_INSTRUCTION {
             op: _OPCode::ADD,
-            lhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
-            rhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
         });
         let mut ret = ParameterExpression {
             expr: &lhs.expr + &self.expr,
@@ -557,7 +557,7 @@ impl ParameterExpression {
     fn _rsub(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
         replay.push(OPReplay::_INSTRUCTION {
-            op: _OPCode::SUB,
+            op: _OPCode::RSUB,
             lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
             rhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
         });
@@ -592,8 +592,8 @@ impl ParameterExpression {
         let mut replay = self.clone_replay();
         replay.push(OPReplay::_INSTRUCTION {
             op: _OPCode::MUL,
-            lhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
-            rhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
+            rhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
         });
         let mut ret = ParameterExpression {
             expr: &lhs.expr * &self.expr,
@@ -625,7 +625,7 @@ impl ParameterExpression {
     fn _rdiv(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
         replay.push(OPReplay::_INSTRUCTION {
-            op: _OPCode::DIV,
+            op: _OPCode::RDIV,
             lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
             rhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
         });
@@ -659,7 +659,7 @@ impl ParameterExpression {
     fn _rpow(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let mut replay = self.clone_replay();
         replay.push(OPReplay::_INSTRUCTION {
-            op: _OPCode::POW,
+            op: _OPCode::RPOW,
             lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
             rhs: Some(ParameterValueType::clone_expr_for_replay(lhs)),
         });
@@ -925,8 +925,8 @@ impl ParameterExpression {
     /// create new expression as a value
     #[allow(non_snake_case)]
     #[staticmethod]
-    pub fn Value(py: Python, value: PyObject) -> PyResult<Self> {
-        match _extract_value(py, value) {
+    pub fn Value(value: &Bound<PyAny>) -> PyResult<Self> {
+        match _extract_value(value) {
             Some(v) => Ok(v),
             None => Err(pyo3::exceptions::PyRuntimeError::new_err(
                 "Unsupported data type to initialize SymbolExpr as a value",
@@ -1240,7 +1240,7 @@ impl ParameterExpression {
             replay.push(OPReplay::_INSTRUCTION {
                 op: _OPCode::GRAD,
                 lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
-                rhs: None,
+                rhs: Some(ParameterValueType::clone_expr_for_replay(param)),
             });
             let mut ret = Self {
                 expr: expr_grad,
@@ -1313,13 +1313,8 @@ impl ParameterExpression {
         self.__str__()
     }
 
-    pub fn assign(
-        &self,
-        py: Python,
-        param: &ParameterExpression,
-        value: PyObject,
-    ) -> PyResult<Self> {
-        if let Some(e) = _extract_value(py, value) {
+    pub fn assign(&self, param: &ParameterExpression, value: &Bound<PyAny>) -> PyResult<Self> {
+        if let Some(e) = _extract_value(value) {
             let eval = match e.expr {
                 SymbolExpr::Value(_) => true,
                 _ => false,
@@ -1484,8 +1479,7 @@ impl ParameterExpression {
     #[pyo3(signature = (in_map, allow_unknown_parameters = None))]
     pub fn bind(
         &self,
-        py: Python,
-        in_map: HashMap<ParameterExpression, PyObject>,
+        in_map: HashMap<ParameterExpression, Bound<PyAny>>,
         allow_unknown_parameters: Option<bool>,
     ) -> PyResult<Self> {
         let mut map: HashMap<ParameterExpression, ParameterExpression> = HashMap::new();
@@ -1495,7 +1489,7 @@ impl ParameterExpression {
         };
 
         for (key, val) in in_map {
-            if let Ok(e) = Self::Value(py, val) {
+            if let Ok(e) = Self::Value(&val) {
                 map.insert(key.clone(), e);
             }
         }
@@ -1532,8 +1526,8 @@ impl ParameterExpression {
     // ====================================
     // operator overrides
     // ====================================
-    pub fn __eq__(&self, py: Python, rhs: PyObject) -> bool {
-        match _extract_value(py, rhs) {
+    pub fn __eq__(&self, rhs: &Bound<PyAny>) -> bool {
+        match _extract_value(rhs) {
             Some(rhs) => match (&self.expr, &rhs.expr) {
                 (
                     SymbolExpr::Symbol { name: _, index: _ },
@@ -1562,18 +1556,18 @@ impl ParameterExpression {
             None => false,
         }
     }
-    pub fn __ne__(&self, py: Python, rhs: PyObject) -> bool {
-        !self.__eq__(py, rhs)
+    pub fn __ne__(&self, rhs: &Bound<PyAny>) -> bool {
+        !self.__eq__(rhs)
     }
 
-    pub fn __lt__(&self, py: Python, rhs: PyObject) -> bool {
-        match _extract_value(py, rhs) {
+    pub fn __lt__(&self, rhs: &Bound<PyAny>) -> bool {
+        match _extract_value(rhs) {
             Some(rhs) => self.expr < rhs.expr,
             None => false,
         }
     }
-    pub fn __gt__(&self, py: Python, rhs: PyObject) -> bool {
-        match _extract_value(py, rhs) {
+    pub fn __gt__(&self, rhs: &Bound<PyAny>) -> bool {
+        match _extract_value(rhs) {
             Some(rhs) => self.expr > rhs.expr,
             None => false,
         }
@@ -1621,8 +1615,8 @@ impl ParameterExpression {
     }
 
     // binary operators
-    pub fn __add__(&self, py: Python, rhs: PyObject) -> PyResult<ParameterExpression> {
-        match _extract_value(py, rhs) {
+    pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+        match _extract_value(rhs) {
             Some(rhs) => {
                 self._raise_if_parameter_conflict(&rhs)?;
                 Ok(self._add(&rhs))
@@ -1632,8 +1626,8 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __radd__(&self, py: Python, lhs: PyObject) -> PyResult<ParameterExpression> {
-        match _extract_value(py, lhs) {
+    pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+        match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
                 Ok(self._radd(&lhs))
@@ -1643,8 +1637,8 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __sub__(&self, py: Python, rhs: PyObject) -> PyResult<ParameterExpression> {
-        match _extract_value(py, rhs) {
+    pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+        match _extract_value(rhs) {
             Some(rhs) => {
                 self._raise_if_parameter_conflict(&rhs)?;
                 Ok(self._sub(&rhs))
@@ -1654,8 +1648,8 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __rsub__(&self, py: Python, lhs: PyObject) -> PyResult<ParameterExpression> {
-        match _extract_value(py, lhs) {
+    pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+        match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
                 Ok(self._rsub(&lhs))
@@ -1665,8 +1659,8 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __mul__(&self, py: Python, rhs: PyObject) -> PyResult<ParameterExpression> {
-        match _extract_value(py, rhs) {
+    pub fn __mul__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+        match _extract_value(rhs) {
             Some(rhs) => {
                 self._raise_if_parameter_conflict(&rhs)?;
                 Ok(self._mul(&rhs))
@@ -1676,8 +1670,8 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __rmul__(&self, py: Python, lhs: PyObject) -> PyResult<ParameterExpression> {
-        match _extract_value(py, lhs) {
+    pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+        match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
                 Ok(self._rmul(&lhs))
@@ -1688,8 +1682,8 @@ impl ParameterExpression {
         }
     }
 
-    pub fn __truediv__(&self, py: Python, rhs: PyObject) -> PyResult<ParameterExpression> {
-        match _extract_value(py, rhs) {
+    pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+        match _extract_value(rhs) {
             Some(rhs) => {
                 if let SymbolExpr::Value(v) = &rhs.expr {
                     let zero = match v {
@@ -1711,8 +1705,8 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __rtruediv__(&self, py: Python, lhs: PyObject) -> PyResult<ParameterExpression> {
-        match _extract_value(py, lhs) {
+    pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+        match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
                 Ok(self._rdiv(&lhs))
@@ -1724,11 +1718,10 @@ impl ParameterExpression {
     }
     pub fn __pow__(
         &self,
-        py: Python,
-        rhs: PyObject,
+        rhs: &Bound<PyAny>,
         _modulo: Option<i32>,
     ) -> PyResult<ParameterExpression> {
-        match _extract_value(py, rhs) {
+        match _extract_value(rhs) {
             Some(rhs) => {
                 self._raise_if_parameter_conflict(&rhs)?;
                 Ok(self._pow(&rhs))
@@ -1740,11 +1733,10 @@ impl ParameterExpression {
     }
     pub fn __rpow__(
         &self,
-        py: Python,
-        lhs: PyObject,
+        lhs: &Bound<PyAny>,
         _modulo: Option<i32>,
     ) -> PyResult<ParameterExpression> {
-        match _extract_value(py, lhs) {
+        match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
                 Ok(self._rpow(&lhs))
