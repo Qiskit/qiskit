@@ -229,9 +229,10 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         The number of times the decomposition is recursively improved. If None, defaults to 3.
     """
 
-    # we cache an instance of the Solovay-Kitaev class to generate the
-    # computationally expensive basis approximation of single qubit gates only once
-    _sk = None
+    # For each basis, we generate the computationally expensive basis approximations of single
+    # qubit gates only once. The global class attribute _sks is a dict from a basis to a (cached)
+    # instance of the Solovay-Kitaev class.
+    _sks = {}
 
     @property
     def max_qubits(self):
@@ -281,40 +282,36 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         return False
 
     def run(self, unitary, **options):
-
-        # Runtime imports to avoid the overhead of these imports for
-        # plugin discovery and only use them if the plugin is run/used
-        config = options.get("config") or {}
-
-        recursion_degree = config.get("recursion_degree", 3)
-
-        # if we didn't yet construct the Solovay-Kitaev instance, which contains
-        # the basic approximations, do it now
-        if SolovayKitaevSynthesis._sk is None:
-            basic_approximations = config.get("basic_approximations", None)
-            basis_gates = options.get("basis_gates", ["h", "t", "tdg"])
-
-            # if the basic approximations are not generated and not given,
-            # try to generate them if the basis set is specified
-            if basic_approximations is None:
-                depth = config.get("depth", 10)
-                basic_approximations = generate_basic_approximations(basis_gates, depth)
-
-            SolovayKitaevSynthesis._sk = SolovayKitaevDecomposition(basic_approximations)
-
-        approximate_circuit = None
-
         # We first check if the unitary matrix happens to be Clifford, in which case we
         # provide the decomposition in terms of Clifford gates only.
         try:
             cliff = Clifford.from_matrix(unitary)
-            approximate_circuit = synth_clifford_bm(cliff)
+            clifford_circuit = synth_clifford_bm(cliff)
+            return circuit_to_dag(clifford_circuit)
         except QiskitError:
             pass
 
         # If the matrix is not Clifford, we run the Solovay-Kitaev decomposition.
-        if not approximate_circuit:
-            approximate_circuit = SolovayKitaevSynthesis._sk.run(unitary, recursion_degree)
 
-        dag_circuit = circuit_to_dag(approximate_circuit)
-        return dag_circuit
+        config = options.get("config") or {}
+        recursion_degree = config.get("recursion_degree", 3)
+        basis_gates = options.get("basis_gates", ["h", "t", "tdg"])
+        basis_gates_as_hashable = tuple(set(basis_gates))
+        basic_approximations = config.get("basic_approximations", None)
+
+        # if we didn't yet construct the Solovay-Kitaev instance for this basis set,
+        # do it now
+        if basis_gates_as_hashable not in self._sks:
+            # if the basic approximations are not generated and not given,
+            # generate them
+            if basic_approximations is None:
+                depth = config.get("depth", 10)
+                basic_approximations = generate_basic_approximations(basis_gates, depth)
+                SolovayKitaevSynthesis._sks[basis_gates_as_hashable] = SolovayKitaevDecomposition(
+                    basic_approximations
+                )
+
+        approximate_circuit = SolovayKitaevSynthesis._sks[basis_gates_as_hashable].run(
+            unitary, recursion_degree
+        )
+        return circuit_to_dag(approximate_circuit)
