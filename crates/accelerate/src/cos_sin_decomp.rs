@@ -114,9 +114,9 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     let mut c: DVector<f64> = svd.singular_values.column(0).into_owned();
 
     // We have u00 = l0 c r0, where l0 and r0 are unitary, and c is a diagonal matrix
-    // with positive non-decreasing entries. However, we want the entries of c to be
-    // in the ascending order instead (otherwise, we will not be able to guarantee that
-    // s is a digonal matrix). Fortunately, it is easy to modify l0, c, and r0,
+    // with positive entries in the descending order. However, we want the entries of c
+    // to be in the ascending order instead (otherwise, we will not be able to guarantee
+    // that s is a diagonal matrix too). Fortunately, it is easy to modify l0, c, and r0,
     // so that this becomes true.
     reverse_rows(&mut r0);
     reverse_columns(&mut l0);
