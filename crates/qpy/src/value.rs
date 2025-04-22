@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyInt, PyFloat, PyComplex, PyString};
+use pyo3::types::{PyAny, PyComplex, PyFloat, PyInt, PyString};
 use qiskit_circuit::imports::{PARAMETER, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 
 pub mod tags {
@@ -35,9 +35,15 @@ pub mod tags {
 pub fn get_type_key(py: Python, py_object: &Bound<PyAny>) -> u8 {
     if py_object.is_instance(PARAMETER.get_bound(py)).unwrap() {
         return tags::PARAMETER;
-    } else if py_object.is_instance(PARAMETER_EXPRESSION.get_bound(py)).unwrap() {
+    } else if py_object
+        .is_instance(PARAMETER_EXPRESSION.get_bound(py))
+        .unwrap()
+    {
         return tags::PARAMETER_EXPRESSION;
-    } else if py_object.is_instance(QUANTUM_CIRCUIT.get_bound(py)).unwrap() {
+    } else if py_object
+        .is_instance(QUANTUM_CIRCUIT.get_bound(py))
+        .unwrap()
+    {
         return tags::CIRCUIT;
     } else if py_object.is_instance_of::<PyInt>() {
         return tags::INTEGER;
@@ -56,7 +62,7 @@ pub fn get_type_key(py: Python, py_object: &Bound<PyAny>) -> u8 {
 pub fn dumps_value(py: Python, py_object: &Bound<PyAny>) -> PyResult<(u8, Vec<u8>)> {
     //TODO: placeholder for now
     let type_key: u8 = get_type_key(py, py_object);
-    let value : Vec<u8> = match type_key {
+    let value: Vec<u8> = match type_key {
         tags::INTEGER => py_object.extract::<i64>()?.to_be_bytes().to_vec(),
         tags::FLOAT => py_object.extract::<f64>()?.to_be_bytes().to_vec(),
         tags::COMPLEX => {

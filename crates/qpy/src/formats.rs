@@ -11,7 +11,8 @@
 // that they have been altered from the originals.
 
 use binrw::BinWrite;
-use crate::params::{SerializableParam};
+
+pub type Bytes = Vec<u8>;
 
 /// The overall structure of the QPY file
 #[derive(BinWrite)]
@@ -20,19 +21,20 @@ pub struct QPYFormatV13 {
     pub header: HeaderData,
     pub custom_instructions: CustomCircuitInstructionsPack,
     pub instructions: Vec<CircuitInstructionV2Pack>,
-    pub calibration_header: Vec<u8>,
-    pub layout: LayoutV2Pack
+    pub calibration_header: Bytes,
+    pub layout: LayoutV2Pack,
 }
 
+// header related
 #[derive(BinWrite)]
 #[brw(big)]
 pub struct HeaderData {
     pub header: CircuitHeaderV12Pack,
-    pub circuit_name: Vec<u8>,
-    pub global_phase_data: Vec<u8>,
-    pub metadata: Vec<u8>,
-    pub qregs: Vec<u8>,
-    pub cregs: Vec<u8>
+    pub circuit_name: Bytes,
+    pub global_phase_data: Bytes,
+    pub metadata: Bytes,
+    pub qregs: Bytes,
+    pub cregs: Bytes,
 }
 
 #[derive(BinWrite)]
@@ -49,24 +51,25 @@ pub struct CircuitHeaderV12Pack {
     pub num_vars: u32,
 }
 
+// circuit instructions related
 #[derive(BinWrite)]
 #[brw(big)]
 pub struct CircuitInstructionV2Pack {
-    pub gate_class_name_length: u16,
-    pub label_raw_length: u16,
-    pub instruction_params_length: u16,
-    pub num_qubits: u32,
-    pub num_clbits: u32,
-    pub condition_type_value: u8,
-    pub condition_register_length: u16,
+    pub name_size: u16,
+    pub label_size: u16,
+    pub num_parameters: u16,
+    pub num_qargs: u32,
+    pub num_cargs: u32,
+    pub conditional_key: u8,
+    pub condition_register_size: u16,
     pub condition_value: i64,
     pub num_ctrl_qubits: u32,
     pub ctrl_state: u32,
-    pub gate_class_name: Vec<u8>,
-    pub label_raw: Vec<u8>,
-    pub condition_raw: Vec<u8>,
+    pub gate_class_name: Bytes,
+    pub label_raw: Bytes,
+    pub condition_raw: Bytes,
     pub bit_data: Vec<CircuitInstructionArgPack>,
-    pub params: Vec<SerializableParam>
+    pub params: Vec<SerializableParam>,
 }
 
 #[derive(BinWrite)]
@@ -74,7 +77,7 @@ pub struct CircuitInstructionV2Pack {
 #[derive(Debug)]
 pub struct CircuitInstructionArgPack {
     pub bit_type: u8,
-    pub bit_value: u32,
+    pub index: u32,
 }
 #[derive(BinWrite)]
 #[brw(big)]
@@ -87,12 +90,12 @@ pub struct CustomCircuitInstructionsPack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct RegisterV4Pack {
-    pub reg_type: u8,
+    pub register_type: u8,
     pub standalone: u8,
-    pub reg_size: u32,
-    pub reg_name_length: u16,
-    pub is_in_circuit: u8,
-    pub name: Vec<u8>,
+    pub size: u32,
+    pub name_size: u16,
+    pub in_circuit: u8,
+    pub name: Bytes,
     pub bit_indices: Vec<i64>,
 }
 
@@ -107,4 +110,53 @@ pub struct LayoutV2Pack {
     pub extra_registers_length: u32,
     pub input_qubit_count: i32,
     // TODO: incomplete; should have the layout data here
+}
+
+// parameter related
+#[derive(BinWrite)]
+#[brw(big)]
+pub struct SerializableParam {
+    pub type_key: u8,
+    pub data_len: u64,
+    pub data: Bytes,
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+pub struct ParameterPack {
+    pub name_length: u16,
+    pub uuid: [u8; 16],
+    pub name: Bytes,
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterExpressionElementPack {
+    pub op: u8,
+    pub lhs_type: u8,
+    pub lhs_data: [u8; 16],
+    pub rhs_type: u8,
+    pub rhs_data: [u8; 16],
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterExpressionPack {
+    pub symbol_table_length: u64,
+    pub expression_data_length: u64,
+    pub expression_data: Bytes,
+    pub symbol_table_data: Bytes,
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterExpressionSymbolPack {
+    pub symbol_key: u8,
+    pub value_key: u8,
+    pub value_data_len: u64,
+    pub symbol_data: Bytes,
+    pub value_data: Bytes,
 }

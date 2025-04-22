@@ -10,12 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::{wrap_pyfunction, Bound, PyResult};
-use pyo3::types::PyModule;
 use pyo3::prelude::*;
+use pyo3::types::PyModule;
+use pyo3::{wrap_pyfunction, Bound, PyResult};
 
-mod formats;
 mod circuits;
+mod formats;
 mod params;
 mod value;
 
