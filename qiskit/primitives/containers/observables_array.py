@@ -87,16 +87,13 @@ class ObservablesArray(ShapedMixin):
                 full_pauli_str = "I" * obs.num_qubits
             else:
                 sorted_lists = sorted(zip(pauli_qubits, sparse_pauli_str))
-                pauli_qubits = [pq for pq, _ in sorted_lists]
-                sparse_pauli_str = [spstr for _, spstr in sorted_lists]
-
                 string_fragments = []
                 prev_qubit = -1
-                for qubit, pauli in zip(pauli_qubits, sparse_pauli_str):
+                for qubit, pauli in sorted_lists:
                     string_fragments.append("I" * (qubit - prev_qubit - 1) + pauli)
                     prev_qubit = qubit
 
-                string_fragments.append("I" * (obs.num_qubits - pauli_qubits[-1] - 1))
+                string_fragments.append("I" * (obs.num_qubits - max(pauli_qubits) - 1))
                 full_pauli_str = "".join(string_fragments)[::-1]
 
             # We know that the dictionary doesn't contain yet full_pauli_str as a key
