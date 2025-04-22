@@ -144,7 +144,7 @@ fn apply_synth_dag(
             .iter()
             .map(|qarg| out_qargs[qarg.0 as usize])
             .collect();
-        out_packed_instr.qubits = out_dag.insert_qargs(mapped_qargs.into());
+        out_packed_instr.qubits = out_dag.insert_qargs(&mapped_qargs);
         out_dag.push_back(py, out_packed_instr)?;
     }
     out_dag.add_global_phase(&synth_dag.get_global_phase())?;
@@ -167,15 +167,15 @@ fn apply_synth_sequence(
             Some(gate) => &PackedOperation::from_standard_gate(*gate),
         };
         let mapped_qargs: Vec<Qubit> = qubit_ids.iter().map(|id| out_qargs[*id as usize]).collect();
-        let new_params: Option<Box<SmallVec<[Param; 3]>>> = match gate {
-            Some(_) => Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect())),
+        let new_params: Option<SmallVec<[Param; 3]>> = match gate {
+            Some(_) => Some(params.iter().map(|p| Param::Float(*p)).collect()),
             None => {
                 if !sequence.decomp_params.is_empty()
                     && matches!(sequence.decomp_params[0], Param::Float(_))
                 {
-                    Some(Box::new(sequence.decomp_params.clone()))
+                    Some(sequence.decomp_params.clone())
                 } else {
-                    Some(Box::new(params.iter().map(|p| Param::Float(*p)).collect()))
+                    Some(params.iter().map(|p| Param::Float(*p)).collect())
                 }
             }
         };
@@ -187,7 +187,6 @@ fn apply_synth_sequence(
                     "params",
                     new_params
                         .as_deref()
-                        .map(SmallVec::as_slice)
                         .unwrap_or(&[])
                         .iter()
                         .map(|param| param.clone_ref(py))
@@ -213,8 +212,8 @@ fn apply_synth_sequence(
         out_dag.apply_operation_back(
             py,
             new_op,
-            Some(mapped_qargs.into()),
-            None,
+            &mapped_qargs,
+            &[],
             new_params,
             None,
             #[cfg(feature = "cache_pygates")]
@@ -1083,7 +1082,7 @@ fn reversed_synth_su4_dag(
             .iter()
             .map(|x| flip_bits[x.0 as usize])
             .collect();
-        inst.qubits = target_dag_builder.insert_qargs(qubits.into());
+        inst.qubits = target_dag_builder.insert_qargs(&qubits);
         target_dag_builder.push_back(py, inst)?;
     }
     Ok(target_dag_builder.build())
