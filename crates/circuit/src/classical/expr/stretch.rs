@@ -53,7 +53,7 @@ pub struct PyStretch(Stretch);
 #[pymethods]
 impl PyStretch {
     #[new]
-    fn new0(var: &Bound<PyAny>, name: String) -> PyResult<Py<Self>> {
+    fn py_new(var: &Bound<PyAny>, name: String) -> PyResult<Py<Self>> {
         Py::new(
             var.py(),
             (

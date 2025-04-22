@@ -73,7 +73,7 @@ pub struct PyVar(Var);
 impl PyVar {
     #[new]
     #[pyo3(signature = (var, ty, *, name = None), text_signature="(var, type, *, name=None)")]
-    fn new0(var: &Bound<PyAny>, ty: Type, name: Option<String>) -> PyResult<Py<Self>> {
+    fn py_new(var: &Bound<PyAny>, ty: Type, name: Option<String>) -> PyResult<Py<Self>> {
         let v = if let Some(name) = name {
             Var::Standalone {
                 uuid: var.getattr(intern!(var.py(), "int"))?.extract()?,
@@ -201,7 +201,7 @@ impl PyVar {
         ty: Type,
         name: &Bound<PyAny>,
     ) -> PyResult<Py<Self>> {
-        PyVar::new0(var, ty, name.extract()?)
+        PyVar::py_new(var, ty, name.extract()?)
     }
 
     fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
