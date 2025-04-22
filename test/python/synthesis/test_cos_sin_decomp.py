@@ -1,0 +1,67 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Tests for cosine-sine decomposition."""
+
+import math
+
+from ddt import ddt
+import numpy as np
+
+from qiskit.quantum_info.random import random_unitary
+from qiskit.circuit._utils import _compute_control_matrix
+from qiskit._accelerate.cos_sin_decomp import cossin
+
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+@ddt
+class TestCSD(QiskitTestCase):
+    """Test the cosine-sine decomposition."""
+
+    def assertCossinDecompositionIsCorrect(self, mat):
+        """Run QSD on mat and verify that it is correct."""
+        n = mat.shape[0] // 2
+
+        # Run QSD: u = [u1, u2], v = [v1, v2]
+        csd_u, csd_thetas, csd_v = cossin(mat)
+
+        # Create appropriate 2n x 2n matrices and multiply
+        zero_mat = np.zeros((n, n), dtype=complex)
+        c_mat = np.diag([math.cos(theta) for theta in csd_thetas])
+        s_mat = np.diag([math.sin(theta) for theta in csd_thetas])
+        cs_mat = np.vstack([np.hstack([c_mat, -1 * s_mat]), np.hstack([s_mat, c_mat])])
+        u_mat = np.vstack([np.hstack([csd_u[0], zero_mat]), np.hstack([zero_mat, csd_u[1]])])
+        v_mat = np.vstack([np.hstack([csd_v[0], zero_mat]), np.hstack([zero_mat, csd_v[1]])])
+        recomputed_mat = u_mat @ cs_mat @ v_mat
+
+        np.testing.assert_allclose(
+            mat,
+            recomputed_mat,
+            atol=1e-7,
+        )
+
+    @combine(num_qubits=[1, 2, 3, 4], seed=list(range(100)))
+    def test_random_unitary(self, num_qubits, seed):
+        """Test CSD for random unitary matricies."""
+        mat = random_unitary(2**num_qubits, seed=seed).data
+        self.assertCossinDecompositionIsCorrect(mat)
+
+    @combine(num_controls=[1, 2, 3], num_targets=[1, 2, 3], seed=list(range(50)))
+    def test_controlled_test_random_unitary(self, num_controls, num_targets, seed):
+        """Test CSD for controlled random unitary matricies."""
+        # Note that scipy has numerical stability problems on cotrolled
+        # random unitary matrices.
+        base_mat = random_unitary(2**num_targets, seed=seed).data
+        mat = _compute_control_matrix(base_mat, num_controls)
+        self.assertCossinDecompositionIsCorrect(mat)

@@ -124,7 +124,6 @@ def qs_decomposition(
     else:
         qr = QuantumRegister(nqubits)
         circ = QuantumCircuit(qr)
-        dim_o2 = dim // 2
         # perform cosine-sine decomposition
         (u1, u2), vtheta, (v1h, v2h) = cossin(np.asarray(mat, dtype=complex))
         # left circ
