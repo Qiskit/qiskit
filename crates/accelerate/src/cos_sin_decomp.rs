@@ -33,7 +33,6 @@ type CosSinDecompReturn = (
 
 /// Reverses rows in-place.
 fn reverse_rows(mat: &mut DMatrix<Complex64>) {
-    // Row-wise reverse u
     let mut start = 0;
     let mut end = mat.nrows() - 1;
     while start < end {
@@ -45,7 +44,6 @@ fn reverse_rows(mat: &mut DMatrix<Complex64>) {
 
 /// Reverses columns in-place.
 fn reverse_columns(mat: &mut DMatrix<Complex64>) {
-    // Row-wise reverse u
     let mut start = 0;
     let mut end = mat.ncols() - 1;
     while start < end {
@@ -102,6 +100,13 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     // Lower right corner
     let u11 = u.view((n, n), (n, n));
 
+    // For the desired decomposition to exist, we must have:
+    //   u00 = l0 c r0
+    //   u01 = -l0 s r1
+    //   u10 = l1 s r0
+    //   u11 = l1 s r1
+    // We will first find l0, c, and r0, then s and l1, and finally r1.
+
     // Apply SVD to u00
     let svd = u00.svd(true, true);
     let mut l0 = svd.u.unwrap();
@@ -122,8 +127,8 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     // so we correct for that.
     let thetas: Vec<f64> = c.iter().map(|f| f.min(1.0).acos()).collect();
 
-    // Apply QR to u10_r0_dag.
-    // We have u10 r0* = l1 s, where l1 is unitary and S is upper-triangular.
+    // Apply QR to u10 r0*.
+    // We have u10 r0* = l1 s, where l1 is unitary and s is upper-triangular.
     // Equivalently, u10 = l1 s r0.
     let r0_dag = r0.adjoint();
     let u10_r0_dag = u10 * r0_dag;
@@ -146,7 +151,7 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
 
     // We want s to be real. This is not guaranteed, though it seems to be always
     // true in practice. In either case, it can be made possible by suitable adjusting
-    // both S and l1 together.
+    // both s and l1 together.
     if s.diagonal().iter().any(|x| x.im != 0.) {
         for j in 0..n {
             let z = s[(j, j)];
