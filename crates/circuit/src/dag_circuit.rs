@@ -2833,43 +2833,37 @@ impl DAGCircuit {
             }
         };
 
-        let var_iter = input_dag.iter_vars(py)?;
-        let raw_set = imports::BUILTIN_SET.get_bound(py).call1((var_iter,))?;
-        let input_dag_var_set: &Bound<PySet> = raw_set.downcast()?;
+        let input_dag_var_set: HashSet<&expr::Var> = input_dag.vars.objects().iter().collect();
 
         let node_vars = if self.may_have_additional_wires(py, &node) {
             let (_additional_clbits, additional_vars) =
                 self.additional_wires(py, node.op.view())?;
-            let var_set = PySet::new(py, additional_vars)?;
-            if input_dag_var_set
-                .call_method1(intern!(py, "difference"), (var_set.clone(),))?
-                .is_truthy()?
-            {
+            let var_set: HashSet<&expr::Var> = additional_vars
+                .into_iter()
+                .map(|v| self.vars.get(v).unwrap())
+                .collect();
+            if input_dag_var_set.difference(&var_set).count() > 0 {
                 return Err(DAGCircuitError::new_err(format!(
                     "Cannot replace a node with a DAG with more variables. Variables in node: {:?}. Variables in dag: {:?}",
-                    var_set.str(), input_dag_var_set.str(),
+                    &var_set, &input_dag_var_set,
                 )));
             }
             var_set
         } else {
-            PySet::empty(py)?
+            HashSet::default()
         };
         let bound_var_map = var_map.bind(py);
         for var in input_dag_var_set.iter() {
-            bound_var_map.set_item(var.clone(), var)?;
+            bound_var_map.set_item((*var).clone(), (*var).clone())?;
         }
 
-        for contracted_var in node_vars
-            .call_method1(intern!(py, "difference"), (input_dag_var_set,))?
-            .downcast::<PySet>()?
-            .iter()
-        {
+        for contracted_var in node_vars.difference(&input_dag_var_set) {
             let pred = self
                 .dag
                 .edges_directed(node_index, Incoming)
                 .find(|edge| {
                     if let Wire::Var(var) = edge.weight() {
-                        contracted_var.eq(self.vars.get(*var).cloned()).unwrap()
+                        *contracted_var == self.vars.get(*var).unwrap()
                     } else {
                         false
                     }
@@ -2880,7 +2874,7 @@ impl DAGCircuit {
                 .edges_directed(node_index, Outgoing)
                 .find(|edge| {
                     if let Wire::Var(var) = edge.weight() {
-                        contracted_var.eq(self.vars.get(*var).cloned()).unwrap()
+                        *contracted_var == self.vars.get(*var).unwrap()
                     } else {
                         false
                     }
@@ -2889,9 +2883,12 @@ impl DAGCircuit {
             self.dag.add_edge(
                 pred.source(),
                 succ.target(),
-                Wire::Var(self.vars.find(&contracted_var.extract()?).unwrap()),
+                Wire::Var(self.vars.find(contracted_var).unwrap()),
             );
         }
+
+        drop(input_dag_var_set);
+        drop(node_vars);
 
         let new_input_dag: Option<DAGCircuit> = None;
         // It doesn't make sense to try and propagate a condition from a control-flow op; a
@@ -5079,10 +5076,6 @@ impl DAGCircuit {
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
-                let additional_vars = additional_vars
-                    .into_iter()
-                    .map(|var| self.vars.find(&var.bind(py).into()).unwrap())
-                    .collect();
                 (clbits.into_iter().collect(), Some(additional_vars))
             } else {
                 (self.cargs_interner.get(instr.clbits).to_vec(), None)
@@ -5102,7 +5095,7 @@ impl DAGCircuit {
     /// [DAGCircuit::copy_empty_like].
     fn push_front(&mut self, py: Python, inst: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = inst.op.name();
-        let (all_cbits, vars): (Vec<Clbit>, Option<Vec<expr::Var>>) = {
+        let (all_cbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(py, &inst) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(inst.clbits).iter().copied());
@@ -5133,7 +5126,7 @@ impl DAGCircuit {
             .collect();
         if let Some(vars) = vars {
             for var in vars {
-                input_nodes.push(self.var_io_map[self.vars.find(&var).unwrap().index()][0]);
+                input_nodes.push(self.var_io_map[var.index()][0]);
             }
         }
 
@@ -5371,14 +5364,10 @@ impl DAGCircuit {
                 .unwrap()
     }
 
-    fn additional_wires(
-        &self,
-        py: Python,
-        op: OperationRef,
-    ) -> PyResult<(Vec<Clbit>, Vec<expr::Var>)> {
-        let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<expr::Var>)> {
+    fn additional_wires(&self, py: Python, op: OperationRef) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
+        let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<Var>)> {
             let mut clbits = Vec::new();
-            let mut vars: Vec<expr::Var> = Vec::new();
+            let mut vars: Vec<Var> = Vec::new();
             for var in node.vars() {
                 match var {
                     expr::Var::Bit { bit } => {
@@ -5389,8 +5378,7 @@ impl DAGCircuit {
                             clbits.push(self.clbits.find(&bit).unwrap());
                         }
                     }
-                    // TODO: don't clone here
-                    expr::Var::Standalone { .. } => vars.push(var.clone()),
+                    expr::Var::Standalone { .. } => vars.push(self.vars.find(var).unwrap()),
                 }
             }
             Ok((clbits, vars))
@@ -5422,8 +5410,11 @@ impl DAGCircuit {
                     }
                 }
 
+                // TODO: this is the Python-side `ControlFlowOp.iter_captured_vars` which iterates
+                //   over vars in all blocks of the op. This needs to be ported to Rust when control
+                //   flow is ported.
                 for var in op.call_method0("iter_captured_vars")?.try_iter()? {
-                    vars.push(var?.extract()?)
+                    vars.push(self.vars.find(&var?.extract()?).unwrap())
                 }
                 if op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
                     let target = op.getattr(intern!(py, "target"))?;
@@ -6183,8 +6174,7 @@ impl DAGCircuit {
                 }
             }
             for v in vars {
-                let var_idx = self.vars.find(&v).unwrap();
-                if !self.var_io_map.len() - 1 < var_idx.index() {
+                if !self.var_io_map.len() - 1 < v.index() {
                     return Err(DAGCircuitError::new_err(format!(
                         "var {:?} not found in output map",
                         v
@@ -6498,7 +6488,7 @@ impl DAGCircuit {
         let mut new_nodes = Vec::new();
         let mut replacement_dag = DAGCircuit::new()?;
         std::mem::swap(self, &mut replacement_dag);
-        let mut dag_builder = replacement_dag.into_builder(py);
+        let mut dag_builder = replacement_dag.into_builder();
         for inst in iter {
             new_nodes.push(dag_builder.push_back(py, inst?)?);
         }
@@ -7155,11 +7145,7 @@ impl DAGCircuit {
         let (additional_clbits, additional_vars) =
             self.additional_wires(py, new_op.operation.view())?;
         new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
-        new_wires.extend(
-            additional_vars
-                .iter()
-                .map(|x| Wire::Var(self.vars.find(x).unwrap())),
-        );
+        new_wires.extend(additional_vars.iter().map(|x| Wire::Var(*x)));
 
         if old_packed.op.num_qubits() != new_op.operation.num_qubits()
             || old_packed.op.num_clbits() != new_op.operation.num_clbits()
@@ -7204,8 +7190,8 @@ impl DAGCircuit {
 
     /// Returns version of the DAGCircuit optimized for efficient addition
     /// of multiple new instructions to the [DAGCircuit].
-    pub fn into_builder(self, py: Python) -> DAGCircuitBuilder {
-        DAGCircuitBuilder::new(self, py)
+    pub fn into_builder(self) -> DAGCircuitBuilder {
+        DAGCircuitBuilder::new(self)
     }
 }
 
@@ -7219,10 +7205,10 @@ pub struct DAGCircuitBuilder {
 impl DAGCircuitBuilder {
     /// Creates a new instance of [DAGCircuitBuilder] which allows instructions to
     /// be added continuously into the [DAGCircuit].
-    pub fn new(dag: DAGCircuit, py: Python) -> DAGCircuitBuilder {
+    pub fn new(dag: DAGCircuit) -> DAGCircuitBuilder {
         let num_qubits = dag.num_qubits();
         let num_clbits = dag.num_clbits();
-        let num_vars = dag.num_vars(py);
+        let num_vars = dag.num_vars();
         Self {
             dag,
             last_qubits: vec![None; num_qubits],

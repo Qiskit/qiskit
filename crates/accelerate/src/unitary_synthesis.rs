@@ -374,7 +374,7 @@ fn py_run_main_loop(
                     out_dag.push_back(py, packed_instr.clone())?;
                     Ok(())
                 };
-                let mut builder = out_dag.into_builder(py);
+                let mut builder = out_dag.into_builder();
                 run_2q_unitary_synthesis(
                     py,
                     unitary,
@@ -407,7 +407,7 @@ fn py_run_main_loop(
                         None,
                     )?;
                     let out_qargs = dag.get_qargs(packed_instr.qubits);
-                    let mut dag_builder = out_dag.into_builder(py);
+                    let mut dag_builder = out_dag.into_builder();
                     apply_synth_dag(py, &mut dag_builder, out_qargs, &synth_dag)?;
                     out_dag = dag_builder.build();
                 }
@@ -1073,7 +1073,7 @@ fn reversed_synth_su4_dag(
 
     let target_dag = synth_dag.copy_empty_like(py, "alike")?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
-    let mut target_dag_builder = target_dag.into_builder(py);
+    let mut target_dag_builder = target_dag.into_builder();
     for node in synth_dag.topological_op_nodes()? {
         let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
