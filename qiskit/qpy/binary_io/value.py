@@ -34,6 +34,7 @@ from qiskit.circuit.parametervector import ParameterVector, ParameterVectorEleme
 from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
 
+
 def _write_parameter(file_obj, obj):
     name_bytes = obj.name.encode(common.ENCODE)
     file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj.uuid.bytes))
