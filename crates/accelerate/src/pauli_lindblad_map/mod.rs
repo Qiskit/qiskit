@@ -85,23 +85,11 @@ static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BitTerm {
     /// Pauli X operator.
-    X = 0b00_10,
-    /// Projector to the positive eigenstate of Pauli X.
-    Plus = 0b10_10,
-    /// Projector to the negative eigenstate of Pauli X.
-    Minus = 0b01_10,
+    X = 0b10,
     /// Pauli Y operator.
-    Y = 0b00_11,
-    /// Projector to the positive eigenstate of Pauli Y.
-    Right = 0b10_11,
-    /// Projector to the negative eigenstate of Pauli Y.
-    Left = 0b01_11,
+    Y = 0b11,
     /// Pauli Z operator.
-    Z = 0b00_01,
-    /// Projector to the positive eigenstate of Pauli Z.
-    Zero = 0b10_01,
-    /// Projector to the negative eigenstate of Pauli Z.
-    One = 0b01_01,
+    Z = 0b01,
 }
 impl From<BitTerm> for u8 {
     fn from(value: BitTerm) -> u8 {
@@ -113,7 +101,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for BitTerm {
 
     #[inline(always)]
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits <= 0b11_11 && (*bits & 0b11_00) < 0b11_00 && (*bits & 0b00_11) != 0
+        *bits <= 0b11 && *bits != 0
     }
 }
 unsafe impl ::bytemuck::NoUninit for BitTerm {}
@@ -126,14 +114,8 @@ impl BitTerm {
         // Note: these labels are part of the stable Python API and should not be changed.
         match self {
             Self::X => "X",
-            Self::Plus => "+",
-            Self::Minus => "-",
             Self::Y => "Y",
-            Self::Right => "r",
-            Self::Left => "l",
             Self::Z => "Z",
-            Self::Zero => "0",
-            Self::One => "1",
         }
     }
 
@@ -143,14 +125,8 @@ impl BitTerm {
         // Note: these names are part of the stable Python API and should not be changed.
         match self {
             Self::X => "X",
-            Self::Plus => "PLUS",
-            Self::Minus => "MINUS",
             Self::Y => "Y",
-            Self::Right => "RIGHT",
-            Self::Left => "LEFT",
             Self::Z => "Z",
-            Self::Zero => "ZERO",
-            Self::One => "ONE",
         }
     }
 
@@ -162,16 +138,10 @@ impl BitTerm {
     #[inline]
     fn try_from_u8(value: u8) -> Result<Option<Self>, BitTermFromU8Error> {
         match value {
-            b'+' => Ok(Some(BitTerm::Plus)),
-            b'-' => Ok(Some(BitTerm::Minus)),
-            b'0' => Ok(Some(BitTerm::Zero)),
-            b'1' => Ok(Some(BitTerm::One)),
             b'I' => Ok(None),
             b'X' => Ok(Some(BitTerm::X)),
             b'Y' => Ok(Some(BitTerm::Y)),
             b'Z' => Ok(Some(BitTerm::Z)),
-            b'l' => Ok(Some(BitTerm::Left)),
-            b'r' => Ok(Some(BitTerm::Right)),
             _ => Err(BitTermFromU8Error(value)),
         }
     }
@@ -188,24 +158,6 @@ impl BitTerm {
     /// This is true for the operators and eigenspace projectors associated with Y and Z.
     pub fn has_z_component(&self) -> bool {
         ((*self as u8) & (Self::Z as u8)) != 0
-    }
-
-    pub fn is_projector(&self) -> bool {
-        !matches!(self, BitTerm::X | BitTerm::Y | BitTerm::Z)
-    }
-}
-
-fn bit_term_as_pauli(bit: &BitTerm) -> &'static [(bool, Option<BitTerm>)] {
-    match bit {
-        BitTerm::X => &[(true, Some(BitTerm::X))],
-        BitTerm::Y => &[(true, Some(BitTerm::Y))],
-        BitTerm::Z => &[(true, Some(BitTerm::Z))],
-        BitTerm::Plus => &[(true, None), (true, Some(BitTerm::X))],
-        BitTerm::Minus => &[(true, None), (false, Some(BitTerm::X))],
-        BitTerm::Right => &[(true, None), (true, Some(BitTerm::Y))],
-        BitTerm::Left => &[(true, None), (false, Some(BitTerm::Y))],
-        BitTerm::Zero => &[(true, None), (true, Some(BitTerm::Z))],
-        BitTerm::One => &[(true, None), (false, Some(BitTerm::Z))],
     }
 }
 
@@ -625,58 +577,6 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Expand all projectors into Pauli representation.
-    ///
-    /// # Warning
-    ///
-    /// This representation is highly inefficient for projectors. For example, a term with
-    /// :math:`n` projectors :math:`|+\rangle\langle +|` will use :math:`2^n` Pauli terms.
-    pub fn as_paulis(&self) -> Self {
-        let mut paulis: Vec<BitTerm> = Vec::new(); // maybe get capacity here
-        let mut indices: Vec<u32> = Vec::new();
-        let mut coeffs: Vec<Complex64> = Vec::new();
-        let mut boundaries: Vec<usize> = vec![0];
-
-        for view in self.iter() {
-            let num_projectors = view
-                .bit_terms
-                .iter()
-                .filter(|&bit| bit.is_projector())
-                .count();
-            let div = 2_f64.powi(num_projectors as i32);
-
-            let combinations = view
-                .bit_terms
-                .iter()
-                .map(bit_term_as_pauli)
-                .multi_cartesian_product();
-
-            for combination in combinations {
-                let mut positive = true; // keep track of the global sign
-
-                for (index, (sign, bit)) in combination.iter().enumerate() {
-                    positive ^= !sign; // accumulate the sign; global_sign *= local_sign
-                    if let Some(bit) = bit {
-                        paulis.push(*bit);
-                        indices.push(view.indices[index]);
-                    }
-                }
-                boundaries.push(paulis.len());
-
-                let coeff = if positive { view.coeff } else { -view.coeff };
-                coeffs.push(coeff / div)
-            }
-        }
-
-        Self {
-            num_qubits: self.num_qubits,
-            coeffs,
-            bit_terms: paulis,
-            indices,
-            boundaries,
-        }
-    }
-
     /// Add the term implied by a dense string label onto this observable.
     pub fn add_dense_label<L: AsRef<[u8]>>(
         &mut self,
@@ -1001,14 +901,8 @@ fn bit_term_label(py: Python, slf: BitTerm) -> &Bound<PyString> {
     // This doesn't use `py_label` so we can use `intern!`.
     match slf {
         BitTerm::X => intern!(py, "X"),
-        BitTerm::Plus => intern!(py, "+"),
-        BitTerm::Minus => intern!(py, "-"),
         BitTerm::Y => intern!(py, "Y"),
-        BitTerm::Right => intern!(py, "r"),
-        BitTerm::Left => intern!(py, "l"),
         BitTerm::Z => intern!(py, "Z"),
-        BitTerm::Zero => intern!(py, "0"),
-        BitTerm::One => intern!(py, "1"),
     }
 }
 /// Construct the Python-space `IntEnum` that represents the same values as the Rust-spce `BitTerm`.
@@ -1023,14 +917,8 @@ fn bit_term_label(py: Python, slf: BitTerm) -> &Bound<PyString> {
 fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
     let terms = [
         BitTerm::X,
-        BitTerm::Plus,
-        BitTerm::Minus,
         BitTerm::Y,
-        BitTerm::Right,
-        BitTerm::Left,
         BitTerm::Z,
-        BitTerm::Zero,
-        BitTerm::One,
     ]
     .into_iter()
     .flat_map(|term| {
@@ -1693,44 +1581,6 @@ impl PyPauliLindbladMap {
             inner.add_dense_label(&label, coeff)?;
         }
         Ok(inner.into())
-    }
-
-    /// Express the observable in Pauli terms only, by writing each projector as sum of Pauli terms.
-    ///
-    /// Note that there is no guarantee of the order the resulting Pauli terms. Use
-    /// :meth:`SparseObservable.simplify` in addition to obtain a canonical representation.
-    ///
-    /// .. warning::
-    ///
-    ///     Beware that this will use at least :math:`2^n` terms if there are :math:`n`
-    ///     single-qubit projectors present, which can lead to an exponential number of terms.
-    ///
-    /// Returns:
-    ///     The same observable, but expressed in Pauli terms only.
-    ///
-    /// Examples:
-    ///
-    ///     Rewrite an observable in terms of projectors into Pauli operators::
-    ///
-    ///         >>> obs = SparseObservable("+")
-    ///         >>> obs.as_paulis()
-    ///         <SparseObservable with 2 terms on 1 qubit: (0.5+0j)() + (0.5+0j)(X_0)>
-    ///         >>> direct = SparseObservable.from_list([("I", 0.5), ("Z", 0.5)])
-    ///         >>> assert direct.simplify() == obs.as_paulis().simplify()
-    ///
-    ///     For small operators, this can be used with :meth:`simplify` as a unique canonical form::
-    ///
-    ///         >>> left = SparseObservable.from_list([("+", 0.5), ("-", 0.5)])
-    ///         >>> right = SparseObservable.from_list([("r", 0.5), ("l", 0.5)])
-    ///         >>> assert left.as_paulis().simplify() == right.as_paulis().simplify()
-    ///
-    /// See also:
-    ///     :meth:`.SparsePauliOp.from_sparse_observable`
-    ///         A constructor of :class:`.SparsePauliOp` that can convert a
-    ///         :class:`SparseObservable` in the :class:`.SparsePauliOp` dense Pauli representation.
-    fn as_paulis(&self) -> PyResult<Self> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.as_paulis().into())
     }
 
     /// Construct a :class:`.SparseObservable` from a :class:`.SparsePauliOp` instance.
