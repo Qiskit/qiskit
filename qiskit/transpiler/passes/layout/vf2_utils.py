@@ -20,6 +20,7 @@ from rustworkx import PyDiGraph, PyGraph, connected_components
 
 from qiskit.circuit import ForLoopOp
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.target import Target
 from qiskit._accelerate import vf2_layout
 from qiskit._accelerate.nlayout import NLayout
 from qiskit._accelerate.error_map import ErrorMap
@@ -138,6 +139,15 @@ def score_layout(
         edge_list = build_edge_list(im_graph)
     return vf2_layout.score_layout(
         bit_list, edge_list, avg_error_map, nlayout, strict_direction, run_in_parallel
+    )
+
+
+def build_dummy_target(coupling_map) -> Target:
+    """Build a dummy target with no error rates that represents the coupling in ``coupling_map``."""
+    # The choice of basis gates is completely arbitrary, and we have no source of error rates.
+    # We just want _something_ to represent the coupling constraints.
+    return Target.from_configuration(
+        basis_gates=["u", "cx"], num_qubits=coupling_map.size(), coupling_map=coupling_map
     )
 
 

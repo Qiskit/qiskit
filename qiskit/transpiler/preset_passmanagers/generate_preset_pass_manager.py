@@ -129,9 +129,9 @@ def generate_preset_pass_manager(
             :class:`~.StagedPassManager`. You can see a list of installed plugins by using
             :func:`~.list_stage_plugins` with ``"layout"`` for the ``stage_name`` argument.
         routing_method (str): The pass to use for routing qubits on the
-            architecture. Valid choices are ``'basic'``, ``'lookahead'``, ``'stochastic'``,
+            architecture. Valid choices are ``'basic'``, ``'lookahead'``,
             ``'sabre'``, and ``'none'`` representing :class:`~.BasicSwap`,
-            :class:`~.LookaheadSwap`, :class:`~.StochasticSwap`, :class:`~.SabreSwap`, and
+            :class:`~.LookaheadSwap`, :class:`~.SabreSwap`, and
             erroring if routing is required respectively. This can also be the external plugin
             name to use for the ``routing`` stage of the output :class:`~.StagedPassManager`.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with

@@ -33,7 +33,9 @@ pub struct Binary {
 /// they are public in the sister Python enum `_BinaryOp` in `expr.py`
 /// and used in our QPY serialization format.
 ///
-/// WARNING: If you add more, **be sure to update expr.py**, too.
+/// WARNING: If you add more, **be sure to update expr.py** as well
+/// as the implementation of [::bytemuck::CheckedBitPattern]
+/// below.
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BinaryOp {
