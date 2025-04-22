@@ -32,7 +32,9 @@ pub struct Unary {
 /// they are public in the sister Python enum `_UnaryOp` in `expr.py`
 /// and used in our QPY serialization format.
 ///
-/// WARNING: If you add more, **be sure to update expr.py**, too.
+/// WARNING: If you add more, **be sure to update expr.py** as well
+/// as the implementation of [::bytemuck::CheckedBitPattern]
+/// below.
 #[repr(u8)]
 #[derive(Copy, Hash, Clone, Debug, PartialEq)]
 pub enum UnaryOp {
