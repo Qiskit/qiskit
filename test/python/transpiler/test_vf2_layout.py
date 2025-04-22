@@ -583,7 +583,7 @@ class TestVF2LayoutOther(LayoutTestCase):
         target.add_instruction(CXGate())
 
         vf2_pass = VF2Layout(
-            coupling_map=CouplingMap([[0, 2], [1, 2]]), target=target, seed=42, max_trials=1
+            coupling_map=CouplingMap([[0, 2], [1, 2]]), target=target, seed=-1, max_trials=1
         )
         vf2_pass.run(dag)
 
