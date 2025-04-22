@@ -9,10 +9,18 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+
+// We use the following terminology:
+// 1. "Pack": To create a struct (from formats.rs) from the original data
+// 2. "Serialize": To create binary data (Vec<u8>) from the original data
+// 3. "Write": To write to a file obj the serialization of the original data
+// Ideally, serialization is done by packing in a binrw-enhanced struct and using the 
+// `write` method into a `Cursor` buffer, but there might be exceptions.
+
 use std::io::Cursor;
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
-use pyo3::types::{PyAny, PyTuple};
+use pyo3::types::{PyAny, PyDict, PyList, PyIterator, PyTuple};
 use pyo3::intern;
 use qiskit_circuit::imports::{BARRIER, DELAY, MEASURE, RESET};
 use qiskit_circuit::circuit_data::CircuitData;
@@ -22,41 +30,13 @@ use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
 
 use binrw::BinWrite;
 use crate::params::{SerializableParam, param_to_serializable};
+use crate::value::dumps_value;
+use crate::formats::{QPYFormatV13, CircuitInstructionV2Pack, CircuitInstructionArgPack, CustomCircuitInstructionsPack, HeaderData, CircuitHeaderV12Pack, RegisterV4Pack, LayoutV2Pack};
 
-#[derive(BinWrite)]
-#[brw(big)]
-struct CircuitInstructionV2Pack {
-    gate_class_name_length: u16,
-    label_raw_length: u16,
-    instruction_params_length: u16,
-    num_qubits: u32,
-    num_clbits: u32,
-    condition_type_value: u8,
-    condition_register_length: u16,
-    condition_value: i64,
-    num_ctrl_qubits: u32,
-    ctrl_state: u32,
-    gate_class_name: Vec<u8>,
-    label_raw: Vec<u8>,
-    condition_raw: Vec<u8>,
-    bit_data: Vec<CircuitInstructionArgPack>,
-    params: Vec<SerializableParam>
+// For debugging purposes
+fn hex_string(bytes: &Vec<u8>) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>()
 }
-
-#[derive(BinWrite)]
-#[brw(big)]
-#[derive(Debug)]
-struct CircuitInstructionArgPack {
-    bit_type: u8,
-    bit_value: u32,
-}
-#[derive(BinWrite)]
-#[brw(big)]
-#[derive(Debug)]
-struct CustomCircuitInstructionsPack {
-    custom_operations_length: u64,
-}
-
 
 fn get_packed_bit_list(inst: &PackedInstruction, circuit_data: &CircuitData) -> Vec<CircuitInstructionArgPack>{
     let mut result: Vec<CircuitInstructionArgPack> = Vec::new();
@@ -181,7 +161,6 @@ fn dump_register(py:Python, register: Bound<PyAny>, circuit_data: &CircuitData) 
     else {
         Ok(Vec::new())
     }
-        // return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
 }
 
 pub mod condition_types {
@@ -219,7 +198,7 @@ fn get_condition_data(py: Python, inst: &PackedInstruction, circuit_data: &Circu
     }
 }
 
-fn instruction_raw(py: Python, instruction: &PackedInstruction, circuit_data: &CircuitData) -> CircuitInstructionV2Pack{
+fn pack_instruction(py: Python, instruction: &PackedInstruction, circuit_data: &CircuitData) -> CircuitInstructionV2Pack{
     let class_name = gate_class_name(py, instruction).unwrap();
     let label_raw = gate_label(instruction);
     let num_ctrl_qubits = get_num_ctrl_qubits(py,instruction).unwrap_or(0);
@@ -244,33 +223,201 @@ fn instruction_raw(py: Python, instruction: &PackedInstruction, circuit_data: &C
         bit_data: bit_data,
         params: instruction_params,
     }
-    
 }
-#[pyfunction]
-#[pyo3(signature = (file_obj, circuit_data))]
-pub fn py_write_instructions(
+
+pub fn pack_instructions(
     py: Python,
-    file_obj: &Bound<PyAny>,
     circuit_data: CircuitData,
-) -> PyResult<usize> {
-    let mut instructions_buffer = Cursor::new(Vec::new());
-    for instruction in circuit_data.data(){
-        let raw_instruction = instruction_raw(py, instruction, &circuit_data);
-        raw_instruction.write(&mut instructions_buffer).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
-        })?;
+) -> PyResult<Vec<CircuitInstructionV2Pack>> {
+        Ok(circuit_data
+        .data()
+        .iter()
+        .map(|instruction| pack_instruction(py, instruction, &circuit_data))
+        .collect())
+}
+
+fn serialize_metadata(py: Python, metadata: &Bound<PyAny>, metadata_serializer: &Bound<PyAny>) -> PyResult<Vec<u8>> {
+    let json = py.import("json")?;
+    let kwargs = PyDict::new(py);
+    kwargs.set_item("separators", PyTuple::new(py, [",", ":"])?);
+    kwargs.set_item("cls", metadata_serializer);
+    Ok(json
+    .call_method("dumps", (metadata,), Some(&kwargs))?
+    .extract::<String>()?
+    .into_bytes())
+}
+
+fn pack_register(py: Python, register: &Bound<PyAny>, bitmap: &Bound<PyDict>, is_in_circuit: bool) -> PyResult<RegisterV4Pack> {
+    let reg_name = register
+    .getattr("name")?
+    .extract::<String>()?
+    .into_bytes();
+    let reg_type = register
+    .getattr("prefix")?
+    .extract::<String>()?
+    .into_bytes()[0];
+    let mut standalone = true;
+    let mut bit_indices: Vec<i64> = Vec::new();
+    for (index, bit) in PyIterator::from_object(register)?.enumerate() {
+        let bit_val = bit?;
+        if !(register.rich_compare(bit_val.getattr("_register")?, pyo3::basic::CompareOp::Eq)?.is_truthy()?) {
+            standalone = false;
+        }
+        if bit_val.getattr("_index")?.extract::<usize>()? != index {
+            standalone = false;
+        }
+
+        if let Some(index) = bitmap.get_item(bit_val)? {
+            bit_indices.push(index.extract::<i64>()?);
+        } else {
+            bit_indices.push(-1);
+        }
     }
-    // placeholder for now
-    let mut custom_operations_buffer = Cursor::new(Vec::new());
-    let custom_operations = CustomCircuitInstructionsPack{
-        custom_operations_length: 0
+    let packed_reg = RegisterV4Pack {
+        reg_type: reg_type,
+        standalone: standalone as u8,
+        reg_size: register.getattr("size")?.extract::<u32>()?,
+        reg_name_length: reg_name.len() as u16,
+        is_in_circuit: is_in_circuit as u8,
+        name: reg_name,
+        bit_indices: bit_indices,
     };
-    custom_operations.write(&mut custom_operations_buffer).map_err(|e| {
+    Ok(packed_reg)
+}
+
+fn serialize_register(py: Python, register: &Bound<PyAny>, bitmap: &Bound<PyDict>, is_in_circuit: bool) -> PyResult<Vec<u8>> {
+    let mut buffer = Cursor::new(Vec::new());
+    let packed_register = pack_register(py, register, bitmap, is_in_circuit)?;
+    packed_register.write(&mut buffer).map_err(|e| {
         PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
     })?;
-    let custom_operations_bytes = custom_operations_buffer.into_inner();
-    file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &custom_operations_bytes),))?;
-    let instructions_bytes = instructions_buffer.into_inner();
-    file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &instructions_bytes),))?;
-    Ok(55)
+    Ok(buffer.into_inner())
+}
+
+fn serialize_registers(py: Python, in_circ_regs: &Bound<PyAny>, bits: &Bound<PyAny>) -> PyResult<(u32, Vec<u8>)> {
+    let bitmap = PyDict::new(py);
+    let out_circ_regs = PyList::new(py, Vec::<PyObject>::new())?;
+
+    bits
+    .downcast::<PyList>()?
+    .iter()
+    .enumerate()
+    .for_each(|(index, bit)| {
+        bitmap.set_item(&bit, index);
+        if let Ok(register) = bit.getattr("_register") {
+            if !(in_circ_regs.contains(&register).unwrap_or(false)) && !(out_circ_regs.contains(&register).unwrap_or(true)) {
+                out_circ_regs.append(register);
+            }
+        }
+    });
+    let mut result: Vec<u8> = Vec::new();
+    in_circ_regs
+    .downcast::<PyList>()?
+    .iter()
+    .try_for_each(|register| -> PyResult<()> {result.extend(serialize_register(py, &register, &bitmap, true)?); Ok(())});
+
+    out_circ_regs
+    .iter()
+    .try_for_each(|register| -> PyResult<()> {result.extend(serialize_register(py, &register, &bitmap, false)?); Ok(())});
+
+    let length = in_circ_regs.call_method0("__len__")?.extract::<u32>()? + out_circ_regs.call_method0("__len__")?.extract::<u32>()?;
+    Ok((length, result))
+}
+
+fn pack_circuit_header(py: Python, circuit: &Bound<PyAny>, metadata_serializer: &Bound<PyAny>, use_symengine: bool, version: u32) -> PyResult<HeaderData> {
+    let circuit_name = circuit
+    .getattr("name")?
+    .extract::<String>()?
+    .into_bytes();
+    let metadata_raw = serialize_metadata(py,&circuit.getattr("metadata")?, metadata_serializer)?;
+    let (global_phase_type, global_phase_data) = dumps_value(py, &circuit.getattr("global_phase")?)?;
+    let (num_qregs, qregs_raw) = serialize_registers(py,&circuit.getattr("qregs")?, &circuit.getattr("qubits")?)?;
+    let (num_cregs, cregs_raw) = serialize_registers(py,&circuit.getattr("cregs")?, &circuit.getattr("clbits")?)?;
+    let header = CircuitHeaderV12Pack {
+        name_size: circuit_name.len() as u16,
+        global_phase_type: global_phase_type,
+        global_phase_size: global_phase_data.len() as u16,
+        num_qubits: circuit.getattr("num_qubits")?.extract::<u32>()?,
+        num_clbits: circuit.getattr("num_clbits")?.extract::<u32>()?,
+        metadata_size: metadata_raw.len() as u64,
+        num_registers: num_qregs + num_cregs,
+        num_instructions: circuit.call_method0("__len__")?.extract::<u64>()?,
+        num_vars: circuit.getattr("num_identifiers")?.extract::<u32>()?,
+    };
+    
+    Ok(HeaderData {
+        header: header,
+        circuit_name: circuit_name,
+        global_phase_data: global_phase_data,
+        metadata: metadata_raw,
+        qregs: qregs_raw,
+        cregs: cregs_raw,
+    })
+}
+
+fn pack_layout(py: Python, circuit: &Bound<PyAny>) -> PyResult<LayoutV2Pack> {
+    if circuit
+    .getattr("layout")?
+    .is_none() {
+        Ok(LayoutV2Pack {
+            exists: 0,
+            initial_layout_size: -1,
+            input_mapping_size: -1,
+            final_layout_size: -1,
+            extra_registers_length: 0,
+            input_qubit_count: 0
+        })
+    } else {
+        // TODO: placeholder; should handle custom layout here
+        Ok(LayoutV2Pack {
+            exists: 0,
+            initial_layout_size: -1,
+            input_mapping_size: -1,
+            final_layout_size: -1,
+            extra_registers_length: 0,
+            input_qubit_count: 0
+        })
+    }
+}
+
+fn pack_circuit(py: Python, circuit: &Bound<PyAny>, metadata_serializer: &Bound<PyAny>, use_symengine: bool, version: u32) -> PyResult<QPYFormatV13> {
+    let circuit_data = circuit
+    .getattr("_data")?
+    .extract::<CircuitData>()?;
+    let header_raw = pack_circuit_header(py, circuit, metadata_serializer, use_symengine, version)?;
+    // TODO: still need to implement write_standalone_vars
+    // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
+    // we need to write an empty calibrations header since read_circuit expects it
+    let calibration_header_value: u16 = 0;
+    Ok(QPYFormatV13 {
+        header: header_raw,
+        custom_instructions: CustomCircuitInstructionsPack { custom_operations_length: (0) },
+        instructions: pack_instructions(py, circuit_data)?,
+        calibration_header: calibration_header_value.to_be_bytes().to_vec(),
+        layout: pack_layout(py, circuit)?,
+    })
+}
+
+fn serialize_circuit(py: Python, circuit: &Bound<PyAny>, metadata_serializer: &Bound<PyAny>, use_symengine: bool, version: u32) -> PyResult<Vec<u8>> {
+    let mut buffer = Cursor::new(Vec::new());
+    let packed_circuit = pack_circuit(py, circuit, metadata_serializer, use_symengine, version)?;
+    packed_circuit.write(&mut buffer).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
+    })?;
+    Ok(buffer.into_inner())
+}
+
+#[pyfunction]
+#[pyo3(signature = (file_obj, circuit, metadata_serializer, use_symengine, version))]
+pub fn py_write_circuit(
+    py: Python,
+    file_obj: &Bound<PyAny>,
+    circuit: &Bound<PyAny>,
+    metadata_serializer: &Bound<PyAny>,
+    use_symengine: bool,
+    version: u32
+) -> PyResult<usize> {
+    let serialized_circuit = serialize_circuit(py, circuit, metadata_serializer, use_symengine, version)?;
+    file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_circuit),))?;    
+    Ok(serialized_circuit.len())
 }

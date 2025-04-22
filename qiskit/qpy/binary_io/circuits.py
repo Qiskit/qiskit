@@ -1215,6 +1215,9 @@ def write_circuit(
             before setting this option, as it will be required by qpy to deserialize the payload.
         version (int): The QPY format version to use for serializing this circuit
     """
+    if use_rust:
+        _qpy.py_write_circuit(file_obj, circuit, metadata_serializer, use_symengine, version)
+        return
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
     ).encode(common.ENCODE)
@@ -1251,44 +1254,41 @@ def write_circuit(
     standalone_var_indices = value.write_standalone_vars(file_obj, circuit, version)
 
     instruction_buffer = io.BytesIO()
-    if use_rust:
-        _qpy.py_write_instructions(instruction_buffer, circuit._data)
-    else:
-        custom_operations = {}
-        index_map = {}
-        index_map["q"] = {bit: index for index, bit in enumerate(circuit.qubits)}
-        index_map["c"] = {bit: index for index, bit in enumerate(circuit.clbits)}
-        for instruction in circuit.data:
-            _write_instruction(
-                instruction_buffer,
-                instruction,
-                custom_operations,
-                index_map,
-                use_symengine,
-                version,
-                standalone_var_indices=standalone_var_indices,
-            )
+    custom_operations = {}
+    index_map = {}
+    index_map["q"] = {bit: index for index, bit in enumerate(circuit.qubits)}
+    index_map["c"] = {bit: index for index, bit in enumerate(circuit.clbits)}
+    for instruction in circuit.data:
+        _write_instruction(
+            instruction_buffer,
+            instruction,
+            custom_operations,
+            index_map,
+            use_symengine,
+            version,
+            standalone_var_indices=standalone_var_indices,
+        )
 
-        with io.BytesIO() as custom_operations_buffer:
-            new_custom_operations = list(custom_operations.keys())
-            while new_custom_operations:
-                operations_to_serialize = new_custom_operations.copy()
-                new_custom_operations = []
-                for name in operations_to_serialize:
-                    operation = custom_operations[name]
-                    new_custom_operations.extend(
-                        _write_custom_operation(
-                            custom_operations_buffer,
-                            name,
-                            operation,
-                            custom_operations,
-                            use_symengine,
-                            version,
-                            standalone_var_indices=standalone_var_indices,
-                        )
+    with io.BytesIO() as custom_operations_buffer:
+        new_custom_operations = list(custom_operations.keys())
+        while new_custom_operations:
+            operations_to_serialize = new_custom_operations.copy()
+            new_custom_operations = []
+            for name in operations_to_serialize:
+                operation = custom_operations[name]
+                new_custom_operations.extend(
+                    _write_custom_operation(
+                        custom_operations_buffer,
+                        name,
+                        operation,
+                        custom_operations,
+                        use_symengine,
+                        version,
+                        standalone_var_indices=standalone_var_indices,
                     )
-            file_obj.write(struct.pack(formats.CUSTOM_CIRCUIT_DEF_HEADER_PACK, len(custom_operations)))
-            file_obj.write(custom_operations_buffer.getvalue())
+                )
+        file_obj.write(struct.pack(formats.CUSTOM_CIRCUIT_DEF_HEADER_PACK, len(custom_operations)))
+        file_obj.write(custom_operations_buffer.getvalue())
 
     file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
