@@ -80,10 +80,8 @@ class ObservablesArray(ShapedMixin):
     @staticmethod
     def obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
         """Convert a sparse observable to a mapping from Pauli strings to coefficients"""
-        sparse_list = obs.to_sparse_list()
         result = {}
-        for pauli_term in sparse_list:
-            sparse_pauli_str, pauli_qubits, coeff = pauli_term
+        for sparse_pauli_str, pauli_qubits, coeff in obs.to_sparse_list():
 
             if len(sparse_pauli_str) == 0:
                 full_pauli_str = "I" * obs.num_qubits
