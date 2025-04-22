@@ -115,7 +115,8 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
 
     // We have u00 = l0 c r0, where l0 and r0 are unitary, and c is a diagonal matrix
     // with positive non-decreasing entries. However, we want the entries of c to be
-    // in the ascending order instead. Fortunately, it is easy to modify l0, c, and r0,
+    // in the ascending order instead (otherwise, we will not be able to guarantee that
+    // s is a digonal matrix). Fortunately, it is easy to modify l0, c, and r0,
     // so that this becomes true.
     reverse_rows(&mut r0);
     reverse_columns(&mut l0);
@@ -132,7 +133,7 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     // Equivalently, u10 = l1 s r0.
     let r0_dag = r0.adjoint();
     let u10_r0_dag = u10 * r0_dag;
-    let qr = u10_r0_dag.clone().qr();
+    let qr = u10_r0_dag.qr();
     let mut l1 = qr.q();
     let mut s = qr.unpack_r();
 
@@ -140,14 +141,15 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     // Proof: Since u is unitary, we have
     //     I = u00* u00 + u10* u10
     //       = (l0 c r0)* (l0 c r0) + (l1 s r0)* (l1 s r0)
-    //       = r0* c* l0* l0 c r0 + r0* S* l1* l1 s r0
+    //       = r0* c* l0* l0 c r0 + r0* s* l1* l1 s r0
     //       = r0* c* c r0 + r0* s* s r0
     //       = r0* (c^2 + s* s) r0
-    // So I = c^2 + (S* S), so (S* S) = I - c^2 is a diagonal matrix with non-
+    // So I = c^2 + (s* s), so (s* s) = I - c^2 is a diagonal matrix with non-
     // increasing entries in the range [0,1). As s is upper triangular, this
     // implies that s must be diagonal. (Proof by induction over the dimension n
-    // of S: consider the two cases s_00 = 0 and s_00 != 0 and reduce to the n-1
-    // case. Note: it is important that the entries of s are in descending order).
+    // of s: consider the two cases s_00 = 0 and s_00 != 0 and reduce to the n-1
+    // case. Note: it is important that the entries of s are in descending order
+    // for this proof to work.)
 
     // We want s to be real. This is not guaranteed, though it seems to be always
     // true in practice. In either case, it can be made possible by suitable adjusting
