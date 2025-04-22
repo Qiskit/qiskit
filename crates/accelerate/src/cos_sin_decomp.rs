@@ -104,7 +104,7 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     //   u00 = l0 c r0
     //   u01 = -l0 s r1
     //   u10 = l1 s r0
-    //   u11 = l1 s r1
+    //   u11 = l1 c r1
     // We will first find l0, c, and r0, then s and l1, and finally r1.
 
     // Apply SVD to u00
