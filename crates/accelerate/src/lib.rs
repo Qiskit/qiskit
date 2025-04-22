@@ -47,6 +47,7 @@ pub mod results;
 pub mod sabre;
 pub mod sampled_exp_val;
 pub mod sparse_observable;
+pub mod pauli_lindblad_map;
 pub mod sparse_pauli_op;
 pub mod split_2q_unitaries;
 pub mod star_prerouting;
