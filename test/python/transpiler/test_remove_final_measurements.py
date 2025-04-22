@@ -15,9 +15,10 @@
 import unittest
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit import Clbit
 from qiskit.transpiler.passes import RemoveFinalMeasurements
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.passes.utils.remove_final_measurements import calc_final_ops
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -263,6 +264,45 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         dag = RemoveFinalMeasurements().run(dag)
 
         self.assertEqual(dag, expected_dag())
+
+    def test_calc_final_ops(self):
+        """Test method to find the final operations in a circuit."""
+        q0 = QuantumRegister(5, "q0")
+        c0 = ClassicalRegister(1, "c0")
+        c1 = ClassicalRegister(1, "c1")
+        qc = QuantumCircuit(q0, c0, c1)
+
+        #       ┌───┐┌─┐ ░
+        # q0_0: ┤ H ├┤M├─░────
+        #       └┬─┬┘└╥┘ ░
+        # q0_1: ─┤M├──╫──░────
+        #        └╥┘  ║  ░
+        # q0_2: ──╫───╫──░────
+        #         ║   ║  ░ ┌─┐
+        # q0_3: ──╫───╫──░─┤M├
+        #         ║   ║  ░ └╥┘
+        # q0_4: ──╫───╫──░──╫─
+        #         ║   ║  ░  ║
+        # c0: 1/══╩═══╩═════╬═
+        #         0   0     ║
+        # c1: 1/════════════╩═
+        #                   0
+
+        qc.measure(q0[1], c0)
+        qc.h(q0[0])
+        qc.measure(q0[0], c0)
+        qc.barrier()
+        qc.measure(q0[3], c1)
+        final_measurements = [
+            node.qargs for node in calc_final_ops(circuit_to_dag(qc), {"measure"})
+        ]
+        self.assertEqual([(q0[3],)], final_measurements)
+
+        final_measurements_barriers = calc_final_ops(circuit_to_dag(qc), {"measure", "barrier"})
+        self.assertEqual(len(final_measurements_barriers), 4)
+
+        final_barriers = calc_final_ops(circuit_to_dag(qc), {"barrier"})
+        self.assertEqual(final_barriers, [])
 
 
 if __name__ == "__main__":

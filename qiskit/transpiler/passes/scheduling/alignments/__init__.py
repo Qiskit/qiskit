@@ -63,7 +63,7 @@ Granularity constraint
     configuration in units of dt. This is the constraint for a single pulse :class:`Play`
     instruction that may constitute your pulse gate.
     The length of waveform samples should be multiple of this constraint value.
-    Violation of this constraint may result in failue in backend execution.
+    Violation of this constraint may result in failure in backend execution.
 
 Minimum pulse length constraint
 
@@ -71,7 +71,7 @@ Minimum pulse length constraint
     configuration in units of dt. This is the constraint for a single pulse :class:`Play`
     instruction that may constitute your pulse gate.
     The length of waveform samples should be greater than this constraint value.
-    Violation of this constraint may result in failue in backend execution.
+    Violation of this constraint may result in failure in backend execution.
 
 """
 

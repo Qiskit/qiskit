@@ -18,7 +18,7 @@ QPY serialization (:mod:`qiskit.qpy`)
 .. currentmodule:: qiskit.qpy
 
 QPY is a binary serialization format for :class:`~.QuantumCircuit`
-objects that is designed to be cross-platform,  Python version agnostic,
+objects that is designed to be cross-platform, Python version agnostic,
 and backwards compatible moving forward. QPY should be used if you need
 a mechanism to save or copy between systems a :class:`~.QuantumCircuit`
 that preserves the full Qiskit object structure (except for custom attributes
@@ -171,10 +171,10 @@ and how the feature will be internally handled.
 
 .. note::
 
-    Starting with Qiskit version 2.0.0, which removed the Pulse module from the library, QPY provides 
-    limited support for loading payloads that include pulse data. Loading a ``ScheduleBlock`` payload, 
-    a :class:`.QpyError` exception will be raised. Loading a payload for a circuit that contained pulse 
-    gates, the output circuit will contain  custom instructions **without** calibration data attached 
+    Starting with Qiskit version 2.0.0, which removed the Pulse module from the library, QPY provides
+    limited support for loading payloads that include pulse data. Loading a ``ScheduleBlock`` payload,
+    a :class:`.QpyError` exception will be raised. Loading a payload for a circuit that contained pulse
+    gates, the output circuit will contain  custom instructions **without** calibration data attached
     for each pulse gate, leaving them undefined.
 
 QPY format version history
@@ -194,6 +194,27 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.0.0
+     - 13, 14
+     - 14
+   * - 1.4.2
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.1
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.0
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.3
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.2
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.1
+     - 10, 11, 12, 13
+     - 13
    * - 1.3.0
      - 10, 11, 12, 13
      - 13
@@ -376,6 +397,93 @@ The ``STANDALONE_VARS`` are new in QPY version 12; before that, there was no dat
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_14:
+
+Version 14
+----------
+
+Version 14 adds a new core DURATION type, support for additional :class:`~.types.Type`
+classes :class:`~.types.Float` and :class:`~.types.Duration`, and a new expression
+node type :class:`~.expr.Stretch`.
+
+DURATION
+~~~~~~~~
+
+A :class:`~.circuit.Duration` is encoded by a single-byte ASCII ``char`` that encodes the kind of
+type, followed by a payload that varies depending on the type.  The defined codes are:
+
+==============================  =========  =========================================================
+Qiskit class                    Type code  Payload
+==============================  =========  =========================================================
+:class:`~.circuit.Duration.dt`   ``t``     One ``unsigned long long value``.
+
+:class:`~.circuit.Duration.ns`   ``n``     One ``double value``.
+
+:class:`~.circuit.Duration.us`   ``u``     One ``double value``.
+
+:class:`~.circuit.Duration.ms`   ``m``     One ``double value``.
+
+:class:`~.circuit.Duration.s`    ``s``     One ``double value``.
+
+==============================  =========  =========================================================
+
+Changes to EXPR_VAR_DECLARATION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``EXPR_VAR_DECLARATION`` type is now used to represent both :class:`~.expr.Var` standalone
+variables and :class:`~.expr.Stretch` identifiers. To support this change, the usage type code has
+two new possible entries, in addition to the existing ones:
+
+=========  =========================================================================================
+Type code  Meaning
+=========  =========================================================================================
+``A``      A ``capture`` stretch to the circuit.
+
+``O``      A locally declared stretch to the circuit.
+
+=========  =========================================================================================
+
+Changes to EXPRESSION
+---------------------
+
+The EXPRESSION type code has a new possible entry, ``s``, corresponding to :class:`.expr.Stretch`
+nodes.
+
+=======================  =========  ======================================================  ========
+Qiskit class             Type code  Payload                                                 Children
+=======================  =========  ======================================================  ========
+:class:`~.expr.Stretch`  ``s``      One ``unsigned short var_index``                        0
+=======================  =========  ======================================================  ========
+
+Changes to EXPR_TYPE
+~~~~~~~~~~~~~~~~~~~~
+
+The following table shows the new type classes added in the version:
+
+=========================  =========  ==============================================================
+Qiskit class               Type code  Payload
+=========================  =========  ==============================================================
+:class:`~.types.Float`     ``f``      None.
+
+:class:`~.types.Duration`  ``d``      None.
+
+=========================  =========  ==============================================================
+
+Changes to EXPR_VALUE
+~~~~~~~~~~~~~~~~~~~~~
+
+The classical expression's type system now supports new encoding types for value literals, in
+addition to the existing encodings for int and bool. The new value type encodings are below:
+
+===========================  =========  ============================================================
+Python type                  Type code  Payload
+===========================  =========  ============================================================
+``float``                    ``f``      One ``double value``.
+
+:class:`~.circuit.Duration`  ``t``      One ``DURATION``.
+
+===========================  =========  ============================================================
 
 .. _qpy_version_13:
 

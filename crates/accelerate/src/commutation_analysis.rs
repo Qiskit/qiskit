@@ -35,10 +35,10 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///
 /// We return two HashMaps:
 ///  * {wire: commutation_sets}: For each wire, we keep a vector of index sets, where each index
-///     set contains mutually commuting nodes. Note that these include the input and output nodes
-///     which do not commute with anything.
+///    set contains mutually commuting nodes. Note that these include the input and output nodes
+///    which do not commute with anything.
 ///  * {(node, wire): index}: For each (node, wire) pair we store the index indicating in which
-///     commutation set the node appears on a given wire.
+///    commutation set the node appears on a given wire.
 ///
 /// For example, if we have a circuit
 ///
@@ -54,6 +54,7 @@ pub(crate) fn analyze_commutations_inner(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
+    approximation_degree: f64,
 ) -> PyResult<(CommutationSet, NodeIndices)> {
     let mut commutation_set: CommutationSet = HashMap::new();
     let mut node_indices: NodeIndices = HashMap::new();
@@ -102,6 +103,7 @@ pub(crate) fn analyze_commutations_inner(
                             qargs2,
                             cargs2,
                             MAX_NUM_QUBITS,
+                            approximation_degree,
                         )?;
                         if !all_commute {
                             break;
@@ -132,17 +134,19 @@ pub(crate) fn analyze_commutations_inner(
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, commutation_checker))]
+#[pyo3(signature = (dag, commutation_checker, approximation_degree=1.))]
 pub(crate) fn analyze_commutations(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
+    approximation_degree: f64,
 ) -> PyResult<Py<PyDict>> {
     // This returns two HashMaps:
     //   * The commuting nodes per wire: {wire: [commuting_nodes_1, commuting_nodes_2, ...]}
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
-    let (commutation_set, node_indices) = analyze_commutations_inner(py, dag, commutation_checker)?;
+    let (commutation_set, node_indices) =
+        analyze_commutations_inner(py, dag, commutation_checker, approximation_degree)?;
 
     let out_dict = PyDict::new(py);
 

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for the DropNegligible transpiler pass."""
+"""Tests for the RemoveIdentityEquivalent transpiler pass."""
 
 import ddt
 import numpy as np
@@ -37,10 +37,10 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
-class TestDropNegligible(QiskitTestCase):
-    """Test the DropNegligible pass."""
+class TestRemoveIdentityEquivalent(QiskitTestCase):
+    """Test the RemoveIdentityEquivalent pass."""
 
-    def test_drops_negligible_gates(self):
+    def test_remove_identity_equiv_pass(self):
         """Test that negligible gates are dropped."""
         qubits = QuantumRegister(2)
         circuit = QuantumCircuit(qubits)
@@ -188,6 +188,9 @@ class TestDropNegligible(QiskitTestCase):
         UnitaryGate(np.array([[np.exp(1j * np.pi / 4), 0], [0, np.exp(1j * np.pi / 4)]])),
         GlobalPhaseGate(0),
         GlobalPhaseGate(np.pi / 4),
+        UnitaryGate(np.exp(-0.123j) * np.eye(2)),
+        UnitaryGate(np.exp(-0.123j) * np.eye(4)),
+        UnitaryGate(np.exp(-0.123j) * np.eye(8)),
     )
     def test_remove_identity_up_to_global_phase(self, gate):
         """Test that gates equivalent to identity up to a global phase are removed from the circuit,

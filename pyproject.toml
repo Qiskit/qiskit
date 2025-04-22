@@ -86,6 +86,10 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "linear_function.pmh" = "qiskit.transpiler.passes.synthesis.hls_plugins:PMHSynthesisLinearFunction"
 "mcx.n_dirty_i15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNDirtyI15"
 "mcx.n_clean_m15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNCleanM15"
+"mcx.2_clean_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis2CleanKG24"
+"mcx.2_dirty_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis2DirtyKG24"
+"mcx.1_clean_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis1CleanKG24"
+"mcx.1_dirty_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis1DirtyKG24"
 "mcx.1_clean_b95" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis1CleanB95"
 "mcx.gray_code" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisGrayCode"
 "mcx.noaux_v24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxV24"
@@ -121,6 +125,7 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "Multiplier.cumulative_h18" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisH18"
 "PauliEvolution.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisDefault"
 "PauliEvolution.rustiq" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisRustiq"
+"annotated.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:AnnotatedSynthesisDefault"
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"
@@ -218,7 +223,6 @@ extension-pkg-allow-list = [
     # statically resolve the cyclical load of the exception and it bugs out.
     "retworkx",
     "rustworkx",
-    "tweedledum",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle", "pylint.extensions.bad_builtin"]
 py-version = "3.9"  # update it when bumping minimum supported python version

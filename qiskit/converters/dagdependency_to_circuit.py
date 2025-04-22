@@ -34,12 +34,6 @@ def dagdependency_to_circuit(dagdependency):
     )
     circuit.metadata = dagdependency.metadata
 
-    if hasattr(dagdependency, "_calibrations_prop"):
-        circuit._calibrations_prop = dagdependency._calibrations_prop
-    else:
-        # This can be _DAGDependencyV2
-        circuit._calibrations_prop = dagdependency.calibrations
-
     for node in dagdependency.topological_nodes():
         circuit._append(CircuitInstruction(node.op.copy(), node.qargs, node.cargs))
 

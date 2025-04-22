@@ -26,7 +26,7 @@ from qiskit.passmanager.flow_controllers import (
     ConditionalController,
     DoWhileController,
 )
-from qiskit.transpiler import PassManager, PropertySet, TransformationPass
+from qiskit.transpiler import PassManager, PropertySet, TransformationPass, AnalysisPass
 from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator, ResourceEstimation
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -191,3 +191,20 @@ class TestPassManager(QiskitTestCase):
             "third 4",
         ]
         self.assertEqual(calls, expected)
+
+    def test_override_initial_property_set(self):
+        """Test that the ``property_set`` argument allows seeding the base analysis."""
+        input_name = "my_property"
+        output_name = "output_property"
+
+        class Analyse(AnalysisPass):
+            def run(self, dag):
+                self.property_set[output_name] = self.property_set[input_name]
+                return dag
+
+        pm = PassManager([Analyse()])
+        pm.run(QuantumCircuit(), property_set={input_name: "hello, world"})
+        self.assertEqual(pm.property_set[output_name], "hello, world")
+
+        pm.run(QuantumCircuit(), property_set={input_name: "a different string"})
+        self.assertEqual(pm.property_set[output_name], "a different string")

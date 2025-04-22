@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Node visitor as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor
-This module is used internally by ``qiskit.transpiler.classicalfunction.BooleanExpression``.
+This module is used internally by ``qiskit.synthesis.boolean.BooleanExpression``.
 """
 
 import ast

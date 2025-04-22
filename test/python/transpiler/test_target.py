@@ -38,15 +38,12 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.target import _FakeTarget
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
-from qiskit.providers.fake_provider import (
-    GenericBackendV2,
-    Fake5QV1,
-    Fake7QPulseV1,
-)
+from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from qiskit.providers.backend import QubitProperties
 from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
@@ -1019,11 +1016,10 @@ Instructions:
                 self,
                 duration=None,
                 error=None,
-                calibration=None,
                 tuned=None,
                 diamond_norm_error=None,
             ):
-                super().__init__(duration=duration, error=error, calibration=calibration)
+                super().__init__(duration=duration, error=error)
                 self.tuned = tuned
                 self.diamond_norm_error = diamond_norm_error
 
@@ -1698,7 +1694,7 @@ class TestInstructionProperties(QiskitTestCase):
         properties = InstructionProperties()
         self.assertEqual(
             repr(properties),
-            "InstructionProperties(duration=None, error=None, calibration=None)",
+            "InstructionProperties(duration=None, error=None)",
         )
 
 
@@ -1722,37 +1718,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.operation_names, {"u", "cx"})
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
-
-    def test_inst_map(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake7QPulseV1()
-        config = fake_backend.configuration()
-        defaults = fake_backend.defaults()
-        constraints = TimingConstraints(**config.timing_constraints)
-        with self.assertWarns(DeprecationWarning):
-            target = Target.from_configuration(
-                basis_gates=config.basis_gates,
-                num_qubits=config.num_qubits,
-                coupling_map=CouplingMap(config.coupling_map),
-                dt=config.dt,
-                inst_map=defaults.instruction_schedule_map,
-                timing_constraints=constraints,
-            )
-            self.assertIsNotNone(target["sx"][(0,)].calibration)
-        self.assertEqual(target.granularity, constraints.granularity)
-        self.assertEqual(target.min_length, constraints.min_length)
-        self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
-        self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
-
-    def test_concurrent_measurements(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            concurrent_measurements=config.meas_map,
-        )
-        self.assertEqual(target.concurrent_measurements, config.meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
@@ -1783,3 +1748,28 @@ class TestTargetFromConfiguration(QiskitTestCase):
         cmap = CouplingMap.from_line(15)
         with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
             Target.from_configuration(basis_gates, 15, cmap)
+
+
+class TestFakeTarget(QiskitTestCase):
+    """Test the fake target class."""
+
+    def test_fake_instantiation(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget(coupling_map=cmap)
+        self.assertEqual(target.num_qubits, 0)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_from_configuration(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget.from_configuration(coupling_map=cmap)
+        self.assertNotEqual(target, None)
+        self.assertEqual(target.num_qubits, 2)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_only_when_necessary(self):
+        # Make sure _FakeTarget cannot be instantiated if there
+        # is enough info for a real Target
+        with self.assertRaises(TypeError):
+            _ = _FakeTarget.from_configuration(
+                basis_gates=["cx"], coupling_map=CouplingMap([[0, 1]])
+            )

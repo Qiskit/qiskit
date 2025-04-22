@@ -52,7 +52,9 @@ if [[ ! -d $cache_dir ]] ; then
     mkdir -p "$cache_dir"
     pushd "$cache_dir"
     echo "Generating QPY files with $package==$version"
-    "$venv_dir/bin/python" "${our_dir}/test_qpy.py" generate --version="$version"
+    # If the generation script fails, we still want to tidy up before exiting.
+    "$venv_dir/bin/python" "${our_dir}/test_qpy.py" generate --version="$version" || { rm -rf "$venv_dir"; exit 1; }
+    rm -rf "$venv_dir"
 else
     echo "Using cached QPY files for $version"
     pushd "${cache_dir}"
@@ -60,4 +62,3 @@ fi
 echo "Loading qpy files from $version with dev Qiskit"
 "$python" "${our_dir}/test_qpy.py" load --version="$version"
 popd
-rm -rf "$venv_dir"

@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import logging
-import warnings
 import numpy as np
 
 from qiskit.circuit import Gate, ParameterExpression, Qubit
@@ -182,6 +181,7 @@ class PadDynamicalDecoupling(BasePadding):
         self._dd_sequence_lengths: dict[Qubit, list[int]] = {}
         self._sequence_phase = 0
         if target is not None:
+            # The priority order for instruction durations is: target > standalone.
             self._durations = target.durations()
             self._alignment = target.pulse_alignment
             for gate in dd_sequence:
@@ -190,35 +190,12 @@ class PadDynamicalDecoupling(BasePadding):
                         f"{gate.name} in dd_sequence is not supported in the target"
                     )
 
-    def _update_inst_durations(self, dag):
-        """Update instruction durations with circuit information. If the dag contains gate
-        calibrations and no instruction durations were provided through the target or as a
-        standalone input, the circuit calibration durations will be used.
-        The priority order for instruction durations is: target > standalone > circuit.
-        """
-        circ_durations = InstructionDurations()
-
-        if dag._calibrations_prop:
-            cal_durations = []
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=DeprecationWarning)
-                # `schedule.duration` emits pulse deprecation warnings which we don't want
-                # to see here
-                for gate, gate_cals in dag._calibrations_prop.items():
-                    for (qubits, parameters), schedule in gate_cals.items():
-                        cal_durations.append((gate, qubits, parameters, schedule.duration))
-            circ_durations.update(cal_durations, circ_durations.dt)
-
-        if self._durations is not None:
-            circ_durations.update(self._durations, getattr(self._durations, "dt", None))
-
-        return circ_durations
-
     def _pre_runhook(self, dag: DAGCircuit):
         super()._pre_runhook(dag)
 
-        durations = self._update_inst_durations(dag)
-
+        durations = InstructionDurations()
+        if self._durations is not None:
+            durations.update(self._durations, getattr(self._durations, "dt", None))
         num_pulses = len(self._dd_sequence)
 
         # Check if physical circuit is given
@@ -264,31 +241,7 @@ class PadDynamicalDecoupling(BasePadding):
 
             sequence_lengths = []
             for index, gate in enumerate(self._dd_sequence):
-                try:
-                    # Check calibration.
-                    params = self._resolve_params(gate)
-                    with warnings.catch_warnings():
-                        warnings.simplefilter(action="ignore", category=DeprecationWarning)
-                        # `schedule.duration` emits pulse deprecation warnings which we don't want
-                        # to see here
-                        gate_length = dag._calibrations_prop[gate.name][
-                            ((physical_index,), params)
-                        ].duration
-                    if gate_length % self._alignment != 0:
-                        # This is necessary to implement lightweight scheduling logic for this pass.
-                        # Usually the pulse alignment constraint and pulse data chunk size take
-                        # the same value, however, we can intentionally violate this pattern
-                        # at the gate level. For example, we can create a schedule consisting of
-                        # a pi-pulse of 32 dt followed by a post buffer, i.e. delay, of 4 dt
-                        # on the device with 16 dt constraint. Note that the pi-pulse length
-                        # is multiple of 16 dt but the gate length of 36 is not multiple of it.
-                        # Such pulse gate should be excluded.
-                        raise TranspilerError(
-                            f"Pulse gate {gate.name} with length non-multiple of {self._alignment} "
-                            f"is not acceptable in {self.__class__.__name__} pass."
-                        )
-                except KeyError:
-                    gate_length = durations.get(gate, physical_index)
+                gate_length = durations.get(gate, physical_index)
                 sequence_lengths.append(gate_length)
                 # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
                 gate = gate.to_mutable()
@@ -357,14 +310,14 @@ class PadDynamicalDecoupling(BasePadding):
 
         if not self.__is_dd_qubit(dag.qubits.index(qubit)):
             # Target physical qubit is not the target of this DD sequence.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
             return
 
         if self._skip_reset_qubits and (
             isinstance(prev_node, DAGInNode) or isinstance(prev_node.op, Reset)
         ):
             # Previous node is the start edge or reset, i.e. qubit is ground state.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
             return
 
         slack = time_interval - np.sum(self._dd_sequence_lengths[qubit])
@@ -372,7 +325,7 @@ class PadDynamicalDecoupling(BasePadding):
 
         if slack <= 0:
             # Interval too short.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
             return
 
         if len(self._dd_sequence) == 1:
@@ -398,7 +351,7 @@ class PadDynamicalDecoupling(BasePadding):
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse
-                self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+                self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
                 return
 
         def _constrained_length(values):
@@ -434,7 +387,7 @@ class PadDynamicalDecoupling(BasePadding):
             if dd_ind < len(taus):
                 tau = taus[dd_ind]
                 if tau > 0:
-                    self._apply_scheduled_op(dag, idle_after, Delay(tau, dag.unit), qubit)
+                    self._apply_scheduled_op(dag, idle_after, Delay(tau, dag._unit), qubit)
                     idle_after += tau
             if dd_ind < len(self._dd_sequence):
                 gate = self._dd_sequence[dd_ind]

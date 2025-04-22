@@ -13,12 +13,8 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use hashbrown::HashMap;
+use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::{
-    intern,
-    types::{PyDict, PyList},
-};
 
 use crate::circuit_data::CircuitData;
 use crate::dag_circuit::{DAGCircuit, NodeType};
@@ -30,13 +26,12 @@ use crate::packed_instruction::PackedInstruction;
 pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<Bound<'py, PyAny>>,
-    pub calibrations: Option<HashMap<String, Py<PyDict>>>,
     pub metadata: Option<Bound<'py, PyAny>>,
-    pub qregs: Option<Bound<'py, PyList>>,
-    pub cregs: Option<Bound<'py, PyList>>,
     pub input_vars: Vec<Bound<'py, PyAny>>,
     pub captured_vars: Vec<Bound<'py, PyAny>>,
     pub declared_vars: Vec<Bound<'py, PyAny>>,
+    pub captured_stretches: Vec<Bound<'py, PyAny>>,
+    pub declared_stretches: Vec<Bound<'py, PyAny>>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -47,19 +42,7 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name")).ok(),
-            calibrations: ob
-                .getattr(intern!(py, "_calibrations_prop"))?
-                .extract()
-                .ok(),
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
-            qregs: ob
-                .getattr(intern!(py, "qregs"))
-                .map(|ob| ob.downcast_into())?
-                .ok(),
-            cregs: ob
-                .getattr(intern!(py, "cregs"))
-                .map(|ob| ob.downcast_into())?
-                .ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?
                 .try_iter()?
@@ -70,6 +53,14 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
                 .collect::<PyResult<Vec<_>>>()?,
             declared_vars: ob
                 .call_method0(intern!(py, "iter_declared_vars"))?
+                .try_iter()?
+                .collect::<PyResult<Vec<_>>>()?,
+            captured_stretches: ob
+                .call_method0(intern!(py, "iter_captured_stretches"))?
+                .try_iter()?
+                .collect::<PyResult<Vec<_>>>()?,
+            declared_stretches: ob
+                .call_method0(intern!(py, "iter_declared_stretches"))?
                 .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
         })
@@ -105,6 +96,10 @@ pub fn dag_to_circuit(
         dag.clbits().clone(),
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
+        dag.qregs_data().clone(),
+        dag.cregs_data().clone(),
+        dag.qubit_locations().clone(),
+        dag.clbit_locations().clone(),
         dag.topological_op_nodes()?.map(|node_index| {
             let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
