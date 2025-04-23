@@ -14,6 +14,7 @@ use hashbrown::HashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use ndarray::Array2;
+use num_complex::Complex64;
 use num_traits::Zero;
 use numpy::{
     PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
@@ -1466,7 +1467,9 @@ impl PyPauliLindbladMap {
 
         // If the phase is j or -j, raise an error
         if phase_idx == 1 || phase_idx == 3 {
-            return Err(PyValueError::new_err("only 'Pauli' with real phases can be converted to 'PauliLindbladMap'"));
+            return Err(PyValueError::new_err(
+                "only 'Pauli' with real phases can be converted to 'PauliLindbladMap'"
+            ));
         }
 
         let phase = match phase_idx {
@@ -1610,12 +1613,21 @@ impl PyPauliLindbladMap {
     fn from_sparse_pauli_op(op: &Bound<PyAny>) -> PyResult<Self> {
         let py = op.py();
         let pauli_list_ob = op.getattr(intern!(py, "paulis"))?;
-        let coeffs = op
+
+        // get coefficients - only complex type with real values are allowed
+        let complex_coeffs = op
             .getattr(intern!(py, "coeffs"))?
-            .extract::<PyReadonlyArray1<f64>>()
-            .map_err(|_| PyTypeError::new_err("only 'SparsePauliOp' with real-typed coefficients can be converted to 'PauliLindbladMap'"))?
+            .extract::<PyReadonlyArray1<Complex64>>()
+            .map_err(|_| PyTypeError::new_err("only 'SparsePauliOp' with complex-typed coefficients can be converted to 'PauliLindbladMap'"))?
             .as_array()
             .to_vec();
+        for x in complex_coeffs.iter() {
+            if x.im != 0.0 {
+                return Err(PyValueError::new_err("only 'SparsePauliOp' with real-valued coefficients can be converted to 'PauliLindbladMap'"));
+            }
+        }
+        let coeffs: Vec<f64> = complex_coeffs.iter().map(|x| {x.re}).collect();
+
         let op_z = pauli_list_ob
             .getattr(intern!(py, "z"))?
             .extract::<PyReadonlyArray2<bool>>()?;
