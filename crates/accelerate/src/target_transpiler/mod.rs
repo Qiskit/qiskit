@@ -13,9 +13,9 @@
 #![allow(clippy::too_many_arguments)]
 
 mod errors;
-mod gate_map;
 mod instruction_properties;
 mod qargs;
+mod synched_map;
 
 pub use qargs::{Qargs, QargsRef};
 
@@ -23,10 +23,10 @@ use std::{hash::Hash, ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
 
-use gate_map::SynchedMap;
 use hashbrown::HashSet;
 use indexmap::{Equivalent, IndexMap};
 use itertools::Itertools;
+use synched_map::SynchedMap;
 
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
