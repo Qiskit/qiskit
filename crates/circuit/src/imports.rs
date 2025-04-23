@@ -113,6 +113,10 @@ pub static MEASURE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Meas
 pub static RESET: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Reset");
 pub static MCPHASE_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
+pub static UNARY_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_UnaryOp");
+pub static BINARY_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_BinaryOp");
 pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",

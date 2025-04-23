@@ -35,10 +35,10 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///
 /// We return two HashMaps:
 ///  * {wire: commutation_sets}: For each wire, we keep a vector of index sets, where each index
-///     set contains mutually commuting nodes. Note that these include the input and output nodes
-///     which do not commute with anything.
+///    set contains mutually commuting nodes. Note that these include the input and output nodes
+///    which do not commute with anything.
 ///  * {(node, wire): index}: For each (node, wire) pair we store the index indicating in which
-///     commutation set the node appears on a given wire.
+///    commutation set the node appears on a given wire.
 ///
 /// For example, if we have a circuit
 ///
