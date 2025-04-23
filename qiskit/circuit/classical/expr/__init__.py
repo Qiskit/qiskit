@@ -39,7 +39,7 @@ The expression system is based on tree representation.  All nodes in the tree ar
 
 These objects are mutable and should not be reused in a different location without a copy.
 
-All :class`Expr` instances define a boolean :attr:`~Expr.const` attribute, which indicates
+All :class:`Expr` instances define a boolean :attr:`~Expr.const` attribute, which indicates
 whether the expression can be evaluated at compile time. Most expression classes infer this
 during construction based on the const-ness of their operands.
 

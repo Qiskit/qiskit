@@ -14,6 +14,7 @@ pub mod bit;
 pub mod bit_locator;
 pub mod circuit_data;
 pub mod circuit_instruction;
+pub mod classical;
 pub mod converters;
 pub mod dag_circuit;
 pub mod dag_node;
@@ -192,6 +193,9 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     m.add_class::<parameterexpression::ParameterExpression>()?;
+    let classical_mod = PyModule::new(m.py(), "classical")?;
+    classical::register_python(&classical_mod)?;
+    m.add_submodule(&classical_mod)?;
     Ok(())
 }
 

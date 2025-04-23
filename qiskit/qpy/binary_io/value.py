@@ -473,8 +473,6 @@ def _read_parameter_expression(file_obj):
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
 
-    from sympy.parsing.sympy_parser import parse_expr
-
     sympy_str = file_obj.read(data.expr_size).decode(common.ENCODE)
     expr_ = parse_sympy_repr(sympy_str)
     symbol_map = {}
