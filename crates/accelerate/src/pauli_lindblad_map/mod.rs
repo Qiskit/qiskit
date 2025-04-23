@@ -14,7 +14,6 @@ use hashbrown::HashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use ndarray::Array2;
-use num_complex::Complex64;
 use num_traits::Zero;
 use numpy::{
     PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
@@ -220,7 +219,7 @@ pub enum LabelError {
     BadIndex { index: u32, num_qubits: u32 },
     #[error("index {index} is duplicated in a single specifier")]
     DuplicateIndex { index: u32 },
-    #[error("labels must only contain letters from the alphabet 'IXYZ+-rl01'")]
+    #[error("labels must only contain letters from the alphabet 'IXYZ'")]
     OutsideAlphabet,
 }
 
@@ -321,7 +320,7 @@ pub struct PauliLindbladMap {
     num_qubits: u32,
     /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
     /// the sum.
-    coeffs: Vec<Complex64>,
+    coeffs: Vec<f64>,
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
     /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
     bit_terms: Vec<BitTerm>,
@@ -343,7 +342,7 @@ impl PauliLindbladMap {
     /// correct values, you can call `new_unchecked` instead.
     pub fn new(
         num_qubits: u32,
-        coeffs: Vec<Complex64>,
+        coeffs: Vec<f64>,
         bit_terms: Vec<BitTerm>,
         indices: Vec<u32>,
         boundaries: Vec<usize>,
@@ -401,7 +400,7 @@ impl PauliLindbladMap {
     #[inline(always)]
     pub unsafe fn new_unchecked(
         num_qubits: u32,
-        coeffs: Vec<Complex64>,
+        coeffs: Vec<f64>,
         bit_terms: Vec<BitTerm>,
         indices: Vec<u32>,
         boundaries: Vec<usize>,
@@ -471,13 +470,13 @@ impl PauliLindbladMap {
 
     /// Get the coefficients of the terms.
     #[inline]
-    pub fn coeffs(&self) -> &[Complex64] {
+    pub fn coeffs(&self) -> &[f64] {
         &self.coeffs
     }
 
     /// Get a mutable slice of the coefficients.
     #[inline]
-    pub fn coeffs_mut(&mut self) -> &mut [Complex64] {
+    pub fn coeffs_mut(&mut self) -> &mut [f64] {
         &mut self.coeffs
     }
 
@@ -538,7 +537,7 @@ impl PauliLindbladMap {
     pub fn identity(num_qubits: u32) -> Self {
         Self {
             num_qubits,
-            coeffs: vec![Complex64::new(1.0, 0.0)],
+            coeffs: vec![1.0],
             bit_terms: vec![],
             indices: vec![],
             boundaries: vec![0, 0],
@@ -581,7 +580,7 @@ impl PauliLindbladMap {
     pub fn add_dense_label<L: AsRef<[u8]>>(
         &mut self,
         label: L,
-        coeff: Complex64,
+        coeff: f64,
     ) -> Result<(), LabelError> {
         let label = label.as_ref();
         if label.len() != self.num_qubits() as usize {
@@ -615,7 +614,7 @@ impl PauliLindbladMap {
 
     /// Reduce the observable to its canonical form.
     ///
-    /// This sums like terms, removing them if the final complex coefficient's absolute value is
+    /// This sums like terms, removing them if the final real coefficient's absolute value is
     /// less than or equal to the tolerance.  The terms are reordered to some canonical ordering.
     ///
     /// This function is idempotent.
@@ -629,7 +628,7 @@ impl PauliLindbladMap {
         }
         let mut out = PauliLindbladMap::zero(self.num_qubits);
         for ((indices, bit_terms), coeff) in terms {
-            if coeff.norm_sqr() <= tol * tol {
+            if coeff * coeff <= tol * tol {
                 continue;
             }
             out.coeffs.push(coeff);
@@ -663,7 +662,7 @@ impl PauliLindbladMap {
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct SparseTermView<'a> {
     pub num_qubits: u32,
-    pub coeff: Complex64,
+    pub coeff: f64,
     pub bit_terms: &'a [BitTerm],
     pub indices: &'a [u32],
 }
@@ -700,7 +699,7 @@ impl SparseTermView<'_> {
 #[derive(Debug)]
 pub struct SparseTermViewMut<'a> {
     pub num_qubits: u32,
-    pub coeff: &'a mut Complex64,
+    pub coeff: &'a mut f64,
     pub bit_terms: &'a mut [BitTerm],
     pub indices: &'a [u32],
 }
@@ -711,7 +710,7 @@ pub struct SparseTermViewMut<'a> {
 #[derive(Debug)]
 pub struct IterMut<'a> {
     num_qubits: u32,
-    coeffs: &'a mut [Complex64],
+    coeffs: &'a mut [f64],
     bit_terms: &'a mut [BitTerm],
     indices: &'a [u32],
     boundaries: &'a [usize],
@@ -775,15 +774,15 @@ impl ::std::iter::FusedIterator for IterMut<'_> {}
 pub struct SparseTerm {
     /// Number of qubits the entire term applies to.
     num_qubits: u32,
-    /// The complex coefficient of the term.
-    coeff: Complex64,
+    /// The real coefficient of the term.
+    coeff: f64,
     bit_terms: Box<[BitTerm]>,
     indices: Box<[u32]>,
 }
 impl SparseTerm {
     pub fn new(
         num_qubits: u32,
-        coeff: Complex64,
+        coeff: f64,
         bit_terms: Box<[BitTerm]>,
         indices: Box<[u32]>,
     ) -> Result<Self, CoherenceError> {
@@ -810,7 +809,7 @@ impl SparseTerm {
         self.num_qubits
     }
 
-    pub fn coeff(&self) -> Complex64 {
+    pub fn coeff(&self) -> f64 {
         self.coeff
     }
 
@@ -1024,7 +1023,7 @@ impl PySparseTerm {
     #[pyo3(signature = (/, num_qubits, coeff, bit_terms, indices))]
     fn py_new(
         num_qubits: u32,
-        coeff: Complex64,
+        coeff: f64,
         bit_terms: Vec<BitTerm>,
         indices: Vec<u32>,
     ) -> PyResult<Self> {
@@ -1144,7 +1143,7 @@ impl PySparseTerm {
 
     /// The term's coefficient.
     #[getter]
-    fn get_coeff(&self) -> Complex64 {
+    fn get_coeff(&self) -> f64 {
         self.inner.coeff()
     }
 
@@ -1463,11 +1462,9 @@ impl PyPauliLindbladMap {
             // ... which is some integral type.
             .extract::<isize>()?;
         let phase = match (group_phase - num_ys).rem_euclid(4) {
-            0 => Complex64::new(1.0, 0.0),
-            1 => Complex64::new(0.0, -1.0),
-            2 => Complex64::new(-1.0, 0.0),
-            3 => Complex64::new(0.0, 1.0),
-            _ => unreachable!("`x % 4` has only four values"),
+            0 => 1.0,
+            2 => -1.0,
+            _ => unreachable!("Only real phases are allowed."),
         };
         let coeffs = vec![phase];
         let inner = PauliLindbladMap::new(num_qubits, coeffs, bit_terms, indices, boundaries)?;
@@ -1502,7 +1499,7 @@ impl PyPauliLindbladMap {
     #[pyo3(signature = (label, /))]
     fn from_label(label: &str) -> Result<Self, LabelError> {
         let mut inner = PauliLindbladMap::zero(label.len() as u32);
-        inner.add_dense_label(label, Complex64::new(1.0, 0.0))?;
+        inner.add_dense_label(label, 1.0)?;
         Ok(inner.into())
     }
 
@@ -1518,7 +1515,7 @@ impl PyPauliLindbladMap {
     /// :class:`.SparsePauliOp`.
     ///
     /// Args:
-    ///     iter (list[tuple[str, complex]]): Pairs of labels and their associated coefficients to
+    ///     iter (list[tuple[str, float]]): Pairs of labels and their associated coefficients to
     ///         sum. The labels are interpreted the same way as in :meth:`from_label`.
     ///     num_qubits (int | None): It is not necessary to specify this if you are sure that
     ///         ``iter`` is not an empty sequence, since it can be inferred from the label lengths.
@@ -1566,7 +1563,7 @@ impl PyPauliLindbladMap {
     ///         the qubits each single-qubit term applies to listed explicitly.
     #[staticmethod]
     #[pyo3(signature = (iter, /, *, num_qubits=None))]
-    fn from_list(iter: Vec<(String, Complex64)>, num_qubits: Option<u32>) -> PyResult<Self> {
+    fn from_list(iter: Vec<(String, f64)>, num_qubits: Option<u32>) -> PyResult<Self> {
         if iter.is_empty() && num_qubits.is_none() {
             return Err(PyValueError::new_err(
                 "cannot construct an observable from an empty list without knowing `num_qubits`",
@@ -1606,8 +1603,8 @@ impl PyPauliLindbladMap {
         let pauli_list_ob = op.getattr(intern!(py, "paulis"))?;
         let coeffs = op
             .getattr(intern!(py, "coeffs"))?
-            .extract::<PyReadonlyArray1<Complex64>>()
-            .map_err(|_| PyTypeError::new_err("only 'SparsePauliOp' with complex-typed coefficients can be converted to 'SparseObservable'"))?
+            .extract::<PyReadonlyArray1<f64>>()
+            .map_err(|_| PyTypeError::new_err("only 'SparsePauliOp' with real-typed coefficients can be converted to 'SparseObservable'"))?
             .as_array()
             .to_vec();
         let op_z = pauli_list_ob
@@ -1711,8 +1708,8 @@ impl PyPauliLindbladMap {
     ///
     /// Args:
     ///     num_qubits: number of qubits in the observable.
-    ///     coeffs: complex coefficients of each term of the observable.  This should be a Numpy
-    ///         array with dtype :attr:`~numpy.complex128`.
+    ///     coeffs: float coefficients of each term of the observable.  This should be a Numpy
+    ///         array with dtype :attr:`~numpy.float64`.
     ///     bit_terms: flattened list of the single-qubit terms comprising all complete terms.  This
     ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
     ///         :class:`.BitTerm`).
@@ -1736,7 +1733,7 @@ impl PyPauliLindbladMap {
     ///         >>> num_qubits = 100
     ///         >>> terms = np.full((num_qubits,), SparseObservable.BitTerm.Z, dtype=np.uint8)
     ///         >>> indices = np.arange(num_qubits, dtype=np.uint32)
-    ///         >>> coeffs = np.ones((num_qubits,), dtype=complex)
+    ///         >>> coeffs = np.ones((num_qubits,), dtype=float)
     ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
     ///         >>> SparseObservable.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
     ///         <SparseObservable with 100 terms on 100 qubits: (1+0j)(Z_0) + ... + (1+0j)(Z_99)>
@@ -1746,7 +1743,7 @@ impl PyPauliLindbladMap {
     )]
     unsafe fn from_raw_parts<'py>(
         num_qubits: u32,
-        coeffs: PyArrayLike1<'py, Complex64>,
+        coeffs: PyArrayLike1<'py, f64>,
         bit_terms: PyArrayLike1<'py, u8>,
         indices: PyArrayLike1<'py, u32>,
         boundaries: PyArrayLike1<'py, usize>,
@@ -1811,7 +1808,7 @@ impl PyPauliLindbladMap {
     /// 0)``.
     ///
     /// Args:
-    ///     iter (list[tuple[str, Sequence[int], complex]]): triples of labels, the qubits
+    ///     iter (list[tuple[str, Sequence[int], float]]): triples of labels, the qubits
     ///         each single-qubit term applies to, and the coefficient of the entire term.
     ///
     ///     num_qubits (int): the number of qubits in the operator.
@@ -1849,7 +1846,7 @@ impl PyPauliLindbladMap {
     #[staticmethod]
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(
-        iter: Vec<(String, Vec<u32>, Complex64)>,
+        iter: Vec<(String, Vec<u32>, f64)>,
         num_qubits: u32,
     ) -> PyResult<Self> {
         let coeffs = iter.iter().map(|(_, _, coeff)| *coeff).collect();
@@ -1933,7 +1930,7 @@ impl PyPauliLindbladMap {
         Ok(out.unbind())
     }
 
-        /// Sum any like terms in this operator, removing them if the resulting complex coefficient has
+    /// Sum any like terms in this operator, removing them if the resulting real coefficient has
     /// an absolute value within tolerance of zero.
     ///
     /// As a side effect, this sorts the operator into :ref:`canonical order
@@ -1980,6 +1977,28 @@ impl PyPauliLindbladMap {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let simplified = inner.canonicalize(tol);
         Ok(simplified.into())
+    }
+
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        index: PySequenceIndex<'py>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let indices = match index.with_len(inner.num_terms())? {
+            SequenceIndex::Int(index) => {
+                return PySparseTerm {
+                    inner: inner.term(index).to_term(),
+                }
+                .into_bound_py_any(py)
+            }
+            indices => indices,
+        };
+        let mut out = PauliLindbladMap::zero(inner.num_qubits());
+        for index in indices.iter() {
+            out.add_term(inner.term(index))?;
+        }
+        out.into_bound_py_any(py)
     }
 }
 
@@ -2076,7 +2095,7 @@ impl ArrayView {
 
         let obs = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
-            ArraySlot::Coeffs => get_from_slice::<_, Complex64>(py, obs.coeffs(), index),
+            ArraySlot::Coeffs => get_from_slice::<_, f64>(py, obs.coeffs(), index),
             ArraySlot::BitTerms => get_from_slice::<_, u8>(py, obs.bit_terms(), index),
             ArraySlot::Indices => get_from_slice::<_, u32>(py, obs.indices(), index),
             ArraySlot::Boundaries => get_from_slice::<_, usize>(py, obs.boundaries(), index),
@@ -2138,7 +2157,7 @@ impl ArrayView {
 
         let mut obs = self.base.write().map_err(|_| InnerWriteError)?;
         match self.slot {
-            ArraySlot::Coeffs => set_in_slice::<_, Complex64>(obs.coeffs_mut(), index, values),
+            ArraySlot::Coeffs => set_in_slice::<_, f64>(obs.coeffs_mut(), index, values),
             ArraySlot::BitTerms => set_in_slice::<BitTerm, u8>(obs.bit_terms_mut(), index, values),
             ArraySlot::Indices => unsafe {
                 set_in_slice::<_, u32>(obs.indices_mut(), index, values)
