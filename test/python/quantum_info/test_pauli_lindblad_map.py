@@ -40,7 +40,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
             PauliLindbladMap(data, num_qubits=data.num_qubits + 1)
 
-        with_phase = Pauli("-jIYYXY")
+        with_phase = Pauli("-IYYXY")
         self.assertEqual(PauliLindbladMap(with_phase), PauliLindbladMap.from_pauli(with_phase))
         self.assertEqual(
             PauliLindbladMap(with_phase, num_qubits=data.num_qubits),

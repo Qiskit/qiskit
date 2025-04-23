@@ -2000,6 +2000,52 @@ impl PyPauliLindbladMap {
         }
         out.into_bound_py_any(py)
     }
+
+    fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
+        // this is also important to check before trying to read both slf and other
+        if slf.is(&other) {
+            return Ok(true);
+        }
+        let Ok(other) = other.downcast_into::<Self>() else {
+            return Ok(false);
+        };
+        let slf_borrowed = slf.borrow();
+        let other_borrowed = other.borrow();
+        let slf_inner = slf_borrowed.inner.read().map_err(|_| InnerReadError)?;
+        let other_inner = other_borrowed.inner.read().map_err(|_| InnerReadError)?;
+        Ok(slf_inner.eq(&other_inner))
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        let num_terms = self.num_terms()?;
+        let num_qubits = self.num_qubits()?;
+
+        let str_num_terms = format!(
+            "{} term{}",
+            num_terms,
+            if num_terms == 1 { "" } else { "s" }
+        );
+        let str_num_qubits = format!(
+            "{} qubit{}",
+            num_qubits,
+            if num_qubits == 1 { "" } else { "s" }
+        );
+
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let str_terms = if num_terms == 0 {
+            "0.0".to_owned()
+        } else {
+            inner
+                .iter()
+                .map(SparseTermView::to_sparse_str)
+                .collect::<Vec<_>>()
+                .join(" + ")
+        };
+        Ok(format!(
+            "<SparseObservable with {} on {}: {}>",
+            str_num_terms, str_num_qubits, str_terms
+        ))
+    }
 }
 
 impl From<PauliLindbladMap> for PyPauliLindbladMap {
