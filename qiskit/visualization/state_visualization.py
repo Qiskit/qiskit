@@ -281,8 +281,8 @@ def plot_bloch_multivector(
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
         font_size (float): Font size for the Bloch ball figures.
         title_font_size (float): Font size for the title.
-        title_pad (float): Padding for the title (suptitle `y` position is `0.98`
-        and the image height will be extended by `1 + title_pad/100`).
+        title_pad (float): Padding for the title (suptitle ``y`` position is ``0.98``
+        and the image height will be extended by ``1 + title_pad/100``).
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :

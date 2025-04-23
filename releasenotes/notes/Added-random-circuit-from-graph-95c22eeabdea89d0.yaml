@@ -1,0 +1,37 @@
+---
+features_circuits:
+  - |
+    Added a function :func:`~qiskit.circuit.random.utils.random_circuit_from_graph` that generates a random circuit that 
+    induces the same interaction graph as the interaction graph specified by `interaction_graph`.
+
+    The probability of randomly drawing an edge from the interaction graph as a two-qubit gate can be set by the 
+    user in the weight attribute of an edge in the input interaction graph. If the user does not set the probability, 
+    each edge is drawn uniformly, i.e. each two-qubit gate represented by an edge in the interaction graph has the 
+    same probability of getting added to the random circuit. If only a subset of edge probabilities are set, 
+    `ValueError` will be raised.
+
+    This is an example where 'cp_map' is a list of edges with some arbitrary weights.
+
+    .. plot::
+      :include-source:
+        
+        from qiskit.circuit.random.utils import random_circuit_from_graph
+        import rustworkx as rx
+        pydi_graph = rx.PyDiGraph()
+        n_q = 5
+        cp_map = [(0, 1, 0.18), (1, 2, 0.15), (2, 3, 0.15), (3, 4, 0.22)]
+        pydi_graph.add_nodes_from(range(n_q))
+        pydi_graph.add_edges_from(cp_map)
+        # cp_map can be passed in directly as interaction_graph
+        qc = random_circuit_from_graph(interaction_graph = pydi_graph,
+          min_2q_gate_per_edge = 1, 
+          max_operands = 2, 
+          measure = True, 
+          conditional = True, 
+          reset = True, 
+          seed = 0, 
+          insert_1q_oper = True, 
+          prob_conditional = 0.21,
+          prob_reset = 0.1)
+        qc.draw(output='mpl')
+
