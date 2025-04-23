@@ -141,11 +141,12 @@ impl<'py> IntoPyObject<'py> for NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self
-            .op_object
-            .get_or_init(|| self.create_py_op(py, None).unwrap())
-            .bind(py)
-            .clone())
+        if let Some(op) = self.op_object.get() {
+            Ok(op.bind(py).clone())
+        } else {
+            let op = self.create_py_op(py, None)?;
+            Ok(self.op_object.get_or_init(|| op).bind(py).clone())
+        }
     }
 }
 
@@ -155,10 +156,12 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self
-            .op_object
-            .get_or_init(|| self.create_py_op(py, None).unwrap())
-            .bind_borrowed(py))
+        if let Some(op) = self.op_object.get() {
+            Ok(op.bind_borrowed(py))
+        } else {
+            let op = self.create_py_op(py, None)?;
+            Ok(self.op_object.get_or_init(|| op).bind_borrowed(py))
+        }
     }
 }
 
