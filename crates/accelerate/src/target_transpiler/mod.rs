@@ -99,11 +99,11 @@ impl From<NormalOperation> for TargetOperation {
 
 /// Represents a Qiskit `Gate` object, keeps a reference to its Python
 /// instance for caching purposes.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
-    op_object: OnceLock<PyObject>,
+    op_object: OnceLock<PyResult<PyObject>>,
 }
 
 impl NormalOperation {
@@ -141,11 +141,9 @@ impl<'py> IntoPyObject<'py> for NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        if let Some(op) = self.op_object.get() {
-            Ok(op.bind(py).clone())
-        } else {
-            let op = self.create_py_op(py, None)?;
-            Ok(self.op_object.get_or_init(|| op).bind(py).clone())
+        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+            Ok(op) => Ok(op.bind(py).clone()),
+            Err(err) => Err(err.clone_ref(py)),
         }
     }
 }
@@ -156,11 +154,9 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        if let Some(op) = self.op_object.get() {
-            Ok(op.bind_borrowed(py))
-        } else {
-            let op = self.create_py_op(py, None)?;
-            Ok(self.op_object.get_or_init(|| op).bind_borrowed(py))
+        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+            Ok(op) => Ok(op.bind_borrowed(py)),
+            Err(err) => Err(err.clone_ref(py)),
         }
     }
 }
@@ -171,8 +167,19 @@ impl<'py> FromPyObject<'py> for NormalOperation {
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: ob.clone().unbind().into(),
+            op_object: Ok(ob.clone().unbind()).into(),
         })
+    }
+}
+
+// Custom impl for Clone to avoid cloning the `OnceLock`.
+impl Clone for NormalOperation {
+    fn clone(&self) -> Self {
+        Self {
+            operation: self.operation.clone(),
+            params: self.params.clone(),
+            op_object: OnceLock::new(),
+        }
     }
 }
 
