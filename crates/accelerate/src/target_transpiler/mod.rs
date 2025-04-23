@@ -85,7 +85,7 @@ impl TargetOperation {
         }
     }
 
-    /// Creates a of [TargetOperation] from an instance of [PackedOperation]
+    /// Creates a [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
         NormalOperation::from_packed_operation(operation, params).into()
     }
