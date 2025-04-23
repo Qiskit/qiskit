@@ -78,7 +78,7 @@ class ObservablesArray(ShapedMixin):
                 self._array[ndi] = self.coerce_observable(obs)
 
     @staticmethod
-    def obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
+    def _obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
         """Convert a sparse observable to a mapping from Pauli strings to coefficients"""
         result = {}
         for sparse_pauli_str, pauli_qubits, coeff in obs.to_sparse_list():
@@ -150,11 +150,11 @@ class ObservablesArray(ShapedMixin):
     def __getitem__(self, args):
         item = self._array[args]
         if not isinstance(item, np.ndarray):
-            return self.obs_to_dict(item)
+            return self._obs_to_dict(item)
 
         result = np.ndarray(item.shape, dtype=dict)
         for ndi, obs in np.ndenumerate(item):
-            result[ndi] = self.obs_to_dict(obs)
+            result[ndi] = self._obs_to_dict(obs)
 
         return result
 
