@@ -668,7 +668,7 @@ impl TwoQubitWeylDecomposition {
                 .for_each(|(index, x)| *x = d_inner[index]);
 
             let compare = p_inner.dot(&diag_d).dot(&p_inner.t());
-            found = abs_diff_eq!(compare.view(), m2, epsilon = 1.0e-11);
+            found = abs_diff_eq!(compare.view(), m2, epsilon = 1.0e-13);
             if found {
                 p = p_inner;
                 d = d_inner;
