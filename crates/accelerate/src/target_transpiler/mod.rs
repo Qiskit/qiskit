@@ -19,13 +19,13 @@ mod qargs;
 
 pub use qargs::{Qargs, QargsRef};
 
-use std::{ops::Index, sync::OnceLock};
+use std::{hash::Hash, ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
 
-use gate_map::{GateMap, PropsMap};
+use gate_map::SynchedMap;
 use hashbrown::HashSet;
-use indexmap::IndexMap;
+use indexmap::{Equivalent, IndexMap};
 use itertools::Itertools;
 
 use pyo3::{
@@ -47,6 +47,8 @@ use instruction_properties::InstructionProperties;
 
 use self::exceptions::TranspilerError;
 
+type GateMap = SynchedMap<String, PropsMap>;
+type PropsMap = SynchedMap<Qargs, Option<InstructionProperties>>;
 pub(crate) mod exceptions {
     use pyo3::import_exception_bound;
     import_exception_bound! {qiskit.exceptions, QiskitError}
@@ -127,16 +129,6 @@ impl NormalOperation {
         Self {
             operation,
             params,
-            op_object: OnceLock::new(),
-        }
-    }
-}
-
-impl Clone for NormalOperation {
-    fn clone(&self) -> Self {
-        NormalOperation {
-            operation: self.operation.clone(),
-            params: self.params.clone(),
             op_object: OnceLock::new(),
         }
     }
@@ -428,25 +420,19 @@ impl Target {
         qargs: Qargs,
         properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
-        if !self.contains_key(&instruction) {
+        let Some(prop_map) = self.gate_map.get_mut(&instruction) else {
             return Err(PyKeyError::new_err(format!(
                 "Provided instruction: '{:?}' not in this Target.",
                 &instruction
             )));
         };
-        let mut prop_map = self[&instruction].clone();
-        if !(prop_map.contains_key(&qargs.as_ref())) {
+        let Some(inst_prop) = prop_map.get_mut(&qargs.as_ref()) else {
             return Err(PyKeyError::new_err(format!(
                 "Provided qarg {:?} not in this Target for {:?}.",
                 &qargs, &instruction
             )));
-        }
-        if let Some(e) = prop_map.get_mut(&qargs.as_ref()) {
-            *e = properties;
-        }
-        self.gate_map
-            .entry(instruction)
-            .and_modify(|e| *e = prop_map);
+        };
+        *inst_prop = properties;
         Ok(())
     }
 
@@ -457,12 +443,16 @@ impl Target {
     /// Returns:
     ///     list: The list of qargs the gate instance applies to.
     #[pyo3(name = "qargs_for_operation_name")]
-    pub fn py_qargs_for_operation_name(&self, py: Python, operation: &str) -> PyResult<Py<PyAny>> {
-        if let Some(props_map) = self.gate_map.get(operation) {
+    pub fn py_qargs_for_operation_name(
+        &mut self,
+        py: Python,
+        operation: &str,
+    ) -> PyResult<Py<PyAny>> {
+        if let Some(props_map) = self.gate_map.get_mut(operation) {
             if props_map.contains_key(&Qargs::Global) {
                 return Ok(py.None());
             }
-            Ok(props_map.into_pyobject(py)?.call_method0("keys")?.unbind())
+            props_map.py_keys(py)
         } else {
             Err(PyKeyError::new_err(format!(
                 "Operation: {operation} not in Target."
@@ -844,7 +834,7 @@ impl Target {
     /// Get the operation names in the target.
     #[getter]
     #[pyo3(name = "operation_names")]
-    fn py_operation_names(&self, py: Python) -> PyResult<PyObject> {
+    fn py_operation_names(&mut self, py: Python) -> PyResult<PyObject> {
         self.py_keys(py)
     }
 
@@ -868,7 +858,7 @@ impl Target {
         Ok(self.gate_map.len())
     }
 
-    fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyDict>> {
+    fn __getstate__(&mut self, py: Python<'_>) -> PyResult<Py<PyDict>> {
         let result_list = PyDict::new(py);
         result_list.set_item("description", self.description.clone())?;
         result_list.set_item("num_qubits", self.num_qubits)?;
@@ -882,7 +872,7 @@ impl Target {
             "concurrent_measurements",
             self.concurrent_measurements.clone(),
         )?;
-        result_list.set_item("gate_map", &self.gate_map)?;
+        result_list.set_item("gate_map", self.gate_map.cached_py_dict(py)?)?;
         result_list.set_item("gate_name_map", self._gate_name_map.into_pyobject(py)?)?;
         result_list.set_item("global_operations", self.global_operations.clone())?;
         result_list.set_item(
@@ -951,27 +941,24 @@ impl Target {
         Ok(())
     }
 
-    fn __iter__(slf: PyRef<Self>) -> PyResult<Bound<PyIterator>> {
-        (&slf.gate_map).into_pyobject(slf.py())?.try_iter()
+    fn __iter__(mut slf: PyRefMut<Self>) -> PyResult<Py<PyIterator>> {
+        let py = slf.py();
+        slf.gate_map.py_iter(py)
     }
 
-    fn __getitem__<'py>(&self, py: Python<'py>, key: &str) -> PyResult<Bound<'py, PyAny>> {
-        (&self.gate_map).into_bound_py_any(py)?.get_item(key)
+    fn __getitem__<'py>(&mut self, py: Python<'py>, key: &str) -> PyResult<Bound<'py, PyAny>> {
+        self.gate_map.py_get_item(py, &key.into_py_any(py)?)
     }
 
     /// Gets an item from the Target. If not found return a provided default or `None`.
     #[pyo3(name = "get", signature= (key, default=None))]
     fn py_get(
-        &self,
-        py: Python,
-        key: &str,
+        &mut self,
+        py: Python<'_>,
+        key: PyObject,
         default: Option<PyObject>,
     ) -> PyResult<Option<PyObject>> {
-        if let Some(value) = self.gate_map.get(key) {
-            Some(value.into_py_any(py)).transpose()
-        } else {
-            Ok(default)
-        }
+        self.gate_map.py_get(py, &key, default)
     }
 
     fn __contains__(&self, item: &str) -> bool {
@@ -980,29 +967,20 @@ impl Target {
 
     /// Return the keys (operation_names) of the Target
     #[pyo3(name = "keys")]
-    fn py_keys(&self, py: Python) -> PyResult<PyObject> {
-        (&self.gate_map)
-            .into_pyobject(py)?
-            .call_method0("keys")
-            .map(|obj| obj.unbind())
+    fn py_keys(&mut self, py: Python) -> PyResult<PyObject> {
+        self.gate_map.py_keys(py)
     }
 
     /// Return the Property Map (qargs -> InstructionProperties) of every instruction in the Target
     #[pyo3(name = "values")]
-    fn py_values(&self, py: Python) -> PyResult<PyObject> {
-        (&self.gate_map)
-            .into_pyobject(py)?
-            .call_method0("values")
-            .map(|obj| obj.unbind())
+    fn py_values(&mut self, py: Python) -> PyResult<PyObject> {
+        self.gate_map.py_values(py)
     }
 
     /// Returns pairs of Gate names and its property map (str, dict[tuple, InstructionProperties])
     #[pyo3(name = "items")]
-    fn py_items(&self, py: Python) -> PyResult<PyObject> {
-        (&self.gate_map)
-            .into_pyobject(py)?
-            .call_method0("items")
-            .map(|obj| obj.unbind())
+    fn py_items(&mut self, py: Python) -> PyResult<PyObject> {
+        self.gate_map.py_items(py)
     }
 }
 
@@ -1356,9 +1334,12 @@ impl Target {
 }
 
 // To access the Target's gate map by gate name.
-impl Index<&str> for Target {
+impl<Q> Index<&Q> for Target
+where
+    Q: ?Sized + Equivalent<String> + Hash,
+{
     type Output = PropsMap;
-    fn index(&self, index: &str) -> &Self::Output {
+    fn index(&self, index: &Q) -> &Self::Output {
         self.gate_map.index(index)
     }
 }
