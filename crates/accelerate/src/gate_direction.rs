@@ -225,7 +225,6 @@ fn py_fix_direction_target(
                 _ => {}
             }
         }
-        // This will come back to bite me :)
         target.instruction_supported(inst.op.name(), &qargs)
     };
 
