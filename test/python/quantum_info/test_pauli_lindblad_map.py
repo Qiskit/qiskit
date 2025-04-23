@@ -47,4 +47,24 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_pauli(with_phase),
         )
 
+        with self.assertRaisesRegex(ValueError, "real phases"):
+            PauliLindbladMap(Pauli("-jIYYXY"))
+
         self.assertEqual(PauliLindbladMap(Pauli("")), PauliLindbladMap.from_pauli(Pauli("")))
+    
+    def test_default_constructor_sparse_pauli_op(self):
+        data = SparsePauliOp.from_list([("IIXIY", 1.0), ("XYYZI", -0.25), ("XYIYY", -0.75)])
+
+        with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
+            PauliLindbladMap(data, num_qubits=data.num_qubits + 1)
+        with self.assertRaisesRegex(TypeError, "real-typed coefficients"):
+            PauliLindbladMap(SparsePauliOp(["XX"], [Parameter("x")]))
+        
+        ###############################################################################################
+        # this part of the test is currently failing because SparsePauliOp stores complex-valued coefficients
+        # In the rust we need to somehow handle this.
+        self.assertEqual(PauliLindbladMap(data), PauliLindbladMap.from_sparse_pauli_op(data))
+        self.assertEqual(
+            PauliLindbladMap(data, num_qubits=data.num_qubits),
+            PauliLindbladMap.from_sparse_pauli_op(data),
+        )

@@ -1461,11 +1461,20 @@ impl PyPauliLindbladMap {
             .call_method0(intern!(py, "item"))?
             // ... which is some integral type.
             .extract::<isize>()?;
-        let phase = match (group_phase - num_ys).rem_euclid(4) {
+
+        let phase_idx = (group_phase - num_ys).rem_euclid(4);
+
+        // If the phase is j or -j, raise an error
+        if phase_idx == 1 || phase_idx == 3 {
+            return Err(PyValueError::new_err("only 'Pauli' with real phases can be converted to 'PauliLindbladMap'"));
+        }
+
+        let phase = match phase_idx {
             0 => 1.0,
             2 => -1.0,
-            _ => unreachable!("Only real phases are allowed."),
+            _ => unreachable!("`x % 4` has only four values"),
         };
+        
         let coeffs = vec![phase];
         let inner = PauliLindbladMap::new(num_qubits, coeffs, bit_terms, indices, boundaries)?;
         Ok(inner.into())
@@ -1604,7 +1613,7 @@ impl PyPauliLindbladMap {
         let coeffs = op
             .getattr(intern!(py, "coeffs"))?
             .extract::<PyReadonlyArray1<f64>>()
-            .map_err(|_| PyTypeError::new_err("only 'SparsePauliOp' with real-typed coefficients can be converted to 'SparseObservable'"))?
+            .map_err(|_| PyTypeError::new_err("only 'SparsePauliOp' with real-typed coefficients can be converted to 'PauliLindbladMap'"))?
             .as_array()
             .to_vec();
         let op_z = pauli_list_ob
