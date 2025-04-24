@@ -122,9 +122,6 @@ $(C_LIB_DEBUG_CARGO_PATH):
 $(C_LIB_RELEASE_CARGO_PATH):
 	cargo rustc --release --crate-type cdylib -p qiskit-cext
 
-$(C_QISKIT_H):
-	cbindgen --crate qiskit-cext --output $(C_DIR_INCLUDE)/qiskit.h --lang C
-
 $(C_DIR_LIB):
 	mkdir -p $(C_DIR_LIB)
 
@@ -134,11 +131,16 @@ $(C_DIR_INCLUDE):
 $(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_RELEASE_CARGO_PATH)
 	cp $(C_LIB_RELEASE_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
+# This depends on either C_LIB_DEBUG_CARGO_PATH or C_LIB_RELEASE_CARGO_PATH to
+# build the original header.
+#
+# Do not depend on this in a target without one of those as dependencies first
 $(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH)
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 
 .PHONY: c cheader
 cheader: $(C_QISKIT_H)
+	cbindgen --crate qiskit-cext --output $(C_DIR_INCLUDE)/qiskit.h --lang C
 c: $(C_LIBQISKIT) $(C_QISKIT_H)
 
 # Use ctest to run C API tests
