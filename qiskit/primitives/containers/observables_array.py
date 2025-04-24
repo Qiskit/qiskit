@@ -137,7 +137,9 @@ class ObservablesArray(ShapedMixin):
                 result = np.ndarray(shape=self._array.shape, dtype=dict)
                 result[()] = tmp_result
             else:
-                result = tmp_result
+                result = np.ndarray(tmp_result.shape, dtype=dict)
+                for ndi, obs in np.ndenumerate(tmp_result._array):
+                    result[ndi] = self._obs_to_dict(obs)
             return result
         raise ValueError("Type must be 'None' or 'object'")
 
@@ -145,18 +147,14 @@ class ObservablesArray(ShapedMixin):
     def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]: ...
 
     @overload
-    def __getitem__(self, args: slice) -> ObservablesArray: ...
+    def __getitem__(self, args: slice | tuple[slice, ...]) -> ObservablesArray: ...
 
     def __getitem__(self, args):
         item = self._array[args]
         if not isinstance(item, np.ndarray):
             return self._obs_to_dict(item)
 
-        result = np.ndarray(item.shape, dtype=dict)
-        for ndi, obs in np.ndenumerate(item):
-            result[ndi] = self._obs_to_dict(obs)
-
-        return result
+        return ObservablesArray(item, copy=False, validate=False)
 
     def reshape(self, *shape: int | Iterable[int]) -> ObservablesArray:
         """Return a new array with a different shape.
