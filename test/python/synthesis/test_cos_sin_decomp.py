@@ -18,6 +18,7 @@ from ddt import ddt
 import numpy as np
 
 from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit._accelerate.cos_sin_decomp import cossin
 
@@ -35,6 +36,12 @@ class TestCSD(QiskitTestCase):
 
         # Run QSD: u = [u1, u2], v = [v1, v2]
         csd_u, csd_thetas, csd_v = cossin(mat)
+
+        # Check that the computed matrices are unitary
+        self.assertTrue(is_unitary_matrix(csd_u[0], atol=1e-13))
+        self.assertTrue(is_unitary_matrix(csd_u[1], atol=1e-13))
+        self.assertTrue(is_unitary_matrix(csd_v[0], atol=1e-13))
+        self.assertTrue(is_unitary_matrix(csd_v[1], atol=1e-13))
 
         # Create appropriate 2n x 2n matrices and multiply
         zero_mat = np.zeros((n, n), dtype=complex)
