@@ -141,6 +141,7 @@ impl VersorU2 {
     ///
     /// Returns the error state if `gate` is not 1q, or if any of the parameters are symbolic.
     pub fn from_standard(gate: StandardGate, params: &[Param]) -> Result<Self, VersorU2Error> {
+        debug_assert_eq!(params.len(), gate.get_num_params() as usize);
         match gate {
             StandardGate::GlobalPhase => {
                 let &[Param::Float(phase)] = params else {
@@ -149,26 +150,19 @@ impl VersorU2 {
                 Ok(VersorSU2::identity().with_phase(phase))
             }
             StandardGate::H => {
-                debug_assert!(params.is_empty());
                 Ok(
                     VersorSU2::from_quaternion_unchecked(0., -FRAC_1_SQRT_2, 0., -FRAC_1_SQRT_2)
                         .with_phase(FRAC_PI_2),
                 )
             }
-            StandardGate::I => {
-                debug_assert!(params.is_empty());
-                Ok(Self::identity())
-            }
+            StandardGate::I => Ok(Self::identity()),
             StandardGate::X => {
-                debug_assert!(params.is_empty());
                 Ok(VersorSU2::from_quaternion_unchecked(0., 0., 0., -1.).with_phase(FRAC_PI_2))
             }
             StandardGate::Y => {
-                debug_assert!(params.is_empty());
                 Ok(VersorSU2::from_quaternion_unchecked(0., 0., -1., 0.).with_phase(FRAC_PI_2))
             }
             StandardGate::Z => {
-                debug_assert!(params.is_empty());
                 Ok(VersorSU2::from_quaternion_unchecked(0., -1., 0., 0.).with_phase(FRAC_PI_2))
             }
             StandardGate::Phase | StandardGate::U1 => {
@@ -210,42 +204,36 @@ impl VersorU2 {
                 Ok(VersorSU2::from_rz(angle).into())
             }
             StandardGate::S => {
-                debug_assert!(params.is_empty());
                 Ok(
                     VersorSU2::from_quaternion_unchecked(FRAC_1_SQRT_2, -FRAC_1_SQRT_2, 0., 0.)
                         .with_phase(FRAC_PI_4),
                 )
             }
             StandardGate::Sdg => {
-                debug_assert!(params.is_empty());
                 Ok(
                     VersorSU2::from_quaternion_unchecked(FRAC_1_SQRT_2, FRAC_1_SQRT_2, 0., 0.)
                         .with_phase(-FRAC_PI_4),
                 )
             }
             StandardGate::SX => {
-                debug_assert!(params.is_empty());
                 Ok(
                     VersorSU2::from_quaternion_unchecked(FRAC_1_SQRT_2, 0., 0., -FRAC_1_SQRT_2)
                         .with_phase(FRAC_PI_4),
                 )
             }
             StandardGate::SXdg => {
-                debug_assert!(params.is_empty());
                 Ok(
                     VersorSU2::from_quaternion_unchecked(FRAC_1_SQRT_2, 0., 0., FRAC_1_SQRT_2)
                         .with_phase(-FRAC_PI_4),
                 )
             }
             StandardGate::T => {
-                debug_assert!(params.is_empty());
                 Ok(
                     VersorSU2::from_quaternion_unchecked(COS_FRAC_PI_8, -SIN_FRAC_PI_8, 0., 0.)
                         .with_phase(FRAC_PI_8),
                 )
             }
             StandardGate::Tdg => {
-                debug_assert!(params.is_empty());
                 Ok(
                     VersorSU2::from_quaternion_unchecked(COS_FRAC_PI_8, SIN_FRAC_PI_8, 0., 0.)
                         .with_phase(-FRAC_PI_8),
