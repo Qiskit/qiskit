@@ -22,11 +22,11 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
-use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
 
-use crate::quantum_info::{VersorSU2, VersorU2};
+use crate::quantum_info::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
 
 #[inline]
@@ -107,12 +107,17 @@ impl Separable1q {
 
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
 fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU2> {
-    let versor_result = if let Some(gate) = inst.standard_gate() {
-        VersorU2::from_standard(gate, inst.params_view())
-    } else {
-        VersorU2::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), 1e-12)
-    };
-    versor_result.map_err(|err| QiskitError::new_err(err.to_string()))
+    let tol = 1e-12;
+    match inst.op.view() {
+        OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
+        OperationRef::Unitary(gate) => match &gate.array {
+            ArrayType::NDArray(arr) => VersorU2::from_ndarray(&arr.view(), tol),
+            ArrayType::OneQ(arr) => VersorU2::from_nalgebra(arr, tol),
+            ArrayType::TwoQ(_) => Err(VersorU2Error::MultiQubit),
+        },
+        _ => VersorU2::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), tol),
+    }
+    .map_err(|err| QiskitError::new_err(err.to_string()))
 }
 
 /// Return the matrix Operator resulting from a block of Instructions.
