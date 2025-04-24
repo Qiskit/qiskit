@@ -130,26 +130,27 @@ pub fn blocks_to_matrix(
     enum Qarg {
         Q0 = 0,
         Q1 = 1,
-        Q01,
-        Q10,
+        Q01 = 2,
+        Q10 = 3,
     }
+    let qarg_vals = [Qarg::Q0, Qarg::Q1, Qarg::Q01, Qarg::Q10];
+    let interned_default = dag.qargs_interner().get_default();
+    let interned_map = [
+        &[block_index_map[0]],
+        &[block_index_map[1]],
+        block_index_map.as_slice(),
+        &[block_index_map[1], block_index_map[0]],
+    ]
+    .map(|qubits| {
+        dag.qargs_interner()
+            .try_key(qubits)
+            .unwrap_or(interned_default)
+    });
     let qarg_lookup = |qargs| {
-        let interned = dag.get_qargs(qargs);
-        if interned.len() == 1 {
-            if interned[0] == block_index_map[0] {
-                Qarg::Q0
-            } else {
-                Qarg::Q1
-            }
-        } else if interned.len() == 2 {
-            if interned[0] == block_index_map[0] {
-                Qarg::Q01
-            } else {
-                Qarg::Q10
-            }
-        } else {
-            panic!("not a one- or two-qubit gate");
-        }
+        qarg_vals[interned_map
+            .iter()
+            .position(|key| qargs == *key)
+            .expect("not a 1q or 2q gate in the qargs block")]
     };
 
     let mut work: [[Complex64; 4]; 4] = Default::default();
