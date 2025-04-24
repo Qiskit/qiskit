@@ -12,11 +12,12 @@
 
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_data::CircuitData;
 
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::{Qargs, Target};
-use qiskit_circuit::dag_circuit::DAGCircuit;
+
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::dag::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;

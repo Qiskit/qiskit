@@ -18,9 +18,8 @@ use num_complex::Complex64;
 use numpy::ndarray::linalg::kron;
 use numpy::ndarray::{aview2, Array2, ArrayView2};
 use numpy::PyReadonlyArray2;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex};
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::{Operation, OperationRef};

@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, Param, StandardInstruction};
 
 use crate::nlayout::PhysicalQubit;

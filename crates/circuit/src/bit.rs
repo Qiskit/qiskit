@@ -23,12 +23,11 @@ use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::{
     exceptions::{PyIndexError, PyTypeError, PyValueError},
-    types::{PyList, PyType},
+    types::{PyIterator, PyList, PyTuple, PyType},
     IntoPyObjectExt, PyTypeInfo,
 };
 
 use crate::circuit_data::CircuitError;
-use crate::dag_circuit::PyBitLocations;
 use crate::slice::{PySequenceIndex, SequenceIndex};
 
 /// Describes a relationship between a bit and all the registers it belongs to
@@ -95,6 +94,81 @@ where
             index: ob_down.index as u32,
             registers: ob_down.registers.extract(ob.py())?,
         })
+    }
+}
+
+#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit", sequence)]
+#[derive(Clone, Debug)]
+pub struct PyBitLocations {
+    #[pyo3(get)]
+    pub index: usize,
+    #[pyo3(get)]
+    pub registers: Py<PyList>,
+}
+
+#[pymethods]
+impl PyBitLocations {
+    #[new]
+    /// Creates a new instance of [PyBitLocations]
+    pub fn new(index: usize, registers: Py<PyList>) -> Self {
+        Self { index, registers }
+    }
+
+    fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
+        let borrowed = slf.borrow();
+        if let Ok(other) = other.downcast::<Self>() {
+            let other_borrowed = other.borrow();
+            Ok(borrowed.index == other_borrowed.index
+                && slf.getattr("registers")?.eq(other.getattr("registers")?)?)
+        } else if let Ok(other) = other.downcast::<PyTuple>() {
+            Ok(slf.getattr("index")?.eq(other.get_item(0)?)?
+                && slf.getattr("registers")?.eq(other.get_item(1)?)?)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn __iter__(slf: Bound<Self>) -> PyResult<Bound<PyIterator>> {
+        (slf.getattr("index")?, slf.getattr("registers")?)
+            .into_bound_py_any(slf.py())?
+            .try_iter()
+    }
+
+    fn __repr__(slf: Bound<Self>) -> PyResult<String> {
+        Ok(format!(
+            "{}(index={} registers={})",
+            slf.get_type().name()?,
+            slf.getattr("index")?.repr()?,
+            slf.getattr("registers")?.repr()?
+        ))
+    }
+
+    fn __getnewargs__(slf: Bound<Self>) -> PyResult<(Bound<PyAny>, Bound<PyAny>)> {
+        Ok((slf.getattr("index")?, slf.getattr("registers")?))
+    }
+
+    fn __getitem__(&self, py: Python, index: PySequenceIndex<'_>) -> PyResult<PyObject> {
+        let getter = |index: usize| -> PyResult<PyObject> {
+            match index {
+                0 => self.index.into_py_any(py),
+                1 => Ok(self.registers.clone_ref(py).into_any()),
+                _ => Err(PyIndexError::new_err("index out of range")),
+            }
+        };
+        if let Ok(index) = index.with_len(2) {
+            match index {
+                crate::slice::SequenceIndex::Int(index) => getter(index),
+                _ => PyTuple::new(py, index.iter().map(|idx| getter(idx).unwrap()))
+                    .map(|obj| obj.into_any().unbind()),
+            }
+        } else {
+            Err(PyIndexError::new_err("index out of range"))
+        }
+    }
+
+    #[staticmethod]
+    fn __len__() -> usize {
+        2
     }
 }
 

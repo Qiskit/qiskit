@@ -16,11 +16,8 @@ pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
-pub mod dag_circuit;
-pub mod dag_node;
-mod dot_utils;
+pub mod dag;
 pub mod duration;
-pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
@@ -154,6 +151,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bit::PyClassicalRegister>()?;
     m.add_class::<bit::PyQuantumRegister>()?;
     m.add_class::<bit::PyAncillaRegister>()?;
+    m.add_class::<bit::PyBitLocations>()?;
 
     // We need to explicitly add the auto-generated Python subclasses of Duration
     // to the module so that pickle can find them during deserialization.
@@ -181,12 +179,11 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
 
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
-    m.add_class::<dag_circuit::DAGCircuit>()?;
-    m.add_class::<dag_node::DAGNode>()?;
-    m.add_class::<dag_node::DAGInNode>()?;
-    m.add_class::<dag_node::DAGOutNode>()?;
-    m.add_class::<dag_node::DAGOpNode>()?;
-    m.add_class::<dag_circuit::PyBitLocations>()?;
+    m.add_class::<dag::DAGCircuit>()?;
+    m.add_class::<dag::DAGNode>()?;
+    m.add_class::<dag::DAGInNode>()?;
+    m.add_class::<dag::DAGOutNode>()?;
+    m.add_class::<dag::DAGOpNode>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
 

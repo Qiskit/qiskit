@@ -18,24 +18,23 @@ use approx::relative_eq;
 use smallvec::SmallVec;
 
 use crate::bit::{
-    BitLocations, ClassicalRegister, PyClassicalRegister, PyClbit, PyQubit, QuantumRegister,
-    Register, ShareableClbit, ShareableQubit,
+    BitLocations, ClassicalRegister, PyBitLocations, PyClassicalRegister, PyClbit, PyQubit,
+    QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::converters::QuantumCircuitData;
-use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
-use crate::dot_utils::build_dot;
-use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
-use crate::slice::PySequenceIndex;
 use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var};
+
+use super::dot_utils::build_dot;
+use super::{DAGCircuitError, DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -280,81 +279,6 @@ fn reject_new_register(reg: &Bound<PyAny>) -> PyResult<()> {
         "No register with '{:?}' to map this expression onto.",
         reg.getattr("bits")?
     )))
-}
-
-#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit", sequence)]
-#[derive(Clone, Debug)]
-pub struct PyBitLocations {
-    #[pyo3(get)]
-    pub index: usize,
-    #[pyo3(get)]
-    pub registers: Py<PyList>,
-}
-
-#[pymethods]
-impl PyBitLocations {
-    #[new]
-    /// Creates a new instance of [PyBitLocations]
-    pub fn new(index: usize, registers: Py<PyList>) -> Self {
-        Self { index, registers }
-    }
-
-    fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
-        let borrowed = slf.borrow();
-        if let Ok(other) = other.downcast::<Self>() {
-            let other_borrowed = other.borrow();
-            Ok(borrowed.index == other_borrowed.index
-                && slf.getattr("registers")?.eq(other.getattr("registers")?)?)
-        } else if let Ok(other) = other.downcast::<PyTuple>() {
-            Ok(slf.getattr("index")?.eq(other.get_item(0)?)?
-                && slf.getattr("registers")?.eq(other.get_item(1)?)?)
-        } else {
-            Ok(false)
-        }
-    }
-
-    fn __iter__(slf: Bound<Self>) -> PyResult<Bound<PyIterator>> {
-        (slf.getattr("index")?, slf.getattr("registers")?)
-            .into_bound_py_any(slf.py())?
-            .try_iter()
-    }
-
-    fn __repr__(slf: Bound<Self>) -> PyResult<String> {
-        Ok(format!(
-            "{}(index={} registers={})",
-            slf.get_type().name()?,
-            slf.getattr("index")?.repr()?,
-            slf.getattr("registers")?.repr()?
-        ))
-    }
-
-    fn __getnewargs__(slf: Bound<Self>) -> PyResult<(Bound<PyAny>, Bound<PyAny>)> {
-        Ok((slf.getattr("index")?, slf.getattr("registers")?))
-    }
-
-    fn __getitem__(&self, py: Python, index: PySequenceIndex<'_>) -> PyResult<PyObject> {
-        let getter = |index: usize| -> PyResult<PyObject> {
-            match index {
-                0 => self.index.into_py_any(py),
-                1 => Ok(self.registers.clone_ref(py).into_any()),
-                _ => Err(PyIndexError::new_err("index out of range")),
-            }
-        };
-        if let Ok(index) = index.with_len(2) {
-            match index {
-                crate::slice::SequenceIndex::Int(index) => getter(index),
-                _ => PyTuple::new(py, index.iter().map(|idx| getter(idx).unwrap()))
-                    .map(|obj| obj.into_any().unbind()),
-            }
-        } else {
-            Err(PyIndexError::new_err("index out of range"))
-        }
-    }
-
-    #[staticmethod]
-    fn __len__() -> usize {
-        2
-    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -2963,7 +2887,7 @@ impl DAGCircuit {
             &clbit_wire_map,
             &var_map,
         )?;
-        self.global_phase = add_global_phase(&self.global_phase, &input_dag.global_phase)?;
+        self.global_phase = self.global_phase.add_numeric(&input_dag.global_phase)?;
 
         let wire_map_dict = PyDict::new(py);
         for (source, target) in clbit_wire_map.iter() {
@@ -6420,14 +6344,11 @@ impl DAGCircuit {
 
     pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
         match value {
-            Param::Obj(_) => {
-                return Err(PyTypeError::new_err(
-                    "Invalid parameter type, only float and parameter expression are supported",
-                ))
-            }
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?)?,
+            Param::Obj(_) => Err(PyTypeError::new_err(
+                "Invalid parameter type, only float and parameter expression are supported",
+            )),
+            _ => self.set_global_phase(self.global_phase.add_numeric(value)?),
         }
-        Ok(())
     }
 
     /// Return the op name counts in the circuit
@@ -6877,7 +6798,7 @@ impl DAGCircuit {
             }
         };
 
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        self.global_phase = self.global_phase.add_numeric(&other.global_phase)?;
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //
@@ -7452,39 +7373,12 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
     }
 }
 
-/// Add to global phase. Global phase can only be Float or ParameterExpression so this
-/// does not handle the full possibility of parameter values.
-pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> {
-    Ok(match [phase, other] {
-        [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
-        [Param::Float(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                b.clone_ref(py)
-                    .call_method1(py, intern!(py, "__radd__"), (*a,))
-            })?)
-        }
-        [Param::ParameterExpression(a), Param::Float(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                a.clone_ref(py)
-                    .call_method1(py, intern!(py, "__add__"), (*b,))
-            })?)
-        }
-        [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                a.clone_ref(py)
-                    .call_method1(py, intern!(py, "__add__"), (b,))
-            })?)
-        }
-        _ => panic!("Invalid global phase"),
-    })
-}
-
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 
 #[cfg(all(test, not(miri)))]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
-    use crate::dag_circuit::{DAGCircuit, Wire};
+    use crate::dag::{DAGCircuit, Wire};
     use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
     use crate::{Clbit, Qubit};

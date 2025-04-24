@@ -21,7 +21,6 @@ use crate::bit::{
 };
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
@@ -1955,7 +1954,7 @@ impl CircuitData {
             Param::Obj(_) => Err(PyTypeError::new_err(
                 "Invalid parameter type, only float and parameter expression are supported",
             )),
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
+            _ => self.set_global_phase(self.global_phase.add_numeric(value)?),
         }
     }
 }

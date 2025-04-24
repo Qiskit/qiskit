@@ -17,7 +17,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
