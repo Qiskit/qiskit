@@ -1216,18 +1216,18 @@ impl PyPauliLindbladMap {
         //    }
         //    return Self::from_label(&label).map_err(PyErr::from);
         //}
-        if let Ok(observable) = data.downcast_exact::<Self>() {
-            check_num_qubits(data)?;
-            let borrowed = observable.borrow();
-            let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
-            return Ok(inner.clone().into());
-        }
+        //if let Ok(observable) = data.downcast_exact::<Self>() {
+        //    check_num_qubits(data)?;
+        //    let borrowed = observable.borrow();
+        //    let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
+        //    return Ok(inner.clone().into());
+        //}
         // The type of `vec` is inferred from the subsequent calls to `Self::from_list` or
         // `Self::from_sparse_list` to be either the two-tuple or the three-tuple form during the
         // `extract`.  The empty list will pass either, but it means the same to both functions.
-        //if let Ok(vec) = data.extract() {
-        //    return Self::from_list(vec, num_qubits);
-        //}
+        if let Ok(vec) = data.extract() {
+            return Self::from_list(vec, num_qubits);
+        }
         if let Ok(vec) = data.extract() {
             let Some(num_qubits) = num_qubits else {
                 return Err(PyValueError::new_err(
@@ -1355,6 +1355,38 @@ impl PyPauliLindbladMap {
     #[staticmethod]
     pub fn zero(num_qubits: u32) -> Self {
         PauliLindbladMap::zero(num_qubits).into()
+    }
+
+    /// Construct a single-term observable from a dense string label.
+    ///
+    /// The resulting operator will have a coefficient of 1.  The label must be a sequence of the
+    /// alphabet ``'IXYZ+-rl01'``.  The label is interpreted analogously to a bitstring.  In other
+    /// words, the right-most letter is associated with qubit 0, and so on.  This is the same as the
+    /// labels for :class:`.Pauli` and :class:`.SparsePauliOp`.
+    ///
+    /// Args:
+    ///     label (str): the dense label.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> SparseObservable.from_label("IIII+ZI")
+    ///         <SparseObservable with 1 term on 7 qubits: (1+0j)(+_2 Z_1)>
+    ///         >>> label = "IYXZI"
+    ///         >>> pauli = Pauli(label)
+    ///         >>> assert SparseObservable.from_label(label) == SparseObservable.from_pauli(pauli)
+    ///
+    /// See also:
+    ///     :meth:`from_list`
+    ///         A generalization of this method that constructs a sum operator from multiple labels
+    ///         and their corresponding coefficients.
+    #[staticmethod]
+    #[pyo3(signature = (label, /))]
+    fn from_label(label: &str) -> Result<Self, LabelError> {
+        let mut inner = PauliLindbladMap::zero(label.len() as u32);
+        inner.add_dense_label(label, 1.0)?;
+        Ok(inner.into())
     }
 
     /// Construct an observable from a list of dense labels and coefficients.
@@ -1818,6 +1850,16 @@ impl PyPauliLindbladMap {
             "<PauliLindbladMap with {} on {}: {}>",
             str_num_terms, str_num_qubits, str_terms
         ))
+    }
+
+    // The documentation for this is inlined into the class-level documentation of
+    // `SparseObservable`.
+    #[allow(non_snake_case)]
+    #[classattr]
+    fn BitTerm(py: Python) -> PyResult<Py<PyType>> {
+        BIT_TERM_PY_ENUM
+            .get_or_try_init(py, || make_py_bit_term(py))
+            .map(|obj| obj.clone_ref(py))
     }
 }
 
