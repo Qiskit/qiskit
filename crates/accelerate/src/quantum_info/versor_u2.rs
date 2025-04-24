@@ -28,7 +28,7 @@ pub enum VersorU2Error {
     Symbolic,
     #[error("multi-qubit gates have no versor representation")]
     MultiQubit,
-    #[error("non-unitary gates have no versor representation")]
+    #[error("non-unitary instructions have no versor representation")]
     NonUnitary,
 }
 
