@@ -53,6 +53,44 @@ def _compute_rotation_axis(matrix: np.ndarray) -> np.ndarray:
     """
     _check_is_so3(matrix)
 
+    # If theta represents the rotation angle, then trace = 1 + 2cos(theta).
+    trace = _compute_trace_so3(matrix)
+
+    if trace >= 3 - 1e-10:
+        # The matrix is the identity (rotation by 0)
+        x = 1.0
+        y = 0.0
+        z = 0.0
+
+    elif trace <= -1 + 1e-10:
+        # The matrix is the 180-degree rotation
+        # We have:
+        #   k_x^2 = (1 + r_00) / 2, k_y^2 = (1 + r_11) / 2, k_z^2 = (1 + r_22) / 2,
+        #   k_x k_y = r_01 / 2, k_y k_z = r_12 / 2, k_x k_z = r_02 / 2
+        squares = [0.5 * (1 + matrix[0][0]), 0.5 * (1 + matrix[1][1]), 0.5 * (1 + matrix[2][2])]
+        index_of_max = squares.index(max(squares))
+        if index_of_max == 0:
+            x = math.sqrt(squares[0])
+            y = matrix[0][1] / (2 * x)
+            z = matrix[0][2] / (2 * x)
+        elif index_of_max == 1:
+            y = math.sqrt(squares[1])
+            x = matrix[0][1] / (2 * y)
+            z = matrix[1][2] / (2 * y)
+        else:
+            z = math.sqrt(squares[2])
+            x = matrix[0][2] / (2 * z)
+            y = matrix[1][2] / (2 * z)
+
+    else:
+        # The matrix is the rotation by theta with sin(theta)!=0
+        theta = math.acos(0.5 * (trace - 1))
+        x = 1 / (2 * math.sin(theta)) * (matrix[2][1] - matrix[1][2])
+        y = 1 / (2 * math.sin(theta)) * (matrix[0][2] - matrix[2][0])
+        z = 1 / (2 * math.sin(theta)) * (matrix[1][0] - matrix[0][1])
+
+    return np.array([x, y, z])
+
     # A simple (but probably not the most efficient) way to compute the rotation
     # axis of a matrix in SO(3) is to note that the rotation axis is simply the
     # eigenvector of the matrix corresponding to the eigenvalue 1.
