@@ -21,7 +21,6 @@ use num_complex::Complex64;
 use uuid::Uuid;
 
 use core::f64;
-use std::cmp::PartialOrd;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Sub};
@@ -54,13 +53,7 @@ impl ParameterValueType {
                 };
             }
         }
-        ParameterValueType::Expression(ParameterExpression {
-            expr: expr.expr.clone(),
-            uuid: expr.uuid.clone(),
-            qpy_replay: expr.qpy_replay.clone(),
-            parameter_symbols: None,
-            parameter_vector: expr.parameter_vector.clone(),
-        })
+        ParameterValueType::Expression(expr.clone())
     }
 }
 
@@ -1799,6 +1792,10 @@ impl ParameterExpression {
     #[allow(non_snake_case)]
     pub fn is_Parameter(&self) -> bool {
         if let SymbolExpr::Symbol { name: _, index } = &self.expr {
+            if let Some(_) = self.qpy_replay {
+                // return false because it has expression replay
+                return false;
+            }
             return match index {
                 Some(_) => false,
                 None => true,
@@ -1810,6 +1807,10 @@ impl ParameterExpression {
     #[allow(non_snake_case)]
     pub fn is_ParameterExpression(&self) -> bool {
         if let SymbolExpr::Symbol { name: _, index: _ } = &self.expr {
+            if let Some(_) = self.qpy_replay {
+                // return true because it has expression replay
+                return true;
+            }
             return false;
         }
         true
@@ -1818,6 +1819,10 @@ impl ParameterExpression {
     #[allow(non_snake_case)]
     pub fn is_ParameterVectorElement(&self) -> bool {
         if let SymbolExpr::Symbol { name: _, index } = &self.expr {
+            if let Some(_) = self.qpy_replay {
+                // return false because it has expression replay
+                return false;
+            }
             return match index {
                 Some(_) => true,
                 None => false,
