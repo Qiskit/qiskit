@@ -16,7 +16,7 @@ mod errors;
 mod instruction_properties;
 mod nullable_index_map;
 
-use std::ops::Index;
+use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
 
@@ -84,15 +84,55 @@ impl TargetOperation {
             }
         }
     }
+
+    /// Creates a [TargetOperation] from an instance of [PackedOperation]
+    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+        NormalOperation::from_packed_operation(operation, params).into()
+    }
+}
+
+impl From<NormalOperation> for TargetOperation {
+    fn from(value: NormalOperation) -> Self {
+        TargetOperation::Normal(value)
+    }
 }
 
 /// Represents a Qiskit `Gate` object, keeps a reference to its Python
 /// instance for caching purposes.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
-    op_object: PyObject,
+    op_object: OnceLock<PyResult<PyObject>>,
+}
+
+impl NormalOperation {
+    // Creates a python Operation type based on the operation's internal data.
+    #[inline]
+    fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<PyObject> {
+        let obj = match self.operation.view() {
+            OperationRef::StandardGate(standard_gate) => {
+                standard_gate.create_py_op(py, Some(&self.params), label)?
+            }
+            OperationRef::StandardInstruction(standard_instruction) => {
+                standard_instruction.create_py_op(py, Some(&self.params), label)?
+            }
+            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
+            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+            OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
+        };
+        Ok(obj)
+    }
+
+    /// Creates a of [TargetOperation] from an instance of [PackedOperation]
+    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+        Self {
+            operation,
+            params,
+            op_object: OnceLock::new(),
+        }
+    }
 }
 
 impl<'py> IntoPyObject<'py> for NormalOperation {
@@ -101,7 +141,10 @@ impl<'py> IntoPyObject<'py> for NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.op_object.bind(py).clone())
+        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+            Ok(op) => Ok(op.bind(py).clone()),
+            Err(err) => Err(err.clone_ref(py)),
+        }
     }
 }
 
@@ -111,7 +154,10 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.op_object.bind_borrowed(py))
+        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+            Ok(op) => Ok(op.bind_borrowed(py)),
+            Err(err) => Err(err.clone_ref(py)),
+        }
     }
 }
 
@@ -121,8 +167,19 @@ impl<'py> FromPyObject<'py> for NormalOperation {
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: ob.clone().unbind(),
+            op_object: Ok(ob.clone().unbind()).into(),
         })
+    }
+}
+
+// Custom impl for Clone to avoid cloning the `OnceLock`.
+impl Clone for NormalOperation {
+    fn clone(&self) -> Self {
+        Self {
+            operation: self.operation.clone(),
+            params: self.params.clone(),
+            op_object: OnceLock::new(),
+        }
     }
 }
 
@@ -740,6 +797,21 @@ impl Target {
             .unbind())
     }
 
+    // TODO: Add flag for custom tests
+    /// Private method for development purposes only
+    fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(gate) = self._gate_name_map.get(name) {
+            match gate {
+                TargetOperation::Normal(normal_operation) => {
+                    normal_operation.create_py_op(py, None)
+                }
+                TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
+            }
+        } else {
+            Ok(py.None())
+        }
+    }
+
     // Instance attributes
 
     /// The dt attribute.
@@ -1262,6 +1334,28 @@ impl Index<&str> for Target {
     type Output = PropsMap;
     fn index(&self, index: &str) -> &Self::Output {
         self.gate_map.index(index)
+    }
+}
+
+impl Default for Target {
+    fn default() -> Self {
+        Self {
+            description: None,
+            num_qubits: Default::default(),
+            dt: None,
+            granularity: 1,
+            min_length: 1,
+            pulse_alignment: 1,
+            acquire_alignment: 1,
+            qubit_properties: None,
+            concurrent_measurements: None,
+            gate_map: Default::default(),
+            _gate_name_map: Default::default(),
+            global_operations: Default::default(),
+            qarg_gate_map: Default::default(),
+            non_global_strict_basis: None,
+            non_global_basis: None,
+        }
     }
 }
 
