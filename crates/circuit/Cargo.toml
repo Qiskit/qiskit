@@ -24,6 +24,7 @@ itertools.workspace = true
 nalgebra.workspace = true
 nom.workspace = true
 nom-unicode.workspace = true
+uuid.workspace = true
 
 [dependencies.pyo3]
 workspace = true
