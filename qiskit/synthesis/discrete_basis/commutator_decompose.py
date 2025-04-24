@@ -91,17 +91,6 @@ def _compute_rotation_axis(matrix: np.ndarray) -> np.ndarray:
 
     return np.array([x, y, z])
 
-    # A simple (but probably not the most efficient) way to compute the rotation
-    # axis of a matrix in SO(3) is to note that the rotation axis is simply the
-    # eigenvector of the matrix corresponding to the eigenvalue 1.
-    eigenvalues, eigenvectors = np.linalg.eig(matrix)
-    index = np.argmin(np.abs(eigenvalues - 1.0))
-    axis = eigenvectors[:, index].real
-    axis /= np.linalg.norm(axis)
-
-    return axis
-
-
 def _solve_decomposition_angle(matrix: np.ndarray) -> float:
     """Computes angle for balanced commutator of SO(3)-matrix ``matrix``.
 
