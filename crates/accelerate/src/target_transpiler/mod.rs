@@ -16,7 +16,7 @@ mod errors;
 mod instruction_properties;
 mod nullable_index_map;
 
-use std::ops::Index;
+use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
 
@@ -32,7 +32,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 
-use qiskit_circuit::circuit_instruction::{ExtraInstructionAttributes, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
@@ -59,7 +59,7 @@ type GateMapState = Vec<(String, Vec<(Option<Qargs>, Option<InstructionPropertie
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
 #[derive(FromPyObject, Debug, Clone, IntoPyObjectRef)]
-pub(crate) enum TargetOperation {
+pub enum TargetOperation {
     Normal(NormalOperation),
     Variadic(PyObject),
 }
@@ -84,15 +84,55 @@ impl TargetOperation {
             }
         }
     }
+
+    /// Creates a [TargetOperation] from an instance of [PackedOperation]
+    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+        NormalOperation::from_packed_operation(operation, params).into()
+    }
+}
+
+impl From<NormalOperation> for TargetOperation {
+    fn from(value: NormalOperation) -> Self {
+        TargetOperation::Normal(value)
+    }
 }
 
 /// Represents a Qiskit `Gate` object, keeps a reference to its Python
 /// instance for caching purposes.
-#[derive(Debug, Clone)]
-pub(crate) struct NormalOperation {
+#[derive(Debug)]
+pub struct NormalOperation {
     pub operation: PackedOperation,
     pub params: SmallVec<[Param; 3]>,
-    op_object: PyObject,
+    op_object: OnceLock<PyResult<PyObject>>,
+}
+
+impl NormalOperation {
+    // Creates a python Operation type based on the operation's internal data.
+    #[inline]
+    fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<PyObject> {
+        let obj = match self.operation.view() {
+            OperationRef::StandardGate(standard_gate) => {
+                standard_gate.create_py_op(py, Some(&self.params), label)?
+            }
+            OperationRef::StandardInstruction(standard_instruction) => {
+                standard_instruction.create_py_op(py, Some(&self.params), label)?
+            }
+            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
+            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+            OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
+        };
+        Ok(obj)
+    }
+
+    /// Creates a of [TargetOperation] from an instance of [PackedOperation]
+    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+        Self {
+            operation,
+            params,
+            op_object: OnceLock::new(),
+        }
+    }
 }
 
 impl<'py> IntoPyObject<'py> for NormalOperation {
@@ -101,7 +141,10 @@ impl<'py> IntoPyObject<'py> for NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.op_object.bind(py).clone())
+        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+            Ok(op) => Ok(op.bind(py).clone()),
+            Err(err) => Err(err.clone_ref(py)),
+        }
     }
 }
 
@@ -111,7 +154,10 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.op_object.bind_borrowed(py))
+        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+            Ok(op) => Ok(op.bind_borrowed(py)),
+            Err(err) => Err(err.clone_ref(py)),
+        }
     }
 }
 
@@ -121,8 +167,19 @@ impl<'py> FromPyObject<'py> for NormalOperation {
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
-            op_object: ob.clone().unbind(),
+            op_object: Ok(ob.clone().unbind()).into(),
         })
+    }
+}
+
+// Custom impl for Clone to avoid cloning the `OnceLock`.
+impl Clone for NormalOperation {
+    fn clone(&self) -> Self {
+        Self {
+            operation: self.operation.clone(),
+            params: self.params.clone(),
+            op_object: OnceLock::new(),
+        }
     }
 }
 
@@ -145,12 +202,11 @@ memory.
     module = "qiskit._accelerate.target"
 )]
 #[derive(Clone, Debug)]
-pub(crate) struct Target {
+pub struct Target {
     #[pyo3(get, set)]
     pub description: Option<String>,
     #[pyo3(get)]
     pub num_qubits: Option<usize>,
-    #[pyo3(get, set)]
     pub dt: Option<f64>,
     #[pyo3(get, set)]
     pub granularity: u32,
@@ -429,9 +485,11 @@ impl Target {
         py: Python<'py>,
         instruction: &str,
     ) -> PyResult<Bound<'py, PyAny>> {
-        match self._operation_from_name(instruction) {
-            Ok(instruction) => instruction.into_pyobject(py),
-            Err(e) => Err(PyKeyError::new_err(e.message)),
+        match self.operation_from_name(instruction) {
+            Some(op) => op.into_bound_py_any(py),
+            None => Err(PyKeyError::new_err(format!(
+                "Instruction {instruction} not in target"
+            ))),
         }
     }
 
@@ -739,7 +797,33 @@ impl Target {
             .unbind())
     }
 
+    // TODO: Add flag for custom tests
+    /// Private method for development purposes only
+    fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(gate) = self._gate_name_map.get(name) {
+            match gate {
+                TargetOperation::Normal(normal_operation) => {
+                    normal_operation.create_py_op(py, None)
+                }
+                TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
+            }
+        } else {
+            Ok(py.None())
+        }
+    }
+
     // Instance attributes
+
+    /// The dt attribute.
+    #[getter(_dt)]
+    fn get_dt(&self) -> Option<f64> {
+        self.dt
+    }
+
+    #[setter(_dt)]
+    fn set_dt(&mut self, dt: Option<f64>) {
+        self.dt = dt
+    }
 
     /// The set of qargs in the target.
     #[getter]
@@ -775,17 +859,15 @@ impl Target {
             let out_inst = match inst {
                 TargetOperation::Normal(op) => match op.operation.view() {
                     OperationRef::StandardGate(standard) => standard
-                        .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
+                        .create_py_op(py, Some(&op.params), None)?
                         .into_any(),
                     OperationRef::StandardInstruction(standard) => standard
-                        .create_py_op(py, Some(&op.params), &ExtraInstructionAttributes::default())?
+                        .create_py_op(py, Some(&op.params), None)?
                         .into_any(),
                     OperationRef::Gate(gate) => gate.gate.clone_ref(py),
                     OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
                     OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-                    OperationRef::Unitary(unitary) => unitary
-                        .create_py_op(py, &ExtraInstructionAttributes::default())?
-                        .into_any(),
+                    OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 },
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };
@@ -977,6 +1059,17 @@ impl Target {
         })
     }
 
+    /// Get the duration of a given instruction in the target
+    pub fn get_duration(&self, name: &str, qargs: &[PhysicalQubit]) -> Option<f64> {
+        self.gate_map.get(name).and_then(|gate_props| {
+            let qargs_key: Qargs = qargs.iter().cloned().collect();
+            match gate_props.get(Some(&qargs_key)) {
+                Some(props) => props.as_ref().and_then(|inst_props| inst_props.duration),
+                None => None,
+            }
+        })
+    }
+
     /// Get an iterator over the indices of all physical qubits of the target
     pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = usize> {
         0..self.num_qubits.unwrap_or_default()
@@ -1135,33 +1228,9 @@ impl Target {
         }
     }
 
-    /// Gets a tuple of Operation object and Parameters based on the operation name if present in the Target.
-    // TODO: Remove once `Target` is being consumed.
-    #[allow(dead_code)]
-    pub fn operation_from_name(
-        &self,
-        instruction: &str,
-    ) -> Result<&NormalOperation, TargetKeyError> {
-        match self._operation_from_name(instruction) {
-            Ok(TargetOperation::Normal(operation)) => Ok(operation),
-            Ok(TargetOperation::Variadic(_)) => Err(TargetKeyError::new_err(format!(
-                "Instruction {:?} was found in the target, but the instruction is Varidic.",
-                instruction
-            ))),
-            Err(e) => Err(e),
-        }
-    }
-
-    /// Gets the instruction object based on the operation name
-    fn _operation_from_name(&self, instruction: &str) -> Result<&TargetOperation, TargetKeyError> {
-        if let Some(gate_obj) = self._gate_name_map.get(instruction) {
-            Ok(gate_obj)
-        } else {
-            Err(TargetKeyError::new_err(format!(
-                "Instruction {:?} not in target",
-                instruction
-            )))
-        }
+    /// Retrieve the backing representation of an operation name in the target, if it exists.
+    pub fn operation_from_name(&self, instruction: &str) -> Option<&TargetOperation> {
+        self._gate_name_map.get(instruction)
     }
 
     /// Returns an iterator over all the qargs of a specific Target object
@@ -1173,6 +1242,10 @@ impl Target {
             return None;
         }
         Some(qargs)
+    }
+
+    pub fn num_qargs(&self) -> usize {
+        self.qarg_gate_map.len()
     }
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
@@ -1261,6 +1334,28 @@ impl Index<&str> for Target {
     type Output = PropsMap;
     fn index(&self, index: &str) -> &Self::Output {
         self.gate_map.index(index)
+    }
+}
+
+impl Default for Target {
+    fn default() -> Self {
+        Self {
+            description: None,
+            num_qubits: Default::default(),
+            dt: None,
+            granularity: 1,
+            min_length: 1,
+            pulse_alignment: 1,
+            acquire_alignment: 1,
+            qubit_properties: None,
+            concurrent_measurements: None,
+            gate_map: Default::default(),
+            _gate_name_map: Default::default(),
+            global_operations: Default::default(),
+            qarg_gate_map: Default::default(),
+            non_global_strict_basis: None,
+            non_global_basis: None,
+        }
     }
 }
 

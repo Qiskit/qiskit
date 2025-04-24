@@ -43,7 +43,6 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
-from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.options import Options
 from qiskit.result import Result
@@ -73,14 +72,13 @@ class BasicSimulator(BackendV2):
 
     def __init__(
         self,
-        provider: Provider | None = None,
+        provider=None,
         target: Target | None = None,
         **fields,
     ) -> None:
         """
         Args:
-            provider: An optional backwards reference to the
-                :class:`~qiskit.providers.Provider` object that the backend
+            provider: An optional backwards reference to the provider object that the backend
                 is from.
             target: An optional target to configure the simulator.
             fields: kwargs for the values to use to override the default
@@ -125,7 +123,7 @@ class BasicSimulator(BackendV2):
 
     def _build_basic_target(self) -> Target:
         """Helper method that returns a minimal target with a basis gate set but
-        no coupling map, instruction properties or calibrations.
+        no coupling map or instruction properties.
 
         Returns:
             The configured target.
@@ -493,7 +491,6 @@ class BasicSimulator(BackendV2):
         result = {
             "backend_name": self.name,
             "backend_version": self.backend_version,
-            "qobj_id": None,
             "job_id": job_id,
             "results": result_list,
             "status": "COMPLETED",

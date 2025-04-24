@@ -32,7 +32,6 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import (
     Collect2qBlocks,
@@ -48,6 +47,7 @@ from qiskit.transpiler.passes import (
 from qiskit.circuit.library import (
     IGate,
     CXGate,
+    CZGate,
     RZGate,
     RXGate,
     SXGate,
@@ -126,7 +126,6 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         qc.unitary(op_1q.data, [0])
         qc.unitary(op_2q.data, [0, 1])
         qc.unitary(op_3q.data, [0, 1, 2])
-
         out = UnitarySynthesis(basis_gates=None, min_qubits=2)(qc)
         self.assertEqual(out.count_ops(), {"unitary": 3})
 
@@ -137,6 +136,7 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         ["rx", "rz", "rzz"],
         ["rx", "rz", "iswap"],
         ["u3", "rx", "rz", "cz", "iswap"],
+        ["rx", "rz", "cz", "rzz"],
     )
     def test_two_qubit_synthesis_to_basis(self, basis_gates):
         """Verify two qubit unitaries are synthesized to match basis gates."""
@@ -250,7 +250,7 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
             natural_direction=True,
         )
         pm = PassManager([triv_layout_pass, unisynth_pass])
-        with self.assertRaises(TranspilerError):
+        with self.assertRaises(QiskitError):
             pm.run(qc)
 
     def test_two_qubit_pulse_optimal_none_optimal(self):
@@ -744,8 +744,10 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         result_qc = dag_to_circuit(result_dag)
         self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
 
-    @combine(is_random=[True, False], param_gate=[RXXGate, RZZGate, CPhaseGate])
-    def test_parameterized_basis_gate_in_target(self, is_random, param_gate):
+    @combine(
+        is_random=[True, False], add_kak=[True, False], param_gate=[RXXGate, RZZGate, CPhaseGate]
+    )
+    def test_parameterized_basis_gate_in_target(self, is_random, add_kak, param_gate):
         """Test synthesis with parameterized RZZ/RXX gate."""
         theta = Parameter("θ")
         lam = Parameter("λ")
@@ -754,12 +756,16 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         target.add_instruction(RZGate(lam))
         target.add_instruction(RXGate(phi))
         target.add_instruction(param_gate(theta))
+        if add_kak:
+            target.add_instruction(CZGate())
         qc = QuantumCircuit(2)
         if is_random:
             qc.unitary(random_unitary(4, seed=1234), [0, 1])
         qc.cp(np.pi / 2, 0, 1)
         qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
         opcount = qc_transpiled.count_ops()
+        # should only use the parametrized gate and not the CZ gate
+        # regression test for https://github.com/Qiskit/qiskit/issues/13428
         self.assertTrue(set(opcount).issubset({"rz", "rx", param_gate(theta).name}))
         self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
@@ -834,10 +840,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         self.assertTrue(set(opcount).issubset({"unitary"}))
         self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
-    @data(
-        ["rx", "ry", "rxx"],
-        ["rx", "rz", "rzz"],
-    )
+    @data(["rx", "ry", "rxx"], ["rx", "rz", "rzz"], ["rx", "rz", "rzz", "cz"])
     def test_parameterized_backend(self, basis_gates):
         """Test synthesis with parameterized backend."""
         backend = GenericBackendV2(3, basis_gates=basis_gates, seed=0)
@@ -848,7 +851,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         qc_transpiled = transpile(qc, backend, optimization_level=3, seed_transpiler=42)
         opcount = qc_transpiled.count_ops()
         self.assertTrue(set(opcount).issubset(basis_gates))
-        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
+        self.assertTrue(np.allclose(Operator.from_circuit(qc_transpiled), Operator(qc)))
 
     @data(1, 2, 3)
     def test_qsd(self, opt):

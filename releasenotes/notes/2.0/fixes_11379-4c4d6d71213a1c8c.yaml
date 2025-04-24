@@ -1,0 +1,5 @@
+---
+upgrade_circuits:
+  - |
+    Converting a quantum circuit to a gate with :func:`.converters.circuit_to_instruction` fails properly when given
+    circuit contains control flow instructions.

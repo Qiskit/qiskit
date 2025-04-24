@@ -23,12 +23,12 @@ class Reset(SingletonInstruction):
 
     _standard_instruction_type = StandardInstructionType.Reset
 
-    def __init__(self, label=None, *, duration=None, unit="dt"):
+    def __init__(self, label=None):
         """
         Args:
             label: optional string label of this instruction.
         """
-        super().__init__("reset", 1, 0, [], label=label, duration=duration, unit=unit)
+        super().__init__("reset", 1, 0, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 

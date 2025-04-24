@@ -43,14 +43,6 @@ on:
         default: "default"
         required: false
 
-      wheels-linux-aarch64:
-        description: >-
-          The action to take for Linux AArch64 wheels.
-          Choose from 'default', 'build' or 'skip'.
-        type: string
-        default: "default"
-        required: false
-
       artifact-prefix:
         description: "A prefix to give all artifacts uploaded with 'actions/upload-artifact'."
         type: string
@@ -85,12 +77,12 @@ jobs:
           # Used for the ARM builds.
           - macos-14
           - windows-latest
+          - ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
-          architecture: ${{ matrix.os == 'macos-14' && 'arm64' || 'x64' }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
@@ -108,22 +100,28 @@ jobs:
         run: |
           set -e
           mkdir -p "$PGO_WORK_DIR"
-
+          if [[ `uname -m` == "aarch64" ]] ; then
+              INSTALL_RUST_PATH=tools/install_rust_msrv.sh
+              RUST_TOOLCHAIN=1.79
+          else
+              INSTALL_RUST_PATH=tools/install_rust.sh
+              RUST_TOOLCHAIN=stable
+          fi
           cat >>"$GITHUB_ENV" <<EOF
+          CIBW_BEFORE_ALL_LINUX=yum install -y wget && {package}/$INSTALL_RUST_PATH
           CIBW_BEFORE_BUILD=bash ./tools/build_pgo.sh $PGO_WORK_DIR $PGO_OUT_PATH
           CIBW_ENVIRONMENT=RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function'
           CIBW_ENVIRONMENT_MACOS=MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function'
-          CIBW_ENVIRONMENT_LINUX=RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function' PATH="\$PATH:\$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
+          CIBW_ENVIRONMENT_LINUX=RUSTUP_TOOLCHAIN=$RUST_TOOLCHAIN RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function' PATH="\$PATH:\$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
           EOF
         env:
           PGO_WORK_DIR: ${{ github.workspace }}/pgo-data
           PGO_OUT_PATH: ${{ github.workspace }}/merged.profdata
-      - uses: pypa/cibuildwheel@v2.22.0
+      - uses: pypa/cibuildwheel@v2.23.2
       - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-tier-1-${{ matrix.os }}
-
   wheels-linux-s390x:
     name: "Wheels / Linux s390x"
     if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
@@ -138,7 +136,7 @@ jobs:
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: all
-      - uses: pypa/cibuildwheel@v2.22.0
+      - uses: pypa/cibuildwheel@v2.23.2
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
@@ -161,7 +159,7 @@ jobs:
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: all
-      - uses: pypa/cibuildwheel@v2.22.0
+      - uses: pypa/cibuildwheel@v2.23.2
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
@@ -169,22 +167,6 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-linux-ppc64le
-
-  wheels-linux-aarch64:
-    name: "Wheels / Linux AArch64"
-    if: (inputs.wheels-linux-aarch64 == 'default' && inputs.default-action || inputs.wheels-linux-aarch64) == 'build'
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: pypa/cibuildwheel@v2.22.0
-      - uses: actions/upload-artifact@v4
-        with:
-          path: ./wheelhouse/*.whl
-          name: ${{ inputs.artifact-prefix }}wheels-linux-aarch64
 
   sdist:
     name: "sdist"

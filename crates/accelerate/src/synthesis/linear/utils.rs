@@ -223,14 +223,14 @@ pub fn _row_sum(row_1: ArrayView1<bool>, row_2: ArrayView1<bool>) -> Result<Arra
 pub fn random_invertible_binary_matrix_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
 
     let mut matrix = Array2::from_elem((num_qubits, num_qubits), false);
 
     loop {
         for value in matrix.iter_mut() {
-            *value = rng.gen_bool(0.5);
+            *value = rng.random_bool(0.5);
         }
 
         let rank = compute_rank_inner(matrix.view());

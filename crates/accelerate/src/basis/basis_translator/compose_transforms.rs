@@ -10,10 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::{HashMap, HashSet};
+use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
+use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR, QUANTUM_REGISTER};
+use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
@@ -33,12 +34,14 @@ pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 pub(super) fn compose_transforms<'a>(
     py: Python,
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
-    source_basis: &'a HashSet<GateIdentifier>,
+    source_basis: &'a IndexSet<GateIdentifier, ahash::RandomState>,
     source_dag: &'a DAGCircuit,
-) -> PyResult<HashMap<GateIdentifier, BasisTransformOut>> {
-    let mut gate_param_counts: HashMap<GateIdentifier, usize> = HashMap::default();
+) -> PyResult<IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>> {
+    let mut gate_param_counts: IndexMap<GateIdentifier, usize, ahash::RandomState> =
+        IndexMap::default();
     get_gates_num_params(source_dag, &mut gate_param_counts)?;
-    let mut mapped_instructions: HashMap<GateIdentifier, BasisTransformOut> = HashMap::new();
+    let mut mapped_instructions: IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState> =
+        IndexMap::with_hasher(ahash::RandomState::default());
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
@@ -48,10 +51,10 @@ pub(super) fn compose_transforms<'a>(
             .call1((&gate_name, num_params))?
             .extract()?;
 
-        let mut dag = DAGCircuit::new(py)?;
+        let mut dag = DAGCircuit::new()?;
         // Create the mock gate and add to the circuit, use Python for this.
-        let qubits = QUANTUM_REGISTER.get_bound(py).call1((gate_num_qubits,))?;
-        dag.add_qreg(py, &qubits)?;
+        let qubits = QuantumRegister::new_owning("q".to_string(), gate_num_qubits);
+        dag.add_qreg(qubits)?;
 
         let gate = GATE.get_bound(py).call1((
             &gate_name,
@@ -73,7 +76,7 @@ pub(super) fn compose_transforms<'a>(
             } else {
                 Some(gate_obj.params)
             },
-            gate_obj.extra_attrs,
+            gate_obj.label.map(|x| *x),
             #[cfg(feature = "cache_pygates")]
             Some(gate.into()),
         )?;
@@ -98,14 +101,15 @@ pub(super) fn compose_transforms<'a>(
                     })
                     .collect::<Vec<_>>();
                 for (node, params) in nodes_to_replace {
-                    let param_mapping: HashMap<ParameterUuid, Param> = equiv_params
-                        .iter()
-                        .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
-                        .zip(params)
-                        .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
-                            Ok((uuid?, param.clone_ref(py)))
-                        })
-                        .collect::<PyResult<_>>()?;
+                    let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
+                        equiv_params
+                            .iter()
+                            .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
+                            .zip(params)
+                            .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
+                                Ok((uuid?, param.clone_ref(py)))
+                            })
+                            .collect::<PyResult<_>>()?;
                     let mut replacement = equiv.clone();
                     replacement
                         .0
@@ -118,7 +122,7 @@ pub(super) fn compose_transforms<'a>(
                         op_node.bind(py),
                         &replace_dag,
                         None,
-                        true,
+                        None,
                     )?;
                 }
             }
@@ -133,7 +137,7 @@ pub(super) fn compose_transforms<'a>(
 /// number of parameters it contains currently.
 fn get_gates_num_params(
     dag: &DAGCircuit,
-    example_gates: &mut HashMap<GateIdentifier, usize>,
+    example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
 ) -> PyResult<()> {
     for (_, inst) in dag.op_nodes(true) {
         example_gates.insert(
@@ -156,7 +160,7 @@ fn get_gates_num_params(
 /// number of parameters it contains currently.
 fn get_gates_num_params_circuit(
     circuit: &CircuitData,
-    example_gates: &mut HashMap<GateIdentifier, usize>,
+    example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
 ) -> PyResult<()> {
     for inst in circuit.iter() {
         example_gates.insert(

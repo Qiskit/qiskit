@@ -44,7 +44,7 @@ pub struct ErrorMap {
 impl ErrorMap {
     #[new]
     #[pyo3(signature=(size=None))]
-    fn new(size: Option<usize>) -> Self {
+    pub fn new(size: Option<usize>) -> Self {
         match size {
             Some(size) => ErrorMap {
                 error_map: HashMap::with_capacity(size),
@@ -67,7 +67,7 @@ impl ErrorMap {
         ErrorMap { error_map }
     }
 
-    fn add_error(&mut self, index: [PhysicalQubit; 2], error_rate: f64) {
+    pub fn add_error(&mut self, index: [PhysicalQubit; 2], error_rate: f64) {
         self.error_map.insert(index, error_rate);
     }
 

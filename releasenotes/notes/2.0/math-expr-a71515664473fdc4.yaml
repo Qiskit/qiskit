@@ -1,0 +1,27 @@
+---
+features_circuits:
+  - |
+    The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
+    arithmetic operations :func:`~.expr.add`, :func:`~.expr.sub`, :func:`~.expr.mul`,
+    and :func:`~.expr.div` on numeric and timing operands.
+
+    For example::
+      
+      from qiskit.circuit import QuantumCircuit, ClassicalRegister, Duration
+      from qiskit.circuit.classical import expr
+
+      # Subtract two integers
+      cr = ClassicalRegister(4, "cr")
+      qc = QuantumCircuit(cr)
+      with qc.if_test(expr.equal(expr.sub(cr, 2), 3)):
+          pass
+
+      # Multiply a Duration by a Float
+      with qc.if_test(expr.less(expr.mul(Duration.dt(200), 2.0), Duration.ns(500))):
+          pass
+
+      # Divide a Duration by a Duration to get a Float
+      with qc.if_test(expr.greater(expr.div(Duration.dt(200), Duration.dt(400)), 0.5)):
+          pass
+
+    For additional examples, see the module-level documentation linked above.

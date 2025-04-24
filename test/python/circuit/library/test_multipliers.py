@@ -13,7 +13,6 @@
 """Test multiplier circuits."""
 
 import unittest
-import re
 import numpy as np
 from ddt import ddt, data, unpack
 
@@ -140,10 +139,13 @@ class TestMultiplier(QiskitTestCase):
             _ = HRSCumulativeMultiplier(3, 3, adder=VBERippleCarryAdder(3))
 
     def test_plugins(self):
-        """Test setting the HLS plugins for the modular adder."""
+        """Test setting HLS plugins for the multiplier."""
 
-        # all gates with the plugins we check, including an expected operation
-        plugins = [("cumulative_h18", "ccircuit-.*"), ("qft_r17", "qft")]
+        # For each plugin, we check the presence of an expected operation after
+        # using this plugin.
+        # Note that HighLevelSynthesis runs without basis_gates, so it does not
+        # synthesize down to 1-qubit and 2-qubit gates.
+        plugins = [("cumulative_h18", "cSum"), ("qft_r17", "mcphase")]
 
         num_state_qubits = 2
 
@@ -159,8 +161,7 @@ class TestMultiplier(QiskitTestCase):
 
                 synth = hls(circuit)
                 ops = set(synth.count_ops().keys())
-
-                self.assertTrue(any(re.match(expected_op, op) for op in ops))
+                self.assertIn(expected_op, ops)
 
 
 if __name__ == "__main__":

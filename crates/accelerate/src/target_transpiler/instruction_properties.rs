@@ -37,10 +37,9 @@ impl InstructionProperties {
     ///         specified set of qubits
     ///     error (Option<f64>): The average error rate for the instruction on the specified
     ///         set of qubits.
-    ///     calibration (Option<PyObject>): The pulse representation of the instruction.
     #[new]
     #[pyo3(signature = (duration=None, error=None))]
-    pub fn new(_py: Python<'_>, duration: Option<f64>, error: Option<f64>) -> Self {
+    pub fn new(duration: Option<f64>, error: Option<f64>) -> Self {
         Self { error, duration }
     }
 
@@ -48,13 +47,13 @@ impl InstructionProperties {
         Ok((self.duration, self.error))
     }
 
-    fn __setstate__(&mut self, _py: Python<'_>, state: (Option<f64>, Option<f64>)) -> PyResult<()> {
+    fn __setstate__(&mut self, state: (Option<f64>, Option<f64>)) -> PyResult<()> {
         self.duration = state.0;
         self.error = state.1;
         Ok(())
     }
 
-    fn __repr__(&self, _py: Python<'_>) -> String {
+    fn __repr__(&self) -> String {
         format!(
             "InstructionProperties(duration={}, error={})",
             if let Some(duration) = self.duration {
