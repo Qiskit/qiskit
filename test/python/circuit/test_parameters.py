@@ -923,7 +923,7 @@ class TestParameters(QiskitTestCase):
         # self.assertNotIsInstance(x1_expr, Parameter)
         self.assertFalse(x1_expr.is_Parameter())
         x2_expr = x2 + 0
-        #self.assertNotIsInstance(x2_expr, Parameter)
+        # self.assertNotIsInstance(x2_expr, Parameter)
         self.assertFalse(x2_expr.is_Parameter())
 
         self.assertEqual(x1, x1_expr)
