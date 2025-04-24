@@ -91,6 +91,7 @@ def _compute_rotation_axis(matrix: np.ndarray) -> np.ndarray:
 
     return np.array([x, y, z])
 
+
 def _solve_decomposition_angle(matrix: np.ndarray) -> float:
     """Computes angle for balanced commutator of SO(3)-matrix ``matrix``.
 

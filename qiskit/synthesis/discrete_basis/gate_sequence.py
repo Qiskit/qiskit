@@ -119,12 +119,9 @@ class GateSequence:
         u2 = np.exp(1j * self.global_phase) * u2
         return u2
 
-    def _to_circuit(self, adjust_phase: bool):
-        """Converts to a :class:`.QuantumCircuit`.
-
-        Adds ``pi`` to the global phase if ``adjust_phase`` is ``True``.
-        """
-        adjusted_phase = self.global_phase + np.pi if adjust_phase else self.global_phase
+    def _to_circuit(self):
+        """Converts to a :class:`.QuantumCircuit`."""
+        adjusted_phase = self.global_phase
         circuit = QuantumCircuit(1, global_phase=adjusted_phase)
         for gate in self.gates:
             circuit.append(gate, [0])
@@ -157,18 +154,15 @@ class GateSequence:
 
         return dag
 
-    def _to_dag(self, adjust_phase: bool):
-        """Convert to a :class:`.DAGCircuit`.
-
-        Adds ``pi`` to the global phase if ``adjust_phase`` is ``True``.
-        """
+    def _to_dag(self):
+        """Convert to a :class:`.DAGCircuit`."""
         from qiskit.dagcircuit import DAGCircuit
 
         qreg = (Qubit(),)
         dag = DAGCircuit()
         dag.add_qubits(qreg)
 
-        dag.global_phase = self.global_phase + np.pi if adjust_phase else self.global_phase
+        dag.global_phase = self.global_phase
         for gate in self.gates:
             dag.apply_operation_back(gate, qreg, check=False)
 

@@ -130,12 +130,18 @@ class SolovayKitaevDecomposition:
         _remove_identities(decomposition)
         _remove_inverse_follows_gate(decomposition)
 
-        adjust_phase = _should_adjust_phase(decomposition._to_u2(), gate_matrix_su2)
+        # adjust to the correct SU(2) phase
+        adjust_phase = (
+            np.pi if _should_adjust_phase(decomposition._to_u2(), gate_matrix_su2) else 0.0
+        )
+
         # convert to a circuit and attach the right phases
         if return_dag:
-            out = decomposition._to_dag(adjust_phase)
+            out = decomposition._to_dag()
         else:
-            out = decomposition._to_circuit(adjust_phase)
+            out = decomposition._to_circuit()
+
+        out.global_phase += adjust_phase
         out.global_phase -= global_phase
 
         return out
