@@ -1357,38 +1357,6 @@ impl PyPauliLindbladMap {
         PauliLindbladMap::zero(num_qubits).into()
     }
 
-    /// Construct a single-term observable from a dense string label.
-    ///
-    /// The resulting operator will have a coefficient of 1.  The label must be a sequence of the
-    /// alphabet ``'IXYZ+-rl01'``.  The label is interpreted analogously to a bitstring.  In other
-    /// words, the right-most letter is associated with qubit 0, and so on.  This is the same as the
-    /// labels for :class:`.Pauli` and :class:`.SparsePauliOp`.
-    ///
-    /// Args:
-    ///     label (str): the dense label.
-    ///
-    /// Examples:
-    ///
-    ///     .. code-block:: python
-    ///
-    ///         >>> SparseObservable.from_label("IIII+ZI")
-    ///         <SparseObservable with 1 term on 7 qubits: (1+0j)(+_2 Z_1)>
-    ///         >>> label = "IYXZI"
-    ///         >>> pauli = Pauli(label)
-    ///         >>> assert SparseObservable.from_label(label) == SparseObservable.from_pauli(pauli)
-    ///
-    /// See also:
-    ///     :meth:`from_list`
-    ///         A generalization of this method that constructs a sum operator from multiple labels
-    ///         and their corresponding coefficients.
-    #[staticmethod]
-    #[pyo3(signature = (label, /))]
-    fn from_label(label: &str) -> Result<Self, LabelError> {
-        let mut inner = PauliLindbladMap::zero(label.len() as u32);
-        inner.add_dense_label(label, 1.0)?;
-        Ok(inner.into())
-    }
-
     /// Construct an observable from a list of dense labels and coefficients.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_list`, except it uses

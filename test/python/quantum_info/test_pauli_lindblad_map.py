@@ -105,7 +105,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_raw_parts(4, [1.0, -0.5], [1, 2], [0, 4], [0, 1, 2])
         with self.assertRaisesRegex(ValueError, "the values in `boundaries` include backwards"):
             PauliLindbladMap.from_raw_parts(
-                5, [1.0j, -0.5, 2.0], [1, 2, 3, 2], [0, 1, 2, 3], [0, 2, 1, 4]
+                5, [1.0, -0.5, 2.0], [1, 2, 3, 2], [0, 1, 2, 3], [0, 2, 1, 4]
             )
         with self.assertRaisesRegex(
             ValueError, "the values in `indices` are not term-wise increasing"
@@ -116,38 +116,80 @@ class TestPauliLindbladMap(QiskitTestCase):
         # permits undefined behaviour in Rust (it's unsafe), so all bets would be off.
 
 
-    def test_from_label(self):
-        # The label is interpreted like a bitstring, with the right-most item associated with qubit
-        # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
+    def test_from_list(self):
+        label = "IXYIZZY"
         self.assertEqual(
-            # Ruler for counting terms:  dcba9876543210
-            PauliLindbladMap.from_label("IXXIIZYIXYIXYZ"),
+            PauliLindbladMap.from_list([(label, 1.0)]),
             PauliLindbladMap.from_raw_parts(
-                14,
+                len(label),
                 [1.0],
                 [
+                    PauliLindbladMap.BitTerm.Y,
+                    PauliLindbladMap.BitTerm.Z,
                     PauliLindbladMap.BitTerm.Z,
                     PauliLindbladMap.BitTerm.Y,
                     PauliLindbladMap.BitTerm.X,
-                    PauliLindbladMap.BitTerm.Y,
-                    PauliLindbladMap.BitTerm.X,
+                ],
+                [0, 1, 2, 4, 5],
+                [0, 5],
+            )
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_list([(label, 1.0)], num_qubits=len(label)),
+            PauliLindbladMap.from_raw_parts(
+                len(label),
+                [1.0],
+                [
                     PauliLindbladMap.BitTerm.Y,
                     PauliLindbladMap.BitTerm.Z,
+                    PauliLindbladMap.BitTerm.Z,
+                    PauliLindbladMap.BitTerm.Y,
+                    PauliLindbladMap.BitTerm.X,
+                ],
+                [0, 1, 2, 4, 5],
+                [0, 5],
+            )
+        )
+
+        self.assertEqual(
+            PauliLindbladMap.from_list([("IIIXZI", 1.0), ("XXIIII", -0.5)]),
+            PauliLindbladMap.from_raw_parts(
+                6,
+                [1.0, -0.5],
+                [
+                    PauliLindbladMap.BitTerm.Z,
+                    PauliLindbladMap.BitTerm.X,
                     PauliLindbladMap.BitTerm.X,
                     PauliLindbladMap.BitTerm.X,
                 ],
-                [0, 1, 2, 4, 5, 7, 8, 11, 12],
-                [0, 9],
+                [1, 2, 4, 5],
+                [0, 2, 4],
             ),
         )
-    
-    def test_from_label_failures(self):
+
+        self.assertEqual(PauliLindbladMap.from_list([], num_qubits=5), PauliLindbladMap.zero(5))
+        self.assertEqual(PauliLindbladMap.from_list([], num_qubits=0), PauliLindbladMap.zero(0))
+
+    def test_from_list_failures(self):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Bad letters that are still ASCII.
-            PauliLindbladMap.from_label("I+-$%I")
+            PauliLindbladMap.from_list([("XZIIZY", 0.5), ("I+-$%I", 1.0)])
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Unicode shenangigans.
-            PauliLindbladMap.from_label("🐍")
-        with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
-            # +/-
-            PauliLindbladMap.from_label("I+-I")
+            PauliLindbladMap.from_list([("🐍", 0.5)])
+        with self.assertRaisesRegex(ValueError, "label with length 4 cannot be added"):
+            PauliLindbladMap.from_list([("IIZ", 0.5), ("IIXI", 1.0)])
+        with self.assertRaisesRegex(ValueError, "label with length 2 cannot be added"):
+            PauliLindbladMap.from_list([("IIZ", 0.5), ("II", 1.0)])
+        with self.assertRaisesRegex(ValueError, "label with length 3 cannot be added"):
+            PauliLindbladMap.from_list([("IIZ", 0.5), ("IXI", 1.0)], num_qubits=2)
+        with self.assertRaisesRegex(ValueError, "label with length 3 cannot be added"):
+            PauliLindbladMap.from_list([("IIZ", 0.5), ("IXI", 1.0)], num_qubits=4)
+        with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
+            PauliLindbladMap.from_list([])
+
+"""
+To test:
+- zero
+- 
+"""
