@@ -31,4 +31,23 @@ impl Display for TargetKeyError {
     }
 }
 
-impl Error for TargetKeyError {}
+/// Error thrown when an invalid instruction is added to the [Target]
+#[derive(Debug)]
+pub struct TargetInvalidInstError {
+    pub message: String,
+}
+
+impl TargetInvalidInstError {
+    /// Initializes the new error
+    pub fn new_err(message: String) -> Self {
+        Self { message }
+    }
+}
+
+impl Display for TargetInvalidInstError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl Error for TargetInvalidInstError {}

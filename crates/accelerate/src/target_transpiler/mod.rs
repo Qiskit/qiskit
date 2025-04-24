@@ -40,7 +40,7 @@ use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
 
-use errors::TargetKeyError;
+use errors::{TargetInvalidInstError, TargetKeyError};
 use instruction_properties::InstructionProperties;
 
 use self::exceptions::TranspilerError;
@@ -344,7 +344,7 @@ impl Target {
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
-                "Instruction {:?} is already in the target",
+                "Instruction {} is already in the target",
                 name
             )));
         }
@@ -355,6 +355,7 @@ impl Target {
         };
 
         self.inner_add_instruction(instruction, name, props_map)
+            .map_err(|err| TranspilerError::new_err(err.message))
     }
 
     /// Update the property object for an instruction qarg pair already in the `Target`
@@ -373,6 +374,7 @@ impl Target {
         properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
         self.update_instruction_properties(&instruction, &qargs, properties)
+            .map_err(|err| PyKeyError::new_err(err.message))
     }
 
     /// Get the qargs for a given operation name
@@ -907,7 +909,7 @@ impl Target {
         params: &[Param],
         name: Option<&str>,
         props_map: Option<T>,
-    ) -> PyResult<()>
+    ) -> Result<(), TargetInvalidInstError>
     where
         T: Into<PropsMap>,
     {
@@ -917,8 +919,8 @@ impl Target {
             operation.name().to_string()
         };
         if self.gate_map.contains_key(&name) {
-            return Err(PyAttributeError::new_err(format!(
-                "Instruction {:?} is already in the target",
+            return Err(TargetInvalidInstError::new_err(format!(
+                "Instruction '{}' is already in the target",
                 name
             )));
         }
@@ -937,7 +939,7 @@ impl Target {
         instruction: TargetOperation,
         name: String,
         mut props_map: PropsMap,
-    ) -> PyResult<()> {
+    ) -> Result<(), TargetInvalidInstError> {
         match &instruction {
             TargetOperation::Variadic(_) => {
                 props_map = IndexMap::from_iter([(Qargs::Global, None)]);
@@ -954,8 +956,8 @@ impl Target {
                 for qarg in props_map.keys() {
                     if let QargsRef::Concrete(qarg) = qarg.as_ref() {
                         if qarg.len() != instruction.num_qubits() as usize {
-                            return Err(TranspilerError::new_err(format!(
-                                "The number of qubits for {name} does not match\
+                            return Err(TargetInvalidInstError::new_err(format!(
+                                "The number of qubits for {name} does not match \
                                 the number of qubits in the properties dictionary: {:?}",
                                 qarg
                             )));
@@ -989,26 +991,27 @@ impl Target {
         Ok(())
     }
 
+    /// Update the property object for an instruction qarg pair already in the [Target].
     pub fn update_instruction_properties<'a, T>(
         &mut self,
         instruction: &'a str,
         qargs: T,
         properties: Option<InstructionProperties>,
-    ) -> PyResult<()>
+    ) -> Result<(), TargetKeyError>
     where
         T: Into<QargsRef<'a>>,
     {
         if !self.contains_key(instruction) {
-            return Err(PyKeyError::new_err(format!(
-                "Provided instruction: '{:?}' not in this Target.",
-                &instruction
+            return Err(TargetKeyError::new_err(format!(
+                "Provided instruction: '{}' not in this Target.",
+                instruction
             )));
         };
         let qargs = qargs.into();
         let prop_map = self.gate_map.get_mut(instruction).unwrap();
         if !prop_map.contains_key(&qargs) {
-            return Err(PyKeyError::new_err(format!(
-                "Provided qarg {:?} not in this Target for {:?}.",
+            return Err(TargetKeyError::new_err(format!(
+                "Provided qarg {:?} not in this Target for '{}'.",
                 &qargs, &instruction
             )));
         }
@@ -1439,3 +1442,169 @@ pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
 }
 
 // TODO: Add rust-based unit testing.
+#[cfg(test)]
+mod test {
+    use std::f64::consts::PI;
+
+    use qiskit_circuit::operations::{
+        get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
+    };
+    use smallvec::SmallVec;
+
+    use crate::{
+        nlayout::PhysicalQubit,
+        target_transpiler::{PropsMap, QargsRef},
+    };
+
+    use super::{instruction_properties::InstructionProperties, Qargs, Target};
+
+    #[test]
+    fn test_add_invalid_qargs_insruction() {
+        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..4).map(PhysicalQubit).collect();
+        let inst_prop: Option<InstructionProperties> = None;
+
+        let mut target = Target::default();
+        let result = target.add_instruction(
+            StandardGate::CZ.into(),
+            &[],
+            None,
+            Some([(qargs.clone().into(), inst_prop)]),
+        );
+        let Err(res) = result else {
+            panic!("The operation did not fail as expected.");
+        };
+        let expected_message = format!("The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}", qargs.as_slice());
+        assert_eq!(res.message, expected_message);
+    }
+
+    #[test]
+    fn test_add_invalid_repeated_insruction() {
+        let mut target = Target::default();
+        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None::<PropsMap>);
+        assert!(result.is_ok());
+
+        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None::<PropsMap>);
+        // Re-add instruction
+        let Err(res) = result else {
+            panic!("The operation did not fail as expected.");
+        };
+        let expected_message = "Instruction 'cx' is already in the target".to_string();
+        assert_eq!(res.message, expected_message);
+    }
+
+    #[test]
+    fn test_add_all_standard_gates() {
+        let mut all_standard_target = Target::default();
+        // Update this if any standard gates are added.
+
+        for gate in 0..STANDARD_GATE_SIZE {
+            // Safety: `STANDARD_GATE_SIZE` will always be in range for StandardGate.
+            let gate: StandardGate = unsafe { std::mem::transmute(gate as u8) };
+            let num_qubits = gate.num_qubits();
+            let num_params = gate.num_params();
+
+            let qargs: Qargs = (0..num_qubits).map(PhysicalQubit).collect();
+            let params: SmallVec<[Param; 3]> = (0..num_params)
+                .map(|val| Param::from(PI / (val as f64)))
+                .collect();
+
+            let res = all_standard_target.add_instruction(
+                gate.into(),
+                &params,
+                None,
+                Some([(qargs, None)]),
+            );
+            assert!(res.is_ok())
+        }
+
+        let std_gate_names: Vec<&str> = get_standard_gate_names().to_vec();
+        let operation_names: Vec<&str> = all_standard_target.operation_names().collect();
+
+        assert_eq!(std_gate_names, operation_names)
+    }
+
+    #[test]
+    fn test_update_inst_properties() {
+        let mut test_target = Target::default();
+        let qargs: Qargs = (0..2).map(PhysicalQubit).collect();
+        // Add instruction with None as property
+        let result = test_target.add_instruction(
+            StandardGate::CX.into(),
+            &[],
+            None,
+            Some([(qargs.clone(), None)]),
+        );
+        assert!(result.is_ok(), "Error message: {:?}", result);
+
+        assert_eq!(test_target["cx"][&qargs], None);
+
+        // Modify instruction property to a concrete value.
+        let result = test_target.update_instruction_properties(
+            "cx",
+            &qargs,
+            Some(InstructionProperties::new(Some(0.00122), Some(0.00001023))),
+        );
+        assert!(result.is_ok(), "Error message: {:?}", result);
+
+        assert_eq!(
+            test_target["cx"][&qargs],
+            Some(InstructionProperties::new(Some(0.00122), Some(0.00001023)))
+        );
+
+        // Modify instruction property back to None.
+        let result = test_target.update_instruction_properties("cx", &qargs, None);
+        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert_eq!(test_target["cx"][&qargs], None);
+    }
+
+    #[test]
+    fn test_update_inst_properties_invalid_inst() {
+        let mut test_target = Target::default();
+        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..2).map(PhysicalQubit).collect();
+        // Add instruction with None as property
+        let result = test_target.add_instruction(
+            StandardGate::CX.into(),
+            &[],
+            None,
+            Some([(qargs.clone().into(), None)]),
+        );
+        assert!(result.is_ok(), "Error message: {:?}", result);
+
+        assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
+
+        // Try to update instruction property that is not present in the circuit.
+        let result = test_target.update_instruction_properties(
+            "cy",
+            &qargs,
+            Some(InstructionProperties::new(Some(0.00122), Some(0.00001023))),
+        );
+        // Check error message.
+        let Err(res) = result else {
+            panic!("The operation did not fail as expected.");
+        };
+        let expected_message = "Provided instruction: 'cy' not in this Target.".to_string();
+        assert_eq!(res.message, expected_message);
+        // Check that no changes were made.
+        assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
+
+        let reverse_qargs: SmallVec<[PhysicalQubit; 2]> = qargs.iter().rev().copied().collect();
+        // Try to update instruction property with qargs that are not present in the circuit.
+        let result = test_target.update_instruction_properties(
+            "cx",
+            &reverse_qargs,
+            Some(InstructionProperties::new(Some(0.00122), Some(0.00001023))),
+        );
+        // Check error message.
+        let Err(res) = result else {
+            panic!("The operation did not fail as expected.");
+        };
+        let expected_message = format!(
+            "Provided qarg {:?} not in this Target for '{}'.",
+            QargsRef::from(&reverse_qargs),
+            "cx"
+        );
+        assert_eq!(res.message, expected_message);
+        // Check that no changes were made.
+        assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
+    }
+}
