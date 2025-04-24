@@ -19,7 +19,7 @@ use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,
-    dag_circuit::DAGCircuit,
+    dag::DAGCircuit,
     operations::{Operation, Param},
 };
 use smallvec::SmallVec;

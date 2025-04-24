@@ -16,10 +16,9 @@ use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex, NodeType, Wire};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 

@@ -61,21 +61,38 @@ impl Param {
             _ => self.eq(py, other),
         }
     }
-}
 
-impl<'py> FromPyObject<'py> for Param {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
-            Param::ParameterExpression(b.clone().unbind())
-        } else if let Ok(val) = b.extract::<f64>() {
-            Param::Float(val)
-        } else {
-            Param::Obj(b.clone().unbind())
+    /// Add two [Param] instances together that are asserted by the caller to both be [Float] or
+    /// [ParameterExpression].
+    ///
+    /// # Panics
+    ///
+    /// If either `self` or `other` is not a [Float] or [ParameterExpression] variant.
+    pub fn add_numeric(&self, other: &Param) -> PyResult<Param> {
+        Ok(match [self, other] {
+            [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
+            [Param::Float(a), Param::ParameterExpression(b)] => {
+                Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
+                    b.clone_ref(py)
+                        .call_method1(py, intern!(py, "__radd__"), (*a,))
+                })?)
+            }
+            [Param::ParameterExpression(a), Param::Float(b)] => {
+                Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
+                    a.clone_ref(py)
+                        .call_method1(py, intern!(py, "__add__"), (*b,))
+                })?)
+            }
+            [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
+                Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
+                    a.clone_ref(py)
+                        .call_method1(py, intern!(py, "__add__"), (b,))
+                })?)
+            }
+            _ => panic!("operands must be Float or ParameterExpression"),
         })
     }
-}
 
-impl Param {
     /// Get an iterator over any Python-space `Parameter` instances tracked within this `Param`.
     pub fn iter_parameters<'py>(&self, py: Python<'py>) -> PyResult<ParamParameterIter<'py>> {
         let parameters_attr = intern!(py, "parameters");
@@ -117,6 +134,18 @@ impl Param {
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
         }
+    }
+}
+
+impl<'py> FromPyObject<'py> for Param {
+    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+        Ok(if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
+            Param::ParameterExpression(b.clone().unbind())
+        } else if let Ok(val) = b.extract::<f64>() {
+            Param::Float(val)
+        } else {
+            Param::Obj(b.clone().unbind())
+        })
     }
 }
 

@@ -24,7 +24,7 @@ use std::cmp::Ordering;
 use std::time::Instant;
 
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag::DAGCircuit;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;

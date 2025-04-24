@@ -20,8 +20,6 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
-use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use smallvec::SmallVec;
 
 use pyo3::intern;
@@ -30,8 +28,9 @@ use pyo3::types::{IntoPyDict, PyDict, PyString, PyType};
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag::{DAGCircuit, DAGCircuitBuilder, NodeType};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};

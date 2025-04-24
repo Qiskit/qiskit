@@ -11,17 +11,15 @@
 // that they have been altered from the originals.
 
 use pyo3::exceptions::PyValueError;
-use pyo3::prelude::PyModule;
-use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult, Python};
-use qiskit_circuit::Qubit;
+use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyList};
+use pyo3::{pyfunction, wrap_pyfunction};
 
 use crate::commutation_checker::CommutationChecker;
 use hashbrown::HashMap;
-use pyo3::prelude::*;
 
-use pyo3::types::{PyDict, PyList};
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex, NodeType, Wire};
+use qiskit_circuit::Qubit;
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.

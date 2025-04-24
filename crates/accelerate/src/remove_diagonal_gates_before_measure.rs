@@ -13,7 +13,7 @@
 /// Remove diagonal gates (including diagonal 2Q gates) before a measurement.
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::StandardGate;
 

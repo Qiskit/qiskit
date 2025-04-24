@@ -27,7 +27,7 @@ use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_node::DAGOpNode;
+use qiskit_circuit::dag::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};

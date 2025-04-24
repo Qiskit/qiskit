@@ -18,13 +18,12 @@ use numpy::PyReadonlyArray2;
 use pyo3::intern;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag::{DAGCircuit, NodeIndex};
 use qiskit_circuit::gate_matrix::{ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::smallvec;
 
 use crate::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
