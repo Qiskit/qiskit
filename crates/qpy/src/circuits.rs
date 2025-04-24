@@ -31,9 +31,9 @@ use std::io::Cursor;
 use crate::formats::{
     Bytes, CircuitHeaderV12Pack, CircuitInstructionArgPack, CircuitInstructionV2Pack,
     CustomCircuitInstructionsPack, HeaderData, LayoutV2Pack, QPYFormatV13, RegisterV4Pack,
-    SerializableParam,
+    PackedParam
 };
-use crate::params::param_to_serializable;
+use crate::params::pack_param;
 use crate::value::dumps_value;
 use binrw::BinWrite;
 
@@ -137,11 +137,11 @@ fn get_ctrl_state(py: Python, inst: &PackedInstruction, num_ctrl_qubits: u32) ->
     }
 }
 
-fn get_instruction_params(py: Python, instruction: &PackedInstruction) -> Vec<SerializableParam> {
+fn get_instruction_params(py: Python, instruction: &PackedInstruction) -> Vec<PackedParam> {
     instruction
         .params_view()
         .iter()
-        .map(|x| param_to_serializable(py, &x))
+        .map(|x| pack_param(py, &x))
         .collect()
 }
 
@@ -230,7 +230,7 @@ fn pack_instruction(
     let label_raw = gate_label(instruction);
     let num_ctrl_qubits = get_num_ctrl_qubits(py, instruction).unwrap_or(0);
     let ctrl_state = get_ctrl_state(py, instruction, num_ctrl_qubits).unwrap_or(0);
-    let instruction_params: Vec<SerializableParam> = get_instruction_params(py, instruction);
+    let instruction_params: Vec<PackedParam> = get_instruction_params(py, instruction);
     let bit_data = get_packed_bit_list(instruction, circuit_data);
     let (condition_type_value, condition_register_length, condition_value, condition_raw) =
         get_condition_data(py, instruction, circuit_data);

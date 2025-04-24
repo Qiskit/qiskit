@@ -13,6 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyComplex, PyFloat, PyInt, PyString};
 use qiskit_circuit::imports::{PARAMETER, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
+use crate::params::{serialize_parameter, serialize_parameter_expression};
 
 pub mod tags {
     pub const INTEGER: u8 = b'i';
@@ -72,6 +73,8 @@ pub fn dumps_value(py: Python, py_object: &Bound<PyAny>) -> PyResult<(u8, Vec<u8
             bytes.extend_from_slice(&complex_num.imag().to_be_bytes());
             bytes
         }
+        tags::PARAMETER => serialize_parameter(py, py_object)?,
+        tags::PARAMETER_EXPRESSION => serialize_parameter_expression(py, py_object)?,
         tags::NUMPY_OBJ => Vec::new(), // TODO: call np.save using pyo3
         tags::STRING => py_object.extract::<String>()?.into_bytes(),
         tags::NULL => Vec::new(),

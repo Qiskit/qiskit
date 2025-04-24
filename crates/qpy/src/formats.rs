@@ -69,7 +69,7 @@ pub struct CircuitInstructionV2Pack {
     pub label_raw: Bytes,
     pub condition_raw: Bytes,
     pub bit_data: Vec<CircuitInstructionArgPack>,
-    pub params: Vec<SerializableParam>,
+    pub params: Vec<PackedParam>,
 }
 
 #[derive(BinWrite)]
@@ -115,7 +115,7 @@ pub struct LayoutV2Pack {
 // parameter related
 #[derive(BinWrite)]
 #[brw(big)]
-pub struct SerializableParam {
+pub struct PackedParam {
     pub type_key: u8,
     pub data_len: u64,
     pub data: Bytes,
@@ -133,21 +133,22 @@ pub struct ParameterPack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct ParameterExpressionElementPack {
-    pub op: u8,
+    pub op_code: u8,
     pub lhs_type: u8,
-    pub lhs_data: [u8; 16],
+    pub lhs: [u8; 16],
     pub rhs_type: u8,
-    pub rhs_data: [u8; 16],
+    pub rhs: [u8; 16],
 }
 
 #[derive(BinWrite)]
 #[brw(big)]
 #[derive(Debug)]
 pub struct ParameterExpressionPack {
-    pub symbol_table_length: u64,
+    pub symbol_tables_length: u64,
     pub expression_data_length: u64,
     pub expression_data: Bytes,
     pub symbol_table_data: Bytes,
+    pub extra_symbol_table_data: Bytes,
 }
 
 #[derive(BinWrite)]
@@ -159,4 +160,41 @@ pub struct ParameterExpressionSymbolPack {
     pub value_data_len: u64,
     pub symbol_data: Bytes,
     pub value_data: Bytes,
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ExtraSymbolsTablePack {
+    pub keys: Vec<ParameterExpressionSymbolPack>,
+    pub values: Vec<ParameterExpressionSymbolPack>,
+}
+
+// general data types
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct MappingPack {
+    pub num_elements: u64,
+    pub items: Vec<MappingItem>,    
+}
+
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct MappingItem {
+    pub item_header: MappingItemHeader,
+    pub key_bytes: Bytes,
+    pub item_bytes: Bytes
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct MappingItemHeader {
+    pub key_size: u16,
+    pub item_type: u8,
+    pub size: u16,
 }
