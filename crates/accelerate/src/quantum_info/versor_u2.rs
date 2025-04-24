@@ -12,7 +12,7 @@
 
 use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, FRAC_PI_8};
 
-use nalgebra::{Quaternion, Unit, UnitQuaternion};
+use nalgebra::{Matrix2, Quaternion, Unit, UnitQuaternion};
 use ndarray::ArrayView2;
 use num_complex::Complex64;
 use thiserror::Error;
@@ -297,6 +297,11 @@ impl VersorU2 {
         Self::from_matrix_unchecked(matrix)
     }
 
+    /// Calculate the versor representation of a unitary matrix, assuming it is unitary.
+    pub fn from_nalgebra_unchecked(matrix: &Matrix2<Complex64>) -> Self {
+        Self::from_matrix_unchecked(matrix)
+    }
+
     /// Calculate the versor representation of a unitary matrix.
     ///
     /// Returns the error state if `|| A+.A - 1 ||_2 > tol` for matrix `A`, where the norm is the
@@ -321,6 +326,14 @@ impl VersorU2 {
     /// Returns the error state if `|| A+.A - 1 ||_2 > tol` for matrix `A`, where the norm is the
     /// Frobenius norm.
     pub fn from_ndarray(matrix: &ArrayView2<Complex64>, tol: f64) -> Result<Self, VersorU2Error> {
+        Self::from_matrix_with_tol(matrix, tol)
+    }
+
+    /// Calculate the versor representation of a unitary matrix.
+    ///
+    /// Returns the error state if `|| A+.A - 1 ||_2 > tol` for matrix `A`, where the norm is the
+    /// Frobenius norm.
+    pub fn from_nalgebra(matrix: &Matrix2<Complex64>, tol: f64) -> Result<Self, VersorU2Error> {
         Self::from_matrix_with_tol(matrix, tol)
     }
 
@@ -425,7 +438,7 @@ impl ::std::ops::Mul<VersorSU2> for VersorU2 {
 impl_mul_refs!(VersorSU2, VersorU2);
 
 /// A module-internal trait to simplify the code-generation of both the dynamic `ndarray` and the
-/// static `&[[Complex64; 2]; 2]` and dynamic `ndarray` paths.  Rather than making the user care
+/// static `&[[Complex64; 2]; 2]` and `Matrix2` paths.  Rather than making the user care
 /// about importing it, we just expose the concretised methods using it through `VersorU2`.
 trait Matrix1q {
     fn get(&self, row: usize, col: usize) -> Complex64;
@@ -437,6 +450,12 @@ impl<const N: usize, const M: usize> Matrix1q for [[Complex64; N]; M] {
     }
 }
 impl Matrix1q for ArrayView2<'_, Complex64> {
+    #[inline(always)]
+    fn get(&self, row: usize, col: usize) -> Complex64 {
+        self[(row, col)]
+    }
+}
+impl Matrix1q for Matrix2<Complex64> {
     #[inline(always)]
     fn get(&self, row: usize, col: usize) -> Complex64 {
         self[(row, col)]
