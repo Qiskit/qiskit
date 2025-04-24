@@ -41,7 +41,7 @@ impl<'py> FromPyObject<'py> for PySequenceIndex<'py> {
     }
 }
 
-impl<'py> PySequenceIndex<'py> {
+impl PySequenceIndex<'_> {
     /// Specialize this index to a collection of the given `len`, returning a Rust-native type.
     pub fn with_len(&self, len: usize) -> Result<SequenceIndex, PySequenceIndexError> {
         match self {

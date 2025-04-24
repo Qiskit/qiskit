@@ -30,9 +30,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "1.3"
+version = "2.1"
 # The full version, including alpha/beta/rc tags
-release = "1.3.0"
+release = "2.1.0"
 
 language = "en"
 
@@ -49,7 +49,11 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
+    "breathe",
 ]
+
+breathe_projects = {"qiskit": "xml/"}
+breathe_default_project = "qiskit"
 
 templates_path = ["_templates"]
 
@@ -102,14 +106,21 @@ html_last_updated_fmt = "%Y/%m/%d"
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
 # which likely overrides the autodoc defaults.
 
+# These options impact when using `.. autoclass::` manually.
+# They do not impact the `.. autosummary::` templates.
+autodoc_default_options = {
+    "show-inheritance": True,
+}
+
 # Move type hints from signatures to the parameter descriptions (except in overload cases, where
 # that's not possible).
 autodoc_typehints = "description"
-# Only add type hints from signature to description body if the parameter has documentation.  The
-# return type is always added to the description (if in the signature).
-autodoc_typehints_description_target = "documented_params"
-
 autoclass_content = "both"
+# Some type hints are too long to be understandable. So, we set up aliases to be used instead.
+autodoc_type_aliases = {
+    "EstimatorPubLike": "EstimatorPubLike",
+    "SamplerPubLike": "SamplerPubLike",
+}
 
 autosummary_generate = True
 autosummary_generate_overwrite = False
@@ -119,6 +130,14 @@ autosummary_generate_overwrite = False
 # module-level documentation being converted into surprising things.
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
+
+# Autosummary generates stub filenames based on the import name.
+# Sometimes, two distinct interfaces only differ in capitalization; this
+# creates a problem on case-insensitive OS/filesystems like macOS. So,
+# we manually avoid the clash by renaming one of the files.
+autosummary_filename_map = {
+    "qiskit.circuit.library.iqp": "qiskit.circuit.library.iqp_function",
+}
 
 
 # ----------------------------------------------------------------------------------

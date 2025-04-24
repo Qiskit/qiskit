@@ -16,8 +16,6 @@ use indexmap::{
     IndexMap,
 };
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
-use pyo3::IntoPy;
 use rustworkx_core::dictmap::InitWithHasher;
 use std::ops::Index;
 use std::{hash::Hash, mem::swap};
@@ -36,8 +34,8 @@ type BaseMap<K, V> = IndexMap<K, V, RandomState>;
 ///
 /// **Warning:** This is an experimental feature and should be used with care as it does not
 /// fully implement all the methods present in `IndexMap<K, V>` due to API limitations.
-#[derive(Debug, Clone)]
-pub(crate) struct NullableIndexMap<K, V>
+#[derive(Debug, Clone, IntoPyObject, IntoPyObjectRef)]
+pub struct NullableIndexMap<K, V>
 where
     K: Eq + Hash + Clone,
     V: Clone,
@@ -234,7 +232,7 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> ExactSizeIterator for Iter<'a, K, V> {
+impl<K, V> ExactSizeIterator for Iter<'_, K, V> {
     fn len(&self) -> usize {
         self.map.len() + self.null_value.is_some() as usize
     }
@@ -318,7 +316,7 @@ impl<'a, K, V> Iterator for Keys<'a, K, V> {
     }
 }
 
-impl<'a, K, V> ExactSizeIterator for Keys<'a, K, V> {
+impl<K, V> ExactSizeIterator for Keys<'_, K, V> {
     fn len(&self) -> usize {
         self.map_keys.len() + self.null_value as usize
     }
@@ -356,7 +354,7 @@ impl<'a, K, V> Iterator for Values<'a, K, V> {
     }
 }
 
-impl<'a, K, V> ExactSizeIterator for Values<'a, K, V> {
+impl<K, V> ExactSizeIterator for Values<'_, K, V> {
     fn len(&self) -> usize {
         self.map_values.len() + self.null_value.is_some() as usize
     }
@@ -394,8 +392,8 @@ where
 
 impl<'py, K, V> FromPyObject<'py> for NullableIndexMap<K, V>
 where
-    K: IntoPy<PyObject> + FromPyObject<'py> + Eq + Hash + Clone,
-    V: IntoPy<PyObject> + FromPyObject<'py> + Clone,
+    K: IntoPyObject<'py> + FromPyObject<'py> + Eq + Hash + Clone,
+    V: IntoPyObject<'py> + FromPyObject<'py> + Clone,
 {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let map: IndexMap<Option<K>, V, RandomState> = ob.extract()?;
@@ -413,41 +411,5 @@ where
             map: filtered.collect(),
             null_val,
         })
-    }
-}
-
-impl<K, V> IntoPy<PyObject> for NullableIndexMap<K, V>
-where
-    K: IntoPy<PyObject> + Eq + Hash + Clone,
-    V: IntoPy<PyObject> + Clone,
-{
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        let map_object = self.map.into_py(py);
-        let bound_map_obj = map_object.bind(py);
-        let downcast_dict: &Bound<PyDict> = bound_map_obj.downcast().unwrap();
-        if let Some(null_val) = self.null_val {
-            downcast_dict
-                .set_item(py.None(), null_val.into_py(py))
-                .unwrap();
-        }
-        map_object
-    }
-}
-
-impl<K, V> ToPyObject for NullableIndexMap<K, V>
-where
-    K: ToPyObject + Eq + Hash + Clone,
-    V: ToPyObject + Clone,
-{
-    fn to_object(&self, py: Python<'_>) -> PyObject {
-        let map_object = self.map.to_object(py);
-        let bound_map_obj = map_object.bind(py);
-        let downcast_dict: &Bound<PyDict> = bound_map_obj.downcast().unwrap();
-        if let Some(null_val) = &self.null_val {
-            downcast_dict
-                .set_item(py.None(), null_val.to_object(py))
-                .unwrap();
-        }
-        map_object
     }
 }

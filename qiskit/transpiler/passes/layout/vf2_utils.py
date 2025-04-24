@@ -13,7 +13,6 @@
 """This module contains common utils for vf2 layout passes."""
 
 from collections import defaultdict
-import statistics
 import random
 
 import numpy as np
@@ -21,6 +20,7 @@ from rustworkx import PyDiGraph, PyGraph, connected_components
 
 from qiskit.circuit import ForLoopOp
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.target import Target
 from qiskit._accelerate import vf2_layout
 from qiskit._accelerate.nlayout import NLayout
 from qiskit._accelerate.error_map import ErrorMap
@@ -142,7 +142,16 @@ def score_layout(
     )
 
 
-def build_average_error_map(target, properties, coupling_map):
+def build_dummy_target(coupling_map) -> Target:
+    """Build a dummy target with no error rates that represents the coupling in ``coupling_map``."""
+    # The choice of basis gates is completely arbitrary, and we have no source of error rates.
+    # We just want _something_ to represent the coupling constraints.
+    return Target.from_configuration(
+        basis_gates=["u", "cx"], num_qubits=coupling_map.size(), coupling_map=coupling_map
+    )
+
+
+def build_average_error_map(target, coupling_map):
     """Build an average error map used for scoring layouts pre-basis translation."""
     num_qubits = 0
     if target is not None and target.qargs is not None:
@@ -173,35 +182,12 @@ def build_average_error_map(target, properties, coupling_map):
                     qargs = (qargs[0], qargs[0])
                 avg_map.add_error(qargs, qarg_error / count)
                 built = True
-    elif properties is not None:
-        errors = defaultdict(list)
-        for qubit in range(len(properties.qubits)):
-            errors[(qubit,)].append(properties.readout_error(qubit))
-        for gate in properties.gates:
-            qubits = tuple(gate.qubits)
-            for param in gate.parameters:
-                if param.name == "gate_error":
-                    errors[qubits].append(param.value)
-        for k, v in errors.items():
-            if len(k) == 1:
-                qargs = (k[0], k[0])
-            else:
-                qargs = k
-            # If the properties payload contains an index outside the number of qubits
-            # the properties are invalid for the given input. This normally happens either
-            # with a malconstructed properties payload or if the faulty qubits feature of
-            # BackendV1/BackendPropeties is being used. In such cases we map noise characteristics
-            # so we should just treat the mapping as an ideal case.
-            if qargs[0] >= num_qubits or qargs[1] >= num_qubits:
-                continue
-            avg_map.add_error(qargs, statistics.mean(v))
-            built = True
     # if there are no error rates in the target we should fallback to using the degree heuristic
     # used for a coupling map. To do this we can build the coupling map from the target before
     # running the fallback heuristic
     if not built and target is not None and coupling_map is None:
         coupling_map = target.build_coupling_map()
-    if not built and coupling_map is not None:
+    if not built and coupling_map is not None and num_qubits is not None:
         for qubit in range(num_qubits):
             avg_map.add_error(
                 (qubit, qubit),

@@ -33,7 +33,7 @@ from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
 )
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
 from .plugin import UnitarySynthesisPlugin
 
@@ -73,7 +73,9 @@ class SolovayKitaev(TransformationPass):
 
         Per default, the basis gate set is ``["t", "tdg", "h"]``:
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             import numpy as np
             from qiskit.circuit import QuantumCircuit
@@ -110,7 +112,9 @@ class SolovayKitaev(TransformationPass):
 
         For individual basis gate sets, the ``generate_basic_approximations`` function can be used:
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.synthesis import generate_basic_approximations
             from qiskit.transpiler.passes import SolovayKitaev
@@ -151,6 +155,7 @@ class SolovayKitaev(TransformationPass):
         self.recursion_degree = recursion_degree
         self._sk = SolovayKitaevDecomposition(basic_approximations)
 
+    @trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ``SolovayKitaev`` pass on `dag`.
 
@@ -164,17 +169,18 @@ class SolovayKitaev(TransformationPass):
             TranspilerError: if a gates does not have to_matrix
         """
         for node in dag.op_nodes():
-            if not node.op.num_qubits == 1:
-                continue  # ignore all non-single qubit gates
+
+            # ignore operations on which the algorithm cannot run
+            if (
+                (node.op.num_qubits != 1)
+                or node.is_parameterized()
+                or (not hasattr(node.op, "to_matrix"))
+            ):
+                continue
 
             # we do not check the input matrix as we know it comes from a Qiskit gate, as this
             # we know it will generate a valid SU(2) matrix
             check_input = not isinstance(node.op, Gate)
-
-            if not hasattr(node.op, "to_matrix"):
-                raise TranspilerError(
-                    f"SolovayKitaev does not support gate without to_matrix method: {node.op.name}"
-                )
 
             matrix = node.op.to_matrix()
 

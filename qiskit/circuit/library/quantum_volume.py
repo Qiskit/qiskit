@@ -35,6 +35,7 @@ class QuantumVolume(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QuantumVolume
        circuit = QuantumVolume(5, 6, seed=10)
@@ -43,6 +44,7 @@ class QuantumVolume(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QuantumVolume
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -147,9 +149,19 @@ def quantum_volume(
     environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
     to 4 threads.
 
+    Args:
+        num_qubits: The number qubits to use for the generated circuit.
+        depth: The number of layers for the generated circuit. If this
+            is not specified it will default to ``num_qubits`` layers.
+        seed: An optional RNG seed used for generating the random SU(4)
+            matrices used in the output circuit. This can be either an
+            integer or a numpy generator. If an integer is specfied it must
+            be an value between 0 and 2**64 - 1.
+
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import quantum_volume
        circuit = quantum_volume(5, 6, seed=10)

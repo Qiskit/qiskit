@@ -185,7 +185,7 @@ pub fn synth_cnot_count_full_pmh(
         .chain(lower_cnots.into_iter().rev())
         .map(|(ctrl, target)| {
             (
-                StandardGate::CXGate,
+                StandardGate::CX,
                 smallvec![],
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )

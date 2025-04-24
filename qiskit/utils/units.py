@@ -13,9 +13,12 @@
 """SI unit utilities"""
 from __future__ import annotations
 
+import typing
+
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 def apply_prefix(value: float | ParameterExpression, unit: str) -> float | ParameterExpression:

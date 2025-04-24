@@ -78,10 +78,7 @@ impl Key {
     }
 
     fn __getnewargs__(slf: PyRef<Self>) -> (Bound<PyString>, u32) {
-        (
-            PyString::new_bound(slf.py(), slf.name.as_str()),
-            slf.num_qubits,
-        )
+        (PyString::new(slf.py(), slf.name.as_str()), slf.num_qubits)
     }
 
     // Ord methods for Python
@@ -277,7 +274,7 @@ impl Display for EdgeData {
 }
 
 /// Enum that helps extract the Operation and Parameters on a Gate.
-/// It is highly derivative of `PackedOperation` while also tracking the specific
+/// It is highly derivative of [PackedOperation] while also tracking the specific
 /// parameter objects.
 #[derive(Debug, Clone)]
 pub struct GateOper {
@@ -295,15 +292,30 @@ impl<'py> FromPyObject<'py> for GateOper {
     }
 }
 
-/// Used to extract an instance of [CircuitData] from a `QuantumCircuit`.
-/// It also ensures seamless conversion back to `QuantumCircuit` once sent
+/// Used to extract an instance of [CircuitData] from a [`QuantumCircuit`].
+/// It also ensures seamless conversion back to [`QuantumCircuit`] once sent
 /// back to Python.
 ///
-/// TODO: Remove this implementation once the `EquivalenceLibrary` is no longer
+/// TODO: Remove this implementation once the [EquivalenceLibrary] is no longer
 /// called from Python, or once the API is able to seamlessly accept instances
 /// of [CircuitData].
+///
+/// [`QuantumCircuit`]: https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit
 #[derive(Debug, Clone)]
 pub struct CircuitFromPython(pub CircuitData);
+
+impl<'py> IntoPyObject<'py> for CircuitFromPython {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1("_from_circuit_data", (self.0,))?
+            .clone())
+    }
+}
 
 impl FromPyObject<'_> for CircuitFromPython {
     fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
@@ -320,26 +332,12 @@ impl FromPyObject<'_> for CircuitFromPython {
     }
 }
 
-impl IntoPy<PyObject> for CircuitFromPython {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        QUANTUM_CIRCUIT
-            .get_bound(py)
-            .call_method1("_from_circuit_data", (self.0,))
-            .unwrap()
-            .unbind()
-    }
-}
-
-impl ToPyObject for CircuitFromPython {
-    fn to_object(&self, py: Python<'_>) -> PyObject {
-        self.clone().into_py(py)
-    }
-}
-
 // Custom Types
 type GraphType = StableDiGraph<NodeData, Option<EdgeData>>;
 type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 
+/// A library providing a one-way mapping of gates to their equivalent
+/// implementations as :class:`.QuantumCircuit` instances.
 #[pyclass(
     subclass,
     name = "BaseEquivalenceLibrary",
@@ -424,7 +422,7 @@ impl EquivalenceLibrary {
     ///
     /// Args:
     ///     gate (Gate): A Gate instance.
-    ///     entry (List['QuantumCircuit']) : A list of QuantumCircuits, each
+    ///     entry (List['QuantumCircuit']) : A list of :class:`.QuantumCircuit` instances, each
     ///         equivalently implementing the given Gate.
     #[pyo3(name = "set_entry")]
     fn py_set_entry(
@@ -436,8 +434,8 @@ impl EquivalenceLibrary {
         self.set_entry(py, &gate.operation, &gate.params, entry)
     }
 
-    /// Gets the set of QuantumCircuits circuits from the library which
-    /// equivalently implement the given Gate.
+    /// Gets the set of :class:`.QuantumCircuit` instances circuits from the
+    /// library which equivalently implement the given :class:`.Gate`.
     ///
     /// Parameterized circuits will have their parameters replaced with the
     /// corresponding entries from Gate.params.
@@ -446,8 +444,8 @@ impl EquivalenceLibrary {
     ///     gate (Gate) - Gate: A Gate instance.
     ///
     /// Returns:
-    ///     List[QuantumCircuit]: A list of equivalent QuantumCircuits. If empty,
-    ///         library contains no known decompositions of Gate.
+    ///     List[QuantumCircuit]: A list of equivalent :class:`.QuantumCircuit` instances.
+    ///         If empty, library contains no known decompositions of Gate.
     ///
     ///         Returned circuits will be ordered according to their insertion in
     ///         the library, from earliest to latest, from top to base. The
@@ -461,7 +459,7 @@ impl EquivalenceLibrary {
             ._get_equivalences(&key)
             .into_iter()
             .filter_map(|equivalence| rebind_equiv(py, equivalence, &query_params).ok());
-        let return_list = PyList::empty_bound(py);
+        let return_list = PyList::empty(py);
         for equiv in bound_equivalencies {
             return_list.append(equiv)?;
         }
@@ -469,6 +467,16 @@ impl EquivalenceLibrary {
     }
 
     // TODO: Remove once BasisTranslator is in Rust.
+    /// Return graph representing the equivalence library data.
+    ///
+    /// This property should be treated as read-only as it provides
+    /// a reference to the internal state of the :class:`~.EquivalenceLibrary` object.
+    /// If the graph returned by this property is mutated it could corrupt the
+    /// the contents of the object. If you need to modify the output ``PyDiGraph``
+    /// be sure to make a copy prior to any modification.
+    ///
+    /// Returns:
+    ///     PyDiGraph: A graph object with equivalence data in each node.
     #[getter]
     fn get_graph(&mut self, py: Python) -> PyResult<PyObject> {
         if let Some(graph) = &self._graph {
@@ -492,41 +500,52 @@ impl EquivalenceLibrary {
         }
     }
 
+    /// Return list of keys to key to node index map.
+    ///
+    /// Returns:
+    ///     List: Keys to the key to node index map.
     #[pyo3(name = "keys")]
     fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
-        let py_dict = PyDict::new_bound(slf.py());
+        let py_dict = PyDict::new(slf.py());
         for key in slf.keys() {
-            py_dict.set_item(key.clone().into_py(slf.py()), slf.py().None())?;
+            py_dict.set_item(key.clone(), slf.py().None())?;
         }
         Ok(py_dict.as_any().call_method0("keys")?.into())
     }
 
+    /// Return node index for a given key.
+    ///
+    /// Args:
+    ///     key (Key): Key to an equivalence.
+    ///
+    /// Returns:
+    ///     Int: Index to the node in the graph for the given key.
     #[pyo3(name = "node_index")]
     fn py_node_index(&self, key: &Key) -> usize {
         self.node_index(key).index()
     }
 
     fn __getstate__(slf: PyRef<Self>) -> PyResult<Bound<PyDict>> {
-        let ret = PyDict::new_bound(slf.py());
+        let ret = PyDict::new(slf.py());
         ret.set_item("rule_id", slf.rule_id)?;
-        let key_to_usize_node: Bound<PyDict> = PyDict::new_bound(slf.py());
+        let key_to_usize_node: Bound<PyDict> = PyDict::new(slf.py());
         for (key, val) in slf.key_to_node_index.iter() {
-            key_to_usize_node.set_item(key.clone().into_py(slf.py()), val.index())?;
+            key_to_usize_node.set_item(key.clone(), val.index())?;
         }
         ret.set_item("key_to_node_index", key_to_usize_node)?;
-        let graph_nodes: Bound<PyList> = PyList::empty_bound(slf.py());
+        let graph_nodes: Bound<PyList> = PyList::empty(slf.py());
         for weight in slf.graph.node_weights() {
-            graph_nodes.append(weight.clone().into_py(slf.py()))?;
+            graph_nodes.append(weight.clone())?;
         }
         ret.set_item("graph_nodes", graph_nodes.unbind())?;
         let edges = slf.graph.edge_references().map(|edge| {
             (
                 edge.source().index(),
                 edge.target().index(),
-                edge.weight().clone().into_py(slf.py()),
+                edge.weight().clone().into_pyobject(slf.py()).unwrap(),
             )
         });
-        let graph_edges = PyList::empty_bound(slf.py());
+        let graph_edges = PyList::empty(slf.py());
         for edge in edges {
             graph_edges.append(edge)?;
         }
@@ -614,7 +633,7 @@ impl EquivalenceLibrary {
         Ok(())
     }
 
-    /// Set the equivalence record for a Gate. Future queries for the Gate
+    /// Set the equivalence record for a [PackedOperation]. Future queries for the Gate
     /// will return only the circuits provided.
     pub fn set_entry(
         &mut self,
@@ -649,21 +668,13 @@ impl EquivalenceLibrary {
         Ok(())
     }
 
-    /// Rust native equivalent to `EquivalenceLibrary.has_entry()`
-    ///
-    /// Check if a library contains any decompositions for gate.
-    ///
-    /// # Arguments:
-    /// * `operation` OperationType: A Gate instance.
-    ///
-    /// # Returns:
-    /// `bool`: `true` if gate has a known decomposition in the library.
-    ///         `false` otherwise.
+    /// Check if the [EquivalenceLibrary] instance contains any decompositions for gate.
     pub fn has_entry(&self, operation: &PackedOperation) -> bool {
         let key = Key::from_operation(operation);
         self.key_to_node_index.contains_key(&key)
     }
 
+    /// Returns an iterator with all the [Key] instances in the [EquivalenceLibrary].
     pub fn keys(&self) -> impl Iterator<Item = &Key> {
         self.key_to_node_index.keys()
     }
@@ -682,13 +693,7 @@ impl EquivalenceLibrary {
         }
     }
 
-    /// Retrieve the `NodeIndex` that represents a `Key`
-    ///
-    /// # Arguments:
-    /// * `key`: The `Key` to look for.
-    ///
-    /// # Returns:
-    /// `NodeIndex`
+    /// Retrieve the [NodeIndex] that represents a [Key].
     pub fn node_index(&self, key: &Key) -> NodeIndex {
         self.key_to_node_index[key]
     }
@@ -709,7 +714,7 @@ fn raise_if_param_mismatch(
     gate_params: &[Param],
     circuit_parameters: Bound<PySet>,
 ) -> PyResult<()> {
-    let gate_params_obj = PySet::new_bound(
+    let gate_params_obj = PySet::new(
         py,
         gate_params
             .iter()
@@ -788,10 +793,12 @@ impl Display for EquivalenceError {
     }
 }
 
-fn to_pygraph<N, E>(py: Python, pet_graph: &StableDiGraph<N, E>) -> PyResult<PyObject>
+// Conversion helpers
+
+fn to_pygraph<'py, N, E>(py: Python<'py>, pet_graph: &'py StableDiGraph<N, E>) -> PyResult<PyObject>
 where
-    N: IntoPy<PyObject> + Clone,
-    E: IntoPy<PyObject> + Clone,
+    N: IntoPyObject<'py> + Clone,
+    E: IntoPyObject<'py> + Clone,
 {
     let graph = PYDIGRAPH.get_bound(py).call0()?;
     let node_weights: Vec<N> = pet_graph.node_weights().cloned().collect();
@@ -810,7 +817,6 @@ where
     Ok(graph.unbind())
 }
 
-#[pymodule]
 pub fn equivalence(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EquivalenceLibrary>()?;
     m.add_class::<NodeData>()?;

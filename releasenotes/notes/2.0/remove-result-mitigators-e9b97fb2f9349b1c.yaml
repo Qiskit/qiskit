@@ -1,0 +1,9 @@
+---
+upgrade_misc:
+  - |
+    The ``qiskit.result.mitigation`` module has been removed following its deprecation in Qiskit 1.3.
+    The removal includes the ``LocalReadoutMitigator`` and ``CorrelatedReadoutMitigator`` classes 
+    as well as the associated utils. 
+
+    There is no alternative path in Qiskit, as their functionality had been superseded by the mthree package, 
+    found in https://github.com/Qiskit/qiskit-addon-mthree.

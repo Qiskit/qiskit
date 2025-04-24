@@ -86,7 +86,7 @@ struct RoutingState<'a, 'b> {
     seed: u64,
 }
 
-impl<'a, 'b> RoutingState<'a, 'b> {
+impl RoutingState<'_, '_> {
     /// Apply a swap to the program-state structures (front layer, extended set and current
     /// layout).
     #[inline]
@@ -634,9 +634,9 @@ pub fn sabre_routing(
     );
     (
         res.map,
-        res.node_order.into_pyarray_bound(py).into(),
+        res.node_order.into_pyarray(py).into_any().unbind(),
         res.node_block_results,
-        PyArray::from_iter_bound(
+        PyArray::from_iter(
             py,
             (0u32..neighbor_table.num_qubits().try_into().unwrap()).map(|phys| {
                 PhysicalQubit::new(phys)
@@ -644,7 +644,8 @@ pub fn sabre_routing(
                     .to_phys(&final_layout)
             }),
         )
-        .into(),
+        .into_any()
+        .unbind(),
     )
 }
 
@@ -665,10 +666,10 @@ pub fn swap_map(
     };
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
     let seed_vec: Vec<u64> = outer_rng
-        .sample_iter(&rand::distributions::Standard)
+        .sample_iter(&rand::distr::StandardUniform)
         .take(num_trials)
         .collect();
     if run_in_parallel {

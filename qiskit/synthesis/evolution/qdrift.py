@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import inspect
 import math
 import typing
 from itertools import chain
@@ -22,17 +21,16 @@ from collections.abc import Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
-from qiskit.utils.deprecation import deprecate_arg
 from qiskit.exceptions import QiskitError
 
-from .product_formula import ProductFormula
+from .product_formula import ProductFormula, reorder_paulis
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
 
 
 class QDrift(ProductFormula):
-    r"""The QDrift Trotterization method, which selects each each term in the
+    r"""The QDrift Trotterization method, which selects each term in the
     Trotterization randomly, with a probability proportional to its weight. Based on the work
     of Earl Campbell in Ref. [1].
 
@@ -41,33 +39,19 @@ class QDrift(ProductFormula):
         `arXiv:quant-ph/1811.08017 <https://arxiv.org/abs/1811.08017>`_
     """
 
-    @deprecate_arg(
-        name="atomic_evolution",
-        since="1.2",
-        predicate=lambda callable: callable is not None
-        and len(inspect.signature(callable).parameters) == 2,
-        deprecation_description=(
-            "The 'Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]' signature of the "
-            "'atomic_evolution' argument"
-        ),
-        additional_msg=(
-            "Instead you should update your 'atomic_evolution' function to be of the following "
-            "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
-        ),
-        pending=True,
-    )
     def __init__(
         self,
         reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]
-            | Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]
-            | None
+            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
         ) = None,
         seed: int | None = None,
         wrap: bool = False,
+        preserve_order: bool = True,
+        *,
+        atomic_evolution_sparse_observable: bool = False,
     ) -> None:
         r"""
         Args:
@@ -82,14 +66,28 @@ class QDrift(ProductFormula):
                 three arguments: the circuit to append the evolution to, the Pauli operator to
                 evolve, and the evolution time. By default, a single Pauli evolution is decomposed
                 into a chain of ``CX`` gates and a single ``RZ`` gate.
-                Alternatively, the function can also take Pauli operator and evolution time as
-                inputs and returns the circuit that will be appended to the overall circuit being
-                built.
             seed: An optional seed for reproducibility of the random sampling process.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
+            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+                which does not yet support :class:`.SparseObservable`\ s as input, set this
+                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+                are required to support :class:`.SparseObservable`\ s as input.
         """
-        super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution, wrap)
+        super().__init__(
+            1,
+            reps,
+            insert_barriers,
+            cx_structure,
+            atomic_evolution,
+            wrap,
+            preserve_order,
+            atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
+        )
         self.sampled_ops = None
         self.rng = np.random.default_rng(seed)
 
@@ -125,4 +123,8 @@ class QDrift(ProductFormula):
         sampled_paulis = [
             (pauli[0], pauli[1], np.real(np.sign(pauli[2])) * rescaled_time) for pauli in sampled
         ]
+
+        if not self.preserve_order:
+            sampled_paulis = reorder_paulis(sampled_paulis)
+
         return sampled_paulis

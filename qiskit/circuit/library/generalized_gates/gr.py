@@ -45,6 +45,7 @@ class GR(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GR
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -99,6 +100,7 @@ class GRX(GR):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
         from qiskit.circuit.library import GRX
         from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -147,6 +149,7 @@ class GRY(GR):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GRY
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -195,6 +198,7 @@ class GRZ(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GRZ
        from qiskit.visualization.library import _generate_circuit_library_visualization

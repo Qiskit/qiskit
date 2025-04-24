@@ -65,7 +65,7 @@ fn run_on_self_inverse(
             let mut chunk: Vec<NodeIndex> = Vec::new();
             let max_index = gate_cancel_run.len() - 1;
             for (i, cancel_gate) in gate_cancel_run.iter().enumerate() {
-                let node = &dag.dag()[*cancel_gate];
+                let node = &dag[*cancel_gate];
                 if let NodeType::Operation(inst) = node {
                     if gate_eq(py, inst, &gate)? {
                         chunk.push(*cancel_gate);
@@ -78,13 +78,12 @@ fn run_on_self_inverse(
                     if i == max_index {
                         partitions.push(std::mem::take(&mut chunk));
                     } else {
-                        let next_qargs = if let NodeType::Operation(next_inst) =
-                            &dag.dag()[gate_cancel_run[i + 1]]
-                        {
-                            next_inst.qubits
-                        } else {
-                            panic!("Not an op node")
-                        };
+                        let next_qargs =
+                            if let NodeType::Operation(next_inst) = &dag[gate_cancel_run[i + 1]] {
+                                next_inst.qubits
+                            } else {
+                                panic!("Not an op node")
+                            };
                         if inst.qubits != next_qargs {
                             partitions.push(std::mem::take(&mut chunk));
                         }
@@ -132,8 +131,8 @@ fn run_on_inverse_pairs(
         for nodes in runs {
             let mut i = 0;
             while i < nodes.len() - 1 {
-                if let NodeType::Operation(inst) = &dag.dag()[nodes[i]] {
-                    if let NodeType::Operation(next_inst) = &dag.dag()[nodes[i + 1]] {
+                if let NodeType::Operation(inst) = &dag[nodes[i]] {
+                    if let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] {
                         if inst.qubits == next_inst.qubits
                             && ((gate_eq(py, inst, &gate_0)? && gate_eq(py, next_inst, &gate_1)?)
                                 || (gate_eq(py, inst, &gate_1)?

@@ -79,8 +79,7 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
     );
 
     // Process the DAG.
-    for gate in dag.op_nodes(true) {
-        let gate = dag.dag()[gate].unwrap_operation();
+    for (_, gate) in dag.op_nodes(true) {
         if is_universal(gate) {
             continue;
         }

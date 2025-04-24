@@ -39,10 +39,12 @@ from qiskit.circuit import (
     Reset,
     Delay,
     Store,
+    Bit,
+    Register,
 )
-from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import (
+    BoxOp,
     IfElseOp,
     ForLoopOp,
     WhileLoopOp,
@@ -52,14 +54,12 @@ from qiskit.circuit.controlflow import (
     ContinueLoopOp,
     CASE_DEFAULT,
 )
-from qiskit.circuit.register import Register
 from qiskit.circuit.tools import pi_check
 
 from . import ast
 from .experimental import ExperimentalFeatures
 from .exceptions import QASM3ExporterError
 from .printer import BasicPrinter
-
 
 # Reserved keywords that gates and variables cannot be named.  It is possible that some of these
 # _could_ be accepted as variable names by OpenQASM 3 parsers, but it's safer for us to just be very
@@ -225,43 +225,43 @@ _CANONICAL_CONTROLLED_STANDARD_GATES = {
 # Mapping of symbols defined by `stdgates.inc` to their gate definition source.
 _KNOWN_INCLUDES = {
     "stdgates.inc": {
-        "p": _CANONICAL_STANDARD_GATES[StandardGate.PhaseGate],
-        "x": _CANONICAL_STANDARD_GATES[StandardGate.XGate],
-        "y": _CANONICAL_STANDARD_GATES[StandardGate.YGate],
-        "z": _CANONICAL_STANDARD_GATES[StandardGate.ZGate],
-        "h": _CANONICAL_STANDARD_GATES[StandardGate.HGate],
-        "s": _CANONICAL_STANDARD_GATES[StandardGate.SGate],
-        "sdg": _CANONICAL_STANDARD_GATES[StandardGate.SdgGate],
-        "t": _CANONICAL_STANDARD_GATES[StandardGate.TGate],
-        "tdg": _CANONICAL_STANDARD_GATES[StandardGate.TdgGate],
-        "sx": _CANONICAL_STANDARD_GATES[StandardGate.SXGate],
-        "rx": _CANONICAL_STANDARD_GATES[StandardGate.RXGate],
-        "ry": _CANONICAL_STANDARD_GATES[StandardGate.RYGate],
-        "rz": _CANONICAL_STANDARD_GATES[StandardGate.RZGate],
-        "cx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CXGate][1],
-        "cy": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CYGate][1],
-        "cz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CZGate][1],
-        "cp": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhaseGate][1],
-        "crx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRXGate][1],
-        "cry": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRYGate][1],
-        "crz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRZGate][1],
-        "ch": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CHGate][1],
-        "swap": _CANONICAL_STANDARD_GATES[StandardGate.SwapGate],
-        "ccx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CCXGate][3],
-        "cswap": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CSwapGate][1],
-        "cu": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CUGate][1],
-        "CX": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CXGate][1],
-        "phase": _CANONICAL_STANDARD_GATES[StandardGate.PhaseGate],
-        "cphase": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhaseGate][1],
-        "id": _CANONICAL_STANDARD_GATES[StandardGate.IGate],
-        "u1": _CANONICAL_STANDARD_GATES[StandardGate.U1Gate],
-        "u2": _CANONICAL_STANDARD_GATES[StandardGate.U2Gate],
-        "u3": _CANONICAL_STANDARD_GATES[StandardGate.U3Gate],
+        "p": _CANONICAL_STANDARD_GATES[StandardGate.Phase],
+        "x": _CANONICAL_STANDARD_GATES[StandardGate.X],
+        "y": _CANONICAL_STANDARD_GATES[StandardGate.Y],
+        "z": _CANONICAL_STANDARD_GATES[StandardGate.Z],
+        "h": _CANONICAL_STANDARD_GATES[StandardGate.H],
+        "s": _CANONICAL_STANDARD_GATES[StandardGate.S],
+        "sdg": _CANONICAL_STANDARD_GATES[StandardGate.Sdg],
+        "t": _CANONICAL_STANDARD_GATES[StandardGate.T],
+        "tdg": _CANONICAL_STANDARD_GATES[StandardGate.Tdg],
+        "sx": _CANONICAL_STANDARD_GATES[StandardGate.SX],
+        "rx": _CANONICAL_STANDARD_GATES[StandardGate.RX],
+        "ry": _CANONICAL_STANDARD_GATES[StandardGate.RY],
+        "rz": _CANONICAL_STANDARD_GATES[StandardGate.RZ],
+        "cx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CX][1],
+        "cy": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CY][1],
+        "cz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CZ][1],
+        "cp": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhase][1],
+        "crx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRX][1],
+        "cry": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRY][1],
+        "crz": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CRZ][1],
+        "ch": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CH][1],
+        "swap": _CANONICAL_STANDARD_GATES[StandardGate.Swap],
+        "ccx": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CCX][3],
+        "cswap": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CSwap][1],
+        "cu": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CU][1],
+        "CX": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CX][1],
+        "phase": _CANONICAL_STANDARD_GATES[StandardGate.Phase],
+        "cphase": _CANONICAL_CONTROLLED_STANDARD_GATES[StandardGate.CPhase][1],
+        "id": _CANONICAL_STANDARD_GATES[StandardGate.I],
+        "u1": _CANONICAL_STANDARD_GATES[StandardGate.U1],
+        "u2": _CANONICAL_STANDARD_GATES[StandardGate.U2],
+        "u3": _CANONICAL_STANDARD_GATES[StandardGate.U3],
     },
 }
 
 _BUILTIN_GATES = {
-    "U": _CANONICAL_STANDARD_GATES[StandardGate.UGate],
+    "U": _CANONICAL_STANDARD_GATES[StandardGate.U],
 }
 
 
@@ -626,7 +626,7 @@ class QASM3Builder:
     def build_program(self):
         """Builds a Program"""
         circuit = self.scope.circuit
-        if circuit.num_captured_vars:
+        if circuit.num_captured_vars or circuit.num_captured_stretches:
             raise QASM3ExporterError(
                 "cannot export an inner scope with captured variables as a top-level program"
             )
@@ -958,6 +958,14 @@ class QASM3Builder:
             )
             for var in self.scope.circuit.iter_declared_vars()
         ]
+
+        for stretch in self.scope.circuit.iter_declared_stretches():
+            statements.append(
+                ast.StretchDeclaration(
+                    self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
+                )
+            )
+
         for instruction in self.scope.circuit.data:
             if isinstance(instruction.operation, ControlFlowOp):
                 if isinstance(instruction.operation, ForLoopOp):
@@ -968,6 +976,8 @@ class QASM3Builder:
                     statements.append(self.build_if_statement(instruction))
                 elif isinstance(instruction.operation, SwitchCaseOp):
                     statements.extend(self.build_switch_statement(instruction))
+                elif isinstance(instruction.operation, BoxOp):
+                    statements.append(self.build_box(instruction))
                 else:
                     raise RuntimeError(f"unhandled control-flow construct: {instruction.operation}")
                 continue
@@ -1006,16 +1016,7 @@ class QASM3Builder:
                     f" but received '{instruction.operation}'"
                 )
 
-            if instruction.operation._condition is None:
-                statements.extend(nodes)
-            else:
-                body = ast.ProgramBlock(nodes)
-                statements.append(
-                    ast.BranchingStatement(
-                        self.build_expression(_lift_condition(instruction.operation._condition)),
-                        body,
-                    )
-                )
+            statements.extend(nodes)
         return statements
 
     def build_if_statement(self, instruction: CircuitInstruction) -> ast.BranchingStatement:
@@ -1085,6 +1086,15 @@ class QASM3Builder:
             ast.SwitchStatement(target, cases, default=default),
         ]
 
+    def build_box(self, instruction: CircuitInstruction) -> ast.BoxStatement:
+        """Build a :class:`.BoxOp` into a :class:`.ast.BoxStatement`."""
+        duration = self.build_duration(instruction.operation.duration, instruction.operation.unit)
+        body_circuit = instruction.operation.blocks[0]
+        with self.new_scope(body_circuit, instruction.qubits, instruction.clbits):
+            # TODO: handle no-op qubits (see https://github.com/openqasm/openqasm/issues/584).
+            body = ast.ProgramBlock(self.build_current_scope())
+        return ast.BoxStatement(body, duration)
+
     def build_while_loop(self, instruction: CircuitInstruction) -> ast.WhileLoopStatement:
         """Build a :obj:`.WhileLoopOp` into a :obj:`.ast.WhileLoopStatement`."""
         condition = self.build_expression(_lift_condition(instruction.operation.condition))
@@ -1134,19 +1144,25 @@ class QASM3Builder:
             raise QASM3ExporterError(
                 f"Found a delay instruction acting on classical bits: {instruction}"
             )
-        duration_value, unit = instruction.operation.duration, instruction.operation.unit
-        if unit == "ps":
-            duration = ast.DurationLiteral(1000 * duration_value, ast.DurationUnit.NANOSECOND)
-        else:
-            unit_map = {
-                "ns": ast.DurationUnit.NANOSECOND,
-                "us": ast.DurationUnit.MICROSECOND,
-                "ms": ast.DurationUnit.MILLISECOND,
-                "s": ast.DurationUnit.SECOND,
-                "dt": ast.DurationUnit.SAMPLE,
-            }
-            duration = ast.DurationLiteral(duration_value, unit_map[unit])
+        duration = self.build_duration(instruction.operation.duration, instruction.operation.unit)
         return ast.QuantumDelay(duration, [self._lookup_bit(qubit) for qubit in instruction.qubits])
+
+    def build_duration(self, duration, unit) -> ast.Expression | None:
+        """Build the expression of a given duration (if not ``None``)."""
+        if duration is None:
+            return None
+        if unit == "expr":
+            return self.build_expression(duration)
+        if unit == "ps":
+            return ast.DurationLiteral(1000 * duration, ast.DurationUnit.NANOSECOND)
+        unit_map = {
+            "ns": ast.DurationUnit.NANOSECOND,
+            "us": ast.DurationUnit.MICROSECOND,
+            "ms": ast.DurationUnit.MILLISECOND,
+            "s": ast.DurationUnit.SECOND,
+            "dt": ast.DurationUnit.SAMPLE,
+        }
+        return ast.DurationLiteral(duration, unit_map[unit])
 
     def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
@@ -1180,13 +1196,16 @@ class QASM3Builder:
 
         This will also push the gate into the symbol table (if required), including recursively
         defining the gate blocks."""
-        ident = self.symbols.get_gate(instruction.operation)
+        operation = instruction.operation
+        if hasattr(operation, "_qasm_decomposition"):
+            operation = operation._qasm_decomposition()
+        ident = self.symbols.get_gate(operation)
         if ident is None:
-            ident = self.define_gate(instruction.operation)
+            ident = self.define_gate(operation)
         qubits = [self._lookup_bit(qubit) for qubit in instruction.qubits]
         parameters = [
             ast.StringifyAndPray(self._rebind_scoped_parameters(param))
-            for param in instruction.operation.params
+            for param in operation.params
         ]
         if not self.disable_constants:
             for parameter in parameters:
@@ -1259,6 +1278,10 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.BoolType()
     if type_.kind is types.Uint:
         return ast.UintType(type_.width)
+    if type_.kind is types.Float:
+        return ast.FloatType.DOUBLE
+    if type_.kind is types.Duration:
+        return ast.DurationType()
     raise RuntimeError(f"unhandled expr type '{type_}'")
 
 
@@ -1266,7 +1289,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     __slots__ = ("lookup",)
 
     # This is a very simple, non-contextual converter.  As the type system expands, we may well end
-    # up with some places where Terra's abstract type system needs to be lowered to OQ3 rather than
+    # up with some places where Qiskit's abstract type system needs to be lowered to OQ3 rather than
     # mapping 100% directly, which might need a more contextual visitor.
 
     def __init__(self, lookup):
@@ -1275,11 +1298,29 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     def visit_var(self, node, /):
         return self.lookup(node) if node.standalone else self.lookup(node.var)
 
+    def visit_stretch(self, node, /):
+        return self.lookup(node)
+
+    # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):
         if node.type.kind is types.Bool:
             return ast.BooleanLiteral(node.value)
         if node.type.kind is types.Uint:
             return ast.IntegerLiteral(node.value)
+        if node.type.kind is types.Float:
+            return ast.FloatLiteral(node.value)
+        if node.type.kind is types.Duration:
+            unit = node.value.unit()
+            if unit == "dt":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SAMPLE)
+            if unit == "ns":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.NANOSECOND)
+            if unit == "us":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.MICROSECOND)
+            if unit == "ms":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.MILLISECOND)
+            if unit == "s":
+                return ast.DurationLiteral(node.value.value(), ast.DurationUnit.SECOND)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):

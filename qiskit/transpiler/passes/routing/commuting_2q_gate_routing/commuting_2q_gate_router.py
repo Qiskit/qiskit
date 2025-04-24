@@ -52,7 +52,9 @@ class Commuting2qGateRouter(TransformationPass):
     To do this we use a line swap strategy for qubits 0, 1, 3, and 4 defined it in terms
     of virtual qubits 0, 1, 2, and 3.
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import QuantumCircuit
         from qiskit.circuit.library import PauliEvolutionGate

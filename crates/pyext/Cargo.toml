@@ -10,6 +10,9 @@ name = "qiskit_pyext"
 doctest = false
 crate-type = ["cdylib"]
 
+[lints]
+workspace = true
+
 [features]
 # We always need to activate PyO3's `extension-module` for this crate to be useful at all, but we
 # need it *not* to be active for the tests of other crates to work.  If the feature is active,
@@ -25,3 +28,4 @@ qiskit-accelerate.workspace = true
 qiskit-circuit.workspace = true
 qiskit-qasm2.workspace = true
 qiskit-qasm3.workspace = true
+qiskit-cext = { workspace = true, features = ["python_binding"] }

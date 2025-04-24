@@ -32,6 +32,7 @@ class AND(QuantumCircuit):
     The AND gate without special flags equals the multi-controlled-X gate:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import AND
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -43,6 +44,7 @@ class AND(QuantumCircuit):
     ``[-1, 0, 0, 1, 1]``.
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import AND
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -116,6 +118,7 @@ class AndGate(Gate):
     The AndGate gate without special flags equals the multi-controlled-X gate:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit import QuantumCircuit
        from qiskit.circuit.library import AndGate
@@ -129,6 +132,7 @@ class AndGate(Gate):
     ``[-1, 0, 0, 1, 1]``.
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit import QuantumCircuit
        from qiskit.circuit.library import AndGate

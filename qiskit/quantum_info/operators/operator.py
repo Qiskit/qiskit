@@ -61,7 +61,9 @@ class Operator(LinearOp):
     :math:`|\psi\rangle=|0\rangle (\rho = |0\rangle\langle 0|)` changes it to the
     one state :math:`|\psi\rangle=|1\rangle (\rho = |1\rangle\langle 1|)`:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         >>> import numpy as np
         >>> from qiskit.quantum_info import Operator
@@ -204,6 +206,8 @@ class Operator(LinearOp):
 
         Raises:
             ValueError: when an invalid output method is selected.
+            MissingOptionalLibrary: If SymPy isn't installed and ``'latex'`` or
+                ``'latex_source'`` is selected for ``output``.
 
         """
         # pylint: disable=cyclic-import
@@ -236,7 +240,7 @@ class Operator(LinearOp):
     def _ipython_display_(self):
         out = self.draw()
         if isinstance(out, str):
-            print(out)
+            print(out)  # pylint: disable=bad-builtin
         else:
             from IPython.display import display
 
@@ -541,7 +545,9 @@ class Operator(LinearOp):
         ret._op_shape = new_shape
         return ret
 
-    def power(self, n: float, branch_cut_rotation=cmath.pi * 1e-12) -> Operator:
+    def power(
+        self, n: float, branch_cut_rotation=cmath.pi * 1e-12, assume_unitary=False
+    ) -> Operator:
         """Return the matrix power of the operator.
 
         Non-integer powers of operators with an eigenvalue whose complex phase is :math:`\\pi` have
@@ -572,6 +578,8 @@ class Operator(LinearOp):
                 complex plane.  This shifts the branch cut away from the common point of :math:`-1`,
                 but can cause a different root to be selected as the principal root.  The rotation
                 is anticlockwise, following the standard convention for complex phase.
+            assume_unitary (bool): if ``True``, the operator is assumed to be unitary. In this case,
+                for fractional powers we employ a faster implementation based on Schur's decomposition.
 
         Returns:
             Operator: the resulting operator ``O ** n``.
@@ -579,6 +587,11 @@ class Operator(LinearOp):
         Raises:
             QiskitError: if the input and output dimensions of the operator
                          are not equal.
+
+        .. note::
+            It is only safe to set the argument ``assume_unitary`` to ``True`` when the operator
+            is unitary (or, more generally, normal). Otherwise, the function will return an
+            incorrect output.
         """
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
@@ -588,11 +601,23 @@ class Operator(LinearOp):
         else:
             import scipy.linalg
 
-            ret._data = cmath.rect(
-                1, branch_cut_rotation * n
-            ) * scipy.linalg.fractional_matrix_power(
-                cmath.rect(1, -branch_cut_rotation) * self.data, n
-            )
+            if assume_unitary:
+                # Experimentally, for fractional powers this seems to be 3x faster than
+                # calling scipy.linalg.fractional_matrix_power(self.data, exponent)
+                decomposition, unitary = scipy.linalg.schur(
+                    cmath.rect(1, -branch_cut_rotation) * self.data, output="complex"
+                )
+                decomposition_diagonal = decomposition.diagonal()
+                decomposition_power = [pow(element, n) for element in decomposition_diagonal]
+                unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
+                ret._data = cmath.rect(1, branch_cut_rotation * n) * unitary_power
+            else:
+                ret._data = cmath.rect(
+                    1, branch_cut_rotation * n
+                ) * scipy.linalg.fractional_matrix_power(
+                    cmath.rect(1, -branch_cut_rotation) * self.data, n
+                )
+
         return ret
 
     def tensor(self, other: Operator) -> Operator:
