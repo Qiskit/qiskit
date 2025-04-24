@@ -39,7 +39,7 @@ pub mod isometry;
 pub mod nlayout;
 pub mod optimize_1q_gates;
 pub mod pauli_exp_val;
-pub mod qi;
+pub mod quantum_info;
 pub mod remove_diagonal_gates_before_measure;
 pub mod remove_identity_equiv;
 pub mod results;
