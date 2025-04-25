@@ -806,3 +806,34 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertIn("bit_terms", repr(pauli_lindblad_map.bit_terms))
         self.assertIn("indices", repr(pauli_lindblad_map.indices))
         self.assertIn("boundaries", repr(pauli_lindblad_map.boundaries))
+
+    @ddt.idata(single_cases())
+    def test_clear(self, pauli_lindblad_map):
+        num_qubits = pauli_lindblad_map.num_qubits
+        pauli_lindblad_map.clear()
+        self.assertEqual(pauli_lindblad_map, PauliLindbladMap.zero(num_qubits))
+
+
+    def test_iteration(self):
+        self.assertEqual(list(PauliLindbladMap.zero(5)), [])
+        self.assertEqual(tuple(PauliLindbladMap.zero(0)), ())
+
+        pauli_lindblad_map = PauliLindbladMap.from_sparse_list(
+            [
+                ("XYY", (4, 2, 1), 2),
+                ("", (), 0.5),
+                ("ZZ", (3, 0), -0.25),
+                ("XX", (2, 1), 1.0),
+                ("YZ", (4, 1), 1),
+            ],
+            num_qubits=5,
+        )
+        bit_term = PauliLindbladMap.BitTerm
+        expected = [
+            PauliLindbladMap.Term(5, 2, [bit_term.Y, bit_term.Y, bit_term.X], [1, 2, 4]),
+            PauliLindbladMap.Term(5, 0.5, [], []),
+            PauliLindbladMap.Term(5, -0.25, [bit_term.Z, bit_term.Z], [0, 3]),
+            PauliLindbladMap.Term(5, 1.0, [bit_term.X, bit_term.X], [1, 2]),
+            PauliLindbladMap.Term(5, 1, [bit_term.Z, bit_term.Y], [1, 4]),
+        ]
+        self.assertEqual(list(pauli_lindblad_map), expected)
