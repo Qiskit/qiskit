@@ -106,9 +106,8 @@ pub fn split_2q_unitaries(
         let NodeType::Operation(inst) = &dag.dag()[node] else {
             unreachable!("Op nodes contain a non-operation");
         };
-        let qubits = dag.get_qargs(inst.qubits).to_vec();
         if let OperationRef::Unitary(unitary_gate) = inst.op.view() {
-            if qubits.len() == 2 {
+            if unitary_gate.num_qubits() == 2 {
                 let decomp = TwoQubitWeylDecomposition::new_inner(
                     unitary_gate.matrix_view(),
                     Some(requested_fidelity),
