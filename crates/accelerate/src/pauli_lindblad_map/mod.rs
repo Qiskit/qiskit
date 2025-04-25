@@ -677,7 +677,7 @@ impl SparseTermView<'_> {
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
             .join(" ");
-        format!("({})({})", coeff, paulis)
+        format!("({})L({})", coeff, paulis)
     }
 }
 

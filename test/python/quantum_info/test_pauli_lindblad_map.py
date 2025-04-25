@@ -326,3 +326,17 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertIsNot(pauli_lindblad_map, copy.copy(pauli_lindblad_map))
         self.assertEqual(pauli_lindblad_map, copy.deepcopy(pauli_lindblad_map))
         self.assertEqual(pauli_lindblad_map, pickle.loads(pickle.dumps(pauli_lindblad_map)))
+    
+    @ddt.data(
+        # This is every combination of (0, 1, many) for (terms, qubits, non-identites per term).
+        PauliLindbladMap.zero(0),
+        PauliLindbladMap.zero(1),
+        PauliLindbladMap.zero(10),
+        PauliLindbladMap.from_list([("YIXZII", -0.25)]),
+        PauliLindbladMap.from_list([("YIXZII", -0.25), ("ZZYYXX", 0.25)]),
+    )
+    def test_repr(self, data):
+        # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
+        # that it has any particular form.
+        self.assertIsInstance(repr(data), str)
+        self.assertIn("PauliLindbladMap", repr(data))
