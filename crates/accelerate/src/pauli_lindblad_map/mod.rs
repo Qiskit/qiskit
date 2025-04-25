@@ -794,7 +794,7 @@ impl SparseTerm {
     }
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
-    pub fn to_observable(&self) -> PauliLindbladMap {
+    pub fn to_pauli_lindblad_map(&self) -> PauliLindbladMap {
         PauliLindbladMap {
             num_qubits: self.num_qubits,
             coeffs: vec![self.coeff],
@@ -1022,7 +1022,7 @@ impl PySparseTerm {
     }
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
-    fn to_observable(&self) -> PyResult<PyPauliLindbladMap> {
+    fn to_pauli_lindblad_map(&self) -> PyResult<PyPauliLindbladMap> {
         let obs = PauliLindbladMap::new(
             self.inner.num_qubits(),
             vec![self.inner.coeff()],
@@ -1210,7 +1210,7 @@ impl PyPauliLindbladMap {
             return Self::from_sparse_list(vec, num_qubits);
         }
         if let Ok(term) = data.downcast_exact::<PySparseTerm>() {
-            return term.borrow().to_observable();
+            return term.borrow().to_pauli_lindblad_map();
         };
         if let Ok(observable) = Self::from_terms(data, num_qubits) {
             return Ok(observable);
@@ -1435,7 +1435,7 @@ impl PyPauliLindbladMap {
                     ));
                 };
                 let py_term = first?.downcast::<PySparseTerm>()?.borrow();
-                py_term.inner.to_observable()
+                py_term.inner.to_pauli_lindblad_map()
             }
         };
         for bound_py_term in iter {

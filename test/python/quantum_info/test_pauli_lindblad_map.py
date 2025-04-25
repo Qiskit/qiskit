@@ -837,3 +837,210 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.Term(5, 1, [bit_term.Z, bit_term.Y], [1, 4]),
         ]
         self.assertEqual(list(pauli_lindblad_map), expected)
+
+    def test_indexing(self):
+        pauli_lindblad_map = PauliLindbladMap.from_sparse_list(
+            [
+                ("XYY", (4, 2, 1), 2),
+                ("", (), 0.5),
+                ("ZZ", (3, 0), -0.25),
+                ("XX", (2, 1), 1.0),
+                ("YZ", (4, 1), 1),
+            ],
+            num_qubits=5,
+        )
+        bit_term = PauliLindbladMap.BitTerm
+        expected = [
+            PauliLindbladMap.Term(5, 2, [bit_term.Y, bit_term.Y, bit_term.X], [1, 2, 4]),
+            PauliLindbladMap.Term(5, 0.5, [], []),
+            PauliLindbladMap.Term(5, -0.25, [bit_term.Z, bit_term.Z], [0, 3]),
+            PauliLindbladMap.Term(5, 1.0, [bit_term.X, bit_term.X], [1, 2]),
+            PauliLindbladMap.Term(5, 1, [bit_term.Z, bit_term.Y], [1, 4]),
+        ]
+        self.assertEqual(pauli_lindblad_map[0], expected[0])
+        self.assertEqual(pauli_lindblad_map[-2], expected[-2])
+        self.assertEqual(pauli_lindblad_map[2:4], PauliLindbladMap(expected[2:4]))
+        self.assertEqual(pauli_lindblad_map[1::2], PauliLindbladMap(expected[1::2]))
+        self.assertEqual(pauli_lindblad_map[:], PauliLindbladMap(expected))
+        self.assertEqual(pauli_lindblad_map[-1:-4:-1], PauliLindbladMap(expected[-1:-4:-1]))
+
+    @ddt.data(
+        PauliLindbladMap.from_sparse_list([("YXZ", [2, 3, 5], -0.25)], num_qubits=6),
+        PauliLindbladMap.from_list([("YIXZII", -0.25)]),
+    )
+    def test_term_repr(self, obs):
+        # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
+        # that it has any particular form.
+        term = obs[0]
+        self.assertIsInstance(repr(term), str)
+        self.assertIn("PauliLindbladMap.Term", repr(term))
+
+    @ddt.data(
+        PauliLindbladMap.from_sparse_list([("YXZ", [2, 3, 5], -0.25)], num_qubits=6),
+        PauliLindbladMap.from_list([("YIXZII", -0.25)]),
+    )
+    def test_term_to_pauli_lindblad_map(self, pauli_lindblad_map):
+        self.assertEqual(pauli_lindblad_map[0].to_pauli_lindblad_map(), pauli_lindblad_map)
+        self.assertIsNot(pauli_lindblad_map[0].to_pauli_lindblad_map(), pauli_lindblad_map)
+
+    def test_term_equality(self):
+        self.assertEqual(
+            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(5, 1.0, [], [])
+        )
+        self.assertNotEqual(
+            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(8, 1.0, [], [])
+        )
+        self.assertNotEqual(
+            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(5, 2., [], [])
+        )
+        self.assertNotEqual(
+            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(8, -1, [], [])
+        )
+
+        pauli_lindblad_map = PauliLindbladMap.from_list(
+            [
+                ("IIXIZ", 2),
+                ("IIZIX", 2),
+                ("XXIII", -1.5),
+                ("XYIII", -1.5),
+                ("IYIYI", 0.5),
+                ("IIYIY", 0.5),
+            ]
+        )
+        self.assertEqual(pauli_lindblad_map[0], pauli_lindblad_map[0])
+        self.assertEqual(pauli_lindblad_map[1], pauli_lindblad_map[1])
+        self.assertNotEqual(pauli_lindblad_map[0], pauli_lindblad_map[1])
+        self.assertEqual(pauli_lindblad_map[2], pauli_lindblad_map[2])
+        self.assertEqual(pauli_lindblad_map[3], pauli_lindblad_map[3])
+        self.assertNotEqual(pauli_lindblad_map[2], pauli_lindblad_map[3])
+        self.assertEqual(pauli_lindblad_map[4], pauli_lindblad_map[4])
+        self.assertEqual(pauli_lindblad_map[5], pauli_lindblad_map[5])
+        self.assertNotEqual(pauli_lindblad_map[4], pauli_lindblad_map[5])
+
+    @ddt.data(
+        PauliLindbladMap.from_sparse_list([("YXZ", [2, 3, 5], -0.25)], num_qubits=6),
+        PauliLindbladMap.from_list([("YIXZII", -0.25)]),
+    )
+    def test_term_pickle(self, obs):
+        term = obs[0]
+        self.assertEqual(pickle.loads(pickle.dumps(term)), term)
+        self.assertEqual(copy.copy(term), term)
+        self.assertEqual(copy.deepcopy(term), term)
+
+    def test_term_attributes(self):
+        term = PauliLindbladMap([("IIXIIXZ", 5.)])[0]
+        self.assertEqual(term.num_qubits, 7)
+        self.assertEqual(term.coeff, 5.0)
+        np.testing.assert_equal(
+            term.bit_terms,
+            np.array(
+                [
+                    PauliLindbladMap.BitTerm.Z,
+                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.BitTerm.X,
+                ],
+                dtype=np.uint8,
+            ),
+        )
+        np.testing.assert_equal(term.indices, np.array([0, 1, 4], dtype=np.uintp))
+
+        term = PauliLindbladMap.from_list([("IIXYZ", 0.5)])[0]
+        self.assertEqual(term.num_qubits, 5)
+        self.assertEqual(term.coeff, 0.5)
+        self.assertEqual(
+            list(term.bit_terms),
+            [
+                PauliLindbladMap.BitTerm.Z,
+                PauliLindbladMap.BitTerm.Y,
+                PauliLindbladMap.BitTerm.X,
+            ],
+        )
+        self.assertEqual(list(term.indices), [0, 1, 2])
+
+    def test_term_new(self):
+        expected = PauliLindbladMap([("IIIXXZIII", 1.)])[0]
+
+        self.assertEqual(
+            PauliLindbladMap.Term(
+                9,
+                1.0,
+                [
+                    PauliLindbladMap.BitTerm.Z,
+                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.BitTerm.X,
+                ],
+                [3, 4, 5],
+            ),
+            expected,
+        )
+
+        # Constructor should allow being given unsorted inputs, and but them in the right order.
+        self.assertEqual(
+            PauliLindbladMap.Term(
+                9,
+                1.0,
+                [
+                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.BitTerm.Z,
+                ],
+                [4, 5, 3],
+            ),
+            expected,
+        )
+        self.assertEqual(list(expected.indices), [3, 4, 5])
+
+        with self.assertRaisesRegex(ValueError, "not term-wise increasing"):
+            PauliLindbladMap.Term(2, 2, [PauliLindbladMap.BitTerm.X] * 2, [0, 0])
+
+    def test_to_sparse_list(self):
+        """Test converting to a sparse list."""
+        with self.subTest(msg="zero"):
+            obs = PauliLindbladMap.zero(100)
+            expected = []
+            self.assertEqual(expected, obs.to_sparse_list())
+
+        with self.subTest(msg="IXYZ"):
+            obs = PauliLindbladMap([("IXYZ", 1.)])
+            expected = [("ZYX", [0, 1, 2], 1)]
+            self.assertEqual(
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+            )
+
+        with self.subTest(msg="multiple"):
+            obs = PauliLindbladMap.from_list([("XXIZ", 0.5), ("YYIZ", -1)])
+            expected = [("XXZ", [3, 2, 0], 0.5), ("ZYY", [0, 2, 3], -1)]
+            self.assertEqual(
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+            )
+
+    def test_sparse_term_bit_labels(self):
+        """Test getting the bit labels of a SparseTerm."""
+
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.)])
+        term = pauli_lindblad_map[0]
+        indices = term.indices
+        labels = term.bit_labels()
+
+        label_dict = dict(zip(indices, labels))
+        expected = dict(enumerate("ZYXZYXZYX"))
+
+        for i, label in expected.items():
+            self.assertEqual(label, label_dict[i])
+
+        reconstructed = PauliLindbladMap.from_sparse_list([(labels, indices, 1)], pauli_lindblad_map.num_qubits)
+        self.assertEqual(pauli_lindblad_map, reconstructed)
+
+
+def canonicalize_term(pauli, indices, coeff):
+    # canonicalize a sparse list term by sorting by indices (which is unique as
+    # indices cannot be repeated)
+    idcs = np.argsort(indices)
+    sorted_paulis = "".join(pauli[i] for i in idcs)
+    return (sorted_paulis, np.asarray(indices)[idcs].tolist(), float(coeff))
+
+def canonicalize_sparse_list(sparse_list):
+    # sort a sparse list representation by canonicalizing the terms and then applying
+    # Python's built-in sort
+    canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
+    return sorted(canonicalized_terms)
