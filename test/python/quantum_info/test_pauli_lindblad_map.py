@@ -527,3 +527,282 @@ class TestPauliLindbladMap(QiskitTestCase):
                 [("XZX", (0, 1, 2), 1.5), ("X", (3,), -0.5)], num_qubits=5
             ),
         )
+
+    def test_write_into_attributes_scalar(self):
+        coeffs = PauliLindbladMap.from_sparse_list(
+            [("XZ", (1, 0), 1.5), ("XX", (3, 2), -1.5)], num_qubits=8
+        )
+        coeffs.coeffs[0] = -2.0
+        self.assertEqual(
+            coeffs,
+            PauliLindbladMap.from_sparse_list(
+                [("XZ", (1, 0), -2.0), ("XX", (3, 2), -1.5)], num_qubits=8
+            ),
+        )
+        coeffs.coeffs[1] = 1.5
+        self.assertEqual(
+            coeffs,
+            PauliLindbladMap.from_sparse_list(
+                [("XZ", (1, 0), -2.0), ("XX", (3, 2), 1.5)], num_qubits=8
+            ),
+        )
+
+        bit_terms = PauliLindbladMap.from_sparse_list(
+            [("XZ", (0, 1), 1.5), ("XX", (2, 3), -1.5)], num_qubits=8
+        )
+        bit_terms.bit_terms[0] = PauliLindbladMap.BitTerm.Y
+        bit_terms.bit_terms[3] = PauliLindbladMap.BitTerm.Z
+        self.assertEqual(
+            bit_terms,
+            PauliLindbladMap.from_sparse_list(
+                [("YZ", (0, 1), 1.5), ("XZ", (2, 3), -1.5)], num_qubits=8
+            ),
+        )
+
+        indices = PauliLindbladMap.from_sparse_list(
+            [("XZ", (0, 1), 1.5), ("XX", (2, 3), -1.5)], num_qubits=8
+        )
+        # These two sets keep the observable in term-wise increasing order.  We don't test what
+        # happens if somebody violates the Rust-space requirement to be term-wise increasing.
+        indices.indices[1] = 4
+        indices.indices[3] = 7
+        self.assertEqual(
+            indices,
+            PauliLindbladMap.from_sparse_list(
+                [("XZ", (0, 4), 1.5), ("XX", (2, 7), -1.5)], num_qubits=8
+            ),
+        )
+
+        boundaries = PauliLindbladMap.from_sparse_list(
+            [("XZ", (0, 1), 1.5), ("XX", (2, 3), -1.5)], num_qubits=8
+        )
+        # Move a single-qubit term from the second summand into the first (the particular indices
+        # ensure we remain term-wise sorted).
+        boundaries.boundaries[1] += 1
+        self.assertEqual(
+            boundaries,
+            PauliLindbladMap.from_sparse_list(
+                [("XZX", (0, 1, 2), 1.5), ("X", (3,), -1.5)], num_qubits=8
+            ),
+        )
+
+    def test_write_into_attributes_broadcast(self):
+        coeffs = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIIYZ", -0.25), ("ZIIIY", 0.5)])
+        coeffs.coeffs[:] = 1.5
+        np.testing.assert_array_equal(coeffs.coeffs, [1.5, 1.5, 1.5])
+        coeffs.coeffs[1:] = 1.0
+        np.testing.assert_array_equal(coeffs.coeffs, [1.5, 1.0, 1.0])
+        coeffs.coeffs[:2] = -0.5
+        np.testing.assert_array_equal(coeffs.coeffs, [-0.5, -0.5, 1.0])
+        coeffs.coeffs[::2] = 1.5
+        np.testing.assert_array_equal(coeffs.coeffs, [1.5, -0.5, 1.5])
+        coeffs.coeffs[::-1] = -0.5
+        np.testing.assert_array_equal(coeffs.coeffs, [-0.5, -0.5, -0.5])
+
+        # It's hard to broadcast into `indices` without breaking data coherence; the broadcasting is
+        # more meant for fast modifications to `coeffs` and `bit_terms`.
+        indices = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIY", 0.5)])
+        indices.indices[::2] = 1
+        self.assertEqual(
+            indices, PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYZI", -0.25), ("ZIIYI", 0.5)])
+        )
+
+        bit_terms = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIY", 0.5)])
+        bit_terms.bit_terms[::2] = PauliLindbladMap.BitTerm.Z
+        self.assertEqual(
+            bit_terms,
+            PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIZ", 0.5)]),
+        )
+        bit_terms.bit_terms[3:1:-1] = PauliLindbladMap.BitTerm.X
+        self.assertEqual(
+            bit_terms,
+            PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIXIX", -0.25), ("ZIIIZ", 0.5)]),
+        )
+        bit_terms.bit_terms[bit_terms.boundaries[2] : bit_terms.boundaries[3]] = (
+            PauliLindbladMap.BitTerm.X
+        )
+        self.assertEqual(
+            bit_terms,
+            PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIXIX", -0.25), ("XIIIX", 0.5)]),
+        )
+
+        boundaries = PauliLindbladMap.from_list([("IIIIZX", 1), ("IIXXII", -0.5), ("YYIIII", 0.5)])
+        boundaries.boundaries[1:3] = 1
+        self.assertEqual(
+            boundaries,
+            PauliLindbladMap.from_list([("IIIIIX", 1), ("IIIIII", -0.5), ("YYXXZI", 0.5)]),
+        )
+
+    def test_write_into_attributes_slice(self):
+        coeffs = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIIYZ", -0.25), ("ZIIIY", 0.5)])
+        coeffs.coeffs[:] = [2.0, 0.5, -0.25]
+        self.assertEqual(
+            coeffs, PauliLindbladMap.from_list([("XIIZI", 2.0), ("IIIYZ", 0.5), ("ZIIIY", -0.25)])
+        )
+        # This should assign the coefficients in reverse order - we more usually spell it
+        # `coeffs[:] = coeffs{::-1]`, but the idea is to check the set-item slicing order.
+        coeffs.coeffs[::-1] = coeffs.coeffs[:]
+        self.assertEqual(
+            coeffs, PauliLindbladMap.from_list([("XIIZI", -0.25), ("IIIYZ", 0.5), ("ZIIIY", 2.0)])
+        )
+
+        indices = PauliLindbladMap.from_list([("IIIIZX", 0.25), ("IIXYII", 1), ("YZIIII", 0.5)])
+        indices.indices[:4] = [4, 5, 1, 2]
+        self.assertEqual(
+            indices, PauliLindbladMap.from_list([("ZXIIII", 0.25), ("IIIXYI", 1), ("YZIIII", 0.5)])
+        )
+
+        bit_terms = PauliLindbladMap.from_list([("IIIIZX", 0.25), ("IIXXII", 1), ("YYIIII", 0.5)])
+        bit_terms.bit_terms[::2] = [
+            PauliLindbladMap.BitTerm.Y,
+            PauliLindbladMap.BitTerm.Y,
+            PauliLindbladMap.BitTerm.Z,
+        ]
+        self.assertEqual(
+            bit_terms,
+            PauliLindbladMap.from_list([("IIIIZY", 0.25), ("IIXYII", 1), ("YZIIII", 0.5)]),
+        )
+
+        boundaries = PauliLindbladMap.from_list([("IIIIZX", 0.25), ("IIXXII", 1), ("YYIIII", 0.5)])
+        boundaries.boundaries[1:-1] = [1, 5]
+        self.assertEqual(
+            boundaries,
+            PauliLindbladMap.from_list([("IIIIIX", 0.25), ("IYXXZI", 1), ("YIIIII", 0.5)]),
+        )
+
+    def test_attributes_reject_bad_writes(self):
+        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("XXY", -0.5)])
+        with self.assertRaises(TypeError):
+            pauli_lindblad_map.coeffs[0] = [0.25j, 0.5j]
+        with self.assertRaises(TypeError):
+            pauli_lindblad_map.coeffs[0] = 0.25j
+        with self.assertRaises(TypeError):
+            pauli_lindblad_map.bit_terms[0] = [PauliLindbladMap.BitTerm.X] * 4
+        with self.assertRaises(TypeError):
+            pauli_lindblad_map.indices[0] = [0, 1]
+        with self.assertRaises(TypeError):
+            pauli_lindblad_map.boundaries[0] = (0, 1)
+        with self.assertRaisesRegex(ValueError, "not a valid letter"):
+            pauli_lindblad_map.bit_terms[0] = 0
+        with self.assertRaisesRegex(ValueError, "not a valid letter"):
+            pauli_lindblad_map.bit_terms[:] = 0
+        with self.assertRaisesRegex(
+            ValueError, "tried to set a slice of length 2 with a sequence of length 1"
+        ):
+            pauli_lindblad_map.coeffs[:] = [1.0]
+        with self.assertRaisesRegex(
+            ValueError, "tried to set a slice of length 6 with a sequence of length 8"
+        ):
+            pauli_lindblad_map.bit_terms[:] = [PauliLindbladMap.BitTerm.Z] * 8
+
+
+    def test_attributes_sequence(self):
+        """Test attributes of the `Sequence` protocol."""
+        # Length
+        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("ZYX", -0.5)])
+        self.assertEqual(len(pauli_lindblad_map.coeffs), 2)
+        self.assertEqual(len(pauli_lindblad_map.indices), 6)
+        self.assertEqual(len(pauli_lindblad_map.bit_terms), 6)
+        self.assertEqual(len(pauli_lindblad_map.boundaries), 3)
+
+        # Iteration
+        self.assertEqual(list(pauli_lindblad_map.coeffs), [1.5, -0.5])
+        self.assertEqual(tuple(pauli_lindblad_map.indices), (0, 1, 2, 0, 1, 2))
+        self.assertEqual(next(iter(pauli_lindblad_map.boundaries)), 0)
+        # multiple iteration through same object
+        bit_terms = pauli_lindblad_map.bit_terms
+        self.assertEqual(set(bit_terms), {PauliLindbladMap.BitTerm[x] for x in "XYZZYX"})
+        self.assertEqual(set(bit_terms), {PauliLindbladMap.BitTerm[x] for x in "XYZZYX"})
+
+        # Implicit iteration methods.
+        self.assertIn(PauliLindbladMap.BitTerm.Y, pauli_lindblad_map.bit_terms)
+        self.assertNotIn(4, pauli_lindblad_map.indices)
+        self.assertEqual(list(reversed(pauli_lindblad_map.coeffs)), [-0.5, 1.5])
+
+        # Index by scalar
+        self.assertEqual(pauli_lindblad_map.coeffs[1], -0.5)
+        self.assertEqual(pauli_lindblad_map.indices[-1], 2)
+        self.assertEqual(pauli_lindblad_map.bit_terms[0], PauliLindbladMap.BitTerm.Y)
+        # Make sure that Rust-space actually returns the enum value, not just an `int` (which could
+        # have compared equal).
+        self.assertIsInstance(pauli_lindblad_map.bit_terms[0], PauliLindbladMap.BitTerm)
+        self.assertEqual(pauli_lindblad_map.boundaries[-2], 3)
+        with self.assertRaises(IndexError):
+            _ = pauli_lindblad_map.coeffs[10]
+        with self.assertRaises(IndexError):
+            _ = pauli_lindblad_map.boundaries[-4]
+
+        # Index by slice.  This is API guaranteed to be a Numpy array to make it easier to
+        # manipulate subslices with mathematic operations.
+        self.assertIsInstance(pauli_lindblad_map.coeffs[:], np.ndarray)
+        np.testing.assert_array_equal(
+            pauli_lindblad_map.coeffs[:], np.array([1.5, -0.5], dtype=np.float64), strict=True
+        )
+        self.assertIsInstance(pauli_lindblad_map.indices[::-1], np.ndarray)
+        np.testing.assert_array_equal(
+            pauli_lindblad_map.indices[::-1], np.array([2, 1, 0, 2, 1, 0], dtype=np.uint32), strict=True
+        )
+        self.assertIsInstance(pauli_lindblad_map.bit_terms[2:4], np.ndarray)
+        np.testing.assert_array_equal(
+            pauli_lindblad_map.bit_terms[2:4],
+            np.array([PauliLindbladMap.BitTerm.X, PauliLindbladMap.BitTerm.X], dtype=np.uint8),
+            strict=True,
+        )
+        self.assertIsInstance(pauli_lindblad_map.boundaries[-2:-3:-1], np.ndarray)
+        np.testing.assert_array_equal(
+            pauli_lindblad_map.boundaries[-2:-3:-1], np.array([3], dtype=np.uintp), strict=True
+        )
+
+    def test_attributes_to_array(self):
+        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("XYZ", -0.5)])
+
+        # Natural dtypes.
+        np.testing.assert_array_equal(
+            pauli_lindblad_map.coeffs, np.array([1.5, -0.5], dtype=np.float64), strict=True
+        )
+        np.testing.assert_array_equal(
+            pauli_lindblad_map.indices, np.array([0, 1, 2, 0, 1, 2], dtype=np.uint32), strict=True
+        )
+        np.testing.assert_array_equal(
+            pauli_lindblad_map.bit_terms,
+            np.array([PauliLindbladMap.BitTerm[x] for x in "YZXZYX"], dtype=np.uint8),
+            strict=True,
+        )
+        np.testing.assert_array_equal(
+            pauli_lindblad_map.boundaries, np.array([0, 3, 6], dtype=np.uintp), strict=True
+        )
+
+        # Cast dtypes.
+        np.testing.assert_array_equal(
+            np.array(pauli_lindblad_map.indices, dtype=np.uint8),
+            np.array([0, 1, 2, 0, 1, 2], dtype=np.uint8),
+            strict=True,
+        )
+        np.testing.assert_array_equal(
+            np.array(pauli_lindblad_map.boundaries, dtype=np.int64),
+            np.array([0, 3, 6], dtype=np.int64),
+            strict=True,
+        )
+
+    @unittest.skipIf(
+        int(np.__version__.split(".", maxsplit=1)[0]) < 2,
+        "Numpy 1.x did not have a 'copy' keyword parameter to 'numpy.asarray'",
+    )
+    def test_attributes_reject_no_copy_array(self):
+        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("YXZ", -0.5)])
+        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
+            np.asarray(pauli_lindblad_map.coeffs, copy=False)
+        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
+            np.asarray(pauli_lindblad_map.indices, copy=False)
+        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
+            np.asarray(pauli_lindblad_map.bit_terms, copy=False)
+        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
+            np.asarray(pauli_lindblad_map.boundaries, copy=False)
+
+    def test_attributes_repr(self):
+        # We're not testing much about the outputs here, just that they don't crash.
+        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("YXZ", -0.5)])
+        self.assertIn("coeffs", repr(pauli_lindblad_map.coeffs))
+        self.assertIn("bit_terms", repr(pauli_lindblad_map.bit_terms))
+        self.assertIn("indices", repr(pauli_lindblad_map.indices))
+        self.assertIn("boundaries", repr(pauli_lindblad_map.boundaries))
