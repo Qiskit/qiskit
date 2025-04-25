@@ -249,6 +249,126 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_list([("IIZ", 0.5), ("IXI", 1.0)], num_qubits=4)
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
             PauliLindbladMap.from_list([])
+        
+    def test_from_sparse_list(self):
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(
+                [
+                    ("XY", (0, 1), 0.5),
+                    ("XX", (1, 3), -0.25),
+                    ("YYZ", (0, 2, 4), 1.0),
+                ],
+                num_qubits=5,
+            ),
+            PauliLindbladMap.from_list([("IIIYX", 0.5), ("IXIXI", -0.25), ("ZIYIY", 1.0)]),
+        )
+
+        # The indices should be allowed to be given in unsorted order, but they should be term-wise
+        # sorted in the output.
+        from_unsorted = PauliLindbladMap.from_sparse_list(
+            [
+                ("XYZ", (2, 1, 0), 1.5),
+                ("XYY", (2, 0, 1), -0.5),
+            ],
+            num_qubits=3,
+        )
+        self.assertEqual(from_unsorted, PauliLindbladMap.from_list([("XYZ", 1.5), ("XYY", -0.5)]))
+        np.testing.assert_equal(
+            from_unsorted.indices, np.array([0, 1, 2, 0, 1, 2], dtype=np.uint32)
+        )
+
+        # Explicit identities should still work, just be skipped over.
+        explicit_identity = PauliLindbladMap.from_sparse_list(
+            [
+                ("ZXI", (0, 1, 2), 1.0),
+                ("XYIII", (0, 1, 2, 3, 8), -0.5),
+            ],
+            num_qubits=10,
+        )
+        self.assertEqual(
+            explicit_identity,
+            PauliLindbladMap.from_sparse_list(
+                [("XZ", (1, 0), 1.0), ("YX", (1, 0), -0.5)], num_qubits=10
+            ),
+        )
+        np.testing.assert_equal(explicit_identity.indices, np.array([0, 1, 0, 1], dtype=np.uint32))
+
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list([], num_qubits=1_000_000),
+            PauliLindbladMap.zero(1_000_000),
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list([], num_qubits=0),
+            PauliLindbladMap.zero(0),
+        )
+
+    def test_from_sparse_list_failures(self):
+        with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
+            # Bad letters that are still ASCII.
+            PauliLindbladMap.from_sparse_list(
+                [("XZZY", (5, 3, 1, 0), 0.5), ("+$", (2, 1), 1.0)], num_qubits=8
+            )
+        # Unicode shenangigans.  These two should fail with a `ValueError`, but the exact message
+        # isn't important.  "\xff" is "ÿ", which is two bytes in UTF-8 (so has a length of 2 in
+        # Rust), but has a length of 1 in Python, so try with both a length-1 and length-2 index
+        # sequence, and both should still raise `ValueError`.
+        with self.assertRaises(ValueError):
+            PauliLindbladMap.from_sparse_list([("\xff", (1,), 0.5)], num_qubits=5)
+        with self.assertRaises(ValueError):
+            PauliLindbladMap.from_sparse_list([("\xff", (1, 2), 0.5)], num_qubits=5)
+
+        with self.assertRaisesRegex(ValueError, "label with length 2 does not match indices"):
+            PauliLindbladMap.from_sparse_list([("XZ", (0,), 1.0)], num_qubits=5)
+        with self.assertRaisesRegex(ValueError, "label with length 2 does not match indices"):
+            PauliLindbladMap.from_sparse_list([("XZ", (0, 1, 2), 1.0)], num_qubits=5)
+
+        with self.assertRaisesRegex(ValueError, "index 3 is out of range for a 3-qubit operator"):
+            PauliLindbladMap.from_sparse_list([("XZY", (0, 1, 3), 1.0)], num_qubits=3)
+        with self.assertRaisesRegex(ValueError, "index 4 is out of range for a 3-qubit operator"):
+            PauliLindbladMap.from_sparse_list([("XZY", (0, 1, 4), 1.0)], num_qubits=3)
+        with self.assertRaisesRegex(ValueError, "index 3 is out of range for a 3-qubit operator"):
+            # ... even if it's for an explicit identity.
+            PauliLindbladMap.from_sparse_list([("XXI", (0, 1, 3), 1.0)], num_qubits=3)
+
+        with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
+            PauliLindbladMap.from_sparse_list([("XZ", (3, 3), 1.0)], num_qubits=5)
+        with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
+            PauliLindbladMap.from_sparse_list([("XYZXZ", (3, 0, 1, 2, 3), 1.0)], num_qubits=5)
+
+    def test_from_terms(self):
+        self.assertEqual(PauliLindbladMap.from_terms([], num_qubits=5), PauliLindbladMap.zero(5))
+        self.assertEqual(PauliLindbladMap.from_terms((), num_qubits=0), PauliLindbladMap.zero(0))
+        self.assertEqual(
+            PauliLindbladMap.from_terms((None for _ in []), num_qubits=3), PauliLindbladMap.zero(3)
+        )
+
+        expected = PauliLindbladMap.from_sparse_list(
+            [
+                ("XYZ", (4, 2, 1), 1),
+                ("XXYY", (8, 5, 3, 2), 0.5),
+                ("ZZ", (5, 0), 2.0),
+            ],
+            num_qubits=10,
+        )
+        self.assertEqual(PauliLindbladMap.from_terms(list(expected)), expected)
+        self.assertEqual(PauliLindbladMap.from_terms(tuple(expected)), expected)
+        self.assertEqual(PauliLindbladMap.from_terms(term for term in expected), expected)
+        self.assertEqual(
+            PauliLindbladMap.from_terms(
+                (term for term in expected), num_qubits=expected.num_qubits
+            ),
+            expected,
+        )
+    
+    def test_from_terms_failures(self):
+        with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
+            PauliLindbladMap.from_terms([])
+
+        left, right = PauliLindbladMap([("IIXYI", 1.)])[0], PauliLindbladMap([("IIIIIIIIX", 1.)])[0]
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+            PauliLindbladMap.from_terms([left, right])
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+            PauliLindbladMap.from_terms([left], num_qubits=100)
 
     def test_default_constructor_failed_inference(self):
         with self.assertRaises(TypeError):
@@ -340,3 +460,70 @@ class TestPauliLindbladMap(QiskitTestCase):
         # that it has any particular form.
         self.assertIsInstance(repr(data), str)
         self.assertIn("PauliLindbladMap", repr(data))
+    
+    @ddt.idata(single_cases())
+    def test_copy(self, pauli_lindblad_map):
+        self.assertEqual(pauli_lindblad_map, pauli_lindblad_map.copy())
+        self.assertIsNot(pauli_lindblad_map, pauli_lindblad_map.copy())
+
+    
+    def test_equality(self):
+        sparse_data = [("XZ", (1, 0), 0.5), ("XYY", (3, 1, 0), -0.25)]
+        op = PauliLindbladMap.from_sparse_list(sparse_data, num_qubits=5)
+        self.assertEqual(op, op.copy())
+        # Take care that Rust space allows multiple views onto the same object.
+        self.assertEqual(op, op)
+
+        # Comparison to some other object shouldn't fail.
+        self.assertNotEqual(op, None)
+
+        # No costly automatic simplification (mathematically, these operators _are_ the same).
+        self.assertNotEqual(
+            PauliLindbladMap.from_list([("X", 2.0), ("X", -1.0)]), PauliLindbladMap([("X", 1.0)])
+        )
+
+        # Difference in qubit count.
+        self.assertNotEqual(
+            op, PauliLindbladMap.from_sparse_list(sparse_data, num_qubits=op.num_qubits + 1)
+        )
+        self.assertNotEqual(PauliLindbladMap.zero(2), PauliLindbladMap.zero(3))
+
+        # Difference in coeffs.
+        self.assertNotEqual(
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("XXYYZ", -0.5)]),
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("XXYYZ", 0.5)]),
+        )
+        self.assertNotEqual(
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("XXYYZ", -0.5)]),
+            PauliLindbladMap.from_list([("IIXZI", -1.0), ("XXYYZ", -0.5)]),
+        )
+
+        # Difference in bit terms.
+        self.assertNotEqual(
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("XXYYZ", -0.5)]),
+            PauliLindbladMap.from_list([("IIYZI", 1.0), ("XXYYZ", -0.5)]),
+        )
+        self.assertNotEqual(
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("XXYYZ", -0.5)]),
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("XXYYY", -0.5)]),
+        )
+
+        # Difference in indices.
+        self.assertNotEqual(
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("XXYYZ", -0.5)]),
+            PauliLindbladMap.from_list([("IXIZI", 1.0), ("XXYYZ", -0.5)]),
+        )
+        self.assertNotEqual(
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("XIYYZ", -0.5)]),
+            PauliLindbladMap.from_list([("IIXZI", 1.0), ("IXYYZ", -0.5)]),
+        )
+
+        # Difference in boundaries.
+        self.assertNotEqual(
+            PauliLindbladMap.from_sparse_list(
+                [("XZ", (0, 1), 1.5), ("XX", (2, 3), -0.5)], num_qubits=5
+            ),
+            PauliLindbladMap.from_sparse_list(
+                [("XZX", (0, 1, 2), 1.5), ("X", (3,), -0.5)], num_qubits=5
+            ),
+        )
