@@ -111,8 +111,8 @@ fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU
     match inst.op.view() {
         OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
         OperationRef::Unitary(gate) => match &gate.array {
-            ArrayType::NDArray(arr) => VersorU2::from_ndarray(&arr.view(), tol),
-            ArrayType::OneQ(arr) => VersorU2::from_nalgebra(arr, tol),
+            ArrayType::NDArray(arr) => Ok(VersorU2::from_ndarray_unchecked(&arr.view())),
+            ArrayType::OneQ(arr) => Ok(VersorU2::from_nalgebra_unchecked(arr)),
             ArrayType::TwoQ(_) => Err(VersorU2Error::MultiQubit),
         },
         _ => VersorU2::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), tol),
