@@ -1752,6 +1752,27 @@ impl PyPauliLindbladMap {
         Ok(simplified.into())
     }
 
+    fn __len__(&self) -> PyResult<usize> {
+        self.num_terms()
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let bit_terms: &[u8] = ::bytemuck::cast_slice(inner.bit_terms());
+        (
+            py.get_type::<Self>().getattr("from_raw_parts")?,
+            (
+                inner.num_qubits(),
+                PyArray1::from_slice(py, inner.coeffs()),
+                PyArray1::from_slice(py, bit_terms),
+                PyArray1::from_slice(py, inner.indices()),
+                PyArray1::from_slice(py, inner.boundaries()),
+                false,
+            ),
+        )
+            .into_pyobject(py)
+    }
+
     fn __getitem__<'py>(
         &self,
         py: Python<'py>,

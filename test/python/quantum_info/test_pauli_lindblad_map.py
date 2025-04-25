@@ -29,6 +29,17 @@ from qiskit.transpiler import Target
 
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
+
+def single_cases():
+    return [
+        PauliLindbladMap.zero(0),
+        PauliLindbladMap.zero(10),
+        PauliLindbladMap.from_list([("YIXZII", -0.25), ("ZZYYXX", 0.25)]),
+        # Includes a duplicate entry.
+        PauliLindbladMap.from_list([("IXZ", -0.25), ("ZZI", 0.25), ("IXZ", 0.75)]),
+    ]
+
+
 @ddt.ddt
 class TestPauliLindbladMap(QiskitTestCase):
     
@@ -72,6 +83,17 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
             PauliLindbladMap(base, num_qubits=base.num_qubits + 1)
+
+    def test_default_constructor_term(self):
+        expected = PauliLindbladMap.from_list([("IIZXII", 2)])
+        self.assertEqual(PauliLindbladMap(expected[0]), expected)
+
+    def test_default_constructor_term_iterable(self):
+        expected = PauliLindbladMap.from_list([("IIZXII", 2), ("IIIIII", 0.5)])
+        terms = [expected[0], expected[1]]
+        self.assertEqual(PauliLindbladMap(list(terms)), expected)
+        self.assertEqual(PauliLindbladMap(tuple(terms)), expected)
+        self.assertEqual(PauliLindbladMap(term for term in terms), expected)
 
     def test_from_raw_parts(self):
         # Happiest path: exactly typed inputs.
@@ -227,7 +249,23 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_list([("IIZ", 0.5), ("IXI", 1.0)], num_qubits=4)
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
             PauliLindbladMap.from_list([])
-    
+
+    def test_default_constructor_failed_inference(self):
+        with self.assertRaises(TypeError):
+            # Mixed dense/sparse list.
+            PauliLindbladMap([("IIXIZ", 1.0), ("IZ", (2, 3), -1.0)], num_qubits=5)
+
+    def test_num_qubits(self):
+        self.assertEqual(PauliLindbladMap.zero(0).num_qubits, 0)
+        self.assertEqual(PauliLindbladMap.zero(10).num_qubits, 10)
+
+    def test_num_terms(self):
+        self.assertEqual(PauliLindbladMap.zero(0).num_terms, 0)
+        self.assertEqual(PauliLindbladMap.zero(10).num_terms, 0)
+        self.assertEqual(
+            PauliLindbladMap.from_list([("IIIXIZ", 1.0), ("YYXXII", 0.5)]).num_terms, 2
+        )
+
     def test_zero(self):
         zero_5 = PauliLindbladMap.zero(5)
         self.assertEqual(zero_5.num_qubits, 5)
@@ -243,8 +281,48 @@ class TestPauliLindbladMap(QiskitTestCase):
         np.testing.assert_equal(zero_0.indices, np.array([], dtype=np.uint32))
         np.testing.assert_equal(zero_0.boundaries, np.array([0], dtype=np.uintp))
 
-"""
-To test:
-- 
-- 
-"""
+    def test_len(self):
+        self.assertEqual(len(PauliLindbladMap.zero(0)), 0)
+        self.assertEqual(len(PauliLindbladMap.zero(10)), 0)
+        self.assertEqual(len(PauliLindbladMap.from_list([("IIIXIZ", 1.0), ("YYXXII", 0.5)])), 2)
+
+    def test_bit_term_enum(self):
+        # These are very explicit tests that effectively just duplicate magic numbers, but the point
+        # is that those magic numbers are required to be constant as their values are part of the
+        # public interface.
+
+        self.assertEqual(
+            set(PauliLindbladMap.BitTerm),
+            {
+                PauliLindbladMap.BitTerm.X,
+                PauliLindbladMap.BitTerm.Y,
+                PauliLindbladMap.BitTerm.Z,
+            },
+        )
+        # All the enumeration items should also be integers.
+        self.assertIsInstance(PauliLindbladMap.BitTerm.X, int)
+        values = {
+            "X": 0b10,
+            "Y": 0b11,
+            "Z": 0b01,
+        }
+        self.assertEqual({name: getattr(PauliLindbladMap.BitTerm, name) for name in values}, values)
+
+        # The single-character label aliases can be accessed with index notation.
+        labels = {
+            "X": PauliLindbladMap.BitTerm.X,
+            "Y": PauliLindbladMap.BitTerm.Y,
+            "Z": PauliLindbladMap.BitTerm.Z,
+        }
+        self.assertEqual({label: PauliLindbladMap.BitTerm[label] for label in labels}, labels)
+        # The `label` property returns known values.
+        self.assertEqual(
+            {bit_term.label: bit_term for bit_term in PauliLindbladMap.BitTerm}, labels
+        )
+    
+    @ddt.idata(single_cases())
+    def test_pickle(self, pauli_lindblad_map):
+        self.assertEqual(pauli_lindblad_map, copy.copy(pauli_lindblad_map))
+        self.assertIsNot(pauli_lindblad_map, copy.copy(pauli_lindblad_map))
+        self.assertEqual(pauli_lindblad_map, copy.deepcopy(pauli_lindblad_map))
+        self.assertEqual(pauli_lindblad_map, pickle.loads(pickle.dumps(pauli_lindblad_map)))
