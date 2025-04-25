@@ -1216,12 +1216,12 @@ impl PyPauliLindbladMap {
         //    }
         //    return Self::from_label(&label).map_err(PyErr::from);
         //}
-        //if let Ok(observable) = data.downcast_exact::<Self>() {
-        //    check_num_qubits(data)?;
-        //    let borrowed = observable.borrow();
-        //    let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
-        //    return Ok(inner.clone().into());
-        //}
+        if let Ok(observable) = data.downcast_exact::<Self>() {
+            check_num_qubits(data)?;
+            let borrowed = observable.borrow();
+            let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
+            return Ok(inner.clone().into());
+        }
         // The type of `vec` is inferred from the subsequent calls to `Self::from_list` or
         // `Self::from_sparse_list` to be either the two-tuple or the three-tuple form during the
         // `extract`.  The empty list will pass either, but it means the same to both functions.

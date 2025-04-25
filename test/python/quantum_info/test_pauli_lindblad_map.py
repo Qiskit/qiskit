@@ -32,6 +32,46 @@ from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 @ddt.ddt
 class TestPauliLindbladMap(QiskitTestCase):
     
+    def test_default_constructor_list(self):
+        data = [("IXIIZ", 0.5), ("XIXII", 1.0), ("IIXYI", -0.75)]
+        self.assertEqual(PauliLindbladMap(data), PauliLindbladMap.from_list(data))
+        self.assertEqual(PauliLindbladMap(data, num_qubits=5), PauliLindbladMap.from_list(data))
+        with self.assertRaisesRegex(ValueError, "label with length 5 cannot be added"):
+            PauliLindbladMap(data, num_qubits=4)
+        with self.assertRaisesRegex(ValueError, "label with length 5 cannot be added"):
+            PauliLindbladMap(data, num_qubits=6)
+        self.assertEqual(
+            PauliLindbladMap([], num_qubits=5), PauliLindbladMap.from_list([], num_qubits=5)
+        )
+    
+    def test_default_constructor_sparse_list(self):
+        data = [("ZX", (0, 3), 0.5), ("XY", (2, 4), 1.0), ("ZY", (2, 1), -0.75)]
+        self.assertEqual(
+            PauliLindbladMap(data, num_qubits=5),
+            PauliLindbladMap.from_sparse_list(data, num_qubits=5),
+        )
+        self.assertEqual(
+            PauliLindbladMap(data, num_qubits=10),
+            PauliLindbladMap.from_sparse_list(data, num_qubits=10),
+        )
+        with self.assertRaisesRegex(ValueError, "'num_qubits' must be provided"):
+            PauliLindbladMap(data)
+        self.assertEqual(
+            PauliLindbladMap([], num_qubits=5), PauliLindbladMap.from_sparse_list([], num_qubits=5)
+        )
+    
+    def test_default_constructor_copy(self):
+        base = PauliLindbladMap.from_list([("IXIZIY", 1.0), ("XYZIII", -1.0)])
+        copied = PauliLindbladMap(base)
+        self.assertEqual(base, copied)
+        self.assertIsNot(base, copied)
+
+        # Modifications to `copied` don't propagate back.
+        copied.coeffs[1] = -0.5
+        self.assertNotEqual(base, copied)
+
+        with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
+            PauliLindbladMap(base, num_qubits=base.num_qubits + 1)
 
     def test_from_raw_parts(self):
         # Happiest path: exactly typed inputs.
@@ -187,9 +227,24 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_list([("IIZ", 0.5), ("IXI", 1.0)], num_qubits=4)
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
             PauliLindbladMap.from_list([])
+    
+    def test_zero(self):
+        zero_5 = PauliLindbladMap.zero(5)
+        self.assertEqual(zero_5.num_qubits, 5)
+        np.testing.assert_equal(zero_5.coeffs, np.array([], dtype=float))
+        np.testing.assert_equal(zero_5.bit_terms, np.array([], dtype=np.uint8))
+        np.testing.assert_equal(zero_5.indices, np.array([], dtype=np.uint32))
+        np.testing.assert_equal(zero_5.boundaries, np.array([0], dtype=np.uintp))
+
+        zero_0 = PauliLindbladMap.zero(0)
+        self.assertEqual(zero_0.num_qubits, 0)
+        np.testing.assert_equal(zero_0.coeffs, np.array([], dtype=float))
+        np.testing.assert_equal(zero_0.bit_terms, np.array([], dtype=np.uint8))
+        np.testing.assert_equal(zero_0.indices, np.array([], dtype=np.uint32))
+        np.testing.assert_equal(zero_0.boundaries, np.array([0], dtype=np.uintp))
 
 """
 To test:
-- zero
+- 
 - 
 """
