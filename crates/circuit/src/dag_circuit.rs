@@ -1651,7 +1651,7 @@ impl DAGCircuit {
             py,
             self.num_qubits(),
             self.num_clbits(),
-            Some(self.num_vars(py)),
+            Some(self.num_vars()),
             None,
             None,
             Some(self.num_stretches(py)),
@@ -2064,7 +2064,7 @@ impl DAGCircuit {
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
     fn size(&self, py: Python, recurse: bool) -> PyResult<usize> {
-        let mut length = self.dag.node_count() - (self.width(py) * 2);
+        let mut length = self.dag.node_count() - (self.width() * 2);
         if !self.has_control_flow() {
             return Ok(length);
         }
@@ -2137,7 +2137,7 @@ impl DAGCircuit {
     ///         flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
     fn depth(&self, py: Python, recurse: bool) -> PyResult<usize> {
-        if self.qubits.is_empty() && self.clbits.is_empty() && self.num_vars(py) == 0 {
+        if self.qubits.is_empty() && self.clbits.is_empty() && self.vars.is_empty() {
             return Ok(0);
         }
         if !self.has_control_flow() {
@@ -2202,8 +2202,8 @@ impl DAGCircuit {
     /// but was changed by issue #2564 to return number of qubits + clbits
     /// with the new function DAGCircuit.num_qubits replacing the former
     /// semantic of DAGCircuit.width().
-    fn width(&self, py: Python) -> usize {
-        self.qubits.len() + self.clbits.len() + self.num_vars(py)
+    pub fn width(&self) -> usize {
+        self.qubits.len() + self.clbits.len() + self.num_vars()
     }
 
     /// Return the total number of qubits used by the circuit.
@@ -4285,7 +4285,7 @@ impl DAGCircuit {
         Ok(HashMap::from_iter([
             ("size", self.size(py, false)?.into_py_any(py)?),
             ("depth", self.depth(py, false)?.into_py_any(py)?),
-            ("width", self.width(py).into_py_any(py)?),
+            ("width", self.width().into_py_any(py)?),
             ("qubits", self.num_qubits().into_py_any(py)?),
             ("bits", self.num_clbits().into_py_any(py)?),
             ("factors", self.num_tensor_factors().into_py_any(py)?),
@@ -4445,8 +4445,8 @@ impl DAGCircuit {
 
     /// Total number of classical variables tracked by the circuit.
     #[getter]
-    fn num_vars(&self, py: Python) -> usize {
-        self.num_input_vars(py) + self.num_captured_vars(py) + self.num_declared_vars(py)
+    fn num_vars(&self) -> usize {
+        self.vars.len()
     }
 
     /// Number of input classical variables tracked by the circuit.
@@ -6517,7 +6517,7 @@ impl DAGCircuit {
         let mut new_nodes = Vec::new();
         let mut replacement_dag = DAGCircuit::new()?;
         std::mem::swap(self, &mut replacement_dag);
-        let mut dag_builder = replacement_dag.into_builder(py);
+        let mut dag_builder = replacement_dag.into_builder();
         for inst in iter {
             new_nodes.push(dag_builder.push_back(py, inst?)?);
         }
@@ -7202,8 +7202,8 @@ impl DAGCircuit {
 
     /// Returns version of the DAGCircuit optimized for efficient addition
     /// of multiple new instructions to the [DAGCircuit].
-    pub fn into_builder(self, py: Python) -> DAGCircuitBuilder {
-        DAGCircuitBuilder::new(self, py)
+    pub fn into_builder(self) -> DAGCircuitBuilder {
+        DAGCircuitBuilder::new(self)
     }
 }
 
@@ -7217,10 +7217,10 @@ pub struct DAGCircuitBuilder {
 impl DAGCircuitBuilder {
     /// Creates a new instance of [DAGCircuitBuilder] which allows instructions to
     /// be added continuously into the [DAGCircuit].
-    pub fn new(dag: DAGCircuit, py: Python) -> DAGCircuitBuilder {
+    pub fn new(dag: DAGCircuit) -> DAGCircuitBuilder {
         let num_qubits = dag.num_qubits();
         let num_clbits = dag.num_clbits();
-        let num_vars = dag.num_vars(py);
+        let num_vars = dag.num_vars();
         Self {
             dag,
             last_qubits: vec![None; num_qubits],
