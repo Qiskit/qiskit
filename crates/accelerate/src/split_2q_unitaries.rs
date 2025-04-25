@@ -60,33 +60,32 @@ pub fn split_2q_unitaries(
                 let k1r_arr = decomp.k1r_view();
                 let k1l_arr = decomp.k1l_view();
 
-                let insert_fn = |edge: &Wire| -> (PackedOperation, SmallVec<[Param; 3]>) {
-                    if let Wire::Qubit(qubit) = edge {
-                        if *qubit == qubits[0] {
-                            let mat: Matrix2<Complex64> = [
-                                [k1r_arr[[0, 0]], k1r_arr[[1, 0]]],
-                                [k1r_arr[[0, 1]], k1r_arr[[1, 1]]],
-                            ]
-                            .into();
-                            let k1r_gate = Box::new(UnitaryGate {
-                                array: ArrayType::OneQ(mat),
-                            });
-                            (PackedOperation::from_unitary(k1r_gate), smallvec![])
-                        } else {
-                            let mat: Matrix2<Complex64> = [
-                                [k1l_arr[[0, 0]], k1l_arr[[1, 0]]],
-                                [k1l_arr[[0, 1]], k1l_arr[[1, 1]]],
-                            ]
-                            .into();
-
-                            let k1l_gate = Box::new(UnitaryGate {
-                                array: ArrayType::OneQ(mat),
-                            });
-
-                            (PackedOperation::from_unitary(k1l_gate), smallvec![])
-                        }
+                let insert_fn = |edge: Wire| -> (PackedOperation, SmallVec<[Param; 3]>) {
+                    let Wire::Qubit(qubit) = edge else {
+                        panic!("must only be called on ops with no classical wires");
+                    };
+                    if qubit == qubits[0] {
+                        let mat: Matrix2<Complex64> = [
+                            [k1r_arr[[0, 0]], k1r_arr[[1, 0]]],
+                            [k1r_arr[[0, 1]], k1r_arr[[1, 1]]],
+                        ]
+                        .into();
+                        let k1r_gate = Box::new(UnitaryGate {
+                            array: ArrayType::OneQ(mat),
+                        });
+                        (PackedOperation::from_unitary(k1r_gate), smallvec![])
                     } else {
-                        unreachable!("This will only be called on ops with no classical wires.");
+                        let mat: Matrix2<Complex64> = [
+                            [k1l_arr[[0, 0]], k1l_arr[[1, 0]]],
+                            [k1l_arr[[0, 1]], k1l_arr[[1, 1]]],
+                        ]
+                        .into();
+
+                        let k1l_gate = Box::new(UnitaryGate {
+                            array: ArrayType::OneQ(mat),
+                        });
+
+                        (PackedOperation::from_unitary(k1l_gate), smallvec![])
                     }
                 };
                 dag.replace_node_with_1q_ops(py, node, insert_fn)?;

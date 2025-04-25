@@ -62,11 +62,11 @@ pub(crate) fn analyze_commutations_inner(
     for qubit in 0..dag.num_qubits() {
         let wire = Wire::Qubit(Qubit(qubit as u32));
 
-        for current_gate_idx in dag.nodes_on_wire(&wire, false) {
+        for current_gate_idx in dag.nodes_on_wire(wire, false) {
             // get the commutation set associated with the current wire, or create a new
             // index set containing the current gate
             let commutation_entry = commutation_set
-                .entry(wire.clone())
+                .entry(wire)
                 .or_insert_with(|| vec![vec![current_gate_idx]]);
 
             // we can unwrap as we know the commutation entry has at least one element
@@ -123,10 +123,7 @@ pub(crate) fn analyze_commutations_inner(
                 }
             }
 
-            node_indices.insert(
-                (current_gate_idx, wire.clone()),
-                commutation_entry.len() - 1,
-            );
+            node_indices.insert((current_gate_idx, wire), commutation_entry.len() - 1);
         }
     }
 
