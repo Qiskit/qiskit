@@ -10,18 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashSet;
-use indexmap::IndexSet;
-use itertools::Itertools;
-use ndarray::Array2;
-use num_complex::Complex64;
-use num_traits::Zero;
+
 use numpy::{
-    PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
-    PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
+    PyArray1, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
+    PyUntypedArrayMethods,
 };
 use pyo3::{
-    exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
+    exceptions::{PyRuntimeError, PyTypeError, PyValueError},
     intern,
     prelude::*,
     sync::GILOnceCell,
@@ -29,22 +24,16 @@ use pyo3::{
     IntoPyObjectExt, PyErr,
 };
 use std::{
-    cmp::Ordering,
     collections::btree_map,
-    ops::{AddAssign, DivAssign, MulAssign, SubAssign},
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
 
 use qiskit_circuit::{
-    imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED},
+    imports::NUMPY_COPY_ONLY_IF_NEEDED,
     slice::{PySequenceIndex, SequenceIndex},
 };
 
-static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
-static PAULI_LIST_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "PauliList");
-static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
-    ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
 static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
 
@@ -59,17 +48,14 @@ static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new
 /// # Representation
 ///
 /// The `u8` representation and the exact numerical values of these are part of the public API.  The
-/// low two bits are the symplectic Pauli representation of the required measurement basis with Z in
-/// the Lsb0 and X in the Lsb1 (e.g. X and its eigenstate projectors all have their two low bits as
-/// `0b10`).  The high two bits are `00` for the operator, `10` for the projector to the positive
-/// eigenstate, and `01` for the projector to the negative eigenstate.
-///
-/// The `0b00_00` representation thus ends up being the natural representation of the `I` operator,
-/// but this is never stored, and is not named in the enumeration.
+/// two bits are the symplectic Pauli representation of the Pauli operator, with the associations
+/// `0b10` <-> `X`, `0b01` <-> `Z`, `0b11` <-> `Y`. The `0b00` representation thus ends up being the
+/// natural representation of the `I` operator, but this is never stored, and is not named in the
+/// enumeration.
 ///
 /// This operator does not store phase terms of $-i$.  `BitTerm::Y` has `(1, 1)` as its `(z, x)`
-/// representation, and represents exactly the Pauli Y operator; any additional phase is stored only
-/// in a corresponding coefficient.
+/// representation, and represents exactly the Pauli Y operator. Additional phases, if needed, must
+/// be stored elsewhere.
 ///
 /// # Dev notes
 ///
@@ -228,87 +214,6 @@ pub enum LabelError {
 pub enum ArithmeticError {
     #[error("mismatched numbers of qubits: {left}, {right}")]
     MismatchedQubits { left: u32, right: u32 },
-}
-
-/// One part of the type of the iteration value from [PairwiseOrdered].
-///
-/// The struct iterates over two sorted lists, and returns values from the left iterator, the right
-/// iterator, or both simultaneously, depending on some "ordering" key attached to each.  This
-/// `enum` is to pass on the information on which iterator is being returned from.
-enum Paired<T> {
-    Left(T),
-    Right(T),
-    Both(T, T),
-}
-
-/// An iterator combinator that zip-merges two sorted iterators.
-///
-/// This is created by [pairwise_ordered]; see that method for the description.
-struct PairwiseOrdered<C, T, I1, I2>
-where
-    C: Ord,
-    I1: Iterator<Item = (C, T)>,
-    I2: Iterator<Item = (C, T)>,
-{
-    left: ::std::iter::Peekable<I1>,
-    right: ::std::iter::Peekable<I2>,
-}
-impl<C, T, I1, I2> Iterator for PairwiseOrdered<C, T, I1, I2>
-where
-    C: Ord,
-    I1: Iterator<Item = (C, T)>,
-    I2: Iterator<Item = (C, T)>,
-{
-    type Item = (C, Paired<T>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let order = match (self.left.peek(), self.right.peek()) {
-            (None, None) => return None,
-            (Some(_), None) => Ordering::Less,
-            (None, Some(_)) => Ordering::Greater,
-            (Some((left, _)), Some((right, _))) => left.cmp(right),
-        };
-        match order {
-            Ordering::Less => self.left.next().map(|(i, value)| (i, Paired::Left(value))),
-            Ordering::Greater => self
-                .right
-                .next()
-                .map(|(i, value)| (i, Paired::Right(value))),
-            Ordering::Equal => {
-                let (index, left) = self.left.next().unwrap();
-                let (_, right) = self.right.next().unwrap();
-                Some((index, Paired::Both(left, right)))
-            }
-        }
-    }
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let left = self.left.size_hint();
-        let right = self.right.size_hint();
-        (
-            left.0.max(right.0),
-            left.1.and_then(|left| right.1.map(|right| left.max(right))),
-        )
-    }
-}
-/// An iterator combinator that zip-merges two sorted iterators.
-///
-/// The two iterators must yield the same items, where each item comprises some totally ordered
-/// index, and an associated value.  Both input iterators must be sorted in terms of the index.  The
-/// output iteration is over 2-tuples, also in sorted order, of the seen ordered index values, and a
-/// [Paired] object indicating which iterator (or both) the values were drawn from.
-fn pairwise_ordered<C, T, I1, I2>(
-    left: I1,
-    right: I2,
-) -> PairwiseOrdered<C, T, <I1 as IntoIterator>::IntoIter, <I2 as IntoIterator>::IntoIter>
-where
-    C: Ord,
-    I1: IntoIterator<Item = (C, T)>,
-    I2: IntoIterator<Item = (C, T)>,
-{
-    PairwiseOrdered {
-        left: left.into_iter().peekable(),
-        right: right.into_iter().peekable(),
-    }
 }
 
 /// An observable over Pauli bases that stores its data in a qubit-sparse format.
