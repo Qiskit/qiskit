@@ -1169,26 +1169,6 @@ impl PyPauliLindbladMap {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        /// Check *************************************************************************************
-        //if data.is_instance(PAULI_TYPE.get_bound(py))? {
-        //    check_num_qubits(data)?;
-        //    return Self::from_pauli(data);
-        //}
-        //if data.is_instance(SPARSE_PAULI_OP_TYPE.get_bound(py))? {
-        //    check_num_qubits(data)?;
-        //    return Self::from_sparse_pauli_op(data);
-        //}
-        //if let Ok(label) = data.extract::<String>() {
-        //    let num_qubits = num_qubits.unwrap_or(label.len() as u32);
-        //    if num_qubits as usize != label.len() {
-        //        return Err(PyValueError::new_err(format!(
-        //            "explicitly given 'num_qubits' ({}) does not match label ({})",
-        //            num_qubits,
-        //            label.len(),
-        //        )));
-        //    }
-        //    return Self::from_label(&label).map_err(PyErr::from);
-        //}
         if let Ok(observable) = data.downcast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = observable.borrow();
