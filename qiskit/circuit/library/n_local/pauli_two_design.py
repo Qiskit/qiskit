@@ -112,7 +112,7 @@ def pauli_two_design(
     return circuit
 
 
-def _random_pauli_builder(params, rng):
+def _random_pauli_builder(params, rng) -> tuple(Gate, list[str]):
     gate_cls = rng.choice([RXGate, RYGate, RZGate])
     gate = gate_cls(params[0])
     return gate, gate.params
@@ -181,7 +181,7 @@ class PauliTwoDesign(TwoLocal):
         seed: int | None = None,
         insert_barriers: bool = False,
         name: str = "PauliTwoDesign",
-    ):
+    ) -> None:
         """
         Args:
             num_qubits: The number of qubits of the Pauli Two-Design circuit.
@@ -212,12 +212,12 @@ class PauliTwoDesign(TwoLocal):
         self._prepended_blocks = [RYGate(np.pi / 4)]
         self._prepended_entanglement = ["linear"]
 
-    def _invalidate(self):
+    def _invalidate(self) -> None:
         """Invalidate the circuit and reset the random number."""
         self._rng = np.random.default_rng(self._seed)  # reset number generator
         super()._invalidate()
 
-    def _build_rotation_layer(self, circuit, param_iter, i):
+    def _build_rotation_layer(self, circuit, param_iter, i) -> None:
         """Build a rotation layer."""
         layer = QuantumCircuit(*self.qregs)
         qubits = range(self.num_qubits)
