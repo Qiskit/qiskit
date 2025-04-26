@@ -242,7 +242,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return [self.cost_operator, self.mixer_operator]
 
     @property
-    def cost_operator(self) -> BaseOperator | OperatorBase:
+    def cost_operator(self) -> BaseOperator:
         """Returns an operator representing the cost of the optimization problem.
 
         Returns:
@@ -296,7 +296,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
     # we can't directly specify OperatorBase as a return type, it causes a circular import
     # and pylint objects if return type is not documented
     @property
-    def mixer_operator(self) -> BaseOperator | OperatorBase | QuantumCircuit:
+    def mixer_operator(self) -> BaseOperator | QuantumCircuit:
         """Returns an optional mixer operator expressed as an operator or a quantum circuit.
 
         Returns:

@@ -289,7 +289,7 @@ class EvolvedOperatorAnsatz(NLocal):
         parameter_prefix: str | Sequence[str] = "t",
         initial_state: QuantumCircuit | None = None,
         flatten: bool | None = None,
-    )-> None:
+    ) -> None:
         """
         Args:
             operators (BaseOperator | QuantumCircuit | list | None): The operators
@@ -363,7 +363,7 @@ class EvolvedOperatorAnsatz(NLocal):
         return self.operators.num_qubits
 
     @property
-    def evolution(self)-> EvolutionSynthesis :
+    def evolution(self) -> EvolutionSynthesis:
         """The evolution converter used to compute the evolution.
 
         Returns:
@@ -410,7 +410,7 @@ class EvolvedOperatorAnsatz(NLocal):
 
     # TODO: the `preferred_init_points`-implementation can (and should!) be improved!
     @property
-    def preferred_init_points(self)-> None | ndarray:
+    def preferred_init_points(self) -> None | list[float]:
         """Getter of preferred initial points based on the given initial state."""
         if self._initial_state is None:
             return None
@@ -424,7 +424,7 @@ class EvolvedOperatorAnsatz(NLocal):
             self._build()
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
-    def _evolve_operator(self, operator, time)-> QuantumCircuit:
+    def _evolve_operator(self, operator, time) -> QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
@@ -445,7 +445,7 @@ class EvolvedOperatorAnsatz(NLocal):
             evolved.compose(gate.definition, evolved.qubits, inplace=True)
         return evolved
 
-    def _build(self)-> None:
+    def _build(self) -> None:
         if self._is_built:
             return
 
@@ -485,7 +485,7 @@ def _validate_operators(operators) -> QuantumCircuit | list[QuantumCircuit]:
     return operators
 
 
-def _validate_prefix(parameter_prefix, operators)-> list[str]:
+def _validate_prefix(parameter_prefix, operators) -> list[str]:
     if isinstance(parameter_prefix, str):
         return len(operators) * [parameter_prefix]
     if len(parameter_prefix) != len(operators):
@@ -494,7 +494,7 @@ def _validate_prefix(parameter_prefix, operators)-> list[str]:
     return parameter_prefix
 
 
-def _is_pauli_identity(operator)-> bool:
+def _is_pauli_identity(operator) -> bool:
     if isinstance(operator, SparsePauliOp):
         if len(operator.paulis) == 1:
             operator = operator.paulis[0]  # check if the single Pauli is identity below
@@ -507,9 +507,7 @@ def _is_pauli_identity(operator)-> bool:
 
 def _remove_identities(
     operators, prefixes
-) -> tuple(
-    list[BaseOperator | Sequence[BaseOperator]], str | Sequence[str] = "t"
-):
+) -> tuple(list[BaseOperator | Sequence[BaseOperator]], str | Sequence[str]):
     identity_ops = {index for index, op in enumerate(operators) if _is_pauli_identity(op)}
 
     if len(identity_ops) == 0:
