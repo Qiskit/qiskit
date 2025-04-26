@@ -112,7 +112,7 @@ def pauli_two_design(
     return circuit
 
 
-def _random_pauli_builder(params, rng) -> tuple(Instruction, list[str]):
+def _random_pauli_builder(params, rng) -> tuple(QuantumCircuit, list[str]):
     gate_cls = rng.choice([RXGate, RYGate, RZGate])
     gate = gate_cls(params[0])
     return gate, gate.params
