@@ -37,7 +37,7 @@ def excitation_preserving(
     parameter_prefix: str = "θ",
     insert_barriers: bool = False,
     name: str = "ExcitationPreserving",
-):
+) -> QuantumCircuit:
     r"""The heuristic excitation-preserving wave function ansatz.
 
     The ``excitation_preserving`` circuit preserves the ratio of :math:`|00\rangle`,
