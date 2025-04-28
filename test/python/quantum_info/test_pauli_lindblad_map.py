@@ -116,7 +116,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             ),
         )
 
-        # At least the initial implementation of `SparseObservable` requires `from_raw_parts` to be
+        # At least the initial implementation of `PauliLindbladMap` requires `from_raw_parts` to be
         # a copy constructor in order to allow it to be resized by Rust space.  This is checking for
         # that, but if the implementation changes, it could potentially be relaxed.
         self.assertFalse(np.may_share_memory(pauli_lindblad_map.coeffs, coeffs))
@@ -562,7 +562,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         indices = PauliLindbladMap.from_sparse_list(
             [("XZ", (0, 1), 1.5), ("XX", (2, 3), -1.5)], num_qubits=8
         )
-        # These two sets keep the observable in term-wise increasing order.  We don't test what
+        # These two sets keep the generator in term-wise increasing order.  We don't test what
         # happens if somebody violates the Rust-space requirement to be term-wise increasing.
         indices.indices[1] = 4
         indices.indices[3] = 7
@@ -868,10 +868,10 @@ class TestPauliLindbladMap(QiskitTestCase):
         PauliLindbladMap.from_sparse_list([("YXZ", [2, 3, 5], -0.25)], num_qubits=6),
         PauliLindbladMap.from_list([("YIXZII", -0.25)]),
     )
-    def test_term_repr(self, obs):
+    def test_term_repr(self, pauli_lindblad_map):
         # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
         # that it has any particular form.
-        term = obs[0]
+        term = pauli_lindblad_map[0]
         self.assertIsInstance(repr(term), str)
         self.assertIn("PauliLindbladMap.Term", repr(term))
 
@@ -921,8 +921,8 @@ class TestPauliLindbladMap(QiskitTestCase):
         PauliLindbladMap.from_sparse_list([("YXZ", [2, 3, 5], -0.25)], num_qubits=6),
         PauliLindbladMap.from_list([("YIXZII", -0.25)]),
     )
-    def test_term_pickle(self, obs):
-        term = obs[0]
+    def test_term_pickle(self, pauli_lindblad_map):
+        term = pauli_lindblad_map[0]
         self.assertEqual(pickle.loads(pickle.dumps(term)), term)
         self.assertEqual(copy.copy(term), term)
         self.assertEqual(copy.deepcopy(term), term)
@@ -996,22 +996,22 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_to_sparse_list(self):
         """Test converting to a sparse list."""
         with self.subTest(msg="identity"):
-            obs = PauliLindbladMap.identity(100)
+            pauli_lindblad_map = PauliLindbladMap.identity(100)
             expected = []
-            self.assertEqual(expected, obs.to_sparse_list())
+            self.assertEqual(expected, pauli_lindblad_map.to_sparse_list())
 
         with self.subTest(msg="IXYZ"):
-            obs = PauliLindbladMap([("IXYZ", 1.)])
+            pauli_lindblad_map = PauliLindbladMap([("IXYZ", 1.)])
             expected = [("ZYX", [0, 1, 2], 1)]
             self.assertEqual(
-                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(pauli_lindblad_map.to_sparse_list())
             )
 
         with self.subTest(msg="multiple"):
-            obs = PauliLindbladMap.from_list([("XXIZ", 0.5), ("YYIZ", -1)])
+            pauli_lindblad_map = PauliLindbladMap.from_list([("XXIZ", 0.5), ("YYIZ", -1)])
             expected = [("XXZ", [3, 2, 0], 0.5), ("ZYY", [0, 2, 3], -1)]
             self.assertEqual(
-                canonicalize_sparse_list(expected), canonicalize_sparse_list(obs.to_sparse_list())
+                canonicalize_sparse_list(expected), canonicalize_sparse_list(pauli_lindblad_map.to_sparse_list())
             )
 
     def test_sparse_term_bit_labels(self):
