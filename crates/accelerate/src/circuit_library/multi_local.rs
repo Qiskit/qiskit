@@ -19,8 +19,8 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, PyInstruction};
-use qiskit_circuit::{imports, Clbit, Qubit};
+use qiskit_circuit::operations::{Param, StandardInstruction};
+use qiskit_circuit::{Clbit, Qubit};
 
 use itertools::izip;
 
@@ -40,11 +40,11 @@ type Instruction = (
 ///
 /// - `num_qubits`: The number of qubits in the circuit.
 /// - `rotation_blocks`: A reference to a vector containing the instructions to insert.
-///     This is a vector (sind we can have multiple rotations  operations per layer), with
-///     3-tuple elements containing (packed_operation, num_qubits, num_params).
+///   This is a vector (since we can have multiple operations per layer), with
+///   3-tuple elements containing (packed_operation, num_qubits, num_params).
 /// - `parameters`: The set of parameter objects to use for the operations. This is a 3x nested
-///     vector, organized as operation -> block -> param. That means that for operation `i`
-///     and block `j`, the parameters are given by `parameters[i][j]`.
+///   vector, organized as operation -> block -> param. That means that for operation `i`
+///   and block `j`, the parameters are given by `parameters[i][j]`.
 /// - skipped_qubits: A hash-set containing which qubits are skipped in the rotation layer.
 ///
 /// # Returns
@@ -91,14 +91,14 @@ fn rotation_layer<'a>(
 /// # Arguments
 ///
 /// - `entanglement`: The entanglement structure in this layer. Given as 3x nested vector, which
-///     for each entanglement block contains a vector of connections, where each connection
-///     is a vector of indices.
+///   for each entanglement block contains a vector of connections, where each connection
+///   is a vector of indices.
 /// - `entanglement_blocks`: A reference to a vector containing the instructions to insert.
-///     This is a vector (sind we can have multiple entanglement operations per layer), with
-///     3-tuple elements containing (packed_operation, num_qubits, num_params).
+///   This is a vector (since we can have multiple entanglement operations per layer), with
+///   3-tuple elements containing (packed_operation, num_qubits, num_params).
 /// - `parameters`: The set of parameter objects to use for the operations. This is a 3x nested
-///     vector, organized as operation -> block -> param. That means that for operation `i`
-///     and block `j`, the parameters are given by `parameters[i][j]`.
+///   vector, organized as operation -> block -> param. That means that for operation `i`
+///   and block `j`, the parameters are given by `parameters[i][j]`.
 ///
 /// # Returns
 ///
@@ -133,24 +133,24 @@ fn entanglement_layer<'a>(
 ///
 /// - `num_qubits`: The number of qubits of the circuit.
 /// - `rotation_blocks`: The blocks used in the rotation layers. If multiple are passed,
-///     these will be applied one after another (like new sub-layers).
+///   these will be applied one after another (like new sub-layers).
 /// - `entanglement_blocks`: The blocks used in the entanglement layers. If multiple are passed,
-///     these will be applied one after another.
+///   these will be applied one after another.
 /// - `entanglement`: The indices specifying on which qubits the input blocks act. This is
-///     specified by string describing an entanglement strategy (see the additional info)
-///     or a list of qubit connections.
-///     If a list of entanglement blocks is passed, different entanglement for each block can
-///     be specified by passing a list of entanglements. To specify varying entanglement for
-///     each repetition, pass a callable that takes as input the layer and returns the
-///     entanglement for that layer.
-///     Defaults to ``"full"``, meaning an all-to-all entanglement structure.
+///   specified by string describing an entanglement strategy (see the additional info)
+///   or a list of qubit connections.
+///   If a list of entanglement blocks is passed, different entanglement for each block can
+///   be specified by passing a list of entanglements. To specify varying entanglement for
+///   each repetition, pass a callable that takes as input the layer and returns the
+///   entanglement for that layer.
+///   Defaults to ``"full"``, meaning an all-to-all entanglement structure.
 /// - `reps`: Specifies how often the rotation blocks and entanglement blocks are repeated.
 /// - `insert_barriers`: If ``True``, barriers are inserted in between each layer. If ``False``,
-///     no barriers are inserted.
+///   no barriers are inserted.
 /// - `parameter_prefix`: The prefix used if default parameters are generated.
 /// - `skip_final_rotation_layer`: Whether a final rotation layer is added to the circuit.
 /// - `skip_unentangled_qubits`: If ``True``, the rotation gates act only on qubits that
-///     are entangled. If ``False``, the rotation gates act on all qubits.
+///   are entangled. If ``False``, the rotation gates act on all qubits.
 ///
 /// # Returns
 ///
@@ -193,7 +193,7 @@ pub fn n_local(
 
     // This struct can be used to yield barrier if insert_barriers is true, otherwise
     // it returns an empty iterator. For conveniently injecting barriers in-between operations.
-    let maybe_barrier = MaybeBarrier::new(py, num_qubits, insert_barriers)?;
+    let maybe_barrier = MaybeBarrier::new(num_qubits, insert_barriers)?;
 
     let packed_insts = (0..reps).flat_map(|layer| {
         rotation_layer(
@@ -280,23 +280,14 @@ struct MaybeBarrier {
 }
 
 impl MaybeBarrier {
-    fn new(py: Python, num_qubits: u32, insert_barriers: bool) -> PyResult<Self> {
+    fn new(num_qubits: u32, insert_barriers: bool) -> PyResult<Self> {
         if !insert_barriers {
             Ok(Self { barrier: None })
         } else {
-            let barrier_cls = imports::BARRIER.get_bound(py);
-            let py_barrier = barrier_cls.call1((num_qubits,))?;
-            let py_inst = PyInstruction {
-                qubits: num_qubits,
-                clbits: 0,
-                params: 0,
-                op_name: "barrier".to_string(),
-                control_flow: false,
-                instruction: py_barrier.into(),
-            };
-
             let inst = (
-                py_inst.into(),
+                PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
+                    num_qubits,
+                )),
                 smallvec![],
                 (0..num_qubits).map(Qubit).collect(),
                 vec![] as Vec<Clbit>,

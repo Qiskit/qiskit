@@ -59,6 +59,7 @@ def pauli_two_design(
     Examples:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit.circuit.library import pauli_two_design
@@ -148,6 +149,7 @@ class PauliTwoDesign(TwoLocal):
     Examples:
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit.circuit.library import PauliTwoDesign

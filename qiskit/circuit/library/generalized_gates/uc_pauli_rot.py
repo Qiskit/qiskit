@@ -23,7 +23,7 @@ import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.exceptions import QiskitError
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero

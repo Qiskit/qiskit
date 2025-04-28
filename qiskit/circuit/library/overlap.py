@@ -128,6 +128,7 @@ def unitary_overlap(
     **Reference Circuit:**
 
     .. plot::
+        :alt: Circuit diagram output by the previous code.
         :include-source:
 
         import numpy as np

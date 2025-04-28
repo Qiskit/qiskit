@@ -17,6 +17,7 @@ import unittest
 import contextlib
 import logging
 import math
+import dill
 import numpy as np
 import scipy
 import scipy.stats
@@ -1425,14 +1426,32 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
 class TestTwoQubitControlledUDecompose(CheckDecompositions):
     """Test TwoQubitControlledUDecomposer() for exact decompositions and raised exceptions"""
 
-    @combine(seed=range(10), name="seed_{seed}")
-    def test_correct_unitary(self, seed):
+    @combine(
+        seed=range(5),
+        gate=[RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate],
+        euler_basis=[
+            "ZYZ",
+            "ZXZ",
+            "XYX",
+            "XZX",
+            "RR",
+            "U",
+            "U3",
+            "U321",
+            "PSX",
+            "ZSX",
+            "ZSXX",
+            "U1X",
+        ],
+        name="seed_{seed}",
+    )
+    def test_correct_unitary(self, seed, gate, euler_basis):
         """Verify unitary for different gates in the decomposition"""
         unitary = random_unitary(4, seed=seed)
-        for gate in [RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate]:
-            decomposer = TwoQubitControlledUDecomposer(gate)
-            circ = decomposer(unitary)
-            self.assertEqual(Operator(unitary), Operator(circ))
+
+        decomposer = TwoQubitControlledUDecomposer(gate, euler_basis)
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
 
     def test_not_rxx_equivalent(self):
         """Test that an exception is raised if the gate is not equivalent to an RXXGate"""
@@ -1524,6 +1543,41 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         decomposer = TwoQubitControlledUDecomposer(CustomRZZeqGate)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
+
+    def test_assert_pickle(self):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        decomp = TwoQubitControlledUDecomposer(RXXGate)
+
+        pkl = pickle.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = pickle.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
+
+    def test_assert_pickle_with_dill(self):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        class CustomXXGate(RXXGate):
+            """Custom RXXGate subclass that's not a standard gate"""
+
+            _standard_gate = None
+
+            def __init__(self, theta, label=None):
+                super().__init__(theta, label)
+                self.name = "MyCustomXXGate"
+
+        decomp = TwoQubitControlledUDecomposer(CustomXXGate)
+
+        pkl = dill.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = dill.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(
+            decomp.rxx_equivalent_gate.name, decomp_cpy.rxx_equivalent_gate.name, msg=msg_base
+        )
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
 
 
 class TestDecomposeProductRaises(QiskitTestCase):

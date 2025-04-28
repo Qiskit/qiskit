@@ -18,7 +18,6 @@ import math
 from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
@@ -76,18 +75,16 @@ class RYYGate(Gate):
                                     \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RYYGate
+    _standard_gate = StandardGate.RYY
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RYY gate."""
-        super().__init__("ryy", 2, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate
         from .rx import RXGate
         from .rz import RZGate

@@ -199,6 +199,21 @@ class TestHamiltonianVariationalAnsatz(QiskitTestCase):
         # this Hamiltonian should be split into 2 commuting groups, hence we get 2 parameters
         self.assertEqual(2, circuit.num_parameters)
 
+    def test_evolution_with_identity(self):
+        """Test a Hamiltonian containing an identity term.
+
+        Regression test of #13644.
+        """
+        hamiltonian = SparsePauliOp(["III", "IZZ", "IXI"])
+        ansatz = hamiltonian_variational_ansatz(hamiltonian, reps=1)
+        bound = ansatz.assign_parameters([1, 1])  # we have two non-commuting groups, hence 2 params
+
+        expected = QuantumCircuit(3, global_phase=-1)
+        expected.rzz(2, 0, 1)
+        expected.rx(2, 1)
+
+        self.assertEqual(expected, bound)
+
 
 def evolve(pauli_string, time):
     """Get the reference evolution circuit for a single Pauli string."""
