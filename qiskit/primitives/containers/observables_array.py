@@ -91,7 +91,7 @@ class ObservablesArray(ShapedMixin):
                         "observables array."
                     )
                 self._array[ndi] = basis_obs
-        elif self._num_qubits is None and len(self._array) > 0:
+        elif self._num_qubits is None and self._array.size > 0:
             self._num_qubits = self._array.reshape(-1)[0].num_qubits
 
     @staticmethod
