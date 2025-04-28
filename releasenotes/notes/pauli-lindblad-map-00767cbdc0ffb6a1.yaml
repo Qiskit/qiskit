@@ -2,4 +2,4 @@
 features_quantum_info:
   - |
     Adds the new :class:`.PauliLindbladMap` class for representing a Pauli Lindblad map stored in a
-    qubit-sparse format.
+    qubit-sparse format. Uses the same data structure as :class:`.SparseObservable`.
