@@ -135,7 +135,7 @@ $(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_RELEASE_CARGO_PATH)
 # build the original header.
 #
 # Do not depend on this in a target without one of those as dependencies first
-$(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH)
+$(C_QISKIT_H): $(C_DIR_INCLUDE)
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 
 .PHONY: c cheader
