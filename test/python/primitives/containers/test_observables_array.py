@@ -361,6 +361,24 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"IYX": 3}])
         self.assertEqual(obs.num_qubits, 3)
 
+        with self.assertRaisesRegex(ValueError, "number of qubits"):
+            obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"IYX": 3}], num_qubits=20)
+
+        with self.assertRaisesRegex(ValueError, "number of qubits"):
+            obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"YX": 3}], num_qubits=20)
+
+        obs = ObservablesArray([{"XX": 1}] * 15).reshape((3, 5))
+        self.assertEqual(obs.num_qubits, 2)
+
+        obs = ObservablesArray([{"XX": 1}] * 15)[4:6]
+        self.assertEqual(obs.num_qubits, 2)
+
+        obs = ObservablesArray(
+            [ObservablesArray.coerce({"XX": 1}), ObservablesArray.coerce({"XYZ": 1})],
+            validate=False,
+        )
+        self.assertEqual(obs.num_qubits, 2)
+
     def test_validate(self):
         """Test the validate method"""
         ObservablesArray({"XX": 1}).validate()
