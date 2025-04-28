@@ -216,7 +216,7 @@ pub enum ArithmeticError {
     MismatchedQubits { left: u32, right: u32 },
 }
 
-/// An Pauli Lindblad map that stores its data in a qubit-sparse format.
+/// A Pauli Lindblad map that stores its data in a qubit-sparse format.
 ///
 /// See [PyPauliLindbladMap] for detailed docs.
 #[derive(Clone, Debug, PartialEq)]
@@ -224,8 +224,8 @@ pub struct PauliLindbladMap {
     /// The number of qubits the map acts on.  This is not inferable from any other shape or
     /// values, since identities are not stored explicitly.
     num_qubits: u32,
-    /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
-    /// the sum.
+    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
+    /// terms in the sum.
     coeffs: Vec<f64>,
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
     /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
@@ -320,8 +320,8 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Create the map with zero generator with pre-allocated space for the given number of summands
-    /// and single-qubit bit terms.
+    /// Create a new identity map (with zero generator) with pre-allocated space for the given
+    /// number of summands and single-qubit bit terms.
     #[inline]
     pub fn with_capacity(num_qubits: u32, num_terms: usize, num_bit_terms: usize) -> Self {
         Self {
@@ -337,7 +337,7 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Get an iterator over the individual terms of the map.
+    /// Get an iterator over the individual generator terms of the map.
     ///
     /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
@@ -354,7 +354,8 @@ impl PauliLindbladMap {
         })
     }
 
-    /// Get an iterator over the individual terms of the operator that allows in-place mutation.
+    /// Get an iterator over the individual generator terms of the map that allows in-place
+    /// mutation.
     ///
     /// The length and indices of these views cannot be mutated, since both would allow breaking
     /// data coherence.
@@ -362,19 +363,19 @@ impl PauliLindbladMap {
         self.into()
     }
 
-    /// Get the number of qubits the observable is defined on.
+    /// Get the number of qubits the map is defined on.
     #[inline]
     pub fn num_qubits(&self) -> u32 {
         self.num_qubits
     }
 
-    /// Get the number of terms in the observable.
+    /// Get the number of generator terms in the map.
     #[inline]
     pub fn num_terms(&self) -> usize {
         self.coeffs.len()
     }
 
-    /// Get the coefficients of the terms.
+    /// Get the coefficients of the generator terms.
     #[inline]
     pub fn coeffs(&self) -> &[f64] {
         &self.coeffs
@@ -428,7 +429,7 @@ impl PauliLindbladMap {
         &self.bit_terms
     }
 
-    /// Get a muitable slice of the bit terms.
+    /// Get a mutable slice of the bit terms.
     #[inline]
     pub fn bit_terms_mut(&mut self) -> &mut [BitTerm] {
         &mut self.bit_terms
@@ -439,10 +440,10 @@ impl PauliLindbladMap {
         Self::with_capacity(num_qubits, 0, 0)
     }
 
-    /// Clear all the terms from this operator, making it equal to the zero operator again.
+    /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// substraction of generator terms may not need to reallocate.
     pub fn clear(&mut self) {
         self.coeffs.clear();
         self.bit_terms.clear();
@@ -453,8 +454,8 @@ impl PauliLindbladMap {
     /// Get a view onto a representation of a single sparse term.
     ///
     /// This is effectively an indexing operation into the [PauliLindbladMap].  Recall that two
-    /// [PauliLindbladMap]s that have different term orders can still represent the same object.
-    /// Use [canonicalize] to apply a canonical ordering to the terms.
+    /// [PauliLindbladMap]s that have different generator term orders can still represent the same
+    /// object. Use [canonicalize] to apply a canonical ordering to the terms.
     ///
     /// # Panics
     ///
@@ -471,7 +472,7 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Add the term implied by a dense string label onto this observable.
+    /// Add the generator term implied by a dense string label onto this observable.
     pub fn add_dense_label<L: AsRef<[u8]>>(
         &mut self,
         label: L,
@@ -507,7 +508,7 @@ impl PauliLindbladMap {
         Ok(())
     }
 
-    /// Add a single term to this operator.
+    /// Add a single generator term to this map.
     pub fn add_term(&mut self, term: SparseTermView) -> Result<(), ArithmeticError> {
         if self.num_qubits != term.num_qubits {
             return Err(ArithmeticError::MismatchedQubits {
@@ -562,8 +563,8 @@ impl SparseTermView<'_> {
 /// A mutable view object onto a single term of a [PauliLindbladMap].
 ///
 /// The lengths of [bit_terms] and [indices] are guaranteed to be created equal, but might be zero
-/// (in the case that the term is proportional to the identity).  [indices] is not mutable because
-/// this would allow data coherence to be broken.
+/// (in the case that the generator term is proportional to the identity).  [indices] is not mutable
+/// because this would allow data coherence to be broken.
 #[derive(Debug)]
 pub struct SparseTermViewMut<'a> {
     pub num_qubits: u32,
@@ -1112,9 +1113,9 @@ impl PyPauliLindbladMap {
     ///
     ///     .. code-block:: python
     ///
-    ///         >>> obs = PauliLindbladMap.from_list([("IXZ+lr01", 2.5), ("ZXI-rl10", 0.5j)])
-    ///         >>> assert obs == obs.copy()
-    ///         >>> assert obs is not obs.copy()
+    ///         >>> pauli_lindblad_map = PauliLindbladMap.from_list([("IXZXYYZZ", 2.5), ("ZXIXYYZZ", 0.5)])
+    ///         >>> assert pauli_lindblad_map == pauli_lindblad_map.copy()
+    ///         >>> assert pauli_lindblad_map is not pauli_lindblad_map.copy()
     fn copy(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.clone().into())
@@ -1192,22 +1193,17 @@ impl PyPauliLindbladMap {
         }
     }
 
-    /// Get the zero operator over the given number of qubits.
+    /// Get the identity map on the given number of qubits.
     ///
-    /// The zero operator is the operator whose expectation value is zero for all quantum states.
-    /// It has no terms.  It is the identity element for addition of two :class:`PauliLindbladMap`
-    /// instances; anything added to the zero operator is equal to itself.
-    ///
-    /// If you want the projector onto the all zeros state, use::
-    ///
-    ///     >>> num_qubits = 10
-    ///     >>> all_zeros = PauliLindbladMap.from_label("0" * num_qubits)
+    /// The identity map contains no generator terms, and is the identity element for composition of
+    /// two :class:`PauliLindbladMap` instances; anything composed with the identity map is equal to
+    /// itself.
     ///
     /// Examples:
     ///
-    ///     Get the zero operator for 100 qubits::
+    ///     Get the identity map on 100 qubits::
     ///
-    ///         >>> PauliLindbladMap.zero(100)
+    ///         >>> PauliLindbladMap.identity(100)
     ///         <PauliLindbladMap with 0 terms on 100 qubits: 0.0>
     #[pyo3(signature = (/, num_qubits))]
     #[staticmethod]
@@ -1215,7 +1211,7 @@ impl PyPauliLindbladMap {
         PauliLindbladMap::identity(num_qubits).into()
     }
 
-    /// Construct a Pauli Lindblad map from a list of dens generator labels and coefficients.
+    /// Construct a Pauli Lindblad map from a list of dense generator labels and coefficients.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_list`. In this dense form, you must supply
     /// all identities explicitly in each label.
@@ -1407,7 +1403,7 @@ impl PyPauliLindbladMap {
     /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// substraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -1422,11 +1418,10 @@ impl PyPauliLindbladMap {
         Ok(())
     }
 
-    /// Construct an observable from a list of labels, the qubits each item applies to, and the
-    /// coefficient of the whole term.
+    /// Construct a Pauli Lindblad map from a list of labels, the qubits each item applies to, and
+    /// the coefficient of the whole term.
     ///
-    /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`, except it uses
-    /// :ref:`the extended alphabet <sparse-observable-alphabet>` of :class:`.PauliLindbladMap`.
+    /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`.
     ///
     /// The "labels" and "indices" fields of the triples are associated by zipping them together.
     /// For example, this means that a call to :meth:`from_list` can be converted to the form used
@@ -1437,28 +1432,23 @@ impl PyPauliLindbladMap {
     ///     iter (list[tuple[str, Sequence[int], float]]): triples of labels, the qubits
     ///         each single-qubit term applies to, and the coefficient of the entire term.
     ///
-    ///     num_qubits (int): the number of qubits in the operator.
+    ///     num_qubits (int): the number of qubits the map acts on.
     ///
     /// Examples:
     ///
-    ///     Construct a simple operator::
+    ///     Construct a simple map::
     ///
     ///         >>> PauliLindbladMap.from_sparse_list(
-    ///         ...     [("ZX", (1, 4), 1.0), ("YY", (0, 3), 2j)],
+    ///         ...     [("ZX", (1, 4), 1.0), ("YY", (0, 3), 2)],
     ///         ...     num_qubits=5,
     ///         ... )
-    ///         <PauliLindbladMap with 2 terms on 5 qubits: (1+0j)(X_4 Z_1) + (0+2j)(Y_3 Y_0)>
-    ///
-    ///     Construct the identity observable (though really, just use :meth:`identity`)::
-    ///
-    ///         >>> PauliLindbladMap.from_sparse_list([("", (), 1.0)], num_qubits=100)
-    ///         <PauliLindbladMap with 1 term on 100 qubits: (1+0j)()>
+    ///         <PauliLindbladMap with 2 terms on 5 qubits: (1)L(X_4 Z_1) + (2)L(Y_3 Y_0)>
     ///
     ///     This method can replicate the behavior of :meth:`from_list`, if the qubit-arguments
     ///     field of the triple is set to decreasing integers::
     ///
-    ///         >>> labels = ["XY+Z", "rl01", "-lXZ"]
-    ///         >>> coeffs = [1.5j, 2.0, -0.5]
+    ///         >>> labels = ["XYXZ", "YYZZ", "XYXZ"]
+    ///         >>> coeffs = [1.5, 2.0, -0.5]
     ///         >>> from_list = PauliLindbladMap.from_list(list(zip(labels, coeffs)))
     ///         >>> from_sparse_list = PauliLindbladMap.from_sparse_list([
     ///         ...     (label, (3, 2, 1, 0), coeff)
@@ -1517,7 +1507,7 @@ impl PyPauliLindbladMap {
         Ok(inner.into())
     }
 
-    /// Express the observable in terms of a sparse list format.
+    /// Express the map in terms of a sparse list format.
     ///
     /// This can be seen as counter-operation of :meth:`.PauliLindbladMap.from_sparse_list`, however
     /// the order of terms is not guaranteed to be the same at after a roundtrip to a sparse
@@ -1525,8 +1515,8 @@ impl PyPauliLindbladMap {
     ///
     /// Examples:
     ///
-    ///     >>> obs = PauliLindbladMap.from_list([("IIXIZ", 2j), ("IIZIX", 2j)])
-    ///     >>> reconstructed = PauliLindbladMap.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
+    ///     >>> pauli_lindblad_map = PauliLindbladMap.from_list([("IIXIZ", 2), ("IIZIX", 3)])
+    ///     >>> reconstructed = PauliLindbladMap.from_sparse_list(pauli_lindblad_map.to_sparse_list(), pauli_lindblad_map.num_qubits)
     ///
     /// See also:
     ///     :meth:`from_sparse_list`
@@ -1647,7 +1637,7 @@ impl PyPauliLindbladMap {
     }
 
     // The documentation for this is inlined into the class-level documentation of
-    // `SparseObservable`.
+    // `PauliLindbladMap`.
     #[allow(non_snake_case)]
     #[classattr]
     fn BitTerm(py: Python) -> PyResult<Py<PyType>> {
@@ -1657,7 +1647,7 @@ impl PyPauliLindbladMap {
     }
 
     // The documentation for this is inlined into the class-level documentation of
-    // `SparseObservable`.
+    // `PauliLindbladMap`.
     #[allow(non_snake_case)]
     #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
