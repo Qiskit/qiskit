@@ -205,3 +205,78 @@ pub fn uc_gate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(dec_ucg_help))?;
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use super::compute_2x2_eig;
+    use approx::abs_diff_eq;
+    use nalgebra::Matrix2;
+    use num_complex::{Complex64, ComplexFloat};
+    use rand::prelude::*;
+    use rand_distr::StandardNormal;
+    use rand_pcg::Pcg64Mcg;
+
+    #[inline(always)]
+    fn random_complex(rng: &mut Pcg64Mcg) -> Complex64 {
+        Complex64::new(rng.sample(StandardNormal), rng.sample(StandardNormal))
+            * std::f64::consts::FRAC_1_SQRT_2
+    }
+
+    fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Matrix2<Complex64>> {
+        let mut rng = Pcg64Mcg::seed_from_u64(seed);
+
+        (0..size).map(move |_| {
+            let mat: Matrix2<Complex64> = [
+                [random_complex(&mut rng), random_complex(&mut rng)],
+                [random_complex(&mut rng), random_complex(&mut rng)],
+            ]
+            .into();
+            let (q, r) = mat.qr().unpack();
+            let diag = r.map_diagonal(|x| x / x.abs());
+            q.map_with_location(|i, _j, val| val * diag[i])
+        })
+    }
+
+    fn check_eig(mat: Matrix2<Complex64>) {
+        let (eigvals, eigenvectors) = compute_2x2_eig(mat);
+        for i in [0, 1] {
+            const EPS: f64 = 1e-13;
+            assert!(abs_diff_eq!(
+                mat * eigenvectors.column(i),
+                eigenvectors.column(i).map(|x| x * eigvals[i]),
+                epsilon = EPS
+            ));
+        }
+    }
+
+    #[test]
+    fn test_unitary_eig() {
+        for unitary in random_unitaries(42, 1024) {
+            check_eig(unitary);
+        }
+    }
+
+    #[test]
+    fn test_diagonal_eig() {
+        let mut rng = Pcg64Mcg::seed_from_u64(43);
+
+        for _ in 0..1024 {
+            let mat = Matrix2::from_diagonal(
+                &[random_complex(&mut rng), random_complex(&mut rng)].into(),
+            );
+            check_eig(mat);
+        }
+    }
+
+    #[test]
+    fn test_off_diagonal_eig() {
+        let mut rng = Pcg64Mcg::seed_from_u64(44);
+        for _ in 0..1024 {
+            let mat: Matrix2<Complex64> = [
+                [Complex64::ZERO, random_complex(&mut rng)],
+                [random_complex(&mut rng), Complex64::ZERO],
+            ].into();
+            check_eig(mat);
+        }
+    }
+}
