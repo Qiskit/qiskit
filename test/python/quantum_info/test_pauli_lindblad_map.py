@@ -13,21 +13,15 @@
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import copy
-import itertools
 import pickle
-import random
 import unittest
 
 import ddt
 import numpy as np
 
-from qiskit import transpile
-from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
-from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import PauliLindbladMap, SparsePauliOp, Pauli, PauliList
-from qiskit.transpiler import Target
+from qiskit.quantum_info import PauliLindbladMap
 
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def single_cases():
