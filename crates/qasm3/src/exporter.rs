@@ -22,6 +22,7 @@ use std::io::Write;
 
 use crate::printer::BasicPrinter;
 use hashbrown::{HashMap, HashSet};
+use indexmap::IndexMap;
 use pyo3::prelude::*;
 use pyo3::Python;
 use qiskit_circuit::bit::{
@@ -244,7 +245,7 @@ struct SymbolTable {
     symbols: Vec<HashMap<String, Identifier>>,
     bitinfo: Vec<HashMap<BitType, IdentifierOrSubscripted>>,
     reginfo: Vec<HashMap<RegisterType, IdentifierOrSubscripted>>,
-    gates: HashMap<String, QuantumGateDefinition>,
+    gates: IndexMap<String, QuantumGateDefinition>,
     stdgates: HashSet<String>,
     _counter: Counter,
 }
@@ -258,7 +259,7 @@ impl SymbolTable {
             symbols,
             bitinfo,
             reginfo,
-            gates: HashMap::new(),
+            gates: IndexMap::new(),
             stdgates: HashSet::new(),
             _counter: Counter::new(),
         }
