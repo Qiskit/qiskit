@@ -200,6 +200,7 @@ class ObservablesArray(ShapedMixin):
 
     @property
     def num_qubits(self) -> int:
+        """Return the observable array's number of qubits"""
         return self._num_qubits
 
     @classmethod
