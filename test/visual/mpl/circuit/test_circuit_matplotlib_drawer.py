@@ -1117,7 +1117,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier()
 
         fname = "idle_wires_barrier.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(
+            circuit, output="mpl", cregbundle=False, filename=fname, idle_wires=False
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1149,6 +1151,28 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_basic_box(self):
+        """Test that drawing a `box` doesn't explode."""
+        # The exact output is not important - feel free to change it.  We only care that it doesn't
+        # explode when drawing.
+        qc = QuantumCircuit(5)
+        with qc.box():
+            qc.x(0)
+        with qc.box():
+            qc.cx(2, 3)
+            with qc.box():
+                qc.noop(4)
+        fname = "basic_box.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
             self._reference_path(fname),

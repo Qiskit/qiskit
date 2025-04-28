@@ -247,6 +247,7 @@ class Expression(TypeKeyBase):
     """Type keys for the ``EXPRESSION`` QPY item."""
 
     VAR = b"x"
+    STRETCH = b"s"
     VALUE = b"v"
     CAST = b"c"
     UNARY = b"u"
@@ -273,6 +274,8 @@ class ExprVarDeclaration(TypeKeyBase):
     INPUT = b"I"
     CAPTURE = b"C"
     LOCAL = b"L"
+    STRETCH_CAPTURE = b"A"
+    STRETCH_LOCAL = b"O"
 
     @classmethod
     def assign(cls, obj):

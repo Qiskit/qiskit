@@ -303,9 +303,11 @@ assist compilation workflows.  These include:
 * :data:`SessionEquivalenceLibrary`, a mutable instance of :class:`EquivalenceLibrary` which is used
   by default by the compiler's :class:`.BasisTranslator`.
 
-There is also a utility for generating random circuits:
+There are also utilities for generating random circuits:
 
 * :func:`random.random_circuit`
+* :func:`random.random_circuit_from_graph`
+* :func:`random.random_clifford_circuit`
 
 Finally, the circuit module has its own exception class, to indicate when things went wrong in
 circuit-specific manners:
@@ -1048,18 +1050,6 @@ default instances of the :class:`.BasisTranslator`.
     :data:`StandardEquivalenceLibrary`.
 
 
-
-Generating random circuits
---------------------------
-
-..
-    If we expand these capabilities in the future, it's probably best to move it to its own
-    module-level documentation page than to expand this "inline" module documentation.
-
-.. currentmodule:: qiskit.circuit.random
-.. autofunction:: random_circuit
-.. currentmodule:: qiskit.circuit
-
 Apply Pauli twirling to a circuit
 ---------------------------------
 
@@ -1282,13 +1272,21 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
         \end{pmatrix}
 """
 
-from qiskit._accelerate.circuit import Duration  # pylint: disable=unused-import
+from qiskit._accelerate.circuit import (  # pylint: disable=unused-import
+    Bit,
+    Qubit,
+    AncillaQubit,
+    Clbit,
+    QuantumRegister,
+    AncillaRegister,
+    ClassicalRegister,
+    Register,
+    Duration,
+)
 
 from .exceptions import CircuitError
 from . import _utils
 from .quantumcircuit import QuantumCircuit
-from .classicalregister import ClassicalRegister, Clbit
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate
 
 # pylint: disable=cyclic-import
@@ -1307,14 +1305,13 @@ from .parametervector import ParameterVector, ParameterVectorElement
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
-from .bit import Bit
-from .register import Register
 from . import library
 from .equivalence_library import StandardEquivalenceLibrary, SessionEquivalenceLibrary
 from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
+    BoxOp,
     WhileLoopOp,
     ForLoopOp,
     IfElseOp,

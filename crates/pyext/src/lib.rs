@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
+pub use qiskit_cext::*;
 
 #[inline(always)]
 #[doc(hidden)]
@@ -29,7 +30,7 @@ where
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::barrier_before_final_measurement::barrier_before_final_measurements_mod, "barrier_before_final_measurement")?;
-    add_submodule(m, ::qiskit_accelerate::basis::basis, "basis")?;
+    add_submodule(m, ::qiskit_accelerate::basis::basis_translator::basis_translator, "basis_translator")?;
     add_submodule(m, ::qiskit_accelerate::check_map::check_map_mod, "check_map")?;
     add_submodule(m, ::qiskit_accelerate::circuit_duration::compute_duration, "circuit_duration")?;
     add_submodule(m, ::qiskit_accelerate::circuit_library::circuit_library, "circuit_library")?;
@@ -37,6 +38,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::commutation_cancellation::commutation_cancellation, "commutation_cancellation")?;
     add_submodule(m, ::qiskit_accelerate::commutation_checker::commutation_checker, "commutation_checker")?;
     add_submodule(m, ::qiskit_accelerate::consolidate_blocks::consolidate_blocks_mod, "consolidate_blocks")?;
+    add_submodule(m, ::qiskit_accelerate::cos_sin_decomp::cos_sin_decomp, "cos_sin_decomp")?;
     add_submodule(m, ::qiskit_accelerate::dense_layout::dense_layout, "dense_layout")?;
     add_submodule(m, ::qiskit_accelerate::equivalence::equivalence, "equivalence")?;
     add_submodule(m, ::qiskit_accelerate::error_map::error_map, "error_map")?;

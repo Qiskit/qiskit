@@ -13,11 +13,19 @@
 use std::ffi::{c_char, CString};
 
 use crate::exit_codes::{CInputError, ExitCode};
+use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use num_complex::Complex64;
+
 use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
 
-/// @ingroup QkObsTerm
-/// A term in a [SparseObservable].
+#[cfg(feature = "python_binding")]
+use pyo3::ffi::PyObject;
+#[cfg(feature = "python_binding")]
+use pyo3::{Py, Python};
+#[cfg(feature = "python_binding")]
+use qiskit_accelerate::sparse_observable::PySparseObservable;
+
+/// A term in a ``QkObs``.
 ///
 /// This contains the coefficient (``coeff``), the number of qubits of the observable
 /// (``num_qubits``) and pointers to the ``bit_terms`` and ``indices`` arrays, which have
@@ -26,14 +34,19 @@ use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTerm
 ///
 /// # Safety
 ///
-/// * ``bit_terms`` must be a non-null, aligned pointer to ``len`` elements of type ``BitTerm``.
+/// * ``bit_terms`` must be a non-null, aligned pointer to ``len`` elements of type ``QkBitTerm``.
 /// * ``indices`` must be a non-null, aligned pointer to ``len`` elements of type ``uint32_t``.
 #[repr(C)]
 pub struct CSparseTerm {
+    /// The coefficient of the observable term.
     coeff: Complex64,
+    /// Length of the ``bit_terms`` and ``indices`` arrays.
     len: usize,
+    /// A non-null, aligned pointer to ``len`` elements of type ``QkBitTerm``.
     bit_terms: *mut BitTerm,
+    /// A non-null, aligned pointer to ``len`` elements of type ``uint32_t``.
     indices: *mut u32,
+    /// The number of qubits the observable term is defined on.
     num_qubits: u32,
 }
 
@@ -57,41 +70,6 @@ impl TryFrom<&CSparseTerm> for SparseTermView<'_> {
             indices,
         })
     }
-}
-
-/// Check the pointer is not null and is aligned.
-fn check_ptr<T>(ptr: *const T) -> Result<(), CInputError> {
-    if ptr.is_null() {
-        return Err(CInputError::NullPointerError);
-    };
-    if !ptr.is_aligned() {
-        return Err(CInputError::AlignmentError);
-    };
-    Ok(())
-}
-
-/// Casts a const pointer to a reference. Panics is the pointer is null or not aligned.
-///
-/// # Safety
-///
-/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
-/// While the resulting reference exists, the memory pointed to must not be mutated.
-unsafe fn const_ptr_as_ref<'a, T>(ptr: *const T) -> &'a T {
-    check_ptr(ptr).unwrap();
-    let as_ref = unsafe { ptr.as_ref() };
-    as_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
-}
-
-/// Casts a mut pointer to a mut reference. Panics is the pointer is null or not aligned.
-///
-/// # Safety
-///
-/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
-/// While the resulting reference exists, the memory pointed to must not be accessed otherwise.
-unsafe fn mut_ptr_as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
-    check_ptr(ptr).unwrap();
-    let as_mut_ref = unsafe { ptr.as_mut() };
-    as_mut_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
 }
 
 /// @ingroup QkObs
@@ -220,8 +198,7 @@ pub unsafe extern "C" fn qk_obs_new(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``obs`` is not either null or a valid pointer to a
-/// [SparseObservable].
+/// Behavior is undefined if ``obs`` is not either null or a valid pointer to a ``QkObs``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
@@ -288,14 +265,14 @@ pub unsafe extern "C" fn qk_obs_add_term(
 /// @ingroup QkObs
 /// Get an observable term by reference.
 ///
-/// A [CSparseTerm] contains pointers to the indices and bit terms in the term, which
+/// A ``QkObsTerm`` contains pointers to the indices and bit terms in the term, which
 /// can be used to modify the internal data of the observable. This can leave the observable
 /// in an incoherent state and should be avoided, unless great care is taken. It is generally
 /// safer to construct a new observable instead of attempting in-place modifications.
 ///
 /// @param obs A pointer to the observable.
 /// @param index The index of the term to get.
-/// @param out A pointer to a [CSparseTerm] used to return the observable term.
+/// @param out A pointer to a ``QkObsTerm`` used to return the observable term.
 ///
 /// @return An exit code.
 ///
@@ -813,9 +790,9 @@ pub unsafe extern "C" fn qk_obs_equal(
 }
 
 /// @ingroup QkObs
-/// Return a string representation of a ``SparseObservable``.
+/// Return a string representation of a ``QkObs``.
 ///
-/// @param obs A pointer to the ``SparseObservable`` to get the string for.
+/// @param obs A pointer to the ``QkObs`` to get the string for.
 ///
 /// @return A pointer to a nul-terminated char array of the string representation for ``obs``
 ///
@@ -912,7 +889,7 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
 ///
 /// # Safety
 ///
-/// The behavior is undefined if ``bit_term`` is not a valid ``uint8_t`` value of a [BitTerm].
+/// The behavior is undefined if ``bit_term`` is not a valid ``uint8_t`` value of a ``QkBitTerm``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
@@ -923,4 +900,35 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
         .chars()
         .next()
         .expect("Label has exactly one character") as u8
+}
+
+/// @ingroup QkObs
+/// Convert to a Python-space ``SparseObservable``.
+///
+/// @param obs The C-space ``QkObs`` pointer.
+///
+/// @return A Python object representing the ``SparseObservable``.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``obs`` is not a valid, non-null pointer to a ``QkObs``.
+///
+/// It is assumed that the thread currently executing this function holds the
+/// Python GIL this is required to create the Python object returned by this
+/// function.
+#[no_mangle]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_to_python(obs: *const SparseObservable) -> *mut PyObject {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let obs = unsafe { const_ptr_as_ref(obs) };
+    let py_obs: PySparseObservable = obs.clone().into();
+
+    // SAFETY: the C caller is required to hold the GIL.
+    unsafe {
+        let py = Python::assume_gil_acquired();
+        Py::new(py, py_obs)
+            .expect("Unable to create a Python object")
+            .into_ptr()
+    }
 }

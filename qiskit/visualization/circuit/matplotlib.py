@@ -29,6 +29,7 @@ from qiskit.circuit import (
     ControlledGate,
     Measure,
     ControlFlowOp,
+    BoxOp,
     WhileLoopOp,
     IfElseOp,
     ForLoopOp,
@@ -1583,8 +1584,10 @@ class MatplotlibDrawer:
                 flow_text = " For"
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
+            elif isinstance(node.op, BoxOp):
+                flow_text = ""
             else:
-                flow_text = node.op.name
+                raise RuntimeError(f"unhandled control-flow op: {node.name}")
 
             # Some spacers. op_spacer moves 'Switch' back a bit for alignment,
             # expr_spacer moves the expr over to line up with 'Switch' and
@@ -1594,6 +1597,10 @@ class MatplotlibDrawer:
                 op_spacer = 0.04
                 expr_spacer = 0.0
                 empty_default_spacer = 0.3 if len(node.op.blocks[-1]) == 0 else 0.0
+            elif isinstance(node.op, BoxOp):
+                op_spacer = 0.0
+                expr_spacer = 0.0
+                empty_default_spacer = 0.0
             else:
                 op_spacer = 0.08
                 expr_spacer = 0.02

@@ -64,7 +64,7 @@ class TestCompiler(QiskitTestCase):
         bell.measure(qr[1], cr[1])
         shots = 2048
         bell_qcirc = transpile(bell, backend=backend)
-        ghz_qcirc = transpile(ghz, backend=backend, coupling_map=coupling_map)
+        ghz_qcirc = transpile(ghz, coupling_map=coupling_map)
         bell_result = backend.run(bell_qcirc, shots=shots, seed_simulator=10).result()
         ghz_result = backend.run(ghz_qcirc, shots=shots, seed_simulator=10).result()
 
@@ -96,9 +96,7 @@ class TestCompiler(QiskitTestCase):
         shots = 2048
         coupling_map = [[0, 1], [1, 2]]
         initial_layout = [0, 1, 2]
-        qc_b = transpile(
-            qc, backend=backend, coupling_map=coupling_map, initial_layout=initial_layout
-        )
+        qc_b = transpile(qc, coupling_map=coupling_map, initial_layout=initial_layout)
         job = backend.run(qc_b, shots=shots, seed_simulator=88)
         result = job.result()
         qasm_to_check = dumps(qc)
@@ -175,12 +173,12 @@ class TestCompiler(QiskitTestCase):
             qc.measure(qr1[j], ans[j + n])
         # First version: no mapping
         result = backend.run(
-            transpile(qc, backend, coupling_map=None), shots=1024, seed_simulator=14
+            transpile(qc, coupling_map=None), shots=1024, seed_simulator=14
         ).result()
         self.assertEqual(result.get_counts(qc), {"010000": 1024})
         # Second version: map to coupling graph
         result = backend.run(
-            transpile(qc, backend, coupling_map=coupling_map),
+            transpile(qc, coupling_map=coupling_map),
             shots=1024,
             seed_simulator=14,
         ).result()
@@ -302,7 +300,7 @@ class TestCompiler(QiskitTestCase):
         shots = 1000
 
         result1 = self.backend.run(
-            transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=8),
+            transpile(circ, coupling_map=coupling_map, seed_transpiler=8),
             seed_simulator=self.seed_simulator,
             shots=shots,
         )
@@ -310,7 +308,6 @@ class TestCompiler(QiskitTestCase):
         result2 = self.backend.run(
             transpile(
                 circ,
-                backend=self.backend,
                 coupling_map=None,
                 seed_transpiler=8,
             ),
@@ -430,7 +427,6 @@ class TestCompiler(QiskitTestCase):
         job = self.backend.run(
             transpile(
                 circ,
-                backend=self.backend,
                 coupling_map=coupling_map,
             ),
             seed_simulator=self.seed_simulator,
@@ -448,12 +444,12 @@ class TestCompiler(QiskitTestCase):
         coupling_map = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]])
         coupling_map.make_symmetric()
         shots = 1024
-        qobj = self.backend.run(
-            transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=42),
+        job = self.backend.run(
+            transpile(circ, coupling_map=coupling_map, seed_transpiler=42),
             shots=shots,
             seed_simulator=self.seed_simulator,
         )
-        counts = qobj.result().get_counts()
+        counts = job.result().get_counts()
         expected_probs = {
             "00000": 0.079239867254200971,
             "00001": 0.032859032998526903,

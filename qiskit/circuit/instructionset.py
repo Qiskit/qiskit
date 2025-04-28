@@ -17,12 +17,14 @@ Instruction collection.
 from __future__ import annotations
 
 from collections.abc import MutableSequence
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 from qiskit.circuit.exceptions import CircuitError
-from .classicalregister import Clbit, ClassicalRegister
 from .operation import Operation
 from .quantumcircuitdata import CircuitInstruction
+
+if TYPE_CHECKING:
+    from qiskit.circuit import Clbit, ClassicalRegister
 
 
 class InstructionSet:

@@ -21,15 +21,14 @@ use pyo3::types::PyAny;
 use pyo3::types::PyTuple;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
+use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
-use qiskit_circuit::imports::{
-    HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT, QUBIT,
-};
+use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
@@ -45,6 +44,7 @@ use crate::euler_one_qubit_decomposer::angles_from_unitary;
 use crate::euler_one_qubit_decomposer::EulerBasis;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
+use crate::target_transpiler::Qargs;
 use crate::target_transpiler::Target;
 use crate::two_qubit_decompose::TwoQubitBasisDecomposer;
 
@@ -348,7 +348,7 @@ fn all_instructions_supported(
                 if borrowed_data.use_physical_indices {
                     return Ok(false);
                 }
-                Ok(op_keys.all(|name| target.instruction_supported(name, None)))
+                Ok(op_keys.all(|name| target.instruction_supported(name, &Qargs::Global)))
             } else {
                 // If we do not have the target, we check whether every operation
                 // in op_names is inside the basis gates.
@@ -372,10 +372,11 @@ fn instruction_supported(
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
                 if borrowed_data.use_physical_indices {
-                    let physical_qubits = qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
-                    target.instruction_supported(name, Some(&physical_qubits))
+                    let physical_qubits: Qargs =
+                        qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
+                    target.instruction_supported(name, &physical_qubits)
                 } else {
-                    target.instruction_supported(name, None)
+                    target.instruction_supported(name, &Qargs::Global)
                 }
             } else {
                 borrowed_data.device_insts.contains(name)
@@ -463,7 +464,7 @@ fn run_on_circuitdata(
     // all available ancilla qubits to the current operation ("the-first-takes-all" approach).
     // It does not distribute ancilla qubits between different operations present in the circuit.
 
-    let mut output_circuit: CircuitData = CircuitData::clone_empty_like(py, input_circuit, None)?;
+    let mut output_circuit: CircuitData = CircuitData::clone_empty_like(input_circuit, None)?;
     let mut output_qubits = input_qubits.to_vec();
 
     // The "inverse" map from the global qubits to the output circuit's qubits.
@@ -603,15 +604,11 @@ fn run_on_circuitdata(
                 // If the synthesized circuit uses (auxiliary) global qubits that are not in the output circuit,
                 // we add these qubits to the output circuit.
                 if synthesized_circuit_qubits.len() > op_qubits.len() {
-                    let qubit_cls = QUBIT.get_bound(py);
-
                     for q in &synthesized_circuit_qubits {
                         if !global_to_local.contains_key(q) {
-                            let new_qubit_index = output_qubits.len();
-                            let bit = qubit_cls.call0()?;
-                            global_to_local.insert(*q, new_qubit_index);
+                            global_to_local.insert(*q, output_qubits.len());
                             output_qubits.push(*q);
-                            output_circuit.add_qubit(py, &bit, false)?;
+                            output_circuit.add_qubit(ShareableQubit::new_anonymous(), false)?;
                         }
                     }
                 }
@@ -642,7 +639,7 @@ fn run_on_circuitdata(
                         inst_inner.params_view(),
                         &inst_outer_qubits,
                         &inst_outer_clbits,
-                    )?;
+                    );
                 }
 
                 let updated_global_phase = radd_param(
@@ -650,7 +647,7 @@ fn run_on_circuitdata(
                     synthesized_circuit.global_phase().clone(),
                     py,
                 );
-                output_circuit.set_global_phase(py, updated_global_phase)?;
+                output_circuit.set_global_phase(updated_global_phase)?;
             }
         }
     }
@@ -689,12 +686,12 @@ fn extract_definition(
                     let [theta, phi, lam, phase] =
                         angles_from_unitary(unitary.view(), EulerBasis::U);
                     let mut circuit_data: CircuitData =
-                        CircuitData::with_capacity(py, 1, 0, 1, Param::Float(phase))?;
+                        CircuitData::with_capacity(1, 0, 1, Param::Float(phase))?;
                     circuit_data.push_standard_gate(
-                        StandardGate::UGate,
+                        StandardGate::U,
                         &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
                         &[Qubit(0)],
-                    )?;
+                    );
                     Ok(Some(circuit_data))
                 }
                 // Run 2q synthesis
@@ -713,7 +710,7 @@ fn extract_definition(
                         2,
                         two_qubit_sequence.gates().iter().map(
                             |(gate, params_floats, qubit_indices)| {
-                                let unwrapped_gate = gate.unwrap_or(StandardGate::CXGate);
+                                let unwrapped_gate = gate.unwrap_or(StandardGate::CX);
                                 let params: SmallVec<[Param; 3]> =
                                     params_floats.iter().map(|p| Param::Float(*p)).collect();
                                 let qubits =

@@ -91,7 +91,9 @@ class ConsolidateBlocks(TransformationPass):
         """
         super().__init__()
         self.basis_gates = None
-        self.target = target
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        self.target = target if target is not None and len(target.operation_names) > 0 else None
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
@@ -100,13 +102,13 @@ class ConsolidateBlocks(TransformationPass):
         elif basis_gates is not None:
             kak_gates = KAK_GATE_NAMES.keys() & (basis_gates or [])
             kak_param_gates = KAK_GATE_PARAM_NAMES.keys() & (basis_gates or [])
-            if kak_gates:
-                self.decomposer = TwoQubitBasisDecomposer(
-                    KAK_GATE_NAMES[list(kak_gates)[0]], basis_fidelity=approximation_degree or 1.0
-                )
-            elif kak_param_gates:
+            if kak_param_gates:
                 self.decomposer = TwoQubitControlledUDecomposer(
                     KAK_GATE_PARAM_NAMES[list(kak_param_gates)[0]]
+                )
+            elif kak_gates:
+                self.decomposer = TwoQubitBasisDecomposer(
+                    KAK_GATE_NAMES[list(kak_gates)[0]], basis_fidelity=approximation_degree or 1.0
                 )
             else:
                 self.decomposer = None

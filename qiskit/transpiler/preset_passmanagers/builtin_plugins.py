@@ -236,7 +236,7 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
 
 
 class UnitarySynthesisPassManager(PassManagerStagePlugin):
-    """Plugin class for translation stage with :class:`~.BasisTranslator`"""
+    """Plugin class for translation stage with :class:`~.UnitarySynthesis`"""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         return common.generate_translation_passmanager(
@@ -521,8 +521,12 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 pass_manager_config,
                 optimization_level=optimization_level,
             )
+
+            # Basic steps for optimization level 1:
+            # 1. Optimize1qGatesDecomposition
+            # 2. InverseCancellation
             if optimization_level == 1:
-                # Steps for optimization level 1
+
                 _opt = [
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
@@ -546,6 +550,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
 
+            # Basic steps for optimization level 2:
+            # 1. RemoveIdentityEquivalent
+            # 2. Optimize1qGatesDecomposition
+            # 3. CommutativeCancellation
             elif optimization_level == 2:
                 _opt = [
                     RemoveIdentityEquivalent(
@@ -558,8 +566,14 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     CommutativeCancellation(target=pass_manager_config.target),
                     ContractIdleWiresInControlFlow(),
                 ]
+
+            # Basic steps for optimization level 3:
+            # 1. ConsolidateBlocks
+            # 2. UnitarySynthesis
+            # 3. RemoveIdentityEquivalent
+            # 4. Optimize1qGatesDecomposition
+            # 5. CommutativeCancellation
             elif optimization_level == 3:
-                # Steps for optimization level 3
                 _opt = [
                     ConsolidateBlocks(
                         basis_gates=pass_manager_config.basis_gates,
@@ -593,11 +607,11 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
             unroll = translation.to_flow_controller()
 
-            # Build nested Flow controllers
+            # Build nested flow controllers
             def _unroll_condition(property_set):
                 return not property_set["all_gates_in_basis"]
 
-            # Check if any gate is not in the basis, and if so, run unroll passes
+            # Check if any gate is not in the basis, and if so, run unroll/translation passes
             _unroll_if_out_of_basis = [
                 GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
                 ConditionalController(unroll, condition=_unroll_condition),

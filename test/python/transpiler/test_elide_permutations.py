@@ -225,8 +225,7 @@ class TestElidePermutations(QiskitTestCase):
 
         # Make sure that the transpiled circuit *with* the final permutation
         # is equivalent to the original circuit
-        perm = pass_.property_set["virtual_permutation_layout"].to_permutation(qc.qubits)
-        res.append(PermutationGate(perm), [0, 1, 2, 3, 4])
+        res.append(PermutationGate(res.layout.routing_permutation()), [0, 1, 2, 3, 4])
         self.assertEqual(Operator(res), Operator(qc))
 
     def test_permutation_at_beginning(self):

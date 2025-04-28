@@ -50,40 +50,20 @@ fn expand_pauli(sparse_pauli: String, qubits: &[u32], num_qubits: usize) -> Stri
 fn to_qiskit_clifford_gate(rustiq_gate: &CliffordGate) -> QiskitGate {
     match rustiq_gate {
         CliffordGate::CNOT(i, j) => (
-            StandardGate::CXGate,
+            StandardGate::CX,
             smallvec![],
             smallvec![Qubit(*i as u32), Qubit(*j as u32)],
         ),
         CliffordGate::CZ(i, j) => (
-            StandardGate::CZGate,
+            StandardGate::CZ,
             smallvec![],
             smallvec![Qubit(*i as u32), Qubit(*j as u32)],
         ),
-        CliffordGate::H(i) => (
-            StandardGate::HGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::S(i) => (
-            StandardGate::SGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::Sd(i) => (
-            StandardGate::SdgGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::SqrtX(i) => (
-            StandardGate::SXGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
-        CliffordGate::SqrtXd(i) => (
-            StandardGate::SXdgGate,
-            smallvec![],
-            smallvec![Qubit(*i as u32)],
-        ),
+        CliffordGate::H(i) => (StandardGate::H, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::S(i) => (StandardGate::S, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::Sd(i) => (StandardGate::Sdg, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::SqrtX(i) => (StandardGate::SX, smallvec![], smallvec![Qubit(*i as u32)]),
+        CliffordGate::SqrtXd(i) => (StandardGate::SXdg, smallvec![], smallvec![Qubit(*i as u32)]),
     }
 }
 
@@ -100,9 +80,9 @@ fn qiskit_rotation_gate(py: Python, paulis: &PauliSet, i: usize, angle: &Param) 
     for (q, c) in pauli_str.chars().enumerate() {
         if c != 'I' {
             let standard_gate = match c {
-                'X' => StandardGate::RXGate,
-                'Y' => StandardGate::RYGate,
-                'Z' => StandardGate::RZGate,
+                'X' => StandardGate::RX,
+                'Y' => StandardGate::RY,
+                'Z' => StandardGate::RZ,
                 _ => unreachable!("Only X, Y and Z are possible characters at this point."),
             };
             // We need to negate the angle when there is a phase.
@@ -185,11 +165,11 @@ impl CommutativityDag {
 ///
 /// * py: a GIL handle, needed to negate rotation parameters in Python space.
 /// * gates: the sequence of Rustiq's Clifford gates returned by Rustiq's
-///     pauli network synthesis algorithm.
+///   pauli network synthesis algorithm.
 /// * paulis: Rustiq's data structure storing the pauli rotations.
 /// * angles: Qiskit's rotation angles corresponding to the pauli rotations.
 /// * preserve_order: specifies whether the order of paulis should be preserved,
-///     up to commutativity.
+///   up to commutativity.
 fn inject_rotations(
     py: Python,
     gates: &[CliffordGate],
@@ -295,24 +275,24 @@ fn synthesize_final_clifford(
 /// * py: a GIL handle, needed to add and negate rotation parameters in Python space.
 /// * num_qubits: total number of qubits.
 /// * pauli_network: pauli network represented in sparse format. It's a list
-///     of triples such as `[("XX", [0, 3], theta), ("ZZ", [0, 1], 0.1)]`.
+///   of triples such as `[("XX", [0, 3], theta), ("ZZ", [0, 1], 0.1)]`.
 /// * optimize_count: if `true`, Rustiq's synthesis algorithms aims to optimize
-///     the 2-qubit gate count; and if `false`, then the 2-qubit depth.
+///   the 2-qubit gate count; and if `false`, then the 2-qubit depth.
 /// * preserve_order: whether the order of paulis should be preserved, up to
-///     commutativity. If the order is not preserved, the returned circuit will
-///     generally not be equivalent to the given pauli network.
+///   commutativity. If the order is not preserved, the returned circuit will
+///   generally not be equivalent to the given pauli network.
 /// * upto_clifford: if `true`, the final Clifford operator is not synthesized
-///     and the returned circuit will generally not be equivalent to the given
-///     pauli network. In addition, the argument `upto_phase` would be ignored.
+///   and the returned circuit will generally not be equivalent to the given
+///   pauli network. In addition, the argument `upto_phase` would be ignored.
 /// * upto_phase: if `true`, the global phase of the returned circuit may differ
-///     from the global phase of the given pauli network. The argument is considered
-///     to be `true` when `upto_clifford` is `true`.
+///   from the global phase of the given pauli network. The argument is considered
+///   to be `true` when `upto_clifford` is `true`.
 /// * resynth_clifford_method: describes the strategy to synthesize the final
-///     Clifford operator. If `0` a naive approach is used, which doubles the number
-///     of gates but preserves the global phase of the circuit. If `1`, the Clifford is
-///     resynthesized using Qiskit's greedy Clifford synthesis algorithm. If `2`, it
-///     is resynthesized by Rustiq itself. If `upto_phase` is `false`, the naive
-///     approach is used, as neither synthesis method preserves the global phase.
+///   Clifford operator. If `0` a naive approach is used, which doubles the number
+///   of gates but preserves the global phase of the circuit. If `1`, the Clifford is
+///   resynthesized using Qiskit's greedy Clifford synthesis algorithm. If `2`, it
+///   is resynthesized by Rustiq itself. If `upto_phase` is `false`, the naive
+///   approach is used, as neither synthesis method preserves the global phase.
 ///
 /// If `preserve_order` is `true` and both `upto_clifford` and `upto_phase` are `false`,
 /// the returned circuit is equivalent to the given pauli network.

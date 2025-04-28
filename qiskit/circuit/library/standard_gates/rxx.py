@@ -18,7 +18,6 @@ import math
 from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
@@ -76,7 +75,7 @@ class RXXGate(Gate):
                                     \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RXXGate
+    _standard_gate = StandardGate.RXX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RXX gate."""
@@ -85,7 +84,7 @@ class RXXGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate
         from .h import HGate
         from .rz import RZGate

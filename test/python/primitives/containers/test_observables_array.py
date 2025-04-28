@@ -28,24 +28,10 @@ class ObservablesArrayTestCase(QiskitTestCase):
     @ddt.data(0, 1, 2)
     def test_coerce_observable_str(self, num_qubits):
         """Test coerce_observable for allowed basis str input"""
-        for chars in it.permutations(ObservablesArray.ALLOWED_BASIS, num_qubits):
+        for chars in it.permutations("IXYZ01+-lr", num_qubits):
             label = "".join(chars)
             obs = ObservablesArray.coerce_observable(label)
-            self.assertEqual(obs, {label: 1})
-
-    def test_coerce_observable_custom_basis(self):
-        """Test coerce_observable for custom al flowed basis"""
-
-        class PauliArray(ObservablesArray):
-            """Custom array allowing only Paulis, not projectors"""
-
-            ALLOWED_BASIS = "IXYZ"
-
-        with self.assertRaises(ValueError):
-            PauliArray.coerce_observable("0101")
-        for p in qi.pauli_basis(1):
-            obs = PauliArray.coerce_observable(p)
-            self.assertEqual(obs, {p.to_label(): 1})
+            self.assertEqual(obs, qi.SparseObservable.from_label(label))
 
     @ddt.data("iXX", "012", "+/-")
     def test_coerce_observable_invalid_str(self, basis):
@@ -58,7 +44,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         """Test coerce_observable for Pauli input"""
         for p in qi.pauli_basis(num_qubits):
             obs = ObservablesArray.coerce_observable(p)
-            self.assertEqual(obs, {p.to_label(): 1})
+            self.assertEqual(obs, qi.SparseObservable.from_pauli(p))
 
     @ddt.data(0, 1, 2, 3)
     def test_coerce_observable_phased_pauli(self, phase):
@@ -71,10 +57,15 @@ class ObservablesArrayTestCase(QiskitTestCase):
                 ObservablesArray.coerce_observable(pauli)
         else:
             obs = ObservablesArray.coerce_observable(pauli)
-            self.assertIsInstance(obs, dict)
-            self.assertEqual(list(obs.keys()), ["IXYZ"])
-            np.testing.assert_allclose(
-                list(obs.values()), [coeff], err_msg=f"Wrong value for Pauli {pauli}"
+            self.assertIsInstance(obs, qi.SparseObservable)
+            obs_pauli, obs_qubits, obs_coeff = obs.to_sparse_list()[0]
+
+            # ZYX and not XYZ because the qubits in `obs_qubits` are ascending
+            self.assertEqual(obs_pauli, "ZYX")
+            self.assertEqual(obs_qubits, [0, 1, 2])
+
+            np.testing.assert_almost_equal(
+                obs_coeff, coeff, err_msg=f"Wrong value for Pauli {pauli}"
             )
 
     @ddt.data("+IXYZ", "-IXYZ", "iIXYZ", "+iIXYZ", "-IXYZ")
@@ -87,44 +78,58 @@ class ObservablesArrayTestCase(QiskitTestCase):
                 ObservablesArray.coerce_observable(pauli)
         else:
             obs = ObservablesArray.coerce_observable(pauli)
-            self.assertIsInstance(obs, dict)
-            self.assertEqual(list(obs.keys()), ["IXYZ"])
-            np.testing.assert_allclose(
-                list(obs.values()), [coeff], err_msg=f"Wrong value for Pauli {pauli}"
+            self.assertIsInstance(obs, qi.SparseObservable)
+            obs_pauli, obs_qubits, obs_coeff = obs.to_sparse_list()[0]
+
+            # ZYX and not XYZ because the qubits in `obs_qubits` are ascending
+            self.assertEqual(obs_pauli, "ZYX")
+            self.assertEqual(obs_qubits, [0, 1, 2])
+
+            np.testing.assert_almost_equal(
+                obs_coeff, coeff, err_msg=f"Wrong value for Pauli {pauli}"
             )
 
     def test_coerce_observable_signed_sparse_pauli_op(self):
         """Test coerce_observable for SparsePauliOp input with phase paulis"""
         op = qi.SparsePauliOp(["+I", "-X", "Y", "-Z"], [1, 2, 3, 4])
         obs = ObservablesArray.coerce_observable(op)
-        self.assertIsInstance(obs, dict)
-        self.assertEqual(len(obs), 4)
-        self.assertEqual(sorted(obs.keys()), sorted(["I", "X", "Y", "Z"]))
-        np.testing.assert_allclose([obs[i] for i in ["I", "X", "Y", "Z"]], [1, -2, 3, -4])
+        self.assertIsInstance(obs, qi.SparseObservable)
+        sparse_list = sorted(obs.to_sparse_list())
+        self.assertEqual(len(sparse_list), 4)
+        obs_paulis = [term[0] for term in sparse_list]
+        obs_coeffs = [term[2] for term in sparse_list]
+        self.assertEqual(obs_paulis, ["", "X", "Y", "Z"])
+        np.testing.assert_allclose(obs_coeffs, [1, -2, 3, -4])
 
     def test_coerce_observable_zero_sparse_pauli_op(self):
         """Test coerce_observable for SparsePauliOp input with zero val coeffs"""
         op = qi.SparsePauliOp(["I", "X", "Y", "Z"], [0, 0, 0, 1])
         obs = ObservablesArray.coerce_observable(op)
-        self.assertIsInstance(obs, dict)
-        self.assertEqual(len(obs), 1)
-        self.assertEqual(sorted(obs.keys()), ["Z"])
-        self.assertEqual(obs["Z"], 1)
+        self.assertIsInstance(obs, qi.SparseObservable)
+        sparse_list = obs.to_sparse_list()
+        self.assertEqual(len(sparse_list), 1)
+        obs_pauli, _, obs_coeff = sparse_list[0]
+        self.assertEqual(obs_pauli, "Z")
+        self.assertEqual(obs_coeff, 1)
 
     def test_coerce_observable_duplicate_sparse_pauli_op(self):
         """Test coerce_observable for SparsePauliOp with duplicate paulis"""
         op = qi.SparsePauliOp(["XX", "-XX", "XX", "-XX"], [2, 1, 3, 2])
         obs = ObservablesArray.coerce_observable(op)
-        self.assertIsInstance(obs, dict)
-        self.assertEqual(len(obs), 1)
-        self.assertEqual(list(obs.keys()), ["XX"])
-        self.assertEqual(obs["XX"], 2)
+        self.assertIsInstance(obs, qi.SparseObservable)
+        sparse_list = obs.to_sparse_list()
+        self.assertEqual(len(sparse_list), 1)
+        obs_pauli, _, obs_coeff = sparse_list[0]
+        self.assertEqual(obs_pauli, "XX")
+        self.assertEqual(obs_coeff, 2)
 
     def test_coerce_observable_pauli_mapping(self):
         """Test coerce_observable for pauli-keyed Mapping input"""
         mapping = dict(zip(qi.pauli_basis(1), range(1, 5)))
         obs = ObservablesArray.coerce_observable(mapping)
-        target = {key.to_label(): val for key, val in mapping.items()}
+        target = qi.SparseObservable.from_list(
+            [(key.to_label(), val) for key, val in mapping.items()]
+        ).simplify()
         self.assertEqual(obs, target)
 
     def test_coerce_0d(self):
@@ -198,13 +203,13 @@ class ObservablesArrayTestCase(QiskitTestCase):
 
     def test_init_validate_false(self):
         """Test init validate kwarg"""
-        obj = [["A", "B", "C"], ["D", "E", "F"]]
+        obj = [["X", "Y", "Z"], ["I", "0", "1"]]
         obs = ObservablesArray(obj, validate=False)
         self.assertEqual(obs.shape, (2, 3))
         self.assertEqual(obs.size, 6)
         for i in range(2):
             for j in range(3):
-                self.assertEqual(obs[i, j], obj[i][j])
+                self.assertEqual(obs._array[i, j], obj[i][j])
 
     def test_init_validate_true(self):
         """Test init validate kwarg"""
@@ -218,7 +223,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = {"XX": 1}
         for _ in range(ndim):
             obs = [obs]
-        arr = ObservablesArray(obs, validate=False)
+        arr = ObservablesArray(obs)
         self.assertEqual(arr.size, 1, msg="Incorrect ObservablesArray.size")
         self.assertEqual(arr.shape, (1,) * ndim, msg="Incorrect ObservablesArray.shape")
 
@@ -228,7 +233,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = {"XX": 1}
         for _ in range(ndim):
             obs = [obs]
-        arr = ObservablesArray(obs, validate=False)
+        arr = ObservablesArray(obs)
         ls = arr.tolist()
         self.assertEqual(ls, obs)
 
@@ -238,7 +243,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = {"XX": 1}
         for _ in range(ndim):
             obs = [obs]
-        arr = ObservablesArray(obs, validate=False)
+        arr = ObservablesArray(obs)
         nparr = np.array(arr)
         self.assertEqual(nparr.dtype, object)
         self.assertEqual(nparr.shape, arr.shape)
@@ -252,49 +257,52 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = base_obs
         for _ in range(ndim):
             obs = [obs]
-        arr = ObservablesArray(obs, validate=False)
+        arr = ObservablesArray(obs)
         idx = ndim * (0,)
         item = arr[idx]
         self.assertEqual(item, base_obs)
 
     def test_tolist_1d(self):
         """Test tolist method"""
-        obj = ["A", "B", "C", "D"]
-        obs = ObservablesArray(obj, validate=False)
+        obj = [{"I": 1}, {"X": 2}, {"Y": 3}, {"Z": 4}]
+        obs = ObservablesArray(obj)
         self.assertEqual(obs.tolist(), obj)
 
     def test_tolist_2d(self):
         """Test tolist method"""
-        obj = [["A", "B", "C"], ["D", "E", "F"]]
-        obs = ObservablesArray(obj, validate=False)
+        obj = [[{"II": 1.0}, {"XI": 2.0}, {"IY": 3.0}], [{"XX": 1.0}, {"XY": 2.0}, {"YY": 3.0}]]
+        obs = ObservablesArray(obj)
         self.assertEqual(obs.tolist(), obj)
 
     def test_array_1d(self):
         """Test __array__ dunder method"""
-        obj = np.array(["A", "B", "C", "D"], dtype=object)
-        obs = ObservablesArray(obj, validate=False)
+        obj = np.array([{"I": 1}, {"X": 2}, {"Y": 3}, {"Z": 4}], dtype=object)
+        obs = ObservablesArray(obj)
         self.assertTrue(np.all(np.array(obs) == obj))
 
     def test_array_2d(self):
         """Test __array__ dunder method"""
-        obj = np.array([["A", "B", "C"], ["D", "E", "F"]], dtype=object)
-        obs = ObservablesArray(obj, validate=False)
+        obj = np.array(
+            [[{"II": 1}, {"XI": 2}, {"IY": 3}], [{"XX": 1}, {"XY": 2}, {"YY": 3}]], dtype=object
+        )
+        obs = ObservablesArray(obj)
         self.assertTrue(np.all(np.array(obs) == obj))
 
     def test_getitem_1d(self):
         """Test __getitem__ for 1D array"""
-        obj = np.array(["A", "B", "C", "D"], dtype=object)
-        obs = ObservablesArray(obj, validate=False)
+        obj = np.array([{"I": 1}, {"X": 2}, {"Y": 3}, {"Z": 4}], dtype=object)
+        obs = ObservablesArray(obj)
         for i in range(obj.size):
             self.assertEqual(obs[i], obj[i])
 
     def test_getitem_2d(self):
         """Test __getitem__ for 2D array"""
-        obj = np.array([["A", "B", "C"], ["D", "E", "F"]], dtype=object)
-        obs = ObservablesArray(obj, validate=False)
+        obj = np.array(
+            [[{"II": 1}, {"XI": 2}, {"IY": 3}], [{"XX": 1}, {"XY": 2}, {"YY": 3}]], dtype=object
+        )
+        obs = ObservablesArray(obj)
         for i in range(obj.shape[0]):
             row = obs[i]
-            self.assertIsInstance(row, ObservablesArray)
             self.assertEqual(row.shape, (3,))
             self.assertTrue(np.all(np.array(row) == obj[i]))
 
@@ -347,13 +355,3 @@ class ObservablesArrayTestCase(QiskitTestCase):
                             {labels_rs[idx]: 1},
                             msg=f"failed for shape {shape} with input format {input_shape}",
                         )
-
-    def test_validate(self):
-        """Test the validate method"""
-        ObservablesArray({"XX": 1}).validate()
-        ObservablesArray([{"XX": 1}] * 5).validate()
-        ObservablesArray([{"XX": 1}] * 15).reshape((3, 5)).validate()
-
-        obs = ObservablesArray([{"XX": 1}, {"XYZ": 1}], validate=False)
-        with self.assertRaisesRegex(ValueError, "number of qubits must be the same"):
-            obs.validate()

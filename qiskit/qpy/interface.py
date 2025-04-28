@@ -76,7 +76,7 @@ def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
-    use_symengine: bool = True,
+    use_symengine: bool = False,
     version: int = common.QPY_VERSION,
 ):
     """Write QPY binary data to a file
@@ -125,11 +125,9 @@ def dump(
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
-        use_symengine: If True, all objects containing symbolic expressions will be serialized
-            using symengine's native mechanism. This is a faster serialization alternative,
-            but not supported in all platforms. This flag only has an effect if the emitted QPY format
-            version is 10, 11, or 12. For QPY format version >= 13 (which is the default starting in
-            Qiskit 1.3.0) this flag is no longer used.
+        use_symengine: This flag is no longer used by QPY versions supported by this function and
+            will have no impact on the generated QPY payload except to set a field in a QPY v13 file
+            header which is unused.
         version: The QPY format version to emit. By default this defaults to
             the latest supported format of :attr:`~.qpy.QPY_VERSION`, however for
             compatibility reasons if you need to load the generated QPY payload with an older
@@ -252,9 +250,13 @@ def load(
         A list is always returned, even if there is only 1 program in the QPY data.
 
     Raises:
-        QiskitError: if ``file_obj`` is not a valid QPY file.
+        QiskitError: if ``file_obj`` is not a valid QPY file
+        TypeError: When invalid data type is loaded.
+        MissingOptionalLibraryError: If the ``symengine`` engine library is
+            not installed when loading a QPY version 10, 11, or 12 payload
+            that is using symengine symbolic encoding and contains
+            :class:`.ParameterExpression` instances.
         QpyError: if known but unsupported data type is loaded.
-        TypeError: if invalid data type is loaded.
     """
 
     # identify file header version

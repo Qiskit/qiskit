@@ -14,9 +14,9 @@ use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
 use crate::target_transpiler::Target;
 use hashbrown::HashSet;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use qiskit_circuit::bit::{QuantumRegister, Register};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
@@ -73,12 +73,12 @@ fn py_check_direction_coupling_map(
 #[pyo3(name = "check_gate_direction_target")]
 fn py_check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
-        let qargs = smallvec![
+        let qargs = [
             PhysicalQubit::new(op_args[0].0),
-            PhysicalQubit::new(op_args[1].0)
+            PhysicalQubit::new(op_args[1].0),
         ];
 
-        target.instruction_supported(inst.op.name(), Some(&qargs))
+        target.instruction_supported(inst.op.name(), &qargs)
     };
 
     check_gate_direction(py, dag, &target_check, None)
@@ -207,15 +207,12 @@ fn py_fix_direction_target(
         // Take this path so Target can check for exact match of the parameterized gate's angle
         if let OperationRef::StandardGate(std_gate) = inst.op.view() {
             match std_gate {
-                StandardGate::RXXGate
-                | StandardGate::RYYGate
-                | StandardGate::RZZGate
-                | StandardGate::RZXGate => {
+                StandardGate::RXX | StandardGate::RYY | StandardGate::RZZ | StandardGate::RZX => {
                     return target
                         .py_instruction_supported(
                             py,
                             None,
-                            Some(qargs),
+                            qargs.into(),
                             Some(
                                 get_std_gate_class(py, std_gate)
                                     .expect("These gates should have Python classes")
@@ -228,7 +225,7 @@ fn py_fix_direction_target(
                 _ => {}
             }
         }
-        target.instruction_supported(inst.op.name(), Some(&qargs))
+        target.instruction_supported(inst.op.name(), &qargs)
     };
 
     fix_gate_direction(py, dag, &target_check, None).cloned()
@@ -308,14 +305,14 @@ where
         // If no pre-defined replacement for the op - if the other direction is supported error saying no pre-defined rule otherwise error saying op is not supported
         if let OperationRef::StandardGate(std_gate) = packed_inst.op.view() {
             match std_gate {
-                StandardGate::CXGate
-                | StandardGate::ECRGate
-                | StandardGate::CZGate
-                | StandardGate::SwapGate
-                | StandardGate::RXXGate
-                | StandardGate::RYYGate
-                | StandardGate::RZZGate
-                | StandardGate::RZXGate => {
+                StandardGate::CX
+                | StandardGate::ECR
+                | StandardGate::CZ
+                | StandardGate::Swap
+                | StandardGate::RXX
+                | StandardGate::RYY
+                | StandardGate::RZZ
+                | StandardGate::RZX => {
                     if gate_complies(packed_inst, &[op_args1, op_args0]) {
                         // Store this for replacement outside the dag.op_nodes loop
                         nodes_to_replace.push((node, replace_dag(py, std_gate, packed_inst)?));
@@ -380,14 +377,14 @@ fn replace_dag(
     inst: &PackedInstruction,
 ) -> PyResult<DAGCircuit> {
     let replacement_dag = match std_gate {
-        StandardGate::CXGate => cx_replacement_dag(py),
-        StandardGate::ECRGate => ecr_replacement_dag(py),
-        StandardGate::CZGate => cz_replacement_dag(py),
-        StandardGate::SwapGate => swap_replacement_dag(py),
-        StandardGate::RXXGate => rxx_replacement_dag(py, inst.params_view()),
-        StandardGate::RYYGate => ryy_replacement_dag(py, inst.params_view()),
-        StandardGate::RZZGate => rzz_replacement_dag(py, inst.params_view()),
-        StandardGate::RZXGate => rzx_replacement_dag(py, inst.params_view()),
+        StandardGate::CX => cx_replacement_dag(py),
+        StandardGate::ECR => ecr_replacement_dag(py),
+        StandardGate::CZ => cz_replacement_dag(py),
+        StandardGate::Swap => swap_replacement_dag(py),
+        StandardGate::RXX => rxx_replacement_dag(py, inst.params_view()),
+        StandardGate::RYY => ryy_replacement_dag(py, inst.params_view()),
+        StandardGate::RZZ => rzz_replacement_dag(py, inst.params_view()),
+        StandardGate::RZX => rzx_replacement_dag(py, inst.params_view()),
         _ => panic!("Mismatch in supported gates assumption"),
     };
 
@@ -399,15 +396,12 @@ fn replace_dag(
 //
 // TODO: replace this once we have a Rust version of QuantumRegister
 #[inline]
-fn add_qreg(py: Python, dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Qubit>> {
-    let qreg = imports::QUANTUM_REGISTER
-        .get_bound(py)
-        .call1((num_qubits,))?;
-    dag.add_qreg(py, &qreg)?;
+fn add_qreg(dag: &mut DAGCircuit, num_qubits: u32) -> PyResult<Vec<Qubit>> {
+    let qreg = QuantumRegister::new_owning("q".to_string(), num_qubits);
+    dag.add_qreg(qreg.clone())?;
     let mut qargs = Vec::new();
 
-    for i in 0..num_qubits {
-        let qubit = qreg.call_method1(intern!(py, "__getitem__"), (i,))?;
+    for qubit in qreg.bits() {
         qargs.push(
             dag.qubits()
                 .find(&qubit)
@@ -441,91 +435,67 @@ fn apply_operation_back(
 }
 
 fn cx_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let new_dag = &mut DAGCircuit::new()?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[0]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[1]], None)?;
-    apply_operation_back(
-        py,
-        new_dag,
-        StandardGate::CXGate,
-        &[qargs[1], qargs[0]],
-        None,
-    )?;
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[0]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[1]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[1]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::CX, &[qargs[1], qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[1]], None)?;
 
     Ok(new_dag.clone())
 }
 
 fn ecr_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new(py)?;
-    new_dag.add_global_phase(py, &Param::Float(-PI / 2.0))?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let new_dag = &mut DAGCircuit::new()?;
+    new_dag.add_global_phase(&Param::Float(-PI / 2.0))?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
-    apply_operation_back(py, new_dag, StandardGate::SGate, &[qargs[0]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::SXGate, &[qargs[0]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::SdgGate, &[qargs[0]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::SdgGate, &[qargs[1]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::SXGate, &[qargs[1]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::SGate, &[qargs[1]], None)?;
-    apply_operation_back(
-        py,
-        new_dag,
-        StandardGate::ECRGate,
-        &[qargs[1], qargs[0]],
-        None,
-    )?;
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[0]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[1]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::S, &[qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::SX, &[qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::Sdg, &[qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::Sdg, &[qargs[1]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::SX, &[qargs[1]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::S, &[qargs[1]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::ECR, &[qargs[1], qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[1]], None)?;
 
     Ok(new_dag.clone())
 }
 
 fn cz_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let new_dag = &mut DAGCircuit::new()?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
-    apply_operation_back(
-        py,
-        new_dag,
-        StandardGate::CZGate,
-        &[qargs[1], qargs[0]],
-        None,
-    )?;
+    apply_operation_back(py, new_dag, StandardGate::CZ, &[qargs[1], qargs[0]], None)?;
 
     Ok(new_dag.clone())
 }
 
 fn swap_replacement_dag(py: Python) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let new_dag = &mut DAGCircuit::new()?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
-    apply_operation_back(
-        py,
-        new_dag,
-        StandardGate::SwapGate,
-        &[qargs[1], qargs[0]],
-        None,
-    )?;
+    apply_operation_back(py, new_dag, StandardGate::Swap, &[qargs[1], qargs[0]], None)?;
 
     Ok(new_dag.clone())
 }
 
 fn rxx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let new_dag = &mut DAGCircuit::new()?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(
         py,
         new_dag,
-        StandardGate::RXXGate,
+        StandardGate::RXX,
         &[qargs[1], qargs[0]],
         Some(SmallVec::from(param)),
     )?;
@@ -534,14 +504,14 @@ fn rxx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
 }
 
 fn ryy_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let new_dag = &mut DAGCircuit::new()?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(
         py,
         new_dag,
-        StandardGate::RYYGate,
+        StandardGate::RYY,
         &[qargs[1], qargs[0]],
         Some(SmallVec::from(param)),
     )?;
@@ -550,14 +520,14 @@ fn ryy_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
 }
 
 fn rzz_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let new_dag = &mut DAGCircuit::new()?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
     apply_operation_back(
         py,
         new_dag,
-        StandardGate::RZZGate,
+        StandardGate::RZZ,
         &[qargs[1], qargs[0]],
         Some(SmallVec::from(param)),
     )?;
@@ -566,26 +536,25 @@ fn rzz_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
 }
 
 fn rzx_replacement_dag(py: Python, param: &[Param]) -> PyResult<DAGCircuit> {
-    let new_dag = &mut DAGCircuit::new(py)?;
-    let qargs = add_qreg(py, new_dag, 2)?;
+    let new_dag = &mut DAGCircuit::new()?;
+    let qargs = add_qreg(new_dag, 2)?;
     let qargs = qargs.as_slice();
 
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[0]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[1]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[1]], None)?;
     apply_operation_back(
         py,
         new_dag,
-        StandardGate::RZXGate,
+        StandardGate::RZX,
         &[qargs[1], qargs[0]],
         Some(SmallVec::from(param)),
     )?;
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[0]], None)?;
-    apply_operation_back(py, new_dag, StandardGate::HGate, &[qargs[1]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[0]], None)?;
+    apply_operation_back(py, new_dag, StandardGate::H, &[qargs[1]], None)?;
 
     Ok(new_dag.clone())
 }
 
-#[pymodule]
 pub fn gate_direction(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_check_direction_coupling_map))?;
     m.add_wrapped(wrap_pyfunction!(py_check_direction_target))?;

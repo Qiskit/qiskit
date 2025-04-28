@@ -24,8 +24,8 @@ import rustworkx as rx
 
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
 

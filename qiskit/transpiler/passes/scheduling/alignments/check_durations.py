@@ -22,7 +22,7 @@ class InstructionDurationCheck(AnalysisPass):
 
     This pass investigates the input quantum circuit and checks if the circuit requires
     rescheduling for execution. Note that this pass can be triggered without scheduling.
-    This pass only checks the duration of delay instructions and user defined pulse gates,
+    This pass only checks the duration of delay instructions,
     which report duration values without pre-scheduling.
 
     This pass assumes backend supported instructions, i.e. basis gates, have no violation

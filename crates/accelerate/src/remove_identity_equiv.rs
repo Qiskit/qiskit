@@ -14,6 +14,7 @@ use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use crate::gate_metrics::rotation_trace_and_dim;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::Target;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -23,22 +24,25 @@ use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
+const MINIMUM_TOL: f64 = 1e-12;
+
 #[pyfunction]
 #[pyo3(signature=(dag, approx_degree=Some(1.0), target=None))]
 fn remove_identity_equiv(
-    py: Python,
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
     target: Option<&Target>,
 ) {
     let mut remove_list: Vec<NodeIndex> = Vec::new();
     let mut global_phase_update: f64 = 0.;
+    // Minimum threshold to compare average gate fidelity to 1. This is chosen to account
+    // for roundoff errors and to be consistent with other places.
 
     let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
         match approx_degree {
             Some(degree) => {
                 if degree == 1.0 {
-                    f64::EPSILON
+                    MINIMUM_TOL
                 } else {
                     match target {
                         Some(target) => {
@@ -47,13 +51,13 @@ fn remove_identity_equiv(
                                 .iter()
                                 .map(|x| PhysicalQubit::new(x.0))
                                 .collect();
-                            let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
+                            let error_rate = target.get_error(inst.op.name(), &qargs);
                             match error_rate {
                                 Some(err) => err * degree,
-                                None => f64::EPSILON.max(1. - degree),
+                                None => MINIMUM_TOL.max(1. - degree),
                             }
                         }
-                        None => f64::EPSILON.max(1. - degree),
+                        None => MINIMUM_TOL.max(1. - degree),
                     }
                 }
             }
@@ -64,13 +68,13 @@ fn remove_identity_equiv(
                         .iter()
                         .map(|x| PhysicalQubit::new(x.0))
                         .collect();
-                    let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
+                    let error_rate = target.get_error(inst.op.name(), &qargs);
                     match error_rate {
                         Some(err) => err,
-                        None => f64::EPSILON,
+                        None => MINIMUM_TOL,
                     }
                 }
-                None => f64::EPSILON,
+                None => MINIMUM_TOL,
             },
         }
     };
@@ -83,22 +87,23 @@ fn remove_identity_equiv(
         let view = inst.op.view();
         match view {
             OperationRef::StandardGate(gate) => {
-                let (dim, trace) = match gate {
-                    StandardGate::RXGate | StandardGate::RYGate | StandardGate::RZGate => {
-                        if let Param::Float(theta) = inst.params_view()[0] {
-                            let trace = Complex64::new((theta / 2.).cos() * 2., 0.);
-                            (2., trace)
-                        } else {
-                            continue;
-                        }
-                    }
-                    StandardGate::RXXGate
-                    | StandardGate::RYYGate
-                    | StandardGate::RZZGate
-                    | StandardGate::RZXGate => {
-                        if let Param::Float(theta) = inst.params_view()[0] {
-                            let trace = Complex64::new((theta / 2.).cos() * 4., 0.);
-                            (4., trace)
+                let (tr_over_dim, dim) = match gate {
+                    StandardGate::RX
+                    | StandardGate::RY
+                    | StandardGate::RZ
+                    | StandardGate::Phase
+                    | StandardGate::RXX
+                    | StandardGate::RYY
+                    | StandardGate::RZX
+                    | StandardGate::RZZ
+                    | StandardGate::CRX
+                    | StandardGate::CRY
+                    | StandardGate::CRZ
+                    | StandardGate::CPhase => {
+                        if let Param::Float(angle) = inst.params_view()[0] {
+                            let (tr_over_dim, dim) =
+                                rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
+                            (tr_over_dim, dim)
                         } else {
                             continue;
                         }
@@ -106,19 +111,19 @@ fn remove_identity_equiv(
                     _ => {
                         if let Some(matrix) = gate.matrix(inst.params_view()) {
                             let dim = matrix.shape()[0] as f64;
-                            let trace = matrix.diag().iter().sum::<Complex64>();
-                            (dim, trace)
+                            let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
+                            (tr_over_dim, dim)
                         } else {
                             continue;
                         }
                     }
                 };
                 let error = get_error_cutoff(inst);
-                let f_pro = (trace / dim).abs().powi(2);
+                let f_pro = tr_over_dim.abs().powi(2);
                 let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
                 if (1. - gate_fidelity).abs() < error {
                     remove_list.push(op_node);
-                    global_phase_update += (trace / dim).arg();
+                    global_phase_update += tr_over_dim.arg();
                 }
             }
             _ => {
@@ -127,12 +132,12 @@ fn remove_identity_equiv(
                 if let Some(matrix) = matrix {
                     let error = get_error_cutoff(inst);
                     let dim = matrix.shape()[0] as f64;
-                    let trace: Complex64 = matrix.diag().iter().sum();
-                    let f_pro = (trace / dim).abs().powi(2);
+                    let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
+                    let f_pro = tr_over_dim.abs().powi(2);
                     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
                     if (1. - gate_fidelity).abs() < error {
                         remove_list.push(op_node);
-                        global_phase_update += (trace / dim).arg();
+                        global_phase_update += tr_over_dim.arg();
                     }
                 }
             }
@@ -143,7 +148,7 @@ fn remove_identity_equiv(
     }
 
     if global_phase_update != 0. {
-        dag.add_global_phase(py, &Param::Float(global_phase_update))
+        dag.add_global_phase(&Param::Float(global_phase_update))
             .expect("The global phase is guaranteed to be a float");
     }
 }

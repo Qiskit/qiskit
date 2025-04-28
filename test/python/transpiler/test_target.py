@@ -32,12 +32,14 @@ from qiskit.circuit.library import (
     RZXGate,
     CZGate,
     UnitaryGate,
+    Barrier,
 )
 from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.target import _FakeTarget
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
@@ -1200,6 +1202,26 @@ Instructions:
         # Check that the Target num_qubit attribute matches the length of qubit properties
         self.assertEqual(target.num_qubits, len(qubit_properties))
 
+    def test_gate_reconstruction_rust(self):
+        standard_gate = RXGate(3.14)
+        barrier = Barrier(5)
+        unitary = UnitaryGate([[0, 1], [1, 0]])
+
+        # Create Target and add rest of instructions.
+        target = Target()
+        target.add_instruction(standard_gate)
+        target.add_instruction(barrier)
+        target.add_instruction(unitary)
+
+        # Check the gate instances are working as expected
+        self.assertEqual(target.operation_from_name("rx"), target._raw_operation_from_name("rx"))
+        self.assertEqual(
+            target.operation_from_name("barrier"), target._raw_operation_from_name("barrier")
+        )
+        self.assertEqual(
+            target.operation_from_name("unitary"), target._raw_operation_from_name("unitary")
+        )
+
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):
     def setUp(self):
@@ -1747,3 +1769,28 @@ class TestTargetFromConfiguration(QiskitTestCase):
         cmap = CouplingMap.from_line(15)
         with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
             Target.from_configuration(basis_gates, 15, cmap)
+
+
+class TestFakeTarget(QiskitTestCase):
+    """Test the fake target class."""
+
+    def test_fake_instantiation(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget(coupling_map=cmap)
+        self.assertEqual(target.num_qubits, 0)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_from_configuration(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget.from_configuration(coupling_map=cmap)
+        self.assertNotEqual(target, None)
+        self.assertEqual(target.num_qubits, 2)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_only_when_necessary(self):
+        # Make sure _FakeTarget cannot be instantiated if there
+        # is enough info for a real Target
+        with self.assertRaises(TypeError):
+            _ = _FakeTarget.from_configuration(
+                basis_gates=["cx"], coupling_map=CouplingMap([[0, 1]])
+            )
