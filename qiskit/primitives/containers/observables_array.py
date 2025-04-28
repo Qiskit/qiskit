@@ -78,7 +78,7 @@ class ObservablesArray(ShapedMixin):
 
         self._array = object_array(observables, copy=copy, list_types=(PauliList,))
         self._shape = self._array.shape
-        self._num_qubits = num_qubits 
+        self._num_qubits = num_qubits
 
         if validate:
             for ndi, obs in np.ndenumerate(self._array):
