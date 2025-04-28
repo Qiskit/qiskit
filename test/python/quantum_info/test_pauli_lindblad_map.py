@@ -32,8 +32,8 @@ from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 def single_cases():
     return [
-        PauliLindbladMap.zero(0),
-        PauliLindbladMap.zero(10),
+        PauliLindbladMap.identity(0),
+        PauliLindbladMap.identity(10),
         PauliLindbladMap.from_list([("YIXZII", -0.25), ("ZZYYXX", 0.25)]),
         # Includes a duplicate entry.
         PauliLindbladMap.from_list([("IXZ", -0.25), ("ZZI", 0.25), ("IXZ", 0.75)]),
@@ -131,9 +131,9 @@ class TestPauliLindbladMap(QiskitTestCase):
         np.testing.assert_equal(pauli_lindblad_map.coeffs, coeffs)
         np.testing.assert_equal(pauli_lindblad_map.boundaries, boundaries)
 
-        # Construction of zero operator.
+        # Construction of identity operator.
         self.assertEqual(
-            PauliLindbladMap.from_raw_parts(10, [], [], [], [0]), PauliLindbladMap.zero(10)
+            PauliLindbladMap.from_raw_parts(10, [], [], [], [0]), PauliLindbladMap.identity(10)
         )
 
         # Construction of an operator with an intermediate identity term.  For the initial
@@ -229,8 +229,8 @@ class TestPauliLindbladMap(QiskitTestCase):
             ),
         )
 
-        self.assertEqual(PauliLindbladMap.from_list([], num_qubits=5), PauliLindbladMap.zero(5))
-        self.assertEqual(PauliLindbladMap.from_list([], num_qubits=0), PauliLindbladMap.zero(0))
+        self.assertEqual(PauliLindbladMap.from_list([], num_qubits=5), PauliLindbladMap.identity(5))
+        self.assertEqual(PauliLindbladMap.from_list([], num_qubits=0), PauliLindbladMap.identity(0))
 
     def test_from_list_failures(self):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
@@ -295,11 +295,11 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         self.assertEqual(
             PauliLindbladMap.from_sparse_list([], num_qubits=1_000_000),
-            PauliLindbladMap.zero(1_000_000),
+            PauliLindbladMap.identity(1_000_000),
         )
         self.assertEqual(
             PauliLindbladMap.from_sparse_list([], num_qubits=0),
-            PauliLindbladMap.zero(0),
+            PauliLindbladMap.identity(0),
         )
 
     def test_from_sparse_list_failures(self):
@@ -336,10 +336,10 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_sparse_list([("XYZXZ", (3, 0, 1, 2, 3), 1.0)], num_qubits=5)
 
     def test_from_terms(self):
-        self.assertEqual(PauliLindbladMap.from_terms([], num_qubits=5), PauliLindbladMap.zero(5))
-        self.assertEqual(PauliLindbladMap.from_terms((), num_qubits=0), PauliLindbladMap.zero(0))
+        self.assertEqual(PauliLindbladMap.from_terms([], num_qubits=5), PauliLindbladMap.identity(5))
+        self.assertEqual(PauliLindbladMap.from_terms((), num_qubits=0), PauliLindbladMap.identity(0))
         self.assertEqual(
-            PauliLindbladMap.from_terms((None for _ in []), num_qubits=3), PauliLindbladMap.zero(3)
+            PauliLindbladMap.from_terms((None for _ in []), num_qubits=3), PauliLindbladMap.identity(3)
         )
 
         expected = PauliLindbladMap.from_sparse_list(
@@ -376,34 +376,34 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap([("IIXIZ", 1.0), ("IZ", (2, 3), -1.0)], num_qubits=5)
 
     def test_num_qubits(self):
-        self.assertEqual(PauliLindbladMap.zero(0).num_qubits, 0)
-        self.assertEqual(PauliLindbladMap.zero(10).num_qubits, 10)
+        self.assertEqual(PauliLindbladMap.identity(0).num_qubits, 0)
+        self.assertEqual(PauliLindbladMap.identity(10).num_qubits, 10)
 
     def test_num_terms(self):
-        self.assertEqual(PauliLindbladMap.zero(0).num_terms, 0)
-        self.assertEqual(PauliLindbladMap.zero(10).num_terms, 0)
+        self.assertEqual(PauliLindbladMap.identity(0).num_terms, 0)
+        self.assertEqual(PauliLindbladMap.identity(10).num_terms, 0)
         self.assertEqual(
             PauliLindbladMap.from_list([("IIIXIZ", 1.0), ("YYXXII", 0.5)]).num_terms, 2
         )
 
-    def test_zero(self):
-        zero_5 = PauliLindbladMap.zero(5)
-        self.assertEqual(zero_5.num_qubits, 5)
-        np.testing.assert_equal(zero_5.coeffs, np.array([], dtype=float))
-        np.testing.assert_equal(zero_5.bit_terms, np.array([], dtype=np.uint8))
-        np.testing.assert_equal(zero_5.indices, np.array([], dtype=np.uint32))
-        np.testing.assert_equal(zero_5.boundaries, np.array([0], dtype=np.uintp))
+    def test_identity(self):
+        identity_5 = PauliLindbladMap.identity(5)
+        self.assertEqual(identity_5.num_qubits, 5)
+        np.testing.assert_equal(identity_5.coeffs, np.array([], dtype=float))
+        np.testing.assert_equal(identity_5.bit_terms, np.array([], dtype=np.uint8))
+        np.testing.assert_equal(identity_5.indices, np.array([], dtype=np.uint32))
+        np.testing.assert_equal(identity_5.boundaries, np.array([0], dtype=np.uintp))
 
-        zero_0 = PauliLindbladMap.zero(0)
-        self.assertEqual(zero_0.num_qubits, 0)
-        np.testing.assert_equal(zero_0.coeffs, np.array([], dtype=float))
-        np.testing.assert_equal(zero_0.bit_terms, np.array([], dtype=np.uint8))
-        np.testing.assert_equal(zero_0.indices, np.array([], dtype=np.uint32))
-        np.testing.assert_equal(zero_0.boundaries, np.array([0], dtype=np.uintp))
+        identity_0 = PauliLindbladMap.identity(0)
+        self.assertEqual(identity_0.num_qubits, 0)
+        np.testing.assert_equal(identity_0.coeffs, np.array([], dtype=float))
+        np.testing.assert_equal(identity_0.bit_terms, np.array([], dtype=np.uint8))
+        np.testing.assert_equal(identity_0.indices, np.array([], dtype=np.uint32))
+        np.testing.assert_equal(identity_0.boundaries, np.array([0], dtype=np.uintp))
 
     def test_len(self):
-        self.assertEqual(len(PauliLindbladMap.zero(0)), 0)
-        self.assertEqual(len(PauliLindbladMap.zero(10)), 0)
+        self.assertEqual(len(PauliLindbladMap.identity(0)), 0)
+        self.assertEqual(len(PauliLindbladMap.identity(10)), 0)
         self.assertEqual(len(PauliLindbladMap.from_list([("IIIXIZ", 1.0), ("YYXXII", 0.5)])), 2)
 
     def test_bit_term_enum(self):
@@ -449,9 +449,9 @@ class TestPauliLindbladMap(QiskitTestCase):
     
     @ddt.data(
         # This is every combination of (0, 1, many) for (terms, qubits, non-identites per term).
-        PauliLindbladMap.zero(0),
-        PauliLindbladMap.zero(1),
-        PauliLindbladMap.zero(10),
+        PauliLindbladMap.identity(0),
+        PauliLindbladMap.identity(1),
+        PauliLindbladMap.identity(10),
         PauliLindbladMap.from_list([("YIXZII", -0.25)]),
         PauliLindbladMap.from_list([("YIXZII", -0.25), ("ZZYYXX", 0.25)]),
     )
@@ -486,7 +486,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertNotEqual(
             op, PauliLindbladMap.from_sparse_list(sparse_data, num_qubits=op.num_qubits + 1)
         )
-        self.assertNotEqual(PauliLindbladMap.zero(2), PauliLindbladMap.zero(3))
+        self.assertNotEqual(PauliLindbladMap.identity(2), PauliLindbladMap.identity(3))
 
         # Difference in coeffs.
         self.assertNotEqual(
@@ -811,12 +811,12 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_clear(self, pauli_lindblad_map):
         num_qubits = pauli_lindblad_map.num_qubits
         pauli_lindblad_map.clear()
-        self.assertEqual(pauli_lindblad_map, PauliLindbladMap.zero(num_qubits))
+        self.assertEqual(pauli_lindblad_map, PauliLindbladMap.identity(num_qubits))
 
 
     def test_iteration(self):
-        self.assertEqual(list(PauliLindbladMap.zero(5)), [])
-        self.assertEqual(tuple(PauliLindbladMap.zero(0)), ())
+        self.assertEqual(list(PauliLindbladMap.identity(5)), [])
+        self.assertEqual(tuple(PauliLindbladMap.identity(0)), ())
 
         pauli_lindblad_map = PauliLindbladMap.from_sparse_list(
             [
@@ -995,8 +995,8 @@ class TestPauliLindbladMap(QiskitTestCase):
 
     def test_to_sparse_list(self):
         """Test converting to a sparse list."""
-        with self.subTest(msg="zero"):
-            obs = PauliLindbladMap.zero(100)
+        with self.subTest(msg="identity"):
+            obs = PauliLindbladMap.identity(100)
             expected = []
             self.assertEqual(expected, obs.to_sparse_list())
 

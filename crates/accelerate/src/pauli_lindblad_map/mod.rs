@@ -216,12 +216,12 @@ pub enum ArithmeticError {
     MismatchedQubits { left: u32, right: u32 },
 }
 
-/// An observable over Pauli bases that stores its data in a qubit-sparse format.
+/// An Pauli Lindblad map that stores its data in a qubit-sparse format.
 ///
 /// See [PyPauliLindbladMap] for detailed docs.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PauliLindbladMap {
-    /// The number of qubits the operator acts on.  This is not inferable from any other shape or
+    /// The number of qubits the map acts on.  This is not inferable from any other shape or
     /// values, since identities are not stored explicitly.
     num_qubits: u32,
     /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
@@ -242,7 +242,7 @@ pub struct PauliLindbladMap {
 }
 
 impl PauliLindbladMap {
-    /// Create a new observable from the raw components that make it up.
+    /// Create a new Pauli Lindblad map from the raw components that make it up.
     ///
     /// This checks the input values for data coherence on entry.  If you are certain you have the
     /// correct values, you can call `new_unchecked` instead.
@@ -297,7 +297,7 @@ impl PauliLindbladMap {
         Ok(unsafe { Self::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries) })
     }
 
-    /// Create a new observable from the raw components without checking data coherence.
+    /// Create a new [PauliLindbladMap] from the raw components without checking data coherence.
     ///
     /// # Safety
     ///
@@ -320,8 +320,8 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Create a zero operator with pre-allocated space for the given number of summands and
-    /// single-qubit bit terms.
+    /// Create the map with zero generator with pre-allocated space for the given number of summands
+    /// and single-qubit bit terms.
     #[inline]
     pub fn with_capacity(num_qubits: u32, num_terms: usize, num_bit_terms: usize) -> Self {
         Self {
@@ -337,7 +337,7 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Get an iterator over the individual terms of the operator.
+    /// Get an iterator over the individual terms of the map.
     ///
     /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
@@ -434,8 +434,8 @@ impl PauliLindbladMap {
         &mut self.bit_terms
     }
 
-    /// Create a zero operator on ``num_qubits`` qubits.
-    pub fn zero(num_qubits: u32) -> Self {
+    /// Create a [PauliLindbladMap] representing the identity map on ``num_qubits`` qubits.
+    pub fn identity(num_qubits: u32) -> Self {
         Self::with_capacity(num_qubits, 0, 0)
     }
 
@@ -452,8 +452,8 @@ impl PauliLindbladMap {
 
     /// Get a view onto a representation of a single sparse term.
     ///
-    /// This is effectively an indexing operation into the [SparseObservable].  Recall that two
-    /// [SparseObservable]s that have different term orders can still represent the same object.
+    /// This is effectively an indexing operation into the [PauliLindbladMap].  Recall that two
+    /// [PauliLindbladMap]s that have different term orders can still represent the same object.
     /// Use [canonicalize] to apply a canonical ordering to the terms.
     ///
     /// # Panics
@@ -1106,7 +1106,7 @@ impl PyPauliLindbladMap {
         )))
     }
 
-    /// Get a copy of this observable.
+    /// Get a copy of this Pauli Lindblad map.
     ///
     /// Examples:
     ///
@@ -1120,7 +1120,7 @@ impl PyPauliLindbladMap {
         Ok(inner.clone().into())
     }
 
-    /// The number of qubits the operator acts on.
+    /// The number of qubits the map acts on.
     ///
     /// This is not inferable from any other shape or values, since identities are not stored
     /// explicitly.
@@ -1131,7 +1131,7 @@ impl PyPauliLindbladMap {
         Ok(inner.num_qubits())
     }
 
-    /// The number of terms in the sum this operator is tracking.
+    /// The number of generator terms in the exponent for this map.
     #[getter]
     #[inline]
     pub fn num_terms(&self) -> PyResult<usize> {
@@ -1139,8 +1139,8 @@ impl PyPauliLindbladMap {
         Ok(inner.num_terms())
     }
 
-    /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
-    /// the sum.
+    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
+    /// terms in the sum.
     #[getter]
     fn get_coeffs(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
@@ -1211,74 +1211,69 @@ impl PyPauliLindbladMap {
     ///         <PauliLindbladMap with 0 terms on 100 qubits: 0.0>
     #[pyo3(signature = (/, num_qubits))]
     #[staticmethod]
-    pub fn zero(num_qubits: u32) -> Self {
-        PauliLindbladMap::zero(num_qubits).into()
+    pub fn identity(num_qubits: u32) -> Self {
+        PauliLindbladMap::identity(num_qubits).into()
     }
 
-    /// Construct an observable from a list of dense labels and coefficients.
+    /// Construct a Pauli Lindblad map from a list of dens generator labels and coefficients.
     ///
-    /// This is analogous to :meth:`.SparsePauliOp.from_list`, except it uses
-    /// :ref:`the extended alphabet <sparse-observable-alphabet>` of :class:`.SparseObservable`.  In
-    /// this dense form, you must supply all identities explicitly in each label.
+    /// This is analogous to :meth:`.SparsePauliOp.from_list`. In this dense form, you must supply
+    /// all identities explicitly in each label.
     ///
-    /// The label must be a sequence of the alphabet ``'IXYZ+-rl01'``.  The label is interpreted
+    /// The label must be a sequence of the alphabet ``'IXYZ'``.  The label is interpreted
     /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
     /// 0, and so on.  This is the same as the labels for :class:`.Pauli` and
     /// :class:`.SparsePauliOp`.
     ///
     /// Args:
-    ///     iter (list[tuple[str, float]]): Pairs of labels and their associated coefficients to
-    ///         sum. The labels are interpreted the same way as in :meth:`from_label`.
+    ///     iter (list[tuple[str, float]]): Pairs of labels and their associated coefficients in the
+    ///         generator sum.
     ///     num_qubits (int | None): It is not necessary to specify this if you are sure that
     ///         ``iter`` is not an empty sequence, since it can be inferred from the label lengths.
     ///         If ``iter`` may be empty, you must specify this argument to disambiguate how many
-    ///         qubits the observable is for.  If this is given and ``iter`` is not empty, the value
+    ///         qubits the map acts on.  If this is given and ``iter`` is not empty, the value
     ///         must match the label lengths.
     ///
     /// Examples:
     ///
     ///     Construct an observable from a list of labels of the same length::
     ///
-    ///         >>> SparseObservable.from_list([
-    ///         ...     ("III++", 1.0),
-    ///         ...     ("II--I", 1.0j),
-    ///         ...     ("I++II", -0.5),
-    ///         ...     ("--III", -0.25j),
+    ///         >>> PauliLindbladMap.from_list([
+    ///         ...     ("IIIXX", 1.0),
+    ///         ...     ("IIYYI", 1.0),
+    ///         ...     ("IXXII", -0.5),
+    ///         ...     ("ZZIII", -0.25),
     ///         ... ])
-    ///         <SparseObservable with 4 terms on 5 qubits:
-    ///             (1+0j)(+_1 +_0) + (0+1j)(-_2 -_1) + (-0.5+0j)(+_3 +_2) + (-0-0.25j)(-_4 -_3)>
+    ///         <PauliLindbladMap with 4 terms on 5 qubits: 
+    ///             (1)L(X_1 X_0) + (1)L(Y_2 Y_1) + (-0.5)L(X_3 X_2) + (-0.25)L(Z_4 Z_3)>
     ///
     ///     Use ``num_qubits`` to disambiguate potentially empty inputs::
     ///
-    ///         >>> SparseObservable.from_list([], num_qubits=10)
-    ///         <SparseObservable with 0 terms on 10 qubits: 0.0>
+    ///         >>> PauliLindbladMap.from_list([], num_qubits=10)
+    ///         <PauliLindbladMap with 0 terms on 10 qubits: 0.0>
     ///
     ///     This method is equivalent to calls to :meth:`from_sparse_list` with the explicit
     ///     qubit-arguments field set to decreasing integers::
     ///
-    ///         >>> labels = ["XY+Z", "rl01", "-lXZ"]
-    ///         >>> coeffs = [1.5j, 2.0, -0.5]
-    ///         >>> from_list = SparseObservable.from_list(list(zip(labels, coeffs)))
-    ///         >>> from_sparse_list = SparseObservable.from_sparse_list([
+    ///         >>> labels = ["XYXZ", "YYZZ", "XYXZ"]
+    ///         >>> coeffs = [1.5, 2.0, -0.5]
+    ///         >>> from_list = PauliLindbladMap.from_list(list(zip(labels, coeffs)))
+    ///         >>> from_sparse_list = PauliLindbladMap.from_sparse_list([
     ///         ...     (label, (3, 2, 1, 0), coeff)
     ///         ...     for label, coeff in zip(labels, coeffs)
     ///         ... ])
     ///         >>> assert from_list == from_sparse_list
     ///
     /// See also:
-    ///     :meth:`from_label`
-    ///         A similar constructor, but takes only a single label and always has its coefficient
-    ///         set to ``1.0``.
-    ///
     ///     :meth:`from_sparse_list`
-    ///         Construct the observable from a list of labels without explicit identities, but with
-    ///         the qubits each single-qubit term applies to listed explicitly.
+    ///         Construct the map from a list of labels without explicit identities, but with
+    ///         the qubits each single-qubit generator term applies to listed explicitly.
     #[staticmethod]
     #[pyo3(signature = (iter, /, *, num_qubits=None))]
     fn from_list(iter: Vec<(String, f64)>, num_qubits: Option<u32>) -> PyResult<Self> {
         if iter.is_empty() && num_qubits.is_none() {
             return Err(PyValueError::new_err(
-                "cannot construct an observable from an empty list without knowing `num_qubits`",
+                "cannot construct a PauliLindbladMap from an empty list without knowing `num_qubits`",
             ));
         }
         let num_qubits = match num_qubits {
@@ -1292,31 +1287,31 @@ impl PyPauliLindbladMap {
         Ok(inner.into())
     }
 
-    /// Construct a :class:`SparseObservable` out of individual terms.
+    /// Construct a :class:`PauliLindbladMap` out of individual terms.
     ///
     /// All the terms must have the same number of qubits.  If supplied, the ``num_qubits`` argument
     /// must match the terms.
     ///
-    /// No simplification is done as part of the observable creation.
+    /// No simplification is done as part of the map creation.
     ///
     /// Args:
-    ///     obj (Iterable[Term]): Iterable of individual terms to build the observable from.
-    ///     num_qubits (int | None): The number of qubits the observable should act on.  This is
+    ///     obj (Iterable[Term]): Iterable of individual terms to build the map generator from.
+    ///     num_qubits (int | None): The number of qubits the map should act on.  This is
     ///         usually inferred from the input, but can be explicitly given to handle the case
     ///         of an empty iterable.
     ///
     /// Returns:
-    ///     The corresponding observable.
+    ///     The corresponding map.
     #[staticmethod]
     #[pyo3(signature = (obj, /, num_qubits=None))]
     fn from_terms(obj: &Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
         let mut iter = obj.try_iter()?;
         let mut inner = match num_qubits {
-            Some(num_qubits) => PauliLindbladMap::zero(num_qubits),
+            Some(num_qubits) => PauliLindbladMap::identity(num_qubits),
             None => {
                 let Some(first) = iter.next() else {
                     return Err(PyValueError::new_err(
-                        "cannot construct an observable from an empty list without knowing `num_qubits`",
+                        "cannot construct a PauliLindbladMap from an empty list without knowing `num_qubits`",
                     ));
                 };
                 let py_term = first?.downcast::<PySparseTerm>()?.borrow();
@@ -1332,14 +1327,14 @@ impl PyPauliLindbladMap {
 
     // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
     // the `bit_terms` must all be valid `BitTerm` representations.
-    /// Construct a :class:`.SparseObservable` from raw Numpy arrays that match :ref:`the required
+    /// Construct a :class:`.PauliLindbladMap` from raw Numpy arrays that match :ref:`the required
     /// data representation described in the class-level documentation <sparse-observable-arrays>`.
     ///
     /// The data from each array is copied into fresh, growable Rust-space allocations.
     ///
     /// Args:
-    ///     num_qubits: number of qubits in the observable.
-    ///     coeffs: float coefficients of each term of the observable.  This should be a Numpy
+    ///     num_qubits: number of qubits the map acts on.
+    ///     coeffs: float coefficients of each generator term of the map.  This should be a Numpy
     ///         array with dtype :attr:`~numpy.float64`.
     ///     bit_terms: flattened list of the single-qubit terms comprising all complete terms.  This
     ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
@@ -1362,12 +1357,12 @@ impl PyPauliLindbladMap {
     ///     Construct a sum of :math:`Z` on each individual qubit::
     ///
     ///         >>> num_qubits = 100
-    ///         >>> terms = np.full((num_qubits,), SparseObservable.BitTerm.Z, dtype=np.uint8)
+    ///         >>> terms = np.full((num_qubits,), PauliLindbladMap.BitTerm.Z, dtype=np.uint8)
     ///         >>> indices = np.arange(num_qubits, dtype=np.uint32)
     ///         >>> coeffs = np.ones((num_qubits,), dtype=float)
     ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
-    ///         >>> SparseObservable.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
-    ///         <SparseObservable with 100 terms on 100 qubits: (1+0j)(Z_0) + ... + (1+0j)(Z_99)>
+    ///         >>> PauliLindbladMap.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
+    ///         <PauliLindbladMap with 100 terms on 100 qubits: (1)L(Z_0) + ... + (1)L(Z_99)>
     #[staticmethod]
     #[pyo3(
         signature = (/, num_qubits, coeffs, bit_terms, indices, boundaries, check=true),
@@ -1409,7 +1404,7 @@ impl PyPauliLindbladMap {
         Ok(inner.into())
     }
 
-    /// Clear all the terms from this operator, making it equal to the zero operator again.
+    /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
     /// substraction operations may not need to reallocate.
@@ -1418,9 +1413,9 @@ impl PyPauliLindbladMap {
     ///
     ///     .. code-block:: python
     ///
-    ///         >>> obs = SparseObservable.from_list([("IX+-rl", 2.0), ("01YZII", -1j)])
-    ///         >>> obs.clear()
-    ///         >>> assert obs == SparseObservable.zero(obs.py_num_qubits())
+    ///         >>> pauli_lindblad_map = PauliLindbladMap.from_list([("IXXXYY", 2.0), ("ZZYZII", -1)])
+    ///         >>> pauli_lindblad_map.clear()
+    ///         >>> assert pauli_lindblad_map == PauliLindbladMap.identity(pauli_lindblad_map.py_num_qubits())
     pub fn clear(&mut self) -> PyResult<()> {
         let mut inner = self.inner.write().map_err(|_| InnerWriteError)?;
         inner.clear();
@@ -1598,7 +1593,7 @@ impl PyPauliLindbladMap {
             }
             indices => indices,
         };
-        let mut out = PauliLindbladMap::zero(inner.num_qubits());
+        let mut out = PauliLindbladMap::identity(inner.num_qubits());
         for index in indices.iter() {
             out.add_term(inner.term(index))?;
         }
