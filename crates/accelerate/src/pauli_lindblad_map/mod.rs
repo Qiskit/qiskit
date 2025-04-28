@@ -191,7 +191,7 @@ pub enum CoherenceError {
     DuplicateIndices,
     #[error("the provided qubit mapping does not account for all contained qubits")]
     IndexMapTooSmall,
-    #[error("cannot shrink the qubit count in an observable from {current} to {target}")]
+    #[error("cannot shrink the qubit count in a Pauli Lindblad map from {current} to {target}")]
     NotEnoughQubits { current: usize, target: usize },
 }
 
@@ -423,7 +423,7 @@ impl PauliLindbladMap {
         &mut self.boundaries
     }
 
-    /// Get the [BitTerm]s in the observable.
+    /// Get the [BitTerm]s in the map.
     #[inline]
     pub fn bit_terms(&self) -> &[BitTerm] {
         &self.bit_terms
@@ -472,7 +472,7 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Add the generator term implied by a dense string label onto this observable.
+    /// Add the generator term implied by a dense string label onto this map.
     pub fn add_dense_label<L: AsRef<[u8]>>(
         &mut self,
         label: L,
@@ -929,14 +929,14 @@ impl PySparseTerm {
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
     fn to_pauli_lindblad_map(&self) -> PyResult<PyPauliLindbladMap> {
-        let obs = PauliLindbladMap::new(
+        let pauli_lindblad_map = PauliLindbladMap::new(
             self.inner.num_qubits(),
             vec![self.inner.coeff()],
             self.inner.bit_terms().to_vec(),
             self.inner.indices().to_vec(),
             vec![0, self.inner.bit_terms().len()],
         )?;
-        Ok(obs.into())
+        Ok(pauli_lindblad_map.into())
     }
 
     fn to_label(&self) -> PyResult<String> {
@@ -1075,9 +1075,9 @@ impl PyPauliLindbladMap {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if let Ok(observable) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_lindblad_map) = data.downcast_exact::<Self>() {
             check_num_qubits(data)?;
-            let borrowed = observable.borrow();
+            let borrowed = pauli_lindblad_map.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
             return Ok(inner.clone().into());
         }
@@ -1098,8 +1098,8 @@ impl PyPauliLindbladMap {
         if let Ok(term) = data.downcast_exact::<PySparseTerm>() {
             return term.borrow().to_pauli_lindblad_map();
         };
-        if let Ok(observable) = Self::from_terms(data, num_qubits) {
-            return Ok(observable);
+        if let Ok(pauli_lindblad_map) = Self::from_terms(data, num_qubits) {
+            return Ok(pauli_lindblad_map);
         }
         Err(PyTypeError::new_err(format!(
             "unknown input format for 'PauliLindbladMap': {}",
@@ -1232,7 +1232,7 @@ impl PyPauliLindbladMap {
     ///
     /// Examples:
     ///
-    ///     Construct an observable from a list of labels of the same length::
+    ///     Construct a Pauli Lindblad map from a list of labels::
     ///
     ///         >>> PauliLindbladMap.from_list([
     ///         ...     ("IIIXX", 1.0),
@@ -1324,7 +1324,8 @@ impl PyPauliLindbladMap {
     // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
     // the `bit_terms` must all be valid `BitTerm` representations.
     /// Construct a :class:`.PauliLindbladMap` from raw Numpy arrays that match :ref:`the required
-    /// data representation described in the class-level documentation <sparse-observable-arrays>`.
+    /// data representation described in the class-level documentation 
+    /// <sparse-pauli-lindblad-map-arrays>`.
     ///
     /// The data from each array is copied into fresh, growable Rust-space allocations.
     ///
@@ -1345,7 +1346,7 @@ impl PyPauliLindbladMap {
     ///         .. warning::
     ///
     ///             If ``check=False``, the ``bit_terms`` absolutely *must* be all be valid values
-    ///             of :class:`.SparseObservable.BitTerm`.  If they are not, Rust-space undefined
+    ///             of :class:`.PauliLindbladMap.BitTerm`.  If they are not, Rust-space undefined
     ///             behavior may occur, entirely invalidating the program execution.
     ///
     /// Examples:
@@ -1693,17 +1694,17 @@ struct ArrayView {
 #[pymethods]
 impl ArrayView {
     fn __repr__(&self, py: Python) -> PyResult<String> {
-        let obs = self.base.read().map_err(|_| InnerReadError)?;
+        let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         let data = match self.slot {
             // Simple integers look the same in Rust-space debug as Python.
-            ArraySlot::Indices => format!("{:?}", obs.indices()),
-            ArraySlot::Boundaries => format!("{:?}", obs.boundaries()),
+            ArraySlot::Indices => format!("{:?}", pauli_lindblad_map.indices()),
+            ArraySlot::Boundaries => format!("{:?}", pauli_lindblad_map.boundaries()),
             // Complexes don't have a nice repr in Rust, so just delegate the whole load to Python
             // and convert back.
-            ArraySlot::Coeffs => PyList::new(py, obs.coeffs())?.repr()?.to_string(),
+            ArraySlot::Coeffs => PyList::new(py, pauli_lindblad_map.coeffs())?.repr()?.to_string(),
             ArraySlot::BitTerms => format!(
                 "[{}]",
-                obs.bit_terms()
+                pauli_lindblad_map.bit_terms()
                     .iter()
                     .map(BitTerm::py_label)
                     .collect::<Vec<_>>()
@@ -1711,7 +1712,7 @@ impl ArrayView {
             ),
         };
         Ok(format!(
-            "<observable {} view: {}>",
+            "<pauli lindblad map {} view: {}>",
             match self.slot {
                 ArraySlot::Coeffs => "coeffs",
                 ArraySlot::BitTerms => "bit_terms",
@@ -1746,12 +1747,12 @@ impl ArrayView {
             }
         }
 
-        let obs = self.base.read().map_err(|_| InnerReadError)?;
+        let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
-            ArraySlot::Coeffs => get_from_slice::<_, f64>(py, obs.coeffs(), index),
-            ArraySlot::BitTerms => get_from_slice::<_, u8>(py, obs.bit_terms(), index),
-            ArraySlot::Indices => get_from_slice::<_, u32>(py, obs.indices(), index),
-            ArraySlot::Boundaries => get_from_slice::<_, usize>(py, obs.boundaries(), index),
+            ArraySlot::Coeffs => get_from_slice::<_, f64>(py, pauli_lindblad_map.coeffs(), index),
+            ArraySlot::BitTerms => get_from_slice::<_, u8>(py, pauli_lindblad_map.bit_terms(), index),
+            ArraySlot::Indices => get_from_slice::<_, u32>(py, pauli_lindblad_map.indices(), index),
+            ArraySlot::Boundaries => get_from_slice::<_, usize>(py, pauli_lindblad_map.boundaries(), index),
         }
     }
 
@@ -1808,26 +1809,26 @@ impl ArrayView {
             }
         }
 
-        let mut obs = self.base.write().map_err(|_| InnerWriteError)?;
+        let mut pauli_lindblad_map = self.base.write().map_err(|_| InnerWriteError)?;
         match self.slot {
-            ArraySlot::Coeffs => set_in_slice::<_, f64>(obs.coeffs_mut(), index, values),
-            ArraySlot::BitTerms => set_in_slice::<BitTerm, u8>(obs.bit_terms_mut(), index, values),
+            ArraySlot::Coeffs => set_in_slice::<_, f64>(pauli_lindblad_map.coeffs_mut(), index, values),
+            ArraySlot::BitTerms => set_in_slice::<BitTerm, u8>(pauli_lindblad_map.bit_terms_mut(), index, values),
             ArraySlot::Indices => unsafe {
-                set_in_slice::<_, u32>(obs.indices_mut(), index, values)
+                set_in_slice::<_, u32>(pauli_lindblad_map.indices_mut(), index, values)
             },
             ArraySlot::Boundaries => unsafe {
-                set_in_slice::<_, usize>(obs.boundaries_mut(), index, values)
+                set_in_slice::<_, usize>(pauli_lindblad_map.boundaries_mut(), index, values)
             },
         }
     }
 
     fn __len__(&self, _py: Python) -> PyResult<usize> {
-        let obs = self.base.read().map_err(|_| InnerReadError)?;
+        let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         let len = match self.slot {
-            ArraySlot::Coeffs => obs.coeffs().len(),
-            ArraySlot::BitTerms => obs.bit_terms().len(),
-            ArraySlot::Indices => obs.indices().len(),
-            ArraySlot::Boundaries => obs.boundaries().len(),
+            ArraySlot::Coeffs => pauli_lindblad_map.coeffs().len(),
+            ArraySlot::BitTerms => pauli_lindblad_map.bit_terms().len(),
+            ArraySlot::Indices => pauli_lindblad_map.indices().len(),
+            ArraySlot::Boundaries => pauli_lindblad_map.boundaries().len(),
         };
         Ok(len)
     }
@@ -1848,17 +1849,17 @@ impl ArrayView {
                 "cannot produce a safe view onto movable memory",
             ));
         }
-        let obs = self.base.read().map_err(|_| InnerReadError)?;
+        let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
-            ArraySlot::Coeffs => cast_array_type(py, PyArray1::from_slice(py, obs.coeffs()), dtype),
+            ArraySlot::Coeffs => cast_array_type(py, PyArray1::from_slice(py, pauli_lindblad_map.coeffs()), dtype),
             ArraySlot::Indices => {
-                cast_array_type(py, PyArray1::from_slice(py, obs.indices()), dtype)
+                cast_array_type(py, PyArray1::from_slice(py, pauli_lindblad_map.indices()), dtype)
             }
             ArraySlot::Boundaries => {
-                cast_array_type(py, PyArray1::from_slice(py, obs.boundaries()), dtype)
+                cast_array_type(py, PyArray1::from_slice(py, pauli_lindblad_map.boundaries()), dtype)
             }
             ArraySlot::BitTerms => {
-                let bit_terms: &[u8] = ::bytemuck::cast_slice(obs.bit_terms());
+                let bit_terms: &[u8] = ::bytemuck::cast_slice(pauli_lindblad_map.bit_terms());
                 cast_array_type(py, PyArray1::from_slice(py, bit_terms), dtype)
             }
         }
