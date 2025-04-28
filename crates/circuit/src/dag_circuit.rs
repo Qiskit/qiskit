@@ -101,15 +101,30 @@ impl NodeType {
     }
 }
 
-#[derive(Hash, Eq, PartialEq, Clone, Debug)]
+#[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Wire {
     Qubit(Qubit),
     Clbit(Clbit),
     Var(Var),
 }
+impl From<Qubit> for Wire {
+    fn from(wire: Qubit) -> Self {
+        Self::Qubit(wire)
+    }
+}
+impl From<Clbit> for Wire {
+    fn from(wire: Clbit) -> Self {
+        Self::Clbit(wire)
+    }
+}
+impl From<Var> for Wire {
+    fn from(wire: Var) -> Self {
+        Self::Var(wire)
+    }
+}
 
 impl Wire {
-    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+    fn to_pickle(self, py: Python) -> PyResult<PyObject> {
         match self {
             Self::Qubit(bit) => (0, bit.0.into_py_any(py)?),
             Self::Clbit(bit) => (1, bit.0.into_py_any(py)?),
@@ -846,7 +861,7 @@ impl DAGCircuit {
                     (
                         endpoints.0.index(),
                         endpoints.1.index(),
-                        edge_w.clone().to_pickle(py)?,
+                        edge_w.to_pickle(py)?,
                     )
                         .into_py_any(py)?
                 }
@@ -1274,7 +1289,7 @@ impl DAGCircuit {
         let clbits: HashSet<Clbit> = bit_iter.collect();
         let mut busy_bits = Vec::new();
         for bit in clbits.iter() {
-            if !self.is_wire_idle(&Wire::Clbit(*bit))? {
+            if !self.is_wire_idle(Wire::Clbit(*bit))? {
                 busy_bits.push(self.clbits.get(*bit).unwrap());
             }
         }
@@ -1444,7 +1459,7 @@ impl DAGCircuit {
 
         let mut busy_bits = Vec::new();
         for bit in qubits.iter() {
-            if !self.is_wire_idle(&Wire::Qubit(*bit))? {
+            if !self.is_wire_idle(Wire::Qubit(*bit))? {
                 busy_bits.push(self.qubits.get(*bit).unwrap());
             }
         }
@@ -1990,7 +2005,7 @@ impl DAGCircuit {
                     .map(|s| s.extract())
                     .collect::<PyResult<HashSet<String>>>()?;
                 for wire in wires {
-                    let nodes_found = self.nodes_on_wire(&wire, true).into_iter().any(|node| {
+                    let nodes_found = self.nodes_on_wire(wire, true).into_iter().any(|node| {
                         let weight = self.dag.node_weight(node).unwrap();
                         if let NodeType::Operation(packed) = weight {
                             !ignore_set.contains(packed.op.name())
@@ -2014,7 +2029,7 @@ impl DAGCircuit {
             }
             None => {
                 for wire in wires {
-                    if self.is_wire_idle(&wire)? {
+                    if self.is_wire_idle(wire)? {
                         result.push(match wire {
                             Wire::Qubit(qubit) => {
                                 self.qubits.get(qubit).unwrap().into_py_any(py)?
@@ -3238,9 +3253,7 @@ impl DAGCircuit {
             for edge in filtered.edge_references() {
                 let new_source = node_map[&edge.source()];
                 let new_target = node_map[&edge.target()];
-                new_dag
-                    .dag
-                    .add_edge(new_source, new_target, edge.weight().clone());
+                new_dag.dag.add_edge(new_source, new_target, *edge.weight());
             }
             // Add back any edges for idle wires
             for (qubit, [in_node, out_node]) in new_dag
@@ -3319,7 +3332,7 @@ impl DAGCircuit {
             .dag
             .edges(node1)
             .filter(|edge| edge.target() == node2)
-            .map(|edge| edge.weight().clone())
+            .map(|edge| *edge.weight())
             .collect();
 
         if wires.is_empty() {
@@ -3333,9 +3346,9 @@ impl DAGCircuit {
         //  - Incoming -> parent -> outputs (parent_edge_id, parent_source_node_id)
         //  - Outgoing -> child -> outputs (child_edge_id, child_target_node_id)
         // This functionality was inspired in rustworkx's 'find_predecessors_by_edge' and 'find_successors_by_edge'.
-        let directed_edge_for_wire = |node: NodeIndex, direction: Direction, wire: &Wire| {
+        let directed_edge_for_wire = |node: NodeIndex, direction: Direction, wire: Wire| {
             for edge in self.dag.edges_directed(node, direction) {
-                if wire == edge.weight() {
+                if wire == *edge.weight() {
                     match direction {
                         Incoming => return Some((edge.id(), edge.source())),
                         Outgoing => return Some((edge.id(), edge.target())),
@@ -3349,7 +3362,7 @@ impl DAGCircuit {
         let relevant_edges = wires
             .iter()
             .rev()
-            .map(|wire| {
+            .map(|&wire| {
                 (
                     wire,
                     directed_edge_for_wire(node1, Outgoing, wire).unwrap(),
@@ -3364,11 +3377,11 @@ impl DAGCircuit {
             relevant_edges
         {
             self.dag.remove_edge(parent_to_node1);
-            self.dag.add_edge(parent, node2, wire.clone());
+            self.dag.add_edge(parent, node2, wire);
             self.dag.remove_edge(node1_to_node2);
-            self.dag.add_edge(node2, node1, wire.clone());
+            self.dag.add_edge(node2, node1, wire);
             self.dag.remove_edge(node2_to_child);
-            self.dag.add_edge(node1, child, wire.clone());
+            self.dag.add_edge(node1, child, wire);
         }
         Ok(())
     }
@@ -4124,7 +4137,7 @@ impl DAGCircuit {
         })?;
 
         let nodes = self
-            .nodes_on_wire(&wire, only_ops)
+            .nodes_on_wire(wire, only_ops)
             .into_iter()
             .map(|n| self.get_node(py, n))
             .collect::<PyResult<Vec<_>>>()?;
@@ -5065,10 +5078,10 @@ impl DAGCircuit {
             let last_edges: Vec<_> = self
                 .dag
                 .edges_directed(output_node, Incoming)
-                .map(|e| (e.source(), e.id(), e.weight().clone()))
+                .map(|e| (e.source(), e.id(), *e.weight()))
                 .collect();
             for (source, old_edge, weight) in last_edges.into_iter() {
-                self.dag.add_edge(source, new_node, weight.clone());
+                self.dag.add_edge(source, new_node, weight);
                 self.dag.add_edge(new_node, output_node, weight);
                 self.dag.remove_edge(old_edge);
             }
@@ -5159,10 +5172,10 @@ impl DAGCircuit {
             let first_edges: Vec<_> = self
                 .dag
                 .edges_directed(input_node, Outgoing)
-                .map(|e| (e.target(), e.id(), e.weight().clone()))
+                .map(|e| (e.target(), e.id(), *e.weight()))
                 .collect();
             for (target, old_edge, weight) in first_edges.into_iter() {
-                self.dag.add_edge(input_node, new_node, weight.clone());
+                self.dag.add_edge(input_node, new_node, weight);
                 self.dag.add_edge(new_node, target, weight);
                 self.dag.remove_edge(old_edge);
             }
@@ -5347,7 +5360,7 @@ impl DAGCircuit {
             .any(|x| self.op_names.contains_key(&x.to_string()))
     }
 
-    fn is_wire_idle(&self, wire: &Wire) -> PyResult<bool> {
+    fn is_wire_idle(&self, wire: Wire) -> PyResult<bool> {
         let (input_node, output_node) = match wire {
             Wire::Qubit(qubit) => (
                 self.qubit_io_map[qubit.index()][0],
@@ -5503,37 +5516,33 @@ impl DAGCircuit {
     fn add_wire(&mut self, wire: Wire) -> PyResult<(NodeIndex, NodeIndex)> {
         let (in_node, out_node) = match wire {
             Wire::Qubit(qubit) => {
-                if (qubit.index()) >= self.qubit_io_map.len() {
-                    let input_node = self.dag.add_node(NodeType::QubitIn(qubit));
-                    let output_node = self.dag.add_node(NodeType::QubitOut(qubit));
-                    self.qubit_io_map.push([input_node, output_node]);
-                    Ok((input_node, output_node))
-                } else {
-                    Err(DAGCircuitError::new_err("qubit wire already exists!"))
+                if qubit.index() < self.qubit_io_map.len() {
+                    return Err(DAGCircuitError::new_err("qubit wire already exists!"));
                 }
+                let in_node = self.dag.add_node(NodeType::QubitIn(qubit));
+                let out_node = self.dag.add_node(NodeType::QubitOut(qubit));
+                self.qubit_io_map.push([in_node, out_node]);
+                (in_node, out_node)
             }
             Wire::Clbit(clbit) => {
-                if (clbit.index()) >= self.clbit_io_map.len() {
-                    let input_node = self.dag.add_node(NodeType::ClbitIn(clbit));
-                    let output_node = self.dag.add_node(NodeType::ClbitOut(clbit));
-                    self.clbit_io_map.push([input_node, output_node]);
-                    Ok((input_node, output_node))
-                } else {
-                    Err(DAGCircuitError::new_err("classical wire already exists!"))
+                if clbit.index() < self.clbit_io_map.len() {
+                    return Err(DAGCircuitError::new_err("classical wire already exists!"));
                 }
+                let in_node = self.dag.add_node(NodeType::ClbitIn(clbit));
+                let out_node = self.dag.add_node(NodeType::ClbitOut(clbit));
+                self.clbit_io_map.push([in_node, out_node]);
+                (in_node, out_node)
             }
             Wire::Var(var) => {
-                if var.index() >= self.var_io_map.len() {
-                    let in_node = self.dag.add_node(NodeType::VarIn(var));
-                    let out_node = self.dag.add_node(NodeType::VarOut(var));
-                    self.var_io_map.push([in_node, out_node]);
-                    Ok((in_node, out_node))
-                } else {
+                if var.index() < self.var_io_map.len() {
                     return Err(DAGCircuitError::new_err("var wire already exists!"));
                 }
+                let in_node = self.dag.add_node(NodeType::VarIn(var));
+                let out_node = self.dag.add_node(NodeType::VarOut(var));
+                self.var_io_map.push([in_node, out_node]);
+                (in_node, out_node)
             }
-        }?;
-
+        };
         self.dag.add_edge(in_node, out_node, wire);
         Ok((in_node, out_node))
     }
@@ -5541,7 +5550,7 @@ impl DAGCircuit {
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
-    pub fn nodes_on_wire(&self, wire: &Wire, only_ops: bool) -> Vec<NodeIndex> {
+    pub fn nodes_on_wire(&self, wire: Wire, only_ops: bool) -> Vec<NodeIndex> {
         let mut nodes = Vec::new();
         let mut current_node = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.index()).map(|x| x[0]),
@@ -5560,13 +5569,9 @@ impl DAGCircuit {
             }
 
             let edges = self.dag.edges_directed(node, Outgoing);
-            current_node = edges.into_iter().find_map(|edge| {
-                if edge.weight() == wire {
-                    Some(edge.target())
-                } else {
-                    None
-                }
-            });
+            current_node = edges
+                .into_iter()
+                .find_map(|edge| (*edge.weight() == wire).then_some(edge.target()));
         }
         nodes
     }
@@ -5614,15 +5619,15 @@ impl DAGCircuit {
         for (source, in_weight) in self
             .dag
             .edges_directed(index, Incoming)
-            .map(|x| (x.source(), x.weight()))
+            .map(|x| (x.source(), *x.weight()))
         {
             for (target, out_weight) in self
                 .dag
                 .edges_directed(index, Outgoing)
-                .map(|x| (x.target(), x.weight()))
+                .map(|x| (x.target(), *x.weight()))
             {
                 if in_weight == out_weight {
-                    edge_list.push((source, target, in_weight.clone()));
+                    edge_list.push((source, target, in_weight));
                 }
             }
         }
@@ -6029,7 +6034,7 @@ impl DAGCircuit {
         let edges: Vec<(NodeIndex, NodeIndex, Wire)> = self
             .dag
             .edges_directed(node, Incoming)
-            .map(|x| (x.source(), x.target(), x.weight().clone()))
+            .map(|x| (x.source(), x.target(), *x.weight()))
             .collect();
         for (source, _target, weight) in edges {
             let wire_input_id = match weight {
@@ -6074,7 +6079,7 @@ impl DAGCircuit {
         let edges: Vec<(NodeIndex, NodeIndex, Wire)> = self
             .dag
             .edges_directed(node, Outgoing)
-            .map(|x| (x.source(), x.target(), x.weight().clone()))
+            .map(|x| (x.source(), x.target(), *x.weight()))
             .collect();
         for (_source, target, weight) in edges {
             let wire_output_id = match weight {
@@ -6311,10 +6316,10 @@ impl DAGCircuit {
         let (parent_index, edge_index, weight) = self
             .dag
             .edges_directed(old_index, Incoming)
-            .map(|edge| (edge.source(), edge.id(), edge.weight().clone()))
+            .map(|edge| (edge.source(), edge.id(), *edge.weight()))
             .next()
             .unwrap();
-        self.dag.add_edge(parent_index, new_index, weight.clone());
+        self.dag.add_edge(parent_index, new_index, weight);
         self.dag.add_edge(new_index, old_index, weight);
         self.dag.remove_edge(edge_index);
     }
@@ -6326,7 +6331,7 @@ impl DAGCircuit {
         let (parent_index, weight) = self
             .dag
             .edges_directed(*sequence.first().unwrap(), Incoming)
-            .map(|edge| (edge.source(), edge.weight().clone()))
+            .map(|edge| (edge.source(), *edge.weight()))
             .next()
             .unwrap();
         let child_index = self
@@ -6357,26 +6362,26 @@ impl DAGCircuit {
         insert: F,
     ) -> PyResult<()>
     where
-        F: Fn(&Wire) -> (PackedOperation, SmallVec<[Param; 3]>),
+        F: Fn(Wire) -> (PackedOperation, SmallVec<[Param; 3]>),
     {
         let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::with_capacity(2);
         for (source, in_weight) in self
             .dag
             .edges_directed(node, Incoming)
-            .map(|x| (x.source(), x.weight()))
+            .map(|x| (x.source(), *x.weight()))
         {
             for (target, out_weight) in self
                 .dag
                 .edges_directed(node, Outgoing)
-                .map(|x| (x.target(), x.weight()))
+                .map(|x| (x.target(), *x.weight()))
             {
                 if in_weight == out_weight {
-                    edge_list.push((source, target, in_weight.clone()));
+                    edge_list.push((source, target, in_weight));
                 }
             }
         }
         for (source, target, weight) in edge_list {
-            let (new_op, params) = insert(&weight);
+            let (new_op, params) = insert(weight);
             self.increment_op(new_op.name());
             let qubits = if let Wire::Qubit(qubit) = weight {
                 vec![qubit]
@@ -6404,7 +6409,7 @@ impl DAGCircuit {
                 py_op,
             };
             let new_index = self.dag.add_node(NodeType::Operation(inst));
-            self.dag.add_edge(source, new_index, weight.clone());
+            self.dag.add_edge(source, new_index, weight);
             self.dag.add_edge(new_index, target, weight);
         }
 
@@ -7131,11 +7136,8 @@ impl DAGCircuit {
         let op_name = old_packed.op.name().to_string();
         // Extract information from new op
         let new_op = op.extract::<OperationFromPython>()?;
-        let current_wires: HashSet<Wire> = self
-            .dag
-            .edges(node_index)
-            .map(|e| e.weight().clone())
-            .collect();
+        let current_wires: HashSet<Wire> =
+            self.dag.edges(node_index).map(|e| *e.weight()).collect();
         let mut new_wires: HashSet<Wire> = self
             .qargs_interner
             .get(old_packed.qubits)
@@ -7565,7 +7567,7 @@ mod test {
             let actual_wires: HashSet<_> = dag
                 .dag
                 .edge_references()
-                .map(|e| (e.source(), e.target(), e.weight().clone()))
+                .map(|e| (e.source(), e.target(), *e.weight()))
                 .collect();
 
             assert_eq!(actual_wires, expected_wires, "unexpected DAG structure");
@@ -7597,7 +7599,7 @@ mod test {
             let actual_wires: HashSet<_> = dag
                 .dag
                 .edge_references()
-                .map(|e| (e.source(), e.target(), e.weight().clone()))
+                .map(|e| (e.source(), e.target(), *e.weight()))
                 .collect();
 
             assert_eq!(actual_wires, expected_wires, "unexpected DAG structure");
@@ -7641,7 +7643,7 @@ mod test {
             let actual_wires: HashSet<_> = dag
                 .dag
                 .edge_references()
-                .map(|e| (e.source(), e.target(), e.weight().clone()))
+                .map(|e| (e.source(), e.target(), *e.weight()))
                 .collect();
 
             assert_eq!(actual_wires, expected_wires);
@@ -7671,7 +7673,7 @@ mod test {
             let actual_wires: HashSet<_> = dag
                 .dag
                 .edge_references()
-                .map(|e| (e.source(), e.target(), e.weight().clone()))
+                .map(|e| (e.source(), e.target(), *e.weight()))
                 .collect();
 
             assert_eq!(actual_wires, expected_wires, "unexpected DAG structure");
