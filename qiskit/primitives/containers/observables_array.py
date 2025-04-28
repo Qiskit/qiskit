@@ -53,6 +53,7 @@ class ObservablesArray(ShapedMixin):
     def __init__(
         self,
         observables: ObservablesArrayLike,
+        num_qubits=None,
         copy: bool = True,
         validate: bool = True,
     ):
@@ -62,6 +63,10 @@ class ObservablesArray(ShapedMixin):
             observables: An array-like of basis observable compatible objects.
             copy: Specify the ``copy`` kwarg of the :func:`.object_array` function
                 when initializing observables.
+            num_qubits: The number of qubits of the observables. If not specified, and `validate`
+                is ``True``, the number of qubits will be inferred from the observables. If specified,
+                and `validate` is ``True``, then the specified number of qubits must match the number
+                of qubits in the observables.
             validate: If true, coerce entries into the internal format and validate them. If false,
                 the input should already be an array-like.
 
@@ -73,9 +78,18 @@ class ObservablesArray(ShapedMixin):
             observables = observables._array
         self._array = object_array(observables, copy=copy, list_types=(PauliList,))
         self._shape = self._array.shape
+        self._num_qubits = num_qubits
         if validate:
             for ndi, obs in np.ndenumerate(self._array):
-                self._array[ndi] = self.coerce_observable(obs)
+                basis_obs = self.coerce_observable(obs)
+                if self._num_qubits is None:
+                    self._num_qubits = basis_obs.num_qubits
+                elif self._num_qubits != basis_obs.num_qubits:
+                    raise ValueError(
+                        "The number of qubits must be the same for all observables in the "
+                        "observables array."
+                    )
+                self._array[ndi] = basis_obs
 
     @staticmethod
     def _obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
@@ -180,6 +194,10 @@ class ObservablesArray(ShapedMixin):
             A new flattened array.
         """
         return self.reshape(self.size)
+
+    @property
+    def num_qubits(self) -> int:
+        return self._num_qubits
 
     @classmethod
     def coerce_observable(cls, observable: ObservableLike) -> SparseObservable:
