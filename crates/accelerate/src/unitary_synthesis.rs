@@ -22,7 +22,7 @@ use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -42,6 +42,7 @@ use crate::euler_one_qubit_decomposer::{
 };
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::{NormalOperation, Target, TargetOperation};
+use crate::target_transpiler::{Qargs, QargsRef};
 use crate::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
     TwoQubitWeylDecomposition,
@@ -113,7 +114,7 @@ fn get_euler_basis_set(basis_list: IndexSet<&str>) -> EulerBasisSet {
 /// This will determine the available 1q synthesis basis for different decomposers.
 fn get_target_basis_set(target: &Target, qubit: PhysicalQubit) -> EulerBasisSet {
     let mut target_basis_set: EulerBasisSet = EulerBasisSet::new();
-    let target_basis_list = target.operation_names_for_qargs(Some(&smallvec![qubit]));
+    let target_basis_list = target.operation_names_for_qargs(&[qubit]);
     match target_basis_list {
         Ok(basis_list) => {
             target_basis_set = get_euler_basis_set(basis_list.into_iter().collect());
@@ -516,19 +517,19 @@ fn get_2q_decomposers_from_target(
     pulse_optimize: Option<bool>,
 ) -> PyResult<Option<Vec<DecomposerElement>>> {
     // Store elegible basis gates (1q and 2q) with corresponding qargs (PhysicalQubit)
-    let qubits: SmallVec<[PhysicalQubit; 2]> = SmallVec::from_buf(*qubits);
-    let reverse_qubits: SmallVec<[PhysicalQubit; 2]> = qubits.iter().rev().copied().collect();
+    let qargs: Qargs = Qargs::from_iter(*qubits);
+    let reverse_qargs: Qargs = qubits.iter().rev().copied().collect();
     let mut qubit_gate_map = IndexMap::new();
-    match target.operation_names_for_qargs(Some(&qubits)) {
+    match target.operation_names_for_qargs(&qargs) {
         Ok(direct_keys) => {
-            qubit_gate_map.insert(&qubits, direct_keys);
-            if let Ok(reverse_keys) = target.operation_names_for_qargs(Some(&reverse_qubits)) {
-                qubit_gate_map.insert(&reverse_qubits, reverse_keys);
+            qubit_gate_map.insert(&qargs, direct_keys);
+            if let Ok(reverse_keys) = target.operation_names_for_qargs(&reverse_qargs) {
+                qubit_gate_map.insert(&reverse_qargs, reverse_keys);
             }
         }
         Err(_) => {
-            if let Ok(reverse_keys) = target.operation_names_for_qargs(Some(&reverse_qubits)) {
-                qubit_gate_map.insert(&reverse_qubits, reverse_keys);
+            if let Ok(reverse_keys) = target.operation_names_for_qargs(&reverse_qargs) {
+                qubit_gate_map.insert(&reverse_qargs, reverse_keys);
             } else {
                 return Err(QiskitError::new_err(
                     "Target has no gates available on qubits to synthesize over.",
@@ -568,7 +569,7 @@ fn get_2q_decomposers_from_target(
                     key,
                     (
                         op.clone(),
-                        match &target[key].get(Some(q_pair)) {
+                        match &target[key].get(q_pair) {
                             Some(Some(props)) => props.error,
                             _ => None,
                         },
@@ -579,7 +580,7 @@ fn get_2q_decomposers_from_target(
                 key,
                 (
                     op.clone(),
-                    match &target[key].get(Some(q_pair)) {
+                    match &target[key].get(q_pair) {
                         Some(Some(props)) => props.error,
                         _ => None,
                     },
@@ -747,7 +748,7 @@ fn get_2q_decomposers_from_target(
                 if pi_2_basis == "cx" && basis_1q == "ZSX" {
                     let fidelity = match approximation_degree {
                         Some(approx_degree) => approx_degree,
-                        None => match &target["cx"][Some(&qubits)] {
+                        None => match &target["cx"][&qargs] {
                             Some(props) => 1.0 - props.error.unwrap_or_default(),
                             None => 1.0,
                         },
@@ -825,11 +826,9 @@ fn preferred_direction(
                                 let cost = match target
                                     .qargs_for_operation_name(decomposer.packed_op.name())
                                 {
-                                    Ok(_) => match target[decomposer.packed_op.name()].get(Some(
-                                        &q_tuple
-                                            .into_iter()
-                                            .collect::<SmallVec<[PhysicalQubit; 2]>>(),
-                                    )) {
+                                    Ok(_) => match target[decomposer.packed_op.name()]
+                                        .get(&Qargs::from(q_tuple))
+                                    {
                                         Some(Some(_props)) => {
                                             if lengths {
                                                 _props.duration.unwrap_or(in_cost)
@@ -1109,7 +1108,7 @@ fn synth_error(
         |inst_name: &str,
          inst_params: &Option<SmallVec<[Param; 3]>>,
          inst_qubits: &SmallVec<[PhysicalQubit; 2]>| {
-            if let Ok(names) = target.operation_names_for_qargs(Some(inst_qubits)) {
+            if let Ok(names) = target.operation_names_for_qargs(inst_qubits) {
                 for name in names {
                     let Some(TargetOperation::Normal(target_op)) = target.operation_from_name(name)
                     else {
@@ -1130,7 +1129,7 @@ fn synth_error(
                     if target_op.operation.name() == inst_name
                         && (is_parametrized || are_params_close)
                     {
-                        match target[name].get(Some(inst_qubits)) {
+                        match target[name].get(&QargsRef::from(inst_qubits)) {
                             Some(Some(props)) => {
                                 gate_fidelities.push(1.0 - props.error.unwrap_or(0.0))
                             }
