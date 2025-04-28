@@ -1544,7 +1544,7 @@ impl CircuitData {
         Ok(())
     }
 
-    fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
+    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
                 .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?

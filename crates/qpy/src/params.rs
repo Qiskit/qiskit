@@ -37,13 +37,13 @@ fn serialize_parameter_replay_entry(py: Python, inst: &Bound<PyAny>) -> PyResult
     // This is different from `dumps_value` since we aim specifically for [u8; 16]
     // This means parameters are not fully stored, only their uuid
     // Also integers and floats are padded with 0
-    let key_type = get_type_key(py, inst);
+    let key_type = get_type_key(py, inst)?;
     let data = match key_type {
         tags::PARAMETER => inst
             .getattr(intern!(py, "uuid"))?
             .getattr(intern!(py, "bytes"))?
             .extract::<[u8; 16]>()?,
-        tags::NONE => [0u8; 16],
+        tags::NULL => [0u8; 16],
         tags::INTEGER => 0u64
             .to_be_bytes()
             .into_iter()
@@ -151,8 +151,7 @@ fn serialize_parameter_expression_elements(py: Python, py_object: &Bound<PyAny>,
 }
 
 fn pack_symbol(py: Python, symbol: &Bound<PyAny>, value: &Bound<PyAny>) -> PyResult<ParameterExpressionSymbolPack> {
-    let symbol_key = get_type_key(py, &symbol);
-
+    let symbol_key = get_type_key(py, &symbol)?;
     let symbol_data: Bytes = match symbol_key {
         tags::PARAMETER => serialize_parameter(py, &symbol)?,
         _ => return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!("Unhandled symbol_key: {}", symbol_key))),

@@ -79,12 +79,57 @@ pub struct CircuitInstructionArgPack {
     pub bit_type: u8,
     pub index: u32,
 }
+
 #[derive(BinWrite)]
 #[brw(big)]
 #[derive(Debug)]
 pub struct CustomCircuitInstructionsPack {
     pub custom_operations_length: u64,
+    pub custom_instructions: Vec<CustomCircuitInstructionDefPack>,
 }
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct CustomCircuitInstructionDefPack {
+    pub gate_name_size: u16,
+    pub gate_type: u8,
+    pub num_qubits: u32,
+    pub num_clbits: u32,
+    pub custom_definition: u8,
+    pub size: u64,
+    pub num_ctrl_qubits: u32,
+    pub ctrl_state: u32,
+    pub base_gate_size: u64,
+    pub name_raw: Bytes,
+    pub data: Bytes,
+    pub base_gate_raw: Bytes
+}
+// "CUSTOM_CIRCUIT_INST_DEF",
+// [
+//     "gate_name_size",
+//     "type",
+//     "num_qubits",
+//     "num_clbits",
+//     "custom_definition",
+//     "size",
+//     "num_ctrl_qubits",
+//     "ctrl_state",
+//     "base_gate_size",
+// ],
+// )
+// ustom_operation_raw = struct.pack(
+//     formats.CUSTOM_CIRCUIT_INST_DEF_V2_PACK,
+//     len(name_raw),
+//     type_key,
+//     num_qubits,
+//     num_clbits,
+//     has_definition,
+//     size,
+//     num_ctrl_qubits,
+//     ctrl_state,
+//     len(base_gate_raw),
+// )
 
 #[derive(BinWrite)]
 #[brw(big)]
