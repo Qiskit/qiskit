@@ -256,8 +256,8 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 /// Append a measurement to the circuit
 ///
 /// @param circuit A pointer to the circuit to add the measurement to
-/// @param qubits The ``uint32_t`` for the qubit to measure
-/// @param clbits The ``uint32_t`` for the clbit to store the measurement outcome in
+/// @param qubit The ``uint32_t`` for the qubit to measure
+/// @param clbit The ``uint32_t`` for the clbit to store the measurement outcome in
 ///
 /// # Example
 ///
@@ -289,7 +289,7 @@ pub unsafe extern "C" fn qk_circuit_measure(
 /// Append a reset to the circuit
 ///
 /// @param circuit A pointer to the circuit to add the reset to
-/// @param qubits The ``uint32_t`` for the qubit to reset
+/// @param qubit The ``uint32_t`` for the qubit to reset
 ///
 /// # Example
 ///
