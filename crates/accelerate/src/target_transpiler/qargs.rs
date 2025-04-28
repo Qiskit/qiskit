@@ -18,10 +18,10 @@ use crate::nlayout::PhysicalQubit;
 
 pub type TargetQargs = SmallVec<[PhysicalQubit; 2]>;
 
-/// Representation of quantum args for a [Target].
+/// Representation of quantum args for a [Target](super::Target).
 ///
-/// An instruction stored within a [Target] can have two different types
-/// of qargs when specifying its properties:
+/// An instruction stored within a [Target](super::Target) can have
+/// two different types of qargs when specifying its properties:
 /// - Global: If the instruction is a Variadic or can operate in any set
 ///   of qargs as long as they match the capacity of the instruction.
 /// - Concrete: Specific combination of quantum args.
@@ -61,7 +61,7 @@ impl Qargs {
         }
     }
 
-    /// Checks if the qargs in question are `Global`.
+    /// Checks if the qargs in question are [Global](Qargs::Global).
     pub fn is_global(&self) -> bool {
         matches!(self, Self::Global)
     }
@@ -115,7 +115,7 @@ impl Equivalent<Qargs> for QargsRef<'_> {
     }
 }
 
-/// Reference representation of [TargetQargs].
+/// Reference representation of [Qargs].
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum QargsRef<'a> {
     Global,
@@ -131,6 +131,16 @@ impl QargsRef<'_> {
     /// Checks if the qargs in question are `Concrete`.
     pub fn is_concrete(&self) -> bool {
         !self.is_global()
+    }
+
+    /// Converts into an owned version of [Qargs]
+    pub fn as_owned_qargs(&self) -> Qargs {
+        match self {
+            QargsRef::Global => Qargs::Global,
+            QargsRef::Concrete(physical_qubits) => {
+                Qargs::from_iter(physical_qubits.iter().copied())
+            }
+        }
     }
 }
 

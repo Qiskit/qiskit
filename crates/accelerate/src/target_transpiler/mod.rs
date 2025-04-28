@@ -16,6 +16,8 @@ mod errors;
 mod instruction_properties;
 mod qargs;
 
+use errors::TargetError;
+pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
 
 use std::{ops::Index, sync::OnceLock};
@@ -39,9 +41,6 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
 
 use crate::nlayout::PhysicalQubit;
-
-use errors::{TargetInvalidInstError, TargetKeyError};
-use instruction_properties::InstructionProperties;
 
 use self::exceptions::TranspilerError;
 
@@ -355,7 +354,7 @@ impl Target {
         };
 
         self.inner_add_instruction(instruction, name, props_map)
-            .map_err(|err| TranspilerError::new_err(err.message))
+            .map_err(|err| TranspilerError::new_err(err.to_string()))
     }
 
     /// Update the property object for an instruction qarg pair already in the `Target`
@@ -374,7 +373,7 @@ impl Target {
         properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
         self.update_instruction_properties(&instruction, &qargs, properties)
-            .map_err(|err| PyKeyError::new_err(err.message))
+            .map_err(|err| PyKeyError::new_err(err.to_string()))
     }
 
     /// Get the qargs for a given operation name
@@ -387,7 +386,7 @@ impl Target {
     pub fn py_qargs_for_operation_name(&self, operation: &str) -> PyResult<Option<Vec<&Qargs>>> {
         match self.qargs_for_operation_name(operation) {
             Ok(option_set) => Ok(option_set.map(|qargs| qargs.collect())),
-            Err(e) => Err(PyKeyError::new_err(e.message)),
+            Err(e) => Err(PyKeyError::new_err(e.to_string())),
         }
     }
 
@@ -461,7 +460,7 @@ impl Target {
     pub fn py_operation_names_for_qargs(&self, qargs: Qargs) -> PyResult<HashSet<&str>> {
         match self.operation_names_for_qargs(&qargs) {
             Ok(set) => Ok(set),
-            Err(e) => Err(PyKeyError::new_err(e.message)),
+            Err(e) => Err(PyKeyError::new_err(e.to_string())),
         }
     }
 
@@ -903,35 +902,61 @@ impl Target {
     /// Said addition results in a [NormalOperation] in the [Target] as variadics
     /// are not yet supported natively. If no properties are specified the operation
     /// is believed to be `Global` with properties `{Qargs::Global: None}`.
-    pub fn add_instruction<T>(
+    ///
+    /// # Arguments
+    ///
+    /// * `operation` - The [PackedOperation] to be added.
+    /// * `params` - The collection of [Param] assigned to the instruction.
+    /// * `name` - The name of the instruction if differs from the [PackedOperation]
+    ///   instance.
+    /// * `props_map`: The optional property mapping between [Qargs] and
+    ///   [InstructionProperties].
+    ///
+    /// # Returns
+    ///
+    /// * `Ok`: if the instruction property is successfully added.
+    /// * `Err`: (if the instruction already exists or any of the qargs do not match
+    ///   the instruction's number of qubits) [TargetError].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_circuit::operations::StandardGate;
+    ///
+    /// let mut target = Target::default();
+    /// let result = target.add_instruction(
+    ///     StandardGate::X.into(),
+    ///     &[],
+    ///     None,
+    ///     None,
+    /// );
+    ///
+    /// assert!(matches!(result, Ok(())));
+    /// ```
+    pub fn add_instruction(
         &mut self,
         operation: PackedOperation,
         params: &[Param],
         name: Option<&str>,
-        props_map: Option<T>,
-    ) -> Result<(), TargetInvalidInstError>
-    where
-        T: Into<PropsMap>,
-    {
-        let name = if let Some(name) = name {
-            name.to_owned()
+        props_map: Option<PropsMap>,
+    ) -> Result<(), TargetError> {
+        let parsed_name = if let Some(name) = name {
+            name.to_string()
         } else {
             operation.name().to_string()
         };
-        if self.gate_map.contains_key(&name) {
-            return Err(TargetInvalidInstError::new_err(format!(
-                "Instruction '{}' is already in the target",
-                name
-            )));
+        if self.gate_map.contains_key(&parsed_name) {
+            return Err(TargetError::AlreadyExists(parsed_name));
         }
         let operation = TargetOperation::from_packed_operation(operation, params.into());
         let props_map = if let Some(props_map) = props_map {
-            props_map.into()
+            props_map
         } else {
             IndexMap::from_iter([(Qargs::Global, None)])
         };
 
-        self.inner_add_instruction(operation, name, props_map)
+        self.inner_add_instruction(operation, parsed_name, props_map)
     }
 
     fn inner_add_instruction(
@@ -939,7 +964,7 @@ impl Target {
         instruction: TargetOperation,
         name: String,
         mut props_map: PropsMap,
-    ) -> Result<(), TargetInvalidInstError> {
+    ) -> Result<(), TargetError> {
         match &instruction {
             TargetOperation::Variadic(_) => {
                 props_map = IndexMap::from_iter([(Qargs::Global, None)]);
@@ -954,25 +979,21 @@ impl Target {
                         .or_insert(HashSet::from_iter([name.to_string()]));
                 }
                 for qarg in props_map.keys() {
-                    if let QargsRef::Concrete(qarg) = qarg.as_ref() {
-                        if qarg.len() != instruction.num_qubits() as usize {
-                            return Err(TargetInvalidInstError::new_err(format!(
-                                "The number of qubits for {name} does not match \
-                                the number of qubits in the properties dictionary: {:?}",
-                                qarg
-                            )));
+                    if let QargsRef::Concrete(qarg_slice) = qarg.as_ref() {
+                        if qarg_slice.len() != instruction.num_qubits() as usize {
+                            return Err(TargetError::QargsMismatch {
+                                instruction: name,
+                                arguments: qarg.clone(),
+                            });
                         }
                         self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
-                            qarg.iter().fold(
-                                0,
-                                |acc, x| {
-                                    if acc > x.index() {
-                                        acc
-                                    } else {
-                                        x.index()
-                                    }
-                                },
-                            ) + 1,
+                            qarg_slice.iter().fold(0, |acc, x| {
+                                if acc > x.index() {
+                                    acc
+                                } else {
+                                    x.index()
+                                }
+                            }) + 1,
                         ));
                     }
                     if let Some(Some(value)) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
@@ -992,28 +1013,56 @@ impl Target {
     }
 
     /// Update the property object for an instruction qarg pair already in the [Target].
+    ///
+    /// # Arguments
+    ///
+    /// * `instruction` - The instruction's name within this instance.
+    /// * `qargs` - A collection of [PhysicalQubit] or an instance of [Qargs::Global]
+    ///   that the instruction operated on.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok`: if the instruction property is successfully updated.
+    /// * `Err`: (if neither the instruction name or qarg aren't found) [TargetError].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::{Target, InstructionProperties, Qargs};
+    /// use qiskit_circuit::operations::StandardGate;
+    /// use qiskit_accelerate::nlayout::PhysicalQubit;
+    /// use indexmap::IndexMap;
+    ///
+    /// let mut target = Target::default();
+    /// target.add_instruction(
+    ///     StandardGate::X.into(),
+    ///     &[],
+    ///     None,
+    ///     Some(IndexMap::from_iter([([PhysicalQubit(0)].into(), None)])),
+    /// );
+    /// let result = target.update_instruction_properties("x", &[PhysicalQubit(0)], Some(InstructionProperties::new(Some(0.0001), Some(0.0002))));
+    ///
+    /// assert!(matches!(result, Ok(())));
+    /// ```
     pub fn update_instruction_properties<'a, T>(
         &mut self,
         instruction: &'a str,
         qargs: T,
         properties: Option<InstructionProperties>,
-    ) -> Result<(), TargetKeyError>
+    ) -> Result<(), TargetError>
     where
         T: Into<QargsRef<'a>>,
     {
         if !self.contains_key(instruction) {
-            return Err(TargetKeyError::new_err(format!(
-                "Provided instruction: '{}' not in this Target.",
-                instruction
-            )));
+            return Err(TargetError::InvalidKey(instruction.to_string()));
         };
-        let qargs = qargs.into();
+        let qargs: QargsRef = qargs.into();
         let prop_map = self.gate_map.get_mut(instruction).unwrap();
         if !prop_map.contains_key(&qargs) {
-            return Err(TargetKeyError::new_err(format!(
-                "Provided qarg {:?} not in this Target for '{}'.",
-                &qargs, &instruction
-            )));
+            return Err(TargetError::InvalidQargsKey {
+                instruction: instruction.to_string(),
+                arguments: qargs.as_owned_qargs(),
+            });
         }
         if let Some(e) = prop_map.get_mut(&qargs) {
             *e = properties;
@@ -1182,10 +1231,7 @@ impl Target {
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
-    pub fn operation_names_for_qargs<'a, T>(
-        &self,
-        qargs: T,
-    ) -> Result<HashSet<&str>, TargetKeyError>
+    pub fn operation_names_for_qargs<'a, T>(&self, qargs: T) -> Result<HashSet<&str>, TargetError>
     where
         T: Into<QargsRef<'a>>,
     {
@@ -1200,9 +1246,8 @@ impl Target {
                 .iter()
                 .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
             {
-                return Err(TargetKeyError::new_err(format!(
-                    "{:?} not in Target",
-                    qargs
+                return Err(TargetError::QargsWithoutInstruction(Qargs::from_iter(
+                    qargs.iter().copied(),
                 )));
             }
         }
@@ -1220,10 +1265,7 @@ impl Target {
             }
         }
         if res.is_empty() {
-            return Err(TargetKeyError::new_err(format!(
-                "{:?} not in target",
-                qargs
-            )));
+            return Err(TargetError::QargsWithoutInstruction(qargs.as_owned_qargs()));
         }
         Ok(res)
     }
@@ -1234,7 +1276,7 @@ impl Target {
     pub fn operations_for_qargs<'a, T>(
         &self,
         qargs: T,
-    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetKeyError>
+    ) -> Result<impl Iterator<Item = &NormalOperation>, TargetError>
     where
         T: Into<QargsRef<'a>>,
     {
@@ -1254,7 +1296,7 @@ impl Target {
     pub fn qargs_for_operation_name(
         &self,
         operation: &str,
-    ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetKeyError> {
+    ) -> Result<Option<impl Iterator<Item = &Qargs>>, TargetError> {
         if let Some(gate_map_oper) = self.gate_map.get(operation) {
             if gate_map_oper.contains_key(&Qargs::Global) {
                 return Ok(None);
@@ -1262,9 +1304,7 @@ impl Target {
             let qargs = gate_map_oper.keys().filter(|qargs| qargs.is_concrete());
             Ok(Some(qargs))
         } else {
-            Err(TargetKeyError::new_err(format!(
-                "Operation: {operation} not in Target."
-            )))
+            Err(TargetError::InvalidKey(operation.to_string()))
         }
     }
 
@@ -1441,7 +1481,6 @@ pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-// TODO: Add rust-based unit testing.
 #[cfg(test)]
 mod test {
     use std::f64::consts::PI;
@@ -1451,10 +1490,7 @@ mod test {
     };
     use smallvec::SmallVec;
 
-    use crate::{
-        nlayout::PhysicalQubit,
-        target_transpiler::{PropsMap, QargsRef},
-    };
+    use crate::{nlayout::PhysicalQubit, target_transpiler::QargsRef};
 
     use super::{instruction_properties::InstructionProperties, Qargs, Target};
 
@@ -1468,28 +1504,28 @@ mod test {
             StandardGate::CZ.into(),
             &[],
             None,
-            Some([(qargs.clone().into(), inst_prop)]),
+            Some([(qargs.clone().into(), inst_prop)].into_iter().collect()),
         );
         let Err(res) = result else {
             panic!("The operation did not fail as expected.");
         };
-        let expected_message = format!("The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}", qargs.as_slice());
-        assert_eq!(res.message, expected_message);
+        let expected_message = format!("The number of qubits for cz does not match the number of qubits in the properties dictionary: {:?}.", Qargs::Concrete(qargs));
+        assert_eq!(res.to_string(), expected_message);
     }
 
     #[test]
     fn test_add_invalid_repeated_insruction() {
         let mut target = Target::default();
-        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None::<PropsMap>);
+        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None);
         assert!(result.is_ok());
 
-        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None::<PropsMap>);
+        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None);
         // Re-add instruction
         let Err(res) = result else {
             panic!("The operation did not fail as expected.");
         };
-        let expected_message = "Instruction 'cx' is already in the target".to_string();
-        assert_eq!(res.message, expected_message);
+        let expected_message = "Instruction 'cx' is already in the target.".to_string();
+        assert_eq!(res.to_string(), expected_message);
     }
 
     #[test]
@@ -1512,7 +1548,7 @@ mod test {
                 gate.into(),
                 &params,
                 None,
-                Some([(qargs, None)]),
+                Some([(qargs, None)].into_iter().collect()),
             );
             assert!(res.is_ok())
         }
@@ -1532,7 +1568,7 @@ mod test {
             StandardGate::CX.into(),
             &[],
             None,
-            Some([(qargs.clone(), None)]),
+            Some([(qargs.clone(), None)].into_iter().collect()),
         );
         assert!(result.is_ok(), "Error message: {:?}", result);
 
@@ -1566,7 +1602,7 @@ mod test {
             StandardGate::CX.into(),
             &[],
             None,
-            Some([(qargs.clone().into(), None)]),
+            Some([(qargs.clone().into(), None)].into_iter().collect()),
         );
         assert!(result.is_ok(), "Error message: {:?}", result);
 
@@ -1583,7 +1619,7 @@ mod test {
             panic!("The operation did not fail as expected.");
         };
         let expected_message = "Provided instruction: 'cy' not in this Target.".to_string();
-        assert_eq!(res.message, expected_message);
+        assert_eq!(res.to_string(), expected_message);
         // Check that no changes were made.
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
 
@@ -1603,7 +1639,7 @@ mod test {
             QargsRef::from(&reverse_qargs),
             "cx"
         );
-        assert_eq!(res.message, expected_message);
+        assert_eq!(res.to_string(), expected_message);
         // Check that no changes were made.
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
     }
