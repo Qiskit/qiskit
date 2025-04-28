@@ -1474,6 +1474,7 @@ dependencies = [
  "pyo3",
  "pyo3-build-config",
  "qiskit-accelerate",
+ "qiskit-circuit",
  "thiserror 2.0.12",
 ]
 
