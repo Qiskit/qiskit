@@ -42,7 +42,7 @@ def single_cases():
 
 @ddt.ddt
 class TestPauliLindbladMap(QiskitTestCase):
-    
+
     def test_default_constructor_list(self):
         data = [("IXIIZ", 0.5), ("XIXII", 1.0), ("IIXYI", -0.75)]
         self.assertEqual(PauliLindbladMap(data), PauliLindbladMap.from_list(data))
@@ -54,7 +54,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(
             PauliLindbladMap([], num_qubits=5), PauliLindbladMap.from_list([], num_qubits=5)
         )
-    
+
     def test_default_constructor_sparse_list(self):
         data = [("ZX", (0, 3), 0.5), ("XY", (2, 4), 1.0), ("ZY", (2, 1), -0.75)]
         self.assertEqual(
@@ -70,7 +70,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(
             PauliLindbladMap([], num_qubits=5), PauliLindbladMap.from_sparse_list([], num_qubits=5)
         )
-    
+
     def test_default_constructor_copy(self):
         base = PauliLindbladMap.from_list([("IXIZIY", 1.0), ("XYZIII", -1.0)])
         copied = PauliLindbladMap(base)
@@ -102,7 +102,9 @@ class TestPauliLindbladMap(QiskitTestCase):
         indices = np.arange(num_qubits, dtype=np.uint32)
         coeffs = np.ones((num_qubits,), dtype=float)
         boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
-        pauli_lindblad_map = PauliLindbladMap.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
+        pauli_lindblad_map = PauliLindbladMap.from_raw_parts(
+            num_qubits, coeffs, terms, indices, boundaries
+        )
         self.assertEqual(pauli_lindblad_map.num_qubits, num_qubits)
         np.testing.assert_equal(pauli_lindblad_map.bit_terms, terms)
         np.testing.assert_equal(pauli_lindblad_map.indices, indices)
@@ -123,7 +125,11 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         # Conversion from array-likes, including mis-typed but compatible arrays.
         pauli_lindblad_map = PauliLindbladMap.from_raw_parts(
-            num_qubits, list(coeffs), tuple(terms), pauli_lindblad_map.indices, boundaries.astype(np.int16)
+            num_qubits,
+            list(coeffs),
+            tuple(terms),
+            pauli_lindblad_map.indices,
+            boundaries.astype(np.int16),
         )
         self.assertEqual(pauli_lindblad_map.num_qubits, num_qubits)
         np.testing.assert_equal(pauli_lindblad_map.bit_terms, terms)
@@ -145,7 +151,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             # The three are [(1.0)*(Z_1), 0.5, 2.0*(X_2 Y_1)]
             3,
         )
-    
+
     def test_from_raw_parts_checks_coherence(self):
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
             PauliLindbladMap.from_raw_parts(2, [1.0], [ord("$")], [0], [0, 1])
@@ -177,7 +183,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         # There's no test of attempting to pass incoherent data and `check=False` because that
         # permits undefined behaviour in Rust (it's unsafe), so all bets would be off.
 
-
     def test_from_list(self):
         label = "IXYIZZY"
         self.assertEqual(
@@ -194,7 +199,7 @@ class TestPauliLindbladMap(QiskitTestCase):
                 ],
                 [0, 1, 2, 4, 5],
                 [0, 5],
-            )
+            ),
         )
         self.assertEqual(
             PauliLindbladMap.from_list([(label, 1.0)], num_qubits=len(label)),
@@ -210,7 +215,7 @@ class TestPauliLindbladMap(QiskitTestCase):
                 ],
                 [0, 1, 2, 4, 5],
                 [0, 5],
-            )
+            ),
         )
 
         self.assertEqual(
@@ -249,7 +254,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_list([("IIZ", 0.5), ("IXI", 1.0)], num_qubits=4)
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
             PauliLindbladMap.from_list([])
-        
+
     def test_from_sparse_list(self):
         self.assertEqual(
             PauliLindbladMap.from_sparse_list(
@@ -336,10 +341,15 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_sparse_list([("XYZXZ", (3, 0, 1, 2, 3), 1.0)], num_qubits=5)
 
     def test_from_terms(self):
-        self.assertEqual(PauliLindbladMap.from_terms([], num_qubits=5), PauliLindbladMap.identity(5))
-        self.assertEqual(PauliLindbladMap.from_terms((), num_qubits=0), PauliLindbladMap.identity(0))
         self.assertEqual(
-            PauliLindbladMap.from_terms((None for _ in []), num_qubits=3), PauliLindbladMap.identity(3)
+            PauliLindbladMap.from_terms([], num_qubits=5), PauliLindbladMap.identity(5)
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_terms((), num_qubits=0), PauliLindbladMap.identity(0)
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_terms((None for _ in []), num_qubits=3),
+            PauliLindbladMap.identity(3),
         )
 
         expected = PauliLindbladMap.from_sparse_list(
@@ -359,12 +369,15 @@ class TestPauliLindbladMap(QiskitTestCase):
             ),
             expected,
         )
-    
+
     def test_from_terms_failures(self):
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
             PauliLindbladMap.from_terms([])
 
-        left, right = PauliLindbladMap([("IIXYI", 1.)])[0], PauliLindbladMap([("IIIIIIIIX", 1.)])[0]
+        left, right = (
+            PauliLindbladMap([("IIXYI", 1.0)])[0],
+            PauliLindbladMap([("IIIIIIIIX", 1.0)])[0],
+        )
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             PauliLindbladMap.from_terms([left, right])
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
@@ -439,14 +452,14 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(
             {bit_term.label: bit_term for bit_term in PauliLindbladMap.BitTerm}, labels
         )
-    
+
     @ddt.idata(single_cases())
     def test_pickle(self, pauli_lindblad_map):
         self.assertEqual(pauli_lindblad_map, copy.copy(pauli_lindblad_map))
         self.assertIsNot(pauli_lindblad_map, copy.copy(pauli_lindblad_map))
         self.assertEqual(pauli_lindblad_map, copy.deepcopy(pauli_lindblad_map))
         self.assertEqual(pauli_lindblad_map, pickle.loads(pickle.dumps(pauli_lindblad_map)))
-    
+
     @ddt.data(
         # This is every combination of (0, 1, many) for (terms, qubits, non-identites per term).
         PauliLindbladMap.identity(0),
@@ -460,13 +473,12 @@ class TestPauliLindbladMap(QiskitTestCase):
         # that it has any particular form.
         self.assertIsInstance(repr(data), str)
         self.assertIn("PauliLindbladMap", repr(data))
-    
+
     @ddt.idata(single_cases())
     def test_copy(self, pauli_lindblad_map):
         self.assertEqual(pauli_lindblad_map, pauli_lindblad_map.copy())
         self.assertIsNot(pauli_lindblad_map, pauli_lindblad_map.copy())
 
-    
     def test_equality(self):
         sparse_data = [("XZ", (1, 0), 0.5), ("XYY", (3, 1, 0), -0.25)]
         op = PauliLindbladMap.from_sparse_list(sparse_data, num_qubits=5)
@@ -695,7 +707,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         ):
             pauli_lindblad_map.bit_terms[:] = [PauliLindbladMap.BitTerm.Z] * 8
 
-
     def test_attributes_sequence(self):
         """Test attributes of the `Sequence` protocol."""
         # Length
@@ -740,7 +751,9 @@ class TestPauliLindbladMap(QiskitTestCase):
         )
         self.assertIsInstance(pauli_lindblad_map.indices[::-1], np.ndarray)
         np.testing.assert_array_equal(
-            pauli_lindblad_map.indices[::-1], np.array([2, 1, 0, 2, 1, 0], dtype=np.uint32), strict=True
+            pauli_lindblad_map.indices[::-1],
+            np.array([2, 1, 0, 2, 1, 0], dtype=np.uint32),
+            strict=True,
         )
         self.assertIsInstance(pauli_lindblad_map.bit_terms[2:4], np.ndarray)
         np.testing.assert_array_equal(
@@ -812,7 +825,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         num_qubits = pauli_lindblad_map.num_qubits
         pauli_lindblad_map.clear()
         self.assertEqual(pauli_lindblad_map, PauliLindbladMap.identity(num_qubits))
-
 
     def test_iteration(self):
         self.assertEqual(list(PauliLindbladMap.identity(5)), [])
@@ -891,7 +903,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(8, 1.0, [], [])
         )
         self.assertNotEqual(
-            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(5, 2., [], [])
+            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(5, 2.0, [], [])
         )
         self.assertNotEqual(
             PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(8, -1, [], [])
@@ -928,7 +940,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(copy.deepcopy(term), term)
 
     def test_term_attributes(self):
-        term = PauliLindbladMap([("IIXIIXZ", 5.)])[0]
+        term = PauliLindbladMap([("IIXIIXZ", 5.0)])[0]
         self.assertEqual(term.num_qubits, 7)
         self.assertEqual(term.coeff, 5.0)
         np.testing.assert_equal(
@@ -958,7 +970,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(list(term.indices), [0, 1, 2])
 
     def test_term_new(self):
-        expected = PauliLindbladMap([("IIIXXZIII", 1.)])[0]
+        expected = PauliLindbladMap([("IIIXXZIII", 1.0)])[0]
 
         self.assertEqual(
             PauliLindbladMap.Term(
@@ -1001,23 +1013,25 @@ class TestPauliLindbladMap(QiskitTestCase):
             self.assertEqual(expected, pauli_lindblad_map.to_sparse_list())
 
         with self.subTest(msg="IXYZ"):
-            pauli_lindblad_map = PauliLindbladMap([("IXYZ", 1.)])
+            pauli_lindblad_map = PauliLindbladMap([("IXYZ", 1.0)])
             expected = [("ZYX", [0, 1, 2], 1)]
             self.assertEqual(
-                canonicalize_sparse_list(expected), canonicalize_sparse_list(pauli_lindblad_map.to_sparse_list())
+                canonicalize_sparse_list(expected),
+                canonicalize_sparse_list(pauli_lindblad_map.to_sparse_list()),
             )
 
         with self.subTest(msg="multiple"):
             pauli_lindblad_map = PauliLindbladMap.from_list([("XXIZ", 0.5), ("YYIZ", -1)])
             expected = [("XXZ", [3, 2, 0], 0.5), ("ZYY", [0, 2, 3], -1)]
             self.assertEqual(
-                canonicalize_sparse_list(expected), canonicalize_sparse_list(pauli_lindblad_map.to_sparse_list())
+                canonicalize_sparse_list(expected),
+                canonicalize_sparse_list(pauli_lindblad_map.to_sparse_list()),
             )
 
     def test_sparse_term_bit_labels(self):
         """Test getting the bit labels of a SparseTerm."""
 
-        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.)])
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
         term = pauli_lindblad_map[0]
         indices = term.indices
         labels = term.bit_labels()
@@ -1028,7 +1042,9 @@ class TestPauliLindbladMap(QiskitTestCase):
         for i, label in expected.items():
             self.assertEqual(label, label_dict[i])
 
-        reconstructed = PauliLindbladMap.from_sparse_list([(labels, indices, 1)], pauli_lindblad_map.num_qubits)
+        reconstructed = PauliLindbladMap.from_sparse_list(
+            [(labels, indices, 1)], pauli_lindblad_map.num_qubits
+        )
         self.assertEqual(pauli_lindblad_map, reconstructed)
 
 
@@ -1038,6 +1054,7 @@ def canonicalize_term(pauli, indices, coeff):
     idcs = np.argsort(indices)
     sorted_paulis = "".join(pauli[i] for i in idcs)
     return (sorted_paulis, np.asarray(indices)[idcs].tolist(), float(coeff))
+
 
 def canonicalize_sparse_list(sparse_list):
     # sort a sparse list representation by canonicalizing the terms and then applying

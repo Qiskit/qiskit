@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-
 use numpy::{
     PyArray1, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
     PyUntypedArrayMethods,
@@ -783,23 +782,19 @@ fn bit_term_label(py: Python, slf: BitTerm) -> &Bound<PyString> {
 /// The resulting class is attached to `PauliLindbladMap` as a class attribute, and its
 /// `__qualname__` is set to reflect this.
 fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
-    let terms = [
-        BitTerm::X,
-        BitTerm::Y,
-        BitTerm::Z,
-    ]
-    .into_iter()
-    .flat_map(|term| {
-        let mut out = vec![(term.py_name(), term as u8)];
-        if term.py_name() != term.py_label() {
-            // Also ensure that the labels are created as aliases.  These can't be (easily) accessed
-            // by attribute-getter (dot) syntax, but will work with the item-getter (square-bracket)
-            // syntax, or programmatically with `getattr`.
-            out.push((term.py_label(), term as u8));
-        }
-        out
-    })
-    .collect::<Vec<_>>();
+    let terms = [BitTerm::X, BitTerm::Y, BitTerm::Z]
+        .into_iter()
+        .flat_map(|term| {
+            let mut out = vec![(term.py_name(), term as u8)];
+            if term.py_name() != term.py_label() {
+                // Also ensure that the labels are created as aliases.  These can't be (easily) accessed
+                // by attribute-getter (dot) syntax, but will work with the item-getter (square-bracket)
+                // syntax, or programmatically with `getattr`.
+                out.push((term.py_label(), term as u8));
+            }
+            out
+        })
+        .collect::<Vec<_>>();
     let obj = py.import("enum")?.getattr("IntEnum")?.call(
         ("BitTerm", terms),
         Some(
@@ -1051,36 +1046,35 @@ impl PySparseTerm {
     }
 }
 
-
 /// A Pauli Lindblad map stored in a qubit-sparse format.
 ///
 /// Mathematics
 /// ===========
 ///
 /// A Pauli-Lindblad map is a linear map acting on density matrices on :math:`n`-qubits of the form
-/// 
+///
 /// .. math::
-/// 
+///
 ///     \Lamdba = \exp\left(\sum_{P \in K} \lambda_P P \cdot P - \cdot\right)
-/// 
+///
 /// where :math:`K` is a subset of :math:`n`-qubit Pauli operators, and the coefficients
 /// :math:`\lambda_P` are real numbers. When all the coefficients :math:`\lambda_P` are
 /// non-negative, this corresponds to a completely positive and trace preserving map. The sum in the
 /// exponential is called the generator, and each individual term the generators. To simplify
 /// notation in the rest of the documention, we denote :math:`L(P) = P \cdot P - \cdot`.
-/// 
+///
 /// Representation
 /// ==============
-/// 
+///
 /// Each individual Pauli operator in the generator is a tensor product of single-qubit Pauli
 /// operators of the form :math:`P = \bigotimes_n A^{(n)}_i`, for :math:`A^{(n)}_i \in \{I, X, Y,
 /// Z\}`. The internal representation of a :class:`PauliLindbladMap` stores only the non-identity
 /// single-qubit Pauli operators.  This makes it significantly more efficient to represent
 /// generators such as :math:`\sum_{n\in \text{qubits}} c_n L(Z^{(n)})`; for which
 /// :class:`PauliLindbladMap` requires an amount of memory linear in the total number of qubits.
-/// 
+///
 /// Internally, each single-qubit Pauli operator is stored with a numeric value, explicitly:
-/// 
+///
 /// .. _pauli-lindblad-map-alphabet:
 /// .. table:: Alphabet of single-qubit Pauli operators used in :class:`PauliLindbladMap`
 ///
@@ -1096,13 +1090,13 @@ impl PySparseTerm {
 ///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b01`` (1)     :attr:`~.BitTerm.Z`
 ///
 ///   =======  =======================================  ===============  ===========================
-/// 
+///
 /// Each generator term is stored as a compression of the corresponding Pauli operator, similar in
 /// spirit to the compressed sparse row format of sparse matrices.  In this analogy, the terms of
 /// the sum are the "rows", and the qubit terms are the "columns", where an absent entry represents
 /// the identity rather than a zero. More explicitly, the representation is made up of four
 /// contiguous arrays:
-/// 
+///
 /// .. _pauli-lindblad-map-arrays:
 /// .. table:: Data arrays used to represent :class:`.PauliLindbladMap`
 ///
@@ -1134,7 +1128,7 @@ impl PySparseTerm {
 ///
 /// The length parameter :math:`t` is the number of generator terms in the sum, and the parameter
 /// :math:`s` is the total number of non-identity single-qubit terms.
-/// 
+///
 /// As illustrative examples:
 ///
 /// * in the case of the identity map, which contains no generator terms, :attr:`boundaries` is
@@ -1203,7 +1197,7 @@ impl PySparseTerm {
 ///
 ///     .. autoproperty:: qiskit.quantum_info::PauliLindbladMap.BitTerm.label
 ///
-/// 
+///
 /// Each of the array-like attributes behaves like a Python sequence.  You can index and slice these
 /// with standard :class:`list`-like semantics.  Slicing an attribute returns a Numpy
 /// :class:`~numpy.ndarray` containing a copy of the relevant data with the natural ``dtype`` of the
@@ -1229,7 +1223,7 @@ impl PySparseTerm {
 ///
 /// .. autoclass:: qiskit.quantum_info::PauliLindbladMap.Term
 ///     :members:
-/// 
+///
 /// Construction
 /// ============
 ///
@@ -1484,7 +1478,7 @@ impl PyPauliLindbladMap {
     ///         ...     ("IXXII", -0.5),
     ///         ...     ("ZZIII", -0.25),
     ///         ... ])
-    ///         <PauliLindbladMap with 4 terms on 5 qubits: 
+    ///         <PauliLindbladMap with 4 terms on 5 qubits:
     ///             (1)L(X_1 X_0) + (1)L(Y_2 Y_1) + (-0.5)L(X_3 X_2) + (-0.25)L(Z_4 Z_3)>
     ///
     ///     Use ``num_qubits`` to disambiguate potentially empty inputs::
@@ -1568,7 +1562,7 @@ impl PyPauliLindbladMap {
     // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
     // the `bit_terms` must all be valid `BitTerm` representations.
     /// Construct a :class:`.PauliLindbladMap` from raw Numpy arrays that match :ref:`the required
-    /// data representation described in the class-level documentation 
+    /// data representation described in the class-level documentation
     /// <pauli-lindblad-map-arrays>`.
     ///
     /// The data from each array is copied into fresh, growable Rust-space allocations.
@@ -1706,10 +1700,7 @@ impl PyPauliLindbladMap {
     ///         The reverse of this method.
     #[staticmethod]
     #[pyo3(signature = (iter, /, num_qubits))]
-    fn from_sparse_list(
-        iter: Vec<(String, Vec<u32>, f64)>,
-        num_qubits: u32,
-    ) -> PyResult<Self> {
+    fn from_sparse_list(iter: Vec<(String, Vec<u32>, f64)>, num_qubits: u32) -> PyResult<Self> {
         let coeffs = iter.iter().map(|(_, _, coeff)| *coeff).collect();
         let mut boundaries = Vec::with_capacity(iter.len() + 1);
         boundaries.push(0);
@@ -1790,7 +1781,6 @@ impl PyPauliLindbladMap {
         }
         Ok(out.unbind())
     }
-
 
     fn __len__(&self) -> PyResult<usize> {
         self.num_terms()
@@ -1945,10 +1935,13 @@ impl ArrayView {
             ArraySlot::Boundaries => format!("{:?}", pauli_lindblad_map.boundaries()),
             // Complexes don't have a nice repr in Rust, so just delegate the whole load to Python
             // and convert back.
-            ArraySlot::Coeffs => PyList::new(py, pauli_lindblad_map.coeffs())?.repr()?.to_string(),
+            ArraySlot::Coeffs => PyList::new(py, pauli_lindblad_map.coeffs())?
+                .repr()?
+                .to_string(),
             ArraySlot::BitTerms => format!(
                 "[{}]",
-                pauli_lindblad_map.bit_terms()
+                pauli_lindblad_map
+                    .bit_terms()
                     .iter()
                     .map(BitTerm::py_label)
                     .collect::<Vec<_>>()
@@ -1994,9 +1987,13 @@ impl ArrayView {
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
             ArraySlot::Coeffs => get_from_slice::<_, f64>(py, pauli_lindblad_map.coeffs(), index),
-            ArraySlot::BitTerms => get_from_slice::<_, u8>(py, pauli_lindblad_map.bit_terms(), index),
+            ArraySlot::BitTerms => {
+                get_from_slice::<_, u8>(py, pauli_lindblad_map.bit_terms(), index)
+            }
             ArraySlot::Indices => get_from_slice::<_, u32>(py, pauli_lindblad_map.indices(), index),
-            ArraySlot::Boundaries => get_from_slice::<_, usize>(py, pauli_lindblad_map.boundaries(), index),
+            ArraySlot::Boundaries => {
+                get_from_slice::<_, usize>(py, pauli_lindblad_map.boundaries(), index)
+            }
         }
     }
 
@@ -2055,8 +2052,12 @@ impl ArrayView {
 
         let mut pauli_lindblad_map = self.base.write().map_err(|_| InnerWriteError)?;
         match self.slot {
-            ArraySlot::Coeffs => set_in_slice::<_, f64>(pauli_lindblad_map.coeffs_mut(), index, values),
-            ArraySlot::BitTerms => set_in_slice::<BitTerm, u8>(pauli_lindblad_map.bit_terms_mut(), index, values),
+            ArraySlot::Coeffs => {
+                set_in_slice::<_, f64>(pauli_lindblad_map.coeffs_mut(), index, values)
+            }
+            ArraySlot::BitTerms => {
+                set_in_slice::<BitTerm, u8>(pauli_lindblad_map.bit_terms_mut(), index, values)
+            }
             ArraySlot::Indices => unsafe {
                 set_in_slice::<_, u32>(pauli_lindblad_map.indices_mut(), index, values)
             },
@@ -2095,13 +2096,21 @@ impl ArrayView {
         }
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
-            ArraySlot::Coeffs => cast_array_type(py, PyArray1::from_slice(py, pauli_lindblad_map.coeffs()), dtype),
-            ArraySlot::Indices => {
-                cast_array_type(py, PyArray1::from_slice(py, pauli_lindblad_map.indices()), dtype)
-            }
-            ArraySlot::Boundaries => {
-                cast_array_type(py, PyArray1::from_slice(py, pauli_lindblad_map.boundaries()), dtype)
-            }
+            ArraySlot::Coeffs => cast_array_type(
+                py,
+                PyArray1::from_slice(py, pauli_lindblad_map.coeffs()),
+                dtype,
+            ),
+            ArraySlot::Indices => cast_array_type(
+                py,
+                PyArray1::from_slice(py, pauli_lindblad_map.indices()),
+                dtype,
+            ),
+            ArraySlot::Boundaries => cast_array_type(
+                py,
+                PyArray1::from_slice(py, pauli_lindblad_map.boundaries()),
+                dtype,
+            ),
             ArraySlot::BitTerms => {
                 let bit_terms: &[u8] = ::bytemuck::cast_slice(pauli_lindblad_map.bit_terms());
                 cast_array_type(py, PyArray1::from_slice(py, bit_terms), dtype)
