@@ -182,19 +182,16 @@ def _mcsu2_real_diagonal(
     circuit.compose(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2], inplace=True)
     circuit.append(s_gate, [target])
 
-    # TODO: improve CX count by using action_only=True (based on #9687)
-    mcx_2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2).to_gate()
+    mcx_2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2, action_only=True).to_gate()
     circuit.compose(
         mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1], inplace=True
     )
     circuit.append(s_gate.inverse(), [target])
 
-    mcx_3 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1).to_gate()
-    circuit.compose(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2], inplace=True)
+    circuit.compose(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2], inplace=True)
     circuit.append(s_gate, [target])
 
-    mcx_4 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2).to_gate()
-    circuit.compose(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1], inplace=True)
+    circuit.compose(mcx_2, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1], inplace=True)
     circuit.append(s_gate.inverse(), [target])
 
     if not is_secondary_diag_real:
