@@ -60,15 +60,31 @@ class TestCSD(QiskitTestCase):
 
     @combine(num_qubits=[1, 2, 3, 4], seed=list(range(100)))
     def test_random_unitary(self, num_qubits, seed):
-        """Test CSD for random unitary matricies."""
+        """Test CSD for random unitary matrices."""
         mat = random_unitary(2**num_qubits, seed=seed).data
         self.assertCossinDecompositionIsCorrect(mat)
 
     @combine(num_controls=[1, 2, 3], num_targets=[1, 2, 3], seed=list(range(50)))
-    def test_controlled_test_random_unitary(self, num_controls, num_targets, seed):
-        """Test CSD for controlled random unitary matricies."""
-        # Note that scipy has numerical stability problems on cotrolled
+    def test_controlled_random_unitary(self, num_controls, num_targets, seed):
+        """Test CSD for controlled random unitary matrices."""
+        # Note that scipy has numerical stability problems on controlled
         # random unitary matrices.
         base_mat = random_unitary(2**num_targets, seed=seed).data
         mat = _compute_control_matrix(base_mat, num_controls)
         self.assertCossinDecompositionIsCorrect(mat)
+
+    @combine(num_qubits=[1, 2, 3, 4], seed=list(range(20)))
+    def test_random_hermitian(self, num_qubits, seed):
+        """Test CSD for random Hermitian matrices."""
+        umat = random_unitary(2**num_qubits, seed=seed).data
+        np.random.seed(seed)
+        dmat = np.diag(np.exp(1j * np.random.normal(size=2**num_qubits)))
+        mat = umat.T.conjugate() @ dmat @ umat
+        self.assertCossinDecompositionIsCorrect(mat)
+
+    @combine(num_qubits=[1, 2, 3, 4], seed=list(range(20)))
+    def test_random_diagonal(self, num_qubits, seed):
+        """Test CSD for random diagonal matrices."""
+        np.random.seed(seed)
+        dmat = np.diag(np.exp(1j * np.random.normal(size=2**num_qubits)))
+        self.assertCossinDecompositionIsCorrect(dmat)
