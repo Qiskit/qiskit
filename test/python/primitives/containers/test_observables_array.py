@@ -355,3 +355,8 @@ class ObservablesArrayTestCase(QiskitTestCase):
                             {labels_rs[idx]: 1},
                             msg=f"failed for shape {shape} with input format {input_shape}",
                         )
+
+    def test_num_qubits(self):
+        """Test num_qubits method"""
+        obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"IYX": 3}])
+        self.assertEqual(obs.num_qubits, 3)
