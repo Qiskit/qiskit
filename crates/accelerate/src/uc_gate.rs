@@ -275,7 +275,8 @@ mod test {
             let mat: Matrix2<Complex64> = [
                 [Complex64::ZERO, random_complex(&mut rng)],
                 [random_complex(&mut rng), Complex64::ZERO],
-            ].into();
+            ]
+            .into();
             check_eig(mat);
         }
     }
