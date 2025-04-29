@@ -248,7 +248,32 @@ class TestAdder(QiskitTestCase):
     def test_default_plugins(self):
         """Tests covering different branches in the default synthesis plugins."""
 
-        # NOTE: For HalfAdder, ripple_rv25 is the only branch taken.
+        # Test's name indicates which synthesis method should get used.
+        with self.subTest(name="HalfAdder_use_ripple_rv_25"):
+            adder = HalfAdderGate(3)
+            circuit = QuantumCircuit(9)
+            circuit.append(adder, range(7))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("ccx" in ops)
+        with self.subTest(name="HalfAdder_use_ripple_c04"):
+            adder = HalfAdderGate(4)
+            circuit = QuantumCircuit(12)
+            circuit.append(adder, range(9))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("MAJ" in ops)
+        with self.subTest(name="HalfAdder_use_ripple_rv_25"):
+            adder = HalfAdderGate(4)
+            circuit = QuantumCircuit(9)
+            circuit.append(adder, range(9))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            print(ops)
+            self.assertTrue("ccx" in ops)
 
         with self.subTest(name="FullAdder_use_ripple_c04"):
             adder = FullAdderGate(4)
