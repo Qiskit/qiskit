@@ -11,10 +11,11 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
+use qubit_sparse_pauli::PyQubitSparsePauliList;
 
 pub mod qubit_sparse_pauli;
 
 pub fn pauli_lindblad_map(m: &Bound<PyModule>) -> PyResult<()> {
-    //m.add_class::<PyPauliLindbladMap>()?;
+    m.add_class::<PyQubitSparsePauliList>()?;
     Ok(())
 }
