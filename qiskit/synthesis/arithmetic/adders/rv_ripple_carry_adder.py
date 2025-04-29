@@ -39,6 +39,7 @@ def _mcx_ladder(n_mcx: int, alpha: int):
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
+    # pylint: disable=expression-not-assigned
     def helper(qubit_indices, alphas):
         k = len(alphas) + 1
         if k == 1:

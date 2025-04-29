@@ -1691,21 +1691,17 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        # The RV25 adder is the best option in all cases requiring no ancilla qubits.
+        # For up to 3 qubits, ripple_rv25 is better
         if (
-            decomposition := HalfAdderSynthesisRV25().run(
-                high_level_object, coupling_map, target, qubits, **options
+            high_level_object.num_state_qubits <= 3
+            and (
+                decomposition := HalfAdderSynthesisRV25().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
             )
-        ) is not None:
+            is not None
+        ):
             return decomposition
-
-        # For up to 3 qubits, ripple_v95 is better (if there are enough ancilla qubits)
-        if high_level_object.num_state_qubits <= 3:
-            decomposition = HalfAdderSynthesisV95().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-            if decomposition is not None:
-                return decomposition
 
         # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
         if (
@@ -1715,7 +1711,7 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         ) is not None:
             return decomposition
 
-        # The QFT-based adder does not require ancilla qubits and should always succeed
+        # The ripple_rv_25 adder does not require ancilla qubits and should always succeed
         return HalfAdderSynthesisD00().run(
             high_level_object, coupling_map, target, qubits, **options
         )
