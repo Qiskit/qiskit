@@ -16,7 +16,6 @@ from __future__ import annotations
 from math import ceil
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.synthesis.multi_controlled import synth_mcx_2_dirty_kg24
 
 
 def _mcx_ladder(n_mcx: int, alpha: int):
@@ -71,19 +70,7 @@ def _mcx_ladder(n_mcx: int, alpha: int):
     qc = QuantumCircuit(n)
     qubit_indices, alphas = list(range(n)), list(range(alpha, n, alpha))
     mcxs = helper(qubit_indices, alphas)
-    for mcx in mcxs:
-        if len(mcx) <= 3:  # already a Toffoli
-            qc.mcx(mcx[:-1], mcx[-1])
-        else:
-            # for each mcx with n_ctrls > 2, use 2 qubits above the first ctrl index as ancillae
-            ancilla_idx = [mcx[0] - 2, mcx[0] - 1]
-            gate = synth_mcx_2_dirty_kg24(len(mcx) - 1)
-            qc.compose(
-                gate,
-                # ctrls, targ, anc
-                mcx[:-1] + [mcx[-1]] + ancilla_idx,
-                inplace=True,
-            )
+    [qc.mcx(mcx[:-1], mcx[-1]) for mcx in mcxs]
 
     return qc
 
