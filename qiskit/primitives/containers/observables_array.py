@@ -53,7 +53,7 @@ class ObservablesArray(ShapedMixin):
     def __init__(
         self,
         observables: ObservablesArrayLike,
-        num_qubits=None,
+        num_qubits: int | None = None,
         copy: bool = True,
         validate: bool = True,
     ):
