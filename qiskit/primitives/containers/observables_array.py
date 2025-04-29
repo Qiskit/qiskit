@@ -94,6 +94,10 @@ class ObservablesArray(ShapedMixin):
         elif self._num_qubits is None and self._array.size > 0:
             self._num_qubits = self._array.reshape(-1)[0].num_qubits
 
+        # can happen for empty arrays
+        if self._num_qubits is None:
+            self._num_qubits = 0
+
     @staticmethod
     def _obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
         """Convert a sparse observable to a mapping from Pauli strings to coefficients"""
