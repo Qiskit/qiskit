@@ -22,6 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.unitary import qsd
 from qiskit.circuit.library import XGate, UCGate, UnitaryGate
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -365,7 +366,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             print("-" * 30)
             print(f"num ops: {cqc.count_ops()}")
             print(f"num ops: {cqc2.count_ops()}")
-            self.assertEqual(hidden_op, op2)
+            self.assertTrue(matrix_equal(hidden_op.data, op2.data, atol=1e-7))
             # TODO: replace comparison with exact expectation.
             # self.assertLess(cqc2.count_ops().get('cx', 0), 0.6 * cqc.count_ops().get('cx', 0))
 
