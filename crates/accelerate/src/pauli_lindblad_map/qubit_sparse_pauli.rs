@@ -1821,3 +1821,226 @@ impl<'py> IntoPyObject<'py> for QubitSparsePauliList {
         PyQubitSparsePauliList::from(self).into_pyobject(py)
     }
 }
+
+/// Helper class of `ArrayView` that denotes the slot of the `QubitSparsePauliList` we're looking at.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ArraySlot {
+    BitTerms,
+    Indices,
+    Boundaries,
+}
+
+/// Custom wrapper sequence class to get safe views onto the Rust-space data.  We can't directly
+/// expose Python-managed wrapped pointers without introducing some form of runtime exclusion on the
+/// ability of `PauliLindbladMap` to re-allocate in place; we can't leave dangling pointers for
+/// Python space.
+#[pyclass(frozen, sequence)]
+struct ArrayView {
+    base: Arc<RwLock<QubitSparsePauliList>>,
+    slot: ArraySlot,
+}
+#[pymethods]
+impl ArrayView {
+    fn __repr__(&self, py: Python) -> PyResult<String> {
+        let qubit_sparse_pauli_list = self.base.read().map_err(|_| InnerReadError)?;
+        let data = match self.slot {
+            // Simple integers look the same in Rust-space debug as Python.
+            ArraySlot::Indices => format!("{:?}", qubit_sparse_pauli_list.indices()),
+            ArraySlot::Boundaries => format!("{:?}", qubit_sparse_pauli_list.boundaries()),
+            ArraySlot::BitTerms => format!(
+                "[{}]",
+                qubit_sparse_pauli_list
+                    .bit_terms()
+                    .iter()
+                    .map(BitTerm::py_label)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        };
+        Ok(format!(
+            "<qubit sparse pauli list {} view: {}>",
+            match self.slot {
+                ArraySlot::BitTerms => "bit_terms",
+                ArraySlot::Indices => "indices",
+                ArraySlot::Boundaries => "boundaries",
+            },
+            data,
+        ))
+    }
+
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        index: PySequenceIndex,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        // The slightly verbose generic setup here is to allow the type of a scalar return to be
+        // different to the type that gets put into the Numpy array, since the `BitTerm` enum can be
+        // a direct scalar, but for Numpy, we need it to be a raw `u8`.
+        fn get_from_slice<'py, T, S>(
+            py: Python<'py>,
+            slice: &[T],
+            index: PySequenceIndex,
+        ) -> PyResult<Bound<'py, PyAny>>
+        where
+            T: IntoPyObject<'py> + Copy + Into<S>,
+            S: ::numpy::Element,
+        {
+            match index.with_len(slice.len())? {
+                SequenceIndex::Int(index) => slice[index].into_bound_py_any(py),
+                indices => PyArray1::from_iter(py, indices.iter().map(|index| slice[index].into()))
+                    .into_bound_py_any(py),
+            }
+        }
+
+        let qubit_sparse_pauli_list = self.base.read().map_err(|_| InnerReadError)?;
+        match self.slot {
+            ArraySlot::BitTerms => {
+                get_from_slice::<_, u8>(py, qubit_sparse_pauli_list.bit_terms(), index)
+            }
+            ArraySlot::Indices => get_from_slice::<_, u32>(py, qubit_sparse_pauli_list.indices(), index),
+            ArraySlot::Boundaries => {
+                get_from_slice::<_, usize>(py, qubit_sparse_pauli_list.boundaries(), index)
+            }
+        }
+    }
+
+    fn __setitem__(&self, index: PySequenceIndex, values: &Bound<PyAny>) -> PyResult<()> {
+        /// Set values of a slice according to the indexer, using `extract` to retrieve the
+        /// Rust-space object from the collection of Python-space values.
+        ///
+        /// This indirects the Python extraction through an intermediate type to marginally improve
+        /// the error messages for things like `BitTerm`, where Python-space extraction might fail
+        /// because the user supplied an invalid alphabet letter.
+        ///
+        /// This allows broadcasting a single item into many locations in a slice (like Numpy), but
+        /// otherwise requires that the index and values are the same length (unlike Python's
+        /// `list`) because that would change the length.
+        fn set_in_slice<'py, T, S>(
+            slice: &mut [T],
+            index: PySequenceIndex<'py>,
+            values: &Bound<'py, PyAny>,
+        ) -> PyResult<()>
+        where
+            T: Copy + TryFrom<S>,
+            S: FromPyObject<'py>,
+            PyErr: From<<T as TryFrom<S>>::Error>,
+        {
+            match index.with_len(slice.len())? {
+                SequenceIndex::Int(index) => {
+                    slice[index] = values.extract::<S>()?.try_into()?;
+                    Ok(())
+                }
+                indices => {
+                    if let Ok(value) = values.extract::<S>() {
+                        let value = value.try_into()?;
+                        for index in indices {
+                            slice[index] = value;
+                        }
+                    } else {
+                        let values = values
+                            .try_iter()?
+                            .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
+                            .collect::<PyResult<Vec<_>>>()?;
+                        if indices.len() != values.len() {
+                            return Err(PyValueError::new_err(format!(
+                                "tried to set a slice of length {} with a sequence of length {}",
+                                indices.len(),
+                                values.len(),
+                            )));
+                        }
+                        for (index, value) in indices.into_iter().zip(values) {
+                            slice[index] = value;
+                        }
+                    }
+                    Ok(())
+                }
+            }
+        }
+
+        let mut qubit_sparse_pauli_list = self.base.write().map_err(|_| InnerWriteError)?;
+        match self.slot {
+            ArraySlot::BitTerms => {
+                set_in_slice::<BitTerm, u8>(qubit_sparse_pauli_list.bit_terms_mut(), index, values)
+            }
+            ArraySlot::Indices => unsafe {
+                set_in_slice::<_, u32>(qubit_sparse_pauli_list.indices_mut(), index, values)
+            },
+            ArraySlot::Boundaries => unsafe {
+                set_in_slice::<_, usize>(qubit_sparse_pauli_list.boundaries_mut(), index, values)
+            },
+        }
+    }
+
+    fn __len__(&self, _py: Python) -> PyResult<usize> {
+        let qubit_sparse_pauli_list = self.base.read().map_err(|_| InnerReadError)?;
+        let len = match self.slot {
+            ArraySlot::BitTerms => qubit_sparse_pauli_list.bit_terms().len(),
+            ArraySlot::Indices => qubit_sparse_pauli_list.indices().len(),
+            ArraySlot::Boundaries => qubit_sparse_pauli_list.boundaries().len(),
+        };
+        Ok(len)
+    }
+
+    #[pyo3(signature = (/, dtype=None, copy=None))]
+    fn __array__<'py>(
+        &self,
+        py: Python<'py>,
+        dtype: Option<&Bound<'py, PyAny>>,
+        copy: Option<bool>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        // This method always copies, so we don't leave dangling pointers lying around in Numpy
+        // arrays; it's not enough just to set the `base` of the Numpy array to the
+        // `PauliLindbladMap`, since the `Vec` we're referring to might re-allocate and invalidate
+        // the pointer the Numpy array is wrapping.
+        if !copy.unwrap_or(true) {
+            return Err(PyValueError::new_err(
+                "cannot produce a safe view onto movable memory",
+            ));
+        }
+        let qubit_sparse_pauli_list = self.base.read().map_err(|_| InnerReadError)?;
+        match self.slot {
+            ArraySlot::Indices => cast_array_type(
+                py,
+                PyArray1::from_slice(py, qubit_sparse_pauli_list.indices()),
+                dtype,
+            ),
+            ArraySlot::Boundaries => cast_array_type(
+                py,
+                PyArray1::from_slice(py, qubit_sparse_pauli_list.boundaries()),
+                dtype,
+            ),
+            ArraySlot::BitTerms => {
+                let bit_terms: &[u8] = ::bytemuck::cast_slice(qubit_sparse_pauli_list.bit_terms());
+                cast_array_type(py, PyArray1::from_slice(py, bit_terms), dtype)
+            }
+        }
+    }
+}
+
+/// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
+/// if required.
+fn cast_array_type<'py, T>(
+    py: Python<'py>,
+    array: Bound<'py, PyArray1<T>>,
+    dtype: Option<&Bound<'py, PyAny>>,
+) -> PyResult<Bound<'py, PyAny>> {
+    let base_dtype = array.dtype();
+    let dtype = dtype
+        .map(|dtype| PyArrayDescr::new(py, dtype))
+        .unwrap_or_else(|| Ok(base_dtype.clone()))?;
+    if dtype.is_equiv_to(&base_dtype) {
+        return Ok(array.into_any());
+    }
+    PyModule::import(py, intern!(py, "numpy"))?
+        .getattr(intern!(py, "array"))?
+        .call(
+            (array,),
+            Some(
+                &[
+                    (intern!(py, "copy"), NUMPY_COPY_ONLY_IF_NEEDED.get_bound(py)),
+                    (intern!(py, "dtype"), dtype.as_any()),
+                ]
+                .into_py_dict(py)?,
+            ),
+        )
+}
