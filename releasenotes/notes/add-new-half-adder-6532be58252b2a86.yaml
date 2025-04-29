@@ -1,0 +1,22 @@
+---
+features_synthesis:
+  - |
+    Added new half adder that requires no ancillary qubits and has better CX count compared to
+    :func:`.adder_qft_d00`:
+
+    * :func:`.adder_ripple_rv_25`
+
+features_transpiler:
+  - |
+    Added new high-level-synthesis plugin for synthesizing a :class:`.HalfAdder`:
+
+    * :class:`.HalfAdderSynthesisRV25`, based on :func:`.adder_ripple_rv_25`.
+
+    The :class:`.HalfAdderSynthesisDefault` has also been updated to follow the following sequence
+    of HalfAdder synthesizers: "HalfAdder.ripple_rv25" when n_qubits <= 3, "HalfAdder.ripple_c04"
+    when 1 ancillary qubit is available, "HalfAdder.ripple_rv25" in all remaining cases.
+
+features_circuit:
+  - |
+    Added new :class:`.Adder` based on :func:`.adder_ripple_rv_25` called :class:`.RVRippleCarryAdder`.
+    

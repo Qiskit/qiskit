@@ -272,7 +272,6 @@ class TestAdder(QiskitTestCase):
             hls = HighLevelSynthesis()
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
-            print(ops)
             self.assertTrue("ccx" in ops)
 
         with self.subTest(name="FullAdder_use_ripple_c04"):
