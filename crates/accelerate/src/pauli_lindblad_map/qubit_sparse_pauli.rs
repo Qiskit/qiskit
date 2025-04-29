@@ -867,7 +867,7 @@ impl PySparseTerm {
     }
 
     /// Convert this term to a complete :class:`QubitSparsePauliList`.
-    fn to_pauli_lindblad_map(&self) -> PyResult<PyQubitSparsePauliList> {
+    fn to_qubit_sparse_pauli_list(&self) -> PyResult<PyQubitSparsePauliList> {
         let qubit_sparse_pauli_list = QubitSparsePauliList::new(
             self.inner.num_qubits(),
             self.inner.bit_terms().to_vec(),
@@ -1766,7 +1766,7 @@ impl PyQubitSparsePauliList {
         let num_qubits = self.num_qubits()?;
 
         let str_num_terms = format!(
-            "{} term{}",
+            "{} element{}",
             num_terms,
             if num_terms == 1 { "" } else { "s" }
         );
@@ -1784,10 +1784,10 @@ impl PyQubitSparsePauliList {
                 .iter()
                 .map(SparseTermView::to_sparse_str)
                 .collect::<Vec<_>>()
-                .join(" + ")
+                .join(", ")
         };
         Ok(format!(
-            "<PauliLindbladMap with {} on {}: {}>",
+            "<QubitSparsePauliList with {} on {}: {}>",
             str_num_terms, str_num_qubits, str_terms
         ))
     }
