@@ -76,11 +76,41 @@ pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
 pub extern "C" fn qk_instruction_properties_new(
     duration: f64,
     error: f64,
-) -> *const InstructionProperties {
+) -> *mut InstructionProperties {
     Box::into_raw(Box::new(InstructionProperties::new(
         Some(duration),
         Some(error),
     )))
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_instruction_properties_get_duration(
+    instruction_properties: *const InstructionProperties,
+) -> f64 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let instruction_properties = unsafe { const_ptr_as_ref(instruction_properties) };
+
+    let Some(duration) = instruction_properties.duration else {
+        // TODO: Double check if this is a valid option
+        return 0.0;
+    };
+    duration
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_instruction_properties_get_error(
+    instruction_properties: *const InstructionProperties,
+) -> f64 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let instruction_properties = unsafe { const_ptr_as_ref(instruction_properties) };
+
+    let Some(error) = instruction_properties.error else {
+        // TODO: Double check if this is a valid option
+        return 0.0;
+    };
+    error
 }
 
 #[no_mangle]
@@ -106,13 +136,21 @@ pub struct PropertyMap(Vec<(Qargs, Option<InstructionProperties>)>);
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_propety_map_new() -> *const PropertyMap {
+pub extern "C" fn qk_propety_map_new() -> *mut PropertyMap {
     Box::into_raw(Box::new(PropertyMap(vec![])))
 }
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_propety_map_free(property_map: *mut PropertyMap) {
+pub unsafe extern "C" fn qk_property_map_length(property_map: *const PropertyMap) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let prop_map = unsafe { const_ptr_as_ref(property_map) };
+    prop_map.0.len()
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_propety_map_free(property_map: *mut PropertyMap) {
     if !property_map.is_null() {
         if !property_map.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.")
@@ -239,13 +277,13 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> *mut *const c_char {
+pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> *mut *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
-    let mut names: Vec<*const c_char> = target
+    let mut names: Vec<*mut c_char> = target
         .operation_names()
-        .map(|name| CString::new(name).unwrap().into_raw().cast_const())
+        .map(|name| CString::new(name).unwrap().into_raw())
         .collect();
 
     names.as_mut_ptr()
