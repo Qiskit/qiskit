@@ -10,4 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::prelude::*;
+
 pub mod qubit_sparse_pauli;
+
+pub fn pauli_lindblad_map(m: &Bound<PyModule>) -> PyResult<()> {
+    //m.add_class::<PyPauliLindbladMap>()?;
+    Ok(())
+}
