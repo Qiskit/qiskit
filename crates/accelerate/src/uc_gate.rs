@@ -219,7 +219,6 @@ mod test {
     #[inline(always)]
     fn random_complex(rng: &mut Pcg64Mcg) -> Complex64 {
         Complex64::new(rng.sample(StandardNormal), rng.sample(StandardNormal))
-            * std::f64::consts::FRAC_1_SQRT_2
     }
 
     fn check_eig(mat: Matrix2<Complex64>) {
