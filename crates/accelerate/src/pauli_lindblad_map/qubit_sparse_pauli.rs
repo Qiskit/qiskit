@@ -327,11 +327,11 @@ impl QubitSparsePauliList {
     }
 
     /// Get an iterator over the individual elements of the list.
-    pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = SparseTermView<'_>> + '_ {
+    pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = QubitSparsePauliView<'_>> + '_ {
         std::ops::Range {start: 0, end: self.boundaries.len() - 1}.map(|i| {
             let start = self.boundaries[i];
             let end = self.boundaries[i + 1];
-            SparseTermView {
+            QubitSparsePauliView {
                 num_qubits: self.num_qubits,
                 bit_terms: &self.bit_terms[start..end],
                 indices: &self.indices[start..end],
@@ -429,11 +429,11 @@ impl QubitSparsePauliList {
     /// # Panics
     ///
     /// If the index is out of bounds.
-    pub fn term(&self, index: usize) -> SparseTermView {
+    pub fn term(&self, index: usize) -> QubitSparsePauliView {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
         let start = self.boundaries[index];
         let end = self.boundaries[index + 1];
-        SparseTermView {
+        QubitSparsePauliView {
             num_qubits: self.num_qubits,
             bit_terms: &self.bit_terms[start..end],
             indices: &self.indices[start..end],
@@ -475,7 +475,7 @@ impl QubitSparsePauliList {
     }
 
     /// Add a single generator term to this map.
-    pub fn add_term(&mut self, term: SparseTermView) -> Result<(), ArithmeticError> {
+    pub fn add_term(&mut self, term: QubitSparsePauliView) -> Result<(), ArithmeticError> {
         if self.num_qubits != term.num_qubits {
             return Err(ArithmeticError::MismatchedQubits {
                 left: self.num_qubits,
@@ -494,15 +494,15 @@ impl QubitSparsePauliList {
 /// The lengths of `bit_terms` and `indices` are guaranteed to be created equal, but might be zero
 /// (in the case that the term is proportional to the identity).
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub struct SparseTermView<'a> {
+pub struct QubitSparsePauliView<'a> {
     pub num_qubits: u32,
     pub bit_terms: &'a [BitTerm],
     pub indices: &'a [u32],
 }
-impl SparseTermView<'_> {
-    /// Convert this `SparseTermView` into an owning [SparseTerm] of the same data.
-    pub fn to_term(&self) -> SparseTerm {
-        SparseTerm {
+impl QubitSparsePauliView<'_> {
+    /// Convert this `QubitSparsePauliView` into an owning [QubitSparsePauli] of the same data.
+    pub fn to_term(&self) -> QubitSparsePauli {
+        QubitSparsePauli {
             num_qubits: self.num_qubits,
             bit_terms: self.bit_terms.into(),
             indices: self.indices.into(),
@@ -528,7 +528,7 @@ impl SparseTermView<'_> {
 /// (in the case that the generator term is proportional to the identity).  [indices] is not mutable
 /// because this would allow data coherence to be broken.
 #[derive(Debug)]
-pub struct SparseTermViewMut<'a> {
+pub struct QubitSparsePauliViewMut<'a> {
     pub num_qubits: u32,
     pub bit_terms: &'a mut [BitTerm],
     pub indices: &'a [u32],
@@ -557,7 +557,7 @@ impl<'a> From<&'a mut QubitSparsePauliList> for IterMut<'a> {
     }
 }
 impl<'a> Iterator for IterMut<'a> {
-    type Item = SparseTermViewMut<'a>;
+    type Item = QubitSparsePauliViewMut<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // The trick here is that the lifetime of the 'self' borrow is shorter than the lifetime of
@@ -576,7 +576,7 @@ impl<'a> Iterator for IterMut<'a> {
         self.bit_terms = rest_bit_terms;
         self.indices = rest_indices;
 
-        Some(SparseTermViewMut {
+        Some(QubitSparsePauliViewMut {
             num_qubits: self.num_qubits,
             bit_terms,
             indices,
@@ -595,13 +595,13 @@ impl ::std::iter::FusedIterator for IterMut<'_> {}
 ///
 /// These are typically created by indexing into or iterating through a :class:`QubitSparsePauliList`.
 #[derive(Clone, Debug, PartialEq)]
-pub struct SparseTerm {
+pub struct QubitSparsePauli {
     /// Number of qubits the entire term applies to.
     num_qubits: u32,
     bit_terms: Box<[BitTerm]>,
     indices: Box<[u32]>,
 }
-impl SparseTerm {
+impl QubitSparsePauli {
     pub fn new(
         num_qubits: u32,
         bit_terms: Box<[BitTerm]>,
@@ -637,8 +637,8 @@ impl SparseTerm {
         &self.bit_terms
     }
 
-    pub fn view(&self) -> SparseTermView {
-        SparseTermView {
+    pub fn view(&self) -> QubitSparsePauliView {
+        QubitSparsePauliView {
             num_qubits: self.num_qubits,
             bit_terms: &self.bit_terms,
             indices: &self.indices,
@@ -815,19 +815,13 @@ impl<'py> FromPyObject<'py> for BitTerm {
 /// A single term from a complete :class:`QubitSparsePauliList`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`QubitSparsePauliList`.
-#[pyclass(name = "Term", frozen, module = "qiskit.quantum_info")]
+#[pyclass(name = "QubitSparsePauli", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
-struct PySparseTerm {
-    inner: SparseTerm,
+pub struct PyQubitSparsePauli {
+    inner: QubitSparsePauli,
 }
 #[pymethods]
-impl PySparseTerm {
-    // Mark the Python class as being defined "within" the `QubitSparsePauliList` class namespace.
-    #[classattr]
-    #[pyo3(name = "__qualname__")]
-    fn type_qualname() -> &'static str {
-        "QubitSparsePauliList.Term"
-    }
+impl PyQubitSparsePauli {
 
     #[new]
     #[pyo3(signature = (/, num_qubits, bit_terms, indices))]
@@ -858,12 +852,12 @@ impl PySparseTerm {
             }
             sorted_indices.push(index)
         }
-        let inner = SparseTerm::new(
+        let inner = QubitSparsePauli::new(
             num_qubits,
             bit_terms,
             sorted_indices.into_boxed_slice(),
         )?;
-        Ok(PySparseTerm { inner })
+        Ok(PyQubitSparsePauli { inner })
     }
 
     /// Convert this term to a complete :class:`QubitSparsePauliList`.
@@ -896,7 +890,7 @@ impl PySparseTerm {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!(
             "<{} on {} qubit{}: {}>",
-            Self::type_qualname(),
+            "QubitSparsePauli",
             self.inner.num_qubits(),
             if self.inner.num_qubits() == 1 {
                 ""
@@ -1270,8 +1264,8 @@ impl PyQubitSparsePauliList {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PySparseTerm>() {
-            return term.borrow().to_pauli_lindblad_map();
+        if let Ok(term) = data.downcast_exact::<PyQubitSparsePauli>() {
+            return term.borrow().to_qubit_sparse_pauli_list();
         };
         if let Ok(pauli_lindblad_map) = Self::from_terms(data, num_qubits) {
             return Ok(pauli_lindblad_map);
@@ -1474,12 +1468,12 @@ impl PyQubitSparsePauliList {
                         "cannot construct an empty QubitSparsePauliList without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PySparseTerm>()?.borrow();
+                let py_term = first?.downcast::<PyQubitSparsePauli>()?.borrow();
                 py_term.inner.to_qubit_sparse_pauli_list()
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PySparseTerm>()?.borrow();
+            let py_term = bound_py_term?.downcast::<PyQubitSparsePauli>()?.borrow();
             inner.add_term(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -1685,7 +1679,7 @@ impl PyQubitSparsePauliList {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
 
         // turn a SparseView into a Python tuple of (bit terms, indices, coeff)
-        let to_py_tuple = |view: SparseTermView| {
+        let to_py_tuple = |view: QubitSparsePauliView| {
             let mut pauli_string = String::with_capacity(view.bit_terms.len());
 
             for bit in view.bit_terms.iter() {
@@ -1732,7 +1726,7 @@ impl PyQubitSparsePauliList {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let indices = match index.with_len(inner.num_terms())? {
             SequenceIndex::Int(index) => {
-                return PySparseTerm {
+                return PyQubitSparsePauli {
                     inner: inner.term(index).to_term(),
                 }
                 .into_bound_py_any(py)
@@ -1782,7 +1776,7 @@ impl PyQubitSparsePauliList {
         } else {
             inner
                 .iter()
-                .map(SparseTermView::to_sparse_str)
+                .map(QubitSparsePauliView::to_sparse_str)
                 .collect::<Vec<_>>()
                 .join(", ")
         };
@@ -1800,14 +1794,6 @@ impl PyQubitSparsePauliList {
         BIT_TERM_PY_ENUM
             .get_or_try_init(py, || make_py_bit_term(py))
             .map(|obj| obj.clone_ref(py))
-    }
-
-    // The documentation for this is inlined into the class-level documentation of
-    // `PauliLindbladMap`.
-    #[allow(non_snake_case)]
-    #[classattr]
-    fn Term(py: Python) -> Bound<PyType> {
-        py.get_type::<PySparseTerm>()
     }
 }
 
