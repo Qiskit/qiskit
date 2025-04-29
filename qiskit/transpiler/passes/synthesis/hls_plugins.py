@@ -1712,7 +1712,7 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
             return decomposition
 
         # The ripple_rv_25 adder does not require ancilla qubits and should always succeed
-        return HalfAdderSynthesisD00().run(
+        return HalfAdderSynthesisRV25().run(
             high_level_object, coupling_map, target, qubits, **options
         )
 
