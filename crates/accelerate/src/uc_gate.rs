@@ -211,7 +211,7 @@ mod test {
     use super::compute_2x2_eig;
     use approx::abs_diff_eq;
     use nalgebra::Matrix2;
-    use num_complex::{Complex64, ComplexFloat};
+    use num_complex::Complex64;
     use rand::prelude::*;
     use rand_distr::StandardNormal;
     use rand_pcg::Pcg64Mcg;
@@ -220,21 +220,6 @@ mod test {
     fn random_complex(rng: &mut Pcg64Mcg) -> Complex64 {
         Complex64::new(rng.sample(StandardNormal), rng.sample(StandardNormal))
             * std::f64::consts::FRAC_1_SQRT_2
-    }
-
-    fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Matrix2<Complex64>> {
-        let mut rng = Pcg64Mcg::seed_from_u64(seed);
-
-        (0..size).map(move |_| {
-            let mat: Matrix2<Complex64> = [
-                [random_complex(&mut rng), random_complex(&mut rng)],
-                [random_complex(&mut rng), random_complex(&mut rng)],
-            ]
-            .into();
-            let (q, r) = mat.qr().unpack();
-            let diag = r.map_diagonal(|x| x / x.abs());
-            q.map_with_location(|i, _j, val| val * diag[i])
-        })
     }
 
     fn check_eig(mat: Matrix2<Complex64>) {
@@ -250,9 +235,15 @@ mod test {
     }
 
     #[test]
-    fn test_unitary_eig() {
-        for unitary in random_unitaries(42, 1024) {
-            check_eig(unitary);
+    fn test_eig() {
+        let mut rng = Pcg64Mcg::seed_from_u64(42);
+        for _ in 0..4096 {
+            let mat: Matrix2<Complex64> = [
+                [random_complex(&mut rng), random_complex(&mut rng)],
+                [random_complex(&mut rng), random_complex(&mut rng)],
+            ]
+            .into();
+            check_eig(mat);
         }
     }
 
