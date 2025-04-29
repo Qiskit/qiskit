@@ -694,3 +694,286 @@ impl From<ArithmeticError> for PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
+
+/// The single-character string label used to represent this term in the :class:`QubitSparsePauliList`
+/// alphabet.
+#[pyfunction]
+#[pyo3(name = "label")]
+fn bit_term_label(py: Python, slf: BitTerm) -> &Bound<PyString> {
+    // This doesn't use `py_label` so we can use `intern!`.
+    match slf {
+        BitTerm::X => intern!(py, "X"),
+        BitTerm::Y => intern!(py, "Y"),
+        BitTerm::Z => intern!(py, "Z"),
+    }
+}
+/// Construct the Python-space `IntEnum` that represents the same values as the Rust-spce `BitTerm`.
+///
+/// We don't make `BitTerm` a direct `pyclass` because we want the behaviour of `IntEnum`, which
+/// specifically also makes its variants subclasses of the Python `int` type; we use a type-safe
+/// enum in Rust, but from Python space we expect people to (carefully) deal with the raw ints in
+/// Numpy arrays for efficiency.
+///
+/// The resulting class is attached to `QubitSparsePauliList` as a class attribute, and its
+/// `__qualname__` is set to reflect this.
+fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
+    let terms = [BitTerm::X, BitTerm::Y, BitTerm::Z]
+        .into_iter()
+        .flat_map(|term| {
+            let mut out = vec![(term.py_name(), term as u8)];
+            if term.py_name() != term.py_label() {
+                // Also ensure that the labels are created as aliases.  These can't be (easily) accessed
+                // by attribute-getter (dot) syntax, but will work with the item-getter (square-bracket)
+                // syntax, or programmatically with `getattr`.
+                out.push((term.py_label(), term as u8));
+            }
+            out
+        })
+        .collect::<Vec<_>>();
+    let obj = py.import("enum")?.getattr("IntEnum")?.call(
+        ("BitTerm", terms),
+        Some(
+            &[
+                ("module", "qiskit.quantum_info"),
+                ("qualname", "QubitSparsePauliList.BitTerm"),
+            ]
+            .into_py_dict(py)?,
+        ),
+    )?;
+    let label_property = py
+        .import("builtins")?
+        .getattr("property")?
+        .call1((wrap_pyfunction!(bit_term_label, py)?,))?;
+    obj.setattr("label", label_property)?;
+    Ok(obj.downcast_into::<PyType>()?.unbind())
+}
+
+// Return the relevant value from the Python-space sister enumeration.  These are Python-space
+// singletons and subclasses of Python `int`.  We only use this for interaction with "high level"
+// Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
+// efficiently.
+impl<'py> IntoPyObject<'py> for BitTerm {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> PyResult<Self::Output> {
+        let terms = BIT_TERM_INTO_PY.get_or_init(py, || {
+            let py_enum = BIT_TERM_PY_ENUM
+                .get_or_try_init(py, || make_py_bit_term(py))
+                .expect("creating a simple Python enum class should be infallible")
+                .bind(py);
+            ::std::array::from_fn(|val| {
+                ::bytemuck::checked::try_cast(val as u8)
+                    .ok()
+                    .map(|term: BitTerm| {
+                        py_enum
+                            .getattr(term.py_name())
+                            .expect("the created `BitTerm` enum should have matching attribute names to the terms")
+                            .unbind()
+                    })
+            })
+        });
+        Ok(terms[self as usize]
+            .as_ref()
+            .expect("the lookup table initializer populated a 'Some' in all valid locations")
+            .bind(py)
+            .clone())
+    }
+}
+
+impl<'py> FromPyObject<'py> for BitTerm {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let value = ob
+            .extract::<isize>()
+            .map_err(|_| match ob.get_type().repr() {
+                Ok(repr) => PyTypeError::new_err(format!("bad type for 'BitTerm': {}", repr)),
+                Err(err) => err,
+            })?;
+        let value_error = || {
+            PyValueError::new_err(format!(
+                "value {} is not a valid letter of the single-qubit alphabet for 'BitTerm'",
+                value
+            ))
+        };
+        let value: u8 = value.try_into().map_err(|_| value_error())?;
+        value.try_into().map_err(|_| value_error())
+    }
+}
+
+/// A single term from a complete :class:`QubitSparsePauliList`.
+///
+/// These are typically created by indexing into or iterating through a :class:`QubitSparsePauliList`.
+#[pyclass(name = "Term", frozen, module = "qiskit.quantum_info")]
+#[derive(Clone, Debug)]
+struct PySparseTerm {
+    inner: SparseTerm,
+}
+#[pymethods]
+impl PySparseTerm {
+    // Mark the Python class as being defined "within" the `QubitSparsePauliList` class namespace.
+    #[classattr]
+    #[pyo3(name = "__qualname__")]
+    fn type_qualname() -> &'static str {
+        "QubitSparsePauliList.Term"
+    }
+
+    #[new]
+    #[pyo3(signature = (/, num_qubits, bit_terms, indices))]
+    fn py_new(
+        num_qubits: u32,
+        bit_terms: Vec<BitTerm>,
+        indices: Vec<u32>,
+    ) -> PyResult<Self> {
+        if bit_terms.len() != indices.len() {
+            return Err(CoherenceError::MismatchedItemCount {
+                bit_terms: bit_terms.len(),
+                indices: indices.len(),
+            }
+            .into());
+        }
+        let mut order = (0..bit_terms.len()).collect::<Vec<_>>();
+        order.sort_unstable_by_key(|a| indices[*a]);
+        let bit_terms = order.iter().map(|i| bit_terms[*i]).collect();
+        let mut sorted_indices = Vec::<u32>::with_capacity(order.len());
+        for i in order {
+            let index = indices[i];
+            if sorted_indices
+                .last()
+                .map(|prev| *prev >= index)
+                .unwrap_or(false)
+            {
+                return Err(CoherenceError::UnsortedIndices.into());
+            }
+            sorted_indices.push(index)
+        }
+        let inner = SparseTerm::new(
+            num_qubits,
+            bit_terms,
+            sorted_indices.into_boxed_slice(),
+        )?;
+        Ok(PySparseTerm { inner })
+    }
+
+    /// Convert this term to a complete :class:`QubitSparsePauliList`.
+    fn to_pauli_lindblad_map(&self) -> PyResult<PyQubitSparsePauliList> {
+        let qubit_sparse_pauli_list = QubitSparsePauliList::new(
+            self.inner.num_qubits(),
+            self.inner.bit_terms().to_vec(),
+            self.inner.indices().to_vec(),
+            vec![0, self.inner.bit_terms().len()],
+        )?;
+        Ok(qubit_sparse_pauli_list.into())
+    }
+
+    fn to_label(&self) -> PyResult<String> {
+        Ok(self.inner.view().to_sparse_str())
+    }
+
+    fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
+        if slf.is(&other) {
+            return Ok(true);
+        }
+        let Ok(other) = other.downcast_into::<Self>() else {
+            return Ok(false);
+        };
+        let slf = slf.borrow();
+        let other = other.borrow();
+        Ok(slf.inner.eq(&other.inner))
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!(
+            "<{} on {} qubit{}: {}>",
+            Self::type_qualname(),
+            self.inner.num_qubits(),
+            if self.inner.num_qubits() == 1 {
+                ""
+            } else {
+                "s"
+            },
+            self.inner.view().to_sparse_str(),
+        ))
+    }
+
+    fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
+        let py = slf_.py();
+        let borrowed = slf_.borrow();
+        (
+            borrowed.inner.num_qubits(),
+            Self::get_bit_terms(slf_.clone()),
+            Self::get_indices(slf_),
+        )
+            .into_pyobject(py)
+    }
+
+    /// Get a copy of this term.
+    fn copy(&self) -> Self {
+        self.clone()
+    }
+
+    /// Read-only view onto the individual single-qubit terms.
+    ///
+    /// The only valid values in the array are those with a corresponding
+    /// :class:`~PauliLindbladMap.BitTerm`.
+    #[getter]
+    fn get_bit_terms(slf_: Bound<Self>) -> Bound<PyArray1<u8>> {
+        let borrowed = slf_.borrow();
+        let bit_terms = borrowed.inner.bit_terms();
+        let arr = ::ndarray::aview1(::bytemuck::cast_slice::<_, u8>(bit_terms));
+        // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
+        // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
+        // `Box<[BitTerm]>` allocation (including dropping or reallocating it) other than the entire
+        // object getting dropped, which Python will keep safe.
+        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
+        out.readwrite().make_nonwriteable();
+        out
+    }
+
+    /// The number of qubits the term is defined on.
+    #[getter]
+    fn get_num_qubits(&self) -> u32 {
+        self.inner.num_qubits()
+    }
+
+    /// Read-only view onto the indices of each non-identity single-qubit term.
+    ///
+    /// The indices will always be in sorted order.
+    #[getter]
+    fn get_indices(slf_: Bound<Self>) -> Bound<PyArray1<u32>> {
+        let borrowed = slf_.borrow();
+        let indices = borrowed.inner.indices();
+        let arr = ::ndarray::aview1(indices);
+        // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
+        // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
+        // `Box<[u32]>` allocation (including dropping or reallocating it) other than the entire
+        // object getting dropped, which Python will keep safe.
+        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
+        out.readwrite().make_nonwriteable();
+        out
+    }
+
+    /// Return the bit labels of the term as string.
+    ///
+    /// The bit labels will match the order of :attr:`.SparseTerm.indices`, such that the
+    /// i-th character in the string is applied to the qubit index at ``term.indices[i]``.
+    ///
+    /// Returns:
+    ///     The non-identity bit terms as concatenated string.
+    fn bit_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        let string: String = self
+            .inner
+            .bit_terms()
+            .iter()
+            .map(|bit| bit.py_label())
+            .collect();
+        PyString::new(py, string.as_str())
+    }
+}
+
+#[pyclass(name = "QubitSparsePauliList", module = "qiskit.quantum_info", sequence)]
+#[derive(Debug)]
+pub struct PyQubitSparsePauliList {
+    // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
+    inner: Arc<RwLock<QubitSparsePauliList>>,
+}
