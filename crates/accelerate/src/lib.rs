@@ -21,6 +21,7 @@ pub mod euler_one_qubit_decomposer;
 pub mod gate_metrics;
 pub mod isometry;
 pub mod optimize_1q_gates;
+pub mod pauli_lindblad_map;
 pub mod pauli_exp_val;
 pub mod quantum_info;
 pub mod results;
