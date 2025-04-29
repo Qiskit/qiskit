@@ -353,6 +353,12 @@ impl QubitSparsePauliList {
         self.num_qubits
     }
 
+    /// Get the number of elements in the list.
+    #[inline]
+    pub fn num_terms(&self) -> usize {
+        self.boundaries.len() - 1
+    }
+
     /// Get the indices of each [BitTerm].
     #[inline]
     pub fn indices(&self) -> &[u32] {

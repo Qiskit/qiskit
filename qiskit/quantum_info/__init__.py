@@ -115,7 +115,7 @@ Analysis
 
 from __future__ import annotations
 
-from qiskit._accelerate.pauli_lindblad_map import QubitSparsePauli, QubitSparsePauliList
+from qiskit._accelerate.pauli_lindblad_map import QubitSparsePauliList
 from qiskit._accelerate.sparse_observable import SparseObservable
 
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
