@@ -13,9 +13,9 @@
 Circuit synthesis for a QFT circuit.
 """
 
-import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.synthesis.permutation.permutation_reverse_lnn import _append_reverse_permutation_lnn_kms
+from qiskit._accelerate.synthesis.qft import synth_qft_line as _synth_qft_line
+
 from .qft_decompose_full import _warn_if_precision_loss
 
 
@@ -53,27 +53,9 @@ def synth_qft_line(
            `arXiv:quant-ph/0402196 [quant-ph] <https://arxiv.org/abs/quant-ph/0402196>`_
     """
     _warn_if_precision_loss(num_qubits - approximation_degree - 1)
-    qc = QuantumCircuit(num_qubits)
 
-    for i in range(num_qubits):
-        qc.h(num_qubits - 1)
-
-        for j in range(i, num_qubits - 1):
-            if j - i + 2 < num_qubits - approximation_degree + 1:
-                qc.p(np.pi / 2 ** (j - i + 2), num_qubits - j + i - 1)
-                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-                qc.p(-np.pi / 2 ** (j - i + 2), num_qubits - j + i - 2)
-                qc.cx(num_qubits - j + i - 2, num_qubits - j + i - 1)
-                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-                qc.p(np.pi / 2 ** (j - i + 2), num_qubits - j + i - 1)
-            else:
-                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-                qc.cx(num_qubits - j + i - 2, num_qubits - j + i - 1)
-                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-
-    if not do_swaps:
-        # Add a reversal network for LNN connectivity in depth 2*n+2,
-        # based on Kutin at al., https://arxiv.org/abs/quant-ph/0701194, Section 5.
-        _append_reverse_permutation_lnn_kms(qc, num_qubits)
-
-    return qc
+    return QuantumCircuit._from_circuit_data(
+        # From rust
+        _synth_qft_line(num_qubits, do_swaps, approximation_degree),
+        add_regs=True,
+    )
