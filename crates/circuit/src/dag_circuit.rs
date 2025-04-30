@@ -2887,6 +2887,9 @@ impl DAGCircuit {
             );
         }
 
+        // Now that we don't need these, we've got to drop them since they hold
+        // references to variables owned by the DAG, which we'll need to mutate
+        // when perform the substitution.
         drop(input_dag_var_set);
         drop(node_vars);
 
@@ -4460,7 +4463,7 @@ impl DAGCircuit {
         if let Ok(name) = var.extract::<String>() {
             Ok(matches!(
                 self.identifier_info.get(&name),
-                Some(DAGIdentifierInfo::Var(_))
+                Some(DAGIdentifierInfo::Var(_) | DAGIdentifierInfo::Stretch(_))
             ))
         } else if let Ok(var) = var.extract::<expr::Var>() {
             let expr::Var::Standalone { name, .. } = &var else {
