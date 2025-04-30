@@ -957,6 +957,85 @@ impl PyQubitSparsePauli {
         Ok(inner.into())
     }
 
+    /// Construct a Pauli Lindblad map from a list of labels, the qubits each item applies to, and
+    /// the coefficient of the whole term.
+    ///
+    /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`.
+    ///
+    /// The "labels" and "indices" fields of the triples are associated by zipping them together.
+    /// For example, this means that a call to :meth:`from_list` can be converted to the form used
+    /// by this method by setting the "indices" field of each triple to ``(num_qubits-1, ..., 1,
+    /// 0)``.
+    ///
+    /// Args:
+    ///     iter (list[tuple[str, Sequence[int], float]]): triples of labels, the qubits
+    ///         each single-qubit term applies to, and the coefficient of the entire term.
+    ///
+    ///     num_qubits (int): the number of qubits the map acts on.
+    ///
+    /// Examples:
+    ///
+    ///     Construct a simple map::
+    ///
+    ///         >>> PauliLindbladMap.from_sparse_list(
+    ///         ...     [("ZX", (1, 4), 1.0), ("YY", (0, 3), 2)],
+    ///         ...     num_qubits=5,
+    ///         ... )
+    ///         <PauliLindbladMap with 2 terms on 5 qubits: (1)L(X_4 Z_1) + (2)L(Y_3 Y_0)>
+    ///
+    ///     This method can replicate the behavior of :meth:`from_list`, if the qubit-arguments
+    ///     field of the triple is set to decreasing integers::
+    ///
+    ///         >>> labels = ["XYXZ", "YYZZ", "XYXZ"]
+    ///         >>> coeffs = [1.5, 2.0, -0.5]
+    ///         >>> from_list = PauliLindbladMap.from_list(list(zip(labels, coeffs)))
+    ///         >>> from_sparse_list = PauliLindbladMap.from_sparse_list([
+    ///         ...     (label, (3, 2, 1, 0), coeff)
+    ///         ...     for label, coeff in zip(labels, coeffs)
+    ///         ... ])
+    ///         >>> assert from_list == from_sparse_list
+    ///
+    /// See also:
+    ///     :meth:`to_sparse_list`
+    ///         The reverse of this method.
+    #[staticmethod]
+    #[pyo3(signature = (/, label, indices, num_qubits))]
+    fn from_sparse_label(label: &str, indices: Vec<u32>, num_qubits: u32) -> PyResult<Self> {
+        let mut bit_terms = Vec::new();
+        let mut sorted_indices = Vec::new();
+
+        let label: &[u8] = label.as_ref();
+        let mut sorted = btree_map::BTreeMap::new();
+        if label.len() != indices.len() {
+            return Err(LabelError::WrongLengthIndices {
+                label: label.len(),
+                indices: indices.len(),
+            }
+            .into());
+        }
+        for (letter, index) in label.iter().zip(indices) {
+            if index >= num_qubits {
+                return Err(LabelError::BadIndex { index, num_qubits }.into());
+            }
+            let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
+                return Err(LabelError::DuplicateIndex { index }.into());
+            };
+            entry.insert(
+                BitTerm::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?,
+            );
+        }
+        for (index, term) in sorted.iter() {
+            let Some(term) = term else {
+                continue;
+            };
+            sorted_indices.push(*index);
+            bit_terms.push(*term);
+        }
+
+        let inner = QubitSparsePauli::new(num_qubits, bit_terms.into_boxed_slice(), sorted_indices.into_boxed_slice())?;
+        Ok(inner.into())
+    }
+
     /// Convert this term to a complete :class:`QubitSparsePauliList`.
     fn to_qubit_sparse_pauli_list(&self) -> PyResult<PyQubitSparsePauliList> {
         let qubit_sparse_pauli_list = QubitSparsePauliList::new(
