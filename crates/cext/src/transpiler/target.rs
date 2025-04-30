@@ -12,12 +12,15 @@
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use indexmap::IndexMap;
 use qiskit_accelerate::{
     nlayout::PhysicalQubit,
     target_transpiler::{InstructionProperties, Qargs, Target},
 };
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use std::ffi::{c_char, CStr, CString};
+use std::mem::forget;
+use std::ptr::null;
 
 /// @ingroup QkTarget
 /// Construct a new Target with the given number of qubits.
@@ -132,12 +135,12 @@ pub extern "C" fn qk_instruction_properties_free(
 }
 
 /// Represents the mapping between qargs and `InstructionProperties`
-pub struct PropertyMap(Vec<(Qargs, Option<InstructionProperties>)>);
+pub struct PropertyMap(IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>);
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_propety_map_new() -> *mut PropertyMap {
-    Box::into_raw(Box::new(PropertyMap(vec![])))
+    Box::into_raw(Box::new(PropertyMap(Default::default())))
 }
 
 #[no_mangle]
@@ -166,6 +169,42 @@ pub unsafe extern "C" fn qk_propety_map_free(property_map: *mut PropertyMap) {
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_property_map_contains_qargs(
+    property_map: *mut PropertyMap,
+    qargs: *const u32,
+    num_qubits: u32,
+) -> bool {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let prop_map = unsafe { mut_ptr_as_ref(property_map) };
+
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
+    let qargs = unsafe { parse_qargs(qargs, num_qubits) };
+
+    prop_map.0.contains_key(&qargs)
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_property_map_get(
+    property_map: *mut PropertyMap,
+    qargs: *const u32,
+    num_qubits: u32,
+) -> *const InstructionProperties {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let prop_map = unsafe { mut_ptr_as_ref(property_map) };
+
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
+    let qargs = unsafe { parse_qargs(qargs, num_qubits) };
+
+    if let Some(Some(prop)) = prop_map.0.get(&qargs) {
+        Box::into_raw(Box::new(*prop))
+    } else {
+        null()
+    }
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_property_map_add(
     property_map: *mut PropertyMap,
     qargs: *const u32,
@@ -175,14 +214,10 @@ pub unsafe extern "C" fn qk_property_map_add(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let prop_map = unsafe { mut_ptr_as_ref(property_map) };
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
-    let qubits: Qargs = unsafe {
-        (0..num_qubits)
-            .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
-            .collect()
-    };
+    let qubits: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let instruction_properties = unsafe { const_ptr_as_ref(instruction_properties) };
-    prop_map.0.push((qubits, Some(*instruction_properties)));
+    prop_map.0.insert(qubits, Some(*instruction_properties));
 }
 
 #[no_mangle]
@@ -225,13 +260,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
     let props_map = if property_map.0.is_empty() {
         None
     } else {
-        Some(
-            property_map
-                .0
-                .iter()
-                .map(|(q, i)| (q.clone(), *i))
-                .collect(),
-        )
+        Some(property_map.0.clone())
     };
 
     if let Ok(_) = target.add_instruction(operation.into(), parsed_params, None, props_map) {
@@ -255,12 +284,8 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
-    let qargs: Qargs = unsafe {
-        (0..num_qubits)
-            .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
-            .collect()
-    };
-
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
+    let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let properties = unsafe { const_ptr_as_ref(instruction_properties) };
 
@@ -277,16 +302,64 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> *mut *mut c_char {
+pub unsafe extern "C" fn qk_target_get_prop_map(
+    target: *const Target,
+    name: *const c_char,
+) -> *const PropertyMap {
+    // SAFETY: TBD
+    let name: Box<CStr> = unsafe { Box::from(CStr::from_ptr(name)) };
+
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
+    if let Some(props) = target.get(name.to_str().expect("Error extracting str")) {
+        Box::into_raw(Box::new(PropertyMap(props.clone())))
+    } else {
+        null()
+    }
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_get_inst_prop(
+    target: *const Target,
+    name: *const c_char,
+    qargs: *const u32,
+    num_qubits: u32,
+) -> *const InstructionProperties {
+    // SAFETY: TBD
+    let name: Box<CStr> = unsafe { Box::from(CStr::from_ptr(name)) };
+
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
+    let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
+
+    if let Some(Some(Some(props))) = target
+        .get(name.to_str().expect("Error extracting str"))
+        .map(|map| map.get(&qargs))
+    {
+        Box::into_raw(Box::new(*props))
+    } else {
+        null()
+    }
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> *mut *mut c_char {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
     let mut names: Vec<*mut c_char> = target
         .operation_names()
         .map(|name| CString::new(name).unwrap().into_raw())
         .collect();
+    let pointer = names.as_mut_ptr();
 
-    names.as_mut_ptr()
+    // Prevent vec from being destroyed
+    forget(names);
+    pointer
 }
 
 #[no_mangle]
@@ -304,22 +377,20 @@ pub unsafe extern "C" fn qk_target_phyisical_qubits(target: *const Target) -> *m
 pub unsafe extern "C" fn qk_target_non_global_operation_names(
     target: *mut Target,
     strict_direction: bool,
-) -> *mut *const c_char {
+) -> *mut *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
 
-    let mut operation_names: Vec<*const c_char> = target
+    let mut operation_names: Vec<*mut c_char> = target
         .get_non_global_operation_names(strict_direction)
         .unwrap()
         .iter()
-        .map(|items| {
-            CString::new(items.as_str())
-                .unwrap()
-                .into_raw()
-                .cast_const()
-        })
+        .map(|items| CString::new(items.as_str()).unwrap().into_raw())
         .collect();
-    operation_names.as_mut_ptr()
+    let ptr = operation_names.as_mut_ptr();
+    // Prevent original vec from being forgotten
+    forget(operation_names);
+    ptr
 }
 
 // TODO: Figure out how to properly represent qargs
@@ -358,11 +429,7 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
     let target = unsafe { const_ptr_as_ref(target) };
 
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
-    let qargs: Qargs = unsafe {
-        (0..num_qubits)
-            .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
-            .collect()
-    };
+    let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
 
     let mut result: Vec<*const c_char> = if let Ok(names) = target.operation_names_for_qargs(&qargs)
     {
@@ -373,7 +440,12 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
     } else {
         vec![]
     };
-    result.as_mut_ptr()
+
+    let ptr = result.as_mut_ptr();
+
+    // Prevent origin from being destroyed
+    forget(result);
+    ptr
 }
 
 #[no_mangle]
@@ -402,7 +474,11 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
             vec![]
         };
 
-    result.as_mut_ptr()
+    let ptr = result.as_mut_ptr();
+
+    // Prevent original from being destroyed
+    forget(result);
+    ptr
 }
 
 #[no_mangle]
@@ -424,7 +500,11 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> *mut *const u
     } else {
         vec![]
     };
-    result.as_mut_ptr()
+    let ptr = result.as_mut_ptr();
+
+    // Prevent original from being destroyed
+    forget(result);
+    ptr
 }
 
 #[no_mangle]
@@ -442,11 +522,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
     let operation_name = unsafe { CStr::from_ptr(name) };
 
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
-    let qargs: Qargs = unsafe {
-        (0..num_qubits)
-            .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
-            .collect()
-    };
+    let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
 
     target.instruction_supported(operation_name.to_str().unwrap(), &qargs)
 }
@@ -464,4 +540,20 @@ pub unsafe extern "C" fn qk_target_contains_instr(
     let operation_name = unsafe { CStr::from_ptr(name) };
 
     target.contains_key(operation_name.to_str().unwrap())
+}
+
+// Helpers
+
+/// Parses qargs based on a pointer and its size.
+unsafe fn parse_qargs(qargs: *const u32, num_qubits: u32) -> Qargs {
+    if qargs.is_null() {
+        Qargs::Global
+    } else {
+        // SAFETY: Per the documentation the qubits pointer is non-null and points to an array of num_qubits elements
+        unsafe {
+            (0..num_qubits)
+                .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
+                .collect()
+        }
+    }
 }

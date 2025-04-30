@@ -52,7 +52,7 @@ pub(crate) mod exceptions {
 
 // Custom types
 type GateMap = IndexMap<String, PropsMap, RandomState>;
-type PropsMap = IndexMap<Qargs, Option<InstructionProperties>>;
+type PropsMap = IndexMap<Qargs, Option<InstructionProperties>, RandomState>;
 
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
@@ -1414,6 +1414,11 @@ impl Target {
 
     pub fn is_empty(&self) -> bool {
         self.gate_map.is_empty()
+    }
+
+    /// Returns a reference to the value within that key if present.
+    pub fn get(&self, name: &str) -> Option<&PropsMap> {
+        self.gate_map.get(name)
     }
 }
 

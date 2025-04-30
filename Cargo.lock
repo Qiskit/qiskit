@@ -1444,7 +1444,9 @@ dependencies = [
 name = "qiskit-cext"
 version = "2.1.0"
 dependencies = [
+ "ahash 0.8.11",
  "cbindgen",
+ "indexmap",
  "num-complex",
  "pyo3",
  "pyo3-build-config",
