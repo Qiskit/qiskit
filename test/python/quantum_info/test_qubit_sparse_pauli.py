@@ -42,7 +42,32 @@ def single_cases():
 
 @ddt.ddt
 class TesQubitSparsePauli(QiskitTestCase):
-    pass
+    
+    """
+    def test_from_label(self):
+        # The label is interpreted like a bitstring, with the right-most item associated with qubit
+        # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
+        self.assertEqual(
+            # Ruler for counting terms:  dcba9876543210
+            QubitSparsePauli.from_label("IXXIIZZIYYIXYZ"),
+            QubitSparsePauli.from_raw_parts(
+                14,
+                [
+                    QubitSparsePauliList.BitTerm.Z,
+                    QubitSparsePauliList.BitTerm.Y,
+                    QubitSparsePauliList.BitTerm.X,
+                    QubitSparsePauliList.BitTerm.Y,
+                    QubitSparsePauliList.BitTerm.Y,
+                    QubitSparsePauliList.BitTerm.Z,
+                    QubitSparsePauliList.BitTerm.Z,
+                    QubitSparsePauliList.BitTerm.X,
+                    QubitSparsePauliList.BitTerm.X,
+                ],
+                [0, 1, 2, 4, 5, 7, 8, 11, 12],
+                [0, 9],
+            ),
+        )
+    """
 
 @ddt.ddt
 class TesQubitSparsePauliList(QiskitTestCase):
