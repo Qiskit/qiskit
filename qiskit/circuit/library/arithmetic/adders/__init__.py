@@ -15,5 +15,4 @@
 from .cdkm_ripple_carry_adder import CDKMRippleCarryAdder
 from .draper_qft_adder import DraperQFTAdder
 from .vbe_ripple_carry_adder import VBERippleCarryAdder
-from .rv_ripple_carry_adder import RVRippleCarryAdder
 from .adder import ModularAdderGate, HalfAdderGate, FullAdderGate

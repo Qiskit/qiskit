@@ -16,7 +16,3 @@ features_transpiler:
     of HalfAdder synthesizers: "HalfAdder.ripple_rv25" when n_qubits <= 3, "HalfAdder.ripple_c04"
     when 1 ancillary qubit is available, "HalfAdder.ripple_rv25" in all remaining cases.
 
-features_circuits:
-  - |
-    Added new :class:`.Adder` based on :func:`.adder_ripple_rv_25` called :class:`.RVRippleCarryAdder`.
-    

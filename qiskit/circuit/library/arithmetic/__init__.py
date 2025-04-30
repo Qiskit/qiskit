@@ -32,7 +32,6 @@ from .exact_reciprocal import ExactReciprocal, ExactReciprocalGate
 from .adders import (
     VBERippleCarryAdder,
     CDKMRippleCarryAdder,
-    RVRippleCarryAdder,
     DraperQFTAdder,
     ModularAdderGate,
     HalfAdderGate,

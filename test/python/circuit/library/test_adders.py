@@ -22,7 +22,6 @@ from qiskit.circuit.library import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     VBERippleCarryAdder,
-    RVRippleCarryAdder,
     ModularAdderGate,
     HalfAdderGate,
     FullAdderGate,
@@ -47,7 +46,6 @@ ADDER_CIRCUITS = {
     "vbe": VBERippleCarryAdder,
     "cdkm": CDKMRippleCarryAdder,
     "draper": DraperQFTAdder,
-    "rv": RVRippleCarryAdder,
 }
 
 
@@ -160,6 +158,8 @@ class TestAdder(QiskitTestCase):
                 if use_function:
                     circuit = ADDERS[adder](num_state_qubits, kind)
                 else:
+                    if adder == "rv":  # no adder circuit for this
+                        continue
                     circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
 
         self.assertAdditionIsCorrect(num_state_qubits, circuit, True, kind)

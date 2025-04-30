@@ -933,7 +933,6 @@ from .arithmetic import (
     LinearAmplitudeFunction,
     LinearAmplitudeFunctionGate,
     VBERippleCarryAdder,
-    RVRippleCarryAdder,
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     PiecewiseChebyshev,
