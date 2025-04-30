@@ -33,9 +33,9 @@ state defined as:
     // H gate on qubit 0, putting this qubit in a superposition of |0> + |1>.
     qk_circuit_gate(qc, QkGate_H, {0}, NULL);
     // A CX (CNOT) gate on control qubit 0 and target qubit 1 generating a Bell state.
-    qk_circuit_gate(qc, QkGate_cx, {0, 1}, NULL);
+    qk_circuit_gate(qc, QkGate_CX, {0, 1}, NULL);
     // A CX (CNOT) gate on control qubit 0 and target qubit 2 generating a GHZ state.
-    qk_circuit_gate(qc, QkGate_cx, {1, 2}, NULL);
+    qk_circuit_gate(qc, QkGate_CX, {1, 2}, NULL);
     // Free the created circuit.
     qk_circuit_free(qc);
 
