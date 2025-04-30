@@ -2,6 +2,7 @@ language = "C"
 include_version = true
 include_guard = "QISKIT_H"
 style = "type"
+cpp_compat = true
 
 sys_includes = ["complex.h"]
 after_includes = """
@@ -12,8 +13,8 @@ after_includes = """
 // Complex number typedefs -- note these are memory aligned but
 // not calling convention compatible.
 #ifdef _MSC_VER
-typedef _Fcomplex QkComplex32;
-typedef _Dcomplex QkComplex64;
+typedef _C_float_complex QkComplex32;
+typedef _C_double_complex QkComplex64;
 #else
 typedef float complex QkComplex32;
 typedef double complex QkComplex64;

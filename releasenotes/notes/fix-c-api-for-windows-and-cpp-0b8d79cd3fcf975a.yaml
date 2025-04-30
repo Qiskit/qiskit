@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes cext crates configuration to generate qiskit.h for C-API.
+    Fixed typedef of complex data type for Windows.
+    Fixed to add support for C++ for data type definition for enum types.
