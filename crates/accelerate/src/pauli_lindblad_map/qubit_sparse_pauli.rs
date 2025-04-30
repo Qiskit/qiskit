@@ -1884,7 +1884,7 @@ impl PyQubitSparsePauliList {
 
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let str_terms = if num_terms == 0 {
-            "0.0".to_owned()
+            "".to_owned()
         } else {
             inner
                 .iter()
@@ -1893,7 +1893,7 @@ impl PyQubitSparsePauliList {
                 .join(", ")
         };
         Ok(format!(
-            "<QubitSparsePauliList with {} on {}: {}>",
+            "<QubitSparsePauliList with {} on {}: [{}]>",
             str_num_terms, str_num_qubits, str_terms
         ))
     }

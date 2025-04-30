@@ -446,3 +446,17 @@ class TesQubitSparsePauliList(QiskitTestCase):
         self.assertIsNot(qubit_sparse_pauli_list, copy.copy(qubit_sparse_pauli_list))
         self.assertEqual(qubit_sparse_pauli_list, copy.deepcopy(qubit_sparse_pauli_list))
         self.assertEqual(qubit_sparse_pauli_list, pickle.loads(pickle.dumps(qubit_sparse_pauli_list)))
+
+    @ddt.data(
+        # This is every combination of (0, 1, many) for (terms, qubits, non-identites per term).
+        QubitSparsePauliList.empty(0),
+        QubitSparsePauliList.empty(1),
+        QubitSparsePauliList.empty(10),
+        QubitSparsePauliList.from_list(["YIXZII"]),
+        QubitSparsePauliList.from_list(["YIXZII", "ZZYYXX"]),
+    )
+    def test_repr(self, data):
+        # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
+        # that it has any particular form.
+        self.assertIsInstance(repr(data), str)
+        self.assertIn("QubitSparsePauliList", repr(data))
