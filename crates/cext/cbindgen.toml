@@ -13,8 +13,15 @@ after_includes = """
 // Complex number typedefs -- note these are memory aligned but
 // not calling convention compatible.
 #ifdef _MSC_VER
+
+#ifdef __cplusplus
 typedef _C_float_complex QkComplex32;
 typedef _C_double_complex QkComplex64;
+#else
+typedef _Fcomplex QkComplex32;
+typedef _Dcomplex QkComplex64;
+#endif
+
 #else
 typedef float complex QkComplex32;
 typedef double complex QkComplex64;
