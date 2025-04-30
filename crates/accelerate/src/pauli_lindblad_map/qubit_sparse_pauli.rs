@@ -862,6 +862,101 @@ impl PyQubitSparsePauli {
         Ok(PyQubitSparsePauli { inner })
     }
 
+    /// Construct a single-term observable from a dense string label.
+    ///
+    /// The resulting operator will have a coefficient of 1.  The label must be a sequence of the
+    /// alphabet ``'IXYZ+-rl01'``.  The label is interpreted analogously to a bitstring.  In other
+    /// words, the right-most letter is associated with qubit 0, and so on.  This is the same as the
+    /// labels for :class:`.Pauli` and :class:`.SparsePauliOp`.
+    ///
+    /// Args:
+    ///     label (str): the dense label.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> SparseObservable.from_label("IIII+ZI")
+    ///         <SparseObservable with 1 term on 7 qubits: (1+0j)(+_2 Z_1)>
+    ///         >>> label = "IYXZI"
+    ///         >>> pauli = Pauli(label)
+    ///         >>> assert SparseObservable.from_label(label) == SparseObservable.from_pauli(pauli)
+    ///
+    /// See also:
+    ///     :meth:`from_list`
+    ///         A generalization of this method that constructs a sum operator from multiple labels
+    ///         and their corresponding coefficients.
+    #[staticmethod]
+    #[pyo3(signature = (label, /))]
+    fn from_label(label: &str) -> PyResult<Self> {
+        let label: &[u8] = label.as_ref();
+        let num_qubits = label.len() as u32;
+        let mut bit_terms = Vec::new();
+        let mut indices = Vec::new();
+        // The only valid characters in the alphabet are ASCII, so if we see something other than
+        // ASCII, we're already in the failure path.
+        for (i, letter) in label.iter().rev().enumerate() {
+            match BitTerm::try_from_u8(*letter) {
+                Ok(Some(term)) => {
+                    bit_terms.push(term);
+                    indices.push(i as u32);
+                }
+                Ok(None) => (),
+                Err(_) => {
+                    return Err(PyErr::from(LabelError::OutsideAlphabet));
+                }
+            }
+        }
+        let inner = QubitSparsePauli::new(num_qubits, bit_terms.into_boxed_slice(), indices.into_boxed_slice())?;
+        Ok(inner.into())
+    }
+
+    /// NOTE DAN: The phase is dropped, document this ************************************************
+    /// Construct a :class:`.SparseObservable` from a single :class:`.Pauli` instance.
+    ///
+    /// The output observable will have a single term, with a unitary coefficient dependent on the
+    /// phase.
+    ///
+    /// Args:
+    ///     pauli (:class:`.Pauli`): the single Pauli to convert.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> label = "IYXZI"
+    ///         >>> pauli = Pauli(label)
+    ///         >>> SparseObservable.from_pauli(pauli)
+    ///         <SparseObservable with 1 term on 5 qubits: (1+0j)(Y_3 X_2 Z_1)>
+    ///         >>> assert SparseObservable.from_label(label) == SparseObservable.from_pauli(pauli)
+    #[staticmethod]
+    #[pyo3(signature = (pauli, /))]
+    fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
+        let py = pauli.py();
+        let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
+        let z = pauli
+            .getattr(intern!(py, "z"))?
+            .extract::<PyReadonlyArray1<bool>>()?;
+        let x = pauli
+            .getattr(intern!(py, "x"))?
+            .extract::<PyReadonlyArray1<bool>>()?;
+        let mut bit_terms = Vec::new();
+        let mut indices = Vec::new();
+        let mut num_ys = 0;
+        for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
+            // The only failure case possible here is the identity, because of how we're
+            // constructing the value to convert.
+            let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
+                continue;
+            };
+            num_ys += (term == BitTerm::Y) as isize;
+            indices.push(i as u32);
+            bit_terms.push(term);
+        }
+        let inner = QubitSparsePauli::new(num_qubits, bit_terms.into_boxed_slice(), indices.into_boxed_slice())?;
+        Ok(inner.into())
+    }
+
     /// Convert this term to a complete :class:`QubitSparsePauliList`.
     fn to_qubit_sparse_pauli_list(&self) -> PyResult<PyQubitSparsePauliList> {
         let qubit_sparse_pauli_list = QubitSparsePauliList::new(
@@ -1284,8 +1379,8 @@ impl PyQubitSparsePauliList {
         if let Ok(term) = data.downcast_exact::<PyQubitSparsePauli>() {
             return term.borrow().to_qubit_sparse_pauli_list();
         };
-        if let Ok(pauli_lindblad_map) = Self::from_qubit_sparse_paulis(data, num_qubits) {
-            return Ok(pauli_lindblad_map);
+        if let Ok(pauli_list) = Self::from_qubit_sparse_paulis(data, num_qubits) {
+            return Ok(pauli_list);
         }
         Err(PyTypeError::new_err(format!(
             "unknown input format for 'PauliLindbladMap': {}",
@@ -1386,7 +1481,7 @@ impl PyQubitSparsePauliList {
         QubitSparsePauliList::empty(num_qubits).into()
     }
 
-    /// NOTE DAN: The phase is dropped, document this
+    /// NOTE DAN: The phase is dropped, document this ************************************************
     /// Construct a :class:`.SparseObservable` from a single :class:`.Pauli` instance.
     ///
     /// The output observable will have a single term, with a unitary coefficient dependent on the
@@ -1893,6 +1988,22 @@ impl PyQubitSparsePauliList {
     }
 }
 
+impl From<QubitSparsePauli> for PyQubitSparsePauli {
+    fn from(val: QubitSparsePauli) -> PyQubitSparsePauli {
+        PyQubitSparsePauli {
+            inner: val,
+        }
+    }
+}
+impl<'py> IntoPyObject<'py> for QubitSparsePauli {
+    type Target = PyQubitSparsePauli;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> PyResult<Self::Output> {
+        PyQubitSparsePauli::from(self).into_pyobject(py)
+    }
+}
 impl From<QubitSparsePauliList> for PyQubitSparsePauliList {
     fn from(val: QubitSparsePauliList) -> PyQubitSparsePauliList {
         PyQubitSparsePauliList {
