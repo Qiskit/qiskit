@@ -1386,6 +1386,7 @@ impl PyQubitSparsePauliList {
         QubitSparsePauliList::empty(num_qubits).into()
     }
 
+    /// NOTE DAN: The phase is dropped, document this
     /// Construct a :class:`.SparseObservable` from a single :class:`.Pauli` instance.
     ///
     /// The output observable will have a single term, with a unitary coefficient dependent on the
@@ -1428,23 +1429,6 @@ impl PyQubitSparsePauliList {
             bit_terms.push(term);
         }
         let boundaries = vec![0, indices.len()];
-        // The "empty" state of a `Pauli` represents the identity, which isn't our empty state
-        // (that's zero), so we're always going to have a coefficient.
-        let group_phase = pauli
-            // `Pauli`'s `_phase` is a Numpy array ...
-            .getattr(intern!(py, "_phase"))?
-            // ... that should have exactly 1 element ...
-            .call_method0(intern!(py, "item"))?
-            // ... which is some integral type.
-            .extract::<isize>()?;
-        let phase = match (group_phase - num_ys).rem_euclid(4) {
-            0 => Complex64::new(1.0, 0.0),
-            1 => Complex64::new(0.0, -1.0),
-            2 => Complex64::new(-1.0, 0.0),
-            3 => Complex64::new(0.0, 1.0),
-            _ => unreachable!("`x % 4` has only four values"),
-        };
-        let coeffs = vec![phase];
         let inner = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
         Ok(inner.into())
     }
