@@ -439,15 +439,15 @@ class TesQubitSparsePauliList(QiskitTestCase):
         )
         self.assertEqual(from_paulis, from_lists)
 
-    def test_from_terms(self):
+    def test_from_qubit_sparse_paulis(self):
         self.assertEqual(
-            QubitSparsePauliList.from_terms([], num_qubits=5), QubitSparsePauliList.empty(5)
+            QubitSparsePauliList.from_qubit_sparse_paulis([], num_qubits=5), QubitSparsePauliList.empty(5)
         )
         self.assertEqual(
-            QubitSparsePauliList.from_terms((), num_qubits=0), QubitSparsePauliList.empty(0)
+            QubitSparsePauliList.from_qubit_sparse_paulis((), num_qubits=0), QubitSparsePauliList.empty(0)
         )
         self.assertEqual(
-            QubitSparsePauliList.from_terms((None for _ in []), num_qubits=3),
+            QubitSparsePauliList.from_qubit_sparse_paulis((None for _ in []), num_qubits=3),
             QubitSparsePauliList.empty(3),
         )
 
@@ -459,28 +459,28 @@ class TesQubitSparsePauliList(QiskitTestCase):
             ],
             num_qubits=10,
         )
-        self.assertEqual(QubitSparsePauliList.from_terms(list(expected)), expected)
-        self.assertEqual(QubitSparsePauliList.from_terms(tuple(expected)), expected)
-        self.assertEqual(QubitSparsePauliList.from_terms(term for term in expected), expected)
+        self.assertEqual(QubitSparsePauliList.from_qubit_sparse_paulis(list(expected)), expected)
+        self.assertEqual(QubitSparsePauliList.from_qubit_sparse_paulis(tuple(expected)), expected)
+        self.assertEqual(QubitSparsePauliList.from_qubit_sparse_paulis(term for term in expected), expected)
         self.assertEqual(
-            QubitSparsePauliList.from_terms(
+            QubitSparsePauliList.from_qubit_sparse_paulis(
                 (term for term in expected), num_qubits=expected.num_qubits
             ),
             expected,
         )
 
-    def test_from_terms_failures(self):
+    def test_from_qubit_sparse_paulis_failures(self):
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
-            QubitSparsePauliList.from_terms([])
+            QubitSparsePauliList.from_qubit_sparse_paulis([])
 
         left, right = (
             QubitSparsePauliList(["IIXYI"])[0],
             QubitSparsePauliList(["IIIIIIIIX"])[0],
         )
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
-            QubitSparsePauliList.from_terms([left, right])
+            QubitSparsePauliList.from_qubit_sparse_paulis([left, right])
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
-            QubitSparsePauliList.from_terms([left], num_qubits=100)
+            QubitSparsePauliList.from_qubit_sparse_paulis([left], num_qubits=100)
 
     def test_default_constructor_failed_inference(self):
         with self.assertRaises(TypeError):
@@ -868,3 +868,66 @@ class TesQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauli(5, [bit_term.Z, bit_term.Y], [1, 4]),
         ]
         self.assertEqual(list(pauli_list), expected)
+
+    def test_indexing(self):
+        pauli_list = QubitSparsePauliList.from_sparse_list(
+            [
+                ("XYY", (4, 2, 1)),
+                ("", ()),
+                ("ZZ", (3, 0)),
+                ("XX", (2, 1)),
+                ("YZ", (4, 1)),
+            ],
+            num_qubits=5,
+        )
+        bit_term = QubitSparsePauliList.BitTerm
+        expected = [
+            QubitSparsePauli(5, [bit_term.Y, bit_term.Y, bit_term.X], [1, 2, 4]),
+            QubitSparsePauli(5, [], []),
+            QubitSparsePauli(5, [bit_term.Z, bit_term.Z], [0, 3]),
+            QubitSparsePauli(5, [bit_term.X, bit_term.X], [1, 2]),
+            QubitSparsePauli(5, [bit_term.Z, bit_term.Y], [1, 4]),
+        ]
+        self.assertEqual(pauli_list[0], expected[0])
+        self.assertEqual(pauli_list[-2], expected[-2])
+        self.assertEqual(pauli_list[2:4], QubitSparsePauliList(expected[2:4]))
+        self.assertEqual(pauli_list[1::2], QubitSparsePauliList(expected[1::2]))
+        self.assertEqual(pauli_list[:], QubitSparsePauliList(expected))
+        self.assertEqual(pauli_list[-1:-4:-1], QubitSparsePauliList(expected[-1:-4:-1]))
+
+    def test_to_sparse_list(self):
+        """Test converting to a sparse list."""
+        with self.subTest(msg="identity"):
+            pauli_list = QubitSparsePauliList.empty(100)
+            expected = []
+            self.assertEqual(expected, pauli_list.to_sparse_list())
+
+        with self.subTest(msg="IXYZ"):
+            pauli_list = QubitSparsePauliList(["IXYZ"])
+            expected = [("ZYX", [0, 1, 2])]
+            self.assertEqual(
+                canonicalize_sparse_list(expected),
+                canonicalize_sparse_list(pauli_list.to_sparse_list()),
+            )
+
+        with self.subTest(msg="multiple"):
+            pauli_list = QubitSparsePauliList.from_list(["XXIZ", "YYIZ"])
+            expected = [("XXZ", [3, 2, 0]), ("ZYY", [0, 2, 3])]
+            self.assertEqual(
+                canonicalize_sparse_list(expected),
+                canonicalize_sparse_list(pauli_list.to_sparse_list()),
+            )
+
+def canonicalize_term(pauli, indices):
+    # canonicalize a sparse list term by sorting by indices (which is unique as
+    # indices cannot be repeated)
+    idcs = np.argsort(indices)
+    sorted_paulis = "".join(pauli[i] for i in idcs)
+    return (sorted_paulis, np.asarray(indices)[idcs].tolist())
+
+
+def canonicalize_sparse_list(sparse_list):
+    # sort a sparse list representation by canonicalizing the terms and then applying
+    # Python's built-in sort
+    canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
+    return sorted(canonicalized_terms)
