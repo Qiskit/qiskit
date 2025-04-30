@@ -1071,6 +1071,16 @@ impl PyQubitSparsePauli {
             .collect();
         PyString::new(py, string.as_str())
     }
+
+    // The documentation for this is inlined into the class-level documentation of
+    // `PauliLindbladMap`.
+    #[allow(non_snake_case)]
+    #[classattr]
+    fn BitTerm(py: Python) -> PyResult<Py<PyType>> {
+        BIT_TERM_PY_ENUM
+            .get_or_try_init(py, || make_py_bit_term(py))
+            .map(|obj| obj.clone_ref(py))
+    }
 }
 
 
