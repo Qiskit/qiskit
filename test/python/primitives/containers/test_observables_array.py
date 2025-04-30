@@ -17,6 +17,9 @@ import ddt
 import numpy as np
 
 import qiskit.quantum_info as qi
+from qiskit import QuantumCircuit
+from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.primitives import BackendEstimatorV2
 from qiskit.primitives.containers.observables_array import ObservablesArray
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -355,3 +358,21 @@ class ObservablesArrayTestCase(QiskitTestCase):
                             {labels_rs[idx]: 1},
                             msg=f"failed for shape {shape} with input format {input_shape}",
                         )
+
+    def test_estimator_workflow(self):
+        """Test that everything plays together when observables are specified with
+        SparseObservable."""
+        backend = BasicSimulator()
+        estimator = BackendEstimatorV2(backend=backend)
+
+        circ = QuantumCircuit(1)
+        circ.x(0)
+
+        obs = qi.SparseObservable.from_label("Z")
+
+        res = estimator.run([(circ, [obs])]).result()
+        self.assertEqual(res[0].data.evs, -1)
+
+        obs_array = ObservablesArray([obs] * 15).reshape(3, 5)
+        res = estimator.run([(circ, obs_array)]).result()
+        self.assertTrue(np.all(res[0].data.evs == -np.ones((3, 5))))

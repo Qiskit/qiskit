@@ -36,6 +36,7 @@ ObservableLike = Union[
     str,
     Pauli,
     SparsePauliOp,
+    SparseObservable,
     Mapping[Union[str, Pauli], float],
 ]
 """Types that can be natively used to construct a Hermitian Estimator observable."""
