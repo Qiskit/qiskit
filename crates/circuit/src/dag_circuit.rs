@@ -2715,7 +2715,7 @@ impl DAGCircuit {
             _ => return Err(DAGCircuitError::new_err("expected node")),
         };
 
-        type WireMapsTuple = (HashMap<Qubit, Qubit>, HashMap<Clbit, Clbit>, Py<PyDict>);
+        type WireMapsTuple = (HashMap<Qubit, Qubit>, HashMap<Clbit, Clbit>, HashMap<Var, Var>);
 
         let build_wire_map = |wires: &Bound<PyList>| -> PyResult<WireMapsTuple> {
             let qargs_list = imports::BUILTIN_LIST
@@ -2749,7 +2749,7 @@ impl DAGCircuit {
             }
             let mut qubit_wire_map = HashMap::new();
             let mut clbit_wire_map = HashMap::new();
-            let var_map = PyDict::new(py);
+            let var_map = HashMap::new();
             for (index, wire) in wires.iter().enumerate() {
                 if wire.downcast::<PyQubit>().is_ok() {
                     if index >= qargs_len {
@@ -2787,19 +2787,19 @@ impl DAGCircuit {
                     ));
                 }
             }
-            Ok((qubit_wire_map, clbit_wire_map, var_map.unbind()))
+            Ok((qubit_wire_map, clbit_wire_map, var_map))
         };
 
-        let (qubit_wire_map, clbit_wire_map, var_map): (
+        let (qubit_wire_map, clbit_wire_map, mut var_map): (
             HashMap<Qubit, Qubit>,
             HashMap<Clbit, Clbit>,
-            Py<PyDict>,
+            HashMap<Var, Var>,
         ) = match wires {
             Some(wires) => match wires.downcast::<PyDict>() {
                 Ok(bound_wires) => {
                     let mut qubit_wire_map = HashMap::new();
                     let mut clbit_wire_map = HashMap::new();
-                    let var_map = PyDict::new(py);
+                    let mut var_map = HashMap::new();
                     for (source_wire, target_wire) in bound_wires.iter() {
                         if source_wire.downcast::<PyQubit>().is_ok() {
                             qubit_wire_map.insert(
@@ -2822,10 +2822,18 @@ impl DAGCircuit {
                                     .unwrap(),
                             );
                         } else {
-                            var_map.set_item(source_wire, target_wire)?;
+                            var_map.insert(
+                                input_dag
+                                    .vars
+                                    .find(&source_wire.extract::<expr::Var>()?)
+                                    .unwrap(),
+                                self.vars
+                                    .find(&target_wire.extract::<expr::Var>()?)
+                                    .unwrap(),
+                            );
                         }
                     }
-                    (qubit_wire_map, clbit_wire_map, var_map.unbind())
+                    (qubit_wire_map, clbit_wire_map, var_map)
                 }
                 Err(_) => {
                     let wires: Bound<PyList> = match wires.downcast::<PyList>() {
@@ -2867,9 +2875,10 @@ impl DAGCircuit {
         } else {
             HashSet::default()
         };
-        let bound_var_map = var_map.bind(py);
+        // let bound_var_map = var_map.bind(py);
         for var in input_dag_var_set.iter() {
-            bound_var_map.set_item((*var).clone(), (*var).clone())?;
+            var_map.insert(input_dag.find(var).unwrap(), self.vars.find(var).unwrap());
+            // bound_var_map.set_item((*var).clone(), (*var).clone())?;
         }
 
         for contracted_var in node_vars.difference(&input_dag_var_set) {
