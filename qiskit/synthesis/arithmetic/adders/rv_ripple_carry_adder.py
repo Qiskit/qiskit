@@ -82,6 +82,35 @@ def adder_ripple_rv25(num_qubits: int, kind: str = "half") -> QuantumCircuit:
     adder shown in [1]. The implementation has a depth of :math:`O(\log^2 n)` and uses
     math:`O(n \log n)` gates.
 
+    As an example, a ripple-carry adder circuit that performs addition on two 4-qubit sized
+    registers is as follows:
+
+    .. parsed-literal::
+
+                                       ┌───────────┐                    ┌────────┐
+         a_0: ─────────────────────────┤0          ├────────────────────┤0       ├───────────────■─────────────────
+                             ┌────────┐│           │                    │        │┌───────────┐  │
+         a_1: ──■────────────┤0       ├┤2          ├──■─────────────────┤2       ├┤0          ├──┼────■────────────
+                │            │        ││           │  │                 │        ││           │  │    │
+         a_2: ──┼────■───────┤1       ├┤4          ├──┼────■────────────┤4       ├┤1 LAD_1_dg ├──┼────┼────■───────
+                │    │       │        ││           │  │    │            │        ││           │  │    │    │
+         a_3: ──┼────┼────■──┤2       ├┤6          ├──┼────┼────■───────┤6 LAD_2 ├┤2          ├──┼────┼────┼────■──
+                │    │    │  │        ││           │  │    │    │       │        │└───────────┘┌─┴─┐  │    │    │
+         b_0: ──┼────┼────┼──┤        ├┤1 LAD_2_dg ├──┼────┼────┼───────┤1       ├─────────────┤ X ├──┼────┼────┼──
+              ┌─┴─┐  │    │  │  LAD_1 ││           │┌─┴─┐  │    │  ┌───┐│        │    ┌───┐    └───┘┌─┴─┐  │    │
+         b_1: ┤ X ├──┼────┼──┤        ├┤3          ├┤ X ├──┼────┼──┤ X ├┤3       ├────┤ X ├─────────┤ X ├──┼────┼──
+              └───┘┌─┴─┐  │  │        ││           │└───┘┌─┴─┐  │  ├───┤│        │    ├───┤         └───┘┌─┴─┐  │
+         b_2: ─────┤ X ├──┼──┤        ├┤5          ├─────┤ X ├──┼──┤ X ├┤5       ├────┤ X ├──────────────┤ X ├──┼──
+                   └───┘┌─┴─┐│        ││           │     └───┘┌─┴─┐└───┘└────────┘    └───┘              └───┘┌─┴─┐
+         b_3: ──────────┤ X ├┤        ├┤7          ├──────────┤ X ├───────────────────────────────────────────┤ X ├
+                        └───┘│        ││           │          └───┘                                           └───┘
+        cout: ───────────────┤3       ├┤8          ├───────────────────────────────────────────────────────────────
+                             └────────┘└───────────┘
+
+    Here *LAD_1* and *LAD_2* are the CX and CCX ladders respectively introduced in [1]. Note that
+    in this implementation the input register qubits are ordered as all qubits from
+    the first input register, followed by all qubits from the second input register.
+
     Args:
         num_qubits: The size of the register.
         kind: The type of adder to implement. Currently, only "half" is supported.
