@@ -10,9 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use num_complex::Complex64;
 use numpy::{
     PyArray1, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
-    PyUntypedArrayMethods,
+    PyReadonlyArray1, PyUntypedArrayMethods,
 };
 use pyo3::{
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
@@ -29,10 +30,11 @@ use std::{
 use thiserror::Error;
 
 use qiskit_circuit::{
-    imports::NUMPY_COPY_ONLY_IF_NEEDED,
+    imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED},
     slice::{PySequenceIndex, SequenceIndex},
 };
 
+static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
 static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
 
@@ -1244,6 +1246,21 @@ impl PyQubitSparsePauliList {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
+        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+            check_num_qubits(data)?;
+            return Self::from_pauli(data);
+        }
+        if let Ok(label) = data.extract::<String>() {
+            let num_qubits = num_qubits.unwrap_or(label.len() as u32);
+            if num_qubits as usize != label.len() {
+                return Err(PyValueError::new_err(format!(
+                    "explicitly given 'num_qubits' ({}) does not match label ({})",
+                    num_qubits,
+                    label.len(),
+                )));
+            }
+            return Self::from_label(&label).map_err(PyErr::from);
+        }
         if let Ok(pauli_list) = data.downcast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_list.borrow();
@@ -1367,6 +1384,101 @@ impl PyQubitSparsePauliList {
     #[staticmethod]
     pub fn empty(num_qubits: u32) -> Self {
         QubitSparsePauliList::empty(num_qubits).into()
+    }
+
+    /// Construct a :class:`.SparseObservable` from a single :class:`.Pauli` instance.
+    ///
+    /// The output observable will have a single term, with a unitary coefficient dependent on the
+    /// phase.
+    ///
+    /// Args:
+    ///     pauli (:class:`.Pauli`): the single Pauli to convert.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> label = "IYXZI"
+    ///         >>> pauli = Pauli(label)
+    ///         >>> SparseObservable.from_pauli(pauli)
+    ///         <SparseObservable with 1 term on 5 qubits: (1+0j)(Y_3 X_2 Z_1)>
+    ///         >>> assert SparseObservable.from_label(label) == SparseObservable.from_pauli(pauli)
+    #[staticmethod]
+    #[pyo3(signature = (pauli, /))]
+    fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
+        let py = pauli.py();
+        let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
+        let z = pauli
+            .getattr(intern!(py, "z"))?
+            .extract::<PyReadonlyArray1<bool>>()?;
+        let x = pauli
+            .getattr(intern!(py, "x"))?
+            .extract::<PyReadonlyArray1<bool>>()?;
+        let mut bit_terms = Vec::new();
+        let mut indices = Vec::new();
+        let mut num_ys = 0;
+        for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
+            // The only failure case possible here is the identity, because of how we're
+            // constructing the value to convert.
+            let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
+                continue;
+            };
+            num_ys += (term == BitTerm::Y) as isize;
+            indices.push(i as u32);
+            bit_terms.push(term);
+        }
+        let boundaries = vec![0, indices.len()];
+        // The "empty" state of a `Pauli` represents the identity, which isn't our empty state
+        // (that's zero), so we're always going to have a coefficient.
+        let group_phase = pauli
+            // `Pauli`'s `_phase` is a Numpy array ...
+            .getattr(intern!(py, "_phase"))?
+            // ... that should have exactly 1 element ...
+            .call_method0(intern!(py, "item"))?
+            // ... which is some integral type.
+            .extract::<isize>()?;
+        let phase = match (group_phase - num_ys).rem_euclid(4) {
+            0 => Complex64::new(1.0, 0.0),
+            1 => Complex64::new(0.0, -1.0),
+            2 => Complex64::new(-1.0, 0.0),
+            3 => Complex64::new(0.0, 1.0),
+            _ => unreachable!("`x % 4` has only four values"),
+        };
+        let coeffs = vec![phase];
+        let inner = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+        Ok(inner.into())
+    }
+
+    /// Construct a single-term observable from a dense string label.
+    ///
+    /// The resulting operator will have a coefficient of 1.  The label must be a sequence of the
+    /// alphabet ``'IXYZ+-rl01'``.  The label is interpreted analogously to a bitstring.  In other
+    /// words, the right-most letter is associated with qubit 0, and so on.  This is the same as the
+    /// labels for :class:`.Pauli` and :class:`.SparsePauliOp`.
+    ///
+    /// Args:
+    ///     label (str): the dense label.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> SparseObservable.from_label("IIII+ZI")
+    ///         <SparseObservable with 1 term on 7 qubits: (1+0j)(+_2 Z_1)>
+    ///         >>> label = "IYXZI"
+    ///         >>> pauli = Pauli(label)
+    ///         >>> assert SparseObservable.from_label(label) == SparseObservable.from_pauli(pauli)
+    ///
+    /// See also:
+    ///     :meth:`from_list`
+    ///         A generalization of this method that constructs a sum operator from multiple labels
+    ///         and their corresponding coefficients.
+    #[staticmethod]
+    #[pyo3(signature = (label, /))]
+    fn from_label(label: &str) -> Result<Self, LabelError> {
+        let mut inner = QubitSparsePauliList::empty(label.len() as u32);
+        inner.add_dense_label(label)?;
+        Ok(inner.into())
     }
 
     /// Construct a Pauli Lindblad map from a list of dense generator labels and coefficients.
