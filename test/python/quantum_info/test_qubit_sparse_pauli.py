@@ -43,31 +43,73 @@ def single_cases():
 @ddt.ddt
 class TesQubitSparsePauli(QiskitTestCase):
     
-    """
+    
     def test_from_label(self):
         # The label is interpreted like a bitstring, with the right-most item associated with qubit
         # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
         self.assertEqual(
             # Ruler for counting terms:  dcba9876543210
             QubitSparsePauli.from_label("IXXIIZZIYYIXYZ"),
-            QubitSparsePauli.from_raw_parts(
+            QubitSparsePauli(
                 14,
                 [
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.X,
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.X,
-                    QubitSparsePauliList.BitTerm.X,
+                    QubitSparsePauli.BitTerm.Z,
+                    QubitSparsePauli.BitTerm.Y,
+                    QubitSparsePauli.BitTerm.X,
+                    QubitSparsePauli.BitTerm.Y,
+                    QubitSparsePauli.BitTerm.Y,
+                    QubitSparsePauli.BitTerm.Z,
+                    QubitSparsePauli.BitTerm.Z,
+                    QubitSparsePauli.BitTerm.X,
+                    QubitSparsePauli.BitTerm.X,
                 ],
                 [0, 1, 2, 4, 5, 7, 8, 11, 12],
-                [0, 9],
             ),
         )
-    """
+    
+    def test_from_pauli(self):
+        # This function should be infallible provided `Pauli` doesn't change its interface and the
+        # user doesn't violate the typing.
+
+        # Simple check that the labels are interpreted in the same order.
+        self.assertEqual(
+            QubitSparsePauli.from_pauli(Pauli("IIXZI")), QubitSparsePauli.from_label("IIXZI")
+        )
+
+        # `Pauli` accepts a phase in its label, which gets dropped
+        self.assertEqual(
+            QubitSparsePauli.from_pauli(Pauli("iIXZIX")),
+            QubitSparsePauli.from_label("IXZIX"),
+        )
+        self.assertEqual(
+            QubitSparsePauli.from_pauli(Pauli("-iIXZIX")),
+            QubitSparsePauli.from_label("IXZIX"),
+        )
+        self.assertEqual(
+            QubitSparsePauli.from_pauli(Pauli("-IXZIX")),
+            QubitSparsePauli.from_label("IXZIX"),
+        )
+
+        # `Pauli` has its internal phase convention for how it stores `Y`; we should get this right
+        # regardless of how many Ys are in the label, or if there's a phase.
+        paulis = {"IXYZ" * n: Pauli("IXYZ" * n) for n in range(1, 5)}
+        from_paulis, from_labels = zip(
+            *(
+                (QubitSparsePauli.from_pauli(pauli), QubitSparsePauli.from_label(label))
+                for label, pauli in paulis.items()
+            )
+        )
+        self.assertEqual(from_paulis, from_labels)
+
+        phased_paulis = {"IXYZ" * n: Pauli("j" + "IXYZ" * n) for n in range(1, 5)}
+        from_paulis, from_lists = zip(
+            *(
+                (QubitSparsePauli.from_pauli(pauli), QubitSparsePauli.from_label(label))
+                for label, pauli in phased_paulis.items()
+            )
+        )
+        self.assertEqual(from_paulis, from_lists)
+    
 
 @ddt.ddt
 class TesQubitSparsePauliList(QiskitTestCase):
