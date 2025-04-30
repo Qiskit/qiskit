@@ -477,7 +477,7 @@ impl QubitSparsePauliList {
     }
 
     /// Add a single generator term to this map.
-    pub fn add_term(&mut self, term: QubitSparsePauliView) -> Result<(), ArithmeticError> {
+    pub fn add_qubit_sparse_pauli(&mut self, term: QubitSparsePauliView) -> Result<(), ArithmeticError> {
         if self.num_qubits != term.num_qubits {
             return Err(ArithmeticError::MismatchedQubits {
                 left: self.num_qubits,
@@ -1284,7 +1284,7 @@ impl PyQubitSparsePauliList {
         if let Ok(term) = data.downcast_exact::<PyQubitSparsePauli>() {
             return term.borrow().to_qubit_sparse_pauli_list();
         };
-        if let Ok(pauli_lindblad_map) = Self::from_terms(data, num_qubits) {
+        if let Ok(pauli_lindblad_map) = Self::from_qubit_sparse_paulis(data, num_qubits) {
             return Ok(pauli_lindblad_map);
         }
         Err(PyTypeError::new_err(format!(
@@ -1554,7 +1554,7 @@ impl PyQubitSparsePauliList {
     ///     The corresponding map.
     #[staticmethod]
     #[pyo3(signature = (obj, /, num_qubits=None))]
-    fn from_terms(obj: &Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+    fn from_qubit_sparse_paulis(obj: &Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
         let mut iter = obj.try_iter()?;
         let mut inner = match num_qubits {
             Some(num_qubits) => QubitSparsePauliList::empty(num_qubits),
@@ -1570,7 +1570,7 @@ impl PyQubitSparsePauliList {
         };
         for bound_py_term in iter {
             let py_term = bound_py_term?.downcast::<PyQubitSparsePauli>()?.borrow();
-            inner.add_term(py_term.inner.view())?;
+            inner.add_qubit_sparse_pauli(py_term.inner.view())?;
         }
         Ok(inner.into())
     }
@@ -1831,7 +1831,7 @@ impl PyQubitSparsePauliList {
         };
         let mut out = QubitSparsePauliList::empty(inner.num_qubits());
         for index in indices.iter() {
-            out.add_term(inner.term(index))?;
+            out.add_qubit_sparse_pauli(inner.term(index))?;
         }
         out.into_bound_py_any(py)
     }
