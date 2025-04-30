@@ -64,11 +64,9 @@ def _compute_rotation_axis(matrix: np.ndarray) -> np.ndarray:
 
     elif trace <= -1 + 1e-10:
         # The matrix is the 180-degree rotation
-        # We have:
-        #   k_x^2 = (1 + r_00) / 2, k_y^2 = (1 + r_11) / 2, k_z^2 = (1 + r_22) / 2,
-        #   k_x k_y = r_01 / 2, k_y k_z = r_12 / 2, k_x k_z = r_02 / 2
-        squares = [0.5 * (1 + matrix[0][0]), 0.5 * (1 + matrix[1][1]), 0.5 * (1 + matrix[2][2])]
-        index_of_max = squares.index(max(squares))
+        squares = (1 + np.diagonal(matrix)) / 2
+        index_of_max = np.argmax(squares)
+
         if index_of_max == 0:
             x = math.sqrt(squares[0])
             y = matrix[0][1] / (2 * x)
