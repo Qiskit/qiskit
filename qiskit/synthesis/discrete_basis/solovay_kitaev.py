@@ -137,9 +137,9 @@ class SolovayKitaevDecomposition:
 
         # convert to a circuit and attach the right phases
         if return_dag:
-            out = decomposition._to_dag()
+            out = decomposition.to_dag()
         else:
-            out = decomposition._to_circuit()
+            out = decomposition.to_circuit()
 
         out.global_phase += adjust_phase
         out.global_phase -= global_phase

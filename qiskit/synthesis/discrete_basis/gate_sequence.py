@@ -93,10 +93,6 @@ class GateSequence:
         If no gates set but the product is not the identity, returns a circuit with a
         unitary operation to implement the matrix.
         """
-        # Note: returning the circuit with the unitary matrix instead of its decomposition
-        # into gates seems very strange and breaks the purpose of the pass. Unfortunately,
-        # this behavior is documented in the method's docstring. For backward-compatibility
-        # this method is left as is, however a new method ``_to_circuit`` is used instead.
         if len(self.gates) == 0 and not np.allclose(self.product, np.identity(3)):
             circuit = QuantumCircuit(1, global_phase=self.global_phase)
             su2 = _convert_so3_to_su2(self.product)
@@ -119,14 +115,6 @@ class GateSequence:
         u2 = np.exp(1j * self.global_phase) * u2
         return u2
 
-    def _to_circuit(self):
-        """Converts to a :class:`.QuantumCircuit`."""
-        adjusted_phase = self.global_phase
-        circuit = QuantumCircuit(1, global_phase=adjusted_phase)
-        for gate in self.gates:
-            circuit.append(gate, [0])
-        return circuit
-
     def to_dag(self):
         """Convert to a :class:`.DAGCircuit`.
 
@@ -139,28 +127,10 @@ class GateSequence:
         dag = DAGCircuit()
         dag.add_qubits(qreg)
 
-        # Note: returning the circuit with the unitary matrix instead of its decomposition
-        # into gates seems very strange and breaks the purpose of the pass. Unfortunately,
-        # this behavior is documented in the method's docstring. For backward-compatibility
-        # this method is left as is, however a new method ``_to_circuit`` is used instead.
         if len(self.gates) == 0 and not np.allclose(self.product, np.identity(3)):
             su2 = _convert_so3_to_su2(self.product)
             dag.apply_operation_back(UnitaryGate(su2), qreg, check=False)
             return dag
-
-        dag.global_phase = self.global_phase
-        for gate in self.gates:
-            dag.apply_operation_back(gate, qreg, check=False)
-
-        return dag
-
-    def _to_dag(self):
-        """Convert to a :class:`.DAGCircuit`."""
-        from qiskit.dagcircuit import DAGCircuit
-
-        qreg = (Qubit(),)
-        dag = DAGCircuit()
-        dag.add_qubits(qreg)
 
         dag.global_phase = self.global_phase
         for gate in self.gates:
