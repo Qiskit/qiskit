@@ -384,15 +384,6 @@ class TestCliffordGates(QiskitTestCase):
         value = Clifford(circ)
         self.assertEqual(value, target)
 
-    def test_from_circuit_with_conditional_gate(self):
-        """Test initialization from circuit with conditional gate."""
-        qc = QuantumCircuit(2, 1)
-        qc.h(0).c_if(0, 0)
-        qc.cx(0, 1)
-
-        with self.assertRaises(QiskitError):
-            Clifford(qc)
-
     def test_from_circuit_with_other_clifford(self):
         """Test initialization from circuit containing another clifford."""
         cliff = random_clifford(1, seed=777)
@@ -472,7 +463,12 @@ class TestCliffordGates(QiskitTestCase):
         # and even circuits with other clifford objects.
         linear_function = LinearFunction([[0, 1], [1, 1]])
         pauli_gate = PauliGate("YZ")
-        cliff = random_clifford(2, seed=777)
+
+        qc_cliff = QuantumCircuit(2)
+        qc_cliff.h(0)
+        qc_cliff.cx(0, 1)
+        cliff = Clifford(qc_cliff)
+
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
         qc.append(random_clifford(1, seed=999), [1])
@@ -492,8 +488,8 @@ class TestCliffordGates(QiskitTestCase):
 
         # Additionally, make sure that it produces the correct clifford.
         expected_clifford_dict = {
-            "stabilizer": ["-IZX", "+XXZ", "-YYZ"],
-            "destabilizer": ["-YYI", "-XZI", "-ZXY"],
+            "stabilizer": ["-IZX", "+ZYZ", "+XZI"],
+            "destabilizer": ["+XZZ", "-XII", "+IXY"],
         }
         expected_clifford = Clifford.from_dict(expected_clifford_dict)
         self.assertEqual(combined_clifford, expected_clifford)

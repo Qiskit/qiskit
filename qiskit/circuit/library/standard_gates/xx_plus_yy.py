@@ -22,7 +22,7 @@ from typing import Optional
 import numpy
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
@@ -35,7 +35,7 @@ class XXPlusYYGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────────┐
         q_0: ┤0              ├
@@ -67,7 +67,7 @@ class XXPlusYYGate(Gate):
         phase is added on q_1. If :math:`\beta` is set to its default value
         of :math:`0`, the gate is equivalent in big and little endian.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────────┐
             q_0: ┤1              ├
@@ -91,16 +91,13 @@ class XXPlusYYGate(Gate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.XXPlusYYGate
+    _standard_gate = StandardGate.XXPlusYY
 
     def __init__(
         self,
         theta: ParameterValueType,
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX+YY)",
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new XX+YY gate.
 
@@ -109,7 +106,7 @@ class XXPlusYYGate(Gate):
             beta: The phase angle.
             label: The label of the gate.
         """
-        super().__init__("xx_plus_yy", 2, [theta, beta], label=label, duration=duration, unit=unit)
+        super().__init__("xx_plus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
         """

@@ -21,7 +21,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -43,7 +42,7 @@ class U3Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────┐
         q_0: ┤ U3(ϴ,φ,λ) ├
@@ -84,7 +83,7 @@ class U3Gate(Gate):
         U3(\theta, 0, 0) = RY(\theta)
     """
 
-    _standard_gate = StandardGate.U3Gate
+    _standard_gate = StandardGate.U3
 
     def __init__(
         self,
@@ -92,12 +91,9 @@ class U3Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new U3 gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
+        super().__init__("u3", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted U3 gate.
@@ -155,7 +151,7 @@ class U3Gate(Gate):
         return gate
 
     def _define(self):
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
@@ -178,6 +174,9 @@ class U3Gate(Gate):
             dtype=dtype or complex,
         )
 
+    def __eq__(self, other):
+        return isinstance(other, U3Gate) and self._compare_parameters(other)
+
 
 class CU3Gate(ControlledGate):
     r"""Controlled-U3 gate (3-parameter two-qubit gate).
@@ -186,9 +185,26 @@ class CU3Gate(ControlledGate):
     It is restricted to 3 parameters, and so cannot cover generic two-qubit
     controlled gates).
 
+    .. warning::
+
+       This gate is deprecated. Instead, the :class:`.CUGate` should be used
+
+       .. math::
+
+           CU3(\theta, \phi, \lambda) = CU(\theta, \phi, \lambda, 0)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(2)
+          gamma = 0
+          circuit.cu(theta, phi, lambda, gamma, 0, 1)
+
+
+
+
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴─────┐
@@ -219,7 +235,8 @@ class CU3Gate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────────┐
             q_0: ┤ U3(ϴ,φ,λ) ├
                  └─────┬─────┘
@@ -240,7 +257,7 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CU3Gate
+    _standard_gate = StandardGate.CU3
 
     def __init__(
         self,
@@ -250,8 +267,6 @@ class CU3Gate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CU3 gate."""
@@ -263,8 +278,6 @@ class CU3Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U3Gate(theta, phi, lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
@@ -279,7 +292,7 @@ class CU3Gate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
 
@@ -350,6 +363,13 @@ class CU3Gate(ControlledGate):
                 ],
                 dtype=dtype or complex,
             )
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CU3Gate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
 
 
 def _generate_gray_code(num_bits):

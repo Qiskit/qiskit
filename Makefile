@@ -12,7 +12,7 @@
 
 OS := $(shell uname -s)
 
-.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean cheader clib ctest cformat fix_cformat cclean
 
 default: ruff style lint-incr test ;
 
@@ -28,27 +28,27 @@ env:
 # Ignoring generated ones with .py extension.
 lint:
 	pylint -rn qiskit test tools
-	tools/verify_headers.py qiskit test tools examples
-	pylint -rn --disable='invalid-name, missing-module-docstring, redefined-outer-name' examples/python/*.py
+	tools/verify_headers.py qiskit test tools
 	tools/find_optional_imports.py
 	tools/find_stray_release_notes.py
+	tools/verify_images.py
 
 # Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
 lint-incr:
 	-git fetch -q https://github.com/Qiskit/qiskit-terra.git :lint_incr_latest
 	tools/pylint_incr.py -j4 -rn -sn --paths :/qiskit/*.py :/test/*.py :/tools/*.py
-	tools/pylint_incr.py -j4 -rn -sn --disable='invalid-name, missing-module-docstring, redefined-outer-name' --paths ':(glob,top)examples/python/*.py'
-	tools/verify_headers.py qiskit test tools examples
+	tools/verify_headers.py qiskit test tools
 	tools/find_optional_imports.py
+	tools/verify_images.py
 
 ruff:
-	ruff qiskit test tools examples setup.py
+	ruff qiskit test tools setup.py
 
 style:
-	black --check qiskit test tools examples setup.py
+	black --check qiskit test tools setup.py
 
 black:
-	black qiskit test tools examples setup.py
+	black qiskit test tools setup.py
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
@@ -83,3 +83,70 @@ coverage_erase:
 	coverage erase
 
 clean: coverage_erase ;
+
+C_DIR_OUT = dist/c
+C_DIR_LIB = $(C_DIR_OUT)/lib
+C_DIR_INCLUDE = $(C_DIR_OUT)/include
+C_DIR_TEST_BUILD = test/c/build
+# Whether this is target/debug or target/release depends on the flags in the
+# `cheader` recipe.  For now, they're just hardcoded.
+C_CARGO_TARGET_DIR = target/release
+C_LIB_CARGO_BASENAME=libqiskit_cext
+ifeq ($(OS), Windows_NT)
+	C_DYLIB_EXT=dll
+else ifeq ($(shell uname), Darwin)
+	C_DYLIB_EXT=dylib
+else
+	# ... probably.
+	C_DYLIB_EXT=so
+endif
+C_LIB_CARGO_FILENAME=$(C_LIB_CARGO_BASENAME).$(C_DYLIB_EXT)
+C_LIB_CARGO_PATH=$(C_CARGO_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
+
+C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
+C_LIBQISKIT=$(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
+
+# Run clang-format (does not apply any changes)
+cformat:
+	bash tools/run_clang_format.sh
+
+# Apply clang-format changes
+fix_cformat:
+	bash tools/run_clang_format.sh apply
+
+# The library file is managed by a different build tool - pretend it's always dirty.
+.PHONY: $(C_LIB_CARGO_PATH)
+$(C_LIB_CARGO_PATH):
+	cargo rustc --release --crate-type cdylib -p qiskit-cext
+
+$(C_DIR_LIB):
+	mkdir -p $(C_DIR_LIB)
+
+$(C_DIR_INCLUDE):
+	mkdir -p $(C_DIR_INCLUDE)
+
+$(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_CARGO_PATH)
+	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
+
+$(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH) 
+	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
+
+.PHONY: c cheader 
+cheader: $(C_QISKIT_H)
+c: $(C_LIBQISKIT) $(C_QISKIT_H)
+
+# Use ctest to run C API tests
+ctest: $(C_LIB_CARGO_PATH) $(C_QISKIT_H) 
+	# -S specifically specifies the source path to be the current folder
+	# -B specifically specifies the build path to be inside test/c/build
+	cmake -S. -B$(C_DIR_TEST_BUILD)
+	cmake --build $(C_DIR_TEST_BUILD)
+	# -V ensures we always produce a logging output to indicate the subtests
+	# -C Debug is needed for windows to work, if you don't specify Debug (or
+	#  release) explicitly ctest doesn't run on windows
+	ctest -V -C Debug --test-dir $(C_DIR_TEST_BUILD)
+
+cclean:
+	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD)
+	rm -f target/qiskit.h
+	cargo clean

@@ -13,11 +13,14 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
+use pyo3::IntoPyObjectExt;
 use pyo3::Python;
+
+use qiskit_circuit::impl_intopyobject_for_copy_pyclass;
 
 /// Affect the dynamic scaling of the weight of node-set-based heuristics (basic and lookahead).
 #[pyclass]
-#[pyo3(module = "qiskit._accelerate.sabre", frozen)]
+#[pyo3(module = "qiskit._accelerate.sabre", frozen, eq)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum SetScaling {
     /// No dynamic scaling of the weight.
@@ -26,6 +29,7 @@ pub enum SetScaling {
     /// the weight will be multiplied by ``0.2``).
     Size,
 }
+impl_intopyobject_for_copy_pyclass!(SetScaling);
 #[pymethods]
 impl SetScaling {
     pub fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -33,11 +37,11 @@ impl SetScaling {
             SetScaling::Constant => "Constant",
             SetScaling::Size => "Size",
         };
-        Ok((
-            py.import_bound("builtins")?.getattr("getattr")?,
-            (py.get_type_bound::<Self>(), name),
+        (
+            py.import("builtins")?.getattr("getattr")?,
+            (py.get_type::<Self>(), name),
         )
-            .into_py(py))
+            .into_py_any(py)
     }
 }
 
@@ -53,6 +57,7 @@ pub struct BasicHeuristic {
     /// Set the dynamic scaling of the weight based on the layer it is applying to.
     pub scale: SetScaling,
 }
+impl_intopyobject_for_copy_pyclass!(BasicHeuristic);
 #[pymethods]
 impl BasicHeuristic {
     #[new]
@@ -60,8 +65,8 @@ impl BasicHeuristic {
         Self { weight, scale }
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
-        (self.weight, self.scale).into_py(py)
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (self.weight, self.scale).into_py_any(py)
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
@@ -74,9 +79,9 @@ impl BasicHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "BasicHeuristic(weight={!r}, scale={!r})";
-        Ok(PyString::new_bound(py, fmt)
+        PyString::new(py, fmt)
             .call_method1("format", (self.weight, self.scale))?
-            .into_py(py))
+            .into_py_any(py)
     }
 }
 
@@ -94,6 +99,7 @@ pub struct LookaheadHeuristic {
     /// Dynamic scaling of the heuristic weight depending on the lookahead set.
     pub scale: SetScaling,
 }
+impl_intopyobject_for_copy_pyclass!(LookaheadHeuristic);
 #[pymethods]
 impl LookaheadHeuristic {
     #[new]
@@ -105,8 +111,8 @@ impl LookaheadHeuristic {
         }
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
-        (self.weight, self.size, self.scale).into_py(py)
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (self.weight, self.size, self.scale).into_py_any(py)
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
@@ -119,9 +125,9 @@ impl LookaheadHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "LookaheadHeuristic(weight={!r}, size={!r}, scale={!r})";
-        Ok(PyString::new_bound(py, fmt)
+        PyString::new(py, fmt)
             .call_method1("format", (self.weight, self.size, self.scale))?
-            .into_py(py))
+            .into_py_any(py)
     }
 }
 
@@ -138,6 +144,7 @@ pub struct DecayHeuristic {
     /// How frequently (in terms of swaps in the layer) to reset all qubit multipliers back to 1.0.
     pub reset: usize,
 }
+impl_intopyobject_for_copy_pyclass!(DecayHeuristic);
 #[pymethods]
 impl DecayHeuristic {
     #[new]
@@ -145,8 +152,8 @@ impl DecayHeuristic {
         Self { increment, reset }
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
-        (self.increment, self.reset).into_py(py)
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        (self.increment, self.reset).into_py_any(py)
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
@@ -159,9 +166,9 @@ impl DecayHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "DecayHeuristic(increment={!r}, reset={!r})";
-        Ok(PyString::new_bound(py, fmt)
+        PyString::new(py, fmt)
             .call_method1("format", (self.increment, self.reset))?
-            .into_py(py))
+            .into_py_any(py)
     }
 }
 
@@ -211,7 +218,7 @@ impl Heuristic {
         }
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> Py<PyAny> {
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<Py<PyAny>> {
         (
             self.basic,
             self.lookahead,
@@ -219,7 +226,7 @@ impl Heuristic {
             self.attempt_limit,
             self.best_epsilon,
         )
-            .into_py(py)
+            .into_py_any(py)
     }
 
     /// Set the weight of the ``basic`` heuristic (the sum of distances of gates in the front
@@ -268,7 +275,7 @@ impl Heuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "Heuristic(basic={!r}, lookahead={!r}, decay={!r}, attempt_limit={!r}, best_epsilon={!r})";
-        Ok(PyString::new_bound(py, fmt)
+        PyString::new(py, fmt)
             .call_method1(
                 "format",
                 (
@@ -279,6 +286,6 @@ impl Heuristic {
                     self.best_epsilon,
                 ),
             )?
-            .into_py(py))
+            .into_py_any(py)
     }
 }

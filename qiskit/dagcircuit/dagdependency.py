@@ -17,18 +17,17 @@ from __future__ import annotations
 import math
 import heapq
 import typing
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from collections.abc import Iterator
 
 import rustworkx as rx
 
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.pulse import Schedule
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.parameterexpression import ParameterExpression
@@ -71,7 +70,7 @@ class DAGDependency:
 
     Bell circuit with no measurement.
 
-    .. parsed-literal::
+    .. code-block:: text
 
               ┌───┐
         qr_0: ┤ H ├──■──
@@ -114,7 +113,6 @@ class DAGDependency:
         self.clbits = []
 
         self._global_phase: float | ParameterExpression = 0.0
-        self._calibrations: dict[str, dict[tuple, Schedule]] = defaultdict(dict)
 
         self.duration = None
         self.unit = "dt"
@@ -144,25 +142,6 @@ class DAGDependency:
                 self._global_phase = 0
             else:
                 self._global_phase = angle % (2 * math.pi)
-
-    @property
-    def calibrations(self) -> dict[str, dict[tuple, Schedule]]:
-        """Return calibration dictionary.
-
-        The custom pulse definition of a given gate is of the form
-        ``{'gate_name': {(qubits, params): schedule}}``.
-        """
-        return dict(self._calibrations)
-
-    @calibrations.setter
-    def calibrations(self, calibrations: dict[str, dict[tuple, Schedule]]):
-        """Set the circuit calibration data from a dictionary of calibration definition.
-
-        Args:
-            calibrations (dict): A dictionary of input in the format
-                {'gate_name': {(qubits, gate_params): schedule}}
-        """
-        self._calibrations = defaultdict(dict, calibrations)
 
     def to_retworkx(self):
         """Returns the DAGDependency in retworkx format."""
@@ -396,13 +375,13 @@ class DAGDependency:
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
 
-            if getattr(operation, "condition", None):
+            if getattr(operation, "_condition", None):
                 # The change to handling operation.condition follows code patterns in quantum_circuit.py.
                 # However:
                 #   (1) cindices_list are specific to template optimization and should not be computed
                 #       in this place.
                 #   (2) Template optimization pass needs currently does not handle general conditions.
-                cond_bits = condition_resources(operation.condition).clbits
+                cond_bits = condition_resources(operation._condition).clbits
                 cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
             else:
                 cindices_list = []
@@ -596,7 +575,7 @@ class DAGDependency:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
-            cond = getattr(nd.op, "condition", None)
+            cond = getattr(nd.op, "_condition", None)
             if cond is not None:
                 block_cargs.update(condition_resources(cond).clbits)
 

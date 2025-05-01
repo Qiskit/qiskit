@@ -16,7 +16,7 @@ import os
 import tempfile
 import unittest
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Store
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit, Store, ClassicalRegister
 from qiskit.visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
 from qiskit.visualization import VisualizationError
@@ -98,7 +98,8 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         qc.cx(0, 1)
         qc.cx(0, 2)
         qc.cx(0, 3)
-        qc.x(3).c_if(cr[1], 1)
+        with qc.if_test((cr[1], 1)):
+            qc.x(3)
         qc.h(3)
         qc.x(4)
         qc.barrier(0, 1)

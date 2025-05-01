@@ -39,7 +39,7 @@ pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult
 pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
     let view = pattern.as_array();
     let inverse_i64: Vec<i64> = utils::invert(&view).iter().map(|&x| x as i64).collect();
-    Ok(inverse_i64.to_object(py))
+    Ok(inverse_i64.into_pyobject(py)?.unbind())
 }
 
 #[pyfunction]
@@ -52,9 +52,9 @@ pub fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyRes
         num_qubits as u32,
         utils::get_ordered_swap(&view).iter().map(|(i, j)| {
             (
-                StandardGate::SwapGate,
+                StandardGate::Swap,
                 smallvec![],
-                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+                smallvec![Qubit::new(*i), Qubit::new(*j)],
             )
         }),
         Param::Float(0.0),
@@ -75,9 +75,9 @@ fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Ci
         num_qubits as u32,
         swaps.iter().map(|(i, j)| {
             (
-                StandardGate::SwapGate,
+                StandardGate::Swap,
                 smallvec![],
-                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+                smallvec![Qubit::new(*i), Qubit::new(*j)],
             )
         }),
         Param::Float(0.0),
@@ -107,9 +107,9 @@ pub fn _synth_permutation_depth_lnn_kms(
         num_qubits as u32,
         swap_layers.iter().map(|(i, j)| {
             (
-                StandardGate::SwapGate,
+                StandardGate::Swap,
                 smallvec![],
-                smallvec![Qubit(*i as u32), Qubit(*j as u32)],
+                smallvec![Qubit::new(*i), Qubit::new(*j)],
             )
         }),
         Param::Float(0.0),
@@ -120,17 +120,17 @@ pub fn _synth_permutation_depth_lnn_kms(
 pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
     for i in 0..(n / 2) {
         gates.push((
-            StandardGate::CXGate,
+            StandardGate::CX,
             smallvec![],
-            smallvec![Qubit((2 * i) as u32), Qubit((2 * i + 1) as u32)],
+            smallvec![Qubit::new(2 * i), Qubit::new(2 * i + 1)],
         ))
     }
 
-    for i in 0..((n + 1) / 2 - 1) {
+    for i in 0..(n.div_ceil(2) - 1) {
         gates.push((
-            StandardGate::CXGate,
+            StandardGate::CX,
             smallvec![],
-            smallvec![Qubit((2 * i + 2) as u32), Qubit((2 * i + 1) as u32)],
+            smallvec![Qubit::new(2 * i + 2), Qubit::new(2 * i + 1)],
         ))
     }
 }
@@ -139,25 +139,25 @@ pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
 pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
     for i in 0..(n / 2) {
         gates.push((
-            StandardGate::CXGate,
+            StandardGate::CX,
             smallvec![],
-            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i) as u32)],
+            smallvec![Qubit::new(2 * i + 1), Qubit::new(2 * i)],
         ))
     }
 
-    for i in 0..((n + 1) / 2 - 1) {
+    for i in 0..(n.div_ceil(2) - 1) {
         gates.push((
-            StandardGate::CXGate,
+            StandardGate::CX,
             smallvec![],
-            smallvec![Qubit((2 * i + 1) as u32), Qubit((2 * i + 2) as u32)],
+            smallvec![Qubit::new(2 * i + 1), Qubit::new(2 * i + 2)],
         ))
     }
 }
 
 /// Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
 /// using Kutin, Moulton, Smithline method.
-fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usize) {
-    (0..(num_qubits + 1) / 2).for_each(|_| {
+pub(crate) fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usize) {
+    (0..num_qubits.div_ceil(2)).for_each(|_| {
         _append_cx_stage1(gates, num_qubits);
         _append_cx_stage2(gates, num_qubits);
     });

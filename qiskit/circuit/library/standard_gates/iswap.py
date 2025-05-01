@@ -17,7 +17,6 @@ from typing import Optional
 import numpy as np
 
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -38,7 +37,7 @@ class iSwapGate(SingletonGate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─⨂─
               │
@@ -46,7 +45,7 @@ class iSwapGate(SingletonGate):
 
     **Reference Implementation:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐┌───┐     ┌───┐
         q_0: ┤ S ├┤ H ├──■──┤ X ├─────
@@ -86,11 +85,11 @@ class iSwapGate(SingletonGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.ISwapGate
+    _standard_gate = StandardGate.ISwap
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
-        super().__init__("iswap", 2, [], label=label, duration=duration, unit=unit)
+        super().__init__("iswap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -106,7 +105,7 @@ class iSwapGate(SingletonGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .h import HGate
         from .s import SGate

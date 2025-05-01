@@ -13,7 +13,7 @@
 # pylint: disable=invalid-name
 
 """Binary IO for circuit objects."""
-
+import itertools
 from collections import defaultdict
 import io
 import json
@@ -24,9 +24,9 @@ import warnings
 import numpy as np
 
 from qiskit import circuit as circuit_mod
-from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp
+from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
 from qiskit.circuit.classical import expr
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.singleton import SingletonInstruction, SingletonGate
 from qiskit.circuit.controlledgate import ControlledGate
@@ -39,8 +39,8 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.qpy import common, formats, type_keys, exceptions
+from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
 from qiskit.synthesis import evolution as evo_synth
@@ -318,7 +318,18 @@ def _read_instruction(
             use_symengine,
             standalone_vars,
         )
-        inst_obj.condition = condition
+        if condition is not None:
+            warnings.warn(
+                f"The .condition attribute on {gate_name} can not be "
+                "represented in this version of Qiskit. It will be "
+                "represented as an IfElseOp instead.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+            body = QuantumCircuit(qargs, cargs)
+            body.append(inst_obj, qargs, cargs)
+            inst_obj = IfElseOp(condition, body)
         if instruction.label_size > 0:
             inst_obj.label = label
         if circuit is None:
@@ -356,8 +367,11 @@ def _read_instruction(
 
     if instruction.label_size <= 0:
         label = None
-    if gate_name in {"IfElseOp", "WhileLoopOp"}:
+    if gate_name in ("IfElseOp", "WhileLoopOp"):
         gate = gate_class(condition, *params, label=label)
+    elif gate_name == "BoxOp":
+        *params, duration, unit = params
+        gate = gate_class(*params, label=label, duration=duration, unit=unit)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -378,7 +392,9 @@ def _read_instruction(
                 gate.num_ctrl_qubits = instruction.num_ctrl_qubits
                 gate.ctrl_state = instruction.ctrl_state
         if condition:
-            gate = gate.c_if(*condition)
+            body = QuantumCircuit(qargs, cargs)
+            body.append(gate, qargs, cargs)
+            gate = IfElseOp(condition, body)
     else:
         if gate_name in {"Initialize", "StatePreparation"}:
             if isinstance(params[0], str):
@@ -414,7 +430,16 @@ def _read_instruction(
                 gate = gate_class(*params)
         if condition:
             if not isinstance(gate, ControlFlowOp):
-                gate = gate.c_if(*condition)
+                warnings.warn(
+                    f"The .condition attribute on {gate_name} can not be "
+                    "represented in this version of Qiskit. It will be "
+                    "represented as an IfElseOp instead.",
+                    UserWarning,
+                    stacklevel=3,
+                )
+                body = QuantumCircuit(qargs, cargs)
+                body.append(gate, qargs, cargs)
+                gate = IfElseOp(condition, body)
             else:
                 gate.condition = condition
     if circuit is None:
@@ -626,8 +651,7 @@ def _read_custom_operations(file_obj, version, vectors):
 
 
 def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
-    calibrations = {}
-
+    """Consume calibrations data, make the file handle point to the next section"""
     header = formats.CALIBRATION._make(
         struct.unpack(formats.CALIBRATION_PACK, file_obj.read(formats.CALIBRATION_SIZE))
     )
@@ -636,21 +660,20 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
             struct.unpack(formats.CALIBRATION_DEF_PACK, file_obj.read(formats.CALIBRATION_DEF_SIZE))
         )
         name = file_obj.read(defheader.name_size).decode(common.ENCODE)
-        qubits = tuple(
-            struct.unpack("!q", file_obj.read(struct.calcsize("!q")))[0]
-            for _ in range(defheader.num_qubits)
-        )
-        params = tuple(
-            value.read_value(file_obj, version, vectors) for _ in range(defheader.num_params)
-        )
-        schedule = schedules.read_schedule_block(file_obj, version, metadata_deserializer)
+        if name:
+            warnings.warn(
+                category=UserWarning,
+                message="Support for loading pulse gates has been removed in Qiskit 2.0. "
+                f"If `{name}` is in the circuit it will be left as an opaque instruction.",
+            )
 
-        if name not in calibrations:
-            calibrations[name] = {(qubits, params): schedule}
-        else:
-            calibrations[name][(qubits, params)] = schedule
+        for _ in range(defheader.num_qubits):  # read qubits info
+            file_obj.read(struct.calcsize("!q"))
 
-    return calibrations
+        for _ in range(defheader.num_params):  # read params info
+            value.read_value(file_obj, version, vectors)
+
+        schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
 
 def _dumps_register(register, index_map):
@@ -733,13 +756,15 @@ def _write_instruction(
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         gate_class_name = instruction.operation.name
-        if version >= 11:
-            # Assign a uuid to each instance of a custom operation
+        # Assign a uuid to each instance of a custom operation
+        if instruction.operation.name not in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
             gate_class_name = f"{gate_class_name}_{uuid.uuid4().hex}"
-        # ucr*_dg gates can have different numbers of parameters,
-        # the uuid is appended to avoid storing a single definition
-        # in circuits with multiple ucr*_dg gates.
-        elif instruction.operation.name in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
+        else:
+            # ucr*_dg gates can have different numbers of parameters,
+            # the uuid is appended to avoid storing a single definition
+            # in circuits with multiple ucr*_dg gates. For legacy reasons
+            # the uuid is stored in a different format as this was done
+            # prior to QPY 11.
             gate_class_name = f"{gate_class_name}_{uuid.uuid4()}"
 
         custom_operations[gate_class_name] = instruction.operation
@@ -758,16 +783,21 @@ def _write_instruction(
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)
 
+    elif isinstance(instruction.operation, library.MCMTGate):
+        gate_class_name = instruction.operation.name + "_" + str(uuid.uuid4())
+        custom_operations[gate_class_name] = instruction.operation
+        custom_operations_list.append(gate_class_name)
+
     condition_type = type_keys.Condition.NONE
     condition_register = b""
     condition_value = 0
-    if (op_condition := getattr(instruction.operation, "condition", None)) is not None:
+    if (op_condition := getattr(instruction.operation, "_condition", None)) is not None:
         if isinstance(op_condition, expr.Expr):
             condition_type = type_keys.Condition.EXPRESSION
         else:
             condition_type = type_keys.Condition.TWO_TUPLE
-            condition_register = _dumps_register(instruction.operation.condition[0], index_map)
-            condition_value = int(instruction.operation.condition[1])
+            condition_register = _dumps_register(instruction.operation._condition[0], index_map)
+            condition_value = int(instruction.operation._condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label", None)
@@ -782,6 +812,12 @@ def _write_instruction(
         instruction_params = [
             instruction.operation.target,
             tuple(instruction.operation.cases_specifier()),
+        ]
+    elif isinstance(instruction.operation, controlflow.BoxOp):
+        instruction_params = [
+            instruction.operation.blocks[0],
+            instruction.operation.duration,
+            instruction.operation.unit,
         ]
     elif isinstance(instruction.operation, Clifford):
         instruction_params = [instruction.operation.tableau]
@@ -981,34 +1017,6 @@ def _write_custom_operation(
     return new_custom_instruction
 
 
-def _write_calibrations(file_obj, calibrations, metadata_serializer, version):
-    flatten_dict = {}
-    for gate, caldef in calibrations.items():
-        for (qubits, params), schedule in caldef.items():
-            key = (gate, qubits, params)
-            flatten_dict[key] = schedule
-    header = struct.pack(formats.CALIBRATION_PACK, len(flatten_dict))
-    file_obj.write(header)
-    for (name, qubits, params), schedule in flatten_dict.items():
-        # In principle ScheduleBlock and Schedule can be supported.
-        # As of version 5 only ScheduleBlock is supported.
-        name_bytes = name.encode(common.ENCODE)
-        defheader = struct.pack(
-            formats.CALIBRATION_DEF_PACK,
-            len(name_bytes),
-            len(qubits),
-            len(params),
-            type_keys.Program.assign(schedule),
-        )
-        file_obj.write(defheader)
-        file_obj.write(name_bytes)
-        for qubit in qubits:
-            file_obj.write(struct.pack("!q", qubit))
-        for param in params:
-            value.write_value(file_obj, param, version=version)
-        schedules.write_schedule_block(file_obj, schedule, metadata_serializer, version=version)
-
-
 def _write_registers(file_obj, in_circ_regs, full_bits):
     bitmap = {bit: index for index, bit in enumerate(full_bits)}
 
@@ -1019,7 +1027,9 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
 
     for regs, is_in_circuit in [(in_circ_regs, True), (out_circ_regs, False)]:
         for reg in regs:
-            standalone = all(bit._register is reg for bit in reg)
+            standalone = all(
+                bit._register == reg and bit._index == index for index, bit in enumerate(reg)
+            )
             reg_name = reg.name.encode(common.ENCODE)
             reg_type = reg.prefix.encode(common.ENCODE)
             file_obj.write(
@@ -1225,48 +1235,25 @@ def write_circuit(
     num_registers = num_qregs + num_cregs
 
     # Write circuit header
-    if version >= 12:
-        header_raw = formats.CIRCUIT_HEADER_V12(
-            name_size=len(circuit_name),
-            global_phase_type=global_phase_type,
-            global_phase_size=len(global_phase_data),
-            num_qubits=circuit.num_qubits,
-            num_clbits=circuit.num_clbits,
-            metadata_size=metadata_size,
-            num_registers=num_registers,
-            num_instructions=num_instructions,
-            num_vars=circuit.num_vars,
-        )
-        header = struct.pack(formats.CIRCUIT_HEADER_V12_PACK, *header_raw)
-        file_obj.write(header)
-        file_obj.write(circuit_name)
-        file_obj.write(global_phase_data)
-        file_obj.write(metadata_raw)
-        # Write header payload
-        file_obj.write(registers_raw)
-        standalone_var_indices = value.write_standalone_vars(file_obj, circuit)
-    else:
-        if circuit.num_vars:
-            raise exceptions.UnsupportedFeatureForVersion(
-                "circuits containing realtime variables", required=12, target=version
-            )
-        header_raw = formats.CIRCUIT_HEADER_V2(
-            name_size=len(circuit_name),
-            global_phase_type=global_phase_type,
-            global_phase_size=len(global_phase_data),
-            num_qubits=circuit.num_qubits,
-            num_clbits=circuit.num_clbits,
-            metadata_size=metadata_size,
-            num_registers=num_registers,
-            num_instructions=num_instructions,
-        )
-        header = struct.pack(formats.CIRCUIT_HEADER_V2_PACK, *header_raw)
-        file_obj.write(header)
-        file_obj.write(circuit_name)
-        file_obj.write(global_phase_data)
-        file_obj.write(metadata_raw)
-        file_obj.write(registers_raw)
-        standalone_var_indices = {}
+    header_raw = formats.CIRCUIT_HEADER_V12(
+        name_size=len(circuit_name),
+        global_phase_type=global_phase_type,
+        global_phase_size=len(global_phase_data),
+        num_qubits=circuit.num_qubits,
+        num_clbits=circuit.num_clbits,
+        metadata_size=metadata_size,
+        num_registers=num_registers,
+        num_instructions=num_instructions,
+        num_vars=circuit.num_identifiers,
+    )
+    header = struct.pack(formats.CIRCUIT_HEADER_V12_PACK, *header_raw)
+    file_obj.write(header)
+    file_obj.write(circuit_name)
+    file_obj.write(global_phase_data)
+    file_obj.write(metadata_raw)
+    # Write header payload
+    file_obj.write(registers_raw)
+    standalone_var_indices = value.write_standalone_vars(file_obj, circuit, version)
 
     instruction_buffer = io.BytesIO()
     custom_operations = {}
@@ -1309,8 +1296,11 @@ def write_circuit(
     file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
 
-    # Write calibrations
-    _write_calibrations(file_obj, circuit.calibrations, metadata_serializer, version=version)
+    # Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
+    # we need to write an empty calibrations header since read_circuit expects it
+    header = struct.pack(formats.CALIBRATION_PACK, 0)
+    file_obj.write(header)
+
     _write_layout(file_obj, circuit)
 
 
@@ -1355,7 +1345,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
     num_clbits = header["num_clbits"]
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
-    num_vars = header.get("num_vars", 0)
+    num_identifiers = header.get("num_vars", 0)
     # `out_registers` is two "name: register" maps segregated by type for the rest of QPY, and
     # `all_registers` is the complete ordered list used to construct the `QuantumCircuit`.
     out_registers = {"q": {}, "c": {}}
@@ -1412,7 +1402,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             "q": [Qubit() for _ in out_bits["q"]],
             "c": [Clbit() for _ in out_bits["c"]],
         }
-    var_segments, standalone_var_indices = value.read_standalone_vars(file_obj, num_vars)
+    var_segments, standalone_var_indices = value.read_standalone_vars(file_obj, num_identifiers)
     circ = QuantumCircuit(
         out_bits["q"],
         out_bits["c"],
@@ -1421,10 +1411,15 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
         global_phase=global_phase,
         metadata=metadata,
         inputs=var_segments[type_keys.ExprVarDeclaration.INPUT],
-        captures=var_segments[type_keys.ExprVarDeclaration.CAPTURE],
+        captures=itertools.chain(
+            var_segments[type_keys.ExprVarDeclaration.CAPTURE],
+            var_segments[type_keys.ExprVarDeclaration.STRETCH_CAPTURE],
+        ),
     )
     for declaration in var_segments[type_keys.ExprVarDeclaration.LOCAL]:
         circ.add_uninitialized_var(declaration)
+    for stretch in var_segments[type_keys.ExprVarDeclaration.STRETCH_LOCAL]:
+        circ.add_stretch(stretch)
     custom_operations = _read_custom_operations(file_obj, version, vectors)
     for _instruction in range(num_instructions):
         _read_instruction(
@@ -1438,9 +1433,9 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             standalone_var_indices,
         )
 
-    # Read calibrations
+    # Consume calibrations, but don't use them since pulse gates are not supported as of Qiskit 2.0
     if version >= 5:
-        circ.calibrations = _read_calibrations(file_obj, version, vectors, metadata_deserializer)
+        _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):

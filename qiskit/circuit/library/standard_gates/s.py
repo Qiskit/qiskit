@@ -20,7 +20,6 @@ from typing import Optional, Union
 import numpy
 
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -51,7 +50,7 @@ class SGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ S ├
@@ -60,11 +59,11 @@ class SGate(SingletonGate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.SGate
+    _standard_gate = StandardGate.S
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("s", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -73,7 +72,7 @@ class SGate(SingletonGate):
         gate s a { u1(pi/2) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .u1 import U1Gate
 
@@ -163,7 +162,7 @@ class SdgGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────┐
         q_0: ┤ Sdg ├
@@ -172,11 +171,11 @@ class SdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.SdgGate
+    _standard_gate = StandardGate.Sdg
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("sdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -185,7 +184,7 @@ class SdgGate(SingletonGate):
         gate sdg a { u1(-pi/2) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .u1 import U1Gate
 
@@ -262,7 +261,7 @@ class CSGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
@@ -283,15 +282,13 @@ class CSGate(SingletonControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CSGate
+    _standard_gate = StandardGate.CS
 
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CS gate."""
@@ -303,9 +300,7 @@ class CSGate(SingletonControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=SGate(label=_base_label),
-            duration=duration,
             _base_label=_base_label,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
@@ -350,7 +345,7 @@ class CSdgGate(SingletonControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ───■───
              ┌──┴──┐
@@ -371,15 +366,13 @@ class CSdgGate(SingletonControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CSdgGate
+    _standard_gate = StandardGate.CSdg
 
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CSdg gate."""
@@ -391,8 +384,6 @@ class CSdgGate(SingletonControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=SdgGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)

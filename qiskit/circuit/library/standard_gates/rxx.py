@@ -18,7 +18,6 @@ import math
 from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
 from qiskit._accelerate.circuit import StandardGate
 
@@ -33,7 +32,7 @@ class RXXGate(Gate):
 
     **Circuit Symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤1        ├
@@ -63,7 +62,7 @@ class RXXGate(Gate):
 
         .. math::
 
-            R_{XX}(\theta = \pi) = i X \otimes X
+            R_{XX}(\theta = \pi) = -i X \otimes X
 
         .. math::
 
@@ -76,18 +75,16 @@ class RXXGate(Gate):
                                     \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RXXGate
+    _standard_gate = StandardGate.RXX
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RXX gate."""
-        super().__init__("rxx", 2, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("rxx", 2, [theta], label=label)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .x import CXGate
         from .h import HGate
         from .rz import RZGate

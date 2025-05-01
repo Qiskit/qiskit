@@ -11,12 +11,20 @@
 # that they have been altered from the originals.
 
 """Search for star connectivity patterns and replace them with."""
+import itertools
 from typing import Iterable, Union, Optional, List, Tuple
 from math import floor, log10
 
 from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister, Barrier
 from qiskit.circuit.controlflow import condition_resources, node_resources
-from qiskit.dagcircuit import DAGOpNode, DAGDepNode, DAGDependency, DAGCircuit
+from qiskit.dagcircuit import (
+    DAGOpNode,
+    DAGDepNode,
+    DAGDependency,
+    DAGCircuit,
+    DAGOutNode,
+    DAGInNode,
+)
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
@@ -89,6 +97,7 @@ class StarPreRouting(TransformationPass):
     For example:
 
       .. plot::
+         :alt: Circuit diagram output by the previous code.
          :include-source:
 
          from qiskit.circuit import QuantumCircuit
@@ -223,7 +232,7 @@ class StarPreRouting(TransformationPass):
             return (
                 len(node.qargs) <= 2
                 and len(node.cargs) == 0
-                and getattr(node.op, "condition", None) is None
+                and getattr(node, "condition", None) is None
                 and not isinstance(node.op, Barrier)
             )
 
@@ -330,7 +339,14 @@ class StarPreRouting(TransformationPass):
         }
 
         def tie_breaker_key(node):
-            return processing_order_index_map.get(node, node.sort_key)
+            processing_order = processing_order_index_map.get(node, None)
+            if processing_order is not None:
+                return processing_order
+            if isinstance(node, (DAGInNode, DAGOutNode)):
+                return str(node.wire)
+            return ",".join(
+                f"{dag.find_bit(q).index:04d}" for q in itertools.chain(node.qargs, node.cargs)
+            )
 
         rust_processing_order = _extract_nodes(dag.topological_op_nodes(key=tie_breaker_key), dag)
 
@@ -372,7 +388,7 @@ def _extract_nodes(nodes, dag):
         qubit_indices = [dag.find_bit(qubit).index for qubit in node.qargs]
         classical_bit_indices = set()
 
-        if node.op.condition is not None:
+        if getattr(node, "condition", None) is not None:
             classical_bit_indices.update(condition_resources(node.op.condition).clbits)
 
         if isinstance(node.op, SwitchCaseOp):

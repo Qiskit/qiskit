@@ -39,7 +39,7 @@ from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, Neighb
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,10 @@ class SabreLayout(TransformationPass):
 
     **References:**
 
-    [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
+    [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+    "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+    `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
+    [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
     for NISQ-era quantum devices." ASPLOS 2019.
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
@@ -145,7 +148,9 @@ class SabreLayout(TransformationPass):
                 (and ``routing_pass`` is not set) then the number of local
                 physical CPUs will be used as the default value. This option is
                 mutually exclusive with the ``routing_pass`` argument and an error
-                will be raised if both are used.
+                will be raised if both are used. An additional 3 or 4 trials
+                depending on the ``coupling_map`` value are run with common layouts
+                on top of the random trial count specified by this value.
             skip_routing (bool): If this is set ``True`` and ``routing_pass`` is not used
                 then routing will not be applied to the output circuit.  Only the layout
                 will be set in the property set. This is a tradeoff to run custom
@@ -171,11 +176,11 @@ class SabreLayout(TransformationPass):
         self.max_iterations = max_iterations
         self.trials = swap_trials
         if swap_trials is None:
-            self.swap_trials = CPU_COUNT
+            self.swap_trials = default_num_processes()
         else:
             self.swap_trials = swap_trials
         if layout_trials is None:
-            self.layout_trials = CPU_COUNT
+            self.layout_trials = default_num_processes()
         else:
             self.layout_trials = layout_trials
         self.skip_routing = skip_routing
@@ -300,6 +305,9 @@ class SabreLayout(TransformationPass):
         # the layout and routing together as part of resolving the Sabre result.
         physical_qubits = QuantumRegister(self.coupling_map.size(), "q")
         mapped_dag = DAGCircuit()
+        mapped_dag.name = dag.name
+        mapped_dag.metadata = dag.metadata
+        mapped_dag.global_phase = dag.global_phase
         mapped_dag.add_qreg(physical_qubits)
         mapped_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
@@ -310,7 +318,10 @@ class SabreLayout(TransformationPass):
             mapped_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             mapped_dag.add_declared_var(var)
-        mapped_dag.global_phase = dag.global_phase
+        for stretch in dag.iter_captured_stretches():
+            mapped_dag.add_captured_stretch(stretch)
+        for stretch in dag.iter_declared_stretches():
+            mapped_dag.add_declared_stretch(stretch)
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
@@ -323,6 +334,19 @@ class SabreLayout(TransformationPass):
                 for initial, final in enumerate(component.final_permutation)
             }
         )
+
+        # The coupling map may have been split into more components than the DAG.  In this case,
+        # there will be some physical qubits unaccounted for in our `final_layout`.  Strictly the
+        # `if` check is unnecessary, but we can avoid the loop for most circuits and backends.
+        if len(final_layout) != len(physical_qubits):
+            used_qubits = {
+                qubit for component in components for qubit in component.coupling_map.graph.nodes()
+            }
+            for index, qubit in enumerate(physical_qubits):
+                if index in used_qubits:
+                    continue
+                final_layout[qubit] = index
+
         if self.property_set["final_layout"] is None:
             self.property_set["final_layout"] = final_layout
         else:

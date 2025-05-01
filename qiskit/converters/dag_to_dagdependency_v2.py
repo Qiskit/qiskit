@@ -27,7 +27,6 @@ def _dag_to_dagdependency_v2(dag):
     dagdependency.name = dag.name
     dagdependency.metadata = dag.metadata
     dagdependency.global_phase = dag.global_phase
-    dagdependency.calibrations = dag.calibrations
 
     dagdependency.add_qubits(dag.qubits)
     dagdependency.add_clbits(dag.clbits)

@@ -49,7 +49,10 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
         from sympy import sympify
+        import symengine
 
+        if not isinstance(inpt._symbol_expr, symengine.Basic):
+            raise QiskitError("Invalid ParameterExpression provided")
         expr = sympify(inpt._symbol_expr)
         syms = expr.atoms()
         for sym in syms:

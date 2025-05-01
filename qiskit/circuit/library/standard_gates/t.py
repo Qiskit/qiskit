@@ -19,7 +19,6 @@ import numpy
 
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.library.standard_gates.p import PhaseGate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -47,7 +46,7 @@ class TGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ T ├
@@ -56,11 +55,11 @@ class TGate(SingletonGate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.TGate
+    _standard_gate = StandardGate.T
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new T gate."""
-        super().__init__("t", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("t", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -69,7 +68,7 @@ class TGate(SingletonGate):
         gate t a { u1(pi/4) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .u1 import U1Gate
 
@@ -124,7 +123,7 @@ class TdgGate(SingletonGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────┐
         q_0: ┤ Tdg ├
@@ -133,11 +132,11 @@ class TdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.TdgGate
+    _standard_gate = StandardGate.Tdg
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""
-        super().__init__("tdg", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("tdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -146,7 +145,7 @@ class TdgGate(SingletonGate):
         gate tdg a { u1(pi/4) a; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         from .u1 import U1Gate
 

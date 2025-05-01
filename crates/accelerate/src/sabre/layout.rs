@@ -62,12 +62,76 @@ pub fn sabre_layout_and_routing(
         &target,
         run_in_parallel,
     ));
+    starting_layouts.push(
+        (0..target.neighbors.num_qubits() as u32)
+            .map(Some)
+            .collect(),
+    );
+    starting_layouts.push(
+        (0..target.neighbors.num_qubits() as u32)
+            .rev()
+            .map(Some)
+            .collect(),
+    );
+    // This layout targets the largest ring on an IBM eagle device. It has been
+    // shown to have good results on some circuits targeting these backends. In
+    // all other cases this is no different from an additional random trial,
+    // see: https://xkcd.com/221/
+    if target.neighbors.num_qubits() == 127 {
+        starting_layouts.push(
+            [
+                0, 1, 2, 3, 4, 5, 6, 15, 22, 23, 24, 25, 34, 43, 42, 41, 40, 53, 60, 59, 61, 62,
+                72, 81, 80, 79, 78, 91, 98, 99, 100, 101, 102, 103, 92, 83, 82, 84, 85, 86, 73, 66,
+                65, 64, 63, 54, 45, 44, 46, 47, 35, 28, 29, 27, 26, 16, 7, 8, 9, 10, 11, 12, 13,
+                17, 30, 31, 32, 36, 51, 50, 49, 48, 55, 68, 67, 69, 70, 74, 89, 88, 87, 93, 106,
+                105, 104, 107, 108, 112, 126, 125, 124, 123, 122, 111, 121, 120, 119, 118, 110,
+                117, 116, 115, 114, 113, 109, 96, 97, 95, 94, 90, 75, 76, 77, 71, 58, 57, 56, 52,
+                37, 38, 39, 33, 20, 21, 19, 18, 14,
+            ]
+            .into_iter()
+            .map(Some)
+            .collect(),
+        );
+    } else if target.neighbors.num_qubits() == 133 {
+        // Same for IBM Heron 133 qubit devices. This is the ring computed by using rustworkx's
+        // max(simple_cycles(graph), key=len) on the connectivity graph.
+        starting_layouts.push(
+            [
+                108, 107, 94, 88, 89, 90, 75, 71, 70, 69, 56, 50, 51, 52, 37, 33, 32, 31, 18, 12,
+                11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+                29, 36, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 53, 57, 58, 59, 60, 61, 62, 63,
+                64, 65, 66, 67, 74, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 91, 95, 96, 97,
+                110, 116, 117, 118, 119, 120, 111, 101, 102, 103, 104, 105, 112, 124, 125, 126,
+                127, 128, 113, 109,
+            ]
+            .into_iter()
+            .map(Some)
+            .collect(),
+        );
+    } else if target.neighbors.num_qubits() == 156 {
+        // Same for IBM Heron 156 qubit devices. This is the ring computed by using rustworkx's
+        // max(simple_cycles(graph), key=len) on the connectivity graph.
+        starting_layouts.push(
+            [
+                136, 123, 122, 121, 116, 101, 102, 103, 96, 83, 82, 81, 76, 61, 62, 63, 56, 43, 42,
+                41, 36, 21, 22, 23, 16, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 19, 35, 34,
+                33, 32, 31, 30, 29, 28, 27, 26, 25, 37, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+                59, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 77, 85, 86, 87, 88, 89, 90, 91, 92,
+                93, 94, 95, 99, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 117, 125,
+                126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 139, 155, 154, 153, 152, 151,
+                150, 149, 148, 147, 146, 145, 144, 143,
+            ]
+            .into_iter()
+            .map(Some)
+            .collect(),
+        );
+    }
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
     let seed_vec: Vec<u64> = outer_rng
-        .sample_iter(&rand::distributions::Standard)
+        .sample_iter(&rand::distr::StandardUniform)
         .take(starting_layouts.len())
         .collect();
     let res = if run_in_parallel && starting_layouts.len() > 1 {
@@ -118,10 +182,10 @@ pub fn sabre_layout_and_routing(
     };
     (
         res.0,
-        PyArray::from_vec_bound(py, res.1).into(),
+        PyArray::from_vec(py, res.1).into_any().unbind(),
         (
             res.2.map,
-            res.2.node_order.into_pyarray_bound(py).into(),
+            res.2.node_order.into_pyarray(py).into_any().unbind(),
             res.2.node_block_results,
         ),
     )
@@ -179,7 +243,6 @@ fn layout_trial(
         num_qubits: dag.num_qubits,
         num_clbits: dag.num_clbits,
         dag: dag.dag.clone(),
-        nodes: dag.nodes.clone(),
         first_layer: dag.first_layer.clone(),
         node_blocks: dag
             .node_blocks
@@ -187,13 +250,7 @@ fn layout_trial(
             .map(|index| (*index, Vec::new()))
             .collect(),
     };
-    let dag_no_control_reverse = SabreDAG::new(
-        dag_no_control_forward.num_qubits,
-        dag_no_control_forward.num_clbits,
-        dag_no_control_forward.nodes.iter().rev().cloned().collect(),
-        dag_no_control_forward.node_blocks.clone(),
-    )
-    .unwrap();
+    let dag_no_control_reverse = dag_no_control_forward.reverse_dag();
 
     for _iter in 0..max_iterations {
         for dag in [&dag_no_control_forward, &dag_no_control_reverse] {

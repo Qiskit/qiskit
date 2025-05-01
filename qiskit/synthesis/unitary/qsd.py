@@ -31,6 +31,7 @@ from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate
 from qiskit.circuit.library.generalized_gates.ucry import UCRYGate
 from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
+from qiskit._accelerate.cos_sin_decomp import cossin
 
 
 def qs_decomposition(
@@ -47,7 +48,8 @@ def qs_decomposition(
 
     This decomposition is described in Shende et al. [1].
 
-    .. parsed-literal::
+    .. code-block:: text
+
           ┌───┐               ┌───┐     ┌───┐     ┌───┐
          ─┤   ├─       ───────┤ Rz├─────┤ Ry├─────┤ Rz├─────
           │   │    ≃     ┌───┐└─┬─┘┌───┐└─┬─┘┌───┐└─┬─┘┌───┐
@@ -122,9 +124,8 @@ def qs_decomposition(
     else:
         qr = QuantumRegister(nqubits)
         circ = QuantumCircuit(qr)
-        dim_o2 = dim // 2
         # perform cosine-sine decomposition
-        (u1, u2), vtheta, (v1h, v2h) = scipy.linalg.cossin(mat, separate=True, p=dim_o2, q=dim_o2)
+        (u1, u2), vtheta, (v1h, v2h) = cossin(np.asarray(mat, dtype=complex))
         # left circ
         left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(left_circ.to_instruction(), qr)
@@ -250,14 +251,13 @@ def _get_ucry_cz(nqubits, angles):
 
 
 def _apply_a2(circ):
-    from qiskit.compiler import transpile
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
+    from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
     decomposer = two_qubit_decompose_up_to_diagonal
-    ccirc = transpile(
-        circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0, qubits_initially_zero=False
-    )
+    hls = HighLevelSynthesis(basis_gates=["u", "cx", "qsd2q"], qubits_initially_zero=False)
+    ccirc = hls(circ)
     ind2q = []
     # collect 2q instrs
     for i, instruction in enumerate(ccirc.data):

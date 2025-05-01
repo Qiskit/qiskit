@@ -12,102 +12,193 @@
 
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
-use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use num_complex::Complex64;
-use numpy::ndarray::linalg::kron;
-use numpy::ndarray::{aview2, Array2, ArrayView2};
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
-use smallvec::SmallVec;
+use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
+use numpy::PyReadonlyArray2;
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::bit_data::BitData;
-use qiskit_circuit::circuit_instruction::CircuitInstruction;
-use qiskit_circuit::dag_node::DAGOpNode;
-use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
+use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
+use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::Qubit;
 
+use crate::quantum_info::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
 
-fn get_matrix_from_inst<'py>(
-    py: Python<'py>,
-    inst: &'py CircuitInstruction,
-) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.operation.matrix(&inst.params) {
+#[inline]
+pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
+    if let Some(mat) = inst.op.matrix(inst.params_view()) {
         Ok(mat)
-    } else if inst.operation.try_standard_gate().is_some() {
+    } else if inst.op.try_standard_gate().is_some() {
         Err(QiskitError::new_err(
             "Parameterized gates can't be consolidated",
         ))
-    } else {
+    } else if let OperationRef::Gate(gate) = inst.op.view() {
         Ok(QI_OPERATOR
             .get_bound(py)
-            .call1((inst.get_operation(py)?,))?
+            .call1((gate.gate.clone_ref(py),))?
             .getattr(intern!(py, "data"))?
             .extract::<PyReadonlyArray2<Complex64>>()?
             .as_array()
             .to_owned())
+    } else {
+        Err(QiskitError::new_err(
+            "Can't compute matrix of non-unitary op",
+        ))
     }
 }
 
+/// Quaternion-based collect of two parallel runs of 1q gates.
+#[derive(Clone, Debug)]
+struct Separable1q {
+    phase: f64,
+    qubits: [VersorSU2; 2],
+}
+impl Separable1q {
+    /// Construct an initial state from a single qubit operation.
+    #[inline]
+    fn from_qubit(n: usize, versor: VersorU2) -> Self {
+        let mut qubits: [VersorSU2; 2] = Default::default();
+        qubits[n] = versor.su2;
+        Self {
+            phase: versor.phase,
+            qubits,
+        }
+    }
+
+    /// Apply a new gate to one of the two qubits.
+    #[inline]
+    fn apply_on_qubit(&mut self, n: usize, versor: &VersorU2) {
+        self.phase += versor.phase;
+        self.qubits[n] = versor.su2 * self.qubits[n];
+    }
+
+    /// Construct the two-qubit gate matrix implied by these two runs.
+    #[inline]
+    fn matrix_into<'a>(&self, target: &'a mut [[Complex64; 4]; 4]) -> ArrayView2<'a, Complex64> {
+        let q0 = VersorU2 {
+            phase: self.phase,
+            su2: self.qubits[0],
+        }
+        .matrix_contiguous();
+
+        // This is the manually unrolled Kronecker product.
+        let [iz, iy, ix, scalar] = *self.qubits[1].0.quaternion().coords.as_ref();
+        let q1_row = [Complex64::new(scalar, iz), Complex64::new(iy, ix)];
+        for out_row in 0..2 {
+            for out_col in 0..4 {
+                target[out_row][out_col] = q1_row[(out_col & 2) >> 1] * q0[out_row][out_col & 1];
+            }
+        }
+        let q1_row = [Complex64::new(-iy, ix), Complex64::new(scalar, -iz)];
+        for out_row in 0..2 {
+            for out_col in 0..4 {
+                target[out_row + 2][out_col] =
+                    q1_row[(out_col & 2) >> 1] * q0[out_row][out_col & 1];
+            }
+        }
+        aview2(target)
+    }
+}
+
+/// Extract a versor representation of an arbitrary 1q DAG instruction.
+fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU2> {
+    let tol = 1e-12;
+    match inst.op.view() {
+        OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
+        OperationRef::Unitary(gate) => match &gate.array {
+            ArrayType::NDArray(arr) => Ok(VersorU2::from_ndarray_unchecked(&arr.view())),
+            ArrayType::OneQ(arr) => Ok(VersorU2::from_nalgebra_unchecked(arr)),
+            ArrayType::TwoQ(_) => Err(VersorU2Error::MultiQubit),
+        },
+        _ => VersorU2::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), tol),
+    }
+    .map_err(|err| QiskitError::new_err(err.to_string()))
+}
+
 /// Return the matrix Operator resulting from a block of Instructions.
-#[pyfunction]
-#[pyo3(text_signature = "(op_list, /")]
+///
+/// # Panics
+///
+/// If any node in `op_list` is not a 1q or 2q gate.
 pub fn blocks_to_matrix(
     py: Python,
-    op_list: Vec<PyRef<DAGOpNode>>,
-    block_index_map_dict: &Bound<PyDict>,
-) -> PyResult<Py<PyArray2<Complex64>>> {
-    // Build a BitData in block_index_map_dict order. block_index_map_dict is a dict of bits to
-    // indices mapping the order of the qargs in the block. There should only be 2 entries since
-    // there are only 2 qargs here (e.g. `{Qubit(): 0, Qubit(): 1}`) so we need to ensure that
-    // we added the qubits to bit data in the correct index order.
-    let mut index_map: Vec<PyObject> = (0..block_index_map_dict.len()).map(|_| py.None()).collect();
-    for bit_tuple in block_index_map_dict.items() {
-        let (bit, index): (PyObject, usize) = bit_tuple.extract()?;
-        index_map[index] = bit;
+    dag: &DAGCircuit,
+    op_list: &[NodeIndex],
+    block_index_map: [Qubit; 2],
+) -> PyResult<Array2<Complex64>> {
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum Qarg {
+        Q0 = 0,
+        Q1 = 1,
+        Q01 = 2,
+        Q10 = 3,
     }
-    let mut bit_map: BitData<u32> = BitData::new(py, "qargs".to_string());
-    for bit in index_map {
-        bit_map.add(py, bit.bind(py), true)?;
-    }
-    let identity = aview2(&ONE_QUBIT_IDENTITY);
-    let first_node = &op_list[0];
-    let input_matrix = get_matrix_from_inst(py, &first_node.instruction)?;
-    let mut matrix: Array2<Complex64> = match bit_map
-        .map_bits(first_node.instruction.qubits.bind(py).iter())?
-        .collect::<Vec<_>>()
-        .as_slice()
-    {
-        [0] => kron(&identity, &input_matrix),
-        [1] => kron(&input_matrix, &identity),
-        [0, 1] => input_matrix,
-        [1, 0] => change_basis(input_matrix.view()),
-        [] => Array2::eye(4),
-        _ => unreachable!(),
+    let qarg_vals = [Qarg::Q0, Qarg::Q1, Qarg::Q01, Qarg::Q10];
+    let interned_default = dag.qargs_interner().get_default();
+    let interned_map = [
+        &[block_index_map[0]],
+        &[block_index_map[1]],
+        block_index_map.as_slice(),
+        &[block_index_map[1], block_index_map[0]],
+    ]
+    .map(|qubits| {
+        dag.qargs_interner()
+            .try_key(qubits)
+            .unwrap_or(interned_default)
+    });
+    let qarg_lookup = |qargs| {
+        qarg_vals[interned_map
+            .iter()
+            .position(|key| qargs == *key)
+            .expect("not a 1q or 2q gate in the qargs block")]
     };
-    for node in op_list.into_iter().skip(1) {
-        let op_matrix = get_matrix_from_inst(py, &node.instruction)?;
-        let q_list = bit_map
-            .map_bits(node.instruction.qubits.bind(py).iter())?
-            .map(|x| x as u8)
-            .collect::<SmallVec<[u8; 2]>>();
 
-        let result = match q_list.as_slice() {
-            [0] => Some(kron(&identity, &op_matrix)),
-            [1] => Some(kron(&op_matrix, &identity)),
-            [1, 0] => Some(change_basis(op_matrix.view())),
-            [] => Some(Array2::eye(4)),
-            _ => None,
-        };
-        matrix = match result {
-            Some(result) => result.dot(&matrix),
-            None => op_matrix.dot(&matrix),
-        };
+    let mut work: [[Complex64; 4]; 4] = Default::default();
+    let mut qubits_1q: Option<Separable1q> = None;
+    let mut output_matrix: Option<Array2<Complex64>> = None;
+    for node in op_list {
+        let inst = dag[*node].unwrap_operation();
+        let qarg = qarg_lookup(inst.qubits);
+        match qarg {
+            Qarg::Q0 | Qarg::Q1 => {
+                let versor = versor_from_1q_gate(py, inst)?;
+                match qubits_1q.as_mut() {
+                    Some(sep) => sep.apply_on_qubit(qarg as usize, &versor),
+                    None => qubits_1q = Some(Separable1q::from_qubit(qarg as usize, versor)),
+                };
+            }
+            Qarg::Q01 | Qarg::Q10 => {
+                let mut matrix = get_matrix_from_inst(py, inst)?;
+                if qarg == Qarg::Q10 {
+                    change_basis_inplace(matrix.view_mut());
+                }
+                if let Some(sep) = qubits_1q.take() {
+                    matrix = matrix.dot(&sep.matrix_into(&mut work));
+                }
+                output_matrix = if let Some(state) = output_matrix {
+                    Some(matrix.dot(&state))
+                } else {
+                    Some(matrix)
+                };
+            }
+        }
     }
-    Ok(matrix.into_pyarray_bound(py).unbind())
+    match (
+        qubits_1q.map(|sep| sep.matrix_into(&mut work)),
+        output_matrix,
+    ) {
+        (Some(sep), Some(state)) => Ok(sep.dot(&state)),
+        (None, Some(state)) => Ok(state),
+        (Some(sep), None) => Ok(sep.to_owned()),
+        // This shouldn't actually ever trigger, because we expect blocks to be non-empty, but it's
+        // trivial to handle anyway.
+        (None, None) => Ok(arr2(&TWO_QUBIT_IDENTITY)),
+    }
 }
 
 /// Switches the order of qubits in a two qubit operation.
@@ -124,7 +215,13 @@ pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
     trans_matrix
 }
 
-pub fn convert_2q_block_matrix(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(blocks_to_matrix))?;
-    Ok(())
+/// Change the qubit order of a 2q matrix in place.
+#[inline]
+pub fn change_basis_inplace(mut matrix: ArrayViewMut2<Complex64>) {
+    matrix.swap((0, 1), (0, 2));
+    matrix.swap((3, 1), (3, 2));
+    matrix.swap((1, 0), (2, 0));
+    matrix.swap((1, 3), (2, 3));
+    matrix.swap((1, 1), (2, 2));
+    matrix.swap((1, 2), (2, 1));
 }

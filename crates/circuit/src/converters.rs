@@ -10,14 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ::pyo3::prelude::*;
-use hashbrown::HashMap;
-use pyo3::{
-    intern,
-    types::{PyDict, PyList},
-};
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
-use crate::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
+use pyo3::intern;
+use pyo3::prelude::*;
+
+use crate::circuit_data::CircuitData;
+use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -25,13 +26,12 @@ use crate::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<Bound<'py, PyAny>>,
-    pub calibrations: Option<HashMap<String, Py<PyDict>>>,
     pub metadata: Option<Bound<'py, PyAny>>,
-    pub qregs: Option<Bound<'py, PyList>>,
-    pub cregs: Option<Bound<'py, PyList>>,
     pub input_vars: Vec<Bound<'py, PyAny>>,
     pub captured_vars: Vec<Bound<'py, PyAny>>,
     pub declared_vars: Vec<Bound<'py, PyAny>>,
+    pub captured_stretches: Vec<Bound<'py, PyAny>>,
+    pub declared_stretches: Vec<Bound<'py, PyAny>>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -42,27 +42,26 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name")).ok(),
-            calibrations: ob.getattr(intern!(py, "calibrations"))?.extract().ok(),
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
-            qregs: ob
-                .getattr(intern!(py, "qregs"))
-                .map(|ob| ob.downcast_into())?
-                .ok(),
-            cregs: ob
-                .getattr(intern!(py, "cregs"))
-                .map(|ob| ob.downcast_into())?
-                .ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             captured_vars: ob
                 .call_method0(intern!(py, "iter_captured_vars"))?
-                .iter()?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
             declared_vars: ob
                 .call_method0(intern!(py, "iter_declared_vars"))?
-                .iter()?
+                .try_iter()?
+                .collect::<PyResult<Vec<_>>>()?,
+            captured_stretches: ob
+                .call_method0(intern!(py, "iter_captured_stretches"))?
+                .try_iter()?
+                .collect::<PyResult<Vec<_>>>()?,
+            declared_stretches: ob
+                .call_method0(intern!(py, "iter_declared_stretches"))?
+                .try_iter()?
                 .collect::<PyResult<Vec<_>>>()?,
         })
     }
@@ -85,7 +84,55 @@ pub fn circuit_to_dag(
     )
 }
 
+#[pyfunction(signature = (dag, copy_operations = true))]
+pub fn dag_to_circuit(
+    py: Python,
+    dag: &DAGCircuit,
+    copy_operations: bool,
+) -> PyResult<CircuitData> {
+    CircuitData::from_packed_instructions(
+        py,
+        dag.qubits().clone(),
+        dag.clbits().clone(),
+        dag.qargs_interner().clone(),
+        dag.cargs_interner().clone(),
+        dag.qregs_data().clone(),
+        dag.cregs_data().clone(),
+        dag.qubit_locations().clone(),
+        dag.clbit_locations().clone(),
+        dag.topological_op_nodes()?.map(|node_index| {
+            let NodeType::Operation(ref instr) = dag[node_index] else {
+                unreachable!(
+                    "The received node from topological_op_nodes() is not an Operation node."
+                )
+            };
+            if copy_operations {
+                let op = instr.op.py_deepcopy(py, None)?;
+                Ok(PackedInstruction {
+                    op,
+                    qubits: instr.qubits,
+                    clbits: instr.clbits,
+                    params: Some(Box::new(
+                        instr
+                            .params_view()
+                            .iter()
+                            .map(|param| param.clone_ref(py))
+                            .collect(),
+                    )),
+                    label: instr.label.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceLock::new(),
+                })
+            } else {
+                Ok(instr.clone())
+            }
+        }),
+        dag.get_global_phase(),
+    )
+}
+
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(circuit_to_dag, m)?)?;
+    m.add_function(wrap_pyfunction!(dag_to_circuit, m)?)?;
     Ok(())
 }

@@ -12,10 +12,12 @@
 
 """Compute the weighted sum of qubit states."""
 
+from __future__ import annotations
+
 from typing import List, Optional
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Gate
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -45,7 +47,7 @@ class WeightedAdder(BlueprintCircuit):
     For an example where the state of 4 qubits is added into a sum register, the circuit can
     be schematically drawn as
 
-    .. parsed-literal::
+    .. code-block:: text
 
                    ┌────────┐
           state_0: ┤0       ├ | state_0 * weights[0]
@@ -335,3 +337,73 @@ class WeightedAdder(BlueprintCircuit):
                         circuit.x(qr_sum[j])
 
         self.append(circuit.to_gate(), self.qubits)
+
+
+class WeightedSumGate(Gate):
+    r"""A gate to compute the weighted sum of qubit registers.
+
+    Given :math:`n` qubit basis states :math:`q_0, \ldots, q_{n-1} \in \{0, 1\}` and non-negative
+    integer weights :math:`\lambda_0, \ldots, \lambda_{n-1}`, this implements the operation
+
+    .. math::
+
+        |q_0 \ldots q_{n-1}\rangle |0\rangle_s
+        \mapsto |q_0 \ldots q_{n-1}\rangle |\sum_{j=0}^{n-1} \lambda_j q_j\rangle_s
+
+    where :math:`s` is the number of sum qubits required.
+    This can be computed as
+
+    .. math::
+
+        s = 1 + \left\lfloor \log_2\left( \sum_{j=0}^{n-1} \lambda_j \right) \right\rfloor
+
+    or :math:`s = 1` if the sum of the weights is 0 (then the expression in the logarithm is
+    invalid).
+
+    For qubits in a circuit diagram, the first weight applies to the upper-most qubit.
+    For an example where the state of 4 qubits is added into a sum register, the circuit can
+    be schematically drawn as
+
+    .. code-block:: text
+
+                   ┌──────────────┐
+          state_0: ┤0             ├ | state_0 * weights[0]
+                   │              │ |
+          state_1: ┤1             ├ | + state_1 * weights[1]
+                   │              │ |
+          state_2: ┤2             ├ | + state_2 * weights[2]
+                   │              │ |
+          state_3: ┤3 WeightedSum ├ | + state_3 * weights[3]
+                   │              │
+            sum_0: ┤4             ├ |
+                   │              │ |
+            sum_1: ┤5             ├ | = sum_0 * 2^0 + sum_1 * 2^1 + sum_2 * 2^2
+                   │              │ |
+            sum_2: ┤6             ├ |
+                   └──────────────┘
+    """
+
+    def __init__(
+        self,
+        num_state_qubits: int,
+        weights: list[int] | None = None,
+        label: str | None = None,
+    ) -> None:
+        """
+        Args:
+            num_state_qubits: The number of state qubits.
+            weights: List of weights, one for each state qubit. If none are provided they
+                default to 1 for every qubit.
+            label: The name of the circuit.
+        """
+        if weights is None:
+            weights = [1] * num_state_qubits
+
+        self.num_state_qubits = num_state_qubits
+
+        if sum(weights) > 0:
+            self.num_sum_qubits = int(np.floor(np.log2(sum(weights))) + 1)
+        else:
+            self.num_sum_qubits = 1
+
+        super().__init__("WeightedSum", self.num_state_qubits + self.num_sum_qubits, weights, label)

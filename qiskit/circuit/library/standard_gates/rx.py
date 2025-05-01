@@ -21,8 +21,7 @@ import numpy
 
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -34,7 +33,7 @@ class RXGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
         q_0: ┤ Rx(ϴ) ├
@@ -53,20 +52,18 @@ class RXGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RXGate
+    _standard_gate = StandardGate.RX
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RX gate."""
-        super().__init__("rx", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("rx", 1, [theta], label=label)
 
     def _define(self):
         """
         gate rx(theta) a {r(theta, 0) a;}
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .r import RGate
 
         q = QuantumRegister(1, "q")
@@ -104,11 +101,6 @@ class RXGate(Gate):
             gate = CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
         else:
-            # If the gate parameters contain free parameters, we cannot eagerly synthesize
-            # the controlled gate decomposition. In this case, we annotate the gate per default.
-            if annotated is None:
-                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,
@@ -159,7 +151,7 @@ class CRXGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ────■────
              ┌───┴───┐
@@ -189,7 +181,8 @@ class CRXGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────┐
             q_0: ┤ Rx(ϴ) ├
                  └───┬───┘
@@ -209,7 +202,7 @@ class CRXGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CRXGate
+    _standard_gate = StandardGate.CRX
 
     def __init__(
         self,
@@ -217,8 +210,6 @@ class CRXGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CRX gate."""
@@ -243,7 +234,7 @@ class CRXGate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate

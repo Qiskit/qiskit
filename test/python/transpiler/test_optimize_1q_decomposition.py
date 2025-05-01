@@ -207,35 +207,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         ["p", "sx"],
         ["r"],
     )
-    def test_ignores_conditional_rotations(self, basis):
-        """Conditional rotations should not be considered in the chain."""
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        circuit.p(0.1, qr).c_if(cr, 1)
-        circuit.p(0.2, qr).c_if(cr, 3)
-        circuit.p(0.3, qr)
-        circuit.p(0.4, qr)
-
-        passmanager = PassManager()
-        passmanager.append(Optimize1qGatesDecomposition(basis))
-        result = passmanager.run(circuit)
-
-        self.assertTrue(Operator(circuit).equiv(Operator(result)))
-
-    @ddt.data(
-        ["cx", "u3"],
-        ["cz", "u3"],
-        ["cx", "u"],
-        ["p", "sx", "u", "cx"],
-        ["cz", "rx", "rz"],
-        ["rxx", "rx", "ry"],
-        ["iswap", "rx", "rz"],
-        ["rz", "rx"],
-        ["rz", "sx"],
-        ["p", "sx"],
-        ["r"],
-    )
     def test_in_the_back(self, basis):
         """Optimizations can be in the back of the circuit.
         See https://github.com/Qiskit/qiskit-terra/issues/2004.

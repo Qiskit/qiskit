@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-            cargo install grcov
+            cargo install grcov@0.8.24
             sudo apt-get install lcov
 
       # This is needed to support any requirements, particularly in the `optionals` set,
@@ -61,6 +61,7 @@ jobs:
         env:
           QISKIT_TEST_CAPTURE_STREAMS: 1
           QISKIT_PARALLEL: FALSE
+          QISKIT_IGNORE_USER_SETTINGS: TRUE
           PYTHON: "coverage run --source qiskit --parallel-mode"
 
       - name: Convert to lcov and combine data
@@ -71,7 +72,7 @@ jobs:
           lcov --add-tracefile python.info --add-tracefile rust.info --output-file coveralls.info
 
       - name: Coveralls
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2.3.6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: coveralls.info

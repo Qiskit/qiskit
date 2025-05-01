@@ -18,7 +18,6 @@ from math import pi
 from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -31,11 +30,12 @@ class RGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
-             ┌──────┐
-        q_0: ┤ R(ϴ) ├
-             └──────┘
+               ┌─────────┐
+        q_0:   ┤ R(θ,ϕ)  ├ 
+               └─────────┘
+
 
     **Matrix Representation:**
 
@@ -50,26 +50,23 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RGate
+    _standard_gate = StandardGate.R
 
     def __init__(
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi], label=label, duration=duration, unit=unit)
+        super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
         """
         gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u3 import U3Gate
 
         q = QuantumRegister(1, "q")
@@ -83,7 +80,7 @@ class RGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate as: :math:`r(θ, φ)^dagger = r(-θ, φ)`
+        r"""Invert this gate as: :math:`R(θ, φ)^{\dagger} = R(-θ, φ)`
 
         Args:
             annotated: when set to ``True``, this is typically used to return an

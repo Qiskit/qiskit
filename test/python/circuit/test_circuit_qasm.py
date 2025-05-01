@@ -44,9 +44,6 @@ class TestCircuitQasm(QiskitTestCase):
         qc.barrier(qr2)
         qc.cx(qr2[1], qr1[0])
         qc.h(qr2[1])
-        qc.x(qr2[1]).c_if(cr, 0)
-        qc.y(qr1[0]).c_if(cr, 1)
-        qc.z(qr1[0]).c_if(cr, 2)
         qc.barrier(qr1, qr2)
         qc.measure(qr1[0], cr[0])
         qc.measure(qr2[0], cr[1])
@@ -64,9 +61,6 @@ cx qr1[0],qr2[1];
 barrier qr2[0],qr2[1];
 cx qr2[1],qr1[0];
 h qr2[1];
-if(cr==0) x qr2[1];
-if(cr==1) y qr1[0];
-if(cr==2) z qr1[0];
 barrier qr1[0],qr2[0],qr2[1];
 measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
@@ -403,6 +397,7 @@ mcx q[0],q[1],q[2],q[3];"""
         self.assertEqual(dumps(qc), expected_qasm)
 
     def test_circuit_qasm_with_mcx_gate_variants(self):
+        # pylint: disable=line-too-long
         """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
         import qiskit.circuit.library as cl
 
@@ -411,21 +406,16 @@ mcx q[0],q[1],q[2],q[3];"""
         qc.append(cl.MCXGrayCode(n), range(n + 1))
         qc.append(cl.MCXRecursive(n), range(n + 2))
         qc.append(cl.MCXVChain(n), range(2 * n - 1))
-        mcx_vchain_id = id(qc.data[-1].operation)
 
-        # qasm output doesn't support parameterized gate yet.
-        # param0 for "gate mcuq(param0) is not used inside the definition
-        expected_qasm = f"""OPENQASM 2.0;
+        expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate mcu1(param0) q0,q1,q2,q3,q4,q5 {{ cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }}
-gate mcx_gray q0,q1,q2,q3,q4,q5 {{ h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }}
-gate mcx_vchain q0,q1,q2,q3,q4 {{ h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }}
-gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 {{ mcx_vchain q0,q1,q2,q6,q3; mcx_vchain q3,q4,q6,q5,q0; mcx_vchain q0,q1,q2,q6,q3; mcx_vchain q3,q4,q6,q5,q0; }}
-gate mcx_vchain_{mcx_vchain_id} q0,q1,q2,q3,q4,q5,q6,q7,q8 {{ rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }}
+gate mcx_gray q0,q1,q2,q3,q4,q5 { h q5; cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; h q5; }
+gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 { h q6; t q6; cx q2,q6; tdg q6; cx q3,q6; h q3; t q3; cx q0,q3; tdg q3; cx q1,q3; t q3; cx q0,q3; tdg q3; h q3; cx q3,q6; t q6; cx q2,q6; tdg q6; h q6; h q3; t q3; cx q0,q3; tdg q3; cx q1,q3; t q3; cx q0,q3; tdg q3; h q3; h q5; p(pi/8) q3; p(pi/8) q4; p(pi/8) q6; p(pi/8) q5; cx q3,q4; p(-pi/8) q4; cx q3,q4; cx q4,q6; p(-pi/8) q6; cx q3,q6; p(pi/8) q6; cx q4,q6; p(-pi/8) q6; cx q3,q6; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; h q5; h q3; t q3; cx q0,q3; tdg q3; cx q1,q3; t q3; cx q0,q3; tdg q3; h q3; h q6; t q6; cx q2,q6; tdg q6; cx q3,q6; h q3; t q3; cx q0,q3; tdg q3; cx q1,q3; t q3; cx q0,q3; tdg q3; h q3; cx q3,q6; t q6; cx q2,q6; tdg q6; h q6; h q5; p(pi/8) q3; p(pi/8) q4; p(pi/8) q6; p(pi/8) q5; cx q3,q4; p(-pi/8) q4; cx q3,q4; cx q4,q6; p(-pi/8) q6; cx q3,q6; p(pi/8) q6; cx q4,q6; p(-pi/8) q6; cx q3,q6; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; h q5; }
+gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
 qreg q[9];
 mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
-mcx_vchain_{mcx_vchain_id} q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
+mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
 
         self.assertEqual(dumps(qc), expected_qasm)
 
@@ -634,15 +624,6 @@ qreg q[1];
 p(3.141592653599793) q[0];
 p(pi) q[0];"""
         self.assertEqual(dumps(qc), expected_qasm)
-
-    def test_circuit_raises_on_single_bit_condition(self):
-        """OpenQASM 2 can't represent single-bit conditions, so test that a suitable error is
-        printed if this is attempted."""
-        qc = QuantumCircuit(1, 1)
-        qc.x(0).c_if(0, True)
-
-        with self.assertRaisesRegex(QasmError, "OpenQASM 2 can only condition on registers"):
-            dumps(qc)
 
     def test_circuit_raises_invalid_custom_gate_no_qubits(self):
         """OpenQASM 2 exporter of custom gates with no qubits.

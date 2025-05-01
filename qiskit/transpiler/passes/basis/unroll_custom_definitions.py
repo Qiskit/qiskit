@@ -67,14 +67,15 @@ class UnrollCustomDefinitions(TransformationPass):
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
                 dag.substitute_node(
-                    node, control_flow.map_blocks(self.run, node.op), propagate_condition=False
+                    node,
+                    control_flow.map_blocks(self.run, node.op),
                 )
                 continue
 
             if getattr(node.op, "_directive", False):
                 continue
 
-            if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
+            if len(node.qargs) < self._min_qubits:
                 continue
 
             controlled_gate_open_ctrl = isinstance(node.op, ControlledGate) and node.op._open_ctrl

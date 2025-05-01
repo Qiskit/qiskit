@@ -34,21 +34,17 @@ The circuit itself keeps this context.
 from __future__ import annotations
 
 import copy
-import warnings
 from itertools import zip_longest
 import math
-from typing import List, Type
+from typing import Type
 
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
-from qiskit.utils import deprecate_func
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -61,8 +57,13 @@ class Instruction(Operation):
     _directive = False
     _standard_gate = None
 
-    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
+    def __init__(self, name, num_qubits, num_clbits, params, label=None):
         """Create a new instruction.
+
+        .. deprecated:: 1.3
+           The parameters ``duration`` and ``unit`` are deprecated since
+           Qiskit 1.3, and they will be removed in 2.0 or later.
+           An instruction's duration is defined in a backend's Target object.
 
         Args:
             name (str): instruction name
@@ -70,8 +71,6 @@ class Instruction(Operation):
             num_clbits (int): instruction's clbit width
             params (list[int|float|complex|str|ndarray|list|ParameterExpression]):
                 list of parameters
-            duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
-            unit (str): time unit of duration
             label (str or None): An optional label for identifying the instruction.
 
         Raises:
@@ -97,14 +96,9 @@ class Instruction(Operation):
             if label is not None and not isinstance(label, str):
                 raise TypeError("label expects a string or None")
             self._label = label
-        # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
-        # when the instruction has a conditional ("if")
-        self._condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
-        self._duration = duration
-        self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
 
@@ -158,15 +152,6 @@ class Instruction(Operation):
         will be a deepcopy of that instance.
         """
         return self.copy()
-
-    @property
-    def condition(self):
-        """The classical condition on the instruction."""
-        return self._condition
-
-    @condition.setter
-    def condition(self, condition):
-        self._condition = condition
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -341,62 +326,6 @@ class Instruction(Operation):
         sel.add_equivalence(self, decomposition)
 
     @property
-    def duration(self):
-        """Get the duration."""
-        return self._duration
-
-    @duration.setter
-    def duration(self, duration):
-        """Set the duration."""
-        self._duration = duration
-
-    @property
-    def unit(self):
-        """Get the time unit of duration."""
-        return self._unit
-
-    @unit.setter
-    def unit(self, unit):
-        """Set the time unit of duration."""
-        self._unit = unit
-
-    @deprecate_func(
-        since="1.2",
-        removal_timeline="in the 2.0 release",
-        additional_msg="The `Qobj` class and related functionality are part of the deprecated "
-        "`BackendV1` workflow,  and no longer necessary for `BackendV2`. If a user "
-        "workflow requires `Qobj` it likely relies on deprecated functionality and "
-        "should be updated to use `BackendV2`.",
-    )
-    def assemble(self):
-        """Assemble a QasmQobjInstruction"""
-        return self._assemble()
-
-    def _assemble(self):
-        with warnings.catch_warnings():
-            # The class QasmQobjInstruction is deprecated
-            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-            instruction = QasmQobjInstruction(name=self.name)
-        # Evaluate parameters
-        if self.params:
-            params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]
-            instruction.params = params
-        # Add placeholder for qarg and carg params
-        if self.num_qubits:
-            instruction.qubits = list(range(self.num_qubits))
-        if self.num_clbits:
-            instruction.memory = list(range(self.num_clbits))
-        # Add label if defined
-        if self.label:
-            instruction.label = self.label
-        # Add condition parameters for assembler. This is needed to convert
-        # to a qobj conditional instruction at assemble time and after
-        # conversion will be deleted by the assembler.
-        if self.condition:
-            instruction._condition = self.condition
-        return instruction
-
-    @property
     def label(self) -> str:
         """Return instruction label"""
         return self._label
@@ -499,26 +428,6 @@ class Instruction(Operation):
         inverse_gate.definition = inverse_definition
         return inverse_gate
 
-    def c_if(self, classical, val):
-        """Set a classical equality condition on this instruction between the register or cbit
-        ``classical`` and value ``val``.
-
-        .. note::
-
-            This is a setter method, not an additive one.  Calling this multiple times will silently
-            override any previously set condition; it does not stack.
-        """
-        if not isinstance(classical, (ClassicalRegister, Clbit)):
-            raise CircuitError("c_if must be used with a classical register or classical bit")
-        if val < 0:
-            raise CircuitError("condition value should be non-negative")
-        if isinstance(classical, Clbit):
-            # Casting the conditional value as Boolean when
-            # the classical condition is on a classical bit.
-            val = bool(val)
-        self._condition = (classical, val)
-        return self
-
     def copy(self, name=None):
         """
         Copy of the instruction.
@@ -585,12 +494,6 @@ class Instruction(Operation):
     def repeat(self, n):
         """Creates an instruction with ``self`` repeated :math`n` times.
 
-        If this operation has a conditional, the output instruction will have the same conditional
-        and the inner repeated operations will be unconditional; instructions within a compound
-        definition cannot be conditioned on registers within Qiskit's data model.  This means that
-        it is not valid to apply a repeated instruction to a clbit that it both writes to and reads
-        from in its condition.
-
         Args:
             n (int): Number of times to repeat the instruction
 
@@ -614,26 +517,11 @@ class Instruction(Operation):
             qargs = tuple(qc.qubits)
             cargs = tuple(qc.clbits)
             base = self.copy()
-            if self.condition:
-                # Condition is handled on the outer instruction.
-                base = base.to_mutable()
-                base.condition = None
             for _ in [None] * n:
                 qc._append(CircuitInstruction(base, qargs, cargs))
 
             instruction.definition = qc
-        if self.condition:
-            instruction = instruction.c_if(*self.condition)
         return instruction
-
-    @property
-    def condition_bits(self) -> List[Clbit]:
-        """Get Clbits in condition."""
-        from qiskit.circuit.controlflow import condition_resources  # pylint: disable=cyclic-import
-
-        if self.condition is None:
-            return []
-        return list(condition_resources(self.condition).clbits)
 
     @property
     def name(self):

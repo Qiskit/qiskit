@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
 # These are configured in the `tool.setuptools.dynamic` table.
@@ -69,7 +70,7 @@ Issues = "https://github.com/Qiskit/qiskit/issues"
 Changelog = "https://docs.quantum.ibm.com/api/qiskit/release-notes"
 
 [project.entry-points."qiskit.unitary_synthesis"]
-default = "qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis"
+default = "qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin:DefaultUnitarySynthesis"
 aqc = "qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin"
 sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis"
 
@@ -85,10 +86,17 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "linear_function.pmh" = "qiskit.transpiler.passes.synthesis.hls_plugins:PMHSynthesisLinearFunction"
 "mcx.n_dirty_i15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNDirtyI15"
 "mcx.n_clean_m15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNCleanM15"
+"mcx.2_clean_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis2CleanKG24"
+"mcx.2_dirty_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis2DirtyKG24"
+"mcx.1_clean_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis1CleanKG24"
+"mcx.1_dirty_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis1DirtyKG24"
 "mcx.1_clean_b95" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis1CleanB95"
 "mcx.gray_code" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisGrayCode"
 "mcx.noaux_v24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxV24"
 "mcx.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisDefault"
+"mcmt.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisDefault"
+"mcmt.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisNoAux"
+"mcmt.vchain" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisVChain"
 "permutation.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
 "permutation.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisPermutation"
 "permutation.basic" = "qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation"
@@ -97,20 +105,42 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "qft.line" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisLine"
 "qft.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisFull"
 "permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.hls_plugins:TokenSwapperSynthesisPermutation"
+"IntComp.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisDefault"
+"IntComp.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisNoAux"
+"IntComp.twos" = "qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesis2s"
+"WeightedSum.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:WeightedSumSynthesisDefault"
+"ModularAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisDefault"
+"ModularAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisC04"
+"ModularAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisV95"
+"ModularAdder.qft_d00" = "qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisD00"
+"HalfAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisDefault"
+"HalfAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisC04"
+"HalfAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisV95"
+"HalfAdder.qft_d00" = "qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisD00"
+"FullAdder.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisDefault"
+"FullAdder.ripple_c04" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisC04"
+"FullAdder.ripple_v95" = "qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisV95"
+"Multiplier.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17"
+"Multiplier.qft_r17" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17"
+"Multiplier.cumulative_h18" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisH18"
+"PauliEvolution.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisDefault"
+"PauliEvolution.rustiq" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisRustiq"
+"annotated.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:AnnotatedSynthesisDefault"
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"
 
 [project.entry-points."qiskit.transpiler.translation"]
+default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultTranslationPassManager"
 synthesis = "qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager"
 translator = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager"
 
 [project.entry-points."qiskit.transpiler.routing"]
+default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultRoutingPassManager"
 basic = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager"
 lookahead = "qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager"
 none = "qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager"
 sabre = "qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager"
-stochastic = "qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager"
 
 [project.entry-points."qiskit.transpiler.optimization"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager"
@@ -143,15 +173,15 @@ target-version = ['py39', 'py310', 'py311']
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
-manylinux-i686-image = "manylinux2014"
+manylinux-aarch64-image = "quay.io/pypa/manylinux2014_aarch64:latest"
 skip = "pp* cp36-* cp37-* cp38-* *musllinux* *win32 *i686 cp38-macosx_arm64"
 test-skip = "*win32 *linux_i686"
-test-command = "python {project}/examples/python/stochastic_swap.py"
+test-command = "cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
 # tendency to crash if they're installed from source by `pip install`, and since
 # Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
 # restricting any dependencies that Numpy and Scipy might have.
-before-test = "pip install --only-binary=numpy,scipy numpy scipy"
+before-test = "pip install --prefer-binary --only-binary=numpy,scipy numpy scipy -c constraints.txt -r requirements-dev.txt"
 # Some jobs locally override the before-build and environment configuration if a
 # specific job override is needed. For example tier 1 platforms locally override
 # the before-build and environment configuration to enable PGO,
@@ -164,10 +194,10 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.macos]
-environment = "MACOSX_DEPLOYMENT_TARGET=10.12"
 repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.windows]
+test-command = "cp -r {project}/test . && stestr --test-path test/python run --abbreviate"
 repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict --report {wheel}"
 
 [tool.ruff]
@@ -193,9 +223,8 @@ extension-pkg-allow-list = [
     # statically resolve the cyclical load of the exception and it bugs out.
     "retworkx",
     "rustworkx",
-    "tweedledum",
 ]
-load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
+load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle", "pylint.extensions.bad_builtin"]
 py-version = "3.9"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
@@ -247,3 +276,6 @@ exclude_also = [
     "if TYPE_CHECKING:",          # Code that only runs during type checks
     "@abstractmethod",            # Abstract methods are not testable
     ]
+
+[tool.pylint.deprecated_builtins]
+bad-functions = ["print"]

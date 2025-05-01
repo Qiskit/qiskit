@@ -1,0 +1,118 @@
+---
+features_transpiler:
+  - |
+    The scheduling passes :class:`.PadDelay` and :class:`.PadDynamicalDecoupling` has new arguments on
+    their constructors ``target`` and ``durations`` these are used to specify the :class:`.Target` or
+    :class:`.InstructionDurations` respectively. This is required to provide the durations for the
+    instructions in the circuit when this pass is run.
+  - |
+    Added a new method to the :class:`.Target` class has a new method, :meth:`~.Target.seconds_to_dt`.
+    This is used to translate a duration in seconds to a number of discretized
+    time steps of the system time resolution specified in the :attr:`.Target.dt` attribute.
+    This is typically useful for converting the :attr:`.InstructionProperties.duration` value
+    to units of ``dt``.
+upgrade_circuits:
+  - |
+    The deprecated attributes for :class:`~qiskit.circuit.Instruction` and :class:`.Gate`: ``duration`` and ``unit`` have been removed. This includes
+    setting the ``unit`` or ``duration`` arguments for any :class:`qiskit.circuit.Instruction`
+    or subclass. These attributes were deprecated in Qiskit 1.3.0 and 
+    were used to attach a custom execution
+    duration and unit for that duration to an individual instruction. However,
+    the source of truth of the duration of a gate is the :class:`.BackendV2`
+    :class:`.Target` which contains the duration for each instruction supported
+    on the backend. The duration of an instruction is not something that's
+    typically user adjustable and is an immutable property of the backend. If
+    you were previously using this capability to experiment with different
+    durations for gates you can mutate the
+    :attr:`.InstructionProperties.duration` field in a given :class:`.Target` to
+    set a custom duration for an instruction on a backend (the unit is always in
+    seconds in the :class:`.Target`).
+  - |
+    The deprecated attribute for :class:`qiskit.circuit.Instruction` and :class:`.Gate`: ``condition`` has been
+    removed. These attributes were deprecated in the 1.3.0 release.
+    This functionality has been superseded by the :class:`.IfElseOp` class
+    which can be used to describe a classical condition in a circuit.
+  - |
+    The deprecated methods for :class:`~qiskit.circuit.Instruction` and :class:`.Gate`: ``c_if`` and ``condition_bits``
+    have been removed. These methods were deprecated in the 1.3.0 release.
+    This functionality has been superseded by the :class:`.IfElseOp` class
+    which can be used to describe a classical condition in a circuit.
+    For example, a circuit previously using ``Instruction.c_if()`` like::
+
+        from qiskit.circuit import QuantumCircuit
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.x(0).c_if(0, 1)
+        qc.z(1.c_if(1, 0)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+    can be rewritten as::
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        with expected.if_test((expected.clbits[0], True)):
+            qc.x(0)
+        with expected.if_test((expected.clbits[1], False)):
+            qc.z(1)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+
+  - |
+    The deprecated method ``InstructionSet.c_if`` has been removed. This method
+    was deprecated in the 1.3.0 release. This functionality has been superseded
+    by the :class:`.IfElseOp` class which can be used to describe a classical
+    condition in a circuit.
+
+upgrade_transpiler:
+  - |
+    The :class:`.ResetAfterMeasureSimplification` transpiler pass now will use an :class:`.IfElseOp`
+    to condition the execution of the :class:`.XGate` instead of setting a ``condition`` attribute
+    on the gate. This is because the ``condition`` attribute has been removed from the Qiskit data model.
+  - |
+    The deprecated ``ConvertConditionsToIfOps`` transpiler pass has been removed. The underlying
+    ``condition`` attribute of :class:`~qiskit.circuit.Instruction` class has been removed so this transpiler pass
+    no longer had anything to convert from. Instead you should directly use :class:`.IfElseOp` to
+    classically condition the execution of an operation.
+  - |
+    The :class:`.PadDelay` and :class:`.PadDynamicalDecoupling` transpiler passes now require a new
+    argument when constructed. Either ``target`` or ``durations`` need to be specified with a
+    :class:`.Target` or :class:`.InstructionDurations` respectively. Without these the passes will
+    not be able to determine the duration of instructions in the circuit and will error. Previously
+    these passes would determine these values from the now removed ``duration`` attribute of
+    :class:`~qiskit.circuit.Instruction` objects.
+  - |
+    The previously deprecated argument ``propagate_condition`` on the :class:`.DAGCircuit` methods
+    :meth:`~.DAGCircuit.substitute_node_with_dag` and :meth:`~.DAGCircuit.substitute_node` has been
+    removed. These arguments were deprecated in Qiskit 1.4.0 and were removed because the larger
+    removal of ``Instruction.condition`` it no longer served a purpose.
+  - |
+    The previously deprecated ``AlignMeasures`` transpiler pass has been removed. This pass was deprecated in Qiskit 1.1.0. Instead the
+    :class:`.ConstrainedReschedule` pass should be used. :class:`.ConstrainedReschedule` performs the
+    same function and also supports aligning to additional timing constraints.
+  - |
+    When calling :func:`.generate_preset_pass_manager` or :func:`.transpile` and specifying the ``instruction_durations`` argument
+    with a list instead of an :class:`.InstructionDurations` object and the list specifies durations in units of ``dt`` a ``dt`` parameter
+    is required if scheduling the circuit.
+upgrade_providers:
+  - |
+    The :class:`.BasicSimulator` backend no longer can simulate classical
+    control flow. It only supported using ``.c_if()``/``.condition`` for
+    modeling control flow, as this has now been removed from Qiskit's
+    data model it no longer can support control flow.
+upgrade_visualization:
+  - |
+    The timeline drawer now requires the target argument is specified when called. As instructions no
+    longer contain duration attributes this extra argument is required to
+    specify the durations for all the supported instructions. Without the
+    argument the timeline drawer does not have access to this information.
+
+deprecations_transpiler:
+  - |
+    The ``propagate_condition`` argument of :meth:`.DAGCircuit.substitute_node`
+    and :meth:`.DAGCircuit.substitute_node_with_dag` has been deprecated. With the removal
+    of ``Instruction.condition`` from the Qiskit data model this option no longer serves a
+    purpose. If it is set it no longer has any effect. It is not removed from the signature
+    to maintain compatibility during the migration from Qiskit 1.x -> 2.0. This option will
+    be removed in Qiskit 3.0.
