@@ -826,8 +826,92 @@ pub struct PyQubitSparsePauli {
 impl PyQubitSparsePauli {
 
     #[new]
+    #[pyo3(signature = (data, /, num_qubits=None))]
+    fn py_new(data: &Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+        let py = data.py();
+        let check_num_qubits = |data: &Bound<PyAny>| -> PyResult<()> {
+            let Some(num_qubits) = num_qubits else {
+                return Ok(());
+            };
+            let other_qubits = data.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
+            if num_qubits == other_qubits {
+                return Ok(());
+            }
+            Err(PyValueError::new_err(format!(
+                "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
+            )))
+        };
+        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+            check_num_qubits(data)?;
+            return Self::from_pauli(data);
+        }
+        if let Ok(label) = data.extract::<String>() {
+            let num_qubits = num_qubits.unwrap_or(label.len() as u32);
+            if num_qubits as usize != label.len() {
+                return Err(PyValueError::new_err(format!(
+                    "explicitly given 'num_qubits' ({}) does not match label ({})",
+                    num_qubits,
+                    label.len(),
+                )));
+            }
+            return Self::from_label(&label).map_err(PyErr::from);
+        }
+        if let Ok(sparse_label) = data.extract() {
+            let Some(num_qubits) = num_qubits else {
+                return Err(PyValueError::new_err(
+                    "if using the sparse-label form, 'num_qubits' must be provided",
+                ));
+            };
+            return Self::from_sparse_label(sparse_label, num_qubits);
+        }
+        Err(PyTypeError::new_err(format!(
+            "unknown input format for 'PauliLindbladMap': {}",
+            data.get_type().repr()?,
+        )))
+    }
+
+    // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
+    // the `bit_terms` must all be valid `BitTerm` representations.
+    /// Construct a :class:`.PauliLindbladMap` from raw Numpy arrays that match :ref:`the required
+    /// data representation described in the class-level documentation
+    /// <pauli-lindblad-map-arrays>`.
+    ///
+    /// The data from each array is copied into fresh, growable Rust-space allocations.
+    ///
+    /// Args:
+    ///     num_qubits: number of qubits the map acts on.
+    ///     coeffs: float coefficients of each generator term of the map.  This should be a Numpy
+    ///         array with dtype :attr:`~numpy.float64`.
+    ///     bit_terms: flattened list of the single-qubit terms comprising all complete terms.  This
+    ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
+    ///         :class:`.BitTerm`).
+    ///     indices: flattened term-wise sorted list of the qubits each single-qubit term corresponds
+    ///         to.  This should be a Numpy array with dtype :attr:`~numpy.uint32`.
+    ///     boundaries: the indices that partition ``bit_terms`` and ``indices`` into terms.  This
+    ///         should be a Numpy array with dtype :attr:`~numpy.uintp`.
+    ///     check: if ``True`` (the default), validate that the data satisfies all coherence
+    ///         guarantees.  If ``False``, no checks are done.
+    ///
+    ///         .. warning::
+    ///
+    ///             If ``check=False``, the ``bit_terms`` absolutely *must* be all be valid values
+    ///             of :class:`.PauliLindbladMap.BitTerm`.  If they are not, Rust-space undefined
+    ///             behavior may occur, entirely invalidating the program execution.
+    ///
+    /// Examples:
+    ///
+    ///     Construct a sum of :math:`Z` on each individual qubit::
+    ///
+    ///         >>> num_qubits = 100
+    ///         >>> terms = np.full((num_qubits,), PauliLindbladMap.BitTerm.Z, dtype=np.uint8)
+    ///         >>> indices = np.arange(num_qubits, dtype=np.uint32)
+    ///         >>> coeffs = np.ones((num_qubits,), dtype=float)
+    ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
+    ///         >>> PauliLindbladMap.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
+    ///         <PauliLindbladMap with 100 terms on 100 qubits: (1)L(Z_0) + ... + (1)L(Z_99)>
+    #[staticmethod]
     #[pyo3(signature = (/, num_qubits, bit_terms, indices))]
-    fn py_new(
+    fn from_raw_parts(
         num_qubits: u32,
         bit_terms: Vec<BitTerm>,
         indices: Vec<u32>,
@@ -999,8 +1083,11 @@ impl PyQubitSparsePauli {
     ///     :meth:`to_sparse_list`
     ///         The reverse of this method.
     #[staticmethod]
-    #[pyo3(signature = (/, label, indices, num_qubits))]
-    fn from_sparse_label(label: &str, indices: Vec<u32>, num_qubits: u32) -> PyResult<Self> {
+    #[pyo3(signature = (/, sparse_label, num_qubits))]
+    fn from_sparse_label(sparse_label: (String, Vec<u32>), num_qubits: u32) -> PyResult<Self> {
+        
+        let label = sparse_label.0;
+        let indices = sparse_label.1;
         let mut bit_terms = Vec::new();
         let mut sorted_indices = Vec::new();
 
