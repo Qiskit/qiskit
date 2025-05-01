@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use qubit_sparse_pauli::{PyQubitSparsePauliList, PyQubitSparsePauli};
+use qubit_sparse_pauli::{PyQubitSparsePauli, PyQubitSparsePauliList};
 
 pub mod qubit_sparse_pauli;
 
