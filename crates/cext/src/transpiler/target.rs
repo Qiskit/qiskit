@@ -50,6 +50,21 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
     Box::into_raw(Box::new(target))
 }
 
+/// @ingroup QkTarget
+/// Returns the number of qubits of this Target.
+///
+/// @param target A pointer to the Target.
+///
+/// @return The number of qubits this target can use.
+///
+/// # Example
+///     
+///     QkTarget *target = qk_target_new(5);
+///     uint32_t num_qubits = qk_target_num_qubits(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
@@ -58,6 +73,19 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
     target.num_qubits.unwrap_or_default() as u32
 }
 
+/// @ingroup QkTarget
+/// Free the Target.
+///
+/// @param target A pointer to the Target to free.
+///
+/// # Example
+///     
+///     QkTarget *target = qk_target_new(5);
+///     qk_target_free(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
@@ -74,6 +102,17 @@ pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
     }
 }
 
+/// @ingroup QkInstructionProps
+/// Construct a new InstructionProperties object with the defined properties.
+///
+/// @param duration The duration of the instruction.
+/// @param error The error rate of the instruction.
+///
+/// @returns A pointer to the new instance of InstructionProperties.
+///
+/// # Example
+///
+///     QkInstructionProps *inst_props = qk_instruction_properties_new(1.098e-9, 2.000109e-10);
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_instruction_properties_new(
@@ -86,6 +125,22 @@ pub extern "C" fn qk_instruction_properties_new(
     )))
 }
 
+/// @ingroup QkInstructionProps
+/// Gets the duration of the instruction.
+///
+/// @param instruction_properties The pointer to the instruction property.
+///
+/// @returns The duration of the instruction.
+///
+/// # Example
+///
+///     QkInstructionProps *inst_props = qk_instruction_properties_new(1.098e-9, 2.000109e-10);
+///     double duration = qk_instruction_properties_get_duration(inst_props);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``instruction_properties`` is not a valid, non-null pointer to
+/// a ``QkInstructionProps``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_instruction_properties_get_duration(
@@ -101,6 +156,22 @@ pub unsafe extern "C" fn qk_instruction_properties_get_duration(
     duration
 }
 
+/// @ingroup QkInstructionProps
+/// Gets the error rate of the instruction.
+///
+/// @param instruction_properties The pointer to the instruction property.
+///
+/// @returns The error rate of the instruction.
+///
+/// # Example
+///
+///     QkInstructionProps *inst_props = qk_instruction_properties_new(1.098e-9, 2.000109e-10);
+///     double error = qk_instruction_properties_get_errorn(inst_props);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``instruction_properties`` is not a valid, non-null pointer to
+/// a ``QkInstructionProps``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_instruction_properties_get_error(
@@ -116,6 +187,20 @@ pub unsafe extern "C" fn qk_instruction_properties_get_error(
     error
 }
 
+/// @ingroup QkInstructionProps
+/// Free the InstructionProperties object.
+///
+/// @param target A pointer to the InstructionProperties object to free.
+///
+/// # Example
+///     
+///     QkInstructionProps *inst_props = qk_instruction_properties_new(1.098e-9, 2.000109e-10);
+///     qk_instruction_properties_free(inst_props);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``instruction_properties`` is not a valid, non-null pointer to
+/// a ``QkInstructionProps`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_instruction_properties_free(
@@ -137,12 +222,37 @@ pub extern "C" fn qk_instruction_properties_free(
 /// Represents the mapping between qargs and `InstructionProperties`
 pub struct PropertyMap(IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>);
 
+/// @ingroup QkPropsMap
+/// Creates an object that will serve as a mapping between an instruction's
+/// qargs and instruction properties.
+///
+/// @returns The Property Mapping structure.
+///
+/// # Example
+///
+///     QkPropsMap *props_map = qk_property_map_new();
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_property_map_new() -> *mut PropertyMap {
     Box::into_raw(Box::new(PropertyMap(Default::default())))
 }
 
+/// @ingroup QkPropsMap
+/// Retrieves the length of the current property map.
+///
+/// @param property_map The pointer to the mapping object.
+///
+/// @returns The length of the PropertyMap.
+///
+/// # Example
+///
+///     QkPropsMap *props_map = qk_property_map_new();
+///     size_t props_size = qk_property_map_length(props_map);
+///
+/// # Safety
+///
+/// The behavior is undefined if ``property_map`` is not a valid,
+/// non-null pointer to a ``QkPropsMap`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_property_map_length(property_map: *const PropertyMap) -> usize {
@@ -151,6 +261,20 @@ pub unsafe extern "C" fn qk_property_map_length(property_map: *const PropertyMap
     prop_map.0.len()
 }
 
+/// @ingroup QkPropsMap
+/// Frees the property map.
+///
+/// @param property_map The pointer to the mapping object to be freed.
+///
+/// # Example
+///
+///     QkPropsMap *props_map = qk_property_map_new();
+///     qk_property_map_free(props_map);
+///
+/// # Safety
+///
+/// The behavior is undefined if ``property_map`` is not a valid,
+/// non-null pointer to a ``QkPropsMap`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_property_map_free(property_map: *mut PropertyMap) {
@@ -167,6 +291,27 @@ pub unsafe extern "C" fn qk_property_map_free(property_map: *mut PropertyMap) {
     }
 }
 
+/// @ingroup QkPropsMap
+/// Checks if some qargs exist within the property map.
+///
+/// @param property_map The pointer to the mapping object.
+/// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
+///     gate on, can be a null pointer to check for global properties.
+/// @param num_qubits The length of the qargs array.
+///
+/// @returns Whether the qargs are present or not.
+///
+/// # Example
+///
+///     QkPropsMap *props_map = qk_property_map_new();
+///     uint32_t qargs[2] = {0, 1};
+///     qk_property_map_add(props_map, qargs, 2, NULL);
+///     qk_property_map_contains_qargs(props_map, qargs, 2);
+///
+/// # Safety
+///
+/// The behavior is undefined if ``property_map`` is not a valid, non-null pointer
+/// to a ``QkPropsMap`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_property_map_contains_qargs(
@@ -183,6 +328,27 @@ pub unsafe extern "C" fn qk_property_map_contains_qargs(
     prop_map.0.contains_key(&qargs)
 }
 
+/// @ingroup QkPropsMap
+/// Retrieves an InstructionProperty based on its assigned qargs.
+///
+/// @param property_map The pointer to the mapping object.
+/// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
+///     gate on, can be a null pointer to check for global properties.
+/// @param num_qubits The length of the qargs array.
+///
+/// @returns The properties associated with the qargs.
+///
+/// # Example
+///
+///     QkPropsMap *props_map = qk_property_map_new();
+///     uint32_t qargs[2] = {0, 1};
+///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_contains_qargs(props_map, qargs, 2);
+///
+/// # Safety
+///
+/// The behavior is undefined if ``property_map`` is not a valid, non-null pointer
+/// to a ``QkPropsMap`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_property_map_get(
@@ -203,6 +369,25 @@ pub unsafe extern "C" fn qk_property_map_get(
     }
 }
 
+/// @ingroup QkPropsMap
+/// Adds an InstructionProperty based on its assigned qargs.
+///
+/// @param property_map The pointer to the mapping object.
+/// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
+///     gate on, can be a null pointer to check for global properties.
+/// @param num_qubits The length of the qargs array.
+/// @param instruction_properties The instruction properties to be added.
+///
+/// # Example
+///
+///     QkPropsMap *props_map = qk_property_map_new();
+///     uint32_t qargs[2] = {0, 1};
+///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
+///
+/// # Safety
+///
+/// The behavior is undefined if ``property_map`` is not a valid, non-null pointer
+/// to a ``QkPropsMap`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_property_map_add(
@@ -216,8 +401,14 @@ pub unsafe extern "C" fn qk_property_map_add(
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qubits: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let instruction_properties = unsafe { const_ptr_as_ref(instruction_properties) };
-    prop_map.0.insert(qubits, Some(*instruction_properties));
+    let instruction_properties = unsafe {
+        if instruction_properties.is_null() {
+            None
+        } else {
+            Some(const_ptr_as_ref(instruction_properties))
+        }
+    };
+    prop_map.0.insert(qubits, instruction_properties.copied());
 }
 
 #[no_mangle]

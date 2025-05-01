@@ -23,7 +23,7 @@
 void print_qargs(uint32_t *qargs, uint32_t size) {
     printf("[");
     for (int i = 0; i < size; i++) {
-        printf("%zu", qargs[i]);
+        printf("%u", qargs[i]);
         if (i < size - 1) {
             printf(", ");
         }
@@ -49,7 +49,7 @@ int test_empty_target(void) {
     uint32_t num_qubits = qk_target_num_qubits(target);
 
     if (num_qubits != 0) {
-        printf("The number of qubits %zu is not 0.", num_qubits);
+        printf("The number of qubits %u is not 0.", num_qubits);
         return EqualityError;
     }
     return Ok;
@@ -104,7 +104,7 @@ int test_property_map_construction(void) {
     if (!qk_property_map_contains_qargs(property_map, qargs, 2)) {
         printf("The qargs ");
         print_qargs(qargs, 2);
-        printf(" not properly added to the property map.", qargs);
+        printf(" not properly added to the property map.");
         return EqualityError;
     }
 
@@ -235,7 +235,7 @@ int test_target_add_instruction(void) {
     for (int i = 0; i < 3; i++) {
         if (strcmp(gate_names[i], comp_gate_names[i]) != 0) {
             printf(
-                "Gate comparison order is not correct in this target: At index %zu, %s is not %s.",
+                "Gate comparison order is not correct in this target: At index %d, %s is not %s.",
                 i, gate_names[i], comp_gate_names[i]);
             result = RuntimeError;
             goto cleanup;
