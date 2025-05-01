@@ -53,6 +53,7 @@ class ObservablesArray(ShapedMixin):
     def __init__(
         self,
         observables: ObservablesArrayLike,
+        num_qubits: int | None = None,
         copy: bool = True,
         validate: bool = True,
     ):
@@ -62,6 +63,9 @@ class ObservablesArray(ShapedMixin):
             observables: An array-like of basis observable compatible objects.
             copy: Specify the ``copy`` kwarg of the :func:`.object_array` function
                 when initializing observables.
+            num_qubits: The number of qubits of the observables. If not specified, the number of
+                qubits will be inferred from the observables. If specified, then the specified
+                number of qubits must match the number of qubits in the observables.
             validate: If true, coerce entries into the internal format and validate them. If false,
                 the input should already be an array-like.
 
@@ -71,11 +75,28 @@ class ObservablesArray(ShapedMixin):
         super().__init__()
         if isinstance(observables, ObservablesArray):
             observables = observables._array
+
         self._array = object_array(observables, copy=copy, list_types=(PauliList,))
         self._shape = self._array.shape
+        self._num_qubits = num_qubits
+
         if validate:
             for ndi, obs in np.ndenumerate(self._array):
-                self._array[ndi] = self.coerce_observable(obs)
+                basis_obs = self.coerce_observable(obs)
+                if self._num_qubits is None:
+                    self._num_qubits = basis_obs.num_qubits
+                elif self._num_qubits != basis_obs.num_qubits:
+                    raise ValueError(
+                        "The number of qubits must be the same for all observables in the "
+                        "observables array."
+                    )
+                self._array[ndi] = basis_obs
+        elif self._num_qubits is None and self._array.size > 0:
+            self._num_qubits = self._array.reshape(-1)[0].num_qubits
+
+        # can happen for empty arrays
+        if self._num_qubits is None:
+            self._num_qubits = 0
 
     @staticmethod
     def _obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
@@ -181,6 +202,11 @@ class ObservablesArray(ShapedMixin):
         """
         return self.reshape(self.size)
 
+    @property
+    def num_qubits(self) -> int:
+        """Return the observable array's number of qubits"""
+        return self._num_qubits
+
     @classmethod
     def coerce_observable(cls, observable: ObservableLike) -> SparseObservable:
         """Format an observable-like object into the internal format.
@@ -249,14 +275,11 @@ class ObservablesArray(ShapedMixin):
 
     def validate(self):
         """Validate the consistency in observables array."""
-        num_qubits = None
         for obs in self._array.reshape(-1):
-            if num_qubits is None:
-                num_qubits = obs.num_qubits
-            elif obs.num_qubits != num_qubits:
+            if obs.num_qubits != self.num_qubits:
                 raise ValueError(
-                    "The number of qubits must be the same for all observables in the "
-                    "observables array."
+                    "An observable was detected, whose number of qubits"
+                    " does not match the array's number of qubits"
                 )
 
 
