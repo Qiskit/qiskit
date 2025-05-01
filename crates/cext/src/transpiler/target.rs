@@ -139,7 +139,7 @@ pub struct PropertyMap(IndexMap<Qargs, Option<InstructionProperties>, ahash::Ran
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_propety_map_new() -> *mut PropertyMap {
+pub extern "C" fn qk_property_map_new() -> *mut PropertyMap {
     Box::into_raw(Box::new(PropertyMap(Default::default())))
 }
 
@@ -153,7 +153,7 @@ pub unsafe extern "C" fn qk_property_map_length(property_map: *const PropertyMap
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_propety_map_free(property_map: *mut PropertyMap) {
+pub unsafe extern "C" fn qk_property_map_free(property_map: *mut PropertyMap) {
     if !property_map.is_null() {
         if !property_map.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.")
@@ -433,7 +433,10 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
 
     let mut result: Vec<*const c_char> = if let Ok(names) = target.operation_names_for_qargs(&qargs)
     {
-        names
+        // Temporary measure to ensure consistent results for the instruction names
+        let mut temp_vec = Vec::from_iter(names);
+        temp_vec.sort_unstable();
+        temp_vec
             .into_iter()
             .map(|name| CString::new(name).unwrap().into_raw().cast_const())
             .collect()
@@ -540,6 +543,15 @@ pub unsafe extern "C" fn qk_target_contains_instr(
     let operation_name = unsafe { CStr::from_ptr(name) };
 
     target.contains_key(operation_name.to_str().unwrap())
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_length(target: *const Target) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    target.len()
 }
 
 // Helpers
