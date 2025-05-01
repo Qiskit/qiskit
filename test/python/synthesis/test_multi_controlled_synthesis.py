@@ -52,6 +52,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_noaux_v24,
     synth_c3x,
     synth_c4x,
+    _mcsu2_real_diagonal,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas, matrix_equal
@@ -119,6 +120,14 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
+
+    def test_mcry(self):
+        """Test _mcsu2_real_diagonal by comparing synthesized and expected matrices."""
+        num_ctrl_qubits = 8
+        synthesized_circuit = _mcsu2_real_diagonal(RYGate(0.3), num_controls=num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            RYGate(0.3), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
     @data(3, 4, 5, 6)
