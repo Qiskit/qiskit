@@ -25,6 +25,8 @@ import re
 from typing import Iterable, List, Sequence, Union
 
 from qiskit._accelerate.circuit import StandardGate
+from qiskit.circuit.controlflow.for_loop import DynamicRange
+
 from qiskit.circuit import (
     library,
     Barrier,
@@ -1108,6 +1110,25 @@ class QASM3Builder:
                     end=self.build_integer(indexset.stop - 1),
                     step=self.build_integer(indexset.step) if indexset.step != 1 else None,
                 )
+            elif isinstance(indexset, DynamicRange):
+                # OpenQASM 3 uses inclusive ranges on both ends, unlike Python.
+                if isinstance(indexset.start, int):
+                    start = self.build_integer(indexset.start)
+                else:
+                    start = self.build_expression(indexset.start)
+                if isinstance(indexset.stop, int):
+                    stop = self.build_integer(indexset.stop - 1)
+                else:
+                    stop = self.build_expression(indexset.stop)
+                if isinstance(indexset.step, int):
+                    step = (
+                        self.build_integer(indexset.step)
+                        if indexset.step != 1
+                        else None
+                    )
+                else:
+                    step = self.build_expression(indexset.step)
+                indexset_ast = ast.Range(start=start, end=stop, step=step)
             else:
                 try:
                     indexset_ast = ast.IndexSet([self.build_integer(value) for value in indexset])
@@ -1117,7 +1138,7 @@ class QASM3Builder:
                         f" '{indexset}'."
                     ) from None
             body_ast = ast.ProgramBlock(self.build_current_scope())
-        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
+        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast, ast.IntType())
 
     def _lookup_variable_for_expression(self, var):
         if isinstance(var, Bit):

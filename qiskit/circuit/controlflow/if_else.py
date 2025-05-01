@@ -402,6 +402,7 @@ class IfContext:
             # If we're not in a loop, we don't need to be worried about passing in any outer-scope
             # resources because there can't be anything that will consume them.
             true_body = true_block.build(true_block.qubits(), true_block.clbits())
+            true_body.calibrations = self._circuit.calibrations
             self._appended_instructions = self._circuit.append(
                 IfElseOp(self._condition, true_body=true_body, false_body=None, label=self._label),
                 tuple(true_body.qubits),
@@ -498,6 +499,7 @@ class ElseContext:
             true_body = self._if_instruction.operation.blocks[0]
             false_body = false_block.build(false_block.qubits(), false_block.clbits())
             true_body, false_body = unify_circuit_resources((true_body, false_body))
+            false_body.calibrations = circuit.calibrations
             circuit.append(
                 IfElseOp(
                     self._if_context.condition,

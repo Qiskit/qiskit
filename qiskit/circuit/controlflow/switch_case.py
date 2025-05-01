@@ -355,6 +355,10 @@ class SwitchContext:
             operation, resources = placeholder.concrete_instruction(
                 set(initial_resources.qubits), set(initial_resources.clbits)
             )
+            for case in operation.blocks:
+                # We need to copy the calibrations from the original circuit, because the
+                # placeholder doesn't have any.
+                case.calibrations = self.circuit.calibrations
             self.circuit.append(operation, resources.qubits, resources.clbits)
         return False
 

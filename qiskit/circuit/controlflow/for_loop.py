@@ -19,10 +19,48 @@ from typing import Iterable, Optional, Union, TYPE_CHECKING
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
+
 from .control_flow import ControlFlowOp
+from qiskit.circuit.classical.expr import Var
+
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
+
+
+class DynamicRange:
+    """A class representing a dynamic range of integers."""
+
+    def __init__(
+        self, start: int | Var, stop: Optional[int | Var] = None, step: int | Var = 1
+    ):
+        """
+        Args:
+            start: The starting value of the range.
+            stop: The stopping value of the range.
+            step: The step size for the range.
+        """
+        if stop is None:
+            stop = start
+            start = 0
+
+        self.start = start
+        self.stop = stop
+        self.step = step
+
+    def __repr__(self):
+        return (
+            f"r({self.start if isinstance(self.start, int) else self.start.name},"
+            f" {self.stop if isinstance(self.stop, int) else self.stop.name}, "
+            f"{self.step if isinstance(self.step, int) else self.step.name})"
+        )
+
+    def __str__(self):
+        return (
+            f"r({self.start if isinstance(self.start, int) else self.start.name},"
+            f" {self.stop if isinstance(self.stop, int) else self.stop.name},"
+            f" {self.step if isinstance(self.step, int) else self.step.name})"
+        )
 
 
 class ForLoopOp(ControlFlowOp):
@@ -33,7 +71,7 @@ class ForLoopOp(ControlFlowOp):
 
     def __init__(
         self,
-        indexset: Iterable[int],
+        indexset: Iterable[int] | DynamicRange,
         loop_parameter: Union[Parameter, None],
         body: QuantumCircuit,
         label: Optional[str] = None,
@@ -49,7 +87,11 @@ class ForLoopOp(ControlFlowOp):
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits
         super().__init__(
-            "for_loop", num_qubits, num_clbits, [indexset, loop_parameter, body], label=label
+            "for_loop",
+            num_qubits,
+            num_clbits,
+            [indexset, loop_parameter, body],
+            label=label,
         )
 
     @property
@@ -101,7 +143,9 @@ class ForLoopOp(ControlFlowOp):
 
         # Consume indexset into a tuple unless it was provided as a range.
         # Preserve ranges so that they can be exported as OpenQASM 3 ranges.
-        indexset = indexset if isinstance(indexset, range) else tuple(indexset)
+        indexset = (
+            indexset if isinstance(indexset, (range, DynamicRange)) else tuple(indexset)
+        )
 
         self._params = [indexset, loop_parameter, body]
 
@@ -177,7 +221,9 @@ class ForLoopContext:
         self._loop_parameter = loop_parameter
         # We can pass through `range` instances because OpenQASM 3 has native support for this type
         # of iterator set.
-        self._indexset = indexset if isinstance(indexset, range) else tuple(indexset)
+        self._indexset = (
+            indexset if isinstance(indexset, (range, DynamicRange)) else tuple(indexset)
+        )
         self._label = label
         self._used = False
 
@@ -201,6 +247,7 @@ class ForLoopContext:
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
         body = scope.build(scope.qubits(), scope.clbits())
+        body.calibrations = self._circuit.calibrations
         # We always bind the loop parameter if the user gave it to us, even if it isn't actually
         # used, because they requested we do that by giving us a parameter.  However, if they asked
         # us to auto-generate a parameter, then we only add it if they actually used it, to avoid
