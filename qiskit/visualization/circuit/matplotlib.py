@@ -626,7 +626,6 @@ class MatplotlibDrawer:
                 # register_bit and puts it into the param_width. If the register_bit is small
                 # enough, the gate will just use the WID width.
                 elif isinstance(op, Measure):
-                    node_data[node].raw_gate_text = op.name
                     register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
                     if register is not None:
                         param_text = f"{register.name}_{reg_index}"
@@ -1349,7 +1348,7 @@ class MatplotlibDrawer:
         )
         self._ax.text(
             qx,
-            qy - 0.46 * HIG,
+            qy - 0.42 * HIG,
             label,
             ha="center",
             va="bottom",
