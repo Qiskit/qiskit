@@ -603,6 +603,7 @@ pub struct QubitSparsePauli {
     bit_terms: Box<[BitTerm]>,
     indices: Box<[u32]>,
 }
+
 impl QubitSparsePauli {
     pub fn new(
         num_qubits: u32,
@@ -1171,6 +1172,19 @@ impl PyQubitSparsePauli {
             borrowed.inner.num_qubits(),
             Self::get_bit_terms(slf_.clone()),
             Self::get_indices(slf_),
+        )
+            .into_pyobject(py)
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let bit_terms: &[u8] = ::bytemuck::cast_slice(self.inner.bit_terms());
+        (
+            py.get_type::<Self>().getattr("from_raw_parts")?,
+            (
+                self.inner.num_qubits(),
+                PyArray1::from_slice(py, bit_terms),
+                PyArray1::from_slice(py, self.inner.indices()),
+            ),
         )
             .into_pyobject(py)
     }

@@ -30,6 +30,14 @@ from qiskit.transpiler import Target
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 
+def single_cases():
+    return [
+        QubitSparsePauli(""),
+        QubitSparsePauli("I" * 10),
+        QubitSparsePauli.from_label("IIXIZI"),
+        QubitSparsePauli.from_label("ZZYYXX"),
+    ]
+
 def single_cases_list():
     return [
         QubitSparsePauliList.empty(0),
@@ -270,9 +278,165 @@ class TestQubitSparsePauli(QiskitTestCase):
         )
         self.assertEqual(from_paulis, from_lists)
     
+    def test_default_constructor_failed_inference(self):
+        with self.assertRaises(TypeError):
+            QubitSparsePauli(5, num_qubits=5)
+    
+    def test_num_qubits(self):
+        self.assertEqual(QubitSparsePauli("").num_qubits, 0)
+        self.assertEqual(QubitSparsePauli("I"*10).num_qubits, 10)
+
+    def test_bit_term_enum(self):
+        # These are very explicit tests that effectively just duplicate magic numbers, but the point
+        # is that those magic numbers are required to be constant as their values are part of the
+        # public interface.
+
+        self.assertEqual(
+            set(QubitSparsePauli.BitTerm),
+            {
+                QubitSparsePauli.BitTerm.X,
+                QubitSparsePauli.BitTerm.Y,
+                QubitSparsePauli.BitTerm.Z,
+            },
+        )
+        # All the enumeration items should also be integers.
+        self.assertIsInstance(QubitSparsePauli.BitTerm.X, int)
+        values = {
+            "X": 0b10,
+            "Y": 0b11,
+            "Z": 0b01,
+        }
+        self.assertEqual({name: getattr(QubitSparsePauli.BitTerm, name) for name in values}, values)
+
+        # The single-character label aliases can be accessed with index notation.
+        labels = {
+            "X": QubitSparsePauli.BitTerm.X,
+            "Y": QubitSparsePauli.BitTerm.Y,
+            "Z": QubitSparsePauli.BitTerm.Z,
+        }
+        self.assertEqual({label: QubitSparsePauli.BitTerm[label] for label in labels}, labels)
+        # The `label` property returns known values.
+        self.assertEqual(
+            {bit_term.label: bit_term for bit_term in QubitSparsePauli.BitTerm}, labels
+        )
+    
+    @ddt.idata(single_cases())
+    def test_pickle(self, qubit_sparse_pauli):
+        self.assertEqual(qubit_sparse_pauli, copy.copy(qubit_sparse_pauli))
+        self.assertIsNot(qubit_sparse_pauli, copy.copy(qubit_sparse_pauli))
+        self.assertEqual(qubit_sparse_pauli, copy.deepcopy(qubit_sparse_pauli))
+        self.assertEqual(qubit_sparse_pauli, pickle.loads(pickle.dumps(qubit_sparse_pauli)))
+
+    @ddt.data(
+        # This is every combination of (0, 1, many) for (terms, qubits, non-identites per term).
+        QubitSparsePauli.from_label("IIXIZI"),
+        QubitSparsePauli.from_label("X"),
+    )
+    def test_repr(self, data):
+        # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
+        # that it has any particular form.
+        self.assertIsInstance(repr(data), str)
+        self.assertIn("QubitSparsePauli", repr(data))
+
+    @ddt.idata(single_cases())
+    def test_copy(self, qubit_sparse_pauli):
+        self.assertEqual(qubit_sparse_pauli, qubit_sparse_pauli.copy())
+        self.assertIsNot(qubit_sparse_pauli, qubit_sparse_pauli.copy())
+
+    def test_equality(self):
+        sparse_data = ("XYY", (3, 1, 0))
+        pauli = QubitSparsePauli.from_sparse_label(sparse_data, num_qubits=5)
+        self.assertEqual(pauli, pauli.copy())
+        # Take care that Rust space allows multiple views onto the same object.
+        self.assertEqual(pauli, pauli)
+
+        # Comparison to some other object shouldn't fail.
+        self.assertNotEqual(pauli, None)
+
+        # Difference in qubit count.
+        self.assertNotEqual(
+            pauli, QubitSparsePauli.from_sparse_label(sparse_data, num_qubits=pauli.num_qubits + 1)
+        )
+
+        # Difference in bit terms.
+        self.assertNotEqual(
+            QubitSparsePauli.from_label("IIXZI"),
+            QubitSparsePauli.from_label("IIYZI"),
+        )
+        self.assertNotEqual(
+            QubitSparsePauli.from_label("XXYYZ"),
+            QubitSparsePauli.from_label("XXYYY"),
+        )
+
+        # Difference in indices.
+        self.assertNotEqual(
+            QubitSparsePauli.from_label("IIXZI"),
+            QubitSparsePauli.from_label("IXIZI"),
+        )
+        self.assertNotEqual(
+            QubitSparsePauli.from_label("XIYYZ"),
+            QubitSparsePauli.from_label("IXYYZ"),
+        )
+
+    def test_attributes_sequence(self):
+        """Test attributes of the `Sequence` protocol."""
+        # Length
+        pauli = QubitSparsePauli.from_label("XZY")
+        self.assertEqual(len(pauli.indices), 3)
+        self.assertEqual(len(pauli.bit_terms), 3)
+
+        # Iteration
+        self.assertEqual(tuple(pauli.indices), (0, 1, 2))
+        # multiple iteration through same object
+        bit_terms = pauli.bit_terms
+        self.assertEqual(set(bit_terms), {QubitSparsePauli.BitTerm[x] for x in "XZY"})
+
+        # Implicit iteration methods.
+        self.assertIn(QubitSparsePauli.BitTerm.Y, pauli.bit_terms)
+        self.assertNotIn(4, pauli.indices)
+
+        # Index by scalar
+        self.assertEqual(pauli.indices[-1], 2)
+        self.assertEqual(pauli.bit_terms[0], QubitSparsePauli.BitTerm.Y)
+
+        # Index by slice.  This is API guaranteed to be a Numpy array to make it easier to
+        # manipulate subslices with mathematic operations.
+        self.assertIsInstance(pauli.indices[::-1], np.ndarray)
+        np.testing.assert_array_equal(
+            pauli.indices[::-1],
+            np.array([2, 1, 0], dtype=np.uint32),
+            strict=True,
+        )
+        self.assertIsInstance(pauli.bit_terms[0:2], np.ndarray)
+        np.testing.assert_array_equal(
+            pauli.bit_terms[0:2],
+            np.array([QubitSparsePauli.BitTerm.Y, QubitSparsePauli.BitTerm.Z], dtype=np.uint8),
+            strict=True,
+        )
+
+    def test_attributes_to_array(self):
+        pauli = QubitSparsePauliList.from_label("XZY")
+
+        # Natural dtypes.
+        np.testing.assert_array_equal(
+            pauli.indices, np.array([0, 1, 2], dtype=np.uint32), strict=True
+        )
+        np.testing.assert_array_equal(
+            pauli.bit_terms,
+            np.array([QubitSparsePauli.BitTerm[x] for x in "YZX"], dtype=np.uint8),
+            strict=True,
+        )
+
+        # Cast dtypes.
+        np.testing.assert_array_equal(
+            np.array(pauli.indices, dtype=np.uint8),
+            np.array([0, 1, 2], dtype=np.uint8),
+            strict=True,
+        )
+
 
 @ddt.ddt
-class TesQubitSparsePauliList(QiskitTestCase):
+class TestQubitSparsePauliList(QiskitTestCase):
     def test_default_constructor_pauli(self):
         data = Pauli("IXYIZ")
         self.assertEqual(QubitSparsePauliList(data), QubitSparsePauliList.from_pauli(data))
