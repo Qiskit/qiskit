@@ -132,16 +132,6 @@ impl QargsRef<'_> {
     pub fn is_concrete(&self) -> bool {
         !self.is_global()
     }
-
-    /// Converts into an owned version of [Qargs]
-    pub fn as_owned_qargs(&self) -> Qargs {
-        match self {
-            QargsRef::Global => Qargs::Global,
-            QargsRef::Concrete(physical_qubits) => {
-                Qargs::from_iter(physical_qubits.iter().copied())
-            }
-        }
-    }
 }
 
 impl<'a> From<&'a Qargs> for QargsRef<'a> {

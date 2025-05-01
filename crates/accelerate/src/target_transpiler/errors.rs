@@ -12,8 +12,6 @@
 
 use thiserror::Error;
 
-use super::Qargs;
-
 /// A collection of the Errors possible in the [Target].
 #[derive(Debug, Error)]
 pub enum TargetError {
@@ -25,20 +23,20 @@ pub enum TargetError {
     AlreadyExists(String),
     /// An attempt to add collection of qargs to the [Target] that does
     /// not match the source instruction's number of qubits.
-    #[error["The number of qubits for {instruction} does not match the number of qubits in the properties dictionary: {arguments:?}."]]
+    #[error["The number of qubits for {instruction} does not match the number of qubits in the properties dictionary: {arguments}."]]
     QargsMismatch {
         instruction: String,
-        arguments: Qargs,
+        arguments: String,
     },
     /// An attempt to query collection of qargs to the [Target] that are
     /// not operated on by the specified instruction.
-    #[error["Provided qarg {arguments:?} not in this Target for '{instruction}'."]]
+    #[error["Provided qarg {arguments} not in this Target for '{instruction}'."]]
     InvalidQargsKey {
         instruction: String,
-        arguments: Qargs,
+        arguments: String,
     },
     /// An attempt to query collection of qargs to the [Target] that are
     /// not operated on by any instruction.
-    #[error["{0:?} not in Target."]]
-    QargsWithoutInstruction(Qargs),
+    #[error["{0} not in Target."]]
+    QargsWithoutInstruction(String),
 }

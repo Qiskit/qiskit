@@ -983,7 +983,7 @@ impl Target {
                         if qarg_slice.len() != instruction.num_qubits() as usize {
                             return Err(TargetError::QargsMismatch {
                                 instruction: name,
-                                arguments: qarg.clone(),
+                                arguments: format!("{:?}", qarg),
                             });
                         }
                         self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
@@ -1061,7 +1061,7 @@ impl Target {
         if !prop_map.contains_key(&qargs) {
             return Err(TargetError::InvalidQargsKey {
                 instruction: instruction.to_string(),
-                arguments: qargs.as_owned_qargs(),
+                arguments: format!("{:?}", qargs),
             });
         }
         if let Some(e) = prop_map.get_mut(&qargs) {
@@ -1246,9 +1246,7 @@ impl Target {
                 .iter()
                 .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
             {
-                return Err(TargetError::QargsWithoutInstruction(Qargs::from_iter(
-                    qargs.iter().copied(),
-                )));
+                return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
             }
         }
         if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
@@ -1265,7 +1263,7 @@ impl Target {
             }
         }
         if res.is_empty() {
-            return Err(TargetError::QargsWithoutInstruction(qargs.as_owned_qargs()));
+            return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
         }
         Ok(res)
     }
