@@ -23,7 +23,7 @@ pub enum TargetError {
     /// An already existing instruction name being queried into the [Target].
     #[error["Instruction '{0}' is already in the target."]]
     AlreadyExists(String),
-    /// An attempt to add collection of qargs to the [Target] that do
+    /// An attempt to add collection of qargs to the [Target] that does
     /// not match the source instruction's number of qubits.
     #[error["The number of qubits for {instruction} does not match the number of qubits in the properties dictionary: {arguments:?}."]]
     QargsMismatch {
