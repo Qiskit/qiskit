@@ -456,20 +456,23 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
 pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
     target: *const Target,
     name: *const c_char,
-) -> *mut *const u32 {
+) -> *const *const u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
     // SAFETY: TBD
     let name = unsafe { CStr::from_ptr(name) };
 
-    let mut result: Vec<*const u32> =
+    let result: Vec<*const u32> =
         if let Ok(Some(qargs)) = target.qargs_for_operation_name(name.to_str().unwrap()) {
             qargs
-                .filter_map(|qargs| {
+                .map(|qargs| {
                     if let Qargs::Concrete(qargs) = qargs {
-                        Some(qargs.iter().map(|bit| bit.0).collect::<Vec<_>>().as_ptr())
+                        let value = qargs.iter().map(|bit| bit.0).collect::<Vec<_>>();
+                        let value_ptr = value.as_ptr();
+                        forget(value);
+                        value_ptr
                     } else {
-                        None
+                        null()
                     }
                 })
                 .collect()
@@ -477,7 +480,11 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
             vec![]
         };
 
-    let ptr = result.as_mut_ptr();
+    let ptr = if result.is_empty() {
+        null()
+    } else {
+        result.as_ptr()
+    };
 
     // Prevent original from being destroyed
     forget(result);
@@ -486,24 +493,31 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
 
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> *mut *const u32 {
+pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> *const *const u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
-    let mut result: Vec<*const u32> = if let Some(qargs) = target.qargs() {
+    let result: Vec<*const u32> = if let Some(qargs) = target.qargs() {
         qargs
-            .filter_map(|qargs| {
+            .map(|qargs| {
                 if let Qargs::Concrete(qargs) = qargs {
-                    Some(qargs.iter().map(|bit| bit.0).collect::<Vec<_>>().as_ptr())
+                    let value = qargs.iter().map(|bit| bit.0).collect::<Vec<_>>();
+                    let value_ptr = value.as_ptr();
+                    forget(value);
+                    value_ptr
                 } else {
-                    None
+                    null()
                 }
             })
             .collect()
     } else {
         vec![]
     };
-    let ptr = result.as_mut_ptr();
+    let ptr = if result.is_empty() {
+        null()
+    } else {
+        result.as_ptr()
+    };
 
     // Prevent original from being destroyed
     forget(result);
