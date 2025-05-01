@@ -22,7 +22,11 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
 
-from .builder import ControlFlowBuilderBlock, InstructionPlaceholder, InstructionResources
+from .builder import (
+    ControlFlowBuilderBlock,
+    InstructionPlaceholder,
+    InstructionResources,
+)
 from .control_flow import ControlFlowOp
 from ._builder_utils import (
     partition_registers,
@@ -205,7 +209,11 @@ class IfElsePlaceholder(InstructionPlaceholder):
         self.__false_block: Optional[ControlFlowBuilderBlock] = false_block
         self.__resources = self._calculate_placeholder_resources()
         super().__init__(
-            "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
+            "if_else",
+            len(self.__resources.qubits),
+            len(self.__resources.clbits),
+            [],
+            label=label,
         )
         # Set the condition after super().__init__() has initialized it to None.
         self._condition = validate_condition(condition)
@@ -331,7 +339,13 @@ class IfContext:
         Terra.
     """
 
-    __slots__ = ("_appended_instructions", "_circuit", "_condition", "_in_loop", "_label")
+    __slots__ = (
+        "_appended_instructions",
+        "_circuit",
+        "_condition",
+        "_in_loop",
+        "_label",
+    )
 
     def __init__(
         self,
@@ -357,7 +371,9 @@ class IfContext:
         return self._circuit
 
     @property
-    def condition(self) -> tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr:
+    def condition(
+        self,
+    ) -> tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr:
         """Get the expression that this statement is conditioned on."""
         return self._condition
 
@@ -404,7 +420,12 @@ class IfContext:
             true_body = true_block.build(true_block.qubits(), true_block.clbits())
             true_body.calibrations = self._circuit.calibrations
             self._appended_instructions = self._circuit.append(
-                IfElseOp(self._condition, true_body=true_body, false_body=None, label=self._label),
+                IfElseOp(
+                    self._condition,
+                    true_body=true_body,
+                    false_body=None,
+                    label=self._label,
+                ),
                 tuple(true_body.qubits),
                 tuple(true_body.clbits),
             )

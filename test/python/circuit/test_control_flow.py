@@ -26,6 +26,7 @@ from qiskit.circuit.controlflow import (
     ControlFlowOp,
     WhileLoopOp,
     ForLoopOp,
+    DynamicRange,
     IfElseOp,
     ContinueLoopOp,
     BreakLoopOp,
@@ -133,6 +134,30 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertEqual(op.num_clbits, 1)
         self.assertEqual(op.params, [indexset, loop_parameter, body])
         self.assertEqual(op.blocks, (body,))
+
+    def test_for_loop_dynamic_range_instantiation(self):
+        """Verify creation and properties of a ForLoopOp using a dynamic range indexset."""
+        body = QuantumCircuit(3, 1)
+        loop_parameter = Parameter("foo")
+        start = expr.Var.new("start", types.Uint(3))
+        stop = expr.Var.new("stop", types.Uint(3))
+        step = 1
+        indexset = DynamicRange(start, stop, step)
+
+        body.rx(loop_parameter, 0)
+
+        op = ForLoopOp(indexset, loop_parameter, body)
+
+        self.assertIsInstance(op, ControlFlowOp)
+        self.assertIsInstance(op, Instruction)
+        self.assertEqual(op.name, "for_loop")
+        self.assertEqual(op.num_qubits, 3)
+        self.assertEqual(op.num_clbits, 1)
+        self.assertEqual(op.params, [indexset, loop_parameter, body])
+        self.assertEqual(op.blocks, (body,))
+        self.assertIsInstance(op.params[0].start, expr.Var)
+        self.assertIsInstance(op.params[0].stop, expr.Var)
+        self.assertEqual(op.params[0].step, step)
 
     def test_for_loop_no_parameter_instantiation(self):
         """Verify creation and properties of a ForLoopOp without a loop_parameter."""

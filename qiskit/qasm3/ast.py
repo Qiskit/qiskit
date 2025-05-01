@@ -714,7 +714,9 @@ class SwitchStatementPreview(Statement):
     __slots__ = ("target", "cases")
 
     def __init__(
-        self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]
+        self,
+        target: Expression,
+        cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]],
     ):
         self.target = target
         self.cases = [(tuple(values), case) for values, case in cases]

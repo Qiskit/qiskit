@@ -1121,11 +1121,7 @@ class QASM3Builder:
                 else:
                     stop = self.build_expression(indexset.stop)
                 if isinstance(indexset.step, int):
-                    step = (
-                        self.build_integer(indexset.step)
-                        if indexset.step != 1
-                        else None
-                    )
+                    step = self.build_integer(indexset.step) if indexset.step != 1 else None
                 else:
                     step = self.build_expression(indexset.step)
                 indexset_ast = ast.Range(start=start, end=stop, step=step)

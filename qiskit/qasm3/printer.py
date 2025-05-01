@@ -170,7 +170,12 @@ class BasicPrinter:
         self._end_statement()
 
     def _visit_sequence(
-        self, nodes: Sequence[ast.ASTNode], *, start: str = "", end: str = "", separator: str
+        self,
+        nodes: Sequence[ast.ASTNode],
+        *,
+        start: str = "",
+        end: str = "",
+        separator: str,
     ) -> None:
         if start:
             self.stream.write(start)
