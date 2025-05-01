@@ -404,12 +404,14 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         qc = QuantumCircuit(5)
         qc = QuantumCircuit(4)
         with qc.box():
-            qc.cx(0,1)
-            qc.cx(0,3)
+            qc.cx(0, 1)
+            qc.cx(0, 3)
 
-        qc_ = transpile(qc, initial_layout=[2,3,1,0])
+        qc_ = transpile(qc, initial_layout=[2, 3, 1, 0])
         # We don't care about trailing whitespace on a line.
-        actual = "\n".join(line.rstrip() for line in str(qc_.draw("text", fold=80, idle_wires=True)).splitlines())
+        actual = "\n".join(
+            line.rstrip() for line in str(qc_.draw("text", fold=80, idle_wires=True)).splitlines()
+        )
 
         expected = """\
          ┌───────      ┌───┐ ───────┐
