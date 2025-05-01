@@ -60,10 +60,6 @@ class DynamicRange:
         if isinstance(step, int):
             if step == 0:
                 raise CircuitError("DynamicRange step value cannot be zero.")
-            if (step < 0 and start < stop) or (step > 0 and start > stop):
-                raise CircuitError(
-                    "DynamicRange step value is inconsistent with start and stop values."
-                )
 
         for value, name in [(start, "start"), (stop, "stop"), (step, "step")]:
             if isinstance(value, Var) and not isinstance(value.type, Uint):
