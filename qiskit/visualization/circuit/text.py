@@ -1396,7 +1396,7 @@ class TextDrawing:
                 layers.append(flow_layer2.full_layer)
 
         # Draw the right box for End
-        flow_layer = self.draw_flow_box(node, flow_wire_map, CF_RIGHT, conditional=False)
+        flow_layer = self.draw_flow_box(node, wire_map, CF_RIGHT, conditional=False)
         layers.append(flow_layer.full_layer)
 
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0, conditional=False):

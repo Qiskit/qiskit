@@ -403,6 +403,67 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             expected,
         )
 
+<<<<<<< HEAD
+=======
+    def test_box_end_after_transpile(self):
+        """Test that drawing a `box` doesn't explode."""
+        # The exact output is not important - feel free to change it.  We only care that it doesn't
+        # explode when drawing.
+        qc = QuantumCircuit(5)
+        qc = QuantumCircuit(4)
+        with qc.box():
+            qc.cx(0, 1)
+            qc.cx(0, 3)
+
+        qc_ = transpile(qc, initial_layout=[2, 3, 1, 0])
+        # We don't care about trailing whitespace on a line.
+        actual = "\n".join(
+            line.rstrip() for line in str(qc_.draw("text", fold=80, idle_wires=True)).splitlines()
+        )
+
+        expected = """\
+         ┌───────      ┌───┐ ───────┐
+q_3 -> 0 ┤        ─────┤ X ├        ├─
+         │             └─┬─┘        │
+q_2 -> 1 ┤        ───────┼──        ├─
+         │ Box-0         │    End-0 │
+q_0 -> 2 ┤        ──■────■──        ├─
+         │        ┌─┴─┐             │
+q_1 -> 3 ┤        ┤ X ├─────        ├─
+         └─────── └───┘      ───────┘
+""".rstrip()
+        self.assertEqual(actual, expected)
+
+    def test_basic_box(self):
+        """Test that drawing a `box` doesn't explode."""
+        # The exact output is not important - feel free to change it.  We only care that it doesn't
+        # explode when drawing.
+        qc = QuantumCircuit(5)
+        with qc.box():
+            qc.x(0)
+        with qc.box():
+            qc.cx(2, 3)
+            with qc.box():
+                qc.noop(4)
+        # We don't care about trailing whitespace on a line.
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text", fold=80)).splitlines())
+
+        expected = """\
+     ┌─────── ┌───┐ ───────┐
+q_0: ┤ Box-0  ┤ X ├  End-0 ├────────────────────────────────────────────
+     └─────── └───┘ ───────┘
+q_1: ───────────────────────────────────────────────────────────────────
+                             ┌───────                          ───────┐
+q_2: ────────────────────────┤        ──■─────────────────────        ├─
+                             │        ┌─┴─┐                           │
+q_3: ────────────────────────┤ Box-0  ┤ X ├───────────────────  End-0 ├─
+                             │        └───┘┌───────  ───────┐         │
+q_4: ────────────────────────┤        ─────┤ Box-1    End-1 ├─        ├─
+                             └───────      └───────  ───────┘  ───────┘
+""".rstrip()
+        self.assertEqual(actual, expected)
+
+>>>>>>> 3e96ade54 (Fix display of Box End after transpile in text drawer (#14278))
     def test_text_swap(self):
         """Swap drawing."""
         expected = "\n".join(
