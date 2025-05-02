@@ -43,5 +43,6 @@ Functions
 =========
 
 .. doxygengroup:: QkCircuit
+   :members:
    :content-only:
 
