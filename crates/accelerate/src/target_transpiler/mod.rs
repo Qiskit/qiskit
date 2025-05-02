@@ -1020,7 +1020,7 @@ impl Target {
     /// * `qargs` - A collection of [PhysicalQubit] or an instance of [Qargs::Global]
     ///   that the instruction operated on.
     /// * `properties` - The properties to use for updating the specified instruction in the target.
-    
+    ///
     /// # Returns
     ///
     /// * `Ok`: if the instruction property is successfully updated.
