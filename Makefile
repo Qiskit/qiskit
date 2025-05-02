@@ -94,6 +94,9 @@ C_CARGO_TARGET_DIR = target/release
 C_LIB_CARGO_BASENAME=libqiskit_cext
 ifeq ($(OS), Windows_NT)
 	C_DYLIB_EXT=dll
+else ifeq ($(shell uname), CYGWIN_NT-10.0-22631)
+	C_DYLIB_EXT=dll
+	C_LIB_CARGO_BASENAME=qiskit_cext
 else ifeq ($(shell uname), Darwin)
 	C_DYLIB_EXT=dylib
 else
@@ -128,15 +131,15 @@ $(C_DIR_INCLUDE):
 $(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_CARGO_PATH)
 	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
-$(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH) 
+$(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH)
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 
-.PHONY: c cheader 
+.PHONY: c cheader
 cheader: $(C_QISKIT_H)
 c: $(C_LIBQISKIT) $(C_QISKIT_H)
 
 # Use ctest to run C API tests
-ctest: $(C_LIB_CARGO_PATH) $(C_QISKIT_H) 
+ctest: $(C_LIB_CARGO_PATH) $(C_QISKIT_H)
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
 	cmake -S. -B$(C_DIR_TEST_BUILD)
