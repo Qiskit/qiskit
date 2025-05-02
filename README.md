@@ -67,7 +67,7 @@ from qiskit.primitives import StatevectorSampler
 sampler = StatevectorSampler()
 job = sampler.run([qc_measured], shots=1000)
 result = job.result()
-print(f" > Counts: {result[0].data["meas"].get_counts()}")
+print(f" > Counts: {result[0].data['meas'].get_counts()}")
 ```
 Running this will give an outcome similar to `{'000': 497, '111': 503}` which is `000` 50% of the time and `111` 50% of the time up to statistical fluctuations.
 To illustrate the power of the Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note that the Estimator requires a circuit _**without**_ measurements, so we use the `qc` circuit we created earlier.
