@@ -40,7 +40,7 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
 
-use qiskit_accelerate::nlayout::PhysicalQubit;
+use qiskit_circuit::PhysicalQubit;
 
 use crate::TranspilerError;
 

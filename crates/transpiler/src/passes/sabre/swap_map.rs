@@ -14,7 +14,7 @@ use hashbrown::HashMap;
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 
-use qiskit_accelerate::nlayout::PhysicalQubit;
+use qiskit_circuit::PhysicalQubit;
 
 /// A container for required swaps before a gate qubit
 #[pyclass(module = "qiskit._accelerate.sabre")]

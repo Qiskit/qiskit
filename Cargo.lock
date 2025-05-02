@@ -1514,7 +1514,7 @@ dependencies = [
 name = "qiskit-transpiler"
 version = "2.1.0"
 dependencies = [
- "ahash 0.8.11",
+ "ahash 0.8.12",
  "approx",
  "hashbrown 0.15.2",
  "indexmap",

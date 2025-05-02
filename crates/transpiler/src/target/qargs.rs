@@ -14,7 +14,7 @@ use indexmap::Equivalent;
 use pyo3::{prelude::*, types::PyTuple, IntoPyObject};
 use smallvec::SmallVec;
 
-use qiskit_accelerate::nlayout::PhysicalQubit;
+use qiskit_circuit::PhysicalQubit;
 
 pub type TargetQargs = SmallVec<[PhysicalQubit; 2]>;
 

@@ -40,6 +40,7 @@ use qiskit_circuit::{
     operations::{Operation, OperationRef},
 };
 use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::PhysicalQubit;
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -47,7 +48,6 @@ use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
 use crate::TranspilerError;
-use qiskit_accelerate::nlayout::PhysicalQubit;
 
 type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
 type ExtraInstructionMap<'a> = IndexMap<&'a PhysicalQargs, InstMap, ahash::RandomState>;

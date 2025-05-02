@@ -16,7 +16,7 @@ use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 
-use qiskit_accelerate::nlayout::VirtualQubit;
+use qiskit_circuit::VirtualQubit;
 
 /// Named access to the node elements in the [SabreDAG].
 #[derive(Clone, Debug)]
@@ -132,7 +132,7 @@ impl SabreDAG {
 mod test {
     use super::SabreDAG;
     use hashbrown::{HashMap, HashSet};
-    use qiskit_accelerate::nlayout::VirtualQubit;
+    use qiskit_circuit::VirtualQubit;
 
     #[test]
     fn no_panic_on_bad_qubits() {

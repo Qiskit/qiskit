@@ -31,6 +31,7 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
+pub mod nlayout;
 
 pub mod rustworkx_core_vnext;
 
@@ -49,6 +50,9 @@ pub struct Var(u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Stretch(u32);
+
+pub use nlayout::PhysicalQubit;
+pub use nlayout::VirtualQubit;
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {

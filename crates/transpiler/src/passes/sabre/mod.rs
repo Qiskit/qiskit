@@ -27,7 +27,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 
 use neighbor_table::NeighborTable;
-use qiskit_accelerate::nlayout::PhysicalQubit;
+use qiskit_circuit::PhysicalQubit;
 use sabre_dag::SabreDAG;
 use swap_map::SwapMap;
 

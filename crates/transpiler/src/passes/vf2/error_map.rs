@@ -14,7 +14,7 @@ use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 
-use crate::nlayout::PhysicalQubit;
+use qiskit_circuit::PhysicalQubit;
 
 use hashbrown::HashMap;
 
@@ -118,7 +118,7 @@ impl ErrorMap {
     }
 }
 
-pub fn error_map(m: &Bound<PyModule>) -> PyResult<()> {
+pub fn error_map_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<ErrorMap>()?;
     Ok(())
 }
