@@ -191,7 +191,7 @@ pub enum CoherenceError {
     DuplicateIndices,
     #[error("the provided qubit mapping does not account for all contained qubits")]
     IndexMapTooSmall,
-    #[error("cannot shrink the qubit count in a Pauli Lindblad map from {current} to {target}")]
+    #[error("cannot shrink the qubit count in a QubitSparsePauliList from {current} to {target}")]
     NotEnoughQubits { current: usize, target: usize },
 }
 
@@ -604,7 +604,6 @@ pub struct QubitSparsePauli {
 }
 
 impl QubitSparsePauli {
-
     /// Create a new qubit-sparse Pauli from the raw components that make it up.
     pub fn new(
         num_qubits: u32,
@@ -963,7 +962,7 @@ impl PyQubitSparsePauli {
             return Self::from_sparse_label(sparse_label, num_qubits);
         }
         Err(PyTypeError::new_err(format!(
-            "unknown input format for 'PauliLindbladMap': {}",
+            "unknown input format for 'QubitSparsePauli': {}",
             data.get_type().repr()?,
         )))
     }
@@ -1482,7 +1481,7 @@ impl PyQubitSparsePauli {
 /// :class:`QubitSparsePauliList` behaves as `a Python sequence
 /// <https://docs.python.org/3/glossary.html#term-sequence>`__ (the standard form, not the expanded
 /// :class:`collections.abc.Sequence`).  The elements of the list can be indexed by integers, as
-/// well as iterated through. Whether through indexing or iterating, elements of the list are 
+/// well as iterated through. Whether through indexing or iterating, elements of the list are
 /// returned as :class:`QubitSparsePauli` instances.
 ///
 /// Construction
@@ -1500,7 +1499,7 @@ impl PyQubitSparsePauli {
 ///   ============================  ================================================================
 ///   :meth:`from_label`            Convert a dense string label into a single-element
 ///                                 :class:`.QubitSparsePauliList`.  
-/// 
+///
 ///   :meth:`from_list`             Construct from a list of dense string labels.
 ///
 ///   :meth:`from_sparse_list`      Elements given as a list of tuples of sparse string labels and
@@ -1508,7 +1507,7 @@ impl PyQubitSparsePauli {
 ///
 ///   :meth:`from_pauli`            Raise a single :class:`.Pauli` into a single-element
 ///                                 :class:`.QubitSparsePauliList`.
-/// 
+///
 ///   :meth:`from_qubit_sparse_paulis` Construct from a list of :class:`QubitSparsePauli`s.
 ///
 ///   :meth:`from_raw_parts`        Build the list from :ref:`the raw data arrays
@@ -1617,7 +1616,7 @@ impl PyQubitSparsePauliList {
             return Ok(pauli_list);
         }
         Err(PyTypeError::new_err(format!(
-            "unknown input format for 'PauliLindbladMap': {}",
+            "unknown input format for 'QubitSparsePauliList': {}",
             data.get_type().repr()?,
         )))
     }
@@ -1804,7 +1803,7 @@ impl PyQubitSparsePauliList {
     ///     num_qubits (int | None): It is not necessary to specify this if you are sure that
     ///         ``iter`` is not an empty sequence, since it can be inferred from the label lengths.
     ///         If ``iter`` may be empty, you must specify this argument to disambiguate how many
-    ///         qubits the map acts on.  If this is given and ``iter`` is not empty, the value
+    ///         qubits the operators act on.  If this is given and ``iter`` is not empty, the value
     ///         must match the label lengths.
     ///
     /// Examples:
@@ -1817,7 +1816,7 @@ impl PyQubitSparsePauliList {
     ///         ...     "IXXII",
     ///         ...     "ZZIII",
     ///         ... ])
-    ///         <QubitSparsePauliList with 4 elements on 5 qubits: 
+    ///         <QubitSparsePauliList with 4 elements on 5 qubits:
     ///             [X_1 X_0, Y_2 Y_1, X_3 X_2, Z_4 Z_3]>
     ///
     ///     Use ``num_qubits`` to disambiguate potentially empty inputs::
@@ -1864,8 +1863,6 @@ impl PyQubitSparsePauliList {
     ///
     /// All the terms must have the same number of qubits.  If supplied, the ``num_qubits`` argument
     /// must match the terms.
-    ///
-    /// No simplification is done as part of the map creation.
     ///
     /// Args:
     ///     obj (Iterable[QubitSparsePauli]): Iterable of individual terms to build the list from.
@@ -1921,7 +1918,7 @@ impl PyQubitSparsePauliList {
     ///         .. warning::
     ///
     ///             If ``check=False``, the ``bit_terms`` absolutely *must* be all be valid values
-    ///             of :class:`.QubitSparsePauliList.BitTerm`.  If they are not, Rust-space 
+    ///             of :class:`.QubitSparsePauliList.BitTerm`.  If they are not, Rust-space
     ///             undefined behavior may occur, entirely invalidating the program execution.
     ///
     /// Examples:
@@ -2253,7 +2250,7 @@ enum ArraySlot {
 
 /// Custom wrapper sequence class to get safe views onto the Rust-space data.  We can't directly
 /// expose Python-managed wrapped pointers without introducing some form of runtime exclusion on the
-/// ability of `PauliLindbladMap` to re-allocate in place; we can't leave dangling pointers for
+/// ability of `QubitSparsePauliList` to re-allocate in place; we can't leave dangling pointers for
 /// Python space.
 #[pyclass(frozen, sequence)]
 struct ArrayView {
@@ -2413,8 +2410,8 @@ impl ArrayView {
     ) -> PyResult<Bound<'py, PyAny>> {
         // This method always copies, so we don't leave dangling pointers lying around in Numpy
         // arrays; it's not enough just to set the `base` of the Numpy array to the
-        // `PauliLindbladMap`, since the `Vec` we're referring to might re-allocate and invalidate
-        // the pointer the Numpy array is wrapping.
+        // `QubitSparsePauliList`, since the `Vec` we're referring to might re-allocate and
+        // invalidate the pointer the Numpy array is wrapping.
         if !copy.unwrap_or(true) {
             return Err(PyValueError::new_err(
                 "cannot produce a safe view onto movable memory",
