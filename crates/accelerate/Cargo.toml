@@ -14,6 +14,7 @@ workspace = true
 
 [dependencies]
 rayon.workspace = true
+rayon-cond = "0.4.0"
 numpy.workspace = true
 rand = "0.9"
 rand_pcg = "0.9"
@@ -31,6 +32,7 @@ ndarray-einsum = "0.8.0"
 rustiq-core = "0.0.11"
 bytemuck.workspace = true
 nalgebra.workspace = true
+fixedbitset = "0.5.7"
 
 [dependencies.smallvec]
 workspace = true

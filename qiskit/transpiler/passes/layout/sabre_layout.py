@@ -35,8 +35,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit._accelerate.nlayout import NLayout
-from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, NeighborTable, SetScaling
-from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
+from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, SetScaling, RoutingTarget
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.utils import default_num_processes
@@ -164,35 +163,26 @@ class SabreLayout(TransformationPass):
         super().__init__()
         if isinstance(coupling_map, Target):
             self.target = coupling_map
-            self.coupling_map = self.target.build_coupling_map()
         else:
-            self.target = None
-            self.coupling_map = coupling_map
-        self._neighbor_table = None
+            self.target = _dummy_target(coupling_map)
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
             raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
+        self._routing_target = None
         self.routing_pass = routing_pass
         self.seed = seed
         self.max_iterations = max_iterations
-        self.trials = swap_trials
-        if swap_trials is None:
-            self.swap_trials = default_num_processes()
-        else:
-            self.swap_trials = swap_trials
-        if layout_trials is None:
-            self.layout_trials = default_num_processes()
-        else:
-            self.layout_trials = layout_trials
+        self.swap_trials = default_num_processes() if swap_trials is None else layout_trials
+        self.layout_trials = default_num_processes() if layout_trials is None else layout_trials
         self.skip_routing = skip_routing
-        if self.coupling_map is not None:
-            if not self.coupling_map.is_symmetric:
-                # deepcopy is needed here if we don't own the coupling map (i.e. we were passed it
-                # directly) to avoid modifications updating shared references in passes which
-                # require directional constraints
-                if isinstance(coupling_map, CouplingMap):
-                    self.coupling_map = copy.deepcopy(self.coupling_map)
-                self.coupling_map.make_symmetric()
-            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
+
+    @functools.cached_property
+    def coupling_map(self):  # pylint: disable=missing-function-docstring
+        # This property is not intended to be public API, it just keeps backwards compatibility.
+        return (
+            None
+            if self._routing_target is None
+            else CouplingMap(self._routing_target.coupling_list())
+        )
 
     def run(self, dag):
         """Run the SabreLayout pass on `dag`.
@@ -205,13 +195,13 @@ class SabreLayout(TransformationPass):
             (otherwise the input dag is returned unmodified).
 
         Raises:
-            TranspilerError: if dag wider than self.coupling_map
+            TranspilerError: if dag wider than the target.
         """
-        if len(dag.qubits) > self.coupling_map.size():
+        if len(dag.qubits) > self.target.num_qubits:
             raise TranspilerError("More virtual qubits exist than physical.")
 
-        # Choose a random initial_layout.
         if self.routing_pass is not None:
+            # TODO: check based on the `Target`.
             if not self.coupling_map.is_connected():
                 raise TranspilerError(
                     "The routing_pass argument cannot be used with disjoint coupling maps."
@@ -222,7 +212,7 @@ class SabreLayout(TransformationPass):
                 seed = self.seed
             rng = np.random.default_rng(seed)
 
-            physical_qubits = rng.choice(self.coupling_map.size(), len(dag.qubits), replace=False)
+            physical_qubits = rng.choice(self.target.num_qubits, len(dag.qubits), replace=False)
             physical_qubits = rng.permutation(physical_qubits)
             initial_layout = Layout({q: dag.qubits[i] for i, q in enumerate(physical_qubits)})
 
@@ -243,31 +233,23 @@ class SabreLayout(TransformationPass):
                     )
                     initial_layout = final_layout
                     circ, rev_circ = rev_circ, circ
-
-                # Diagnostics
-                logger.info("new initial layout")
-                logger.info(initial_layout)
+                logger.info("new initial layout: %s", initial_layout)
 
             for qreg in dag.qregs.values():
                 initial_layout.add_register(qreg)
             self.property_set["layout"] = initial_layout
             self.routing_pass.fake_run = False
             return dag
+
         # Combined
-        if self.target is not None:
-            # This is a special case SABRE only works with a bidirectional coupling graph
-            # which we explicitly can't create from the target. So do this manually here
-            # to avoid altering the shared state with the unfiltered indices.
-            target = self.target.build_coupling_map(filter_idle_qubits=True)
-            target.make_symmetric()
-        else:
-            target = self.coupling_map
+        if self._routing_target is None:
+            self._routing_target = RoutingTarget.from_target(self.target)
         inner_run = self._inner_run
         if "sabre_starting_layouts" in self.property_set:
             inner_run = functools.partial(
                 self._inner_run, starting_layouts=self.property_set["sabre_starting_layouts"]
             )
-        components = disjoint_utils.run_pass_over_connected_components(dag, target, inner_run)
+        components = disjoint_utils.run_pass_over_connected_components(dag, self.target, inner_run)
         self.property_set["layout"] = Layout(
             {
                 component.dag.qubits[logic]: component.coupling_map.graph[phys]
@@ -303,7 +285,7 @@ class SabreLayout(TransformationPass):
         # Set up a physical DAG to apply the Sabre result onto.  We do not need to run the
         # `ApplyLayout` transpiler pass (which usually does this step), because we're about to apply
         # the layout and routing together as part of resolving the Sabre result.
-        physical_qubits = QuantumRegister(self.coupling_map.size(), "q")
+        physical_qubits = QuantumRegister(self.target.num_qubits, "q")
         mapped_dag = DAGCircuit()
         mapped_dag.name = dag.name
         mapped_dag.metadata = dag.metadata
@@ -504,3 +486,8 @@ class _DisjointComponent:
     final_permutation: "list[int]"
     sabre_result: "tuple[SwapMap, Sequence[int], NodeBlockResults]"
     circuit_to_dag_dict: "dict[int, DAGCircuit]"
+
+
+def _dummy_target(coupling_map):
+    """A dummy target purely to represent a homogeneous coupling graph for layout purposes."""
+    return Target.from_configuration(basis_gates=["u", "cx"], coupling_map=coupling_map)
