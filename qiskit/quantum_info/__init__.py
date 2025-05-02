@@ -30,6 +30,8 @@ Operators
    ScalarOp
    SparseObservable
    SparsePauliOp
+   QubitSparsePauli
+   QubitSparsePauliList
    CNOTDihedral
    PauliList
    pauli_basis
