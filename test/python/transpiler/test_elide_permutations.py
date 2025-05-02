@@ -17,7 +17,6 @@ import unittest
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.generalized_gates import PermutationGate
 from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
-from qiskit.transpiler.passes.routing import StarPreRouting
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.coupling import CouplingMap
@@ -471,7 +470,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 basis_gates=["u", "cz"],
             )
             spm.init += ElidePermutations()
-            spm.init += StarPreRouting()
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
