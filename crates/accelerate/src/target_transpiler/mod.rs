@@ -908,9 +908,9 @@ impl Target {
     /// * `operation` - The [PackedOperation] to be added.
     /// * `params` - The collection of [Param] assigned to the instruction.
     /// * `name` - The name of the instruction if differs from the [PackedOperation]
-    ///   instance.
+    ///   instance. If set to `None` it defaults to the string returned by [`Operation::name`] for `operation`.
     /// * `props_map`: The optional property mapping between [Qargs] and
-    ///   [InstructionProperties].
+    ///   [InstructionProperties]. If set to `None` the instruction is treated as a global ideal instruction.
     ///
     /// # Returns
     ///
@@ -1019,7 +1019,8 @@ impl Target {
     /// * `instruction` - The instruction's name within this instance.
     /// * `qargs` - A collection of [PhysicalQubit] or an instance of [Qargs::Global]
     ///   that the instruction operated on.
-    ///
+    /// * `properties` - The properties to use for updating the specified instruction in the target.
+    
     /// # Returns
     ///
     /// * `Ok`: if the instruction property is successfully updated.
