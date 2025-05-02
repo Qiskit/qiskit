@@ -16,6 +16,7 @@ pub mod linear;
 pub mod linear_phase;
 mod multi_controlled;
 mod permutation;
+mod qft;
 
 use pyo3::prelude::*;
 
@@ -43,6 +44,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let evolution_mod = PyModule::new(m.py(), "evolution")?;
     evolution::evolution(&evolution_mod)?;
     m.add_submodule(&evolution_mod)?;
+
+    let qft_mod = PyModule::new(m.py(), "qft")?;
+    qft::qft(&qft_mod)?;
+    m.add_submodule(&qft_mod)?;
 
     Ok(())
 }
