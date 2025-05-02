@@ -12,195 +12,169 @@
 #![allow(clippy::too_many_arguments)]
 
 use pyo3::prelude::*;
-use pyo3::Python;
 
 use hashbrown::HashSet;
-use ndarray::prelude::*;
-use numpy::{IntoPyArray, PyArray, PyReadonlyArray2};
+use ndarray::aview2;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
-use rayon::prelude::*;
+use rayon_cond::CondIterator;
 
 use qiskit_accelerate::getenv_use_multiple_threads;
-use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
+use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::nlayout::NLayout;
+use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 
+use crate::passes::best_subset;
+use crate::target::{Target, TargetCouplingError};
+use crate::TranspilerError;
+
+use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
-use super::neighbor_table::NeighborTable;
-use super::route::{swap_map, swap_map_trial, RoutingTargetView};
-use super::sabre_dag::SabreDAG;
-use super::swap_map::SwapMap;
-use super::{NodeBlockResults, SabreResult};
+use super::route::{swap_map, swap_map_trial, RoutingResult, RoutingTarget};
 
-use crate::passes::dense_layout::best_subset;
+struct DisjointComponent {
+    sub_target: Target,
+    physicals: Vec<PhysicalQubit>,
+    _sub_dag: DAGCircuit,
+    _virtuals: Vec<VirtualQubit>,
+}
+fn distribute_components(_dag: &DAGCircuit, _target: &Target) -> Vec<DisjointComponent> {
+    // TODO: this is just stubbed out to always return the "`Target` is fully connected" case, and
+    // needs to be replaced with calls to the actual infrastructure.
+    vec![]
+}
 
 #[pyfunction]
-#[pyo3(signature = (dag, neighbor_table, distance_matrix, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![]))]
+#[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![]))]
 pub fn sabre_layout_and_routing(
-    py: Python,
-    dag: &SabreDAG,
-    neighbor_table: &NeighborTable,
-    distance_matrix: PyReadonlyArray2<f64>,
+    dag: &DAGCircuit,
+    target: &Target,
     heuristic: &Heuristic,
     max_iterations: usize,
     num_swap_trials: usize,
     num_random_trials: usize,
     seed: Option<u64>,
-    mut partial_layouts: Vec<Vec<Option<u32>>>,
-) -> (NLayout, PyObject, (SwapMap, PyObject, NodeBlockResults)) {
-    let run_in_parallel = getenv_use_multiple_threads();
-    let target = RoutingTargetView {
-        neighbors: neighbor_table,
-        coupling: &neighbor_table.coupling_graph(),
-        distance: distance_matrix.as_array(),
+    partial_layouts: Vec<Vec<Option<u32>>>,
+) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
+    let Some(num_physical_qubits) = target.num_qubits else {
+        todo!();
     };
-    let mut starting_layouts: Vec<Vec<Option<u32>>> =
-        (0..num_random_trials).map(|_| vec![]).collect();
-    starting_layouts.append(&mut partial_layouts);
-    // Run a dense layout trial
-    starting_layouts.push(compute_dense_starting_layout(
-        dag.num_qubits,
-        &target,
-        run_in_parallel,
-    ));
-    starting_layouts.push(
-        (0..target.neighbors.num_qubits() as u32)
-            .map(Some)
-            .collect(),
-    );
-    starting_layouts.push(
-        (0..target.neighbors.num_qubits() as u32)
-            .rev()
-            .map(Some)
-            .collect(),
-    );
-    // This layout targets the largest ring on an IBM eagle device. It has been
-    // shown to have good results on some circuits targeting these backends. In
-    // all other cases this is no different from an additional random trial,
-    // see: https://xkcd.com/221/
-    if target.neighbors.num_qubits() == 127 {
-        starting_layouts.push(
-            [
-                0, 1, 2, 3, 4, 5, 6, 15, 22, 23, 24, 25, 34, 43, 42, 41, 40, 53, 60, 59, 61, 62,
-                72, 81, 80, 79, 78, 91, 98, 99, 100, 101, 102, 103, 92, 83, 82, 84, 85, 86, 73, 66,
-                65, 64, 63, 54, 45, 44, 46, 47, 35, 28, 29, 27, 26, 16, 7, 8, 9, 10, 11, 12, 13,
-                17, 30, 31, 32, 36, 51, 50, 49, 48, 55, 68, 67, 69, 70, 74, 89, 88, 87, 93, 106,
-                105, 104, 107, 108, 112, 126, 125, 124, 123, 122, 111, 121, 120, 119, 118, 110,
-                117, 116, 115, 114, 113, 109, 96, 97, 95, 94, 90, 75, 76, 77, 71, 58, 57, 56, 52,
-                37, 38, 39, 33, 20, 21, 19, 18, 14,
-            ]
-            .into_iter()
-            .map(Some)
-            .collect(),
-        );
-    } else if target.neighbors.num_qubits() == 133 {
-        // Same for IBM Heron 133 qubit devices. This is the ring computed by using rustworkx's
-        // max(simple_cycles(graph), key=len) on the connectivity graph.
-        starting_layouts.push(
-            [
-                108, 107, 94, 88, 89, 90, 75, 71, 70, 69, 56, 50, 51, 52, 37, 33, 32, 31, 18, 12,
-                11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
-                29, 36, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 53, 57, 58, 59, 60, 61, 62, 63,
-                64, 65, 66, 67, 74, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 91, 95, 96, 97,
-                110, 116, 117, 118, 119, 120, 111, 101, 102, 103, 104, 105, 112, 124, 125, 126,
-                127, 128, 113, 109,
-            ]
-            .into_iter()
-            .map(Some)
-            .collect(),
-        );
-    } else if target.neighbors.num_qubits() == 156 {
-        // Same for IBM Heron 156 qubit devices. This is the ring computed by using rustworkx's
-        // max(simple_cycles(graph), key=len) on the connectivity graph.
-        starting_layouts.push(
-            [
-                136, 123, 122, 121, 116, 101, 102, 103, 96, 83, 82, 81, 76, 61, 62, 63, 56, 43, 42,
-                41, 36, 21, 22, 23, 16, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 19, 35, 34,
-                33, 32, 31, 30, 29, 28, 27, 26, 25, 37, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
-                59, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 77, 85, 86, 87, 88, 89, 90, 91, 92,
-                93, 94, 95, 99, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 117, 125,
-                126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 139, 155, 154, 153, 152, 151,
-                150, 149, 148, 147, 146, 145, 144, 143,
-            ]
-            .into_iter()
-            .map(Some)
-            .collect(),
-        );
-    }
-    let outer_rng = match seed {
-        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_os_rng(),
+    let allow_parallel = getenv_use_multiple_threads();
+    let convert_target = |target| -> PyResult<RoutingTarget> {
+        match RoutingTarget::from_target(target) {
+            Ok(target) => Ok(target),
+            Err(TargetCouplingError::AllToAll) => todo!(),
+            Err(e @ TargetCouplingError::MultiQ) => Err(TranspilerError::new_err(e.to_string())),
+        }
     };
-    let seed_vec: Vec<u64> = outer_rng
-        .sample_iter(&rand::distr::StandardUniform)
-        .take(starting_layouts.len())
-        .collect();
-    let res = if run_in_parallel && starting_layouts.len() > 1 {
-        seed_vec
-            .into_par_iter()
+    let layout_component = |target, sabre, dag| {
+        let mut starting_layouts = (0..num_random_trials).map(|_| vec![]).collect::<Vec<_>>();
+        starting_layouts.extend(partial_layouts.iter().cloned());
+        add_heuristic_layouts(&mut starting_layouts, target, allow_parallel);
+        let outer_rng = match seed {
+            Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+            None => Pcg64Mcg::from_os_rng(),
+        };
+        let seed_vec: Vec<u64> = outer_rng
+            .sample_iter(&rand::distr::StandardUniform)
+            .take(starting_layouts.len())
+            .collect();
+        CondIterator::new(seed_vec, allow_parallel && starting_layouts.len() > 1)
             .enumerate()
-            .map(|(index, seed_trial)| {
+            .map(|(index, seed)| {
                 (
                     index,
                     layout_trial(
-                        &target,
+                        target,
+                        sabre,
                         dag,
                         heuristic,
-                        seed_trial,
+                        seed,
                         max_iterations,
                         num_swap_trials,
-                        run_in_parallel,
+                        allow_parallel && starting_layouts.len() <= 1,
                         &starting_layouts[index],
                     ),
                 )
             })
-            .min_by_key(|(index, (_, _, result))| {
-                (
-                    result.map.map.values().map(|x| x.len()).sum::<usize>(),
-                    *index,
-                )
-            })
+            .min_by_key(|(index, result)| (result.swap_count(), *index))
             .unwrap()
             .1
-    } else {
-        seed_vec
-            .into_iter()
-            .enumerate()
-            .map(|(index, seed_trial)| {
-                layout_trial(
-                    &target,
-                    dag,
-                    heuristic,
-                    seed_trial,
-                    max_iterations,
-                    num_swap_trials,
-                    run_in_parallel,
-                    &starting_layouts[index],
-                )
-            })
-            .min_by_key(|(_, _, result)| result.map.map.values().map(|x| x.len()).sum::<usize>())
-            .unwrap()
     };
-    (
-        res.0,
-        PyArray::from_vec(py, res.1).into_any().unbind(),
-        (
-            res.2.map,
-            res.2.node_order.into_pyarray(py).into_any().unbind(),
-            res.2.node_block_results,
-        ),
-    )
+    fn expand_layout(
+        num_qubits: u32,
+        layout: &NLayout,
+        mut qubit_fn: impl FnMut(PhysicalQubit) -> PhysicalQubit,
+    ) -> NLayout {
+        assert!(layout.num_qubits() <= num_qubits as usize);
+        let mut out = NLayout::generate_trivial_layout(num_qubits);
+        for (virt, phys) in layout.iter_virtual() {
+            let new_phys = qubit_fn(phys);
+            let orig_phys = virt.to_phys(&out);
+            out.swap_physical(orig_phys, new_phys);
+        }
+        out
+    }
+    match distribute_components(dag, target).as_slice() {
+        [] => {
+            // The target is fully connected, we can layout and route our input DAG onto our input
+            // Target with no further considerations.
+            let sabre = SabreDAG::from_dag(dag)?;
+            let target = convert_target(target)?;
+            let result = layout_component(&target, &sabre, dag);
+            let num_swaps = result.swap_count();
+            let out = dag.physical_empty_like_with_capacity(
+                num_physical_qubits,
+                dag.num_ops() + num_swaps,
+                dag.dag().edge_count() + 2 * num_swaps,
+            )?;
+            let qubit_fn = |q| q;
+            let out = result.rebuild_onto(out, qubit_fn)?;
+            Ok((
+                out,
+                expand_layout(num_physical_qubits as u32, &result.initial_layout, qubit_fn),
+                expand_layout(num_physical_qubits as u32, &result.final_layout, qubit_fn),
+            ))
+        }
+        [component] => {
+            // All the DAG fits into a single component of a disjoint `Target`, so we can safely
+            // continue with the entire layout and routing, providing we stay within the subset of
+            // the `Target`.
+            let sabre = SabreDAG::from_dag(dag)?;
+            let target = convert_target(&component.sub_target)?;
+            let result = layout_component(&target, &sabre, dag);
+            let num_swaps = result.swap_count();
+            let out = dag.physical_empty_like_with_capacity(
+                num_physical_qubits,
+                dag.num_ops() + num_swaps,
+                dag.dag().edge_count() + 2 * num_swaps,
+            )?;
+            let qubit_fn = |q: PhysicalQubit| component.physicals[q.index()];
+            let out = result.rebuild_onto(out, qubit_fn)?;
+            Ok((
+                out,
+                expand_layout(num_physical_qubits as u32, &result.initial_layout, qubit_fn),
+                expand_layout(num_physical_qubits as u32, &result.final_layout, qubit_fn),
+            ))
+        }
+        _components => {
+            // The DAG needs to be split across more than one component.
+            todo!()
+        }
+    }
 }
 
-fn layout_trial(
-    target: &RoutingTargetView,
-    dag: &SabreDAG,
-    heuristic: &Heuristic,
+fn layout_trial<'a>(
+    target: &'a RoutingTarget,
+    sabre: &'a SabreDAG,
+    dag: &'a DAGCircuit,
+    heuristic: &'a Heuristic,
     seed: u64,
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
-    starting_layout: &[Option<u32>],
-) -> (NLayout, Vec<PhysicalQubit>, SabreResult) {
+    starting_layout: &'_ [Option<u32>],
+) -> RoutingResult<'a> {
     let num_physical_qubits: u32 = target.neighbors.num_qubits().try_into().unwrap();
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
@@ -208,7 +182,7 @@ fn layout_trial(
     let routing_seed = Pcg64Mcg::seed_from_u64(seed).next_u64();
 
     // Pick a random initial layout including a full ancilla allocation.
-    let mut initial_layout = {
+    let initial_layout = {
         let physical_qubits: Vec<PhysicalQubit> = if !starting_layout.is_empty() {
             let used_bits: HashSet<u32> = starting_layout
                 .iter()
@@ -239,46 +213,28 @@ fn layout_trial(
 
     // Sabre routing currently enforces that control-flow blocks return to their starting layout,
     // which means they don't actually affect any heuristics that affect our layout choice.
-    let dag_no_control_forward = SabreDAG {
-        num_qubits: dag.num_qubits,
-        num_clbits: dag.num_clbits,
-        dag: dag.dag.clone(),
-        first_layer: dag.first_layer.clone(),
-        node_blocks: dag
-            .node_blocks
-            .keys()
-            .map(|index| (*index, Vec::new()))
-            .collect(),
-    };
-    let dag_no_control_reverse = dag_no_control_forward.reverse_dag();
-
-    for _iter in 0..max_iterations {
-        for dag in [&dag_no_control_forward, &dag_no_control_reverse] {
-            let (_result, final_layout) =
-                swap_map_trial(target, dag, heuristic, &initial_layout, routing_seed);
-            initial_layout = final_layout;
-        }
-    }
-
-    let (sabre_result, final_layout) = swap_map(
+    let sabre_forwards = sabre.only_interactions();
+    let sabre_backwards = sabre_forwards.reverse_dag();
+    let initial_layout = (0..max_iterations)
+        .flat_map(|_| [&sabre_forwards, &sabre_backwards])
+        .fold(initial_layout, |initial, sabre| {
+            swap_map_trial(target, sabre, dag, heuristic, &initial, routing_seed).final_layout
+        });
+    swap_map(
         target,
+        sabre,
         dag,
         heuristic,
         &initial_layout,
         Some(seed),
         num_swap_trials,
         Some(run_swap_in_parallel),
-    );
-    let final_permutation = initial_layout
-        .iter_physical()
-        .map(|(_, virt)| virt.to_phys(&final_layout))
-        .collect();
-    (initial_layout, final_permutation, sabre_result)
+    )
 }
 
 fn compute_dense_starting_layout(
     num_qubits: usize,
-    target: &RoutingTargetView,
+    target: &RoutingTarget,
     run_in_parallel: bool,
 ) -> Vec<Option<u32>> {
     let mut adj_matrix = target.distance.to_owned();
@@ -297,4 +253,79 @@ fn compute_dense_starting_layout(
         aview2(&[[0.]]),
     );
     map.into_iter().map(|x| Some(x as u32)).collect()
+}
+
+/// Add any extra starting layouts we want to try by default, based on best guesses of what might
+/// work well.
+fn add_heuristic_layouts(
+    starting_layouts: &mut Vec<Vec<Option<u32>>>,
+    target: &RoutingTarget,
+    run_in_parallel: bool,
+) {
+    let num_physical_qubits = target.neighbors.num_qubits();
+    // Run a dense layout trial
+    starting_layouts.push(compute_dense_starting_layout(
+        // TODO: This actually should be `dag.num_qubits()`, but a side-effect of the previous
+        // Python-space disjoint coupling handling meant that DAGs were being expanded to full
+        // hardware width (of the relevant component) before Sabre was called, so were running in
+        // this configuration instead.  This behaviour is initially kept for RNG compatibility.
+        num_physical_qubits,
+        target,
+        run_in_parallel,
+    ));
+    starting_layouts.push((0..num_physical_qubits as u32).map(Some).collect());
+    starting_layouts.push((0..num_physical_qubits as u32).rev().map(Some).collect());
+    // This layout targets the largest ring on an IBM eagle device. It has been
+    // shown to have good results on some circuits targeting these backends. In
+    // all other cases this is no different from an additional random trial,
+    // see: https://xkcd.com/221/
+    if num_physical_qubits == 127 {
+        starting_layouts.push(
+            [
+                0, 1, 2, 3, 4, 5, 6, 15, 22, 23, 24, 25, 34, 43, 42, 41, 40, 53, 60, 59, 61, 62,
+                72, 81, 80, 79, 78, 91, 98, 99, 100, 101, 102, 103, 92, 83, 82, 84, 85, 86, 73, 66,
+                65, 64, 63, 54, 45, 44, 46, 47, 35, 28, 29, 27, 26, 16, 7, 8, 9, 10, 11, 12, 13,
+                17, 30, 31, 32, 36, 51, 50, 49, 48, 55, 68, 67, 69, 70, 74, 89, 88, 87, 93, 106,
+                105, 104, 107, 108, 112, 126, 125, 124, 123, 122, 111, 121, 120, 119, 118, 110,
+                117, 116, 115, 114, 113, 109, 96, 97, 95, 94, 90, 75, 76, 77, 71, 58, 57, 56, 52,
+                37, 38, 39, 33, 20, 21, 19, 18, 14,
+            ]
+            .into_iter()
+            .map(Some)
+            .collect(),
+        );
+    } else if num_physical_qubits == 133 {
+        // Same for IBM Heron 133 qubit devices. This is the ring computed by using rustworkx's
+        // max(simple_cycles(graph), key=len) on the connectivity graph.
+        starting_layouts.push(
+            [
+                108, 107, 94, 88, 89, 90, 75, 71, 70, 69, 56, 50, 51, 52, 37, 33, 32, 31, 18, 12,
+                11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+                29, 36, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 53, 57, 58, 59, 60, 61, 62, 63,
+                64, 65, 66, 67, 74, 86, 85, 84, 83, 82, 81, 80, 79, 78, 77, 76, 91, 95, 96, 97,
+                110, 116, 117, 118, 119, 120, 111, 101, 102, 103, 104, 105, 112, 124, 125, 126,
+                127, 128, 113, 109,
+            ]
+            .into_iter()
+            .map(Some)
+            .collect(),
+        );
+    } else if num_physical_qubits == 156 {
+        // Same for IBM Heron 156 qubit devices. This is the ring computed by using rustworkx's
+        // max(simple_cycles(graph), key=len) on the connectivity graph.
+        starting_layouts.push(
+            [
+                136, 123, 122, 121, 116, 101, 102, 103, 96, 83, 82, 81, 76, 61, 62, 63, 56, 43, 42,
+                41, 36, 21, 22, 23, 16, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 19, 35, 34,
+                33, 32, 31, 30, 29, 28, 27, 26, 25, 37, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+                59, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 77, 85, 86, 87, 88, 89, 90, 91, 92,
+                93, 94, 95, 99, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 117, 125,
+                126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 139, 155, 154, 153, 152, 151,
+                150, 149, 148, 147, 146, 145, 144, 143,
+            ]
+            .into_iter()
+            .map(Some)
+            .collect(),
+        );
+    }
 }

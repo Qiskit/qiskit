@@ -25,7 +25,17 @@ use hashbrown::HashMap;
 macro_rules! qubit_newtype {
     ($id: ident) => {
         #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, IntoPyObject, IntoPyObjectRef,
+            Debug,
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
+            Default,
+            IntoPyObject,
+            IntoPyObjectRef,
         )]
         pub struct $id(pub u32);
 
@@ -55,6 +65,18 @@ macro_rules! qubit_newtype {
 
             fn clone_ref(&self, _py: Python<'_>) -> Self {
                 *self
+            }
+        }
+
+        unsafe impl ::rustworkx_core::petgraph::graph::IndexType for $id {
+            fn new(x: usize) -> Self {
+                Self::new(x as u32)
+            }
+            fn index(&self) -> usize {
+                self.0 as usize
+            }
+            fn max() -> Self {
+                Self(u32::MAX)
             }
         }
     };
@@ -89,7 +111,7 @@ impl VirtualQubit {
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
 #[pyclass(module = "qiskit._accelerate.nlayout")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NLayout {
     virt_to_phys: Vec<PhysicalQubit>,
     phys_to_virt: Vec<VirtualQubit>,
@@ -209,6 +231,10 @@ impl NLayout {
             .iter()
             .enumerate()
             .map(|(p, v)| (PhysicalQubit::new(p as u32), *v))
+    }
+
+    pub fn num_qubits(&self) -> usize {
+        self.virt_to_phys.len()
     }
 }
 
