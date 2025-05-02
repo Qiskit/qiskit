@@ -129,11 +129,13 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"
+discrete = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DiscreteInitPassManager"
 
 [project.entry-points."qiskit.transpiler.translation"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultTranslationPassManager"
 synthesis = "qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager"
 translator = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager"
+discrete = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DiscreteTranslatorPassManager"
 
 [project.entry-points."qiskit.transpiler.routing"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultRoutingPassManager"
@@ -144,6 +146,7 @@ sabre = "qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassMana
 
 [project.entry-points."qiskit.transpiler.optimization"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager"
+discrete = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DiscreteOptimizationPassManager"
 
 [project.entry-points."qiskit.transpiler.layout"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager"

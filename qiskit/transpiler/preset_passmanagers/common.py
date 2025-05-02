@@ -485,6 +485,63 @@ def generate_translation_passmanager(
             translator,
         ]
         fix_1q = [translator]
+    elif method == "discrete":
+        # The extended basis gates is the list of discrete basis gates (which includes "cx", "h", "t",
+        # and "tdg") and the 1q-gate "u".
+        extended_basis_gates = basis_gates + ["u"]
+
+        unroll = [
+            # Use the UnitarySynthesis pass to unroll gates named "unitary".
+            # It is especially important to unroll 2-qubit "unitary" gates.
+            UnitarySynthesis(
+                basis_gates=extended_basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=None,
+            ),
+            # Use the HighLevelSynthesis pass to unroll all remaining custom 1q and 2q
+            # gates into ["cx", "t", "tdg", "u"] and the gates in the equivalence library.
+            # We use target=None to make sure extended_basis_gates is not overwritten by
+            # the target, and moreoever to make sure that only ["cx", "h", "t", "tdg", "u"]
+            # and the gates in the equivalence library remain.
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=None,
+                use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=extended_basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
+            ),
+            # Use the BasisTranslator pass to translate all gates into ["cx", "h", "t", "tdg", "u"].
+            BasisTranslator(sel, extended_basis_gates, None),
+            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
+            # gates.
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=None,
+                target=None,
+                approximation_degree=approximation_degree,
+                force_consolidate=True,
+            ),
+            # We can call the Solovay-Kitaev decomposition either via the SolovayKitaevtranspiler pass
+            # or via the plugin mechanism for "sk" UnitarySynthesisPlugin. Due to various differences
+            # in the two approaches it is slightly more convenient to use the plugin approach. Morover,
+            # the plugin has been extended to recognize 1q-Clifford gates.
+            UnitarySynthesis(
+                basis_gates=["h", "t", "tdg"],
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method="sk",
+                min_qubits=1,
+                target=None,
+            ),
+        ]
+        fix_1q = []
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of

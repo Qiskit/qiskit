@@ -1335,7 +1335,7 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
 from .instruction_durations import InstructionDurations
-from .preset_passmanagers import generate_preset_pass_manager
+from .preset_passmanagers import generate_preset_pass_manager, generate_discrete_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
