@@ -92,7 +92,7 @@ int test_property_map_construction(void) {
 
     // Add some qargs and properties
     uint32_t qargs[2] = {0, 1};
-    const QkInstructionProps *inst_prop = qk_instruction_properties_new(0.00018, 0.00002);
+    QkInstructionProps *inst_prop = qk_instruction_properties_new(0.00018, 0.00002);
 
     qk_property_map_add(property_map, qargs, 2, inst_prop);
     // Test length
@@ -190,11 +190,11 @@ int test_target_add_instruction(void) {
     // Add a CRX Gate.
     // Create prop_map for the instruction
     // Add property for (0, 1)
-    const QkPropsMap *crx_property_map = qk_property_map_new();
+    QkPropsMap *crx_property_map = qk_property_map_new();
     uint32_t crx_qargs[2] = {1, 2};
     double crx_inst_error = 0.0129023;
     double crx_inst_duration = 0.92939;
-    const QkInstructionProps *crx_instruction_props =
+    QkInstructionProps *crx_instruction_props =
         qk_instruction_properties_new(crx_inst_error, crx_inst_duration);
     qk_property_map_add(property_map, crx_qargs, 2, crx_instruction_props);
     // CX Gate is not paramtric.
@@ -294,7 +294,7 @@ int test_target_update_instruction(void) {
         qk_instruction_properties_new(cx_new_inst_duration, cx_new_inst_error);
     qk_target_update_instruction_prop(target, "cx", qargs, 2, new_cx_instruction_props);
     // check current instruction property for cx at (0,1)
-    QkInstructionProps *new_cx_retreived_inst = qk_target_get_inst_prop(target, "cx", qargs, 2);
+    const QkInstructionProps *new_cx_retreived_inst = qk_target_get_inst_prop(target, "cx", qargs, 2);
     double new_retreived_duration = qk_instruction_properties_get_duration(new_cx_retreived_inst);
     if (new_retreived_duration != cx_new_inst_duration) {
         printf(
@@ -344,9 +344,9 @@ int test_target_non_global_op_names(void) {
     // Add a CRX Gate.
     // Create prop_map for the instruction
     // Add property for (2, 1)
-    const QkPropsMap *crx_property_map = qk_property_map_new();
+    QkPropsMap *crx_property_map = qk_property_map_new();
     uint32_t crx_qargs[2] = {2, 1};
-    const QkInstructionProps *crx_instruction_props = qk_instruction_properties_new(0, 0);
+    QkInstructionProps *crx_instruction_props = qk_instruction_properties_new(0, 0);
     qk_property_map_add(crx_property_map, crx_qargs, 2, crx_instruction_props);
     // CX Gate is not paramtric.
     double crx_params[1] = {3.14};
@@ -358,7 +358,7 @@ int test_target_non_global_op_names(void) {
     for (int i = 0; i < 2; i++) {
         if (strcmp(non_local_gate_names[i], non_local_comp_gate_names[i]) != 0) {
             printf(
-                "Gate comparison order is not correct in this target: At index %zu, %s is not %s.",
+                "Gate comparison order is not correct in this target: At index %u, %s is not %s.",
                 i, non_local_gate_names[i], non_local_comp_gate_names[i]);
             result = RuntimeError;
             goto cleanup;
@@ -370,7 +370,7 @@ int test_target_non_global_op_names(void) {
     for (int i = 0; i < 2; i++) {
         if (strcmp(non_local_gate_names_strict[i], non_local_comp_gate_names_strict[i]) != 0) {
             printf(
-                "Gate comparison order is not correct in this target: At index %zu, %s is not %s.",
+                "Gate comparison order is not correct in this target: At index %u, %s is not %s.",
                 i, non_local_gate_names_strict[i], non_local_comp_gate_names_strict[i]);
             result = RuntimeError;
             goto cleanup;
