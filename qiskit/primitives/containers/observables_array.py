@@ -283,7 +283,7 @@ class ObservablesArray(ShapedMixin):
     
     def equivalent(self, other: ObservablesArray, tol: float = 1e-08):
         """Return True if arrays are equal"""
-        if self.num_qubits != other.num_qubits or self.shape != other.shape or self._array.size != other._array.size:
+        if self.num_qubits != other.num_qubits or self.shape != other.shape:
             return False
         
         arr1 = np.atleast_1d(self._array).flat

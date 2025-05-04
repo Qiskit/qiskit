@@ -429,6 +429,19 @@ class ObservablesArrayTestCase(QiskitTestCase):
         new_arr = arr.apply_layout([2, 0], 3)
         self.assertTrue(new_arr.equivalent(ObservablesArray([[{"YIX": 1}, {"ZIY": 2, "IIZ": 3}], [{"XII": 4, "YIX": 5}, {"ZIY": 6}]])))
 
+        new_arr = arr.apply_layout(None, 3)
+        self.assertTrue(new_arr.equivalent(ObservablesArray([[{"IXY": 1}, {"IYZ": 2, "IZI": 3}], [{"IIX": 4, "IXY": 5}, {"IYZ": 6}]])))
+
+        new_arr = arr.apply_layout([1, 0])
+        self.assertTrue(new_arr.equivalent(ObservablesArray([[{"YX": 1}, {"ZY": 2, "IZ": 3}], [{"XI": 4, "YX": 5}, {"ZY": 6}]])))
+
+        new_arr = arr.apply_layout(None)
+        self.assertTrue(new_arr.equivalent(ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])))
+
+        arr = ObservablesArray({"YZ": 2, "ZI": 3})
+        new_arr = arr.apply_layout([2, 0], 3)
+        self.assertTrue(new_arr.equivalent(ObservablesArray({"ZIY": 2, "IIZ": 3})))
+
     def test_validate(self):
         """Test the validate method"""
         ObservablesArray({"XX": 1}).validate()
