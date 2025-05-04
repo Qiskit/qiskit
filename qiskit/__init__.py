@@ -101,6 +101,7 @@ sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.ev
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
+sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
@@ -110,6 +111,7 @@ sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
 sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_synthesis
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
+sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

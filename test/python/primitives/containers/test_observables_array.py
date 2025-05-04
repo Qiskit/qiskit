@@ -207,7 +207,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
     def test_init_validate_false(self):
         """Test init validate kwarg"""
         obj = [["X", "Y", "Z"], ["I", "0", "1"]]
-        obs = ObservablesArray(obj, validate=False)
+        obs = ObservablesArray(obj, validate=False, num_qubits=1)
         self.assertEqual(obs.shape, (2, 3))
         self.assertEqual(obs.size, 6)
         for i in range(2):
@@ -376,3 +376,38 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs_array = ObservablesArray([obs] * 15).reshape(3, 5)
         res = estimator.run([(circ, obs_array)]).result()
         self.assertTrue(np.all(res[0].data.evs == -np.ones((3, 5))))
+    def test_num_qubits(self):
+        """Test num_qubits method"""
+        obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"IYX": 3}])
+        self.assertEqual(obs.num_qubits, 3)
+
+        with self.assertRaisesRegex(ValueError, "number of qubits"):
+            obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"IYX": 3}], num_qubits=20)
+
+        with self.assertRaisesRegex(ValueError, "number of qubits"):
+            obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"YX": 3}], num_qubits=20)
+
+        obs = ObservablesArray([{"XX": 1}] * 15).reshape((3, 5))
+        self.assertEqual(obs.num_qubits, 2)
+
+        obs = ObservablesArray([{"XX": 1}] * 15)[4:6]
+        self.assertEqual(obs.num_qubits, 2)
+
+        obs = ObservablesArray(
+            [ObservablesArray.coerce({"XX": 1}), ObservablesArray.coerce({"XYZ": 1})],
+            validate=False,
+        )
+        self.assertEqual(obs.num_qubits, 2)
+
+    def test_validate(self):
+        """Test the validate method"""
+        ObservablesArray({"XX": 1}).validate()
+        ObservablesArray([{"XX": 1}] * 5).validate()
+        ObservablesArray([{"XX": 1}] * 15).reshape((3, 5)).validate()
+
+        obs = ObservablesArray(
+            [ObservablesArray.coerce({"XX": 1}), ObservablesArray.coerce({"XYZ": 1})],
+            validate=False,
+        )
+        with self.assertRaisesRegex(ValueError, "number of qubits"):
+            obs.validate()
