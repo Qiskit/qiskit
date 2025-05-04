@@ -295,6 +295,10 @@ class ObservablesArray(ShapedMixin):
         
         return True
     
+    def copy(self):
+        """Return a deep copy of the array"""
+        return copy.deepcopy(self)
+    
     def apply_layout(
         self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
     ) -> ObservablesArray:
@@ -317,7 +321,7 @@ class ObservablesArray(ShapedMixin):
         from qiskit.transpiler.layout import TranspileLayout
 
         if layout is None and num_qubits is None:
-            return copy.deepcopy(self)
+            return self.copy()
 
         n_qubits = self.num_qubits
         if isinstance(layout, TranspileLayout):

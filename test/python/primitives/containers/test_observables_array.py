@@ -399,9 +399,31 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs_array = ObservablesArray([obs] * 15).reshape(3, 5)
         res = estimator.run([(circ, obs_array)]).result()
         self.assertTrue(np.all(res[0].data.evs == -np.ones((3, 5))))
+
+    def test_equivalent(self):
+        """Test equivalent method"""
+
+        arr1 = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])
+        arr2 = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])
+        self.assertTrue(arr1.equivalent(arr2))
+
+        arr2 = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4}, {"YZ": 6}]])
+        self.assertFalse(arr1.equivalent(arr2))
+
+        arr2 = ObservablesArray([[{"IXY": 1}, {"IYZ": 2, "IZI": 3}], [{"IIX": 4, "IXY": 5}, {"IYZ": 6}]])
+        self.assertFalse(arr1.equivalent(arr2))
+
+        arr2 = ObservablesArray([{"XY": 1}, {"YZ": 2, "ZI": 3}])
+        self.assertFalse(arr1.equivalent(arr2))
+
+        arr2 = ObservablesArray({"YZ": 2, "ZI": 3})
+        self.assertFalse(arr1.equivalent(arr2))
+
+        arr1 = ObservablesArray({"YZ": 2, "ZI": 3})
+        self.assertTrue(arr1.equivalent(arr2))
         
     def test_apply_layout(self):
-        """ Test apply_layout method"""
+        """Test apply_layout method"""
 
         arr = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])
         new_arr = arr.apply_layout([2, 0], 3)
