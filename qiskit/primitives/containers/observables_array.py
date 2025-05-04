@@ -280,25 +280,25 @@ class ObservablesArray(ShapedMixin):
         if isinstance(observables, ObservablesArray):
             return observables
         return cls(observables)
-    
+
     def equivalent(self, other: ObservablesArray, tol: float = 1e-08):
         """Return True if arrays are equal"""
         if self.num_qubits != other.num_qubits or self.shape != other.shape:
             return False
-        
+
         arr1 = np.atleast_1d(self._array).flat
         arr2 = np.atleast_1d(other._array).flat
 
         for obs1, obs2 in zip(arr1, arr2):
             if (obs1 - obs2).simplify(tol) != SparseObservable.zero(self.num_qubits):
                 return False
-        
+
         return True
-    
+
     def copy(self):
         """Return a deep copy of the array"""
         return copy.deepcopy(self)
-    
+
     def apply_layout(
         self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
     ) -> ObservablesArray:
@@ -341,7 +341,7 @@ class ObservablesArray(ShapedMixin):
                 raise QiskitError("Provided layout contains indices outside the number of qubits.")
             if len(set(layout)) != len(layout):
                 raise QiskitError("Provided layout contains duplicate indices.")
-            
+
         new_arr = np.ndarray(self.shape, dtype=dict)
         for ndi, obs in np.ndenumerate(self._array):
             new_arr[ndi] = self._array[ndi].apply_layout(layout, num_qubits)
