@@ -17,7 +17,7 @@ ND-Array container class for Estimator observables.
 from __future__ import annotations
 
 import re
-import copy
+from copy import deepcopy
 from collections.abc import Iterable, Mapping as _Mapping
 from functools import lru_cache
 from typing import Union, Mapping, overload, List, TYPE_CHECKING
@@ -297,7 +297,7 @@ class ObservablesArray(ShapedMixin):
 
     def copy(self):
         """Return a deep copy of the array"""
-        return copy.deepcopy(self)
+        return deepcopy(self)
 
     def apply_layout(
         self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
@@ -344,7 +344,7 @@ class ObservablesArray(ShapedMixin):
 
         new_arr = np.ndarray(self.shape, dtype=dict)
         for ndi, obs in np.ndenumerate(self._array):
-            new_arr[ndi] = self._array[ndi].apply_layout(layout, num_qubits)
+            new_arr[ndi] = obs.apply_layout(layout, num_qubits)
 
         return ObservablesArray(new_arr)
 
