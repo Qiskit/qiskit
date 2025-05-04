@@ -33,8 +33,8 @@ use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
-use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
+use crate::vf2;
 use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var};
 
 use hashbrown::{HashMap, HashSet};
@@ -2543,18 +2543,18 @@ impl DAGCircuit {
             }
         };
 
-        isomorphism::vf2::is_isomorphic(
+        vf2::is_isomorphic(
             &self.dag,
             &other.dag,
             node_match,
-            isomorphism::vf2::NoSemanticMatch,
+            vf2::NoSemanticMatch,
             true,
             Ordering::Equal,
             true,
             None,
         )
         .map_err(|e| match e {
-            isomorphism::vf2::IsIsomorphicError::NodeMatcherErr(e) => e,
+            vf2::IsIsomorphicError::NodeMatcherErr(e) => e,
             _ => {
                 unreachable!()
             }
