@@ -359,23 +359,6 @@ class ObservablesArrayTestCase(QiskitTestCase):
                             msg=f"failed for shape {shape} with input format {input_shape}",
                         )
 
-    def test_estimator_workflow(self):
-        """Test that everything plays together when observables are specified with
-        SparseObservable."""
-        backend = BasicSimulator()
-        estimator = BackendEstimatorV2(backend=backend)
-
-        circ = QuantumCircuit(1)
-        circ.x(0)
-
-        obs = qi.SparseObservable.from_label("Z")
-
-        res = estimator.run([(circ, [obs])]).result()
-        self.assertEqual(res[0].data.evs, -1)
-
-        obs_array = ObservablesArray([obs] * 15).reshape(3, 5)
-        res = estimator.run([(circ, obs_array)]).result()
-        self.assertTrue(np.all(res[0].data.evs == -np.ones((3, 5))))
     def test_num_qubits(self):
         """Test num_qubits method"""
         obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"IYX": 3}])
@@ -398,6 +381,31 @@ class ObservablesArrayTestCase(QiskitTestCase):
             validate=False,
         )
         self.assertEqual(obs.num_qubits, 2)
+
+    def test_estimator_workflow(self):
+        """Test that everything plays together when observables are specified with
+        SparseObservable."""
+        backend = BasicSimulator()
+        estimator = BackendEstimatorV2(backend=backend)
+
+        circ = QuantumCircuit(1)
+        circ.x(0)
+
+        obs = qi.SparseObservable.from_label("Z")
+
+        res = estimator.run([(circ, [obs])]).result()
+        self.assertEqual(res[0].data.evs, -1)
+
+        obs_array = ObservablesArray([obs] * 15).reshape(3, 5)
+        res = estimator.run([(circ, obs_array)]).result()
+        self.assertTrue(np.all(res[0].data.evs == -np.ones((3, 5))))
+        
+    def test_apply_layout(self):
+        """ Test apply_layout method"""
+
+        arr = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])
+        new_arr = arr.apply_layout([2, 0], 3)
+        self.assertTrue(new_arr.equivalent(ObservablesArray([[{"YIX": 1}, {"ZIY": 2, "IIZ": 3}], [{"XII": 4, "YIX": 5}, {"ZIY": 6}]])))
 
     def test_validate(self):
         """Test the validate method"""

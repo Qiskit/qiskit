@@ -17,17 +17,24 @@ ND-Array container class for Estimator observables.
 from __future__ import annotations
 
 import re
+import copy
 from collections.abc import Iterable, Mapping as _Mapping
 from functools import lru_cache
-from typing import Union, Mapping, overload
+from typing import Union, Mapping, overload, List, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp, SparseObservable
+from qiskit.exceptions import QiskitError
 
 from .object_array import object_array
 from .shape import ShapedMixin, shape_tuple
+
+
+if TYPE_CHECKING:
+    from qiskit.transpiler.layout import TranspileLayout
+
 
 # Public API classes
 __all__ = ["ObservableLike", "ObservablesArrayLike"]
@@ -273,6 +280,69 @@ class ObservablesArray(ShapedMixin):
         if isinstance(observables, ObservablesArray):
             return observables
         return cls(observables)
+    
+    def equivalent(self, other: ObservablesArray, tol: float = 1e-08):
+        """Return True if arrays are equal"""
+        if self.num_qubits != other.num_qubits or self.shape != other.shape or self._array.size != other._array.size:
+            return False
+        
+        arr1 = np.atleast_1d(self._array).flat
+        arr2 = np.atleast_1d(other._array).flat
+
+        for obs1, obs2 in zip(arr1, arr2):
+            if (obs1 - obs2).simplify(tol) != SparseObservable.zero(self.num_qubits):
+                return False
+        
+        return True
+    
+    def apply_layout(
+        self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
+    ) -> ObservablesArray:
+        """Apply a transpiler layout to this :class:`~.ObservablesArray`
+
+        Args:
+            layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
+                    If both layout and num_qubits are none, a deep copy of the array is
+                    returned.
+            num_qubits: The number of qubits to expand the array to. If not
+                provided then if ``layout`` is a :class:`~.TranspileLayout` the
+                number of the transpiler output circuit qubits will be used by
+                default. If ``layout`` is a list of integers the permutation
+                specified will be applied without any expansion. If layout is
+                None, the array will be expanded to the given number of qubits.
+
+        Returns:
+            A new :class:`.ObservablesArray` with the provided layout applied
+        """
+        from qiskit.transpiler.layout import TranspileLayout
+
+        if layout is None and num_qubits is None:
+            return copy.deepcopy(self)
+
+        n_qubits = self.num_qubits
+        if isinstance(layout, TranspileLayout):
+            n_qubits = len(layout._output_qubit_list)
+            layout = layout.final_index_layout()
+        if num_qubits is not None:
+            if num_qubits < n_qubits:
+                raise QiskitError(
+                    f"The input num_qubits is too small, a {num_qubits} qubit layout cannot be "
+                    f"applied to a {n_qubits} qubit operator"
+                )
+            n_qubits = num_qubits
+        if layout is None:
+            layout = list(range(self.num_qubits))
+        else:
+            if any(x < 0 or x >= n_qubits for x in layout):
+                raise QiskitError("Provided layout contains indices outside the number of qubits.")
+            if len(set(layout)) != len(layout):
+                raise QiskitError("Provided layout contains duplicate indices.")
+            
+        new_arr = np.ndarray(self.shape, dtype=dict)
+        for ndi, obs in np.ndenumerate(self._array):
+            new_arr[ndi] = self._array[ndi].apply_layout(layout, num_qubits)
+
+        return ObservablesArray(new_arr)
 
     def validate(self):
         """Validate the consistency in observables array."""
