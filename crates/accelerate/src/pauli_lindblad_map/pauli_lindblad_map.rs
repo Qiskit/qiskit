@@ -251,6 +251,27 @@ impl PauliLindbladMap {
         Ok(())
     }
 
+    /// Get a view onto a representation of a single sparse term.
+    ///
+    /// This is effectively an indexing operation into the [PauliLindbladMap].  Recall that two
+    /// [PauliLindbladMap]s that have different generator term orders can still represent the same
+    /// object. Use [canonicalize] to apply a canonical ordering to the terms.
+    ///
+    /// # Panics
+    ///
+    /// If the index is out of bounds.
+    pub fn term(&self, index: usize) -> SparseTermView {
+        debug_assert!(index < self.num_terms(), "index {index} out of bounds");
+        let start = self.qubit_sparse_pauli_list.boundaries[index];
+        let end = self.qubit_sparse_pauli_list.boundaries[index + 1];
+        SparseTermView {
+            num_qubits: self.qubit_sparse_pauli_list.num_qubits,
+            coeff: self.coeffs[index],
+            bit_terms: &self.qubit_sparse_pauli_list.bit_terms[start..end],
+            indices: &self.qubit_sparse_pauli_list.indices[start..end],
+        }
+    }
+
 }
 
 
@@ -879,6 +900,135 @@ impl PyPauliLindbladMap {
         let qubit_sparse_pauli_list = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
         let inner: PauliLindbladMap = PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list)?;
         Ok(inner.into())
+    }
+
+    /// Get a copy of this Pauli Lindblad map.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> pauli_lindblad_map = PauliLindbladMap.from_list([("IXZXYYZZ", 2.5), ("ZXIXYYZZ", 0.5)])
+    ///         >>> assert pauli_lindblad_map == pauli_lindblad_map.copy()
+    ///         >>> assert pauli_lindblad_map is not pauli_lindblad_map.copy()
+    fn copy(&self) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(inner.clone().into())
+    }
+
+    /// The number of qubits the map acts on.
+    ///
+    /// This is not inferable from any other shape or values, since identities are not stored
+    /// explicitly.
+    #[getter]
+    #[inline]
+    pub fn num_qubits(&self) -> PyResult<u32> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(inner.num_qubits())
+    }
+
+    /// The number of generator terms in the exponent for this map.
+    #[getter]
+    #[inline]
+    pub fn num_terms(&self) -> PyResult<usize> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(inner.num_terms())
+    }
+
+    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
+    /// terms in the sum.
+    #[getter]
+    fn get_coeffs(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
+        ArrayView {
+            base: borrowed.inner.clone(),
+            slot: ArraySlot::Coeffs,
+        }
+    }
+
+    /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
+    /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
+    #[getter]
+    fn get_bit_terms(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
+        ArrayView {
+            base: borrowed.inner.clone(),
+            slot: ArraySlot::BitTerms,
+        }
+    }
+
+    /// A flat list of the qubit indices that the corresponding entries in :attr:`bit_terms` act on.
+    /// This list must always be term-wise sorted, where a term is a sublist as denoted by
+    /// :attr:`boundaries`.
+    ///
+    /// .. warning::
+    ///
+    ///     If writing to this attribute from Python space, you *must* ensure that you only write in
+    ///     indices that are term-wise sorted.
+    #[getter]
+    fn get_indices(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
+        ArrayView {
+            base: borrowed.inner.clone(),
+            slot: ArraySlot::Indices,
+        }
+    }
+
+    /// Indices that partition :attr:`bit_terms` and :attr:`indices` into sublists for each
+    /// individual term in the sum.  ``boundaries[0] : boundaries[1]`` is the range of indices into
+    /// :attr:`bit_terms` and :attr:`indices` that correspond to the first term of the sum.  All
+    /// unspecified qubit indices are implicitly the identity.  This is one item longer than
+    /// :attr:`coeffs`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
+    #[getter]
+    fn get_boundaries(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
+        ArrayView {
+            base: borrowed.inner.clone(),
+            slot: ArraySlot::Boundaries,
+        }
+    }
+
+    fn __len__(&self) -> PyResult<usize> {
+        self.num_terms()
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let bit_terms: &[u8] = ::bytemuck::cast_slice(inner.bit_terms());
+        (
+            py.get_type::<Self>().getattr("from_raw_parts")?,
+            (
+                inner.num_qubits(),
+                PyArray1::from_slice(py, inner.coeffs()),
+                PyArray1::from_slice(py, bit_terms),
+                PyArray1::from_slice(py, inner.indices()),
+                PyArray1::from_slice(py, inner.boundaries()),
+                false,
+            ),
+        )
+            .into_pyobject(py)
+    }
+
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        index: PySequenceIndex<'py>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let indices = match index.with_len(inner.num_terms())? {
+            SequenceIndex::Int(index) => {
+                return PySparseTerm {
+                    inner: inner.term(index).to_term(),
+                }
+                .into_bound_py_any(py)
+            }
+            indices => indices,
+        };
+        let mut out = PauliLindbladMap::identity(inner.num_qubits());
+        for index in indices.iter() {
+            out.add_term(inner.term(index))?;
+        }
+        out.into_bound_py_any(py)
     }
 
 }
