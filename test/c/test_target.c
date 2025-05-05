@@ -294,7 +294,8 @@ int test_target_update_instruction(void) {
         qk_instruction_properties_new(cx_new_inst_duration, cx_new_inst_error);
     qk_target_update_instruction_prop(target, "cx", qargs, 2, new_cx_instruction_props);
     // check current instruction property for cx at (0,1)
-    const QkInstructionProps *new_cx_retreived_inst = qk_target_get_inst_prop(target, "cx", qargs, 2);
+    const QkInstructionProps *new_cx_retreived_inst =
+        qk_target_get_inst_prop(target, "cx", qargs, 2);
     double new_retreived_duration = qk_instruction_properties_get_duration(new_cx_retreived_inst);
     if (new_retreived_duration != cx_new_inst_duration) {
         printf(
