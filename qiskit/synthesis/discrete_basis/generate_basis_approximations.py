@@ -76,7 +76,7 @@ def _check_candidate_greedy(candidate, existing_sequences, tol=1e-10):
         return False
 
     for existing in existing_sequences:
-        if matrix_equal(existing.product_su2, candidate.product_su2, ignore_phase=True, atol=tol):
+        if matrix_equal(existing.product, candidate.product, ignore_phase=True, atol=tol):
             # is the new sequence less or more efficient?
             return len(candidate.gates) < len(existing.gates)
     return True
