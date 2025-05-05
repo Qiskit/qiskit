@@ -14,6 +14,7 @@
 
 import unittest
 import itertools
+from test import combine
 from ddt import ddt, data
 import numpy as np
 import scipy
@@ -21,7 +22,8 @@ from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.unitary import qsd
-from qiskit.circuit.library import UCGate, UnitaryGate
+from qiskit.circuit.library import XGate, PhaseGate, UGate, UCGate, UnitaryGate
+from qiskit.quantum_info import random_unitary
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -333,20 +335,18 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
         )
 
-    @data(3, 4, 5, 6)
-    def test_mcx_opt(self, num_qubits):
-        """Create a multi-controlled X gate on num_qubits.
+    @combine(
+        num_qubits=[3, 4, 5, 6], base_gate=[XGate(), PhaseGate(0.321), UGate(0.21, 0.43, 0.65)]
+    )
+    def test_mc_1qubit_opt(self, num_qubits, base_gate):
+        """Create a multi-controlled X, P or U gate on num_qubits.
         This is less efficient than synthesizing MCX directly."""
-        np.set_printoptions(linewidth=200, precision=2, suppress=True)
-        from qiskit.circuit._utils import _compute_control_matrix
 
         layout = tuple(np.random.permutation(range(num_qubits)))
-        # for layout in itertools.permutations(range(num_qubits)):
         # create gate with "control" on different qubits
         qc = QuantumCircuit(num_qubits)
-        qr = qc.qubits
-
-        qc.mcx(qr[:-1], qr[-1], layout)
+        gate = base_gate.control(num_qubits - 1)
+        qc.append(gate, layout)
 
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
@@ -360,7 +360,32 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
         )
-        self.assertLess(cqc.count_ops().get("cx", 0), 0.8 * cqc2.count_ops().get("cx", 0))
+        self.assertLessEqual(cqc.count_ops().get("cx", 0), cqc2.count_ops().get("cx", 0) + 15)
+
+    @data(3, 4, 5, 6)
+    def test_mc_2qubit_opt(self, num_qubits):
+        """Create a multi-controlled 2-qubit unitary gate on num_qubits."""
+
+        layout = tuple(np.random.permutation(range(num_qubits)))
+        # create gate with "control" on different qubits
+        base_gate = UnitaryGate(random_unitary(4, seed=1234))
+        qc = QuantumCircuit(num_qubits)
+        gate = base_gate.control(num_qubits - 2)
+        qc.append(gate, layout)
+
+        hidden_op = Operator(qc)
+        hidden_mat = hidden_op.data
+        cqc = transpile(qc, basis_gates=["u", "cx"])
+
+        qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
+        cqc2 = transpile(qc2, basis_gates=["u", "cx"])
+        op2 = Operator(qc2)
+        self.assertTrue(matrix_equal(hidden_op.data, op2.data, atol=num_qubits * 1e-7))
+        self.assertLessEqual(
+            cqc2.count_ops().get("cx", 0),
+            2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
+        )
+        self.assertLessEqual(cqc.count_ops().get("cx", 0), cqc2.count_ops().get("cx", 0) + 3)
 
 
 if __name__ == "__main__":
