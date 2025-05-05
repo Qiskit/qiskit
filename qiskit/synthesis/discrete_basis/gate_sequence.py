@@ -55,7 +55,6 @@ class GateSequence:
         self.name = " ".join(self.labels)
         self.global_phase = global_phase
         self.product = so3_matrix
-        self.product_su2 = su2_matrix
 
     def remove_cancelling_pair(self, indices: Sequence[int]) -> None:
         """Remove a pair of indices that cancel each other and *do not* change the matrices."""
@@ -106,6 +105,16 @@ class GateSequence:
 
         return circuit
 
+    def _to_u2(self):
+        """Creates the U2 matrix corresponding to the stored sequence of gates
+        and the global phase.
+        """
+        u2 = np.eye(2, dtype=complex)
+        for mat in self.gates:
+            u2 = mat.to_matrix().dot(u2)
+        u2 = np.exp(1j * self.global_phase) * u2
+        return u2
+
     def to_dag(self):
         """Convert to a :class:`.DAGCircuit`.
 
@@ -149,7 +158,6 @@ class GateSequence:
         so3 = _convert_su2_to_so3(su2)
 
         self.product = so3.dot(self.product)
-        self.product_su2 = su2.dot(self.product_su2)
         self.global_phase = self.global_phase + phase
 
         self.gates.append(gate)
@@ -172,7 +180,6 @@ class GateSequence:
         adjoint.labels = [inv.name for inv in adjoint.gates]
         adjoint.name = " ".join(adjoint.labels)
         adjoint.product = np.conj(self.product).T
-        adjoint.product_su2 = np.conj(self.product_su2).T
         adjoint.global_phase = -self.global_phase
 
         return adjoint
@@ -190,7 +197,6 @@ class GateSequence:
         out.matrices = self.matrices.copy()
         out.global_phase = self.global_phase
         out.product = self.product.copy()
-        out.product_su2 = self.product_su2.copy()
         out.name = self.name
         out._eulers = self._eulers
         return out
