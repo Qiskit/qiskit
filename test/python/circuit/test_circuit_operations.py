@@ -15,6 +15,7 @@
 """Test Qiskit's QuantumCircuit class."""
 import copy
 import pickle
+from itertools import combinations
 
 import numpy as np
 from ddt import data, ddt
@@ -37,7 +38,6 @@ from qiskit.circuit import AncillaQubit, AncillaRegister, Qubit
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from itertools import combinations
 
 
 @ddt
