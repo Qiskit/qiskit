@@ -273,7 +273,7 @@ int test_target_update_instruction(void) {
     qk_target_add_instruction(target, QkGate_CX, NULL, property_map);
 
     // check current instruction property for cx at (0,1)
-    const QkInstructionProps *retreived_inst = qk_target_get_inst_prop(target, "cx", qargs, 2);
+    QkInstructionProps *retreived_inst = qk_target_get_inst_prop(target, "cx", qargs, 2);
     double retreived_duration = qk_instruction_properties_get_duration(retreived_inst);
     if (retreived_duration != inst_duration) {
         printf(
@@ -298,8 +298,7 @@ int test_target_update_instruction(void) {
         qk_instruction_properties_new(cx_new_inst_duration, cx_new_inst_error);
     qk_target_update_instruction_prop(target, "cx", qargs, 2, new_cx_instruction_props);
     // check current instruction property for cx at (0,1)
-    const QkInstructionProps *new_cx_retreived_inst =
-        qk_target_get_inst_prop(target, "cx", qargs, 2);
+    QkInstructionProps *new_cx_retreived_inst = qk_target_get_inst_prop(target, "cx", qargs, 2);
     double new_retreived_duration = qk_instruction_properties_get_duration(new_cx_retreived_inst);
     if (new_retreived_duration != cx_new_inst_duration) {
         printf(
@@ -688,7 +687,7 @@ int test_target_qargs(void) {
 
     // Check all qargs
     uint32_t **all_qargs = qk_target_qargs(target);
-    for (uint32_t i = 0; i < 13; i++) {
+    for (int i = 0; i < 13; i++) {
         if (i < 4) {
             // First qargs were single qubit operation and should preserve
             // their order.
@@ -699,7 +698,7 @@ int test_target_qargs(void) {
                 printf("Mismatch of obtained qargs: ");
                 print_qargs(all_qargs[i], 1);
                 printf(" is not ");
-                print_qargs(qargs[i], 1);
+                print_qargs(qargs, 1);
                 printf(".");
                 result = RuntimeError;
                 goto cleanup;
@@ -719,7 +718,7 @@ int test_target_qargs(void) {
         } else {
             // Finally a NULL from the global operation Y.
             if (all_qargs[i] != NULL) {
-                printf("Mismatch of obtained qargs: %s is not NULL", all_qargs[i]);
+                printf("Mismatch of obtained qargs: %p is not NULL", all_qargs[i]);
                 result = RuntimeError;
                 goto cleanup;
             }
