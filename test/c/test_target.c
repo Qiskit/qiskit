@@ -114,7 +114,7 @@ int test_property_map_construction(void) {
 }
 
 /**
- * Test adding a global to the Target.
+ * Test adding an instruction to the Target.
  */
 int test_target_add_instruction(void) {
     // Let's create a target with one qubit for now
@@ -251,6 +251,10 @@ cleanup:
     return result;
 }
 
+/**
+ * Test updating an instruction property in the Target using
+ * `update_instruction_property`.
+ */
 int test_target_update_instruction(void) {
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(1);
@@ -323,6 +327,9 @@ cleanup:
     return result;
 }
 
+/**
+ * Test retrieving non global operation names from the Target.
+ */
 int test_target_non_global_op_names(void) {
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(1);
@@ -387,7 +394,10 @@ cleanup:
     return result;
 }
 
-int test_target_operation_for_qargs(void) {
+/**
+ * Test retrieving operation names based on their qargs.
+ */
+int test_target_operation_names_for_qargs(void) {
     // Build sample target
     QkTarget *target = qk_target_new(0);
     int result = Ok;
@@ -496,6 +506,10 @@ cleanup:
     return result;
 }
 
+/**
+ * Test retrieving qargs based on the name of an operation that has
+ * defned properties for them.
+ */
 int test_target_qargs_for_operation_names(void) {
     // Build sample target
     QkTarget *target = qk_target_new(0);
@@ -610,6 +624,9 @@ cleanup:
     return result;
 }
 
+/**
+ * Test retrieving all of the qargs in the Target.
+ */
 int test_target_qargs(void) {
     // Build sample target
     QkTarget *target = qk_target_new(0);
@@ -731,7 +748,7 @@ int test_target(void) {
     num_failed += RUN_TEST(test_target_add_instruction);
     num_failed += RUN_TEST(test_target_update_instruction);
     num_failed += RUN_TEST(test_target_non_global_op_names);
-    num_failed += RUN_TEST(test_target_operation_for_qargs);
+    num_failed += RUN_TEST(test_target_operation_names_for_qargs);
     num_failed += RUN_TEST(test_target_qargs_for_operation_names);
     num_failed += RUN_TEST(test_target_qargs);
 
