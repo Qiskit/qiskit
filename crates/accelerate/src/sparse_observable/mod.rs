@@ -3442,7 +3442,7 @@ impl PySparseObservable {
             let order = order
                 .try_iter()?
                 .map(|obj| obj.and_then(|obj| obj.extract::<u32>()))
-                .collect::<PyResult<IndexSet<u32>>>()?;
+                .collect::<PyResult<IndexSet<u32, ::ahash::RandomState>>>()?;
             if order.len() != in_length {
                 return Err(PyValueError::new_err("duplicate indices in qargs"));
             }
