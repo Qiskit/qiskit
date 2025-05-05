@@ -610,6 +610,119 @@ cleanup:
     return result;
 }
 
+int test_target_qargs(void) {
+    // Build sample target
+    QkTarget *target = qk_target_new(0);
+    int result = Ok;
+    QkPropsMap *i_property_map = qk_property_map_new();
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        QkInstructionProps *i_props = qk_instruction_properties_new(35.5e-9, 0.);
+        qk_property_map_add(i_property_map, qargs, 1, i_props);
+    }
+    qk_target_add_instruction(target, QkGate_I, NULL, i_property_map);
+
+    QkPropsMap *rz_property_map = qk_property_map_new();
+    double rz_params[1] = {3.14};
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        QkInstructionProps *rz_props = qk_instruction_properties_new(0., 0.);
+        qk_property_map_add(rz_property_map, qargs, 1, rz_props);
+    }
+    qk_target_add_instruction(target, QkGate_RZ, rz_params, i_property_map);
+
+    QkPropsMap *sx_property_map = qk_property_map_new();
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        QkInstructionProps *sx_props = qk_instruction_properties_new(35.5e-9, 0.);
+        qk_property_map_add(sx_property_map, qargs, 1, sx_props);
+    }
+    qk_target_add_instruction(target, QkGate_SX, NULL, sx_property_map);
+
+    QkPropsMap *x_property_map = qk_property_map_new();
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        QkInstructionProps *x_props = qk_instruction_properties_new(35.5e-9, 0.0005);
+        qk_property_map_add(x_property_map, qargs, 1, x_props);
+    }
+    qk_target_add_instruction(target, QkGate_X, NULL, x_property_map);
+
+    QkPropsMap *cx_property_map = qk_property_map_new();
+    uint32_t qarg_samples[8][2] = {
+        {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
+    };
+    QkInstructionProps *props[8] = {
+        qk_instruction_properties_new(2.7022e-11, 0.00713),
+        qk_instruction_properties_new(3.0577 - 11, 0.00713),
+        qk_instruction_properties_new(4.6222 - 11, 0.00929),
+        qk_instruction_properties_new(4.9777 - 11, 0.00929),
+        qk_instruction_properties_new(2.2755 - 11, 0.00659),
+        qk_instruction_properties_new(2.6311 - 11, 0.00659),
+        qk_instruction_properties_new(5.1911 - 11, 0.01201),
+        qk_instruction_properties_new(5.1911 - 11, 0.01201),
+    };
+    for (int i = 0; i < 8; i++) {
+        qk_property_map_add(cx_property_map, qarg_samples[i], 2, props[i]);
+    }
+    qk_target_add_instruction(target, QkGate_CX, NULL, cx_property_map);
+
+    // Add global Y Gate
+    qk_target_add_instruction(target, QkGate_Y, NULL, qk_property_map_new());
+
+    // Check all qargs
+    uint32_t **all_qargs = qk_target_qargs(target);
+    for (uint32_t i = 0; i < 13; i++) {
+        if (i < 4) {
+            // First qargs were single qubit operation and should preserve
+            // their order.
+            uint32_t qargs[1] = {
+                i,
+            };
+            if (!compare_qargs(all_qargs[i], qargs, 1)) {
+                printf("Mismatch of obtained qargs: ");
+                print_qargs(all_qargs[i], 1);
+                printf(" is not ");
+                print_qargs(qargs[i], 1);
+                printf(".");
+                result = RuntimeError;
+                goto cleanup;
+            }
+        } else if (i < 12) {
+            // Next were from adding the cx gate, so all will be two
+            // qubit operations.
+            if (!compare_qargs(all_qargs[i], qarg_samples[i - 4], 2)) {
+                printf("Mismatch of obtained qargs: ");
+                print_qargs(all_qargs[i], 2);
+                printf(" is not ");
+                print_qargs(qarg_samples[i - 4], 2);
+                printf(".");
+                result = RuntimeError;
+                goto cleanup;
+            }
+        } else {
+            // Finally a NULL from the global operation Y.
+            if (all_qargs[i] != NULL) {
+                printf("Mismatch of obtained qargs: %s is not NULL", all_qargs[i]);
+                result = RuntimeError;
+                goto cleanup;
+            }
+        }
+    }
+
+cleanup:
+    qk_target_free(target);
+    qk_property_map_free(i_property_map);
+    qk_property_map_free(sx_property_map);
+    qk_property_map_free(x_property_map);
+    qk_property_map_free(rz_property_map);
+    qk_property_map_free(cx_property_map);
+
+    for (int i = 0; i < 8; i++) {
+        qk_instruction_properties_free(props[i]);
+    }
+    return result;
+}
+
 int test_target(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty_target);
@@ -620,6 +733,7 @@ int test_target(void) {
     num_failed += RUN_TEST(test_target_non_global_op_names);
     num_failed += RUN_TEST(test_target_operation_for_qargs);
     num_failed += RUN_TEST(test_target_qargs_for_operation_names);
+    num_failed += RUN_TEST(test_target_qargs);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
