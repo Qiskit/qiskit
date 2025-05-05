@@ -65,15 +65,21 @@ class ExprVisitor(typing.Generic[_T_co]):
 
 
 class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
+    # We don't want docstrings for the inherited visitor methods, which are self-explanatory and
+    # would just be noise.
+    # pylint: disable=missing-function-docstring
+
     __slots__ = ()
 
     def visit_var(self, node, /):
         yield node
 
     def visit_stretch(self, node, /):
+        # pylint: disable=unused-argument
         yield from ()
 
     def visit_value(self, node, /):
+        # pylint: disable=unused-argument
         yield from ()
 
     def visit_unary(self, node, /):

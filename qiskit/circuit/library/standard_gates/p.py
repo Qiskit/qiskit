@@ -75,7 +75,7 @@ class PhaseGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.PhaseGate
+    _standard_gate = StandardGate.Phase
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new Phase gate."""
@@ -197,7 +197,7 @@ class CPhaseGate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CPhaseGate
+    _standard_gate = StandardGate.CPhase
 
     def __init__(
         self,

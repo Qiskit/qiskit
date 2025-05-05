@@ -17,7 +17,7 @@ from collections.abc import Callable, Iterable
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library.standard_gates import RZGate
+from qiskit.circuit.library.standard_gates import RZGate, XXPlusYYGate
 from qiskit.utils.deprecation import deprecate_func
 from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
@@ -37,7 +37,7 @@ def excitation_preserving(
     parameter_prefix: str = "θ",
     insert_barriers: bool = False,
     name: str = "ExcitationPreserving",
-):
+) -> QuantumCircuit:
     r"""The heuristic excitation-preserving wave function ansatz.
 
     The ``excitation_preserving`` circuit preserves the ratio of :math:`|00\rangle`,
@@ -116,8 +116,7 @@ def excitation_preserving(
     theta = Parameter("θ")
     if num_qubits > 1:
         swap = QuantumCircuit(2, name="Interaction")
-        swap.rxx(theta, 0, 1)
-        swap.ryy(theta, 0, 1)
+        swap.append(XXPlusYYGate(2 * theta), [0, 1])
         if mode == "fsim":
             phi = Parameter("φ")
             swap.cp(phi, 0, 1)
@@ -272,8 +271,7 @@ class ExcitationPreserving(TwoLocal):
 
         theta = Parameter("θ")
         swap = QuantumCircuit(2, name="Interaction")
-        swap.rxx(theta, 0, 1)
-        swap.ryy(theta, 0, 1)
+        swap.append(XXPlusYYGate(2 * theta), [0, 1])
         if mode == "fsim":
             phi = Parameter("φ")
             swap.cp(phi, 0, 1)

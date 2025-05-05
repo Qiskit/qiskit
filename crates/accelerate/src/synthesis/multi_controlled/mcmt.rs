@@ -55,7 +55,7 @@ fn ccx_chain<'a>(
         .chain((0..n - 1).map(|i| (controls[i + 2], auxiliaries[i], auxiliaries[i + 1])))
         .map(|(ctrl1, ctrl2, target)| {
             Ok((
-                StandardGate::CCXGate.into(),
+                StandardGate::CCX.into(),
                 smallvec![],
                 vec![Qubit::new(ctrl1), Qubit::new(ctrl2), Qubit::new(target)],
                 vec![],
@@ -118,7 +118,7 @@ pub fn mcmt_v_chain(
         .filter(|index| control_state & (1 << index) == 0)
         .map(|index| {
             Ok((
-                PackedOperation::from_standard_gate(StandardGate::XGate),
+                PackedOperation::from_standard_gate(StandardGate::X),
                 smallvec![] as SmallVec<[Param; 3]>,
                 vec![Qubit::new(index)],
                 vec![] as Vec<Clbit>,

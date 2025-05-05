@@ -28,8 +28,7 @@ itertools.workspace = true
 qiskit-circuit.workspace = true
 thiserror.workspace = true
 ndarray-einsum = "0.8.0"
-once_cell = "1.20.3"
-rustiq-core = "0.0.10"
+rustiq-core = "0.0.11"
 bytemuck.workspace = true
 nalgebra.workspace = true
 
@@ -62,7 +61,7 @@ version = "0.3.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
-version = "0.21.4"
+version = "0.21.5"
 features = ["macro"]
 
 [dev-dependencies]

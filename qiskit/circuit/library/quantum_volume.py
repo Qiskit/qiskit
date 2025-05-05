@@ -149,6 +149,15 @@ def quantum_volume(
     environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
     to 4 threads.
 
+    Args:
+        num_qubits: The number qubits to use for the generated circuit.
+        depth: The number of layers for the generated circuit. If this
+            is not specified it will default to ``num_qubits`` layers.
+        seed: An optional RNG seed used for generating the random SU(4)
+            matrices used in the output circuit. This can be either an
+            integer or a numpy generator. If an integer is specfied it must
+            be an value between 0 and 2**64 - 1.
+
     **Reference Circuit:**
 
     .. plot::

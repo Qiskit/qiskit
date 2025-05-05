@@ -59,7 +59,7 @@ class SGate(SingletonGate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.SGate
+    _standard_gate = StandardGate.S
 
     def __init__(self, label: Optional[str] = None):
         """Create new S gate."""
@@ -171,7 +171,7 @@ class SdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
-    _standard_gate = StandardGate.SdgGate
+    _standard_gate = StandardGate.Sdg
 
     def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
@@ -282,7 +282,7 @@ class CSGate(SingletonControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CSGate
+    _standard_gate = StandardGate.CS
 
     def __init__(
         self,
@@ -366,7 +366,7 @@ class CSdgGate(SingletonControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CSdgGate
+    _standard_gate = StandardGate.CSdg
 
     def __init__(
         self,

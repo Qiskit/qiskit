@@ -970,12 +970,12 @@ class TestFinalLayouts(QiskitTestCase):
             result.layout.initial_index_layout(filter_ancillas=True), expected_layouts[level]
         )
 
-    @data(0, 1, 2, 3)
-    def test_all_levels_use_trivial_if_perfect(self, level):
-        """Test that we always use trivial if it's a perfect match.
+    @data(0, 1)
+    def test_low_levels_use_trivial_if_perfect(self, level):
+        """Test that we use trivial if it's a perfect match at levels 0 and 1.  Higher levels use
+        VF2 instead, which may not always return the trivial layout based on the scoring.
 
-        See: https://github.com/Qiskit/qiskit-terra/issues/5694 for more
-        details
+        See: https://github.com/Qiskit/qiskit-terra/issues/5694 for more details.
         """
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
 
@@ -1465,8 +1465,15 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         ):
             generate_preset_pass_manager(seed_transpiler=0.1)
 
-    @data(0, 1, 2, 3)
-    def test_preserves_circuit_metadata(self, optimization_level):
+    @combine(
+        optimization_level=[0, 1, 2, 3],
+        layout_method=["default", "dense", "sabre"],
+        routing_method=["default", "sabre"],
+        translation_method=["default", "translator"],
+    )
+    def test_preserves_circuit_metadata(
+        self, optimization_level, layout_method, routing_method, translation_method
+    ):
         """Test that basic metadata is preserved."""
         metadata = {"experiment_id": "1234", "execution_number": 4}
         name = "my circuit"
@@ -1481,7 +1488,12 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
 
         pm = generate_preset_pass_manager(
-            optimization_level=optimization_level, target=target, seed_transpiler=42
+            optimization_level=optimization_level,
+            target=target,
+            seed_transpiler=42,
+            layout_method=layout_method,
+            routing_method=routing_method,
+            translation_method=translation_method,
         )
         res = pm.run(circuit)
         self.assertEqual(res.metadata, metadata)

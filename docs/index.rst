@@ -11,5 +11,6 @@ https://github.com/Qiskit/documentation.
    :hidden:
 
    Documentation Home <self>
-   API Reference <apidoc/index>
+   C API Reference <cdoc/index>
+   Python API Reference <apidoc/index>
    Release Notes <release_notes>

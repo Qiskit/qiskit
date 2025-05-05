@@ -134,7 +134,7 @@ pub fn pauli_feature_map(
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
     (0..feature_dimension).map(|i| {
         (
-            StandardGate::HGate.into(),
+            StandardGate::H.into(),
             smallvec![],
             vec![Qubit(i)],
             vec![] as Vec<Clbit>,

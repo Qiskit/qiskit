@@ -772,6 +772,37 @@ class TestCommutativeCancellation(QiskitTestCase):
         new_circuit = passmanager.run(circ)
         self.assertEqual(new_circuit, circ)
 
+    def test_overloaded_standard_gate_name(self):
+        """Validate the pass works with custom gates using overloaded names
+
+        See: https://github.com/Qiskit/qiskit/issues/13988 for more details.
+        """
+        qasm_str = """OPENQASM 2.0;
+include "qelib1.inc";
+gate ryy(param0) q0,q1
+{
+ rx(pi/2) q0;
+ rx(pi/2) q1;
+ cx q0,q1;
+ rz(0.37801308) q1;
+ cx q0,q1;
+ rx(-pi/2) q0;
+ rx(-pi/2) q1;
+}
+qreg q0[2];
+creg c0[2];
+z q0[0];
+ryy(1.2182379) q0[0],q0[1];
+z q0[0];
+measure q0[0] -> c0[0];
+measure q0[1] -> c0[1];
+"""
+        qc = QuantumCircuit.from_qasm_str(qasm_str)
+        cancellation_pass = CommutativeCancellation()
+        res = cancellation_pass(qc)
+        # We don't cancel any gates with a custom rzz gate
+        self.assertEqual(res.count_ops()["z"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

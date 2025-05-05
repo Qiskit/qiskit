@@ -29,7 +29,6 @@ const MINIMUM_TOL: f64 = 1e-12;
 #[pyfunction]
 #[pyo3(signature=(dag, approx_degree=Some(1.0), target=None))]
 fn remove_identity_equiv(
-    py: Python,
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
     target: Option<&Target>,
@@ -52,7 +51,7 @@ fn remove_identity_equiv(
                                 .iter()
                                 .map(|x| PhysicalQubit::new(x.0))
                                 .collect();
-                            let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
+                            let error_rate = target.get_error(inst.op.name(), &qargs);
                             match error_rate {
                                 Some(err) => err * degree,
                                 None => MINIMUM_TOL.max(1. - degree),
@@ -69,7 +68,7 @@ fn remove_identity_equiv(
                         .iter()
                         .map(|x| PhysicalQubit::new(x.0))
                         .collect();
-                    let error_rate = target.get_error(inst.op.name(), qargs.as_slice());
+                    let error_rate = target.get_error(inst.op.name(), &qargs);
                     match error_rate {
                         Some(err) => err,
                         None => MINIMUM_TOL,
@@ -89,18 +88,18 @@ fn remove_identity_equiv(
         match view {
             OperationRef::StandardGate(gate) => {
                 let (tr_over_dim, dim) = match gate {
-                    StandardGate::RXGate
-                    | StandardGate::RYGate
-                    | StandardGate::RZGate
-                    | StandardGate::PhaseGate
-                    | StandardGate::RXXGate
-                    | StandardGate::RYYGate
-                    | StandardGate::RZXGate
-                    | StandardGate::RZZGate
-                    | StandardGate::CRXGate
-                    | StandardGate::CRYGate
-                    | StandardGate::CRZGate
-                    | StandardGate::CPhaseGate => {
+                    StandardGate::RX
+                    | StandardGate::RY
+                    | StandardGate::RZ
+                    | StandardGate::Phase
+                    | StandardGate::RXX
+                    | StandardGate::RYY
+                    | StandardGate::RZX
+                    | StandardGate::RZZ
+                    | StandardGate::CRX
+                    | StandardGate::CRY
+                    | StandardGate::CRZ
+                    | StandardGate::CPhase => {
                         if let Param::Float(angle) = inst.params_view()[0] {
                             let (tr_over_dim, dim) =
                                 rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
@@ -149,7 +148,7 @@ fn remove_identity_equiv(
     }
 
     if global_phase_update != 0. {
-        dag.add_global_phase(py, &Param::Float(global_phase_update))
+        dag.add_global_phase(&Param::Float(global_phase_update))
             .expect("The global phase is guaranteed to be a float");
     }
 }
