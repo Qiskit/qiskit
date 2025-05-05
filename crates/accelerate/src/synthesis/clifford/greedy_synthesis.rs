@@ -194,10 +194,10 @@ impl GreedyCliffordSynthesis<'_> {
         gate_seq: &mut CliffordGatesVec,
         min_qubit: usize,
     ) -> Result<(), String> {
-        let mut a_qubits = IndexSet::new();
-        let mut b_qubits = IndexSet::new();
-        let mut c_qubits = IndexSet::new();
-        let mut d_qubits = IndexSet::new();
+        let mut a_qubits: IndexSet<_, ::ahash::RandomState> = IndexSet::default();
+        let mut b_qubits: IndexSet<_, ::ahash::RandomState> = IndexSet::default();
+        let mut c_qubits: IndexSet<_, ::ahash::RandomState> = IndexSet::default();
+        let mut d_qubits: IndexSet<_, ::ahash::RandomState> = IndexSet::default();
 
         for qubit in &self.unprocessed_qubits {
             let pauli_pair_index = pauli_pair_to_index(

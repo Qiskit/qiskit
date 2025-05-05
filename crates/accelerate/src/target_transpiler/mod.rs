@@ -52,7 +52,7 @@ pub(crate) mod exceptions {
 
 // Custom types
 type GateMap = IndexMap<String, PropsMap, RandomState>;
-type PropsMap = IndexMap<Qargs, Option<InstructionProperties>>;
+type PropsMap = IndexMap<Qargs, Option<InstructionProperties>, RandomState>;
 
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
@@ -222,7 +222,7 @@ pub struct Target {
     #[pyo3(get)]
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
     global_operations: IndexMap<u32, HashSet<String>, RandomState>,
-    qarg_gate_map: IndexMap<Qargs, Option<HashSet<String>>>,
+    qarg_gate_map: IndexMap<Qargs, Option<HashSet<String>>, RandomState>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
 }
