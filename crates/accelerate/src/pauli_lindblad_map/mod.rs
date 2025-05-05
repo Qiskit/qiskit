@@ -12,11 +12,14 @@
 
 use pyo3::prelude::*;
 use qubit_sparse_pauli::{PyQubitSparsePauli, PyQubitSparsePauliList};
+use pauli_lindblad_map::PyPauliLindbladMap;
 
 pub mod qubit_sparse_pauli;
+pub mod pauli_lindblad_map;
 
 pub fn pauli_lindblad_map(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyQubitSparsePauli>()?;
     m.add_class::<PyQubitSparsePauliList>()?;
+    m.add_class::<PyPauliLindbladMap>()?;
     Ok(())
 }
