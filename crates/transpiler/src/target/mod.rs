@@ -1489,7 +1489,8 @@ mod test {
     };
     use smallvec::SmallVec;
 
-    use crate::{nlayout::PhysicalQubit, target_transpiler::QargsRef};
+    use crate::target::QargsRef;
+    use qiskit_accelerate::nlayout::PhysicalQubit;
 
     use super::{instruction_properties::InstructionProperties, Qargs, Target};
 
