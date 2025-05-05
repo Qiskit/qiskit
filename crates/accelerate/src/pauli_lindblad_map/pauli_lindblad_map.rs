@@ -33,7 +33,7 @@ use qiskit_circuit::{
     slice::{PySequenceIndex, SequenceIndex},
 };
 
-use super::qubit_sparse_pauli::{self, ArithmeticError, BitTerm, BitTermFromU8Error, CoherenceError, LabelError, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList, InnerReadError, InnerWriteError};
+use super::qubit_sparse_pauli::{self, ArithmeticError, BitTerm, BitTermFromU8Error, CoherenceError, LabelError, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList, InnerReadError, InnerWriteError, raw_parts_from_sparse_list};
 
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format.
@@ -245,9 +245,9 @@ impl PauliLindbladMap {
             });
         }
         self.coeffs.push(term.coeff);
-        self.qubit_sparse_pauli_list.bit_terms().extend_from_slice(term.bit_terms);
-        self.qubit_sparse_pauli_list.indices().extend_from_slice(term.indices);
-        self.qubit_sparse_pauli_list.boundaries().push(self.bit_terms.len());
+        self.qubit_sparse_pauli_list.bit_terms.extend_from_slice(term.bit_terms);
+        self.qubit_sparse_pauli_list.indices.extend_from_slice(term.indices);
+        self.qubit_sparse_pauli_list.boundaries.push(self.qubit_sparse_pauli_list.bit_terms.len());
         Ok(())
     }
 
@@ -318,11 +318,11 @@ pub struct IterMut<'a> {
 impl<'a> From<&'a mut PauliLindbladMap> for IterMut<'a> {
     fn from(value: &mut PauliLindbladMap) -> IterMut {
         IterMut {
-            num_qubits: value.num_qubits,
+            num_qubits: value.qubit_sparse_pauli_list.num_qubits,
             coeffs: &mut value.coeffs,
-            bit_terms: &mut value.bit_terms,
-            indices: &value.indices,
-            boundaries: &value.boundaries,
+            bit_terms: &mut value.qubit_sparse_pauli_list.bit_terms,
+            indices: &value.qubit_sparse_pauli_list.indices,
+            boundaries: &value.qubit_sparse_pauli_list.boundaries,
             i: 0,
         }
     }
@@ -438,7 +438,6 @@ impl SparseTerm {
             indices: self.indices.to_vec(),
             boundaries: vec![0, self.bit_terms.len()],
         };
-
         PauliLindbladMap {
             coeffs: vec![self.coeff],
             qubit_sparse_pauli_list: qubit_sparse_pauli_list,
@@ -875,8 +874,10 @@ impl PyPauliLindbladMap {
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(iter: Vec<(String, Vec<u32>, f64)>, num_qubits: u32) -> PyResult<Self> {
         let coeffs = iter.iter().map(|(_, _, coeff)| *coeff).collect();
-        let to_qubit_sparse_pauli_list = PyQubitSparsePauliList::from_sparse_list(num_qubits, bit_terms, indices, boundaries)?;
-        let inner = PauliLindbladMap::new(coeffs, to_qubit_sparse_pauli_list.inner)?;
+        let op_iter = iter.iter().map(|(label, indices, _)| (label.clone(), indices.clone())).collect();
+        let (bit_terms, indices, boundaries) = raw_parts_from_sparse_list(op_iter, num_qubits)?;
+        let qubit_sparse_pauli_list = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+        let inner: PauliLindbladMap = PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list)?;
         Ok(inner.into())
     }
 
