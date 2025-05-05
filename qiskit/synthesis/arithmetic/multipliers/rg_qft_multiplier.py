@@ -17,7 +17,7 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import PhaseGate
 from qiskit.circuit.library.basis_change import QFTGate
 
@@ -35,6 +35,7 @@ def multiplier_qft_r17(
     For example, on 3 state qubits, a full multiplier is given by:
 
     .. plot::
+        :alt: Circuit diagram output by the previous code.
         :include-source:
 
         from qiskit.synthesis.arithmetic import multiplier_qft_r17

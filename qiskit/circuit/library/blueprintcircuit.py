@@ -14,10 +14,12 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import copy as _copy
 
 from qiskit._accelerate.circuit import CircuitData
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.circuit.parametertable import ParameterView
+from qiskit.circuit.quantumcircuit import QuantumCircuit, _copy_metadata
 
 
 class BlueprintCircuit(QuantumCircuit, ABC):
@@ -37,7 +39,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         super().__init__(*regs, name=name)
         self._qregs: list[QuantumRegister] = []
         self._cregs: list[ClassicalRegister] = []
-        self._qubit_indices = {}
         self._is_built = False
         self._is_initialized = True
 
@@ -67,14 +68,24 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
+        # Take out the registers before invalidating
+        qregs = self._data.qregs
+        cregs = self._data.cregs
         self._data = CircuitData(self._data.qubits, self._data.clbits)
+        # Re-add the registers
+        for qreg in qregs:
+            self._data.add_qreg(qreg)
+        for creg in cregs:
+            self._data.add_creg(creg)
         self.global_phase = 0
         self._is_built = False
 
     @property
     def qregs(self):
         """A list of the quantum registers associated with the circuit."""
-        return self._qregs
+        if not self._is_initialized:
+            return self._qregs
+        return super().qregs
 
     @qregs.setter
     def qregs(self, qregs):
@@ -85,7 +96,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             return
         self._qregs = []
         self._ancillas = []
-        self._qubit_indices = {}
         self._data = CircuitData(clbits=self._data.clbits)
         self.global_phase = 0
         self._is_built = False
@@ -262,19 +272,45 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().num_connected_components(unitary_only=unitary_only)
 
-    def copy_empty_like(self, name=None, *, vars_mode="alike"):
-        if not self._is_built:
-            self._build()
-        cpy = super().copy_empty_like(name=name, vars_mode=vars_mode)
-        # The base `copy_empty_like` will typically trigger code that `BlueprintCircuit` treats as
-        # an "invalidation", so we have to manually restore properties deleted by that that
-        # `copy_empty_like` is supposed to propagate.
-        cpy.global_phase = self.global_phase
+    def copy_empty_like(
+        self, name: str | None = None, *, vars_mode: str = "alike"
+    ) -> QuantumCircuit:
+        """Return an empty :class:`.QuantumCircuit` of same size and metadata.
+
+        See also :meth:`.QuantumCircuit.copy_empty_like` for more details on copied metadata.
+
+        Args:
+            name: Name for the copied circuit. If None, then the name stays the same.
+            vars_mode: The mode to handle realtime variables in.
+
+        Returns:
+            An empty circuit of same dimensions. Note that the result is no longer a
+            :class:`.BlueprintCircuit`.
+        """
+
+        cpy = QuantumCircuit(*self.qregs, *self.cregs, name=name, global_phase=self.global_phase)
+        _copy_metadata(self, cpy, vars_mode)
         return cpy
 
-    def copy(self, name=None):
+    def copy(self, name: str | None = None) -> BlueprintCircuit:
+        """Copy the blueprint circuit.
+
+        Args:
+            name: Name to be given to the copied circuit. If None, then the name stays the same.
+
+        Returns:
+            A deepcopy of the current blueprint circuit, with the specified name.
+        """
         if not self._is_built:
             self._build()
-        circuit_copy = super().copy(name=name)
-        circuit_copy._is_built = self._is_built
-        return circuit_copy
+
+        cpy = _copy.copy(self)
+        _copy_metadata(self, cpy, "alike")
+
+        cpy._is_built = self._is_built
+        cpy._data = self._data.copy()
+
+        if name is not None:
+            cpy.name = name
+
+        return cpy

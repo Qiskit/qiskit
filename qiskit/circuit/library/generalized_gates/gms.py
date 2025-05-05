@@ -20,7 +20,7 @@ from collections.abc import Sequence
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.circuit.gate import Gate
@@ -45,6 +45,7 @@ class GMS(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GMS
        from qiskit.visualization.library import _generate_circuit_library_visualization

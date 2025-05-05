@@ -12,6 +12,7 @@
 
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 
 use crate::nlayout::PhysicalQubit;
 
@@ -43,7 +44,7 @@ pub struct ErrorMap {
 impl ErrorMap {
     #[new]
     #[pyo3(signature=(size=None))]
-    fn new(size: Option<usize>) -> Self {
+    pub fn new(size: Option<usize>) -> Self {
         match size {
             Some(size) => ErrorMap {
                 error_map: HashMap::with_capacity(size),
@@ -66,7 +67,7 @@ impl ErrorMap {
         ErrorMap { error_map }
     }
 
-    fn add_error(&mut self, index: [PhysicalQubit; 2], error_rate: f64) {
+    pub fn add_error(&mut self, index: [PhysicalQubit; 2], error_rate: f64) {
         self.error_map.insert(index, error_rate);
     }
 
@@ -101,14 +102,19 @@ impl ErrorMap {
     }
 
     #[pyo3(signature=(key, default=None))]
-    fn get(&self, py: Python, key: [PhysicalQubit; 2], default: Option<PyObject>) -> PyObject {
-        match self.error_map.get(&key).copied() {
-            Some(val) => val.to_object(py),
+    fn get(
+        &self,
+        py: Python,
+        key: [PhysicalQubit; 2],
+        default: Option<PyObject>,
+    ) -> PyResult<PyObject> {
+        Ok(match self.error_map.get(&key).copied() {
+            Some(val) => val.into_py_any(py)?,
             None => match default {
                 Some(val) => val,
                 None => py.None(),
             },
-        }
+        })
     }
 }
 

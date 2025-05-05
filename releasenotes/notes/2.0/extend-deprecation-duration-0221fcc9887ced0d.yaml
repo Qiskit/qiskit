@@ -1,0 +1,15 @@
+---
+deprecations_circuits:
+  - |
+    The deprecated :attr:`.QuantumCircuit.duration` attribute was not removed
+    in this release as originally planned, it will be removed as part of the
+    Qiskit 3.0.0 release instead. This functionality has been superseded
+    by the :meth:`.QuantumCircuit.estimate_duration` method which should be used
+    instead.
+deprecations_transpiler:
+  - |
+    The deprecated :attr:`.DAGCircuit.duration` attribute was not removed
+    in this release as originally planned, it will be removed as part of the
+    Qiskit 3.0.0 release instead. This functionality has been superseded
+    by the :meth:`.QuantumCircuit.estimate_duration` method which should be used
+    instead.

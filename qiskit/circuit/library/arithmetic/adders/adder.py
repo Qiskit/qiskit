@@ -116,6 +116,15 @@ class HalfAdderGate(Gate):
         """
         return self._num_state_qubits
 
+    def _define(self):
+        """Populates self.definition with some decomposition of this gate."""
+        from qiskit.synthesis.arithmetic import adder_qft_d00
+
+        # This particular decomposition does not use any ancilla qubits.
+        # Note that the transpiler may choose a different decomposition
+        # based on the number of ancilla qubits available.
+        self.definition = adder_qft_d00(self.num_state_qubits, kind="half")
+
 
 class ModularAdderGate(Gate):
     r"""Compute the sum modulo :math:`2^n` of two :math:`n`-sized qubit registers.
@@ -161,6 +170,15 @@ class ModularAdderGate(Gate):
             The number of state qubits.
         """
         return self._num_state_qubits
+
+    def _define(self):
+        """Populates self.definition with some decomposition of this gate."""
+        from qiskit.synthesis.arithmetic import adder_qft_d00
+
+        # This particular decomposition does not use any ancilla qubits.
+        # Note that the transpiler may choose a different decomposition
+        # based on the number of ancilla qubits available.
+        self.definition = adder_qft_d00(self.num_state_qubits, kind="fixed")
 
 
 class FullAdderGate(Gate):
@@ -208,3 +226,10 @@ class FullAdderGate(Gate):
             The number of state qubits.
         """
         return self._num_state_qubits
+
+    def _define(self):
+        """Populates self.definition with a decomposition of this gate."""
+        from qiskit.synthesis.arithmetic import adder_ripple_c04
+
+        # In the case of a full adder, this method does not use any ancilla qubits
+        self.definition = adder_ripple_c04(self.num_state_qubits, kind="full")

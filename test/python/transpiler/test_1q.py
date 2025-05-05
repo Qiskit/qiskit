@@ -16,7 +16,7 @@ from ddt import ddt
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.providers.fake_provider import Fake1Q, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler import TranspilerError
 from test import combine  # pylint: disable=wrong-import-order
@@ -42,23 +42,6 @@ def circuit_3516():
 
 
 @ddt
-class Test1QFailing(QiskitTestCase):
-    """1Q tests that should fail."""
-
-    @combine(
-        circuit=[circuit_3516],
-        level=[0, 1, 2, 3],
-        dsc="Transpiling {circuit.__name__} at level {level} should fail",
-        name="{circuit.__name__}_level{level}_fail_v1",
-    )
-    def test(self, circuit, level):
-        """All the levels with all the 1Q backendV1"""
-        with self.assertRaises(TranspilerError):
-            with self.assertWarns(DeprecationWarning):
-                transpile(circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42)
-
-
-@ddt
 class Test1QV2Failing(QiskitTestCase):
     """1QV2 tests that should fail."""
 
@@ -72,25 +55,6 @@ class Test1QV2Failing(QiskitTestCase):
         """All the levels with all the 1Q backendV2"""
         with self.assertRaises(TranspilerError):
             transpile(circuit(), backend=Fake1QV2, optimization_level=level, seed_transpiler=42)
-
-
-@ddt
-class Test1QWorking(QiskitTestCase):
-    """1QV1 tests that should work."""
-
-    @combine(
-        circuit=[emptycircuit],
-        level=[0, 1, 2, 3],
-        dsc="Transpiling {circuit.__name__} at level {level} should work",
-        name="{circuit.__name__}_level{level}_valid_v1",
-    )
-    def test_device(self, circuit, level):
-        """All the levels with all the 1Q backendV1"""
-        with self.assertWarns(DeprecationWarning):
-            result = transpile(
-                circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42
-            )
-        self.assertIsInstance(result, QuantumCircuit)
 
 
 @ddt

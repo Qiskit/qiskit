@@ -17,9 +17,11 @@ from collections import defaultdict
 from ddt import ddt, data
 import numpy as np
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import WeightedAdder
+from qiskit.circuit.library import WeightedAdder, WeightedSumGate
 from qiskit.quantum_info import Statevector
+from qiskit.transpiler.passes import HighLevelSynthesis
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -27,29 +29,36 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class TestWeightedAdder(QiskitTestCase):
     """Test the weighted adder circuit."""
 
-    def assertSummationIsCorrect(self, adder):
+    def assertSummationIsCorrect(self, adder, num_ancillas=None):
         """Assert that ``adder`` correctly implements the summation w.r.t. its set weights."""
+        num_state_qubits = adder.num_state_qubits
+        num_sum_qubits = adder.num_sum_qubits
 
-        circuit = QuantumCircuit(adder.num_qubits)
-        circuit.h(list(range(adder.num_state_qubits)))
-        circuit.append(adder.to_instruction(), list(range(adder.num_qubits)))
+        if isinstance(adder, QuantumCircuit):
+            num_ancillas = adder.num_ancillas
+            weights = adder.weights
+        else:
+            weights = adder.params
 
-        statevector = Statevector(circuit)
+        circuit = QuantumCircuit(num_state_qubits + num_sum_qubits + num_ancillas)
+        circuit.h(list(range(num_state_qubits)))
+        circuit.append(adder, list(range(adder.num_qubits)))
+
+        tqc = transpile(circuit, basis_gates=["u", "cx"])
+        statevector = Statevector(tqc)
 
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
-            i = bin(i)[2:].zfill(circuit.num_qubits)[adder.num_ancillas :]
+            i = bin(i)[2:].zfill(circuit.num_qubits)[num_ancillas:]
             probabilities[i] += np.real(np.abs(statevector_amplitude) ** 2)
 
         expectations = defaultdict(float)
-        for x in range(2**adder.num_state_qubits):
-            bits = np.array(list(bin(x)[2:].zfill(adder.num_state_qubits)), dtype=int)
-            summation = bits.dot(adder.weights[::-1])
+        for x in range(2**num_state_qubits):
+            bits = np.array(list(bin(x)[2:].zfill(num_state_qubits)), dtype=int)
+            summation = bits.dot(weights[::-1])
 
-            entry = bin(summation)[2:].zfill(adder.num_sum_qubits) + bin(x)[2:].zfill(
-                adder.num_state_qubits
-            )
-            expectations[entry] = 1 / 2**adder.num_state_qubits
+            entry = bin(summation)[2:].zfill(num_sum_qubits) + bin(x)[2:].zfill(num_state_qubits)
+            expectations[entry] = 1 / 2**num_state_qubits
 
         for state, probability in probabilities.items():
             self.assertAlmostEqual(probability, expectations[state])
@@ -57,8 +66,28 @@ class TestWeightedAdder(QiskitTestCase):
     @data([0], [1, 2, 1], [4], [1, 2, 1, 1, 4])
     def test_summation(self, weights):
         """Test the weighted adder on some examples."""
-        adder = WeightedAdder(len(weights), weights)
-        self.assertSummationIsCorrect(adder)
+        for use_gate in [False, True]:
+            if use_gate:
+                adder = WeightedSumGate(len(weights), weights)
+                num_ancillas = adder.num_sum_qubits - 1
+                num_ancillas += int(adder.num_sum_qubits > 2)
+            else:
+                adder = WeightedAdder(len(weights), weights)
+                num_ancillas = None
+
+            with self.subTest(use_gate=use_gate):
+                self.assertSummationIsCorrect(adder, num_ancillas)
+
+    def test_too_few_aux(self):
+        """Test a warning if raised if there are not sufficient auxiliary qubits present."""
+        adder = WeightedSumGate(3, [1, 0, 1])
+        circuit = QuantumCircuit(adder.num_qubits)  # would need an additional auxiliary qubit
+        circuit.append(adder, circuit.qubits)
+
+        with self.assertWarnsRegex(
+            UserWarning, expected_regex="Cannot synthesize a WeightedSumGate on 3 state qubits"
+        ):
+            _ = HighLevelSynthesis()(circuit)
 
     def test_mutability(self):
         """Test the mutability of the weighted adder."""

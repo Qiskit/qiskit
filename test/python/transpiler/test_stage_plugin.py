@@ -41,7 +41,6 @@ class TestStagePassManagerPlugin(QiskitTestCase):
         self.assertIn("basic", routing_passes)
         self.assertIn("sabre", routing_passes)
         self.assertIn("lookahead", routing_passes)
-        self.assertIn("stochastic", routing_passes)
         self.assertIsInstance(list_stage_plugins("init"), list)
         self.assertIsInstance(list_stage_plugins("layout"), list)
         self.assertIsInstance(list_stage_plugins("translation"), list)
@@ -119,31 +118,6 @@ class TestBuiltinPlugins(QiskitTestCase):
             optimization_level=optimization_level,
             routing_method=routing_method,
         )
-        backend = BasicSimulator()
-        counts = backend.run(tqc, shots=1000).result().get_counts()
-        self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)
-
-    @combine(
-        optimization_level=list(range(4)),
-        routing_method=["stochastic"],
-    )
-    def test_routing_plugin_stochastic(self, optimization_level, routing_method):
-        """Test stoc routing plugins (excluding error)."""
-        # Note remove once StochasticSwap gets removed
-        qc = QuantumCircuit(4)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        qc.cx(0, 3)
-        qc.measure_all()
-        with self.assertWarns(DeprecationWarning):
-            tqc = transpile(
-                qc,
-                basis_gates=["cx", "sx", "x", "rz"],
-                coupling_map=CouplingMap.from_line(4),
-                optimization_level=optimization_level,
-                routing_method=routing_method,
-            )
         backend = BasicSimulator()
         counts = backend.run(tqc, shots=1000).result().get_counts()
         self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)

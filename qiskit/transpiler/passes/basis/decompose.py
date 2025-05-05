@@ -19,6 +19,7 @@ from typing import Type
 from fnmatch import fnmatch
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -58,7 +59,7 @@ class Decompose(TransformationPass):
             output dag where ``gate`` was expanded.
         """
         # We might use HLS to synthesize objects that do not have a definition
-        hls = HighLevelSynthesis() if self.apply_synthesis else None
+        hls = HighLevelSynthesis(qubits_initially_zero=False) if self.apply_synthesis else None
 
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
@@ -66,7 +67,11 @@ class Decompose(TransformationPass):
             if not self._should_decompose(node):
                 continue
 
-            if getattr(node.op, "definition", None) is None:
+            if node.is_control_flow():
+                decomposition = control_flow.map_blocks(self.run, node.op)
+                dag.substitute_node(node, decomposition, inplace=True)
+
+            elif getattr(node.op, "definition", None) is None:
                 # if we try to synthesize, turn the node into a DAGCircuit and run HLS
                 if self.apply_synthesis:
                     node_as_dag = _node_to_dag(node)
@@ -123,9 +128,10 @@ class Decompose(TransformationPass):
 
 
 def _node_to_dag(node: DAGOpNode) -> DAGCircuit:
+    # create new dag and apply the operation
     dag = DAGCircuit()
     dag.add_qubits(node.qargs)
     dag.add_clbits(node.cargs)
-
     dag.apply_operation_back(node.op, node.qargs, node.cargs)
+
     return dag

@@ -17,7 +17,7 @@ from collections.abc import Callable, Iterable
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library.standard_gates import RZGate
+from qiskit.circuit.library.standard_gates import RZGate, XXPlusYYGate
 from qiskit.utils.deprecation import deprecate_func
 from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
@@ -37,7 +37,7 @@ def excitation_preserving(
     parameter_prefix: str = "θ",
     insert_barriers: bool = False,
     name: str = "ExcitationPreserving",
-):
+) -> QuantumCircuit:
     r"""The heuristic excitation-preserving wave function ansatz.
 
     The ``excitation_preserving`` circuit preserves the ratio of :math:`|00\rangle`,
@@ -70,8 +70,9 @@ def excitation_preserving(
         With linear entanglement, this circuit is given by:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             from qiskit.circuit.library import excitation_preserving
 
@@ -83,6 +84,7 @@ def excitation_preserving(
         in each block:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -112,17 +114,20 @@ def excitation_preserving(
         raise ValueError(f"Unsupported mode {mode}, choose one of {supported_modes}")
 
     theta = Parameter("θ")
-    swap = QuantumCircuit(2, name="Interaction")
-    swap.rxx(theta, 0, 1)
-    swap.ryy(theta, 0, 1)
-    if mode == "fsim":
-        phi = Parameter("φ")
-        swap.cp(phi, 0, 1)
+    if num_qubits > 1:
+        swap = QuantumCircuit(2, name="Interaction")
+        swap.append(XXPlusYYGate(2 * theta), [0, 1])
+        if mode == "fsim":
+            phi = Parameter("φ")
+            swap.cp(phi, 0, 1)
+        entanglement_blocks = [swap.to_gate()]
+    else:
+        entanglement_blocks = []
 
     return n_local(
         num_qubits,
         ["rz"],
-        [swap.to_gate()],
+        entanglement_blocks,
         entanglement,
         reps,
         insert_barriers,
@@ -266,8 +271,7 @@ class ExcitationPreserving(TwoLocal):
 
         theta = Parameter("θ")
         swap = QuantumCircuit(2, name="Interaction")
-        swap.rxx(theta, 0, 1)
-        swap.ryy(theta, 0, 1)
+        swap.append(XXPlusYYGate(2 * theta), [0, 1])
         if mode == "fsim":
             phi = Parameter("φ")
             swap.cp(phi, 0, 1)

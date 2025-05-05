@@ -20,10 +20,6 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::operations::StandardGate::{
-    CXGate, CYGate, CZGate, HGate, PhaseGate, RXGate, RZGate, SGate, TGate, U1Gate, XGate, YGate,
-    ZGate,
-};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
@@ -37,10 +33,27 @@ static HALF_TURNS: [&str; 2] = ["z", "x"];
 static QUARTER_TURNS: [&str; 1] = ["s"];
 static EIGHTH_TURNS: [&str; 1] = ["t"];
 
-static VAR_Z_MAP: [(&str, StandardGate); 3] = [("rz", RZGate), ("p", PhaseGate), ("u1", U1Gate)];
-static Z_ROTATIONS: [StandardGate; 6] = [PhaseGate, ZGate, U1Gate, RZGate, TGate, SGate];
-static X_ROTATIONS: [StandardGate; 2] = [XGate, RXGate];
-static SUPPORTED_GATES: [StandardGate; 5] = [CXGate, CYGate, CZGate, HGate, YGate];
+static VAR_Z_MAP: [(&str, StandardGate); 3] = [
+    ("rz", StandardGate::RZ),
+    ("p", StandardGate::Phase),
+    ("u1", StandardGate::U1),
+];
+static Z_ROTATIONS: [StandardGate; 6] = [
+    StandardGate::Phase,
+    StandardGate::Z,
+    StandardGate::U1,
+    StandardGate::RZ,
+    StandardGate::T,
+    StandardGate::S,
+];
+static X_ROTATIONS: [StandardGate; 2] = [StandardGate::X, StandardGate::RX];
+static SUPPORTED_GATES: [StandardGate; 5] = [
+    StandardGate::CX,
+    StandardGate::CY,
+    StandardGate::CZ,
+    StandardGate::H,
+    StandardGate::Y,
+];
 
 #[derive(Hash, Eq, PartialEq, Debug)]
 enum GateOrRotation {
@@ -57,12 +70,13 @@ struct CancellationSetKey {
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, commutation_checker, basis_gates=None))]
+#[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
 pub(crate) fn cancel_commutations(
     py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<HashSet<String>>,
+    approximation_degree: f64,
 ) -> PyResult<()> {
     let basis: HashSet<String> = if let Some(basis) = basis_gates {
         basis
@@ -97,7 +111,8 @@ pub(crate) fn cancel_commutations(
         sec_commutation_set_id), the value is the list gates that share the same gate type,
         qubits and commutation sets.
     */
-    let (commutation_set, node_indices) = analyze_commutations_inner(py, dag, commutation_checker)?;
+    let (commutation_set, node_indices) =
+        analyze_commutations_inner(py, dag, commutation_checker, approximation_degree)?;
     let mut cancellation_sets: HashMap<CancellationSetKey, Vec<NodeIndex>> = HashMap::new();
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
@@ -105,14 +120,14 @@ pub(crate) fn cancel_commutations(
         if let Some(wire_commutation_set) = commutation_set.get(&Wire::Qubit(wire)) {
             for (com_set_idx, com_set) in wire_commutation_set.iter().enumerate() {
                 if let Some(&nd) = com_set.first() {
-                    if !matches!(dag.dag()[nd], NodeType::Operation(_)) {
+                    if !matches!(dag[nd], NodeType::Operation(_)) {
                         continue;
                     }
                 } else {
                     continue;
                 }
                 for node in com_set.iter() {
-                    let instr = match &dag.dag()[*node] {
+                    let instr = match &dag[*node] {
                         NodeType::Operation(instr) => instr,
                         _ => panic!("Unexpected type in commutation set."),
                     };
@@ -198,7 +213,7 @@ pub(crate) fn cancel_commutations(
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
                 for current_node in cancel_set {
-                    let node_op = match &dag.dag()[*current_node] {
+                    let node_op = match &dag[*current_node] {
                         NodeType::Operation(instr) => instr,
                         _ => panic!("Unexpected type in commutation set run."),
                     };
@@ -240,7 +255,7 @@ pub(crate) fn cancel_commutations(
 
                 let new_op = match cancel_key.gate {
                     GateOrRotation::ZRotation => z_var_gate.unwrap(),
-                    GateOrRotation::XRotation => &RXGate,
+                    GateOrRotation::XRotation => &StandardGate::RX,
                     _ => unreachable!(),
                 };
 
@@ -261,7 +276,7 @@ pub(crate) fn cancel_commutations(
                     0.0
                 };
 
-                dag.add_global_phase(py, &Param::Float(total_phase - new_op_phase))?;
+                dag.add_global_phase(&Param::Float(total_phase - new_op_phase))?;
 
                 for node in cancel_set {
                     dag.remove_op_node(*node);

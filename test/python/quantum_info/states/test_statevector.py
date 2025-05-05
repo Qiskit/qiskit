@@ -23,7 +23,7 @@ from numpy.testing import assert_allclose
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
+from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import optionals
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
@@ -1218,7 +1218,7 @@ class TestStatevector(QiskitTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = Statevector.from_instruction(circ1)
@@ -1229,7 +1229,7 @@ class TestStatevector(QiskitTestCase):
     @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         sv = Statevector.from_instruction(qc1)
         with self.subTest(msg="str(statevector)"):
             str(sv)
