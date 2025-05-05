@@ -125,6 +125,23 @@ impl PauliLindbladMap {
         self.into()
     }
 
+    /// Get an iterator over the individual generator terms of the map.
+    ///
+    /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
+    /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
+    pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = SparseTermView<'_>> + '_ {
+        self.coeffs.iter().enumerate().map(|(i, coeff)| {
+            let start = self.qubit_sparse_pauli_list.boundaries[i];
+            let end = self.qubit_sparse_pauli_list.boundaries[i + 1];
+            SparseTermView {
+                num_qubits: self.qubit_sparse_pauli_list.num_qubits,
+                coeff: *coeff,
+                bit_terms: &self.qubit_sparse_pauli_list.bit_terms[start..end],
+                indices: &self.qubit_sparse_pauli_list.indices[start..end],
+            }
+        })
+    }
+
     /// Get the number of qubits the map is defined on.
     #[inline]
     pub fn num_qubits(&self) -> u32 {
@@ -649,7 +666,249 @@ impl PySparseTerm {
     }
 }
 
-//****************************************************************************************************** grab doc */
+/// A Pauli Lindblad map stored in a qubit-sparse format.
+///
+/// Mathematics
+/// ===========
+///
+/// A Pauli-Lindblad map is a linear map acting on density matrices on :math:`n`-qubits of the form
+///
+/// .. math::
+///
+///     \Lamdba = \exp\left(\sum_{P \in K} \lambda_P P \cdot P - \cdot\right)
+///
+/// where :math:`K` is a subset of :math:`n`-qubit Pauli operators, and the coefficients
+/// :math:`\lambda_P` are real numbers. When all the coefficients :math:`\lambda_P` are
+/// non-negative, this corresponds to a completely positive and trace preserving map. The sum in the
+/// exponential is called the generator, and each individual term the generators. To simplify
+/// notation in the rest of the documention, we denote :math:`L(P) = P \cdot P - \cdot`.
+///
+/// Representation
+/// ==============
+///
+/// Each individual Pauli operator in the generator is a tensor product of single-qubit Pauli
+/// operators of the form :math:`P = \bigotimes_n A^{(n)}_i`, for :math:`A^{(n)}_i \in \{I, X, Y,
+/// Z\}`. The internal representation of a :class:`PauliLindbladMap` stores only the non-identity
+/// single-qubit Pauli operators.  This makes it significantly more efficient to represent
+/// generators such as :math:`\sum_{n\in \text{qubits}} c_n L(Z^{(n)})`; for which
+/// :class:`PauliLindbladMap` requires an amount of memory linear in the total number of qubits.
+///
+/// Internally, each single-qubit Pauli operator is stored with a numeric value, explicitly:
+///
+/// .. _pauli-lindblad-map-alphabet:
+/// .. table:: Alphabet of single-qubit Pauli operators used in :class:`PauliLindbladMap`
+///
+///   =======  =======================================  ===============  ===========================
+///   Label    Operator                                 Numeric value    :class:`.BitTerm` attribute
+///   =======  =======================================  ===============  ===========================
+///   ``"I"``  :math:`I` (identity)                     Not stored.      Not stored.
+///
+///   ``"X"``  :math:`X` (Pauli X)                      ``0b10`` (2)     :attr:`~.BitTerm.X`
+///
+///   ``"Y"``  :math:`Y` (Pauli Y)                      ``0b11`` (3)     :attr:`~.BitTerm.Y`
+///
+///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b01`` (1)     :attr:`~.BitTerm.Z`
+///
+///   =======  =======================================  ===============  ===========================
+///
+/// Each generator term is stored as a compression of the corresponding Pauli operator, similar in
+/// spirit to the compressed sparse row format of sparse matrices.  In this analogy, the terms of
+/// the sum are the "rows", and the qubit terms are the "columns", where an absent entry represents
+/// the identity rather than a zero. More explicitly, the representation is made up of four
+/// contiguous arrays:
+///
+/// .. _pauli-lindblad-map-arrays:
+/// .. table:: Data arrays used to represent :class:`.PauliLindbladMap`
+///
+///   ==================  ===========  =============================================================
+///   Attribute           Length       Description
+///   ==================  ===========  =============================================================
+///   :attr:`coeffs`      :math:`t`    The real scalar coefficient for each term.
+///
+///   :attr:`bit_terms`   :math:`s`    Each of the non-identity single-qubit Pauli operators for all
+///                                    of the generator terms, in order.  These correspond to the
+///                                    non-identity :math:`A^{(n)}_i` in the sum description, where
+///                                    the entries are stored in order of increasing :math:`i`
+///                                    first, and in order of increasing :math:`n` within each term.
+///
+///   :attr:`indices`     :math:`s`    The corresponding qubit (:math:`n`) for each of the operators
+///                                    in :attr:`bit_terms`.  :class:`PauliLindbladMap` requires
+///                                    that this list is term-wise sorted, and algorithms can rely
+///                                    on this invariant being upheld.
+///
+///   :attr:`boundaries`  :math:`t+1`  The indices that partition :attr:`bit_terms` and
+///                                    :attr:`indices` into complete terms.  For term number
+///                                    :math:`i`, its complex coefficient is ``coeffs[i]``, and its
+///                                    non-identity single-qubit operators and their corresponding
+///                                    qubits are the slice ``boundaries[i] : boundaries[i+1]`` into
+///                                    :attr:`bit_terms` and :attr:`indices` respectively.
+///                                    :attr:`boundaries` always has an explicit 0 as its first
+///                                    element.
+///   ==================  ===========  =============================================================
+///
+/// The length parameter :math:`t` is the number of generator terms in the sum, and the parameter
+/// :math:`s` is the total number of non-identity single-qubit terms.
+///
+/// As illustrative examples:
+///
+/// * in the case of the identity map, which contains no generator terms, :attr:`boundaries` is
+///   length 1 (a single 0) and all other vectors are empty.
+/// * for the map :math:`\exp\left(2 Z_2 Z_0 - 3 X_3 Y_1`, :attr:`boundaries` is ``[0, 2, 4]``,
+///   :attr:`coeffs` is ``[2.0, -3.0]``, :attr:`bit_terms` is ``[BitTerm.Z, BitTerm.Z, BitTerm.Y,
+///   BitTerm.X]`` and :attr:`indices` is ``[0, 2, 1, 3]``.  The map might act on more than
+///   four qubits, depending on the :attr:`num_qubits` parameter.  The :attr:`bit_terms` are integer
+///   values, whose magic numbers can be accessed via the :class:`BitTerm` attribute class.  Note
+///   that the single-bit terms and indices are sorted into termwise sorted order.  This is a
+///   requirement of the class.
+///
+/// These cases are not special, they're fully consistent with the rules and should not need special
+/// handling.
+///
+/// The scalar item of the :attr:`bit_terms` array is stored as a numeric byte.  The numeric values
+/// are related to the symplectic Pauli representation that :class:`.SparsePauliOp` uses, and are
+/// accessible with named access by an enumeration:
+///
+/// ..
+///     This is documented manually here because the Python-space `Enum` is generated
+///     programmatically from Rust - it'd be _more_ confusing to try and write a docstring somewhere
+///     else in this source file. The use of `autoattribute` is because it pulls in the numeric
+///     value.
+///
+/// .. py:class:: PauliLindbladMap.BitTerm
+///
+///     An :class:`~enum.IntEnum` that provides named access to the numerical values used to
+///     represent each of the single-qubit alphabet terms enumerated in
+///     :ref:`pauli-lindblad-map-alphabet`.
+///
+///     This class is attached to :class:`.PauliLindbladMap`.  Access it as
+///     :class:`.PauliLindbladMap.BitTerm`.  If this is too much typing, and you are solely dealing
+///     with :class:¬PauliLindbladMap` objects and the :class:`BitTerm` name is not ambiguous, you
+///     might want to shorten it as::
+///
+///         >>> ops = PauliLindbladMap.BitTerm
+///         >>> assert ops.X is PauliLindbladMap.BitTerm.X
+///
+///     You can access all the values of the enumeration by either their full all-capitals name, or
+///     by their single-letter label.  The single-letter labels are not generally valid Python
+///     identifiers, so you must use indexing notation to access them::
+///
+///         >>> assert PauliLindbladMap.BitTerm.X is PauliLindbladMap.BitTerm["X"]
+///
+///     The bits representing each single-qubit Pauli are the (phase-less) symplectic representation
+///     of the Pauli operator.
+///
+///     Values
+///     ------
+///
+///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.BitTerm.X
+///
+///         The Pauli :math:`X` operator.  Uses the single-letter label ``"X"``.
+///
+///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.BitTerm.Y
+///
+///         The Pauli :math:`Y` operator.  Uses the single-letter label ``"Y"``.
+///
+///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.BitTerm.Z
+///
+///         The Pauli :math:`Z` operator.  Uses the single-letter label ``"Z"``.
+///
+///     Attributes
+///     ----------
+///
+///     .. autoproperty:: qiskit.quantum_info::PauliLindbladMap.BitTerm.label
+///
+///
+/// Each of the array-like attributes behaves like a Python sequence.  You can index and slice these
+/// with standard :class:`list`-like semantics.  Slicing an attribute returns a Numpy
+/// :class:`~numpy.ndarray` containing a copy of the relevant data with the natural ``dtype`` of the
+/// field; this lets you easily do mathematics on the results, like bitwise operations on
+/// :attr:`bit_terms`.  You can assign to indices or slices of each of the attributes, but beware
+/// that you must uphold :ref:`the data coherence rules <pauli-lindblad-map-arrays>` while doing
+/// this.  For example::
+///
+///     >>> pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("YXZ", -0.5)])
+///     >>> assert isinstance(pauli_lindblad_map.coeffs[:], np.ndarray)
+///
+/// Indexing
+/// --------
+///
+/// :class:`PauliLindbladMap` behaves as `a Python sequence
+/// <https://docs.python.org/3/glossary.html#term-sequence>`__ (the standard form, not the expanded
+/// :class:`collections.abc.Sequence`).  The generators of the map can be indexed by integers, and
+/// iterated through to yield individual generator terms.
+///
+/// Each generator term appears as an instance a self-contained class.  The individual terms are
+/// copied out of the base map; mutations to them will not affect the original map from which they
+/// are indexed.
+///
+/// .. autoclass:: qiskit.quantum_info::PauliLindbladMap.Term
+///     :members:
+///
+/// Construction
+/// ============
+///
+/// :class:`PauliLindbladMap` defines several constructors.  The default constructor will attempt to
+/// delegate to one of the more specific constructors, based on the type of the input.  You can
+/// always use the specific constructors to have more control over the construction.
+///
+/// .. _pauli-lindblad-map-convert-constructors:
+/// .. table:: Construction from other objects
+///
+///   ============================  ================================================================
+///   Method                        Summary
+///   ============================  ================================================================
+///   :meth:`from_list`             Generators given as a list of tuples of dense string labels and
+///                                 the associated coefficients.
+///
+///   :meth:`from_sparse_list`      Generators given as a list of tuples of sparse string labels,
+///                                 the qubits they apply to, and their coefficients.
+///
+///   :meth:`from_terms`            Sum explicit single :class:`Term` instances.
+///
+///   :meth:`from_raw_parts`        Build the observable from :ref:`the raw data arrays
+///                                 <pauli-lindblad-map-arrays>`.
+///   ============================  ================================================================
+///
+/// .. py:function:: PauliLindbladMap.__new__(data, /, num_qubits=None)
+///
+///     The default constructor of :class:`PauliLindbladMap`.
+///
+///     This delegates to one of :ref:`the explicit conversion-constructor methods
+///     <pauli-lindblad-map-convert-constructors>`, based on the type of the ``data`` argument.  If
+///     ``num_qubits`` is supplied and constructor implied by the type of ``data`` does not accept a
+///     number, the given integer must match the input.
+///
+///     :param data: The data type of the input.  This can be another :class:`PauliLindbladMap`, in
+///         which case the input is copied, or it can be a list in a valid format for either
+///         :meth:`from_list` or :meth:`from_sparse_list`.
+///     :param int|None num_qubits: Optional number of qubits for the map.  For most data
+///         inputs, this can be inferred and need not be passed.  It is only necessary for empty
+///         lists or the sparse-list format.  If given unnecessarily, it must match the data input.
+///
+/// In addition to the conversion-based constructors, there are also helper methods that construct
+/// special forms of maps.
+///
+/// .. table:: Construction of special maps
+///
+///   ============================  ================================================================
+///   Method                        Summary
+///   ============================  ================================================================
+///   :meth:`identity`              The identity map on a given number of qubits.
+///   ============================  ================================================================
+///
+/// Conversions
+/// ===========
+///
+/// An existing :class:`PauliLindbladMap` can be converted into other formats.
+///
+/// .. table:: Conversion methods to other observable forms.
+///
+///   ===========================  =================================================================
+///   Method                       Summary
+///   ===========================  =================================================================
+///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
+///                                ``(bit_terms, indices, coeff)``.
+///   ===========================  =================================================================
 #[pyclass(name = "PauliLindbladMap", module = "qiskit.quantum_info", sequence)]
 #[derive(Debug)]
 pub struct PyPauliLindbladMap {
@@ -905,6 +1164,87 @@ impl PyPauliLindbladMap {
         Ok(inner.into())
     }
 
+    // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
+    // the `bit_terms` must all be valid `BitTerm` representations.
+    /// Construct a :class:`.PauliLindbladMap` from raw Numpy arrays that match :ref:`the required
+    /// data representation described in the class-level documentation
+    /// <pauli-lindblad-map-arrays>`.
+    ///
+    /// The data from each array is copied into fresh, growable Rust-space allocations.
+    ///
+    /// Args:
+    ///     num_qubits: number of qubits the map acts on.
+    ///     coeffs: float coefficients of each generator term of the map.  This should be a Numpy
+    ///         array with dtype :attr:`~numpy.float64`.
+    ///     bit_terms: flattened list of the single-qubit terms comprising all complete terms.  This
+    ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
+    ///         :class:`.BitTerm`).
+    ///     indices: flattened term-wise sorted list of the qubits each single-qubit term corresponds
+    ///         to.  This should be a Numpy array with dtype :attr:`~numpy.uint32`.
+    ///     boundaries: the indices that partition ``bit_terms`` and ``indices`` into terms.  This
+    ///         should be a Numpy array with dtype :attr:`~numpy.uintp`.
+    ///     check: if ``True`` (the default), validate that the data satisfies all coherence
+    ///         guarantees.  If ``False``, no checks are done.
+    ///
+    ///         .. warning::
+    ///
+    ///             If ``check=False``, the ``bit_terms`` absolutely *must* be all be valid values
+    ///             of :class:`.PauliLindbladMap.BitTerm`.  If they are not, Rust-space undefined
+    ///             behavior may occur, entirely invalidating the program execution.
+    ///
+    /// Examples:
+    ///
+    ///     Construct a sum of :math:`Z` on each individual qubit::
+    ///
+    ///         >>> num_qubits = 100
+    ///         >>> terms = np.full((num_qubits,), PauliLindbladMap.BitTerm.Z, dtype=np.uint8)
+    ///         >>> indices = np.arange(num_qubits, dtype=np.uint32)
+    ///         >>> coeffs = np.ones((num_qubits,), dtype=float)
+    ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
+    ///         >>> PauliLindbladMap.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
+    ///         <PauliLindbladMap with 100 terms on 100 qubits: (1)L(Z_0) + ... + (1)L(Z_99)>
+    #[staticmethod]
+    #[pyo3(
+        signature = (/, num_qubits, coeffs, bit_terms, indices, boundaries, check=true),
+    )]
+    unsafe fn from_raw_parts<'py>(
+        num_qubits: u32,
+        coeffs: PyArrayLike1<'py, f64>,
+        bit_terms: PyArrayLike1<'py, u8>,
+        indices: PyArrayLike1<'py, u32>,
+        boundaries: PyArrayLike1<'py, usize>,
+        check: bool,
+    ) -> PyResult<Self> {
+        let coeffs = coeffs.as_array().to_vec();
+        let bit_terms = if check {
+            bit_terms
+                .as_array()
+                .into_iter()
+                .copied()
+                .map(BitTerm::try_from)
+                .collect::<Result<_, _>>()?
+        } else {
+            let bit_terms_as_u8 = bit_terms.as_array().to_vec();
+            // SAFETY: the caller enforced that each `u8` is a valid `BitTerm`, and `BitTerm` is be
+            // represented by a `u8`.  We can't use `bytemuck` because we're casting a `Vec`.
+            unsafe { ::std::mem::transmute::<Vec<u8>, Vec<BitTerm>>(bit_terms_as_u8) }
+        };
+        let indices = indices.as_array().to_vec();
+        let boundaries = boundaries.as_array().to_vec();
+
+        let inner = if check {
+            let qubit_sparse_pauli_list: QubitSparsePauliList = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+            PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list)
+                .map_err(PyErr::from)
+        } else {
+            // SAFETY: the caller promised they have upheld the coherence guarantees.
+            Ok(unsafe {
+                PauliLindbladMap::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries)
+            })
+        }?;
+        Ok(inner.into())
+    }
+
     /// Get a copy of this Pauli Lindblad map.
     ///
     /// Examples:
@@ -991,6 +1331,45 @@ impl PyPauliLindbladMap {
         }
     }
 
+    /// Express the map in terms of a sparse list format.
+    ///
+    /// This can be seen as counter-operation of :meth:`.PauliLindbladMap.from_sparse_list`, however
+    /// the order of terms is not guaranteed to be the same at after a roundtrip to a sparse
+    /// list and back.
+    ///
+    /// Examples:
+    ///
+    ///     >>> pauli_lindblad_map = PauliLindbladMap.from_list([("IIXIZ", 2), ("IIZIX", 3)])
+    ///     >>> reconstructed = PauliLindbladMap.from_sparse_list(pauli_lindblad_map.to_sparse_list(), pauli_lindblad_map.num_qubits)
+    ///
+    /// See also:
+    ///     :meth:`from_sparse_list`
+    ///         The constructor that can interpret these lists.
+    #[pyo3(signature = ())]
+    fn to_sparse_list(&self, py: Python) -> PyResult<Py<PyList>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        // turn a SparseView into a Python tuple of (bit terms, indices, coeff)
+        let to_py_tuple = |view: SparseTermView| {
+            let mut pauli_string = String::with_capacity(view.bit_terms.len());
+
+            for bit in view.bit_terms.iter() {
+                pauli_string.push_str(bit.py_label());
+            }
+            let py_string = PyString::new(py, &pauli_string).unbind();
+            let py_indices = PyList::new(py, view.indices.iter())?.unbind();
+            let py_coeff = view.coeff.into_py_any(py)?;
+
+            PyTuple::new(py, vec![py_string.as_any(), py_indices.as_any(), &py_coeff])
+        };
+
+        let out = PyList::empty(py);
+        for view in inner.iter() {
+            out.append(to_py_tuple(view)?)?;
+        }
+        Ok(out.unbind())
+    }
+
     fn __len__(&self) -> PyResult<usize> {
         self.num_terms()
     }
@@ -1065,6 +1444,37 @@ impl PyPauliLindbladMap {
     #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
         py.get_type::<PySparseTerm>()
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        let num_terms = self.num_terms()?;
+        let num_qubits = self.num_qubits()?;
+
+        let str_num_terms = format!(
+            "{} term{}",
+            num_terms,
+            if num_terms == 1 { "" } else { "s" }
+        );
+        let str_num_qubits = format!(
+            "{} qubit{}",
+            num_qubits,
+            if num_qubits == 1 { "" } else { "s" }
+        );
+
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let str_terms = if num_terms == 0 {
+            "0.0".to_owned()
+        } else {
+            inner
+                .iter()
+                .map(SparseTermView::to_sparse_str)
+                .collect::<Vec<_>>()
+                .join(" + ")
+        };
+        Ok(format!(
+            "<PauliLindbladMap with {} on {}: {}>",
+            str_num_terms, str_num_qubits, str_terms
+        ))
     }
 
 }
