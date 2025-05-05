@@ -83,7 +83,7 @@ static PARAM_SET: [&str; 8] = ["rzz", "rxx", "ryy", "rzx", "crx", "cry", "crz", 
 
 /// Given a list of basis gates, find a corresponding euler basis to use.
 /// This will determine the available 1q synthesis basis for different decomposers.
-fn get_euler_basis_set(basis_list: IndexSet<&str>) -> EulerBasisSet {
+fn get_euler_basis_set(basis_list: IndexSet<&str, ::ahash::RandomState>) -> EulerBasisSet {
     let mut euler_basis_set: EulerBasisSet = EulerBasisSet::new();
     EULER_BASES
         .iter()
@@ -326,7 +326,7 @@ fn py_run_main_loop(
                 let target_basis_set = match target {
                     Some(target) => get_target_basis_set(target, PhysicalQubit::new(qubit.0)),
                     None => {
-                        let basis_gates: IndexSet<&str> =
+                        let basis_gates: IndexSet<&str, ::ahash::RandomState> =
                             basis_gates.iter().map(String::as_str).collect();
                         get_euler_basis_set(basis_gates)
                     }
@@ -422,12 +422,12 @@ fn py_run_main_loop(
 /// return `None``. If a decomposer is found, the return type will be either
 /// `DecomposerElement::TwoQubitBasis` or `DecomposerElement::TwoQubitControlledU`.
 fn get_2q_decomposer_from_basis(
-    basis_gates: IndexSet<&str>,
+    basis_gates: IndexSet<&str, ::ahash::RandomState>,
     approximation_degree: Option<f64>,
     pulse_optimize: Option<bool>,
 ) -> PyResult<Option<DecomposerElement>> {
     // Non-parametrized 2q basis candidates (TwoQubitBasisDecomposer)
-    let basis_names: IndexMap<&str, StandardGate> = [
+    let basis_names: IndexMap<&str, StandardGate, ::ahash::RandomState> = [
         ("cx", StandardGate::CX),
         ("cz", StandardGate::CZ),
         ("iswap", StandardGate::ISwap),
@@ -436,7 +436,7 @@ fn get_2q_decomposer_from_basis(
     .into_iter()
     .collect();
     // Parametrized 2q basis candidates (TwoQubitControlledUDecomposer)
-    let param_basis_names: IndexMap<&str, StandardGate> = [
+    let param_basis_names: IndexMap<&str, StandardGate, ::ahash::RandomState> = [
         ("rxx", StandardGate::RXX),
         ("rzx", StandardGate::RZX),
         ("rzz", StandardGate::RZZ),
@@ -462,7 +462,7 @@ fn get_2q_decomposer_from_basis(
     let kak_gates: Vec<&str> = param_basis_names
         .keys()
         .copied()
-        .collect::<IndexSet<&str>>()
+        .collect::<IndexSet<&str, ::ahash::RandomState>>()
         .intersection(&basis_gates)
         .copied()
         .collect();
@@ -484,7 +484,7 @@ fn get_2q_decomposer_from_basis(
     let kak_gates: Vec<&str> = basis_names
         .keys()
         .copied()
-        .collect::<IndexSet<&str>>()
+        .collect::<IndexSet<&str, ::ahash::RandomState>>()
         .intersection(&basis_gates)
         .copied()
         .collect();
@@ -519,7 +519,8 @@ fn get_2q_decomposers_from_target(
     // Store elegible basis gates (1q and 2q) with corresponding qargs (PhysicalQubit)
     let qargs: Qargs = Qargs::from_iter(*qubits);
     let reverse_qargs: Qargs = qubits.iter().rev().copied().collect();
-    let mut qubit_gate_map = IndexMap::new();
+    let mut qubit_gate_map: IndexMap<&Qargs, HashSet<&str>, ::ahash::RandomState> =
+        IndexMap::default();
     match target.operation_names_for_qargs(&qargs) {
         Ok(direct_keys) => {
             qubit_gate_map.insert(&qargs, direct_keys);
@@ -539,16 +540,23 @@ fn get_2q_decomposers_from_target(
     }
 
     // Define available 1q basis
-    let available_1q_basis: IndexSet<&str> = IndexSet::from_iter(
+    let available_1q_basis: IndexSet<&str, ::ahash::RandomState> = IndexSet::from_iter(
         get_target_basis_set(target, qubits[0])
             .get_bases()
             .map(|basis| basis.as_str()),
     );
 
     // Define available 2q basis (setting apart parametrized 2q gates)
-    let mut available_2q_basis: IndexMap<&str, (NormalOperation, Option<f64>)> = IndexMap::new();
-    let mut available_2q_param_basis: IndexMap<&str, (NormalOperation, Option<f64>)> =
-        IndexMap::new();
+    let mut available_2q_basis: IndexMap<
+        &str,
+        (NormalOperation, Option<f64>),
+        ::ahash::RandomState,
+    > = IndexMap::default();
+    let mut available_2q_param_basis: IndexMap<
+        &str,
+        (NormalOperation, Option<f64>),
+        ::ahash::RandomState,
+    > = IndexMap::default();
     for (q_pair, gates) in qubit_gate_map {
         for key in gates {
             let Some(TargetOperation::Normal(op)) = target.operation_from_name(key) else {
@@ -646,7 +654,11 @@ fn get_2q_decomposers_from_target(
             }
         }
     }
-    let supercontrolled_basis: IndexMap<&str, (NormalOperation, Option<f64>)> = available_2q_basis
+    let supercontrolled_basis: IndexMap<
+        &str,
+        (NormalOperation, Option<f64>),
+        ::ahash::RandomState,
+    > = available_2q_basis
         .iter()
         .filter(|(_, (gate, _))| is_supercontrolled(gate))
         .map(|(k, (gate, props))| (*k, (gate.clone(), *props)))
@@ -696,11 +708,12 @@ fn get_2q_decomposers_from_target(
             }
         }
     }
-    let controlled_basis: IndexMap<&str, (NormalOperation, Option<f64>)> = available_2q_basis
-        .iter()
-        .filter(|(_, (gate, _))| is_controlled(gate))
-        .map(|(k, (gate, props))| (*k, (gate.clone(), *props)))
-        .collect();
+    let controlled_basis: IndexMap<&str, (NormalOperation, Option<f64>), ::ahash::RandomState> =
+        available_2q_basis
+            .iter()
+            .filter(|(_, (gate, _))| is_controlled(gate))
+            .map(|(k, (gate, props))| (*k, (gate.clone(), *props)))
+            .collect();
     let mut pi2_basis: Option<&str> = None;
     let xx_embodiments: &Bound<'_, PyAny> = imports::XX_EMBODIMENTS.get_bound(py);
     // The Python XXDecomposer args are the interaction strength (f64), basis_2q_fidelity (f64),
@@ -1179,7 +1192,8 @@ fn run_2q_unitary_synthesis(
             decomposers_2q.unwrap_or_default()
         }
         None => {
-            let basis_gates: IndexSet<&str> = basis_gates.iter().map(String::as_str).collect();
+            let basis_gates: IndexSet<&str, ::ahash::RandomState> =
+                basis_gates.iter().map(String::as_str).collect();
             let decomposer_item: Option<DecomposerElement> =
                 get_2q_decomposer_from_basis(basis_gates, approximation_degree, pulse_optimize)?;
             if decomposer_item.is_none() {
