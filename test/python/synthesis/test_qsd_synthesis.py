@@ -13,15 +13,15 @@
 """Tests for QS decomposition synthesis methods."""
 
 import unittest
+import itertools
 from ddt import ddt, data
 import numpy as np
 import scipy
-import itertools
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.unitary import qsd
-from qiskit.circuit.library import XGate, UCGate, UnitaryGate
+from qiskit.circuit.library import UCGate, UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -45,10 +45,20 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         return 9 / 16 * 4**n - 3 / 2 * 2**n
 
     def _qsd_l2_a1_mod(self, n):
+        """expected optimized cnot count with opt_a1=True for down to 2q"""
         return (4 ** (n - 2) - 1) // 3
 
     def _qsd_l2_a2_mod(self, n):
+        """expected optimized cnot count with opt_a2=True for down to 2q"""
         return 4 ** (n - 1) - 1
+
+    def _qsd_l2_a1a2_mod(self, n):
+        """expected optimized cnot count with opt_a1=True and opt_a2=True for down to 2q"""
+        return (23 / 48) * 4**n - (3 / 2) * 2**n + 4 / 3
+
+    def _qsd_ucrz(self, n):
+        """expected cnot count of ucry/ucrz for down to 2q"""
+        return 2 ** (n - 1)
 
     @data(*list(range(1, 5)))
     def test_random_decomposition_l2_no_opt(self, nqubits):
@@ -133,7 +143,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         if nqubits > 2:
             self.assertEqual(
                 ccirc.count_ops().get("cx"),
-                (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3,
+                self._qsd_l2_a1a2_mod(nqubits),
             )
         elif nqubits == 1:
             self.assertEqual(ccirc.count_ops().get("cx", 0), 0)
@@ -247,27 +257,21 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         return multiplexed_gate, mat
 
     def test_tensor_block_uc_2q(self):
-        np.set_printoptions(linewidth=250, precision=2, suppress=True)
+        """Create 2q gate with multiplexed controls"""
         num_qubits = 2
-        gate, mat = self._create_random_multiplexed_gate(num_qubits)
-        print(f"original matrix:\n", mat)
+        gate, _ = self._create_random_multiplexed_gate(num_qubits)
         for layout in itertools.permutations(range(num_qubits)):
-            print("=" * 30)
             # create gate with "control" on different qubits
             qc = QuantumCircuit(num_qubits)
             qc.append(gate, layout)
             hidden_mat = Operator(qc).data
-            print(f"layout = {layout}")
-            print(hidden_mat)
             for j in range(num_qubits):
                 um00, um11, um01, um10 = qsd._extract_multiplex_blocks(hidden_mat, k=j)
                 # Check the off-diagonal
                 is_mult = qsd._off_diagonals_are_zero(um01, um10)
-                print(f"Is multiplexed wrt qubit {j}? {is_mult}")
                 if is_mult:
                     qc_uc = QuantumCircuit(num_qubits)
                     ucgate = UCGate([um00, um11])
-                    ucgate.definition
                     qc_uc.append(ucgate, layout)
                     uc_op = Operator(qc_uc)
                     self.assertEqual(Operator(qc), uc_op)
@@ -276,99 +280,87 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         """form matrix multiplexed wrt qubit k"""
         halfdim = um00.shape[0]
         dim = 2 * halfdim
-        N = halfdim.bit_length()
-        Ure4d = np.zeros((2, halfdim, 2, halfdim), dtype=complex)
-        Ure4d[0, :, 0, :] = um00
-        Ure4d[1, :, 1, :] = um11
-        UreNd = Ure4d.reshape((2,) * N + (2,) * N)
-        UreNd = np.moveaxis(UreNd, N, k + N)
-        UreNd = np.moveaxis(UreNd, 0, k)
-        Ure = UreNd.reshape(dim, dim)
-        return Ure
+        ndim = halfdim.bit_length()
+        ure4 = np.zeros((2, halfdim, 2, halfdim), dtype=complex)
+        ure4[0, :, 0, :] = um00
+        ure4[1, :, 1, :] = um11
+        urend = ure4.reshape((2,) * ndim + (2,) * ndim)
+        urend = np.moveaxis(urend, ndim, k + ndim)
+        urend = np.moveaxis(urend, 0, k)
+        ure = urend.reshape(dim, dim)
+        return ure
 
     def test_tensor_block_3q(self):
         """Create 3q gate with multiplexed controls"""
-        np.set_printoptions(linewidth=250, precision=2, suppress=True)
         num_qubits = 3
-        gate, mat = self._create_random_multiplexed_gate(num_qubits)
-        print(f"original matrix:\n", mat)
+        gate, _ = self._create_random_multiplexed_gate(num_qubits)
         for layout in itertools.permutations(range(num_qubits)):
-            print("=" * 30)
             # create gate with "control" on different qubits
             qc = QuantumCircuit(num_qubits)
             qc.append(gate, layout)
             hidden_mat = Operator(qc).data
-            print(f"layout = {layout}")
-            print(hidden_mat)
             for j in range(num_qubits):
                 um00, um11, um01, um10 = qsd._extract_multiplex_blocks(hidden_mat, k=j)
                 # Check the off-diagonal
                 is_mult = qsd._off_diagonals_are_zero(um01, um10)
-                print(f"Is multiplexed wrt qubit {j}? {is_mult}")
                 if is_mult:
                     qc_uc = QuantumCircuit(num_qubits)
                     uc_mat = self._get_multiplex_matrix(um00, um11, j)
                     uc_gate = UnitaryGate(uc_mat)
                     qc_uc.append(uc_gate, range(num_qubits))
                     uc_op = Operator(qc_uc)
-                    if Operator(qc) == uc_op:
-                        print(f"VALIDATED: {layout}, index={j}")
-                    else:
-                        print(f"NOT VALID: {layout}, index={j}")
-                        print(uc_mat)
-                        print("um01:\n", um01)
-                        print("um10:\n", um10)
+                    self.assertEqual(Operator(qc), uc_op)
 
-    @data(3, 4)
+    @data(3, 4, 5, 6)
     def test_block_diag_opt(self, num_qubits):
-        gate, mat = self._create_random_multiplexed_gate(num_qubits)
-        for layout in itertools.permutations(range(num_qubits)):
-            # create gate with "control" on different qubits
-            qc = QuantumCircuit(num_qubits)
-            qc.append(gate, layout)
-            hidden_op = Operator(qc)
-            hidden_mat = hidden_op.data
-            cqc = transpile(qc, basis_gates=["u", "cx"])
+        """Create a random multiplexed gate on num_qubits"""
+        gate, _ = self._create_random_multiplexed_gate(num_qubits)
+        layout = tuple(np.random.permutation(range(num_qubits)))
+        # create gate with "control" on different qubits
+        qc = QuantumCircuit(num_qubits)
+        qc.append(gate, layout)
+        hidden_op = Operator(qc)
+        hidden_mat = hidden_op.data
+        cqc = transpile(qc, basis_gates=["u", "cx"])
 
-            qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
-            cqc2 = transpile(qc2, basis_gates=["u", "cx"])
-            op2 = Operator(qc2)
-            mat2 = op2.data
-            print("-" * 30)
-            print(f"num ops: {cqc.count_ops()}")
-            print(f"num ops: {cqc2.count_ops()}")
-            self.assertEqual(hidden_op, op2)
-            # TODO: replace comparison with exact expectation.
-            self.assertLess(cqc2.count_ops().get("cx", 0), 0.6 * cqc.count_ops().get("cx", 0))
+        qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
+        cqc2 = transpile(qc2, basis_gates=["u", "cx"])
+        op2 = Operator(qc2)
+        self.assertEqual(hidden_op, op2)
+        self.assertLess(cqc2.count_ops().get("cx", 0), 0.6 * cqc.count_ops().get("cx", 0))
+        self.assertLessEqual(
+            cqc2.count_ops().get("cx", 0),
+            2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
+        )
 
     @data(3, 4, 5, 6)
     def test_mcx_opt(self, num_qubits):
+        """Create a multi-controlled X gate on num_qubits.
+        This is less efficient than synthesizing MCX directly."""
         np.set_printoptions(linewidth=200, precision=2, suppress=True)
         from qiskit.circuit._utils import _compute_control_matrix
 
-        gate = UnitaryGate(_compute_control_matrix(XGate().to_matrix(), num_qubits - 1))
-        for layout in itertools.permutations(range(num_qubits)):
-            # create gate with "control" on different qubits
-            qc = QuantumCircuit(num_qubits)
-            qr = qc.qubits
+        layout = tuple(np.random.permutation(range(num_qubits)))
+        # for layout in itertools.permutations(range(num_qubits)):
+        # create gate with "control" on different qubits
+        qc = QuantumCircuit(num_qubits)
+        qr = qc.qubits
 
-            # qc.append(gate, layout)
-            qc.mcx(qr[:-1], qr[-1], layout)
+        qc.mcx(qr[:-1], qr[-1], layout)
 
-            hidden_op = Operator(qc)
-            hidden_mat = hidden_op.data
-            cqc = transpile(qc, basis_gates=["u", "cx"])
+        hidden_op = Operator(qc)
+        hidden_mat = hidden_op.data
+        cqc = transpile(qc, basis_gates=["u", "cx"])
 
-            qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
-            cqc2 = transpile(qc2, basis_gates=["u", "cx"])
-            op2 = Operator(qc2)
-            mat2 = op2.data
-            print("-" * 30)
-            print(f"num ops: {cqc.count_ops()}")
-            print(f"num ops: {cqc2.count_ops()}")
-            self.assertTrue(matrix_equal(hidden_op.data, op2.data, atol=1e-7))
-            # TODO: replace comparison with exact expectation.
-            # self.assertLess(cqc2.count_ops().get('cx', 0), 0.6 * cqc.count_ops().get('cx', 0))
+        qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
+        cqc2 = transpile(qc2, basis_gates=["u", "cx"])
+        op2 = Operator(qc2)
+        self.assertTrue(matrix_equal(hidden_op.data, op2.data, atol=num_qubits * 1e-7))
+        self.assertLessEqual(
+            cqc2.count_ops().get("cx", 0),
+            2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
+        )
+        self.assertLess(cqc.count_ops().get("cx", 0), 0.8 * cqc2.count_ops().get("cx", 0))
 
 
 if __name__ == "__main__":
