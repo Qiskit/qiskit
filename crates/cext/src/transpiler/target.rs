@@ -822,9 +822,7 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
 
     let mut result: Vec<*mut c_char> = if let Ok(names) = target.operation_names_for_qargs(&qargs) {
         // Temporary measure to ensure consistent results for the instruction names
-        let mut temp_vec = Vec::from_iter(names);
-        temp_vec.sort_unstable();
-        temp_vec
+        names
             .into_iter()
             .map(|name| CString::new(name).unwrap().into_raw())
             .collect()

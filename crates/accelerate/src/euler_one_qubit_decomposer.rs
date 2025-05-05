@@ -13,7 +13,9 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::upper_case_acronyms)]
 
+use ahash::RandomState;
 use hashbrown::{HashMap, HashSet};
+use indexmap::IndexSet;
 use num_complex::{Complex64, ComplexFloat};
 use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
@@ -1078,7 +1080,8 @@ pub(crate) fn optimize_1q_gates_decomposition(
     let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
     let dag_qubits = dag.num_qubits();
     let mut target_basis_per_qubit: Vec<EulerBasisSet> = vec![EulerBasisSet::new(); dag_qubits];
-    let mut basis_gates_per_qubit: Vec<Option<HashSet<&str>>> = vec![None; dag_qubits];
+    let mut basis_gates_per_qubit: Vec<Option<IndexSet<&str, RandomState>>> =
+        vec![None; dag_qubits];
     for raw_run in runs {
         let mut error = match target {
             Some(_) => 1.,
