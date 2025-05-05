@@ -788,18 +788,18 @@ impl DAGCircuit {
         let dict_state = state.downcast_bound::<PyDict>(py)?;
         self.name = dict_state.get_item("name")?.unwrap().extract()?;
         self.metadata = dict_state.get_item("metadata")?.unwrap().extract()?;
-        self.qregs = RegisterData::from_mapping(
-            dict_state
-                .get_item("qregs")?
-                .unwrap()
-                .extract::<IndexMap<String, QuantumRegister>>()?,
-        );
-        self.cregs = RegisterData::from_mapping(
-            dict_state
-                .get_item("cregs")?
-                .unwrap()
-                .extract::<IndexMap<String, ClassicalRegister>>()?,
-        );
+        self.qregs =
+            RegisterData::from_mapping(dict_state.get_item("qregs")?.unwrap().extract::<IndexMap<
+                String,
+                QuantumRegister,
+                ::ahash::RandomState,
+            >>()?);
+        self.cregs =
+            RegisterData::from_mapping(dict_state.get_item("cregs")?.unwrap().extract::<IndexMap<
+                String,
+                ClassicalRegister,
+                ::ahash::RandomState,
+            >>()?);
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
         let binding = dict_state.get_item("identifier_info")?.unwrap();
