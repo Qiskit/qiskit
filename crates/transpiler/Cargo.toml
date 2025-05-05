@@ -24,6 +24,7 @@ num-complex.workspace = true
 rustworkx-core.workspace = true
 qiskit-circuit.workspace = true
 qiskit-accelerate.workspace = true
+thiserror.workspace = true
 
 [dependencies.smallvec]
 workspace = true
