@@ -33,8 +33,11 @@ use qiskit_circuit::{
     slice::{PySequenceIndex, SequenceIndex},
 };
 
-use super::qubit_sparse_pauli::{self, ArithmeticError, BitTerm, BitTermFromU8Error, CoherenceError, LabelError, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList, InnerReadError, InnerWriteError, raw_parts_from_sparse_list};
+use super::qubit_sparse_pauli::{self, ArithmeticError, BitTerm, BitTermFromU8Error, CoherenceError, LabelError, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList, InnerReadError, InnerWriteError, raw_parts_from_sparse_list, make_py_bit_term};
 
+static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
+static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
+static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format.
 ///
@@ -1029,6 +1032,39 @@ impl PyPauliLindbladMap {
             out.add_term(inner.term(index))?;
         }
         out.into_bound_py_any(py)
+    }
+
+    fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
+        // this is also important to check before trying to read both slf and other
+        if slf.is(&other) {
+            return Ok(true);
+        }
+        let Ok(other) = other.downcast_into::<Self>() else {
+            return Ok(false);
+        };
+        let slf_borrowed = slf.borrow();
+        let other_borrowed = other.borrow();
+        let slf_inner = slf_borrowed.inner.read().map_err(|_| InnerReadError)?;
+        let other_inner = other_borrowed.inner.read().map_err(|_| InnerReadError)?;
+        Ok(slf_inner.eq(&other_inner))
+    }
+
+    // The documentation for this is inlined into the class-level documentation of
+    // `PauliLindbladMap`.
+    #[allow(non_snake_case)]
+    #[classattr]
+    fn BitTerm(py: Python) -> PyResult<Py<PyType>> {
+        BIT_TERM_PY_ENUM
+            .get_or_try_init(py, || make_py_bit_term(py))
+            .map(|obj| obj.clone_ref(py))
+    }
+
+    // The documentation for this is inlined into the class-level documentation of
+    // `PauliLindbladMap`.
+    #[allow(non_snake_case)]
+    #[classattr]
+    fn Term(py: Python) -> Bound<PyType> {
+        py.get_type::<PySparseTerm>()
     }
 
 }
