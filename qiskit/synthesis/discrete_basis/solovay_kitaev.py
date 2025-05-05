@@ -24,7 +24,7 @@ from .generate_basis_approximations import generate_basic_approximations, _1q_ga
 class SolovayKitaevDecomposition:
     """The Solovay Kitaev discrete decomposition algorithm.
 
-    This class is called recursively by the transpiler pass, which is why it is separeted.
+    This class is called recursively by the transpiler pass, which is why it is separated.
     See :class:`qiskit.transpiler.passes.SolovayKitaev` for more information.
     """
 
@@ -33,7 +33,7 @@ class SolovayKitaevDecomposition:
     ) -> None:
         """
         Args:
-            basic_approximations: A specification of the basic SU(2) approximations in terms
+            basic_approximations: A specification of the basic SO(3) approximations in terms
                 of discrete gates. At each iteration this algorithm, the remaining error is
                 approximated with the closest sequence of gates in this set.
                 If a ``str``, this specifies a ``.npy`` filename from which to load the
@@ -116,15 +116,24 @@ class SolovayKitaevDecomposition:
         """
         # make input matrix SU(2) and get the according global phase
         z = 1 / np.sqrt(np.linalg.det(gate_matrix))
-        gate_matrix_su2 = GateSequence.from_matrix(z * gate_matrix)
+
+        gate_matrix_su2 = z * gate_matrix
+        gate_matrix_as_sequence = GateSequence.from_matrix(gate_matrix_su2)
         global_phase = np.arctan2(np.imag(z), np.real(z))
 
         # get the decomposition as GateSequence type
-        decomposition = self._recurse(gate_matrix_su2, recursion_degree, check_input=check_input)
+        decomposition = self._recurse(
+            gate_matrix_as_sequence, recursion_degree, check_input=check_input
+        )
 
         # simplify
         _remove_identities(decomposition)
         _remove_inverse_follows_gate(decomposition)
+
+        # adjust to the correct SU(2) phase
+        adjust_phase = (
+            np.pi if _should_adjust_phase(decomposition._to_u2(), gate_matrix_su2) else 0.0
+        )
 
         # convert to a circuit and attach the right phases
         if return_dag:
@@ -132,7 +141,8 @@ class SolovayKitaevDecomposition:
         else:
             out = decomposition.to_circuit()
 
-        out.global_phase = decomposition.global_phase - global_phase
+        out.global_phase += adjust_phase
+        out.global_phase -= global_phase
 
         return out
 
@@ -155,17 +165,20 @@ class SolovayKitaevDecomposition:
             raise ValueError("Shape of U must be (3, 3) but is", sequence.shape)
 
         if n == 0:
-            return self.find_basic_approximation(sequence)
+            res = self.find_basic_approximation(sequence)
 
-        u_n1 = self._recurse(sequence, n - 1, check_input=check_input)
+        else:
+            u_n1 = self._recurse(sequence, n - 1, check_input=check_input)
 
-        v_n, w_n = commutator_decompose(
-            sequence.dot(u_n1.adjoint()).product, check_input=check_input
-        )
+            v_n, w_n = commutator_decompose(
+                sequence.dot(u_n1.adjoint()).product, check_input=check_input
+            )
 
-        v_n1 = self._recurse(v_n, n - 1, check_input=check_input)
-        w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
-        return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
+            v_n1 = self._recurse(v_n, n - 1, check_input=check_input)
+            w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
+            res = v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
+
+        return res
 
     def find_basic_approximation(self, sequence: GateSequence) -> GateSequence:
         """Find ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
@@ -215,3 +228,13 @@ def _remove_identities(sequence):
             sequence.gates.pop(index)
         else:
             index += 1
+
+
+def _should_adjust_phase(computed: np.ndarray, target: np.ndarray) -> bool:
+    """
+    The implemented SolovayKitaevDecomposition has a global phase uncertainty of +-1,
+    due to approximating not the original SU(2) matrix but its projection onto SO(3).
+    This function returns ``True`` if the global phase of the computed approximation
+    should be adjusted (by adding pi) to better much the target.
+    """
+    return np.linalg.norm(-computed - target) < np.linalg.norm(computed - target)
