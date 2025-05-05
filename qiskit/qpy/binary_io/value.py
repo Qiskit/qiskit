@@ -465,11 +465,15 @@ def _read_parameter_vec(file_obj, vectors, from_expr):
     param_uuid = uuid.UUID(bytes=data.uuid)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
 
-    if from_expr or name not in vectors:
-        vectors[name] = (ParameterVector(name, data.vector_size), set())
-    vector = vectors[name][0]
-    if vector[data.index].uuid != param_uuid:
-        vectors[name][1].add(data.index)
+    if param_uuid not in vectors:
+        vectors[param_uuid] = (ParameterVector(name, data.vector_size), set())
+    vector = vectors[param_uuid][0]
+    if from_expr:
+        for index in range(data.vector_size):
+            vectors[param_uuid][1].add(index)
+            vector._params[index] = ParameterVectorElement(vector, index, uuid=param_uuid)
+    elif vector[data.index].uuid != param_uuid:
+        vectors[param_uuid][1].add(data.index)
         vector._params[data.index] = ParameterVectorElement(vector, data.index, uuid=param_uuid)
     return vector[data.index]
 
@@ -535,7 +539,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            symbol = _read_parameter_vec(file_obj, vectors, False)
+            symbol = _read_parameter_vec(file_obj, vectors, from_expr=True)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
@@ -583,9 +587,10 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            symbol = _read_parameter_vec(file_obj, vectors, True)
+            symbol = _read_parameter_vec(file_obj, vectors, from_expr=True)
         elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
             symbol = _read_parameter_expression_v13(file_obj, vectors, version)
+
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
@@ -626,6 +631,7 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         expression_data = formats.PARAM_EXPR_ELEM_V13._make(
             struct.unpack(formats.PARAM_EXPR_ELEM_V13_PACK, data)
         )
+
         # LHS
         if expression_data.LHS_TYPE == b"p":
             stack.append(param_uuid_map[uuid.UUID(bytes=expression_data.LHS)])
@@ -648,7 +654,11 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             subs_map_data = buf.read(size)
             with io.BytesIO(subs_map_data) as mapping_buf:
                 mapping = common.read_mapping(
-                    mapping_buf, deserializer=loads_value, version=version, vectors=vectors
+                    mapping_buf,
+                    deserializer=loads_value,
+                    version=version,
+                    vectors=vectors,
+                    from_expr=True,
                 )
             stack.append({name_map[k]: v for k, v in mapping.items()})
         else:
@@ -682,6 +692,13 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
             rhs = stack.pop()
             lhs = stack.pop()
+            if expression_data.OP_CODE == 15:
+                for key, value in rhs.items():
+                    for index in range(len(vectors[value.uuid][0])):
+                        vectors[value.uuid][1].add(index)
+                    for index in range(len(vectors[key.uuid][0])):
+                        vectors[key.uuid][1].add(index)
+
             # Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
             # op codes 13 and 15 can never be reversed and 18, 19, 20
             # are the reversed versions of non-commuative operations
@@ -1058,6 +1075,7 @@ def loads_value(
     cregs=None,
     use_symengine=False,
     standalone_vars=(),
+    from_expr=False,
 ):
     """Deserialize input binary data to value object.
 
@@ -1102,7 +1120,7 @@ def loads_value(
         return CASE_DEFAULT
     if type_key == type_keys.Value.PARAMETER_VECTOR:
         return common.data_from_binary(
-            binary_data, _read_parameter_vec, vectors=vectors, from_expr=False
+            binary_data, _read_parameter_vec, vectors=vectors, from_expr=from_expr
         )
     if type_key == type_keys.Value.PARAMETER:
         return common.data_from_binary(binary_data, _read_parameter)
