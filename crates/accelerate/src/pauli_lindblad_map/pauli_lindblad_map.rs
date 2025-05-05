@@ -33,14 +33,8 @@ use qiskit_circuit::{
     slice::{PySequenceIndex, SequenceIndex},
 };
 
-use qubit_sparse_pauli::{BitTerm, BitTermFromU8Error, CoherenceError, LabelError, ArithmeticError, QubitSparsePauli, QubitSparsePauliList, PyQubitSparsePauli, PyQubitSparsePauliList};
+use super::qubit_sparse_pauli::{self, ArithmeticError, BitTerm, BitTermFromU8Error, CoherenceError, LabelError, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList};
 
-
-#[derive(Error, Debug)]
-pub enum CoefficientCoherenceError {
-    #[error("`boundaries` ({boundaries}) must be one element longer than `coeffs` ({coeffs})")]
-    MismatchedTermCount { coeffs: usize, boundaries: usize },
-}
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format.
 ///
@@ -59,17 +53,17 @@ impl PauliLindbladMap {
         coeffs: Vec<f64>,
         qubit_sparse_pauli_list: QubitSparsePauliList,
     ) -> Result<Self, CoherenceError> {
-        if coeffs.len() + 1 != qubit_sparse_pauli_list.boundaries.len() {
-            return Err(CoefficientCoherenceError::MismatchedTermCount {
+        if coeffs.len() + 1 != qubit_sparse_pauli_list.boundaries().len() {
+            return Err(CoherenceError::MismatchedTermCount {
                 coeffs: coeffs.len(),
-                boundaries: boundaries.len(),
+                boundaries: qubit_sparse_pauli_list.boundaries().len(),
             });
         }
 
-        Self {
+        Ok(Self {
             coeffs,
             qubit_sparse_pauli_list
-        }
+        })
     }
 
     /// Create a new Pauli Lindblad map from the raw components that make it up.
@@ -84,14 +78,15 @@ impl PauliLindbladMap {
         boundaries: Vec<usize>,
     ) -> Result<Self, CoherenceError> {
         if coeffs.len() + 1 != boundaries.len() {
-            return Err(CoefficientCoherenceError::MismatchedTermCount {
+            return Err(CoherenceError::MismatchedTermCount {
                 coeffs: coeffs.len(),
                 boundaries: boundaries.len(),
             });
         }
+        let qubit_sparse_pauli_list: QubitSparsePauliList = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
         Ok(Self {
             coeffs,
-            QubitSparsePauliList.new(num_qubits, bit_terms, indices, boundaries)
+            qubit_sparse_pauli_list
         })
     }
 
@@ -109,9 +104,12 @@ impl PauliLindbladMap {
         indices: Vec<u32>,
         boundaries: Vec<usize>,
     ) -> Self {
-        Self {
-            coeffs,
-            QubitSparsePauliList.new_unchecked(num_qubits, bit_terms, indices, boundaries),
+        unsafe {
+            let qubit_sparse_pauli_list: QubitSparsePauliList = QubitSparsePauliList::new_unchecked(num_qubits, bit_terms, indices, boundaries);
+            Self {
+                coeffs,
+                qubit_sparse_pauli_list,
+            }
         }
     }
 
@@ -127,7 +125,7 @@ impl PauliLindbladMap {
     /// Get the number of qubits the map is defined on.
     #[inline]
     pub fn num_qubits(&self) -> u32 {
-        self.qubit_sparse_pauli_list.num_qubits
+        self.qubit_sparse_pauli_list.num_qubits()
     }
 
     /// Get the number of generator terms in the map.
@@ -151,7 +149,7 @@ impl PauliLindbladMap {
     /// Get the indices of each [BitTerm].
     #[inline]
     pub fn indices(&self) -> &[u32] {
-        &self.qubit_sparse_pauli_list.indices
+        &self.qubit_sparse_pauli_list.indices()
     }
 
     /// Get a mutable slice of the indices.
@@ -163,13 +161,15 @@ impl PauliLindbladMap {
     /// boundaries.
     #[inline]
     pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
-        &mut self.qubit_sparse_pauli_list.indices
+        unsafe {
+            self.qubit_sparse_pauli_list.indices_mut()
+        }
     }
 
     /// Get the boundaries of each term.
     #[inline]
     pub fn boundaries(&self) -> &[usize] {
-        &self.qubit_sparse_pauli_list.boundaries
+        &self.qubit_sparse_pauli_list.boundaries()
     }
 
     /// Get a mutable slice of the boundaries.
@@ -181,19 +181,23 @@ impl PauliLindbladMap {
     /// with the coeffs, bit_terms, and indices.
     #[inline]
     pub unsafe fn boundaries_mut(&mut self) -> &mut [usize] {
-        &mut self.qubit_sparse_pauli_list.boundaries
+        unsafe {
+            self.qubit_sparse_pauli_list.boundaries_mut()
+        }
     }
 
     /// Get the [BitTerm]s in the map.
     #[inline]
     pub fn bit_terms(&self) -> &[BitTerm] {
-        &self.qubit_sparse_pauli_list.bit_terms
+        &self.qubit_sparse_pauli_list.bit_terms()
     }
 
     /// Get a mutable slice of the bit terms.
     #[inline]
     pub fn bit_terms_mut(&mut self) -> &mut [BitTerm] {
-        &mut self.qubit_sparse_pauli_list.bit_terms
+        unsafe {
+            self.qubit_sparse_pauli_list.bit_terms_mut()
+        }
     }
 
     /// Create a [PauliLindbladMap] representing the identity map on ``num_qubits`` qubits.
@@ -216,9 +220,10 @@ impl PauliLindbladMap {
     /// number of summands and single-qubit bit terms.
     #[inline]
     pub fn with_capacity(num_qubits: u32, num_terms: usize, num_bit_terms: usize) -> Self {
+        let qubit_sparse_pauli_list = QubitSparsePauliList::with_capacity(num_qubits, num_terms, num_bit_terms);
         Self {
             coeffs: Vec::with_capacity(num_terms),
-            QubitSparsePauliList.with_capacity(num_qubits, num_terms, num_bit_terms)
+            qubit_sparse_pauli_list
         }
     }
 
