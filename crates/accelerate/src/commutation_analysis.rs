@@ -35,10 +35,10 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///
 /// We return two HashMaps:
 ///  * {wire: commutation_sets}: For each wire, we keep a vector of index sets, where each index
-///     set contains mutually commuting nodes. Note that these include the input and output nodes
-///     which do not commute with anything.
+///    set contains mutually commuting nodes. Note that these include the input and output nodes
+///    which do not commute with anything.
 ///  * {(node, wire): index}: For each (node, wire) pair we store the index indicating in which
-///     commutation set the node appears on a given wire.
+///    commutation set the node appears on a given wire.
 ///
 /// For example, if we have a circuit
 ///
@@ -62,11 +62,11 @@ pub(crate) fn analyze_commutations_inner(
     for qubit in 0..dag.num_qubits() {
         let wire = Wire::Qubit(Qubit(qubit as u32));
 
-        for current_gate_idx in dag.nodes_on_wire(&wire, false) {
+        for current_gate_idx in dag.nodes_on_wire(wire, false) {
             // get the commutation set associated with the current wire, or create a new
             // index set containing the current gate
             let commutation_entry = commutation_set
-                .entry(wire.clone())
+                .entry(wire)
                 .or_insert_with(|| vec![vec![current_gate_idx]]);
 
             // we can unwrap as we know the commutation entry has at least one element
@@ -123,10 +123,7 @@ pub(crate) fn analyze_commutations_inner(
                 }
             }
 
-            node_indices.insert(
-                (current_gate_idx, wire.clone()),
-                commutation_entry.len() - 1,
-            );
+            node_indices.insert((current_gate_idx, wire), commutation_entry.len() - 1);
         }
     }
 

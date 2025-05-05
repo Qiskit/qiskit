@@ -44,6 +44,7 @@ use crate::euler_one_qubit_decomposer::angles_from_unitary;
 use crate::euler_one_qubit_decomposer::EulerBasis;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
+use crate::target_transpiler::Qargs;
 use crate::target_transpiler::Target;
 use crate::two_qubit_decompose::TwoQubitBasisDecomposer;
 
@@ -347,7 +348,7 @@ fn all_instructions_supported(
                 if borrowed_data.use_physical_indices {
                     return Ok(false);
                 }
-                Ok(op_keys.all(|name| target.instruction_supported(name, None)))
+                Ok(op_keys.all(|name| target.instruction_supported(name, &Qargs::Global)))
             } else {
                 // If we do not have the target, we check whether every operation
                 // in op_names is inside the basis gates.
@@ -371,10 +372,11 @@ fn instruction_supported(
             let target = target.borrow(py);
             if target.num_qubits.is_some() {
                 if borrowed_data.use_physical_indices {
-                    let physical_qubits = qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
-                    target.instruction_supported(name, Some(&physical_qubits))
+                    let physical_qubits: Qargs =
+                        qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
+                    target.instruction_supported(name, &physical_qubits)
                 } else {
-                    target.instruction_supported(name, None)
+                    target.instruction_supported(name, &Qargs::Global)
                 }
             } else {
                 borrowed_data.device_insts.contains(name)
@@ -637,7 +639,7 @@ fn run_on_circuitdata(
                         inst_inner.params_view(),
                         &inst_outer_qubits,
                         &inst_outer_clbits,
-                    )?;
+                    );
                 }
 
                 let updated_global_phase = radd_param(
@@ -689,7 +691,7 @@ fn extract_definition(
                         StandardGate::U,
                         &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
                         &[Qubit(0)],
-                    )?;
+                    );
                     Ok(Some(circuit_data))
                 }
                 // Run 2q synthesis

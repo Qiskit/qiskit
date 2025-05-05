@@ -51,7 +51,7 @@ fn remove_identity_equiv(
                                 .iter()
                                 .map(|x| PhysicalQubit::new(x.0))
                                 .collect();
-                            let error_rate = target.get_error(inst.op().name(), qargs.as_slice());
+                            let error_rate = target.get_error(inst.op().name(), &qargs);
                             match error_rate {
                                 Some(err) => err * degree,
                                 None => MINIMUM_TOL.max(1. - degree),
@@ -68,7 +68,7 @@ fn remove_identity_equiv(
                         .iter()
                         .map(|x| PhysicalQubit::new(x.0))
                         .collect();
-                    let error_rate = target.get_error(inst.op().name(), qargs.as_slice());
+                    let error_rate = target.get_error(inst.op().name(), &qargs);
                     match error_rate {
                         Some(err) => err,
                         None => MINIMUM_TOL,
