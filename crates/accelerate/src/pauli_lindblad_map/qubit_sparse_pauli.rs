@@ -665,10 +665,10 @@ impl QubitSparsePauli {
 }
 
 #[derive(Error, Debug)]
-struct InnerReadError;
+pub struct InnerReadError;
 
 #[derive(Error, Debug)]
-struct InnerWriteError;
+pub struct InnerWriteError;
 
 impl ::std::fmt::Display for InnerReadError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {

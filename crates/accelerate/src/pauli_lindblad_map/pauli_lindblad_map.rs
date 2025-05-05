@@ -33,7 +33,7 @@ use qiskit_circuit::{
     slice::{PySequenceIndex, SequenceIndex},
 };
 
-use super::qubit_sparse_pauli::{self, ArithmeticError, BitTerm, BitTermFromU8Error, CoherenceError, LabelError, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList};
+use super::qubit_sparse_pauli::{self, ArithmeticError, BitTerm, BitTermFromU8Error, CoherenceError, LabelError, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList, InnerReadError, InnerWriteError};
 
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format.
@@ -236,6 +236,21 @@ impl PauliLindbladMap {
         self.qubit_sparse_pauli_list.clear();
     }
 
+    /// Add a single generator term to this map.
+    pub fn add_term(&mut self, term: SparseTermView) -> Result<(), ArithmeticError> {
+        if self.num_qubits() != term.num_qubits {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits(),
+                right: term.num_qubits,
+            });
+        }
+        self.coeffs.push(term.coeff);
+        self.qubit_sparse_pauli_list.bit_terms().extend_from_slice(term.bit_terms);
+        self.qubit_sparse_pauli_list.indices().extend_from_slice(term.indices);
+        self.qubit_sparse_pauli_list.boundaries().push(self.bit_terms.len());
+        Ok(())
+    }
+
 }
 
 
@@ -416,13 +431,18 @@ impl SparseTerm {
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
     pub fn to_pauli_lindblad_map(&self) -> PauliLindbladMap {
-        PauliLindbladMap::new_from_raw_parts(
-            self.num_qubits,
-            vec![self.coeff],
-            self.bit_terms.to_vec(),
-            self.indices.to_vec(),
-            vec![0, self.bit_terms.len()],
-        )
+
+        let qubit_sparse_pauli_list = QubitSparsePauliList {
+            num_qubits: self.num_qubits(),
+            bit_terms: self.bit_terms.to_vec(),
+            indices: self.indices.to_vec(),
+            boundaries: vec![0, self.bit_terms.len()],
+        };
+
+        PauliLindbladMap {
+            coeffs: vec![self.coeff],
+            qubit_sparse_pauli_list: qubit_sparse_pauli_list,
+        }
     }
 }
 
