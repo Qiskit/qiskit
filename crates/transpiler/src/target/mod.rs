@@ -230,7 +230,7 @@ pub struct Target {
 impl Target {
     /// Create a new ``Target`` object
     ///
-    ///Args:
+    /// Args:
     ///    description (str): An optional string to describe the Target.
     ///    num_qubits (int): An optional int to specify the number of qubits
     ///        the backend target has. If not set it will be implicitly set
@@ -264,12 +264,13 @@ impl Target {
     ///    concurrent_measurements(list): A list of sets of qubits that must be
     ///        measured together. This must be provided
     ///        as a nested list like ``[[0, 1], [2, 3, 4]]``.
-    ///Raises:
+    /// Raises:
     ///    ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
     ///        defined and the value of ``num_qubits`` differs from the length of
     ///        ``qubit_properties``.
     #[new]
-    #[pyo3(signature = (
+    #[pyo3(
+        signature = (
         description = None,
         num_qubits = 0,
         dt = None,
@@ -280,7 +281,7 @@ impl Target {
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
-    pub fn new(
+    pub fn py_new(
         description: Option<String>,
         mut num_qubits: Option<u32>,
         dt: Option<f64>,
@@ -909,6 +910,86 @@ impl Target {
 
 // Rust native methods
 impl Target {
+    /// Creates a new [Target].
+    ///
+    /// # Arguments
+    ///
+    /// * `description` - An optional string to describe the Target.
+    /// * `num_qubits` - An optional int to specify the number of qubits
+    ///        the backend target has. If not set it will be implicitly set
+    ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
+    ///        is called. Note this must be set if the backend target is for a
+    ///        noiseless simulator that doesn't have constraints on the
+    ///        instructions so the transpiler knows how many qubits are
+    ///        available.
+    /// * `dt` - The system time resolution of input signals in seconds
+    /// * `granularity` - An integer value representing minimum pulse gate
+    ///        resolution in units of ``dt``. A user-defined pulse gate should
+    ///        have duration of a multiple of this granularity value.
+    /// * `min_length` - An integer value representing minimum pulse gate
+    ///        length in units of ``dt``. A user-defined pulse gate should be
+    ///        longer than this length.
+    /// * `pulse_alignment` - An integer value representing a time
+    ///        resolution of gate instruction starting time. Gate instruction
+    ///        should start at time which is a multiple of the alignment
+    ///        value.
+    /// * `acquire_alignment` - An integer value representing a time
+    ///        resolution of measure instruction starting time. Measure
+    ///        instruction should start at time which is a multiple of the
+    ///        alignment value.
+    /// * `concurrent_measurements` - A list of sets of qubits that must be
+    ///        measured together. This must be provided
+    ///        as a nested list like ``[[0, 1], [2, 3, 4]]``.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of [Target].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_circuit::operations::StandardGate;
+    ///
+    /// let mut target = Target::new(
+    ///     Some("target".to_string()),
+    ///     Some(4),
+    ///     None,
+    ///     Some(1),
+    ///     Some(1),
+    ///     Some(1),
+    ///     Some(0),
+    ///     None,
+    /// );
+    /// ```
+    pub fn new(
+        description: Option<String>,
+        num_qubits: Option<u32>,
+        dt: Option<f64>,
+        granularity: Option<u32>,
+        min_length: Option<u32>,
+        pulse_alignment: Option<u32>,
+        acquire_alignment: Option<u32>,
+        concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
+    ) -> Self {
+        Target {
+            description,
+            num_qubits,
+            dt,
+            granularity: granularity.unwrap_or(1),
+            min_length: min_length.unwrap_or(1),
+            pulse_alignment: pulse_alignment.unwrap_or(1),
+            acquire_alignment: acquire_alignment.unwrap_or(0),
+            qubit_properties: None,
+            concurrent_measurements,
+            gate_map: GateMap::default(),
+            _gate_name_map: IndexMap::default(),
+            global_operations: IndexMap::default(),
+            qarg_gate_map: IndexMap::default(),
+            angle_bounds: HashMap::default(),
+        }
+    }
+
     /// Adds a [PackedOperation] to the [Target].
     ///
     /// Said addition results in a [NormalOperation] in the [Target] as variadics
@@ -1953,7 +2034,6 @@ mod test {
             Some(1),
             Some(1),
             Some(1),
-            Some(props),
             None,
         );
         assert!(result.is_err());
