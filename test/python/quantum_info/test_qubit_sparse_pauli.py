@@ -320,9 +320,7 @@ class TestQubitSparsePauli(QiskitTestCase):
         }
         self.assertEqual({label: QubitSparsePauli.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
-        self.assertEqual(
-            {pauli.label: pauli for pauli in QubitSparsePauli.Pauli}, labels
-        )
+        self.assertEqual({pauli.label: pauli for pauli in QubitSparsePauli.Pauli}, labels)
 
     @ddt.idata(single_cases())
     def test_pickle(self, qubit_sparse_pauli):
@@ -952,9 +950,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
         }
         self.assertEqual({label: QubitSparsePauliList.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
-        self.assertEqual(
-            {pauli.label: pauli for pauli in QubitSparsePauliList.Pauli}, labels
-        )
+        self.assertEqual({pauli.label: pauli for pauli in QubitSparsePauliList.Pauli}, labels)
 
     @ddt.idata(single_cases_list())
     def test_pickle(self, qubit_sparse_pauli_list):
@@ -1084,9 +1080,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
             paulis,
             QubitSparsePauliList.from_list(["XIIZI", "IIXIX", "ZIIIZ"]),
         )
-        paulis.paulis[paulis.boundaries[2] : paulis.boundaries[3]] = (
-            QubitSparsePauliList.Pauli.X
-        )
+        paulis.paulis[paulis.boundaries[2] : paulis.boundaries[3]] = QubitSparsePauliList.Pauli.X
         self.assertEqual(
             paulis,
             QubitSparsePauliList.from_list(["XIIZI", "IIXIX", "XIIIX"]),
@@ -1180,9 +1174,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
         self.assertIsInstance(pauli_list.paulis[2:4], np.ndarray)
         np.testing.assert_array_equal(
             pauli_list.paulis[2:4],
-            np.array(
-                [QubitSparsePauliList.Pauli.X, QubitSparsePauliList.Pauli.X], dtype=np.uint8
-            ),
+            np.array([QubitSparsePauliList.Pauli.X, QubitSparsePauliList.Pauli.X], dtype=np.uint8),
             strict=True,
         )
         self.assertIsInstance(pauli_list.boundaries[-2:-3:-1], np.ndarray)

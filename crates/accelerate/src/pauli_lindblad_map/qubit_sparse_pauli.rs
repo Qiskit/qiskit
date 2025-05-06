@@ -991,11 +991,7 @@ impl PyQubitSparsePauli {
     ///         <QubitSparsePauli on 100 qubits: Z_50>
     #[staticmethod]
     #[pyo3(signature = (/, num_qubits, paulis, indices))]
-    fn from_raw_parts(
-        num_qubits: u32,
-        paulis: Vec<Pauli>,
-        indices: Vec<u32>,
-    ) -> PyResult<Self> {
+    fn from_raw_parts(num_qubits: u32, paulis: Vec<Pauli>, indices: Vec<u32>) -> PyResult<Self> {
         if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
                 paulis: paulis.len(),
@@ -1018,8 +1014,7 @@ impl PyQubitSparsePauli {
             }
             sorted_indices.push(index)
         }
-        let inner =
-            QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
+        let inner = QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
         Ok(PyQubitSparsePauli { inner })
     }
 
@@ -1510,7 +1505,7 @@ impl PyQubitSparsePauli {
 ///
 ///   :meth:`from_qubit_sparse_paulis`  Construct from a list of :class:`QubitSparsePauli`s.
 ///
-///   :meth:`from_raw_parts`            Build the list from 
+///   :meth:`from_raw_parts`            Build the list from
 ///                                     :ref:`the raw data arrays <qubit-sparse-pauli-list-arrays>`.
 ///   ================================  ============================================================
 ///
@@ -1959,8 +1954,7 @@ impl PyQubitSparsePauliList {
         let boundaries = boundaries.as_array().to_vec();
 
         let inner = if check {
-            QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)
-                .map_err(PyErr::from)
+            QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries).map_err(PyErr::from)
         } else {
             // SAFETY: the caller promised they have upheld the coherence guarantees.
             Ok(unsafe {
@@ -2055,9 +2049,7 @@ impl PyQubitSparsePauliList {
                 let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
                     return Err(LabelError::DuplicateIndex { index }.into());
                 };
-                entry.insert(
-                    Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?,
-                );
+                entry.insert(Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
             }
             for (index, term) in sorted.iter() {
                 let Some(term) = term else {
