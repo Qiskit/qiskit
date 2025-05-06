@@ -281,9 +281,9 @@ impl Target {
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
-    pub fn py_new(
+    fn py_new(
         description: Option<String>,
-        mut num_qubits: Option<u32>,
+        num_qubits: Option<u32>,
         dt: Option<f64>,
         granularity: Option<u32>,
         min_length: Option<u32>,
@@ -292,34 +292,38 @@ impl Target {
         qubit_properties: Option<Vec<QubitProperties>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
-        if let Some(qubit_properties) = qubit_properties.as_ref() {
-            if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
-                if num_qubits.unwrap() as usize != qubit_properties.len() {
-                    return Err(PyValueError::new_err(
-                        "The value of num_qubits specified does not match the \
-                            length of the input qubit_properties list",
-                    ));
-                }
-            } else {
-                num_qubits = Some(qubit_properties.len() as u32)
-            }
+        let mut target_build = Target::new();
+        if let Some(description) = description {
+            target_build = target_build.with_description(description);
         }
-        Ok(Target {
-            description,
-            num_qubits,
-            dt,
-            granularity: granularity.unwrap_or(1),
-            min_length: min_length.unwrap_or(1),
-            pulse_alignment: pulse_alignment.unwrap_or(1),
-            acquire_alignment: acquire_alignment.unwrap_or(1),
-            qubit_properties,
-            concurrent_measurements,
-            gate_map: GateMap::default(),
-            _gate_name_map: IndexMap::default(),
-            global_operations: IndexMap::default(),
-            qarg_gate_map: IndexMap::default(),
-            angle_bounds: HashMap::new(),
-        })
+        if let Some(qubit_properties) = qubit_properties {
+            target_build = target_build
+                .with_qubit_properties(qubit_properties)
+                .map_err(|err| PyValueError::new_err(err.to_string()))?;
+        } else if let Some(num_qubits) = num_qubits {
+            target_build = target_build
+                .with_num_qubits(num_qubits)
+                .map_err(|err| PyValueError::new_err(err.to_string()))?;
+        }
+        if let Some(dt) = dt {
+            target_build = target_build.with_dt(dt);
+        }
+        if let Some(granularity) = granularity {
+            target_build = target_build.with_granularity(granularity);
+        }
+        if let Some(min_length) = min_length {
+            target_build = target_build.with_min_length(min_length);
+        }
+        if let Some(pulse_alignment) = pulse_alignment {
+            target_build = target_build.with_pulse_alignment(pulse_alignment);
+        }
+        if let Some(acquire_alignment) = acquire_alignment {
+            target_build = target_build.with_acquire_alignment(acquire_alignment)
+        }
+        if let Some(concurrent_measurements) = concurrent_measurements {
+            target_build = target_build.with_concurrent_measurements(concurrent_measurements)
+        }
+        Ok(target_build)
     }
 
     /// Add a new instruction to the `Target` after it has been processed in python.
