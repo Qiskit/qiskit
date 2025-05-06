@@ -349,7 +349,7 @@ class ObservablesArray(ShapedMixin):
             if len(set(layout)) != len(layout):
                 raise QiskitError("Provided layout contains duplicate indices.")
 
-        new_arr = np.ndarray(self.shape, dtype=dict)
+        new_arr = np.ndarray(self.shape, dtype=SparseObservable)
         for ndi, obs in np.ndenumerate(self._array):
             new_arr[ndi] = obs.apply_layout(layout, num_qubits)
 
