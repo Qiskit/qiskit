@@ -353,7 +353,7 @@ class ObservablesArray(ShapedMixin):
         for ndi, obs in np.ndenumerate(self._array):
             new_arr[ndi] = obs.apply_layout(layout, num_qubits)
 
-        return ObservablesArray(new_arr)
+        return ObservablesArray(new_arr, validate=False)
 
     def validate(self):
         """Validate the consistency in observables array."""
