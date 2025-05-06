@@ -277,3 +277,20 @@ class TestGenericBackendV2(QiskitTestCase):
         res = backend.run(qc, shots=1000).result().get_counts()
         # Assert noise was present and result wasn't ideal
         self.assertNotEqual(res, {"1": 1000})
+
+    def test_same_error_rates_for_bidirectional_gates(self):
+        """Test if the bidirectional gates has the same error rate and
+        duration for a given pair of qubits in the coupling map"""
+        target = GenericBackendV2(3, basis_gates=["cz", "rz", "sx", "x"])
+        for _, instr_props in target._gate_map.items():
+            qargs_checked = set()
+            for qargs in instr_props:
+                if len(qargs) == 2:
+                    qargs_rev = qargs[::-1]
+                    if qargs_rev in instr_props and not qargs_rev in qargs_checked:
+                        self.assertEqual(
+                            instr_props[qargs].duration, instr_props[qargs_rev].duration
+                        )
+                        self.assertEqual(instr_props[qargs].error, instr_props[qargs_rev].error)
+                        qargs_checked.update({qargs_rev})
+                        qargs_checked.update({qargs})
