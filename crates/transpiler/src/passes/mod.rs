@@ -10,6 +10,17 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+//! Module for transpiler pass implementations
+//!
+//! This module contains function definitions for transpiler passes
+//! these fall into two categories per pass. The standalone transpiler
+//! pass functions are {verb}_pass_name where verb is typically run. These
+//! function are a standalone pass functions that operated directly on a
+//! [DAGCircuit]. The second class are the functions that end in _mod. These
+//! are Python submodule functions designed to be exported to the qiskit-pyext
+//! crate. These are public to be passed to qiskit-pyext and are only used
+//! for building Python submodules.
+
 mod barrier_before_final_measurement;
 mod basis_translator;
 mod check_map;
