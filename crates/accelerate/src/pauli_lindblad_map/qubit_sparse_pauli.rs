@@ -891,7 +891,7 @@ impl<'py> FromPyObject<'py> for BitTerm {
 ///   ============================  ================================================================
 ///   :meth:`from_label`            Convert a dense string label into a :class:`.QubitSparsePauli`.
 ///
-///   :meth:`from_sparse_label`     A tuple of a sparse string label and the qubits they apply to.
+///   :meth:`from_sparse_label`     Build a :class:`.QubitSparsePauli` from a tuple of a sparse string label and the qubits they apply to.
 ///
 ///   :meth:`from_pauli`            Raise a single :class:`.Pauli` into a single-element
 ///                                 :class:`.QubitSparsePauli`.
