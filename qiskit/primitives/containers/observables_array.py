@@ -282,7 +282,16 @@ class ObservablesArray(ShapedMixin):
         return cls(observables)
 
     def equivalent(self, other: ObservablesArray, tol: float = 1e-08) -> bool:
-        """Return True if arrays are equal"""
+        """Compute whether the observable arrays are equal within a given tolerance.
+        
+        Args:
+            other: Another observables array to compare with.
+            tol: The tolerance to provide to :attr:`~.SparseObservable.simplify` during checking.
+            
+        Returns:
+            Whether the two observables arrays have the same shape and number of qubits, 
+            and if so, whether they are equal within tolerance.
+        """
         if self.num_qubits != other.num_qubits or self.shape != other.shape:
             return False
 
