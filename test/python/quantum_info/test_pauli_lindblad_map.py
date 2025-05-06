@@ -150,7 +150,13 @@ class TestPauliLindbladMap(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
             PauliLindbladMap.from_raw_parts(2, [1.0], [ord("$")], [0], [0, 1])
         with self.assertRaisesRegex(ValueError, r"one element longer than `coeffs`"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.BitTerm.Z, PauliLindbladMap.BitTerm.Z], [0, 1], [0, 1, 2])    
+            PauliLindbladMap.from_raw_parts(
+                2,
+                [1.0],
+                [PauliLindbladMap.BitTerm.Z, PauliLindbladMap.BitTerm.Z],
+                [0, 1],
+                [0, 1, 2],
+            )
         with self.assertRaisesRegex(ValueError, r"must match the length of `bit_terms`"):
             PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.BitTerm.Z], [0], [0])
         with self.assertRaisesRegex(ValueError, r"`bit_terms` \(1\) and `indices` \(0\)"):

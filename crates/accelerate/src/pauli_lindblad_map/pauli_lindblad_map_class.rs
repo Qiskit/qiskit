@@ -23,7 +23,10 @@ use std::sync::{Arc, RwLock};
 
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
-use super::qubit_sparse_pauli::{ArithmeticError, BitTerm, CoherenceError, LabelError, QubitSparsePauliList, InnerReadError, InnerWriteError, raw_parts_from_sparse_list, make_py_bit_term, cast_array_type};
+use super::qubit_sparse_pauli::{
+    cast_array_type, make_py_bit_term, raw_parts_from_sparse_list, ArithmeticError, BitTerm,
+    CoherenceError, InnerReadError, InnerWriteError, LabelError, QubitSparsePauliList,
+};
 
 static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 
@@ -36,7 +39,7 @@ pub struct PauliLindbladMap {
     /// terms in the sum.
     coeffs: Vec<f64>,
     /// A list of qubit sparse Paulis witht he corresponding coefficients
-    qubit_sparse_pauli_list: QubitSparsePauliList
+    qubit_sparse_pauli_list: QubitSparsePauliList,
 }
 
 impl PauliLindbladMap {
@@ -53,7 +56,7 @@ impl PauliLindbladMap {
 
         Ok(Self {
             coeffs,
-            qubit_sparse_pauli_list
+            qubit_sparse_pauli_list,
         })
     }
 
@@ -74,10 +77,11 @@ impl PauliLindbladMap {
                 boundaries: boundaries.len(),
             });
         }
-        let qubit_sparse_pauli_list: QubitSparsePauliList = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+        let qubit_sparse_pauli_list: QubitSparsePauliList =
+            QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
         Ok(Self {
             coeffs,
-            qubit_sparse_pauli_list
+            qubit_sparse_pauli_list,
         })
     }
 
@@ -96,7 +100,8 @@ impl PauliLindbladMap {
         boundaries: Vec<usize>,
     ) -> Self {
         unsafe {
-            let qubit_sparse_pauli_list: QubitSparsePauliList = QubitSparsePauliList::new_unchecked(num_qubits, bit_terms, indices, boundaries);
+            let qubit_sparse_pauli_list: QubitSparsePauliList =
+                QubitSparsePauliList::new_unchecked(num_qubits, bit_terms, indices, boundaries);
             Self {
                 coeffs,
                 qubit_sparse_pauli_list,
@@ -157,7 +162,7 @@ impl PauliLindbladMap {
     /// Get the indices of each [BitTerm].
     #[inline]
     pub fn indices(&self) -> &[u32] {
-        &self.qubit_sparse_pauli_list.indices()
+        self.qubit_sparse_pauli_list.indices()
     }
 
     /// Get a mutable slice of the indices.
@@ -169,15 +174,13 @@ impl PauliLindbladMap {
     /// boundaries.
     #[inline]
     pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
-        unsafe {
-            self.qubit_sparse_pauli_list.indices_mut()
-        }
+        unsafe { self.qubit_sparse_pauli_list.indices_mut() }
     }
 
     /// Get the boundaries of each term.
     #[inline]
     pub fn boundaries(&self) -> &[usize] {
-        &self.qubit_sparse_pauli_list.boundaries()
+        self.qubit_sparse_pauli_list.boundaries()
     }
 
     /// Get a mutable slice of the boundaries.
@@ -189,23 +192,19 @@ impl PauliLindbladMap {
     /// with the coeffs, bit_terms, and indices.
     #[inline]
     pub unsafe fn boundaries_mut(&mut self) -> &mut [usize] {
-        unsafe {
-            self.qubit_sparse_pauli_list.boundaries_mut()
-        }
+        unsafe { self.qubit_sparse_pauli_list.boundaries_mut() }
     }
 
     /// Get the [BitTerm]s in the map.
     #[inline]
     pub fn bit_terms(&self) -> &[BitTerm] {
-        &self.qubit_sparse_pauli_list.bit_terms()
+        self.qubit_sparse_pauli_list.bit_terms()
     }
 
     /// Get a mutable slice of the bit terms.
     #[inline]
     pub fn bit_terms_mut(&mut self) -> &mut [BitTerm] {
-        unsafe {
-            self.qubit_sparse_pauli_list.bit_terms_mut()
-        }
+        self.qubit_sparse_pauli_list.bit_terms_mut()
     }
 
     /// Create a [PauliLindbladMap] representing the identity map on ``num_qubits`` qubits.
@@ -224,14 +223,15 @@ impl PauliLindbladMap {
         Ok(())
     }
 
-        /// Create a new identity map (with zero generator) with pre-allocated space for the given
+    /// Create a new identity map (with zero generator) with pre-allocated space for the given
     /// number of summands and single-qubit bit terms.
     #[inline]
     pub fn with_capacity(num_qubits: u32, num_terms: usize, num_bit_terms: usize) -> Self {
-        let qubit_sparse_pauli_list = QubitSparsePauliList::with_capacity(num_qubits, num_terms, num_bit_terms);
+        let qubit_sparse_pauli_list =
+            QubitSparsePauliList::with_capacity(num_qubits, num_terms, num_bit_terms);
         Self {
             coeffs: Vec::with_capacity(num_terms),
-            qubit_sparse_pauli_list
+            qubit_sparse_pauli_list,
         }
     }
 
@@ -253,9 +253,15 @@ impl PauliLindbladMap {
             });
         }
         self.coeffs.push(term.coeff);
-        self.qubit_sparse_pauli_list.bit_terms.extend_from_slice(term.bit_terms);
-        self.qubit_sparse_pauli_list.indices.extend_from_slice(term.indices);
-        self.qubit_sparse_pauli_list.boundaries.push(self.qubit_sparse_pauli_list.bit_terms.len());
+        self.qubit_sparse_pauli_list
+            .bit_terms
+            .extend_from_slice(term.bit_terms);
+        self.qubit_sparse_pauli_list
+            .indices
+            .extend_from_slice(term.indices);
+        self.qubit_sparse_pauli_list
+            .boundaries
+            .push(self.qubit_sparse_pauli_list.bit_terms.len());
         Ok(())
     }
 
@@ -279,9 +285,7 @@ impl PauliLindbladMap {
             indices: &self.qubit_sparse_pauli_list.indices[start..end],
         }
     }
-
 }
-
 
 /// A view object onto a single term of a `PauliLindbladMap`.
 ///
@@ -460,7 +464,6 @@ impl SparseTerm {
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
     pub fn to_pauli_lindblad_map(&self) -> PauliLindbladMap {
-
         let qubit_sparse_pauli_list = QubitSparsePauliList {
             num_qubits: self.num_qubits(),
             bit_terms: self.bit_terms.to_vec(),
@@ -469,7 +472,7 @@ impl SparseTerm {
         };
         PauliLindbladMap {
             coeffs: vec![self.coeff],
-            qubit_sparse_pauli_list: qubit_sparse_pauli_list,
+            qubit_sparse_pauli_list,
         }
     }
 }
@@ -1145,9 +1148,13 @@ impl PyPauliLindbladMap {
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(iter: Vec<(String, Vec<u32>, f64)>, num_qubits: u32) -> PyResult<Self> {
         let coeffs = iter.iter().map(|(_, _, coeff)| *coeff).collect();
-        let op_iter = iter.iter().map(|(label, indices, _)| (label.clone(), indices.clone())).collect();
+        let op_iter = iter
+            .iter()
+            .map(|(label, indices, _)| (label.clone(), indices.clone()))
+            .collect();
         let (bit_terms, indices, boundaries) = raw_parts_from_sparse_list(op_iter, num_qubits)?;
-        let qubit_sparse_pauli_list = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+        let qubit_sparse_pauli_list =
+            QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
         let inner: PauliLindbladMap = PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list)?;
         Ok(inner.into())
     }
@@ -1221,9 +1228,9 @@ impl PyPauliLindbladMap {
         let boundaries = boundaries.as_array().to_vec();
 
         let inner = if check {
-            let qubit_sparse_pauli_list: QubitSparsePauliList = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
-            PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list)
-                .map_err(PyErr::from)
+            let qubit_sparse_pauli_list: QubitSparsePauliList =
+                QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+            PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list).map_err(PyErr::from)
         } else {
             // SAFETY: the caller promised they have upheld the coherence guarantees.
             Ok(unsafe {
@@ -1464,9 +1471,7 @@ impl PyPauliLindbladMap {
             str_num_terms, str_num_qubits, str_terms
         ))
     }
-
 }
-
 
 impl From<PauliLindbladMap> for PyPauliLindbladMap {
     fn from(val: PauliLindbladMap) -> PyPauliLindbladMap {

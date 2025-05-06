@@ -2024,7 +2024,7 @@ impl PyQubitSparsePauliList {
     fn from_sparse_list(iter: Vec<(String, Vec<u32>)>, num_qubits: u32) -> PyResult<Self> {
         let (bit_terms, indices, boundaries) = raw_parts_from_sparse_list(iter, num_qubits)?;
         let inner = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
-        return Ok(inner.into())
+        Ok(inner.into())
     }
 
     /// Express the list in terms of a sparse list format.
@@ -2164,7 +2164,10 @@ impl PyQubitSparsePauliList {
     }
 }
 
-pub fn raw_parts_from_sparse_list(iter: Vec<(String, Vec<u32>)>, num_qubits: u32) ->  Result<(Vec<BitTerm>, Vec<u32>, Vec<usize>), LabelError> {
+pub fn raw_parts_from_sparse_list(
+    iter: Vec<(String, Vec<u32>)>,
+    num_qubits: u32,
+) -> Result<(Vec<BitTerm>, Vec<u32>, Vec<usize>), LabelError> {
     let mut boundaries = Vec::with_capacity(iter.len() + 1);
     boundaries.push(0);
     let mut indices = Vec::new();
@@ -2184,14 +2187,12 @@ pub fn raw_parts_from_sparse_list(iter: Vec<(String, Vec<u32>)>, num_qubits: u32
         }
         for (letter, index) in label.iter().zip(qubits) {
             if index >= num_qubits {
-                return Err(LabelError::BadIndex { index, num_qubits }.into());
+                return Err(LabelError::BadIndex { index, num_qubits });
             }
             let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
-                return Err(LabelError::DuplicateIndex { index }.into());
+                return Err(LabelError::DuplicateIndex { index });
             };
-            entry.insert(
-                BitTerm::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?,
-            );
+            entry.insert(BitTerm::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
         }
         for (index, term) in sorted.iter() {
             let Some(term) = term else {
