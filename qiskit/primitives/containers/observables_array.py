@@ -338,7 +338,7 @@ class ObservablesArray(ShapedMixin):
             if num_qubits < n_qubits:
                 raise QiskitError(
                     f"The input num_qubits is too small, a {num_qubits} qubit layout cannot be "
-                    f"applied to a {n_qubits} qubit operator"
+                    f"applied to a {n_qubits} qubit operator."
                 )
             n_qubits = num_qubits
         if layout is None:
