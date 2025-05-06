@@ -16,7 +16,7 @@ use qubit_sparse_pauli::{PyQubitSparsePauli, PyQubitSparsePauliList};
 pub mod qubit_sparse_pauli;
 
 pub fn pauli_lindblad_map(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PyQubitSparsePauliList>()?;
     m.add_class::<PyQubitSparsePauli>()?;
+    m.add_class::<PyQubitSparsePauliList>()?;
     Ok(())
 }
