@@ -295,10 +295,7 @@ class ObservablesArray(ShapedMixin):
         if self.num_qubits != other.num_qubits or self.shape != other.shape:
             return False
 
-        arr1 = np.atleast_1d(self._array).flat
-        arr2 = np.atleast_1d(other._array).flat
-
-        for obs1, obs2 in zip(arr1, arr2):
+        for obs1, obs2 in zip(self._array.ravel(), other._array.ravel()):
             if (obs1 - obs2).simplify(tol) != SparseObservable.zero(self.num_qubits):
                 return False
 
