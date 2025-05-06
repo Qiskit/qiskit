@@ -335,9 +335,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
         )
 
-    @combine(
-        num_qubits=[3, 4, 5], base_gate=[XGate(), PhaseGate(0.321), UGate(0.21, 0.43, 0.65)]
-    )
+    @combine(num_qubits=[3, 4, 5], base_gate=[XGate(), PhaseGate(0.321), UGate(0.21, 0.43, 0.65)])
     def test_mc_1qubit_opt(self, num_qubits, base_gate):
         """Create a multi-controlled X, P or U gate on num_qubits.
         This is less efficient than synthesizing MCX directly."""
