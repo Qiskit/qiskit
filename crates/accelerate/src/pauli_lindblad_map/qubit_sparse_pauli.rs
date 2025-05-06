@@ -2164,10 +2164,12 @@ impl PyQubitSparsePauliList {
     }
 }
 
+type RawParts = (Vec<BitTerm>, Vec<u32>, Vec<usize>);
+
 pub fn raw_parts_from_sparse_list(
     iter: Vec<(String, Vec<u32>)>,
     num_qubits: u32,
-) -> Result<(Vec<BitTerm>, Vec<u32>, Vec<usize>), LabelError> {
+) -> Result<RawParts, LabelError> {
     let mut boundaries = Vec::with_capacity(iter.len() + 1);
     boundaries.push(0);
     let mut indices = Vec::new();
