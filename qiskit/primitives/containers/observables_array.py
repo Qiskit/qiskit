@@ -281,7 +281,7 @@ class ObservablesArray(ShapedMixin):
             return observables
         return cls(observables)
 
-    def equivalent(self, other: ObservablesArray, tol: float = 1e-08):
+    def equivalent(self, other: ObservablesArray, tol: float = 1e-08) -> bool:
         """Return True if arrays are equal"""
         if self.num_qubits != other.num_qubits or self.shape != other.shape:
             return False
