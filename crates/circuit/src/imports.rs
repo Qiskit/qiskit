@@ -57,7 +57,9 @@ impl ImportOnceCell {
 }
 
 pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
+pub static BUILTIN_TUPLE: ImportOnceCell = ImportOnceCell::new("builtins", "tuple");
 pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
+pub static BUILTIN_RANGE: ImportOnceCell = ImportOnceCell::new("builtins", "range");
 pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
 pub static INSTRUCTION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");
@@ -69,6 +71,8 @@ pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
 pub static PARAMETER_VECTOR: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parametervector", "ParameterVector");
+pub static PARAMETER_VECTOR_ELEMENT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parametervector", "ParameterVectorElement");
 pub static PARAMETER_SUBS: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "_SUBS");
 pub static QUANTUM_CIRCUIT: ImportOnceCell =
@@ -92,8 +96,15 @@ pub static CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ControlledGate");
 pub static ANNOTATED_OPERATION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "AnnotatedOperation");
+pub static CASE_DEFAULT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit", "CASE_DEFAULT");    
+pub static CLBIT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit", "Clbit");
+pub static CLASSICAL_REGISTER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit", "ClassicalRegister");
 pub static DEEPCOPY: ImportOnceCell = ImportOnceCell::new("copy", "deepcopy");
 pub static QI_OPERATOR: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Operator");
+pub static CLIFFORD: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info.operators.symplectic", "Clifford");
 pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
 pub static CIRCUIT_TO_DAG: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "circuit_to_dag");
@@ -142,6 +153,10 @@ pub static CONTROL_FLOW_CONDITION_RESOURCES: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "condition_resources");
 pub static CONTROL_FLOW_NODE_RESOURCES: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "node_resources");
+pub static CONTROL_FLOW_SWITCH_CASE_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "SwitchCaseOp");
+pub static CONTROL_FLOW_BOX_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "BoxOp");
 pub static NUMPY_ARRAY: ImportOnceCell =
     ImportOnceCell::new("numpy", "ndarray");
 /// A mapping from the enum variant in crate::operations::StandardGate to the python

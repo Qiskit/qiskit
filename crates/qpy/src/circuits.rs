@@ -23,30 +23,54 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyIterator, PyList, PyTuple};
 use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
+use qiskit_circuit::circuit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::imports::{BARRIER, DELAY, MEASURE, RESET, PAULI_EVOLUTION_GATE, BLUEPRINT_CIRCUIT};
+use qiskit_circuit::imports::{BARRIER, DELAY, MEASURE, RESET, PAULI_EVOLUTION_GATE, BLUEPRINT_CIRCUIT, CONTROL_FLOW_SWITCH_CASE_OP, CONTROL_FLOW_BOX_OP, BUILTIN_TUPLE, EXPR, CLIFFORD};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction, ArrayType};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use std::io::Cursor;
+use std::io::Write;
 use numpy::ToPyArray;
 use uuid::Uuid;
 
 use crate::formats::{
     Bytes, CircuitHeaderV12Pack, CircuitInstructionArgPack, CircuitInstructionV2Pack,
     CustomCircuitInstructionsPack, HeaderData, LayoutV2Pack, QPYFormatV13, RegisterV4Pack,
-    CustomCircuitInstructionDefPack, PackedParam
+    CustomCircuitInstructionDefPack, PauliEvolutionDefPack, PackedParam, SparsePauliOpListElemPack
 };
 use crate::params::pack_param;
-use crate::value::{dumps_value, get_circuit_type_key, circuit_instruction_types};
+use crate::value::pack_generic_data;
+use crate::value::serialize;
+use crate::value::{QPYData, dumps_value, get_circuit_type_key, circuit_instruction_types};
 use binrw::BinWrite;
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 type CustomOperationsMap = HashMap<String, PackedOperation>;
 type CustomOperationsList = Vec<String>;
 
+// For debugging purposes
+fn hex_string(bytes: &Bytes) -> String {
+    bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>()
+}
+
+fn getattr_or_none<'py>(py_object: &'py Bound<'py, PyAny>, name: &str) -> PyResult<Option<Bound<'py, PyAny>>>{
+    if py_object.hasattr(name)? {
+        let attr = py_object.getattr(name)?;
+        if attr.is_none() {
+            Ok(None)
+        } else {
+            Ok(Some(attr))
+        }
+    } else {
+        Ok(None)
+    }
+}
 fn is_python_gate(py: Python, op:&PackedOperation, python_gate: &Bound<PyAny>) -> PyResult<bool> {
     match op.view() {
         OperationRef::Gate(pygate) => {
@@ -115,7 +139,12 @@ fn gate_class_name(py: Python, op: &PackedOperation) -> PyResult<String> {
             .getattr(intern!(py, "__name__"))?
             .extract::<String>(),
         OperationRef::Unitary(_) => Ok(UNITARY_GATE_CLASS_NAME.to_string()),
-        _ => Err(PyErr::new::<PyValueError, _>(format!("unable to determine class name for {:?}", op))),
+        OperationRef::Operation(py_op) => py_op
+            .operation
+            .bind(py)
+            .getattr(intern!(py, "__class__"))?
+            .getattr(intern!(py, "__name__"))?
+            .extract::<String>(),
     }?;
     Ok(name)
 }
@@ -153,11 +182,57 @@ fn get_ctrl_state(py: Python, op: &PackedOperation, num_ctrl_qubits: u32) -> PyR
     }
 }
 
-fn get_instruction_params(py: Python, instruction: &PackedInstruction) -> PyResult<Vec<PackedParam>> {
+fn get_instruction_params(py: Python, instruction: &PackedInstruction, circuit_data: &CircuitData, qpy_data: &QPYData) -> PyResult<Vec<PackedParam>> {
     // The instruction params we store are about being able to reconstruct the objects; they don't
     // necessarily need to match one-to-one to the `params` field.
     // TODO: handle these cases
-    // if isinstance(instruction.operation, controlflow.SwitchCaseOp):
+    println!("get_instruction_params called for {:?}", instruction);
+    if let OperationRef::Instruction(inst) = instruction.op.view() {
+        println!("get_instruction_params for {:?}", inst.instruction);
+        if inst.instruction.bind(py).is_instance(CONTROL_FLOW_SWITCH_CASE_OP.get_bound(py))?{
+            let op = inst.instruction.bind(py);
+            println!("handling CONTROL_FLOW_SWITCH_CASE_OP with op {:?}", op);
+            // println!("target {:?}", op.getattr("target")?);
+            // println!("cases_specifier() {:?}", op.call_method0("cases_specifier")?);
+            let target = op.getattr("target")?;
+            let cases = op.call_method0("cases_specifier")?;
+            let cases_tuple = BUILTIN_TUPLE.get_bound(py).call1((cases,))?;
+            println!("target {:?}", target);
+            println!("cases_specifier() {:?}", cases_tuple);
+            return Ok(vec![
+                pack_param(py, &target.extract::<Param>()?, qpy_data)?,
+                pack_param(py, &cases_tuple.extract::<Param>()?, qpy_data)?
+            ]);
+        }
+        if inst.instruction.bind(py).is_instance(CONTROL_FLOW_BOX_OP.get_bound(py))?{
+            let op = inst.instruction.bind(py);
+            println!("handling CONTROL_FLOW_BOX_OP with op {:?}", op);
+            let first_block = op.getattr("blocks")?
+            .try_iter()?
+            .next()
+            .transpose()?
+            .ok_or_else(|| PyErr::new::<PyValueError, _>("No blocks in box control flow op"))?;
+            let duration = op.getattr("duration")?;
+            let unit = op.getattr("unit")?;
+            return Ok(vec![
+                pack_param(py, &first_block.extract::<Param>()?, qpy_data)?,
+                pack_param(py, &duration.extract::<Param>()?, qpy_data)?,
+                pack_param(py, &unit.extract::<Param>()?, qpy_data)?
+            ]);
+        }
+    }
+
+    if let OperationRef::Operation(op) = instruction.op.view() {
+        if op.operation.bind(py).is_instance(CLIFFORD.get_bound(py))?{
+            let op = op.operation.bind(py);
+            println!("handling CLIFFORD with op {:?}", op);
+            let tableau = op.getattr("tableau")?;
+            return Ok(vec![
+                pack_param(py, &tableau.extract::<Param>()?, qpy_data)?,
+            ]);
+        }
+    }
+
     // elif isinstance(instruction.operation, controlflow.BoxOp):
     // elif isinstance(instruction.operation, AnnotatedOperation):
     if let OperationRef::Unitary(unitary) = instruction.op.view() {
@@ -172,13 +247,13 @@ fn get_instruction_params(py: Python, instruction: &PackedInstruction) -> PyResu
             ArrayType::OneQ(arr) => arr.to_pyarray(py),
             ArrayType::TwoQ(arr) => arr.to_pyarray(py),
         };
-        return Ok(vec![pack_param(py, &out_array.extract::<Param>()?)]);
+        return Ok(vec![pack_param(py, &out_array.extract::<Param>()?, qpy_data)?]);
     }
     Ok(instruction
         .params_view()
         .iter()
-        .map(|x| pack_param(py, &x))
-        .collect()
+        .map(|x| pack_param(py, &x, qpy_data))
+        .collect::<PyResult<_>>()?
     )
 }
 
@@ -217,30 +292,36 @@ fn get_condition_data_from_inst(
     py: Python,
     inst: &Py<PyAny>,
     circuit_data: &CircuitData,
+    qpy_data: &QPYData,
 ) -> PyResult<(u8, u16, i64, Bytes)> {
-    let condition = inst.bind(py).getattr("_condition")?;
-    if condition.is_none() {
-        return Ok((0, 0, 0, Vec::new()));
-    }
-    if condition.is_instance_of::<PyTuple>() {
-        let condition_type = condition_types::TWO_TUPLE;
-        let condition_value = condition
-            .downcast::<PyTuple>()?
-            .get_item(1)?
-            .extract::<i64>()?;
-        let condition_register = dump_register(
-            py,
-            condition.downcast::<PyTuple>()?.get_item(0)?,
-            circuit_data,
-        )?;
-        return Ok((
-            condition_type,
-            condition_register.len() as u16,
-            condition_value,
-            condition_register,
-        ));
-    } else {
-        Err(PyErr::new::<PyValueError, _>("Expression handling not implemented for get_condition_data_from_inst"))
+    match getattr_or_none(inst.bind(py), "_condition")? {
+        None => Ok((0, 0, 0, Vec::new())),
+        Some(condition) => {
+            if condition.is_instance(EXPR.get_bound(py))? {
+                let condition_raw = serialize(pack_generic_data(py,&condition, qpy_data)?)?;
+                Ok((condition_types::EXPRESSION, 0, 0, condition_raw))
+            }
+            else if condition.is_instance_of::<PyTuple>() {
+                let condition_type = condition_types::TWO_TUPLE;
+                let condition_value = condition
+                    .downcast::<PyTuple>()?
+                    .get_item(1)?
+                    .extract::<i64>()?;
+                let condition_register = dump_register(
+                    py,
+                    condition.downcast::<PyTuple>()?.get_item(0)?,
+                    circuit_data,
+                )?;
+                Ok((
+                    condition_type,
+                    condition_register.len() as u16,
+                    condition_value,
+                    condition_register,
+                ))
+            } else {
+                Err(PyErr::new::<PyValueError, _>("Expression handling not implemented for get_condition_data_from_inst"))
+            }
+        }
     }
 }
 
@@ -248,11 +329,12 @@ fn get_condition_data(
     py: Python,
     op: &PackedOperation,
     circuit_data: &CircuitData,
+    qpy_data: &QPYData,
 ) -> PyResult<(u8, u16, i64, Bytes)> {
     let default_return_value = (condition_types::NONE, 0, 0, Vec::new());
     match op.view() {
         OperationRef::Instruction(py_inst) => {
-            get_condition_data_from_inst(py, &py_inst.instruction, circuit_data)
+            get_condition_data_from_inst(py, &py_inst.instruction, circuit_data, qpy_data)
         }
         _ => Ok(default_return_value), // we assume only PyInstructions have condition data at this stage
     }
@@ -271,15 +353,15 @@ fn recognize_custom_operation(py:Python, op: &PackedOperation, name: &String) ->
         || name == "Instruction"
         || is_python_gate(py, op, BLUEPRINT_CIRCUIT.get_bound(py))? {
             // Assign a uuid to each instance of a custom operation
-            let new_name = if ["ucrx_dg", "ucry_dg", "ucrz_dg"].contains(&op.name()) {
-                format!("{}_{}", name, Uuid::new_v4().as_simple().to_string())
+            let new_name = if !["ucrx_dg", "ucry_dg", "ucrz_dg"].contains(&op.name()) {
+                format!("{}_{}", &op.name(), Uuid::new_v4().as_simple().to_string())
             } else {
                 // ucr*_dg gates can have different numbers of parameters,
                 // the uuid is appended to avoid storing a single definition
                 // in circuits with multiple ucr*_dg gates. For legacy reasons
                 // the uuid is stored in a different format as this was done
                 // prior to QPY 11.
-                format!("{}_{}", name, Uuid::new_v4())
+                format!("{}_{}", &op.name(), Uuid::new_v4())
             };
             return Ok(Some(new_name));
         }
@@ -289,7 +371,7 @@ fn recognize_custom_operation(py:Python, op: &PackedOperation, name: &String) ->
     }
 
     if is_python_gate(py, op, PAULI_EVOLUTION_GATE.get_bound(py))? {
-        return Ok(Some(format!("###PauliEvolutionGate__{}", Uuid::new_v4())));
+        return Ok(Some(format!("###PauliEvolutionGate_{}", Uuid::new_v4())));
     }
 
     Ok(None)
@@ -301,6 +383,7 @@ fn pack_instruction(
     circuit_data: &CircuitData,
     custom_operations: &mut CustomOperationsMap,
     new_custom_operations: &mut CustomOperationsList,
+    qpy_data: &QPYData,    
 ) -> PyResult<CircuitInstructionV2Pack> {
     let mut class_name = gate_class_name(py, &instruction.op)?;
     match recognize_custom_operation(py, &instruction.op, &class_name)? {
@@ -314,10 +397,10 @@ fn pack_instruction(
     let label_raw = gate_label(instruction);
     let num_ctrl_qubits = get_num_ctrl_qubits(py, &instruction.op).unwrap_or(0);
     let ctrl_state = get_ctrl_state(py, &instruction.op, num_ctrl_qubits).unwrap_or(0);
-    let params: Vec<PackedParam> = get_instruction_params(py, instruction)?;
+    let params: Vec<PackedParam> = get_instruction_params(py, instruction, circuit_data, qpy_data)?;
     let bit_data = get_packed_bit_list(instruction, circuit_data);
     let (conditional_key, condition_register_size, condition_value, condition_raw) =
-        get_condition_data(py, &instruction.op, circuit_data)?;
+        get_condition_data(py, &instruction.op, circuit_data, qpy_data)?;
     Ok(CircuitInstructionV2Pack {
         name_size: class_name.len() as u16,
         label_size: label_raw.len() as u16,
@@ -343,9 +426,10 @@ fn serialize_instruction(
     circuit_data: &CircuitData,
     custom_operations: &mut CustomOperationsMap,
     new_custom_operations: &mut CustomOperationsList,
+    qpy_data: &QPYData,
 ) -> PyResult<Bytes> {
     let mut buffer = Cursor::new(Vec::new());
-    let packed_instruction = pack_instruction(py, circuit_instruction, &circuit_data, custom_operations, new_custom_operations)?;
+    let packed_instruction = pack_instruction(py, circuit_instruction, &circuit_data, custom_operations, new_custom_operations, qpy_data)?;
     packed_instruction.write(&mut buffer).map_err(|e| {
         PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
     })?;
@@ -355,13 +439,14 @@ fn serialize_instruction(
 pub fn pack_instructions(
     py: Python,
     circuit_data: &CircuitData,
+    qpy_data: &QPYData,
 ) -> PyResult<(Vec<CircuitInstructionV2Pack>, CustomOperationsMap)> {
     let mut custom_operations: CustomOperationsMap = HashMap::new();
     let mut custom_new_operations: CustomOperationsList = Vec::new();
     Ok((circuit_data
         .data()
         .iter()
-        .map(|instruction| Ok(pack_instruction(py, instruction, &circuit_data, &mut custom_operations, &mut custom_new_operations)?))
+        .map(|instruction| Ok(pack_instruction(py, instruction, circuit_data, &mut custom_operations, &mut custom_new_operations, qpy_data)?))
         .collect::<PyResult<_>>()?,
         custom_operations))
 }
@@ -386,6 +471,7 @@ fn pack_register(
     bitmap: &Bound<PyDict>,
     is_in_circuit: bool,
 ) -> PyResult<RegisterV4Pack> {
+    println!("About to pack register {:?}", register);
     let reg_name = register.getattr("name")?.extract::<String>()?.into_bytes();
     let reg_type = register
         .getattr("prefix")?
@@ -401,9 +487,14 @@ fn pack_register(
         {
             standalone = false;
         }
-        if bit_val.getattr("_index")?.extract::<usize>()? != index {
-            standalone = false;
+        println!("Attempting to get _index from bit_val {:?}", bit_val);
+        match getattr_or_none(&bit_val, "_index")? {
+            None => (),
+            Some(value) => if value.extract::<usize>()? != index {
+                standalone = false
+            }
         }
+        println!("Got it");
 
         if let Some(index) = bitmap.get_item(bit_val)? {
             bit_indices.push(index.extract::<i64>()?);
@@ -440,33 +531,36 @@ fn serialize_register(
 fn serialize_registers(
     py: Python,
     in_circ_regs: &Bound<PyAny>,
-    bits: &Bound<PyAny>,
+    bits: &Bound<PyList>,
 ) -> PyResult<(u32, Bytes)> {
     let bitmap = PyDict::new(py);
     let out_circ_regs = PyList::new(py, Vec::<PyObject>::new())?;
 
-    bits.downcast::<PyList>()?
-        .iter()
-        .enumerate()
-        .try_for_each(|(index, bit)| -> PyResult<()> {
-            bitmap.set_item(&bit, index)?;
-            if let Ok(register) = bit.getattr("_register") {
+    bits
+    .iter()
+    .enumerate()
+    .try_for_each(|(index, bit)| -> PyResult<()> {
+        bitmap.set_item(&bit, index)?;
+        match getattr_or_none(&bit, "_register")? {
+            None => Ok(()),
+            Some(register) => {
                 if !(in_circ_regs.contains(&register).unwrap_or(false))
-                    && !(out_circ_regs.contains(&register).unwrap_or(true))
+                && !(out_circ_regs.contains(&register).unwrap_or(true))
                 {
-                    out_circ_regs.append(register)?;
-                }
-            }
+                out_circ_regs.append(register)?;
+                    }
             Ok(())
-        })?;
+            }
+        }
+    })?;
     let mut result: Bytes = Vec::new();
     in_circ_regs
-        .downcast::<PyList>()?
-        .iter()
-        .try_for_each(|register| -> PyResult<()> {
-            result.extend(serialize_register(py, &register, &bitmap, true)?);
-            Ok(())
-        })?;
+    .downcast::<PyList>()?
+    .iter()
+    .try_for_each(|register| -> PyResult<()> {
+        result.extend(serialize_register(py, &register, &bitmap, true)?);
+        Ok(())
+    })?;
 
     out_circ_regs
         .iter()
@@ -484,15 +578,16 @@ fn pack_circuit_header(
     py: Python,
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
+    qpy_data: &QPYData,
 ) -> PyResult<HeaderData> {
     let circuit_name = circuit.getattr("name")?.extract::<String>()?.into_bytes();
     let metadata_raw = serialize_metadata(py, &circuit.getattr("metadata")?, metadata_serializer)?;
     let (global_phase_type, global_phase_data) =
-        dumps_value(py, &circuit.getattr("global_phase")?)?;
+        dumps_value(py, &circuit.getattr("global_phase")?, qpy_data)?;
     let (num_qregs, qregs_raw) =
-        serialize_registers(py, &circuit.getattr("qregs")?, &circuit.getattr("qubits")?)?;
+        serialize_registers(py, &circuit.getattr("qregs")?, circuit.getattr("qubits")?.downcast::<PyList>()?)?;
     let (num_cregs, cregs_raw) =
-        serialize_registers(py, &circuit.getattr("cregs")?, &circuit.getattr("clbits")?)?;
+        serialize_registers(py, &circuit.getattr("cregs")?, circuit.getattr("clbits")?.downcast::<PyList>()?)?;
     let header = CircuitHeaderV12Pack {
         name_size: circuit_name.len() as u16,
         global_phase_type: global_phase_type,
@@ -524,19 +619,234 @@ fn pack_layout(circuit: &Bound<PyAny>) -> PyResult<LayoutV2Pack> {
             final_layout_size: -1,
             extra_registers_length: 0,
             input_qubit_count: 0,
+            extra_registers_data: Bytes::new(),
+            array_data: Bytes::new(),
         })
     } else {
-        Err(PyErr::new::<PyValueError, _>("Handling custom layout is not implemented"))
+        pack_custom_layout(circuit)
     }
 }
 
+fn pack_custom_layout(circuit: &Bound<PyAny>) -> PyResult<LayoutV2Pack>{
+    let layout = circuit.getattr("layout")?;
+    println!("Packing custom layout: {:?}",layout);
+    let mut initial_layout_size = -1; // initial_size
+    let py = circuit.py();
+    let input_qubit_mapping = PyDict::new(py);
+    let initial_layout_array = PyList::empty(py);
+    let extra_registers = PyDict::new(py);
+
+    let initial_layout = layout.getattr("initial_layout")?;
+    let num_qubits: usize = circuit.getattr("num_qubits")?.extract()?;
+    if !initial_layout.is_none() {
+        println!("Initial layout is not none: {:?}",initial_layout);
+        initial_layout_size = initial_layout.call_method0("__len__")?.extract::<i32>()?;
+        let layout_mapping = initial_layout.call_method0("get_physical_bits")?;
+        println!("initial_layout_size: {:?}",initial_layout_size);
+        println!("layout_mapping: {:?}",layout_mapping);
+        for i in 0..num_qubits {
+            let qubit = layout_mapping.get_item(i)?;
+            println!("qubit {:?} --> {:?}", i, qubit);
+            input_qubit_mapping.set_item(&qubit, i)?;
+            let register = qubit.getattr("_register")?;
+            let index = qubit.getattr("_index")?;
+            if !register.is_none() || !index.is_none() {
+                if !circuit.getattr("qregs")?.contains(&register)? {
+                    let extra_register_list = match extra_registers.get_item(&register)? {
+                        Some(list) => list,
+                        None => {
+                            let new_list = PyList::empty(py);
+                            extra_registers.set_item(&register, &new_list)?;
+                            new_list.into_any()
+                        }
+                    };
+                    extra_register_list.downcast::<PyList>()?.append(qubit)?;
+                }
+                initial_layout_array.append((index, register))?;
+            } else {
+                initial_layout_array.append((py.None(), py.None()))?;
+            }
+        } 
+    }
+    println!("input_qubit_mapping: {:?}",input_qubit_mapping);
+    println!("extra_registers: {:?}",extra_registers);
+    println!("initial_layout_array: {:?}",initial_layout_array);
+
+    let mut input_mapping_size: i32 = -1; //input_qubit_size
+    let mut input_qubit_mapping_array = PyList::new(py, Vec::<Bound<PyAny>>::new())?;
+    let layout_input_qubit_mapping = layout.getattr("input_qubit_mapping")?;
+    if !layout_input_qubit_mapping.is_none() {
+        println!("layout_input_qubit_mapping is not none: {:?}",layout_input_qubit_mapping);
+        input_mapping_size  = layout_input_qubit_mapping.call_method0("__len__")?.extract()?;
+        input_qubit_mapping_array = PyList::new(py, std::iter::repeat(py.None()).take(input_mapping_size as usize).collect::<Vec<_>>())?;
+        let layout_mapping = initial_layout.call_method0("get_virtual_bits")?;
+        for (qubit, index) in layout_input_qubit_mapping.downcast::<PyDict>()? {
+            let register = qubit.getattr("_register")?;
+            if !register.is_none() && !qubit.getattr("_index")?.is_none() {
+                if !circuit.getattr("qregs")?.contains(&register)? {
+                    let extra_register_list = match extra_registers.get_item(&register)? {
+                        Some(list) => list,
+                        None => {
+                            let new_list = PyList::empty(py);
+                            extra_registers.set_item(&register, &new_list)?;
+                            new_list.into_any()
+                        }
+                    };
+                    extra_register_list.downcast::<PyList>()?.append(&qubit)?;
+                }
+                // this was originally like that in the python code, but I suspect maybe we should use the `_index` field here instead
+                
+            }
+            input_qubit_mapping_array.set_item(index.extract()?, layout_mapping.get_item(&qubit)?)?; 
+        };   
+    }
+    println!("extra_registers: {:?}",extra_registers);
+    println!("input_qubit_mapping_array: {:?}",&input_qubit_mapping_array);
+    
+    let mut final_layout_size = -1;
+    let final_layout_array = PyList::empty(py);
+    let final_layout = layout.getattr("final_layout")?;
+    if !final_layout.is_none(){
+        final_layout_size = final_layout.call_method0("__len__")?.extract()?;
+        let final_layout_physical = final_layout.call_method0("get_physical_bits")?;
+        for i in 0..num_qubits {
+            let virtual_bit = final_layout_physical.downcast::<PyList>()?.get_item(i)?;
+            final_layout_array.append(circuit
+                .call_method1("find_bit", (virtual_bit,))?
+                .getattr("index")?
+            )?;
+        }
+    }
+
+    println!("final_layout_size: {:?}",final_layout_size);
+    println!("final_layout_array: {:?}",final_layout_array);
+    
+
+    let input_qubit_count: i32 = if layout.getattr("_input_qubit_count")?.is_none() {
+        -1
+    } else {
+        layout.getattr("_input_qubit_count")?.extract()?
+    };
+
+    println!("Collecting bits from extra registers {:?}", extra_registers);
+    let mut bits = Vec::new();
+    for register_bit_list in extra_registers.values() {
+        for x in register_bit_list.downcast::<PyList>()? {
+            bits.push(x);
+        }
+    }
+    println!("bits collected {:?}", bits);
+
+
+    let (_, extra_registers_data) = serialize_registers(py, &extra_registers.keys(), &PyList::new(py, bits)?)?;
+
+    
+
+    let mut buffer = Cursor::new(Vec::new());
+    for item in initial_layout_array {
+        let tuple = item.downcast::<PyTuple>()?;
+        let index = tuple.get_item(0)?;
+        let register = tuple.get_item(1)?;
+        println!("Handling register {:?}", register);
+        let reg_name_bytes = if !register.is_none() {Some(register.getattr("name")?.extract::<String>()?)} else {None};
+        let index_value = if index.is_none() {-1} else {index.extract::<i32>()?};
+        let reg_name_length = reg_name_bytes.as_ref().map(|name| name.len() as i32).unwrap_or(-1);
+        buffer.write_all(&index_value.to_be_bytes())?;
+        buffer.write_all(&reg_name_length.to_be_bytes())?;
+        match reg_name_bytes {Some(name) => buffer.write_all(name.as_bytes()), None => Ok(())}?;
+    }
+
+    for i in &input_qubit_mapping_array {
+        buffer.write_all(&i.extract::<u32>()?.to_be_bytes())?;
+    }
+
+    for i in &final_layout_array {
+        buffer.write_all(&i.extract::<u32>()?.to_be_bytes())?;
+    }
+
+    let array_data = buffer.into_inner(); // TODO this can be probably done using a struct, not dumping items to a buffer
+
+    Ok(LayoutV2Pack {
+        exists: true as u8,
+        initial_layout_size,
+        input_mapping_size,
+        final_layout_size,
+        extra_registers_length: extra_registers.len() as u32,
+        input_qubit_count,
+        extra_registers_data,
+        array_data,
+    })  
+}
+
+fn serialize_sparse_pauli_op(py: Python, operator: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<Bytes> {
+    let op_as_np_list = operator.call_method1("to_list", (true,))?;
+    let (_, data) = dumps_value(py, &op_as_np_list, qpy_data)?;
+    let pauli_pack = SparsePauliOpListElemPack {
+        size: data.len() as u64,
+        data,
+    };
+    let mut buffer = Cursor::new(Vec::new());
+    pauli_pack.write(&mut buffer).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
+    })?;
+    Ok(buffer.into_inner())
+}
+fn serialize_pauli_evolution_gate(py: Python, evolution_gate: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<Bytes>{
+    println!("RUST: Serializing PAULI {:?}", evolution_gate);
+    let operators = evolution_gate.getattr("operator")?;
+    println!("RUST: operators = {:?}", operators);
+    let mut standalone = false;
+    let operator_list: Bound<PyList> = if !operators.is_instance_of::<PyList>() {
+        println!("Standalone!");
+        standalone = true;
+        PyList::new(py, [operators])?
+    } else {
+        operators.downcast()?.clone()
+    };
+    println!("RUST: operator list = {:?}", operator_list);
+    let operator_size = operator_list.call_method0("__len__")?.extract::<u64>()?;
+    println!("RUST: operator_size = {:?}", operator_size);
+    
+    let pauli_data: Vec<Bytes> = operator_list
+    .iter()
+    .map(|operator| Ok(serialize_sparse_pauli_op(py, &operator, qpy_data)?))
+    .collect::<PyResult<_>>()?;
+
+    let (time_type, time_data) = dumps_value(py, &evolution_gate.getattr("time")?, qpy_data)?;
+    println!("time type: {:?}, time_data: {:?}", time_type, hex_string(&time_data));
+    let synth_class = evolution_gate.getattr("synthesis")?.get_type().getattr("__name__")?;
+    let settings_dict = evolution_gate.getattr("synthesis")?.getattr("settings")?;
+    let json = py.import("json")?;
+    let args = PyDict::new(py);
+    args.set_item("class", synth_class)?;
+    args.set_item("settings", settings_dict)?;
+    let synth_data = json.call_method1("dumps", (args,))?.extract::<String>()?.as_bytes().to_vec();
+    
+    let standalone_op = standalone as u8;
+    let packed_pauli_data = PauliEvolutionDefPack {
+        operator_size,
+        standalone_op,
+        time_type,
+        time_size: time_data.len() as u64,
+        synth_method_size: synth_data.len() as u64,
+        pauli_data,
+        time_data,
+        synth_data
+    };
+    let mut buffer = Cursor::new(Vec::new());
+    packed_pauli_data.write(&mut buffer).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
+    })?;
+    Ok(buffer.into_inner())
+    
+}
 fn pack_custom_instruction(
     py: Python,
     name: &String,
     custom_instructions_hash: &mut CustomOperationsMap,
     new_instructions_list: &mut Vec<String>,
     circuit_data: &mut CircuitData,
-    version: u32,
+    qpy_data: &QPYData,
 ) -> PyResult<CustomCircuitInstructionDefPack> {
     let operation = custom_instructions_hash.get(name).ok_or_else(|| PyErr::new::<PyValueError, _>(format!("Could not find operation data for {}", name)))?.clone();
     let gate_type = get_circuit_type_key(py, &operation)?;
@@ -548,7 +858,10 @@ fn pack_custom_instruction(
     let mut base_gate_raw: Bytes = Bytes::new();
     
     if gate_type == circuit_instruction_types::PAULI_EVOL_GATE {
-        has_definition = true;
+        if let OperationRef::Gate(gate) = operation.view() {
+            has_definition = true;
+            data = serialize_pauli_evolution_gate(py,&gate.gate.bind(py), qpy_data)?;
+        }
         // TODO: data = _write_pauli_evolution_gate(version)
     } else if gate_type == circuit_instruction_types::CONTROLLED_GATE {
         // For ControlledGate, we have to access and store the private `_definition` rather than the
@@ -560,7 +873,10 @@ fn pack_custom_instruction(
             // Build internal definition to support overloaded subclasses by
             // calling definition getter on object
             let gate = pygate.gate.bind(py);
-            data = serialize_circuit(py, &gate.getattr("_definition")?, py.None().bind(py), false, version)?;
+            println!("Serializing circuit in the CONTROLLED_GATE case, with gate {:?}", gate);
+            println!("_definition is {:?}", gate.getattr("_definition")?);
+            gate.getattr("definition")?; // this creates the _definition field
+            data = serialize_circuit(py, &gate.getattr("_definition")?, py.None().bind(py), false, qpy_data.version)?;
             num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
             base_gate = gate.getattr("base_gate")?.clone();
@@ -574,23 +890,32 @@ fn pack_custom_instruction(
         match operation.view(){ // all-around catch for "operation" field; should be easier once we switch from python to rust            
             OperationRef::Gate(pygate) => {
                 let gate = pygate.gate.bind(py);
-                if gate.hasattr("definition")? {
-                    has_definition = true;
-                    data = serialize_circuit(py, &gate.getattr("definition")?, py.None().bind(py), false, version)?;
+                match getattr_or_none(gate, "definition")? {
+                    None => (),
+                    Some(definition) => {
+                        has_definition = true;
+                        data = serialize_circuit(py, &definition, py.None().bind(py), false, qpy_data.version)?;
+                    }
                 }
             }
             OperationRef::Instruction(pyinst) => {
                 let inst = pyinst.instruction.bind(py);
-                if inst.hasattr("definition")? {
-                    has_definition = true;
-                    data = serialize_circuit(py, &inst.getattr("definition")?, py.None().bind(py), false, version)?;
+                match getattr_or_none(inst, "definition")? {
+                    None => (),
+                    Some(definition) => {
+                        has_definition = true;
+                        data = serialize_circuit(py, &definition, py.None().bind(py), false, qpy_data.version)?;
+                    }
                 }
             }
             OperationRef::Operation(pyoperation) => {
                 let operation = pyoperation.operation.bind(py);
-                if operation.hasattr("definition")? {
-                    has_definition = true;
-                    data = serialize_circuit(py, &operation.getattr("definition")?, py.None().bind(py), false, version)?;
+                match getattr_or_none(operation, "definition")? {
+                    None => (),
+                    Some(definition) => {
+                        has_definition = true;
+                        data = serialize_circuit(py, &definition, py.None().bind(py), false, qpy_data.version)?;
+                    }
                 }
             }
             _ => ()
@@ -600,12 +925,17 @@ fn pack_custom_instruction(
     if !base_gate.is_none(){
         let instruction = circuit_data.pack(py, &CircuitInstruction::py_new(&base_gate, None, None)?)?;
         // TODO: symengine, standalone_var_indices
-        base_gate_raw = serialize_instruction(py, &instruction, circuit_data, custom_instructions_hash, new_instructions_list)?;
+        base_gate_raw = serialize_instruction(py, &instruction, circuit_data, custom_instructions_hash, new_instructions_list, qpy_data)?;
         //base_gate_raw = pack_instruction(py, &instruction, circuit_data, custom_instructions_hash, new_instructions_list)?;
         //base_gate_raw = serialize_circuit_instruction(py, &instruction, circuit_data, custom_instructions_hash, new_instructions_list)?;
         
     }
     let name_raw = name.as_bytes().to_vec();
+    println!("RUST: writing name {:?} as name_raw {:?} of length {:?}", name, hex_string(&name_raw), name_raw.len());
+    println!("type key: {:?}", gate_type);
+    println!("num_qubits: {:?}",operation.num_qubits());
+    println!("num_clbits: {:?}", operation.num_clbits());
+    println!("size: {:?}", data.len());
     Ok(CustomCircuitInstructionDefPack{
         gate_name_size: name_raw.len() as u16,
         gate_type,
@@ -622,11 +952,11 @@ fn pack_custom_instruction(
     })
 }
 
-fn pack_custom_instructions(py: Python, custom_instructions_hash: &mut CustomOperationsMap, circuit_data: &mut CircuitData, version:u32) -> PyResult<CustomCircuitInstructionsPack> {
+fn pack_custom_instructions(py: Python, custom_instructions_hash: &mut CustomOperationsMap, circuit_data: &mut CircuitData, qpy_data: &QPYData) -> PyResult<CustomCircuitInstructionsPack> {
     let mut custom_instructions: Vec<CustomCircuitInstructionDefPack> = Vec::new();
     let mut instructions_to_pack: Vec<String> = custom_instructions_hash.keys().cloned().collect();
     while let Some(name) = instructions_to_pack.pop() {
-        custom_instructions.push(pack_custom_instruction(py, &name, custom_instructions_hash, &mut instructions_to_pack, circuit_data, version)?);
+        custom_instructions.push(pack_custom_instruction(py, &name, custom_instructions_hash, &mut instructions_to_pack, circuit_data, qpy_data)?);
     }
     Ok(CustomCircuitInstructionsPack {
         custom_operations_length: custom_instructions.len() as u64,
@@ -637,18 +967,24 @@ fn pack_circuit(
     py: Python,
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
-    _use_symengine: bool,
+    use_symengine: bool,
     version: u32,
 ) -> PyResult<QPYFormatV13> {
+    println!("pack_circuit called for circuit {:?}", circuit);
     let mut circuit_data = circuit.getattr("_data")?.extract::<CircuitData>()?;
-    let header_raw = pack_circuit_header(py, circuit, metadata_serializer)?;
+    let clbit_indices = circuit_data.get_clbit_indices(py).clone();
+    let qpy_data = QPYData {
+        version,
+        use_symengine,
+        clbit_indices,
+    };
+    let header_raw = pack_circuit_header(py, circuit, metadata_serializer, &qpy_data)?;
     // TODO: still need to implement write_standalone_vars
-    // TODO: We still need to handle custom instructions
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
     let calibration_header_value: u16 = 0;
-    let (instructions, mut custom_instructions_hash) = pack_instructions(py, &circuit_data)?;
-    let custom_instructions = pack_custom_instructions(py, &mut custom_instructions_hash, &mut circuit_data, version)?;
+    let (instructions, mut custom_instructions_hash) = pack_instructions(py, &circuit_data, &qpy_data)?;
+    let custom_instructions = pack_custom_instructions(py, &mut custom_instructions_hash, &mut circuit_data, &qpy_data)?;
     Ok(QPYFormatV13 {
         header: header_raw,
         custom_instructions,
@@ -691,3 +1027,4 @@ pub fn py_write_circuit(
     )?;
     Ok(serialized_circuit.len())
 }
+

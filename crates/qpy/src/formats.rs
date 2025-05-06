@@ -52,7 +52,7 @@ pub struct CircuitHeaderV12Pack {
 }
 
 // circuit instructions related
-#[derive(BinWrite)]
+#[derive(BinWrite, Debug)]
 #[brw(big)]
 pub struct CircuitInstructionV2Pack {
     pub name_size: u16,
@@ -105,31 +105,6 @@ pub struct CustomCircuitInstructionDefPack {
     pub data: Bytes,
     pub base_gate_raw: Bytes
 }
-// "CUSTOM_CIRCUIT_INST_DEF",
-// [
-//     "gate_name_size",
-//     "type",
-//     "num_qubits",
-//     "num_clbits",
-//     "custom_definition",
-//     "size",
-//     "num_ctrl_qubits",
-//     "ctrl_state",
-//     "base_gate_size",
-// ],
-// )
-// ustom_operation_raw = struct.pack(
-//     formats.CUSTOM_CIRCUIT_INST_DEF_V2_PACK,
-//     len(name_raw),
-//     type_key,
-//     num_qubits,
-//     num_clbits,
-//     has_definition,
-//     size,
-//     num_ctrl_qubits,
-//     ctrl_state,
-//     len(base_gate_raw),
-// )
 
 #[derive(BinWrite)]
 #[brw(big)]
@@ -154,11 +129,27 @@ pub struct LayoutV2Pack {
     pub final_layout_size: i32,
     pub extra_registers_length: u32,
     pub input_qubit_count: i32,
-    // TODO: incomplete; should have the layout data here
+    pub extra_registers_data: Bytes,
+    pub array_data: Bytes,
+}
+
+#[derive(BinWrite, Debug)]
+#[brw(big)]
+pub struct GenericDataPack {
+    pub type_key: u8,
+    pub data_len: u64,
+    pub data: Bytes,
+}
+
+#[derive(BinWrite, Debug)]
+#[brw(big)]
+pub struct GenericDataSequencePack {
+    pub num_elements: u64,
+    pub elements: Vec<GenericDataPack>,
 }
 
 // parameter related
-#[derive(BinWrite)]
+#[derive(BinWrite, Debug)]
 #[brw(big)]
 pub struct PackedParam {
     pub type_key: u8,
@@ -174,6 +165,23 @@ pub struct ParameterPack {
     pub name: Bytes,
 }
 
+// PARAMETER_VECTOR_ELEMENT = namedtuple(
+    //     "PARAMETER_VECTOR_ELEMENT", ["vector_name_size", "vector_size", "uuid", "index"]
+    // )
+    // PARAMETER_VECTOR_ELEMENT_PACK = "!HQ16sQ"
+    // PARAMETER_VECTOR_ELEMENT_SIZE = struct.calcsize(PARAMETER_VECTOR_ELEMENT_PACK)
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterVectorPack {
+    pub vector_name_size: u16,
+    pub vector_size: u64,
+    pub uuid: [u8; 16],
+    pub index: u64,
+    pub name_bytes: Bytes,
+}
+    
 #[derive(BinWrite)]
 #[brw(big)]
 #[derive(Debug)]
@@ -215,6 +223,28 @@ pub struct ExtraSymbolsTablePack {
     pub values: Vec<ParameterExpressionSymbolPack>,
 }
 
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct PauliEvolutionDefPack {
+    pub operator_size: u64,
+    pub standalone_op: u8,
+    pub time_type: u8,
+    pub time_size: u64,
+    pub synth_method_size: u64,
+    pub pauli_data: Vec<Bytes>,
+    pub time_data: Bytes,
+    pub synth_data: Bytes,
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct SparsePauliOpListElemPack {
+    pub size: u64,
+    pub data: Bytes,
+}
+
 // general data types
 
 #[derive(BinWrite)]
@@ -242,4 +272,13 @@ pub struct MappingItemHeader {
     pub key_size: u16,
     pub item_type: u8,
     pub size: u16,
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct RangePack {
+    pub start: i64,
+    pub stop: i64,
+    pub step: i64,
 }
