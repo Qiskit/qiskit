@@ -256,58 +256,6 @@ class TestSolovayKitaev(QiskitTestCase):
         # Check that both flows produce the same result
         self.assertEqual(discretized, reference)
 
-<<<<<<< HEAD
-=======
-    def test_measure(self):
-        """Test the Solovay-Kitaev transpiler pass on circuits with measure operators."""
-        qc = QuantumCircuit(1, 1)
-        qc.x(0)
-        qc.measure(0, 0)
-        transpiled = SolovayKitaev()(qc)
-        self.assertEqual(set(transpiled.count_ops()), {"h", "t", "measure"})
-
-    def test_barrier(self):
-        """Test the Solovay-Kitaev transpiler pass on circuits with barriers."""
-        qc = QuantumCircuit(1)
-        qc.x(0)
-        qc.barrier(0)
-        transpiled = SolovayKitaev()(qc)
-        self.assertEqual(set(transpiled.count_ops()), {"h", "t", "barrier"})
-
-    def test_parameterized_gates(self):
-        """Test the Solovay-Kitaev transpiler pass on circuits with parameterized gates."""
-        qc = QuantumCircuit(1)
-        qc.x(0)
-        qc.rz(Parameter("t"), 0)
-        transpiled = SolovayKitaev()(qc)
-        self.assertEqual(set(transpiled.count_ops()), {"h", "t", "rz"})
-
-    def test_control_flow_if(self):
-        """Test the Solovay-Kitaev transpiler pass on circuits with control flow ops"""
-        qr = QuantumRegister(1)
-        cr = ClassicalRegister(1)
-        qc = QuantumCircuit(qr, cr)
-
-        with qc.if_test((cr[0], 0)) as else_:
-            qc.y(0)
-        with else_:
-            qc.z(0)
-        transpiled = SolovayKitaev()(qc)
-
-        # check that we still have an if-else block and all the operations within
-        # have been recursively synthesized
-        self.assertEqual(transpiled[0].name, "if_else")
-        for block in transpiled[0].operation.blocks:
-            self.assertLessEqual(set(block.count_ops()), {"h", "t", "tdg"})
-
-    def test_no_to_matrix(self):
-        """Test the Solovay-Kitaev transpiler pass ignores gates without to_matrix."""
-        qc = QuantumCircuit(1)
-        qc.initialize("0")
-
-        transpiled = SolovayKitaev()(qc)
-        self.assertEqual(set(transpiled.count_ops()), {"initialize"})
-
     def test_y_gate(self):
         """Test the Solovay-Kitaev decomposition on the circuit with a Y-gate (see issue #9552)."""
         circuit = QuantumCircuit(1)
@@ -317,7 +265,6 @@ class TestSolovayKitaev(QiskitTestCase):
         diff = _trace_distance(circuit, transpiled)
         self.assertLess(diff, 1e-6)
 
->>>>>>> 68926088b (Bug fixes in Solovay Kitaev Decomposition (#14217))
 
 @ddt
 class TestGateSequence(QiskitTestCase):
