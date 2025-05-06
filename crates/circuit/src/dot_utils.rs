@@ -60,11 +60,7 @@ where
         let edge_weight = match edge.weight() {
             Wire::Qubit(qubit) => dag.qubits().get(*qubit).cloned().into_bound_py_any(py)?,
             Wire::Clbit(clbit) => dag.clbits().get(*clbit).cloned().into_bound_py_any(py)?,
-            Wire::Var(var) => dag
-                .vars()
-                .get(*var)
-                .map(|var| var.clone_ref(py))
-                .into_bound_py_any(py)?,
+            Wire::Var(var) => dag.vars().get(*var).cloned().into_bound_py_any(py)?,
         };
         writeln!(
             file,
