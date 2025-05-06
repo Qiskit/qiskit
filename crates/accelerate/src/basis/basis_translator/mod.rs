@@ -482,7 +482,7 @@ fn apply_translation(
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
     let out_dag = dag.copy_empty_like(py, "alike")?;
-    let mut out_dag_builder = out_dag.into_builder(py);
+    let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);

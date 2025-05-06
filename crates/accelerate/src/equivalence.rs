@@ -574,7 +574,7 @@ impl EquivalenceLibrary {
         slf.key_to_node_index = state
             .get_item("key_to_node_index")?
             .unwrap()
-            .extract::<IndexMap<Key, usize>>()?
+            .extract::<IndexMap<Key, usize, ::ahash::RandomState>>()?
             .into_iter()
             .map(|(key, val)| (key, NodeIndex::new(val)))
             .collect();
@@ -755,17 +755,18 @@ fn rebind_equiv(
     query_params: &[Param],
 ) -> PyResult<CircuitFromPython> {
     let (equiv_params, mut equiv_circuit) = (equiv.params, equiv.circuit);
-    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param>> = equiv_params
-        .iter()
-        .zip(query_params.iter())
-        .filter_map(|(param_x, param_y)| match param_x {
-            Param::ParameterExpression(param) => {
-                let param_uuid = ParameterUuid::from_parameter(param.bind(py));
-                Some(param_uuid.map(|uuid| (uuid, param_y)))
-            }
-            _ => None,
-        })
-        .collect();
+    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param, ::ahash::RandomState>> =
+        equiv_params
+            .iter()
+            .zip(query_params.iter())
+            .filter_map(|(param_x, param_y)| match param_x {
+                Param::ParameterExpression(param) => {
+                    let param_uuid = ParameterUuid::from_parameter(param.bind(py));
+                    Some(param_uuid.map(|uuid| (uuid, param_y)))
+                }
+                _ => None,
+            })
+            .collect();
     equiv_circuit
         .0
         .assign_parameters_from_mapping(py, param_mapping?)?;
