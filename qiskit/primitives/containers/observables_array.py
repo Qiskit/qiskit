@@ -295,8 +295,9 @@ class ObservablesArray(ShapedMixin):
         if self.num_qubits != other.num_qubits or self.shape != other.shape:
             return False
 
+        zero_obs = SparseObservable.zero(self.num_qubits)
         for obs1, obs2 in zip(self._array.ravel(), other._array.ravel()):
-            if (obs1 - obs2).simplify(tol) != SparseObservable.zero(self.num_qubits):
+            if (obs1 - obs2).simplify(tol) != zero_obs:
                 return False
 
         return True
