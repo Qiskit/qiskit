@@ -842,7 +842,7 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///   ==================  ===========  =============================================================
 ///   Attribute           Length       Description
 ///   ==================  ===========  =============================================================
-///   :attr:`paulis`   :math:`s`    Each of the non-identity single-qubit Pauli operators.  These
+///   :attr:`paulis`      :math:`s`    Each of the non-identity single-qubit Pauli operators.  These
 ///                                    correspond to the non-identity :math:`A^{(n)}_i` in the list,
 ///                                    where the entries are stored in order of increasing :math:`i`
 ///                                    first, and in order of increasing :math:`n` within each term.
