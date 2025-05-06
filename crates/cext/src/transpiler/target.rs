@@ -49,19 +49,10 @@ const _: () = unsafe { expose_by_box!(Target) };
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
-    Target::new(
-        None,
-        Some(num_qubits),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
-    .unwrap()
-    .into_leaked()
+    Target::new()
+        .with_num_qubits(num_qubits)
+        .unwrap()
+        .into_leaked()
 }
 
 /// @ingroup QkTarget
