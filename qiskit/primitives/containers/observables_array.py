@@ -307,7 +307,7 @@ class ObservablesArray(ShapedMixin):
         return deepcopy(self)
 
     def apply_layout(
-        self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
+        self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> ObservablesArray:
         """Apply a transpiler layout to this :class:`~.ObservablesArray`
 
