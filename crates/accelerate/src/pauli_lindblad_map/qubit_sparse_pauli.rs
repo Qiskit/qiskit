@@ -1510,8 +1510,8 @@ impl PyQubitSparsePauli {
 ///
 ///   :meth:`from_qubit_sparse_paulis`  Construct from a list of :class:`QubitSparsePauli`s.
 ///
-///   :meth:`from_raw_parts`            Build the list from :ref:`the raw data arrays
-///                                     <qubit-sparse-pauli-list-arrays>`.
+///   :meth:`from_raw_parts`            Build the list from 
+///                                     :ref:`the raw data arrays <qubit-sparse-pauli-list-arrays>`.
 ///   ================================  ============================================================
 ///
 /// .. py:function:: QubitSparsePauliList.__new__(data, /, num_qubits=None)
