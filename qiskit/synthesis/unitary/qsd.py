@@ -316,6 +316,14 @@ def _extract_multiplex_blocks(umat, k):
     [ um00 | um01 ]
     [ ---- | ---- ]
     [ um10 | um11 ]
+    Args:
+       umat (ndarray): unitary matrix
+       k (integer): qubit which indicates the ctrl index
+    Returns:
+       um00 (ndarray): upper left block
+       um01 (ndarray): upper right block
+       um10 (ndarray): lower left block
+       um11 (ndarray): lower right block
     """
     dim = umat.shape[0]
     nqubits = dim.bit_length() - 1
