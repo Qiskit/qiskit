@@ -910,11 +910,47 @@ impl Target {
 
 // Rust native methods
 impl Target {
-    /// Creates a new [Target].
+    /// Creates a new [Target] with default values.
+    pub fn new() -> Self {
+        Target::default()
+    }
+
+    /// Adds a description to a newly constructed [Target].
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
     ///
     /// # Arguments
     ///
     /// * `description` - An optional string to describe the Target.
+    ///
+    /// # Returns
+    ///
+    /// Initialized [Target] with a defined description attribute.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_description("New Target");
+    /// assert_eq!(target.description, Some("New Target".to_string()))
+    /// ```
+    pub fn with_description<S>(mut self, description: S) -> Self
+    where
+        S: Into<String>,
+    {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// Sets the num qubits attribute to a newly constructed [Target]
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
     /// * `num_qubits` - An optional int to specify the number of qubits
     ///        the backend target has. If not set it will be implicitly set
     ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
@@ -922,72 +958,258 @@ impl Target {
     ///        noiseless simulator that doesn't have constraints on the
     ///        instructions so the transpiler knows how many qubits are
     ///        available.
-    /// * `dt` - The system time resolution of input signals in seconds
-    /// * `granularity` - An integer value representing minimum pulse gate
-    ///        resolution in units of ``dt``. A user-defined pulse gate should
-    ///        have duration of a multiple of this granularity value.
-    /// * `min_length` - An integer value representing minimum pulse gate
-    ///        length in units of ``dt``. A user-defined pulse gate should be
-    ///        longer than this length.
-    /// * `pulse_alignment` - An integer value representing a time
-    ///        resolution of gate instruction starting time. Gate instruction
-    ///        should start at time which is a multiple of the alignment
-    ///        value.
-    /// * `acquire_alignment` - An integer value representing a time
-    ///        resolution of measure instruction starting time. Measure
-    ///        instruction should start at time which is a multiple of the
-    ///        alignment value.
-    /// * `concurrent_measurements` - A list of sets of qubits that must be
-    ///        measured together. This must be provided
-    ///        as a nested list like ``[[0, 1], [2, 3, 4]]``.
+    /// # Returns:
+    ///
+    /// * `Ok`: (if the number of qubits was successfully set.) [Target]
+    /// * `Err`: (if there was a specified [Target::qubit_properties] attribute and the
+    ///     lengths did not match) [TargetError].
+    ///
+    /// /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_num_qubits(1);
+    /// assert!(target.is_ok());
+    /// assert_eq!(target.unwrap().num_qubits, Some(1));
+    /// ```
+    pub fn with_num_qubits(mut self, num_qubits: u32) -> Result<Self, TargetError> {
+        if let Some(qubit_properties) = self.qubit_properties.as_ref() {
+            if num_qubits as usize != qubit_properties.len() {
+                return Err(TargetError::NumQubitsMismatch(
+                    num_qubits,
+                    qubit_properties.len(),
+                ));
+            } else {
+                self.num_qubits = Some(qubit_properties.len() as u32)
+            }
+        } else {
+            self.num_qubits = Some(num_qubits)
+        }
+        Ok(self)
+    }
+    /// Adds a `dt` value for the system time resulution of input of the [Target],
+    /// in seconds.
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `dt` - The system time resolution of input signals in seconds.
     ///
     /// # Returns
     ///
-    /// A new instance of [Target].
+    /// Initialized [Target] with a defined ``dt`` value.
     ///
     /// # Examples
     ///
     /// ```rust
     /// use qiskit_accelerate::target_transpiler::Target;
-    /// use qiskit_circuit::operations::StandardGate;
     ///
-    /// let mut target = Target::new(
-    ///     Some("target".to_string()),
-    ///     Some(4),
-    ///     None,
-    ///     Some(1),
-    ///     Some(1),
-    ///     Some(1),
-    ///     Some(0),
-    ///     None,
-    /// );
+    /// let mut target = Target::new().with_dt(0.02903);
+    /// assert_eq!(target.dt, Some(0.02903))
     /// ```
-    pub fn new(
-        description: Option<String>,
-        num_qubits: Option<u32>,
-        dt: Option<f64>,
-        granularity: Option<u32>,
-        min_length: Option<u32>,
-        pulse_alignment: Option<u32>,
-        acquire_alignment: Option<u32>,
-        concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
-    ) -> Self {
-        Target {
-            description,
-            num_qubits,
-            dt,
-            granularity: granularity.unwrap_or(1),
-            min_length: min_length.unwrap_or(1),
-            pulse_alignment: pulse_alignment.unwrap_or(1),
-            acquire_alignment: acquire_alignment.unwrap_or(0),
-            qubit_properties: None,
-            concurrent_measurements,
-            gate_map: GateMap::default(),
-            _gate_name_map: IndexMap::default(),
-            global_operations: IndexMap::default(),
-            qarg_gate_map: IndexMap::default(),
-            angle_bounds: HashMap::default(),
+    pub fn with_dt(mut self, dt: f64) -> Self {
+        self.dt = Some(dt);
+        self
+    }
+
+    /// Adds a `granularity` value for the minimum pulse gate resolution in units of ``dt``
+    /// of the [Target].
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `granularity` - An integer value representing minimum pulse gate
+    ///        resolution in units of ``dt``. A user-defined pulse gate should
+    ///        have duration of a multiple of this granularity value.
+    ///
+    /// # Returns
+    ///
+    /// Initialized [Target] with a `granularity` value.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_granularity(2);
+    /// assert_eq!(target.granularity, 2)
+    /// ```
+    pub fn with_granularity(mut self, granularity: u32) -> Self {
+        self.granularity = granularity;
+        self
+    }
+
+    /// Adds a minimum pulse gate length value for the [Target] in units of ``dt``.
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `min_length` - An integer value representing minimum pulse gate
+    ///        length in units of ``dt``. A user-defined pulse gate should be
+    ///        longer than this length.
+    ///  
+    /// # Returns
+    ///
+    /// Initialized [Target] with a defined ``min_length`` attribute.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_min_length(3);
+    /// assert_eq!(target.min_length, 3)
+    /// ```
+    pub fn with_min_length(mut self, min_length: u32) -> Self {
+        self.min_length = min_length;
+        self
+    }
+
+    /// Adds a `pulse_alignment` value representing a time resolution of
+    /// gate instruction starting time for the [Target].
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `pulse_alignment` - An integer value representing a time
+    ///        resolution of gate instruction starting time. Gate instruction
+    ///        should start at time which is a multiple of the alignment
+    ///        value.
+    ///  
+    /// # Returns
+    ///
+    /// Initialized [Target] with a defined ``pulse_alignment`` attribute.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_pulse_alignment(4);
+    /// assert_eq!(target.pulse_alignment, 4)
+    /// ```
+    pub fn with_pulse_alignment(mut self, pulse_alignment: u32) -> Self {
+        self.pulse_alignment = pulse_alignment;
+        self
+    }
+
+    /// Adds an `acquire_alignment` value representing a time resolution of
+    /// measure instruction starting time for the [Target].
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `acquire_alignment` - An integer value representing a time
+    ///        resolution of measure instruction starting time. Measure
+    ///        instruction should start at time which is a multiple of the
+    ///        alignment value.
+    ///  
+    /// # Returns
+    ///
+    /// Initialized [Target] with a defined ``acquire_alignment`` attribute.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_acquire_alignment(5);
+    /// assert_eq!(target.acquire_alignment, 5)
+    /// ```
+    pub fn with_acquire_alignment(mut self, acquire_alignment: u32) -> Self {
+        self.acquire_alignment = acquire_alignment;
+        self
+    }
+
+    /// Sets a list of the characteristics of each qubit on the [Target] device.
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `qubit_properties` - A list of python `QubitProperties` objects defining
+    ///        the characteristics of each qubit on the target device. If specified
+    ///        the length of this list must match the number of qubits in the target,
+    ///        where the index in the list matches the qubit number the properties
+    ///        are defined for. If some qubits don't have properties available you
+    ///        can set that entry to ``None``.
+    ///
+    /// # Returns:
+    ///
+    /// * `Ok`: (if the`qubit_properties` were successfully set.) [Target]
+    /// * `Err`: (if there was a specified [Target::num_qubits] attribute and the
+    ///     lengths did not match) [TargetError].
+    ///
+    /// /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_qubit_properties(vec![]);
+    /// assert!(target.is_ok());
+    /// // This should change the number of qubits to the length of the list.
+    /// assert_eq!(target.num_qubits, Some(0));
+    /// ```
+    pub fn with_qubit_properties(
+        mut self,
+        qubit_properties: Vec<QubitProperties>,
+    ) -> Result<Self, TargetError> {
+        if self.num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
+            if self.num_qubits.unwrap() as usize != qubit_properties.len() {
+                return Err(TargetError::NumQubitsMismatch(
+                    self.num_qubits.unwrap(),
+                    qubit_properties.len(),
+                ));
+            }
+        } else {
+            self.num_qubits = Some(qubit_properties.len() as u32)
         }
+        self.qubit_properties = Some(qubit_properties);
+        Ok(self)
+    }
+
+    /// Specifies a list of qubits in the [Target] that need to be measure together.
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `concurrent_measurements` - A list of sets of qubits that must be
+    ///        measured together. This must be provided
+    ///        as a nested list like ``[[0, 1], [2, 3, 4]]``.
+    ///  
+    /// # Returns
+    ///
+    /// Initialized [Target] with a defined ``concurrent_measurements`` attribute.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_accelerate::nlayout::PhysicalQubit;
+    ///
+    /// let mut target = Target::new().with_concurrent_measurements(vec![vec![PhysicalQubit(0), PhysicalQubit(1)], vec![PhysicalQubit(2), PhysicalQubit(3), PhysicalQubit(4)]]);
+    /// assert_eq!(target.concurrent_measurements, Some(vec![vec![PhysicalQubit(0), PhysicalQubit(1)], vec![PhysicalQubit(2), PhysicalQubit(3), PhysicalQubit(4)]]))
+    /// ```
+    pub fn with_concurrent_measurements(
+        mut self,
+        concurrent_measurements: Vec<Vec<PhysicalQubit>>,
+    ) -> Self {
+        self.concurrent_measurements = Some(concurrent_measurements);
+        self
     }
 
     /// Adds a [PackedOperation] to the [Target].
@@ -2026,16 +2248,10 @@ mod test {
             frequency: Some(5.0),
         }];
         // num_qubits is 2, but only 1 qubit_properties
-        let result = Target::new(
-            None,
-            Some(2),
-            None,
-            Some(1),
-            Some(1),
-            Some(1),
-            Some(1),
-            None,
-        );
+        let result = Target::new()
+            .with_num_qubits(2)
+            .unwrap()
+            .with_qubit_properties(props);
         assert!(result.is_err());
     }
 }
