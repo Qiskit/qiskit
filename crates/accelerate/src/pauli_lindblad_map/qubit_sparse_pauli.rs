@@ -34,16 +34,16 @@ use qiskit_circuit::{
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
-static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
+static PAULI_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
 
 /// Named handle to the alphabet of single-qubit terms.
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `BitTerm`s, but doing so in Python would
+/// not allowing the stored values to be outside the valid `Pauli`s, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
-/// sister class of `BitTerm` to `QubitSparsePauli` and `QubitSparsePauliList` as a scoped class.
+/// sister class of `Pauli` to `QubitSparsePauli` and `QubitSparsePauliList` as a scoped class.
 ///
 /// # Representation
 ///
@@ -53,23 +53,23 @@ static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new
 /// natural representation of the `I` operator, but this is never stored, and is not named in the
 /// enumeration.
 ///
-/// This operator does not store phase terms of $-i$.  `BitTerm::Y` has `(1, 1)` as its `(z, x)`
+/// This operator does not store phase terms of $-i$.  `Pauli::Y` has `(1, 1)` as its `(z, x)`
 /// representation, and represents exactly the Pauli Y operator. Additional phases, if needed, must
 /// be stored elsewhere.
 ///
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `BitTerm`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
-/// which we transmute into slices of `BitTerm`, after checking that all the values are correct (or
+/// `Pauli`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// which we transmute into slices of `Pauli`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
-/// We deliberately _don't_ impl `numpy::Element` for `BitTerm` (which would let us accept and
-/// return `PyArray1<BitTerm>` at Python-space boundaries) so that it's clear when we're doing
+/// We deliberately _don't_ impl `numpy::Element` for `Pauli` (which would let us accept and
+/// return `PyArray1<Pauli>` at Python-space boundaries) so that it's clear when we're doing
 /// the transmute, and we have to be explicit about the safety of that.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub enum BitTerm {
+pub enum Pauli {
     /// Pauli X operator.
     X = 0b10,
     /// Pauli Y operator.
@@ -77,12 +77,12 @@ pub enum BitTerm {
     /// Pauli Z operator.
     Z = 0b01,
 }
-impl From<BitTerm> for u8 {
-    fn from(value: BitTerm) -> u8 {
+impl From<Pauli> for u8 {
+    fn from(value: Pauli) -> u8 {
         value as u8
     }
 }
-unsafe impl ::bytemuck::CheckedBitPattern for BitTerm {
+unsafe impl ::bytemuck::CheckedBitPattern for Pauli {
     type Bits = u8;
 
     #[inline(always)]
@@ -90,10 +90,10 @@ unsafe impl ::bytemuck::CheckedBitPattern for BitTerm {
         *bits <= 0b11 && *bits != 0
     }
 }
-unsafe impl ::bytemuck::NoUninit for BitTerm {}
+unsafe impl ::bytemuck::NoUninit for Pauli {}
 
-impl BitTerm {
-    /// Get the label of this `BitTerm` used in Python-space applications.  This is a single-letter
+impl Pauli {
+    /// Get the label of this `Pauli` used in Python-space applications.  This is a single-letter
     /// string.
     #[inline]
     pub fn py_label(&self) -> &'static str {
@@ -105,7 +105,7 @@ impl BitTerm {
         }
     }
 
-    /// Get the name of this `BitTerm`, which is how Python space refers to the integer constant.
+    /// Get the name of this `Pauli`, which is how Python space refers to the integer constant.
     #[inline]
     pub fn py_name(&self) -> &'static str {
         // Note: these names are part of the stable Python API and should not be changed.
@@ -116,19 +116,19 @@ impl BitTerm {
         }
     }
 
-    /// Attempt to convert a `u8` into `BitTerm`.
+    /// Attempt to convert a `u8` into `Pauli`.
     ///
     /// Unlike the implementation of `TryFrom<u8>`, this allows `b'I'` as an alphabet letter,
     /// returning `Ok(None)` for it.  All other letters outside the alphabet return the complete
     /// error condition.
     #[inline]
-    fn try_from_u8(value: u8) -> Result<Option<Self>, BitTermFromU8Error> {
+    fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
         match value {
             b'I' => Ok(None),
-            b'X' => Ok(Some(BitTerm::X)),
-            b'Y' => Ok(Some(BitTerm::Y)),
-            b'Z' => Ok(Some(BitTerm::Z)),
-            _ => Err(BitTermFromU8Error(value)),
+            b'X' => Ok(Some(Pauli::X)),
+            b'Y' => Ok(Some(Pauli::Y)),
+            b'Z' => Ok(Some(Pauli::Z)),
+            _ => Err(PauliFromU8Error(value)),
         }
     }
 
@@ -147,18 +147,18 @@ impl BitTerm {
     }
 }
 
-/// The error type for a failed conversion into `BitTerm`.
+/// The error type for a failed conversion into `Pauli`.
 #[derive(Error, Debug)]
 #[error("{0} is not a valid letter of the single-qubit alphabet")]
-pub struct BitTermFromU8Error(u8);
+pub struct PauliFromU8Error(u8);
 
-// `BitTerm` allows safe `as` casting into `u8`.  This is the reverse, which is fallible, because
-// `BitTerm` is a value-wise subtype of `u8`.
-impl ::std::convert::TryFrom<u8> for BitTerm {
-    type Error = BitTermFromU8Error;
+// `Pauli` allows safe `as` casting into `u8`.  This is the reverse, which is fallible, because
+// `Pauli` is a value-wise subtype of `u8`.
+impl ::std::convert::TryFrom<u8> for Pauli {
+    type Error = PauliFromU8Error;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        ::bytemuck::checked::try_cast(value).map_err(|_| BitTermFromU8Error(value))
+        ::bytemuck::checked::try_cast(value).map_err(|_| PauliFromU8Error(value))
     }
 }
 
@@ -175,11 +175,11 @@ impl ::std::convert::TryFrom<u8> for BitTerm {
 pub enum CoherenceError {
     #[error("`boundaries` ({boundaries}) must be one element longer than `coeffs` ({coeffs})")]
     MismatchedTermCount { coeffs: usize, boundaries: usize },
-    #[error("`bit_terms` ({bit_terms}) and `indices` ({indices}) must be the same length")]
-    MismatchedItemCount { bit_terms: usize, indices: usize },
+    #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
+    MismatchedItemCount { paulis: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})")]
+    #[error("the last item of `boundaries` ({last}) must match the length of `paulis` and `indices` ({items})")]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -226,12 +226,12 @@ pub struct QubitSparsePauliList {
     num_qubits: u32,
     /// A flat list of single-qubit paulis.  This is more naturally a list of lists, but is stored
     /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
-    bit_terms: Vec<BitTerm>,
-    /// A flat list of the qubit indices that the corresponding entries in `bit_terms` act on.  This
+    paulis: Vec<Pauli>,
+    /// A flat list of the qubit indices that the corresponding entries in `paulis` act on.  This
     /// list must always be term-wise sorted, where a term is a sublist as denoted by `boundaries`.
     indices: Vec<u32>,
-    /// Indices that partition `bit_terms` and `indices` into sublists for each individual sparse
-    /// pauli.  `boundaries[0]..boundaries[1]` is the range of indices into `bit_terms` and
+    /// Indices that partition `paulis` and `indices` into sublists for each individual sparse
+    /// pauli.  `boundaries[0]..boundaries[1]` is the range of indices into `paulis` and
     /// `indices` that correspond to the first term of the sum.  All unspecified qubit indices are
     /// implicitly the identity.  This is one item longer than `coeffs`, since `boundaries[0]` is
     /// always an explicit zero (for algorithmic ease).
@@ -245,13 +245,13 @@ impl QubitSparsePauliList {
     /// correct values, you can call `new_unchecked` instead.
     pub fn new(
         num_qubits: u32,
-        bit_terms: Vec<BitTerm>,
+        paulis: Vec<Pauli>,
         indices: Vec<u32>,
         boundaries: Vec<usize>,
     ) -> Result<Self, CoherenceError> {
-        if bit_terms.len() != indices.len() {
+        if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
-                bit_terms: bit_terms.len(),
+                paulis: paulis.len(),
                 indices: indices.len(),
             });
         }
@@ -284,7 +284,7 @@ impl QubitSparsePauliList {
             }
         }
         // SAFETY: we've just done the coherence checks.
-        Ok(unsafe { Self::new_unchecked(num_qubits, bit_terms, indices, boundaries) })
+        Ok(unsafe { Self::new_unchecked(num_qubits, paulis, indices, boundaries) })
     }
 
     /// Create a new [QubitSparsePauliList] from the raw components without checking data coherence.
@@ -296,26 +296,26 @@ impl QubitSparsePauliList {
     #[inline(always)]
     pub unsafe fn new_unchecked(
         num_qubits: u32,
-        bit_terms: Vec<BitTerm>,
+        paulis: Vec<Pauli>,
         indices: Vec<u32>,
         boundaries: Vec<usize>,
     ) -> Self {
         Self {
             num_qubits,
-            bit_terms,
+            paulis,
             indices,
             boundaries,
         }
     }
 
     /// Create a new empty list with pre-allocated space for the given number of Paulis and
-    /// single-qubit bit terms.
+    /// single-qubit pauli terms.
     #[inline]
-    pub fn with_capacity(num_qubits: u32, num_terms: usize, num_bit_terms: usize) -> Self {
+    pub fn with_capacity(num_qubits: u32, num_terms: usize, num_paulis: usize) -> Self {
         Self {
             num_qubits,
-            bit_terms: Vec::with_capacity(num_bit_terms),
-            indices: Vec::with_capacity(num_bit_terms),
+            paulis: Vec::with_capacity(num_paulis),
+            indices: Vec::with_capacity(num_paulis),
             boundaries: {
                 let mut boundaries = Vec::with_capacity(num_terms + 1);
                 boundaries.push(0);
@@ -335,7 +335,7 @@ impl QubitSparsePauliList {
             let end = self.boundaries[i + 1];
             QubitSparsePauliView {
                 num_qubits: self.num_qubits,
-                bit_terms: &self.bit_terms[start..end],
+                paulis: &self.paulis[start..end],
                 indices: &self.indices[start..end],
             }
         })
@@ -361,7 +361,7 @@ impl QubitSparsePauliList {
         self.boundaries.len() - 1
     }
 
-    /// Get the indices of each [BitTerm].
+    /// Get the indices of each [Pauli].
     #[inline]
     pub fn indices(&self) -> &[u32] {
         &self.indices
@@ -372,7 +372,7 @@ impl QubitSparsePauliList {
     /// # Safety
     ///
     /// Modifying the indices can cause an incoherent state of the [QubitSparsePauliList].
-    /// It should be ensured that the indices are consistent with the coeffs, bit_terms, and
+    /// It should be ensured that the indices are consistent with the coeffs, paulis, and
     /// boundaries.
     #[inline]
     pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
@@ -391,22 +391,22 @@ impl QubitSparsePauliList {
     ///
     /// Modifying the boundaries can cause an incoherent state of the [QubitSparsePauliList].
     /// It should be ensured that the boundaries are sorted and the length/elements are consistent
-    /// with the bit_terms and indices.
+    /// with the paulis and indices.
     #[inline]
     pub unsafe fn boundaries_mut(&mut self) -> &mut [usize] {
         &mut self.boundaries
     }
 
-    /// Get the [BitTerm]s in the list.
+    /// Get the [Pauli]s in the list.
     #[inline]
-    pub fn bit_terms(&self) -> &[BitTerm] {
-        &self.bit_terms
+    pub fn paulis(&self) -> &[Pauli] {
+        &self.paulis
     }
 
-    /// Get a mutable slice of the bit terms.
+    /// Get a mutable slice of the paulis.
     #[inline]
-    pub fn bit_terms_mut(&mut self) -> &mut [BitTerm] {
-        &mut self.bit_terms
+    pub fn paulis_mut(&mut self) -> &mut [Pauli] {
+        &mut self.paulis
     }
 
     /// Create a [QubitSparsePauliList] representing the empty list on ``num_qubits`` qubits.
@@ -419,7 +419,7 @@ impl QubitSparsePauliList {
     /// This does not change the capacity of the internal allocations, so subsequent addition or
     /// substraction of elements in the list may not need to reallocate.
     pub fn clear(&mut self) {
-        self.bit_terms.clear();
+        self.paulis.clear();
         self.indices.clear();
         self.boundaries.truncate(1);
     }
@@ -437,7 +437,7 @@ impl QubitSparsePauliList {
         let end = self.boundaries[index + 1];
         QubitSparsePauliView {
             num_qubits: self.num_qubits,
-            bit_terms: &self.bit_terms[start..end],
+            paulis: &self.paulis[start..end],
             indices: &self.indices[start..end],
         }
     }
@@ -454,22 +454,22 @@ impl QubitSparsePauliList {
         // The only valid characters in the alphabet are ASCII, so if we see something other than
         // ASCII, we're already in the failure path.
         for (i, letter) in label.iter().rev().enumerate() {
-            match BitTerm::try_from_u8(*letter) {
+            match Pauli::try_from_u8(*letter) {
                 Ok(Some(term)) => {
-                    self.bit_terms.push(term);
+                    self.paulis.push(term);
                     self.indices.push(i as u32);
                 }
                 Ok(None) => (),
                 Err(_) => {
                     // Undo any modifications to ourselves so we stay in a consistent state.
                     let num_single_terms = self.boundaries[self.boundaries.len() - 1];
-                    self.bit_terms.truncate(num_single_terms);
+                    self.paulis.truncate(num_single_terms);
                     self.indices.truncate(num_single_terms);
                     return Err(LabelError::OutsideAlphabet);
                 }
             }
         }
-        self.boundaries.push(self.bit_terms.len());
+        self.boundaries.push(self.paulis.len());
         Ok(())
     }
 
@@ -484,21 +484,21 @@ impl QubitSparsePauliList {
                 right: term.num_qubits,
             });
         }
-        self.bit_terms.extend_from_slice(term.bit_terms);
+        self.paulis.extend_from_slice(term.paulis);
         self.indices.extend_from_slice(term.indices);
-        self.boundaries.push(self.bit_terms.len());
+        self.boundaries.push(self.paulis.len());
         Ok(())
     }
 }
 
 /// A view object onto a single term of a `QubitSparsePauliList`.
 ///
-/// The lengths of `bit_terms` and `indices` are guaranteed to be created equal, but might be zero
+/// The lengths of `paulis` and `indices` are guaranteed to be created equal, but might be zero
 /// (in the case that the term is proportional to the identity).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct QubitSparsePauliView<'a> {
     pub num_qubits: u32,
-    pub bit_terms: &'a [BitTerm],
+    pub paulis: &'a [Pauli],
     pub indices: &'a [u32],
 }
 impl QubitSparsePauliView<'_> {
@@ -506,7 +506,7 @@ impl QubitSparsePauliView<'_> {
     pub fn to_term(&self) -> QubitSparsePauli {
         QubitSparsePauli {
             num_qubits: self.num_qubits,
-            bit_terms: self.bit_terms.into(),
+            paulis: self.paulis.into(),
             indices: self.indices.into(),
         }
     }
@@ -515,7 +515,7 @@ impl QubitSparsePauliView<'_> {
         let paulis = self
             .indices
             .iter()
-            .zip(self.bit_terms)
+            .zip(self.paulis)
             .rev()
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
@@ -526,13 +526,13 @@ impl QubitSparsePauliView<'_> {
 
 /// A mutable view object onto a single term of a [QubitSparsePauliList].
 ///
-/// The lengths of [bit_terms] and [indices] are guaranteed to be created equal, but might be zero
+/// The lengths of [paulis] and [indices] are guaranteed to be created equal, but might be zero
 /// (in the case that the Pauli is proportional to the identity).  [indices] is not mutable because
 /// this would allow data coherence to be broken.
 #[derive(Debug)]
 pub struct QubitSparsePauliViewMut<'a> {
     pub num_qubits: u32,
-    pub bit_terms: &'a mut [BitTerm],
+    pub paulis: &'a mut [Pauli],
     pub indices: &'a [u32],
 }
 
@@ -542,7 +542,7 @@ pub struct QubitSparsePauliViewMut<'a> {
 #[derive(Debug)]
 pub struct IterMut<'a> {
     num_qubits: u32,
-    bit_terms: &'a mut [BitTerm],
+    paulis: &'a mut [Pauli],
     indices: &'a [u32],
     boundaries: &'a [usize],
     i: usize,
@@ -551,7 +551,7 @@ impl<'a> From<&'a mut QubitSparsePauliList> for IterMut<'a> {
     fn from(value: &mut QubitSparsePauliList) -> IterMut {
         IterMut {
             num_qubits: value.num_qubits,
-            bit_terms: &mut value.bit_terms,
+            paulis: &mut value.paulis,
             indices: &value.indices,
             boundaries: &value.boundaries,
             i: 0,
@@ -571,16 +571,16 @@ impl<'a> Iterator for IterMut<'a> {
         let len = self.boundaries[self.i + 1] - self.boundaries[self.i];
         self.i += 1;
 
-        let all_bit_terms = ::std::mem::take(&mut self.bit_terms);
+        let all_paulis = ::std::mem::take(&mut self.paulis);
         let all_indices = ::std::mem::take(&mut self.indices);
-        let (bit_terms, rest_bit_terms) = all_bit_terms.split_at_mut(len);
+        let (paulis, rest_paulis) = all_paulis.split_at_mut(len);
         let (indices, rest_indices) = all_indices.split_at(len);
-        self.bit_terms = rest_bit_terms;
+        self.paulis = rest_paulis;
         self.indices = rest_indices;
 
         Some(QubitSparsePauliViewMut {
             num_qubits: self.num_qubits,
-            bit_terms,
+            paulis,
             indices,
         })
     }
@@ -598,8 +598,8 @@ pub struct QubitSparsePauli {
     /// Number of qubits the Pauli operator is defined on.
     num_qubits: u32,
     /// A list of the non-identity single-qubit Paulis in the operator.
-    bit_terms: Box<[BitTerm]>,
-    /// A flat list of the qubit indices that the corresponding entries in `bit_terms` act on.
+    paulis: Box<[Pauli]>,
+    /// A flat list of the qubit indices that the corresponding entries in `paulis` act on.
     indices: Box<[u32]>,
 }
 
@@ -607,12 +607,12 @@ impl QubitSparsePauli {
     /// Create a new qubit-sparse Pauli from the raw components that make it up.
     pub fn new(
         num_qubits: u32,
-        bit_terms: Box<[BitTerm]>,
+        paulis: Box<[Pauli]>,
         indices: Box<[u32]>,
     ) -> Result<Self, CoherenceError> {
-        if bit_terms.len() != indices.len() {
+        if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
-                bit_terms: bit_terms.len(),
+                paulis: paulis.len(),
                 indices: indices.len(),
             });
         }
@@ -623,7 +623,7 @@ impl QubitSparsePauli {
 
         Ok(Self {
             num_qubits,
-            bit_terms,
+            paulis,
             indices,
         })
     }
@@ -634,23 +634,23 @@ impl QubitSparsePauli {
         self.num_qubits
     }
 
-    /// Get the indices of each [BitTerm].
+    /// Get the indices of each [Pauli].
     #[inline]
     pub fn indices(&self) -> &[u32] {
         &self.indices
     }
 
-    /// Get the [BitTerm]s in the list.
+    /// Get the [Pauli]s in the list.
     #[inline]
-    pub fn bit_terms(&self) -> &[BitTerm] {
-        &self.bit_terms
+    pub fn paulis(&self) -> &[Pauli] {
+        &self.paulis
     }
 
     /// Get a view version of this object.
     pub fn view(&self) -> QubitSparsePauliView {
         QubitSparsePauliView {
             num_qubits: self.num_qubits,
-            bit_terms: &self.bit_terms,
+            paulis: &self.paulis,
             indices: &self.indices,
         }
     }
@@ -659,9 +659,9 @@ impl QubitSparsePauli {
     pub fn to_qubit_sparse_pauli_list(&self) -> QubitSparsePauliList {
         QubitSparsePauliList {
             num_qubits: self.num_qubits,
-            bit_terms: self.bit_terms.to_vec(),
+            paulis: self.paulis.to_vec(),
             indices: self.indices.to_vec(),
-            boundaries: vec![0, self.bit_terms.len()],
+            boundaries: vec![0, self.paulis.len()],
         }
     }
 }
@@ -695,8 +695,8 @@ impl From<InnerWriteError> for PyErr {
     }
 }
 
-impl From<BitTermFromU8Error> for PyErr {
-    fn from(value: BitTermFromU8Error) -> PyErr {
+impl From<PauliFromU8Error> for PyErr {
+    fn from(value: PauliFromU8Error) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
@@ -720,25 +720,25 @@ impl From<ArithmeticError> for PyErr {
 /// alphabet.
 #[pyfunction]
 #[pyo3(name = "label")]
-fn bit_term_label(py: Python, slf: BitTerm) -> &Bound<PyString> {
+fn pauli_label(py: Python, slf: Pauli) -> &Bound<PyString> {
     // This doesn't use `py_label` so we can use `intern!`.
     match slf {
-        BitTerm::X => intern!(py, "X"),
-        BitTerm::Y => intern!(py, "Y"),
-        BitTerm::Z => intern!(py, "Z"),
+        Pauli::X => intern!(py, "X"),
+        Pauli::Y => intern!(py, "Y"),
+        Pauli::Z => intern!(py, "Z"),
     }
 }
-/// Construct the Python-space `IntEnum` that represents the same values as the Rust-spce `BitTerm`.
+/// Construct the Python-space `IntEnum` that represents the same values as the Rust-spce `Pauli`.
 ///
-/// We don't make `BitTerm` a direct `pyclass` because we want the behaviour of `IntEnum`, which
+/// We don't make `Pauli` a direct `pyclass` because we want the behaviour of `IntEnum`, which
 /// specifically also makes its variants subclasses of the Python `int` type; we use a type-safe
 /// enum in Rust, but from Python space we expect people to (carefully) deal with the raw ints in
 /// Numpy arrays for efficiency.
 ///
 /// The resulting class is attached to `QubitSparsePauliList` as a class attribute, and its
 /// `__qualname__` is set to reflect this.
-fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
-    let terms = [BitTerm::X, BitTerm::Y, BitTerm::Z]
+fn make_py_pauli(py: Python) -> PyResult<Py<PyType>> {
+    let terms = [Pauli::X, Pauli::Y, Pauli::Z]
         .into_iter()
         .flat_map(|term| {
             let mut out = vec![(term.py_name(), term as u8)];
@@ -752,11 +752,11 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
         })
         .collect::<Vec<_>>();
     let obj = py.import("enum")?.getattr("IntEnum")?.call(
-        ("BitTerm", terms),
+        ("Pauli", terms),
         Some(
             &[
                 ("module", "qiskit.quantum_info"),
-                ("qualname", "QubitSparsePauliList.BitTerm"),
+                ("qualname", "QubitSparsePauliList.Pauli"),
             ]
             .into_py_dict(py)?,
         ),
@@ -764,7 +764,7 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
     let label_property = py
         .import("builtins")?
         .getattr("property")?
-        .call1((wrap_pyfunction!(bit_term_label, py)?,))?;
+        .call1((wrap_pyfunction!(pauli_label, py)?,))?;
     obj.setattr("label", label_property)?;
     Ok(obj.downcast_into::<PyType>()?.unbind())
 }
@@ -773,24 +773,24 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
 // singletons and subclasses of Python `int`.  We only use this for interaction with "high level"
 // Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
 // efficiently.
-impl<'py> IntoPyObject<'py> for BitTerm {
+impl<'py> IntoPyObject<'py> for Pauli {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> PyResult<Self::Output> {
-        let terms = BIT_TERM_INTO_PY.get_or_init(py, || {
-            let py_enum = BIT_TERM_PY_ENUM
-                .get_or_try_init(py, || make_py_bit_term(py))
+        let terms = PAULI_INTO_PY.get_or_init(py, || {
+            let py_enum = PAULI_PY_ENUM
+                .get_or_try_init(py, || make_py_pauli(py))
                 .expect("creating a simple Python enum class should be infallible")
                 .bind(py);
             ::std::array::from_fn(|val| {
                 ::bytemuck::checked::try_cast(val as u8)
                     .ok()
-                    .map(|term: BitTerm| {
+                    .map(|term: Pauli| {
                         py_enum
                             .getattr(term.py_name())
-                            .expect("the created `BitTerm` enum should have matching attribute names to the terms")
+                            .expect("the created `Pauli` enum should have matching attribute names to the terms")
                             .unbind()
                     })
             })
@@ -803,17 +803,17 @@ impl<'py> IntoPyObject<'py> for BitTerm {
     }
 }
 
-impl<'py> FromPyObject<'py> for BitTerm {
+impl<'py> FromPyObject<'py> for Pauli {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
-                Ok(repr) => PyTypeError::new_err(format!("bad type for 'BitTerm': {}", repr)),
+                Ok(repr) => PyTypeError::new_err(format!("bad type for 'Pauli': {}", repr)),
                 Err(err) => err,
             })?;
         let value_error = || {
             PyValueError::new_err(format!(
-                "value {} is not a valid letter of the single-qubit alphabet for 'BitTerm'",
+                "value {} is not a valid letter of the single-qubit alphabet for 'Pauli'",
                 value
             ))
         };
@@ -842,20 +842,20 @@ impl<'py> FromPyObject<'py> for BitTerm {
 ///   ==================  ===========  =============================================================
 ///   Attribute           Length       Description
 ///   ==================  ===========  =============================================================
-///   :attr:`bit_terms`   :math:`s`    Each of the non-identity single-qubit Pauli operators.  These
+///   :attr:`paulis`   :math:`s`    Each of the non-identity single-qubit Pauli operators.  These
 ///                                    correspond to the non-identity :math:`A^{(n)}_i` in the list,
 ///                                    where the entries are stored in order of increasing :math:`i`
 ///                                    first, and in order of increasing :math:`n` within each term.
 ///
 ///   :attr:`indices`     :math:`s`    The corresponding qubit (:math:`n`) for each of the operators
-///                                    in :attr:`bit_terms`.  :class:`QubitSparsePauli` requires
+///                                    in :attr:`paulis`.  :class:`QubitSparsePauli` requires
 ///                                    that this list is term-wise sorted, and algorithms can rely
 ///                                    on this invariant being upheld.
 ///   ==================  ===========  =============================================================
 ///
 /// The parameter :math:`s` is the total number of non-identity single-qubit terms.
 ///
-/// The scalar item of the :attr:`bit_terms` array is stored as a numeric byte.  The numeric values
+/// The scalar item of the :attr:`paulis` array is stored as a numeric byte.  The numeric values
 /// are related to the symplectic Pauli representation that :class:`.SparsePauliOp` uses, and are
 /// accessible with named access by an enumeration:
 ///
@@ -865,16 +865,16 @@ impl<'py> FromPyObject<'py> for BitTerm {
 ///     else in this source file. The use of `autoattribute` is because it pulls in the numeric
 ///     value.
 ///
-/// .. py:class:: QubitSparsePauli.BitTerm
+/// .. py:class:: QubitSparsePauli.Pauli
 ///
-///     See :class:`QubitSparsePauliList.BitTerm` - this is a reference to the same class.
+///     See :class:`QubitSparsePauliList.Pauli` - this is a reference to the same class.
 ///
 ///
 /// Each of the array-like attributes behaves like a Python sequence.  You can index and slice these
 /// with standard :class:`list`-like semantics.  Slicing an attribute returns a Numpy
 /// :class:`~numpy.ndarray` containing a copy of the relevant data with the natural ``dtype`` of the
 /// field; this lets you easily do mathematics on the results, like bitwise operations on
-/// :attr:`bit_terms`.
+/// :attr:`paulis`.
 ///
 /// Construction
 /// ============
@@ -975,8 +975,8 @@ impl PyQubitSparsePauli {
     ///
     /// Args:
     ///     num_qubits: number of qubits the operator acts on.
-    ///     bit_terms: list of the single-qubit terms.  This should be a Numpy array with dtype
-    ///         :attr:`~numpy.uint8` (which is compatible with :class:`.BitTerm`).
+    ///     paulis: list of the single-qubit terms.  This should be a Numpy array with dtype
+    ///         :attr:`~numpy.uint8` (which is compatible with :class:`.Pauli`).
     ///     indices: sorted list of the qubits each single-qubit term corresponds to.  This should
     ///         be a Numpy array with dtype :attr:`~numpy.uint32`.
     ///
@@ -985,27 +985,27 @@ impl PyQubitSparsePauli {
     ///     Construct a :math:`Z` operator acting on qubit 50 of 100 qubits.
     ///
     ///         >>> num_qubits = 100
-    ///         >>> terms = np.array([QubitSparsePauli.BitTerm.Z], dtype=np.uint8)
+    ///         >>> terms = np.array([QubitSparsePauli.Pauli.Z], dtype=np.uint8)
     ///         >>> indices = np.array([50], dtype=np.uint32)
     ///         >>> QubitSparsePauli.from_raw_parts(num_qubits, terms, indices)
     ///         <QubitSparsePauli on 100 qubits: Z_50>
     #[staticmethod]
-    #[pyo3(signature = (/, num_qubits, bit_terms, indices))]
+    #[pyo3(signature = (/, num_qubits, paulis, indices))]
     fn from_raw_parts(
         num_qubits: u32,
-        bit_terms: Vec<BitTerm>,
+        paulis: Vec<Pauli>,
         indices: Vec<u32>,
     ) -> PyResult<Self> {
-        if bit_terms.len() != indices.len() {
+        if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
-                bit_terms: bit_terms.len(),
+                paulis: paulis.len(),
                 indices: indices.len(),
             }
             .into());
         }
-        let mut order = (0..bit_terms.len()).collect::<Vec<_>>();
+        let mut order = (0..paulis.len()).collect::<Vec<_>>();
         order.sort_unstable_by_key(|a| indices[*a]);
-        let bit_terms = order.iter().map(|i| bit_terms[*i]).collect();
+        let paulis = order.iter().map(|i| paulis[*i]).collect();
         let mut sorted_indices = Vec::<u32>::with_capacity(order.len());
         for i in order {
             let index = indices[i];
@@ -1019,7 +1019,7 @@ impl PyQubitSparsePauli {
             sorted_indices.push(index)
         }
         let inner =
-            QubitSparsePauli::new(num_qubits, bit_terms, sorted_indices.into_boxed_slice())?;
+            QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
         Ok(PyQubitSparsePauli { inner })
     }
 
@@ -1047,14 +1047,14 @@ impl PyQubitSparsePauli {
     fn from_label(label: &str) -> PyResult<Self> {
         let label: &[u8] = label.as_ref();
         let num_qubits = label.len() as u32;
-        let mut bit_terms = Vec::new();
+        let mut paulis = Vec::new();
         let mut indices = Vec::new();
         // The only valid characters in the alphabet are ASCII, so if we see something other than
         // ASCII, we're already in the failure path.
         for (i, letter) in label.iter().rev().enumerate() {
-            match BitTerm::try_from_u8(*letter) {
+            match Pauli::try_from_u8(*letter) {
                 Ok(Some(term)) => {
-                    bit_terms.push(term);
+                    paulis.push(term);
                     indices.push(i as u32);
                 }
                 Ok(None) => (),
@@ -1065,7 +1065,7 @@ impl PyQubitSparsePauli {
         }
         let inner = QubitSparsePauli::new(
             num_qubits,
-            bit_terms.into_boxed_slice(),
+            paulis.into_boxed_slice(),
             indices.into_boxed_slice(),
         )?;
         Ok(inner.into())
@@ -1098,7 +1098,7 @@ impl PyQubitSparsePauli {
         let x = pauli
             .getattr(intern!(py, "x"))?
             .extract::<PyReadonlyArray1<bool>>()?;
-        let mut bit_terms = Vec::new();
+        let mut paulis = Vec::new();
         let mut indices = Vec::new();
         for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
             // The only failure case possible here is the identity, because of how we're
@@ -1107,11 +1107,11 @@ impl PyQubitSparsePauli {
                 continue;
             };
             indices.push(i as u32);
-            bit_terms.push(term);
+            paulis.push(term);
         }
         let inner = QubitSparsePauli::new(
             num_qubits,
-            bit_terms.into_boxed_slice(),
+            paulis.into_boxed_slice(),
             indices.into_boxed_slice(),
         )?;
         Ok(inner.into())
@@ -1153,7 +1153,7 @@ impl PyQubitSparsePauli {
     fn from_sparse_label(sparse_label: (String, Vec<u32>), num_qubits: u32) -> PyResult<Self> {
         let label = sparse_label.0;
         let indices = sparse_label.1;
-        let mut bit_terms = Vec::new();
+        let mut paulis = Vec::new();
         let mut sorted_indices = Vec::new();
 
         let label: &[u8] = label.as_ref();
@@ -1172,19 +1172,19 @@ impl PyQubitSparsePauli {
             let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
                 return Err(LabelError::DuplicateIndex { index }.into());
             };
-            entry.insert(BitTerm::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
+            entry.insert(Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
         }
         for (index, term) in sorted.iter() {
             let Some(term) = term else {
                 continue;
             };
             sorted_indices.push(*index);
-            bit_terms.push(*term);
+            paulis.push(*term);
         }
 
         let inner = QubitSparsePauli::new(
             num_qubits,
-            bit_terms.into_boxed_slice(),
+            paulis.into_boxed_slice(),
             sorted_indices.into_boxed_slice(),
         )?;
         Ok(inner.into())
@@ -1194,9 +1194,9 @@ impl PyQubitSparsePauli {
     fn to_qubit_sparse_pauli_list(&self) -> PyResult<PyQubitSparsePauliList> {
         let qubit_sparse_pauli_list = QubitSparsePauliList::new(
             self.inner.num_qubits(),
-            self.inner.bit_terms().to_vec(),
+            self.inner.paulis().to_vec(),
             self.inner.indices().to_vec(),
-            vec![0, self.inner.bit_terms().len()],
+            vec![0, self.inner.paulis().len()],
         )?;
         Ok(qubit_sparse_pauli_list.into())
     }
@@ -1236,19 +1236,19 @@ impl PyQubitSparsePauli {
         let borrowed = slf_.borrow();
         (
             borrowed.inner.num_qubits(),
-            Self::get_bit_terms(slf_.clone()),
+            Self::get_paulis(slf_.clone()),
             Self::get_indices(slf_),
         )
             .into_pyobject(py)
     }
 
     fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        let bit_terms: &[u8] = ::bytemuck::cast_slice(self.inner.bit_terms());
+        let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.paulis());
         (
             py.get_type::<Self>().getattr("from_raw_parts")?,
             (
                 self.inner.num_qubits(),
-                PyArray1::from_slice(py, bit_terms),
+                PyArray1::from_slice(py, paulis),
                 PyArray1::from_slice(py, self.inner.indices()),
             ),
         )
@@ -1263,15 +1263,15 @@ impl PyQubitSparsePauli {
     /// Read-only view onto the individual single-qubit terms.
     ///
     /// The only valid values in the array are those with a corresponding
-    /// :class:`~QubitSparsePauli.BitTerm`.
+    /// :class:`~QubitSparsePauli.Pauli`.
     #[getter]
-    fn get_bit_terms(slf_: Bound<Self>) -> Bound<PyArray1<u8>> {
+    fn get_paulis(slf_: Bound<Self>) -> Bound<PyArray1<u8>> {
         let borrowed = slf_.borrow();
-        let bit_terms = borrowed.inner.bit_terms();
-        let arr = ::ndarray::aview1(::bytemuck::cast_slice::<_, u8>(bit_terms));
+        let paulis = borrowed.inner.paulis();
+        let arr = ::ndarray::aview1(::bytemuck::cast_slice::<_, u8>(paulis));
         // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
         // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
-        // `Box<[BitTerm]>` allocation (including dropping or reallocating it) other than the entire
+        // `Box<[Pauli]>` allocation (including dropping or reallocating it) other than the entire
         // object getting dropped, which Python will keep safe.
         let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
         out.readwrite().make_nonwriteable();
@@ -1311,7 +1311,7 @@ impl PyQubitSparsePauli {
     fn bit_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
         let string: String = self
             .inner
-            .bit_terms()
+            .paulis()
             .iter()
             .map(|bit| bit.py_label())
             .collect();
@@ -1322,9 +1322,9 @@ impl PyQubitSparsePauli {
     // :class:`QubitSparsePauliList`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn BitTerm(py: Python) -> PyResult<Py<PyType>> {
-        BIT_TERM_PY_ENUM
-            .get_or_try_init(py, || make_py_bit_term(py))
+    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+        PAULI_PY_ENUM
+            .get_or_try_init(py, || make_py_pauli(py))
             .map(|obj| obj.clone_ref(py))
     }
 }
@@ -1349,15 +1349,15 @@ impl PyQubitSparsePauli {
 /// .. table:: Alphabet of single-qubit Pauli operators used in :class:`QubitSparsePauliList`
 ///
 ///   =======  =======================================  ===============  ===========================
-///   Label    Operator                                 Numeric value    :class:`.BitTerm` attribute
+///   Label    Operator                                 Numeric value    :class:`.Pauli` attribute
 ///   =======  =======================================  ===============  ===========================
 ///   ``"I"``  :math:`I` (identity)                     Not stored.      Not stored.
 ///
-///   ``"X"``  :math:`X` (Pauli X)                      ``0b10`` (2)     :attr:`~.BitTerm.X`
+///   ``"X"``  :math:`X` (Pauli X)                      ``0b10`` (2)     :attr:`~.Pauli.X`
 ///
-///   ``"Y"``  :math:`Y` (Pauli Y)                      ``0b11`` (3)     :attr:`~.BitTerm.Y`
+///   ``"Y"``  :math:`Y` (Pauli Y)                      ``0b11`` (3)     :attr:`~.Pauli.Y`
 ///
-///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b01`` (1)     :attr:`~.BitTerm.Z`
+///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b01`` (1)     :attr:`~.Pauli.Z`
 ///
 ///   =======  =======================================  ===============  ===========================
 ///
@@ -1373,22 +1373,22 @@ impl PyQubitSparsePauli {
 ///   ==================  ===========  =============================================================
 ///   Attribute           Length       Description
 ///   ==================  ===========  =============================================================
-///   :attr:`bit_terms`   :math:`s`    Each of the non-identity single-qubit Pauli operators for all
+///   :attr:`paulis`      :math:`s`    Each of the non-identity single-qubit Pauli operators for all
 ///                                    of the list elements, in order.  These correspond to the
 ///                                    non-identity :math:`A^{(n)}_i` in the list, where
 ///                                    the entries are stored in order of increasing :math:`i`
 ///                                    first, and in order of increasing :math:`n` within each term.
 ///
 ///   :attr:`indices`     :math:`s`    The corresponding qubit (:math:`n`) for each of the operators
-///                                    in :attr:`bit_terms`.  :class:`QubitSparsePauliList` requires
+///                                    in :attr:`paulis`.  :class:`QubitSparsePauliList` requires
 ///                                    that this list is term-wise sorted, and algorithms can rely
 ///                                    on this invariant being upheld.
 ///
-///   :attr:`boundaries`  :math:`t+1`  The indices that partition :attr:`bit_terms` and
+///   :attr:`boundaries`  :math:`t+1`  The indices that partition :attr:`paulis` and
 ///                                    :attr:`indices` into complete terms.  For term number
 ///                                    :math:`i`, its non-identity single-qubit operators and their
 ///                                    corresponding qubits are the slice ``boundaries[i] :
-///                                    boundaries[i+1]`` into :attr:`bit_terms` and :attr:`indices`
+///                                    boundaries[i+1]`` into :attr:`paulis` and :attr:`indices`
 ///                                    respectively. :attr:`boundaries` always has an explicit 0 as
 ///                                    its first element.
 ///   ==================  ===========  =============================================================
@@ -1401,16 +1401,16 @@ impl PyQubitSparsePauli {
 /// * in the case of the empty list, which contains no generator terms, :attr:`boundaries` is length
 ///   1 (a single 0) and all other vectors are empty.
 /// * for the list :math:`[Z_2 Z_0, X_3 Y_1]`, :attr:`boundaries` is ``[0, 2, 4]``,
-///   :attr:`bit_terms` is ``[BitTerm.Z, BitTerm.Z, BitTerm.Y, BitTerm.X]`` and :attr:`indices` is
+///   :attr:`paulis` is ``[Pauli.Z, Pauli.Z, Pauli.Y, Pauli.X]`` and :attr:`indices` is
 ///   ``[0, 2, 1, 3]``.  The Paulis might act on more than four qubits, depending on the
-///   :attr:`num_qubits` parameter.  The :attr:`bit_terms` are integer values, whose magic numbers
-///   can be accessed via the :class:`BitTerm` attribute class.  Note that the single-bit terms and
+///   :attr:`num_qubits` parameter.  The :attr:`paulis` are integer values, whose magic numbers
+///   can be accessed via the :class:`Pauli` attribute class.  Note that the single-bit terms and
 ///   indices are sorted into termwise sorted order.  This is a requirement of the class.
 ///
 /// These cases are not special, they're fully consistent with the rules and should not need special
 /// handling.
 ///
-/// The scalar item of the :attr:`bit_terms` array is stored as a numeric byte.  The numeric values
+/// The scalar item of the :attr:`paulis` array is stored as a numeric byte.  The numeric values
 /// are related to the symplectic Pauli representation that :class:`.SparsePauliOp` uses, and are
 /// accessible with named access by an enumeration:
 ///
@@ -1420,25 +1420,25 @@ impl PyQubitSparsePauli {
 ///     else in this source file. The use of `autoattribute` is because it pulls in the numeric
 ///     value.
 ///
-/// .. py:class:: QubitSparsePauliList.BitTerm
+/// .. py:class:: QubitSparsePauliList.Pauli
 ///
 ///     An :class:`~enum.IntEnum` that provides named access to the numerical values used to
 ///     represent each of the single-qubit alphabet terms enumerated in
 ///     :ref:`qubit-sparse-pauli-alphabet`.
 ///
 ///     This class is attached to :class:`.QubitSparsePauliList`.  Access it as
-///     :class:`.QubitSparsePauliList.BitTerm`.  If this is too much typing, and you are solely
-///     dealing with :class:`QubitSparsePauliList` objects and the :class:`BitTerm` name is not
+///     :class:`.QubitSparsePauliList.Pauli`.  If this is too much typing, and you are solely
+///     dealing with :class:`QubitSparsePauliList` objects and the :class:`Pauli` name is not
 ///     ambiguous, you might want to shorten it as::
 ///
-///         >>> ops = QubitSparsePauliList.BitTerm
-///         >>> assert ops.X is QubitSparsePauliList.BitTerm.X
+///         >>> ops = QubitSparsePauliList.Pauli
+///         >>> assert ops.X is QubitSparsePauliList.Pauli.X
 ///
 ///     You can access all the values of the enumeration by either their full all-capitals name, or
 ///     by their single-letter label.  The single-letter labels are not generally valid Python
 ///     identifiers, so you must use indexing notation to access them::
 ///
-///         >>> assert QubitSparsePauliList.BitTerm.X is QubitSparsePauliList.BitTerm["X"]
+///         >>> assert QubitSparsePauliList.Pauli.X is QubitSparsePauliList.Pauli["X"]
 ///
 ///     The bits representing each single-qubit Pauli are the (phase-less) symplectic representation
 ///     of the Pauli operator.
@@ -1446,29 +1446,29 @@ impl PyQubitSparsePauli {
 ///     Values
 ///     ------
 ///
-///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauliList.BitTerm.X
+///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauliList.Pauli.X
 ///
 ///         The Pauli :math:`X` operator.  Uses the single-letter label ``"X"``.
 ///
-///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauliList.BitTerm.Y
+///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauliList.Pauli.Y
 ///
 ///         The Pauli :math:`Y` operator.  Uses the single-letter label ``"Y"``.
 ///
-///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauliList.BitTerm.Z
+///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauliList.Pauli.Z
 ///
 ///         The Pauli :math:`Z` operator.  Uses the single-letter label ``"Z"``.
 ///
 ///     Attributes
 ///     ----------
 ///
-///     .. autoproperty:: qiskit.quantum_info::QubitSparsePauliList.BitTerm.label
+///     .. autoproperty:: qiskit.quantum_info::QubitSparsePauliList.Pauli.label
 ///
 ///
 /// Each of the array-like attributes behaves like a Python sequence.  You can index and slice these
 /// with standard :class:`list`-like semantics.  Slicing an attribute returns a Numpy
 /// :class:`~numpy.ndarray` containing a copy of the relevant data with the natural ``dtype`` of the
 /// field; this lets you easily do mathematics on the results, like bitwise operations on
-/// :attr:`bit_terms`.  You can assign to indices or slices of each of the attributes, but beware
+/// :attr:`paulis`.  You can assign to indices or slices of each of the attributes, but beware
 /// that you must uphold :ref:`the data coherence rules <qubit-sparse-pauli-list-arrays>` while
 /// doing this.  For example::
 ///
@@ -1544,7 +1544,7 @@ impl PyQubitSparsePauli {
 ///   Method                       Summary
 ///   ===========================  =================================================================
 ///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
-///                                ``(bit_terms, indices)``.
+///                                ``(paulis, indices)``.
 ///   ===========================  =================================================================
 #[pyclass(
     name = "QubitSparsePauliList",
@@ -1657,15 +1657,15 @@ impl PyQubitSparsePauliList {
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
     /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
     #[getter]
-    fn get_bit_terms(slf_: &Bound<Self>) -> ArrayView {
+    fn get_paulis(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
         ArrayView {
             base: borrowed.inner.clone(),
-            slot: ArraySlot::BitTerms,
+            slot: ArraySlot::Paulis,
         }
     }
 
-    /// A flat list of the qubit indices that the corresponding entries in :attr:`bit_terms` act on.
+    /// A flat list of the qubit indices that the corresponding entries in :attr:`paulis` act on.
     /// This list must always be term-wise sorted, where a term is a sublist as denoted by
     /// :attr:`boundaries`.
     ///
@@ -1682,9 +1682,9 @@ impl PyQubitSparsePauliList {
         }
     }
 
-    /// Indices that partition :attr:`bit_terms` and :attr:`indices` into sublists for each
+    /// Indices that partition :attr:`paulis` and :attr:`indices` into sublists for each
     /// individual term in the sum.  ``boundaries[0] : boundaries[1]`` is the range of indices into
-    /// :attr:`bit_terms` and :attr:`indices` that correspond to the first term of the sum.  All
+    /// :attr:`paulis` and :attr:`indices` that correspond to the first term of the sum.  All
     /// unspecified qubit indices are implicitly the identity.  This is one item longer than
     /// :attr:`coeffs`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
     #[getter]
@@ -1740,7 +1740,7 @@ impl PyQubitSparsePauliList {
         let x = pauli
             .getattr(intern!(py, "x"))?
             .extract::<PyReadonlyArray1<bool>>()?;
-        let mut bit_terms = Vec::new();
+        let mut paulis = Vec::new();
         let mut indices = Vec::new();
         for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
             // The only failure case possible here is the identity, because of how we're
@@ -1749,10 +1749,10 @@ impl PyQubitSparsePauliList {
                 continue;
             };
             indices.push(i as u32);
-            bit_terms.push(term);
+            paulis.push(term);
         }
         let boundaries = vec![0, indices.len()];
-        let inner = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+        let inner = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
         Ok(inner.into())
     }
 
@@ -1896,7 +1896,7 @@ impl PyQubitSparsePauliList {
     }
 
     // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
-    // the `bit_terms` must all be valid `BitTerm` representations.
+    // the `paulis` must all be valid `Pauli` representations.
     /// Construct a :class:`.QubitSparsePauliList` from raw Numpy arrays that match :ref:`the required
     /// data representation described in the class-level documentation
     /// <qubit-sparse-pauli-list-arrays>`.
@@ -1905,20 +1905,20 @@ impl PyQubitSparsePauliList {
     ///
     /// Args:
     ///     num_qubits: number of qubits the elements of the list act on.
-    ///     bit_terms: flattened list of the single-qubit terms comprising all complete terms.  This
+    ///     paulis: flattened list of the single-qubit terms comprising all complete terms.  This
     ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
-    ///         :class:`.BitTerm`).
+    ///         :class:`.Pauli`).
     ///     indices: flattened term-wise sorted list of the qubits each single-qubit term corresponds
     ///         to.  This should be a Numpy array with dtype :attr:`~numpy.uint32`.
-    ///     boundaries: the indices that partition ``bit_terms`` and ``indices`` into list elements.
+    ///     boundaries: the indices that partition ``paulis`` and ``indices`` into list elements.
     ///         This should be a Numpy array with dtype :attr:`~numpy.uintp`.
     ///     check: if ``True`` (the default), validate that the data satisfies all coherence
     ///         guarantees.  If ``False``, no checks are done.
     ///
     ///         .. warning::
     ///
-    ///             If ``check=False``, the ``bit_terms`` absolutely *must* be all be valid values
-    ///             of :class:`.QubitSparsePauliList.BitTerm`.  If they are not, Rust-space
+    ///             If ``check=False``, the ``paulis`` absolutely *must* be all be valid values
+    ///             of :class:`.QubitSparsePauliList.Pauli`.  If they are not, Rust-space
     ///             undefined behavior may occur, entirely invalidating the program execution.
     ///
     /// Examples:
@@ -1926,45 +1926,45 @@ impl PyQubitSparsePauliList {
     ///     Construct a list of :math:`Z` operators on each individual qubit::
     ///
     ///         >>> num_qubits = 100
-    ///         >>> terms = np.full((num_qubits,), QubitSparsePauli.BitTerm.Z, dtype=np.uint8)
+    ///         >>> terms = np.full((num_qubits,), QubitSparsePauli.Pauli.Z, dtype=np.uint8)
     ///         >>> indices = np.arange(num_qubits, dtype=np.uint32)
     ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
     ///         >>> QubitSparsePauliList.from_raw_parts(num_qubits, terms, indices, boundaries)
     ///         <QubitSparsePauliList with 100 elements on 100 qubits: [Z_0, ..., Z_99]>
     #[staticmethod]
     #[pyo3(
-        signature = (/, num_qubits, bit_terms, indices, boundaries, check=true),
+        signature = (/, num_qubits, paulis, indices, boundaries, check=true),
     )]
     unsafe fn from_raw_parts<'py>(
         num_qubits: u32,
-        bit_terms: PyArrayLike1<'py, u8>,
+        paulis: PyArrayLike1<'py, u8>,
         indices: PyArrayLike1<'py, u32>,
         boundaries: PyArrayLike1<'py, usize>,
         check: bool,
     ) -> PyResult<Self> {
-        let bit_terms = if check {
-            bit_terms
+        let paulis = if check {
+            paulis
                 .as_array()
                 .into_iter()
                 .copied()
-                .map(BitTerm::try_from)
+                .map(Pauli::try_from)
                 .collect::<Result<_, _>>()?
         } else {
-            let bit_terms_as_u8 = bit_terms.as_array().to_vec();
-            // SAFETY: the caller enforced that each `u8` is a valid `BitTerm`, and `BitTerm` is be
+            let paulis_as_u8 = paulis.as_array().to_vec();
+            // SAFETY: the caller enforced that each `u8` is a valid `Pauli`, and `Pauli` is be
             // represented by a `u8`.  We can't use `bytemuck` because we're casting a `Vec`.
-            unsafe { ::std::mem::transmute::<Vec<u8>, Vec<BitTerm>>(bit_terms_as_u8) }
+            unsafe { ::std::mem::transmute::<Vec<u8>, Vec<Pauli>>(paulis_as_u8) }
         };
         let indices = indices.as_array().to_vec();
         let boundaries = boundaries.as_array().to_vec();
 
         let inner = if check {
-            QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)
+            QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)
                 .map_err(PyErr::from)
         } else {
             // SAFETY: the caller promised they have upheld the coherence guarantees.
             Ok(unsafe {
-                QubitSparsePauliList::new_unchecked(num_qubits, bit_terms, indices, boundaries)
+                QubitSparsePauliList::new_unchecked(num_qubits, paulis, indices, boundaries)
             })
         }?;
         Ok(inner.into())
@@ -2034,7 +2034,7 @@ impl PyQubitSparsePauliList {
         let mut boundaries = Vec::with_capacity(iter.len() + 1);
         boundaries.push(0);
         let mut indices = Vec::new();
-        let mut bit_terms = Vec::new();
+        let mut paulis = Vec::new();
         // Insertions to the `BTreeMap` keep it sorted by keys, so we use this to do the termwise
         // sorting on-the-fly.
         let mut sorted = btree_map::BTreeMap::new();
@@ -2056,7 +2056,7 @@ impl PyQubitSparsePauliList {
                     return Err(LabelError::DuplicateIndex { index }.into());
                 };
                 entry.insert(
-                    BitTerm::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?,
+                    Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?,
                 );
             }
             for (index, term) in sorted.iter() {
@@ -2064,11 +2064,11 @@ impl PyQubitSparsePauliList {
                     continue;
                 };
                 indices.push(*index);
-                bit_terms.push(*term);
+                paulis.push(*term);
             }
-            boundaries.push(bit_terms.len());
+            boundaries.push(paulis.len());
         }
-        let inner = QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+        let inner = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
         Ok(inner.into())
     }
 
@@ -2090,11 +2090,11 @@ impl PyQubitSparsePauliList {
     fn to_sparse_list(&self, py: Python) -> PyResult<Py<PyList>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
 
-        // turn a SparseView into a Python tuple of (bit terms, indices, coeff)
+        // turn a SparseView into a Python tuple of (paulis, indices, coeff)
         let to_py_tuple = |view: QubitSparsePauliView| {
-            let mut pauli_string = String::with_capacity(view.bit_terms.len());
+            let mut pauli_string = String::with_capacity(view.paulis.len());
 
-            for bit in view.bit_terms.iter() {
+            for bit in view.paulis.iter() {
                 pauli_string.push_str(bit.py_label());
             }
             let py_string = PyString::new(py, &pauli_string).unbind();
@@ -2116,12 +2116,12 @@ impl PyQubitSparsePauliList {
 
     fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let bit_terms: &[u8] = ::bytemuck::cast_slice(inner.bit_terms());
+        let paulis: &[u8] = ::bytemuck::cast_slice(inner.paulis());
         (
             py.get_type::<Self>().getattr("from_raw_parts")?,
             (
                 inner.num_qubits(),
-                PyArray1::from_slice(py, bit_terms),
+                PyArray1::from_slice(py, paulis),
                 PyArray1::from_slice(py, inner.indices()),
                 PyArray1::from_slice(py, inner.boundaries()),
                 false,
@@ -2202,9 +2202,9 @@ impl PyQubitSparsePauliList {
     // `QubitSparsePauliList`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn BitTerm(py: Python) -> PyResult<Py<PyType>> {
-        BIT_TERM_PY_ENUM
-            .get_or_try_init(py, || make_py_bit_term(py))
+    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+        PAULI_PY_ENUM
+            .get_or_try_init(py, || make_py_pauli(py))
             .map(|obj| obj.clone_ref(py))
     }
 }
@@ -2243,7 +2243,7 @@ impl<'py> IntoPyObject<'py> for QubitSparsePauliList {
 /// Helper class of `ArrayView` that denotes the slot of the `QubitSparsePauliList` we're looking at.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ArraySlot {
-    BitTerms,
+    Paulis,
     Indices,
     Boundaries,
 }
@@ -2265,12 +2265,12 @@ impl ArrayView {
             // Simple integers look the same in Rust-space debug as Python.
             ArraySlot::Indices => format!("{:?}", qubit_sparse_pauli_list.indices()),
             ArraySlot::Boundaries => format!("{:?}", qubit_sparse_pauli_list.boundaries()),
-            ArraySlot::BitTerms => format!(
+            ArraySlot::Paulis => format!(
                 "[{}]",
                 qubit_sparse_pauli_list
-                    .bit_terms()
+                    .paulis()
                     .iter()
-                    .map(BitTerm::py_label)
+                    .map(Pauli::py_label)
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
@@ -2278,7 +2278,7 @@ impl ArrayView {
         Ok(format!(
             "<qubit sparse pauli list {} view: {}>",
             match self.slot {
-                ArraySlot::BitTerms => "bit_terms",
+                ArraySlot::Paulis => "paulis",
                 ArraySlot::Indices => "indices",
                 ArraySlot::Boundaries => "boundaries",
             },
@@ -2292,7 +2292,7 @@ impl ArrayView {
         index: PySequenceIndex,
     ) -> PyResult<Bound<'py, PyAny>> {
         // The slightly verbose generic setup here is to allow the type of a scalar return to be
-        // different to the type that gets put into the Numpy array, since the `BitTerm` enum can be
+        // different to the type that gets put into the Numpy array, since the `Pauli` enum can be
         // a direct scalar, but for Numpy, we need it to be a raw `u8`.
         fn get_from_slice<'py, T, S>(
             py: Python<'py>,
@@ -2312,8 +2312,8 @@ impl ArrayView {
 
         let qubit_sparse_pauli_list = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
-            ArraySlot::BitTerms => {
-                get_from_slice::<_, u8>(py, qubit_sparse_pauli_list.bit_terms(), index)
+            ArraySlot::Paulis => {
+                get_from_slice::<_, u8>(py, qubit_sparse_pauli_list.paulis(), index)
             }
             ArraySlot::Indices => {
                 get_from_slice::<_, u32>(py, qubit_sparse_pauli_list.indices(), index)
@@ -2329,7 +2329,7 @@ impl ArrayView {
         /// Rust-space object from the collection of Python-space values.
         ///
         /// This indirects the Python extraction through an intermediate type to marginally improve
-        /// the error messages for things like `BitTerm`, where Python-space extraction might fail
+        /// the error messages for things like `Pauli`, where Python-space extraction might fail
         /// because the user supplied an invalid alphabet letter.
         ///
         /// This allows broadcasting a single item into many locations in a slice (like Numpy), but
@@ -2379,8 +2379,8 @@ impl ArrayView {
 
         let mut qubit_sparse_pauli_list = self.base.write().map_err(|_| InnerWriteError)?;
         match self.slot {
-            ArraySlot::BitTerms => {
-                set_in_slice::<BitTerm, u8>(qubit_sparse_pauli_list.bit_terms_mut(), index, values)
+            ArraySlot::Paulis => {
+                set_in_slice::<Pauli, u8>(qubit_sparse_pauli_list.paulis_mut(), index, values)
             }
             ArraySlot::Indices => unsafe {
                 set_in_slice::<_, u32>(qubit_sparse_pauli_list.indices_mut(), index, values)
@@ -2394,7 +2394,7 @@ impl ArrayView {
     fn __len__(&self, _py: Python) -> PyResult<usize> {
         let qubit_sparse_pauli_list = self.base.read().map_err(|_| InnerReadError)?;
         let len = match self.slot {
-            ArraySlot::BitTerms => qubit_sparse_pauli_list.bit_terms().len(),
+            ArraySlot::Paulis => qubit_sparse_pauli_list.paulis().len(),
             ArraySlot::Indices => qubit_sparse_pauli_list.indices().len(),
             ArraySlot::Boundaries => qubit_sparse_pauli_list.boundaries().len(),
         };
@@ -2429,9 +2429,9 @@ impl ArrayView {
                 PyArray1::from_slice(py, qubit_sparse_pauli_list.boundaries()),
                 dtype,
             ),
-            ArraySlot::BitTerms => {
-                let bit_terms: &[u8] = ::bytemuck::cast_slice(qubit_sparse_pauli_list.bit_terms());
-                cast_array_type(py, PyArray1::from_slice(py, bit_terms), dtype)
+            ArraySlot::Paulis => {
+                let paulis: &[u8] = ::bytemuck::cast_slice(qubit_sparse_pauli_list.paulis());
+                cast_array_type(py, PyArray1::from_slice(py, paulis), dtype)
             }
         }
     }
