@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from qiskit import _numpy_compat
+from qiskit.circuit.controlflow import BoxOp
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
 from qiskit.circuit.operation import Operation
@@ -826,6 +827,8 @@ class Operator(LinearOp):
             self._data = op.data
         elif isinstance(obj, Barrier):
             return
+        elif isinstance(obj, BoxOp):
+            self._append_instruction(obj.body.to_instruction(), qargs)
         else:
             # If the instruction doesn't have a matrix defined we use its
             # circuit decomposition definition if it exists, otherwise we

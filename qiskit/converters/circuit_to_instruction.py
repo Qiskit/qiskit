@@ -84,7 +84,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             "Circuits with internal variables cannot yet be converted to instructions."
             " You may be able to use `QuantumCircuit.compose` to inline this circuit into another."
         )
-    if CONTROL_FLOW_OP_NAMES.intersection(circuit.count_ops()):
+    if CONTROL_FLOW_OP_NAMES.intersection(op for op in circuit.count_ops() if op != "box"):
         raise QiskitError(
             "Circuits with control flow operations cannot be converted to an instruction."
         )
