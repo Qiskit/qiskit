@@ -98,7 +98,7 @@ class TestQubitSparsePauli(QiskitTestCase):
     def test_from_raw_parts(self):
         # Happiest path: exactly typed inputs.
         num_qubits = 100
-        terms = np.full((num_qubits,), QubitSparsePauli.BitTerm.Z, dtype=np.uint8)
+        terms = np.full((num_qubits,), QubitSparsePauli.Pauli.Z, dtype=np.uint8)
         indices = np.arange(num_qubits, dtype=np.uint32)
         qubit_sparse_pauli_list = QubitSparsePauli.from_raw_parts(
             num_qubits,
@@ -106,7 +106,7 @@ class TestQubitSparsePauli(QiskitTestCase):
             indices,
         )
         self.assertEqual(qubit_sparse_pauli_list.num_qubits, num_qubits)
-        np.testing.assert_equal(qubit_sparse_pauli_list.bit_terms, terms)
+        np.testing.assert_equal(qubit_sparse_pauli_list.paulis, terms)
         np.testing.assert_equal(qubit_sparse_pauli_list.indices, indices)
 
         self.assertEqual(
@@ -125,15 +125,15 @@ class TestQubitSparsePauli(QiskitTestCase):
             qubit_sparse_pauli_list.indices,
         )
         self.assertEqual(qubit_sparse_pauli_list.num_qubits, num_qubits)
-        np.testing.assert_equal(qubit_sparse_pauli_list.bit_terms, terms)
+        np.testing.assert_equal(qubit_sparse_pauli_list.paulis, terms)
         np.testing.assert_equal(qubit_sparse_pauli_list.indices, indices)
 
     def test_from_raw_parts_checks_coherence(self):
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
             QubitSparsePauli.from_raw_parts(2, [ord("$")], [0])
-        with self.assertRaisesRegex(ValueError, r"`bit_terms` \(1\) and `indices` \(0\)"):
-            QubitSparsePauli.from_raw_parts(2, [QubitSparsePauli.BitTerm.Z], [])
-        with self.assertRaisesRegex(ValueError, r"`bit_terms` \(0\) and `indices` \(1\)"):
+        with self.assertRaisesRegex(ValueError, r"`paulis` \(1\) and `indices` \(0\)"):
+            QubitSparsePauli.from_raw_parts(2, [QubitSparsePauli.Pauli.Z], [])
+        with self.assertRaisesRegex(ValueError, r"`paulis` \(0\) and `indices` \(1\)"):
             QubitSparsePauli.from_raw_parts(2, [], [1])
         with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
             QubitSparsePauli.from_raw_parts(4, [1, 2], [0, 4])
@@ -149,15 +149,15 @@ class TestQubitSparsePauli(QiskitTestCase):
             QubitSparsePauli.from_raw_parts(
                 14,
                 [
-                    QubitSparsePauli.BitTerm.Z,
-                    QubitSparsePauli.BitTerm.Y,
-                    QubitSparsePauli.BitTerm.X,
-                    QubitSparsePauli.BitTerm.Y,
-                    QubitSparsePauli.BitTerm.Y,
-                    QubitSparsePauli.BitTerm.Z,
-                    QubitSparsePauli.BitTerm.Z,
-                    QubitSparsePauli.BitTerm.X,
-                    QubitSparsePauli.BitTerm.X,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.Y,
+                    QubitSparsePauli.Pauli.X,
+                    QubitSparsePauli.Pauli.Y,
+                    QubitSparsePauli.Pauli.Y,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.X,
+                    QubitSparsePauli.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5, 7, 8, 11, 12],
             ),
@@ -290,38 +290,38 @@ class TestQubitSparsePauli(QiskitTestCase):
         self.assertEqual(QubitSparsePauli("").num_qubits, 0)
         self.assertEqual(QubitSparsePauli("I" * 10).num_qubits, 10)
 
-    def test_bit_term_enum(self):
+    def test_pauli_enum(self):
         # These are very explicit tests that effectively just duplicate magic numbers, but the point
         # is that those magic numbers are required to be constant as their values are part of the
         # public interface.
 
         self.assertEqual(
-            set(QubitSparsePauli.BitTerm),
+            set(QubitSparsePauli.Pauli),
             {
-                QubitSparsePauli.BitTerm.X,
-                QubitSparsePauli.BitTerm.Y,
-                QubitSparsePauli.BitTerm.Z,
+                QubitSparsePauli.Pauli.X,
+                QubitSparsePauli.Pauli.Y,
+                QubitSparsePauli.Pauli.Z,
             },
         )
         # All the enumeration items should also be integers.
-        self.assertIsInstance(QubitSparsePauli.BitTerm.X, int)
+        self.assertIsInstance(QubitSparsePauli.Pauli.X, int)
         values = {
             "X": 0b10,
             "Y": 0b11,
             "Z": 0b01,
         }
-        self.assertEqual({name: getattr(QubitSparsePauli.BitTerm, name) for name in values}, values)
+        self.assertEqual({name: getattr(QubitSparsePauli.Pauli, name) for name in values}, values)
 
         # The single-character label aliases can be accessed with index notation.
         labels = {
-            "X": QubitSparsePauli.BitTerm.X,
-            "Y": QubitSparsePauli.BitTerm.Y,
-            "Z": QubitSparsePauli.BitTerm.Z,
+            "X": QubitSparsePauli.Pauli.X,
+            "Y": QubitSparsePauli.Pauli.Y,
+            "Z": QubitSparsePauli.Pauli.Z,
         }
-        self.assertEqual({label: QubitSparsePauli.BitTerm[label] for label in labels}, labels)
+        self.assertEqual({label: QubitSparsePauli.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
         self.assertEqual(
-            {bit_term.label: bit_term for bit_term in QubitSparsePauli.BitTerm}, labels
+            {pauli.label: pauli for pauli in QubitSparsePauli.Pauli}, labels
         )
 
     @ddt.idata(single_cases())
@@ -387,21 +387,21 @@ class TestQubitSparsePauli(QiskitTestCase):
         # Length
         pauli = QubitSparsePauli.from_label("XZY")
         self.assertEqual(len(pauli.indices), 3)
-        self.assertEqual(len(pauli.bit_terms), 3)
+        self.assertEqual(len(pauli.paulis), 3)
 
         # Iteration
         self.assertEqual(tuple(pauli.indices), (0, 1, 2))
         # multiple iteration through same object
-        bit_terms = pauli.bit_terms
-        self.assertEqual(set(bit_terms), {QubitSparsePauli.BitTerm[x] for x in "XZY"})
+        paulis = pauli.paulis
+        self.assertEqual(set(paulis), {QubitSparsePauli.Pauli[x] for x in "XZY"})
 
         # Implicit iteration methods.
-        self.assertIn(QubitSparsePauli.BitTerm.Y, pauli.bit_terms)
+        self.assertIn(QubitSparsePauli.Pauli.Y, pauli.paulis)
         self.assertNotIn(4, pauli.indices)
 
         # Index by scalar
         self.assertEqual(pauli.indices[-1], 2)
-        self.assertEqual(pauli.bit_terms[0], QubitSparsePauli.BitTerm.Y)
+        self.assertEqual(pauli.paulis[0], QubitSparsePauli.Pauli.Y)
 
         # Index by slice.  This is API guaranteed to be a Numpy array to make it easier to
         # manipulate subslices with mathematic operations.
@@ -411,10 +411,10 @@ class TestQubitSparsePauli(QiskitTestCase):
             np.array([2, 1, 0], dtype=np.uint32),
             strict=True,
         )
-        self.assertIsInstance(pauli.bit_terms[0:2], np.ndarray)
+        self.assertIsInstance(pauli.paulis[0:2], np.ndarray)
         np.testing.assert_array_equal(
-            pauli.bit_terms[0:2],
-            np.array([QubitSparsePauli.BitTerm.Y, QubitSparsePauli.BitTerm.Z], dtype=np.uint8),
+            pauli.paulis[0:2],
+            np.array([QubitSparsePauli.Pauli.Y, QubitSparsePauli.Pauli.Z], dtype=np.uint8),
             strict=True,
         )
 
@@ -426,8 +426,8 @@ class TestQubitSparsePauli(QiskitTestCase):
             pauli.indices, np.array([0, 1, 2], dtype=np.uint32), strict=True
         )
         np.testing.assert_array_equal(
-            pauli.bit_terms,
-            np.array([QubitSparsePauli.BitTerm[x] for x in "YZX"], dtype=np.uint8),
+            pauli.paulis,
+            np.array([QubitSparsePauli.Pauli[x] for x in "YZX"], dtype=np.uint8),
             strict=True,
         )
 
@@ -531,14 +531,14 @@ class TestQubitSparsePauliList(QiskitTestCase):
     def test_from_raw_parts(self):
         # Happiest path: exactly typed inputs.
         num_qubits = 100
-        terms = np.full((num_qubits,), QubitSparsePauliList.BitTerm.Z, dtype=np.uint8)
+        terms = np.full((num_qubits,), QubitSparsePauliList.Pauli.Z, dtype=np.uint8)
         indices = np.arange(num_qubits, dtype=np.uint32)
         boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
         qubit_sparse_pauli_list = QubitSparsePauliList.from_raw_parts(
             num_qubits, terms, indices, boundaries
         )
         self.assertEqual(qubit_sparse_pauli_list.num_qubits, num_qubits)
-        np.testing.assert_equal(qubit_sparse_pauli_list.bit_terms, terms)
+        np.testing.assert_equal(qubit_sparse_pauli_list.paulis, terms)
         np.testing.assert_equal(qubit_sparse_pauli_list.indices, indices)
         np.testing.assert_equal(qubit_sparse_pauli_list.boundaries, boundaries)
 
@@ -557,7 +557,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
             boundaries.astype(np.int16),
         )
         self.assertEqual(qubit_sparse_pauli_list.num_qubits, num_qubits)
-        np.testing.assert_equal(qubit_sparse_pauli_list.bit_terms, terms)
+        np.testing.assert_equal(qubit_sparse_pauli_list.paulis, terms)
         np.testing.assert_equal(qubit_sparse_pauli_list.indices, indices)
         np.testing.assert_equal(qubit_sparse_pauli_list.boundaries, boundaries)
 
@@ -576,18 +576,18 @@ class TestQubitSparsePauliList(QiskitTestCase):
     def test_from_raw_parts_checks_coherence(self):
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
             QubitSparsePauliList.from_raw_parts(2, [ord("$")], [0], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"`bit_terms` \(1\) and `indices` \(0\)"):
-            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.BitTerm.Z], [], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"`bit_terms` \(0\) and `indices` \(1\)"):
+        with self.assertRaisesRegex(ValueError, r"`paulis` \(1\) and `indices` \(0\)"):
+            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.Pauli.Z], [], [0, 1])
+        with self.assertRaisesRegex(ValueError, r"`paulis` \(0\) and `indices` \(1\)"):
             QubitSparsePauliList.from_raw_parts(2, [], [1], [0, 1])
         with self.assertRaisesRegex(ValueError, r"the first item of `boundaries` \(1\) must be 0"):
-            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.BitTerm.Z], [0], [1, 1])
+            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.Pauli.Z], [0], [1, 1])
         with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(2\)"):
             QubitSparsePauliList.from_raw_parts(2, [1], [0], [0, 2])
         with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(1\)"):
             QubitSparsePauliList.from_raw_parts(2, [1, 2], [0, 1], [0, 1])
         with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(0\)"):
-            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.BitTerm.Z], [0], [0])
+            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.Pauli.Z], [0], [0])
         with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
             QubitSparsePauliList.from_raw_parts(4, [1, 2], [0, 4], [0, 2])
         with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
@@ -611,15 +611,15 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauliList.from_raw_parts(
                 14,
                 [
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.X,
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.X,
-                    QubitSparsePauliList.BitTerm.X,
+                    QubitSparsePauliList.Pauli.Z,
+                    QubitSparsePauliList.Pauli.Y,
+                    QubitSparsePauliList.Pauli.X,
+                    QubitSparsePauliList.Pauli.Y,
+                    QubitSparsePauliList.Pauli.Y,
+                    QubitSparsePauliList.Pauli.Z,
+                    QubitSparsePauliList.Pauli.Z,
+                    QubitSparsePauliList.Pauli.X,
+                    QubitSparsePauliList.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5, 7, 8, 11, 12],
                 [0, 9],
@@ -648,11 +648,11 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauliList.from_raw_parts(
                 len(label),
                 [
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.X,
+                    QubitSparsePauliList.Pauli.Y,
+                    QubitSparsePauliList.Pauli.Z,
+                    QubitSparsePauliList.Pauli.Z,
+                    QubitSparsePauliList.Pauli.Y,
+                    QubitSparsePauliList.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
                 [0, 5],
@@ -663,11 +663,11 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauliList.from_raw_parts(
                 len(label),
                 [
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.Y,
-                    QubitSparsePauliList.BitTerm.X,
+                    QubitSparsePauliList.Pauli.Y,
+                    QubitSparsePauliList.Pauli.Z,
+                    QubitSparsePauliList.Pauli.Z,
+                    QubitSparsePauliList.Pauli.Y,
+                    QubitSparsePauliList.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
                 [0, 5],
@@ -679,10 +679,10 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauliList.from_raw_parts(
                 6,
                 [
-                    QubitSparsePauliList.BitTerm.Z,
-                    QubitSparsePauliList.BitTerm.X,
-                    QubitSparsePauliList.BitTerm.X,
-                    QubitSparsePauliList.BitTerm.X,
+                    QubitSparsePauliList.Pauli.Z,
+                    QubitSparsePauliList.Pauli.X,
+                    QubitSparsePauliList.Pauli.X,
+                    QubitSparsePauliList.Pauli.X,
                 ],
                 [1, 2, 4, 5],
                 [0, 2, 4],
@@ -905,13 +905,13 @@ class TestQubitSparsePauliList(QiskitTestCase):
     def test_empty(self):
         empty_5 = QubitSparsePauliList.empty(5)
         self.assertEqual(empty_5.num_qubits, 5)
-        np.testing.assert_equal(empty_5.bit_terms, np.array([], dtype=np.uint8))
+        np.testing.assert_equal(empty_5.paulis, np.array([], dtype=np.uint8))
         np.testing.assert_equal(empty_5.indices, np.array([], dtype=np.uint32))
         np.testing.assert_equal(empty_5.boundaries, np.array([0], dtype=np.uintp))
 
         empty_0 = QubitSparsePauliList.empty(0)
         self.assertEqual(empty_0.num_qubits, 0)
-        np.testing.assert_equal(empty_0.bit_terms, np.array([], dtype=np.uint8))
+        np.testing.assert_equal(empty_0.paulis, np.array([], dtype=np.uint8))
         np.testing.assert_equal(empty_0.indices, np.array([], dtype=np.uint32))
         np.testing.assert_equal(empty_0.boundaries, np.array([0], dtype=np.uintp))
 
@@ -920,40 +920,40 @@ class TestQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(len(QubitSparsePauliList.empty(10)), 0)
         self.assertEqual(len(QubitSparsePauliList.from_list(["IIIXIZ", "YYXXII"])), 2)
 
-    def test_bit_term_enum(self):
+    def test_pauli_enum(self):
         # These are very explicit tests that effectively just duplicate magic numbers, but the point
         # is that those magic numbers are required to be constant as their values are part of the
         # public interface.
 
         self.assertEqual(
-            set(QubitSparsePauliList.BitTerm),
+            set(QubitSparsePauliList.Pauli),
             {
-                QubitSparsePauliList.BitTerm.X,
-                QubitSparsePauliList.BitTerm.Y,
-                QubitSparsePauliList.BitTerm.Z,
+                QubitSparsePauliList.Pauli.X,
+                QubitSparsePauliList.Pauli.Y,
+                QubitSparsePauliList.Pauli.Z,
             },
         )
         # All the enumeration items should also be integers.
-        self.assertIsInstance(QubitSparsePauliList.BitTerm.X, int)
+        self.assertIsInstance(QubitSparsePauliList.Pauli.X, int)
         values = {
             "X": 0b10,
             "Y": 0b11,
             "Z": 0b01,
         }
         self.assertEqual(
-            {name: getattr(QubitSparsePauliList.BitTerm, name) for name in values}, values
+            {name: getattr(QubitSparsePauliList.Pauli, name) for name in values}, values
         )
 
         # The single-character label aliases can be accessed with index notation.
         labels = {
-            "X": QubitSparsePauliList.BitTerm.X,
-            "Y": QubitSparsePauliList.BitTerm.Y,
-            "Z": QubitSparsePauliList.BitTerm.Z,
+            "X": QubitSparsePauliList.Pauli.X,
+            "Y": QubitSparsePauliList.Pauli.Y,
+            "Z": QubitSparsePauliList.Pauli.Z,
         }
-        self.assertEqual({label: QubitSparsePauliList.BitTerm[label] for label in labels}, labels)
+        self.assertEqual({label: QubitSparsePauliList.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
         self.assertEqual(
-            {bit_term.label: bit_term for bit_term in QubitSparsePauliList.BitTerm}, labels
+            {pauli.label: pauli for pauli in QubitSparsePauliList.Pauli}, labels
         )
 
     @ddt.idata(single_cases_list())
@@ -1033,13 +1033,13 @@ class TestQubitSparsePauliList(QiskitTestCase):
 
     def test_write_into_attributes_scalar(self):
 
-        bit_terms = QubitSparsePauliList.from_sparse_list(
+        paulis = QubitSparsePauliList.from_sparse_list(
             [("XZ", (0, 1)), ("XX", (2, 3))], num_qubits=8
         )
-        bit_terms.bit_terms[0] = QubitSparsePauliList.BitTerm.Y
-        bit_terms.bit_terms[3] = QubitSparsePauliList.BitTerm.Z
+        paulis.paulis[0] = QubitSparsePauliList.Pauli.Y
+        paulis.paulis[3] = QubitSparsePauliList.Pauli.Z
         self.assertEqual(
-            bit_terms,
+            paulis,
             QubitSparsePauliList.from_sparse_list([("YZ", (0, 1)), ("XZ", (2, 3))], num_qubits=8),
         )
 
@@ -1068,27 +1068,27 @@ class TestQubitSparsePauliList(QiskitTestCase):
 
     def test_write_into_attributes_broadcast(self):
         # It's hard to broadcast into `indices` without breaking data coherence; the broadcasting is
-        # more meant for fast modifications to `coeffs` and `bit_terms`.
+        # more meant for fast modifications to `coeffs` and `paulis`.
         indices = QubitSparsePauliList.from_list(["XIIZI", "IIYIZ", "ZIIIY"])
         indices.indices[::2] = 1
         self.assertEqual(indices, QubitSparsePauliList.from_list(["XIIZI", "IIYZI", "ZIIYI"]))
 
-        bit_terms = QubitSparsePauliList.from_list(["XIIZI", "IIYIZ", "ZIIIY"])
-        bit_terms.bit_terms[::2] = QubitSparsePauliList.BitTerm.Z
+        paulis = QubitSparsePauliList.from_list(["XIIZI", "IIYIZ", "ZIIIY"])
+        paulis.paulis[::2] = QubitSparsePauliList.Pauli.Z
         self.assertEqual(
-            bit_terms,
+            paulis,
             QubitSparsePauliList.from_list(["XIIZI", "IIYIZ", "ZIIIZ"]),
         )
-        bit_terms.bit_terms[3:1:-1] = QubitSparsePauliList.BitTerm.X
+        paulis.paulis[3:1:-1] = QubitSparsePauliList.Pauli.X
         self.assertEqual(
-            bit_terms,
+            paulis,
             QubitSparsePauliList.from_list(["XIIZI", "IIXIX", "ZIIIZ"]),
         )
-        bit_terms.bit_terms[bit_terms.boundaries[2] : bit_terms.boundaries[3]] = (
-            QubitSparsePauliList.BitTerm.X
+        paulis.paulis[paulis.boundaries[2] : paulis.boundaries[3]] = (
+            QubitSparsePauliList.Pauli.X
         )
         self.assertEqual(
-            bit_terms,
+            paulis,
             QubitSparsePauliList.from_list(["XIIZI", "IIXIX", "XIIIX"]),
         )
 
@@ -1104,14 +1104,14 @@ class TestQubitSparsePauliList(QiskitTestCase):
         indices.indices[:4] = [4, 5, 1, 2]
         self.assertEqual(indices, QubitSparsePauliList.from_list(["ZXIIII", "IIIXYI", "YZIIII"]))
 
-        bit_terms = QubitSparsePauliList.from_list(["IIIIZX", "IIXXII", "YYIIII"])
-        bit_terms.bit_terms[::2] = [
-            QubitSparsePauliList.BitTerm.Y,
-            QubitSparsePauliList.BitTerm.Y,
-            QubitSparsePauliList.BitTerm.Z,
+        paulis = QubitSparsePauliList.from_list(["IIIIZX", "IIXXII", "YYIIII"])
+        paulis.paulis[::2] = [
+            QubitSparsePauliList.Pauli.Y,
+            QubitSparsePauliList.Pauli.Y,
+            QubitSparsePauliList.Pauli.Z,
         ]
         self.assertEqual(
-            bit_terms,
+            paulis,
             QubitSparsePauliList.from_list(["IIIIZY", "IIXYII", "YZIIII"]),
         )
 
@@ -1125,46 +1125,46 @@ class TestQubitSparsePauliList(QiskitTestCase):
     def test_attributes_reject_bad_writes(self):
         pauli_list = QubitSparsePauliList.from_list(["XZY", "XXY"])
         with self.assertRaises(TypeError):
-            pauli_list.bit_terms[0] = [QubitSparsePauliList.BitTerm.X] * 4
+            pauli_list.paulis[0] = [QubitSparsePauliList.Pauli.X] * 4
         with self.assertRaises(TypeError):
             pauli_list.indices[0] = [0, 1]
         with self.assertRaises(TypeError):
             pauli_list.boundaries[0] = (0, 1)
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            pauli_list.bit_terms[0] = 0
+            pauli_list.paulis[0] = 0
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            pauli_list.bit_terms[:] = 0
+            pauli_list.paulis[:] = 0
         with self.assertRaisesRegex(
             ValueError, "tried to set a slice of length 6 with a sequence of length 8"
         ):
-            pauli_list.bit_terms[:] = [QubitSparsePauliList.BitTerm.Z] * 8
+            pauli_list.paulis[:] = [QubitSparsePauliList.Pauli.Z] * 8
 
     def test_attributes_sequence(self):
         """Test attributes of the `Sequence` protocol."""
         # Length
         pauli_list = QubitSparsePauliList.from_list(["XZY", "ZYX"])
         self.assertEqual(len(pauli_list.indices), 6)
-        self.assertEqual(len(pauli_list.bit_terms), 6)
+        self.assertEqual(len(pauli_list.paulis), 6)
         self.assertEqual(len(pauli_list.boundaries), 3)
 
         # Iteration
         self.assertEqual(tuple(pauli_list.indices), (0, 1, 2, 0, 1, 2))
         self.assertEqual(next(iter(pauli_list.boundaries)), 0)
         # multiple iteration through same object
-        bit_terms = pauli_list.bit_terms
-        self.assertEqual(set(bit_terms), {QubitSparsePauliList.BitTerm[x] for x in "XYZZYX"})
-        self.assertEqual(set(bit_terms), {QubitSparsePauliList.BitTerm[x] for x in "XYZZYX"})
+        paulis = pauli_list.paulis
+        self.assertEqual(set(paulis), {QubitSparsePauliList.Pauli[x] for x in "XYZZYX"})
+        self.assertEqual(set(paulis), {QubitSparsePauliList.Pauli[x] for x in "XYZZYX"})
 
         # Implicit iteration methods.
-        self.assertIn(QubitSparsePauliList.BitTerm.Y, pauli_list.bit_terms)
+        self.assertIn(QubitSparsePauliList.Pauli.Y, pauli_list.paulis)
         self.assertNotIn(4, pauli_list.indices)
 
         # Index by scalar
         self.assertEqual(pauli_list.indices[-1], 2)
-        self.assertEqual(pauli_list.bit_terms[0], QubitSparsePauliList.BitTerm.Y)
+        self.assertEqual(pauli_list.paulis[0], QubitSparsePauliList.Pauli.Y)
         # Make sure that Rust-space actually returns the enum value, not just an `int` (which could
         # have compared equal).
-        self.assertIsInstance(pauli_list.bit_terms[0], QubitSparsePauliList.BitTerm)
+        self.assertIsInstance(pauli_list.paulis[0], QubitSparsePauliList.Pauli)
         self.assertEqual(pauli_list.boundaries[-2], 3)
         with self.assertRaises(IndexError):
             _ = pauli_list.boundaries[-4]
@@ -1177,11 +1177,11 @@ class TestQubitSparsePauliList(QiskitTestCase):
             np.array([2, 1, 0, 2, 1, 0], dtype=np.uint32),
             strict=True,
         )
-        self.assertIsInstance(pauli_list.bit_terms[2:4], np.ndarray)
+        self.assertIsInstance(pauli_list.paulis[2:4], np.ndarray)
         np.testing.assert_array_equal(
-            pauli_list.bit_terms[2:4],
+            pauli_list.paulis[2:4],
             np.array(
-                [QubitSparsePauliList.BitTerm.X, QubitSparsePauliList.BitTerm.X], dtype=np.uint8
+                [QubitSparsePauliList.Pauli.X, QubitSparsePauliList.Pauli.X], dtype=np.uint8
             ),
             strict=True,
         )
@@ -1198,8 +1198,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
             pauli_list.indices, np.array([0, 1, 2, 0, 1, 2], dtype=np.uint32), strict=True
         )
         np.testing.assert_array_equal(
-            pauli_list.bit_terms,
-            np.array([QubitSparsePauliList.BitTerm[x] for x in "YZXZYX"], dtype=np.uint8),
+            pauli_list.paulis,
+            np.array([QubitSparsePauliList.Pauli[x] for x in "YZXZYX"], dtype=np.uint8),
             strict=True,
         )
         np.testing.assert_array_equal(
@@ -1227,14 +1227,14 @@ class TestQubitSparsePauliList(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
             np.asarray(pauli_list.indices, copy=False)
         with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_list.bit_terms, copy=False)
+            np.asarray(pauli_list.paulis, copy=False)
         with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
             np.asarray(pauli_list.boundaries, copy=False)
 
     def test_attributes_repr(self):
         # We're not testing much about the outputs here, just that they don't crash.
         pauli_list = QubitSparsePauliList.from_list(["XZY", "YXZ"])
-        self.assertIn("bit_terms", repr(pauli_list.bit_terms))
+        self.assertIn("paulis", repr(pauli_list.paulis))
         self.assertIn("indices", repr(pauli_list.indices))
         self.assertIn("boundaries", repr(pauli_list.boundaries))
 
@@ -1258,13 +1258,13 @@ class TestQubitSparsePauliList(QiskitTestCase):
             ],
             num_qubits=5,
         )
-        bit_term = QubitSparsePauliList.BitTerm
+        pauli = QubitSparsePauliList.Pauli
         expected = [
-            QubitSparsePauli.from_raw_parts(5, [bit_term.Y, bit_term.Y, bit_term.X], [1, 2, 4]),
+            QubitSparsePauli.from_raw_parts(5, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
             QubitSparsePauli.from_raw_parts(5, [], []),
-            QubitSparsePauli.from_raw_parts(5, [bit_term.Z, bit_term.Z], [0, 3]),
-            QubitSparsePauli.from_raw_parts(5, [bit_term.X, bit_term.X], [1, 2]),
-            QubitSparsePauli.from_raw_parts(5, [bit_term.Z, bit_term.Y], [1, 4]),
+            QubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Z], [0, 3]),
+            QubitSparsePauli.from_raw_parts(5, [pauli.X, pauli.X], [1, 2]),
+            QubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Y], [1, 4]),
         ]
         self.assertEqual(list(pauli_list), expected)
 
@@ -1279,13 +1279,13 @@ class TestQubitSparsePauliList(QiskitTestCase):
             ],
             num_qubits=5,
         )
-        bit_term = QubitSparsePauliList.BitTerm
+        pauli = QubitSparsePauliList.Pauli
         expected = [
-            QubitSparsePauli.from_raw_parts(5, [bit_term.Y, bit_term.Y, bit_term.X], [1, 2, 4]),
+            QubitSparsePauli.from_raw_parts(5, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
             QubitSparsePauli.from_raw_parts(5, [], []),
-            QubitSparsePauli.from_raw_parts(5, [bit_term.Z, bit_term.Z], [0, 3]),
-            QubitSparsePauli.from_raw_parts(5, [bit_term.X, bit_term.X], [1, 2]),
-            QubitSparsePauli.from_raw_parts(5, [bit_term.Z, bit_term.Y], [1, 4]),
+            QubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Z], [0, 3]),
+            QubitSparsePauli.from_raw_parts(5, [pauli.X, pauli.X], [1, 2]),
+            QubitSparsePauli.from_raw_parts(5, [pauli.Z, pauli.Y], [1, 4]),
         ]
         self.assertEqual(pauli_list[0], expected[0])
         self.assertEqual(pauli_list[-2], expected[-2])
@@ -1296,7 +1296,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
 
     def test_to_sparse_list(self):
         """Test converting to a sparse list."""
-        with self.subTest(msg="identity"):
+        with self.subTest(msg="empty"):
             pauli_list = QubitSparsePauliList.empty(100)
             expected = []
             self.assertEqual(expected, pauli_list.to_sparse_list())
