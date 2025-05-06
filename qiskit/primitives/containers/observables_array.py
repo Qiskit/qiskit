@@ -303,7 +303,7 @@ class ObservablesArray(ShapedMixin):
         return True
 
     def copy(self):
-        """Return a deep copy of the array"""
+        """Return a deep copy of the array."""
         return deepcopy(self)
 
     def apply_layout(
