@@ -19,7 +19,7 @@ import unittest
 import ddt
 import numpy as np
 
-from qiskit.quantum_info import PauliLindbladMap
+from qiskit.quantum_info import QubitSparsePauliList, PauliLindbladMap
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -149,7 +149,7 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_from_raw_parts_checks_coherence(self):
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
             PauliLindbladMap.from_raw_parts(2, [1.0], [ord("$")], [0], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"boundaries.*must be one element longer"):
+        with self.assertRaisesRegex(ValueError, r"must match the length of `bit_terms`"):
             PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.BitTerm.Z], [0], [0])
         with self.assertRaisesRegex(ValueError, r"`bit_terms` \(1\) and `indices` \(0\)"):
             PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.BitTerm.Z], [], [0, 1])
@@ -730,7 +730,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(pauli_lindblad_map.bit_terms[0], PauliLindbladMap.BitTerm.Y)
         # Make sure that Rust-space actually returns the enum value, not just an `int` (which could
         # have compared equal).
-        self.assertIsInstance(pauli_lindblad_map.bit_terms[0], PauliLindbladMap.BitTerm)
+        self.assertIsInstance(pauli_lindblad_map.bit_terms[0], QubitSparsePauliList.BitTerm)
         self.assertEqual(pauli_lindblad_map.boundaries[-2], 3)
         with self.assertRaises(IndexError):
             _ = pauli_lindblad_map.coeffs[10]

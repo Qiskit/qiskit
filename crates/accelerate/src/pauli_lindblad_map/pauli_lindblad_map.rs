@@ -10,34 +10,22 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use numpy::{
-    PyArray1, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods, PyReadonlyArray1,
-    PyUntypedArrayMethods,
-};
+use numpy::{PyArray1, PyArrayLike1, PyArrayMethods};
 use pyo3::{
-    exceptions::{PyRuntimeError, PyTypeError, PyValueError},
+    exceptions::{PyTypeError, PyValueError},
     intern,
     prelude::*,
     sync::GILOnceCell,
-    types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
+    types::{PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
-use std::{
-    collections::btree_map,
-    sync::{Arc, RwLock},
-};
-use thiserror::Error;
+use std::sync::{Arc, RwLock};
 
-use qiskit_circuit::{
-    imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED},
-    slice::{PySequenceIndex, SequenceIndex},
-};
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
-use super::qubit_sparse_pauli::{self, ArithmeticError, BitTerm, BitTermFromU8Error, CoherenceError, LabelError, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList, InnerReadError, InnerWriteError, raw_parts_from_sparse_list, make_py_bit_term};
+use super::qubit_sparse_pauli::{ArithmeticError, BitTerm, CoherenceError, LabelError, QubitSparsePauliList, InnerReadError, InnerWriteError, raw_parts_from_sparse_list, make_py_bit_term, cast_array_type};
 
-static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
 static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format.
 ///
@@ -231,7 +219,7 @@ impl PauliLindbladMap {
         label: L,
         coeff: f64,
     ) -> Result<(), LabelError> {
-        self.qubit_sparse_pauli_list.add_dense_label(label);
+        self.qubit_sparse_pauli_list.add_dense_label(label)?;
         self.coeffs.push(coeff);
         Ok(())
     }
@@ -1707,32 +1695,4 @@ impl ArrayView {
             }
         }
     }
-}
-
-/// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
-/// if required.
-fn cast_array_type<'py, T>(
-    py: Python<'py>,
-    array: Bound<'py, PyArray1<T>>,
-    dtype: Option<&Bound<'py, PyAny>>,
-) -> PyResult<Bound<'py, PyAny>> {
-    let base_dtype = array.dtype();
-    let dtype = dtype
-        .map(|dtype| PyArrayDescr::new(py, dtype))
-        .unwrap_or_else(|| Ok(base_dtype.clone()))?;
-    if dtype.is_equiv_to(&base_dtype) {
-        return Ok(array.into_any());
-    }
-    PyModule::import(py, intern!(py, "numpy"))?
-        .getattr(intern!(py, "array"))?
-        .call(
-            (array,),
-            Some(
-                &[
-                    (intern!(py, "copy"), NUMPY_COPY_ONLY_IF_NEEDED.get_bound(py)),
-                    (intern!(py, "dtype"), dtype.as_any()),
-                ]
-                .into_py_dict(py)?,
-            ),
-        )
 }

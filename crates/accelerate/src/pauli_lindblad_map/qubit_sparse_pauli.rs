@@ -2435,7 +2435,7 @@ impl ArrayView {
 
 /// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
 /// if required.
-fn cast_array_type<'py, T>(
+pub fn cast_array_type<'py, T>(
     py: Python<'py>,
     array: Bound<'py, PyArray1<T>>,
     dtype: Option<&Bound<'py, PyAny>>,
