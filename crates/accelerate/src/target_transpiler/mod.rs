@@ -674,7 +674,7 @@ impl Target {
             let gate_map_oper = props_map.values();
             for inst_props in gate_map_oper {
                 if index_counter == index {
-                    return Ok(inst_props.clone());
+                    return Ok(*inst_props);
                 }
                 index_counter += 1;
             }
