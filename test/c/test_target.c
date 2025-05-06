@@ -41,6 +41,17 @@ bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t size) {
     return true;
 }
 
+// Helper comp for qsort
+int strcomp_help(const void *string1, const void *string2) {
+    char *const *string_as_pointer1 = string1;
+    char *const *string_as_pointer2 = string2;
+    return strcmp(*string_as_pointer1, *string_as_pointer2);
+}
+
+void sort_string_array(char **str_list, int length) {
+    qsort(str_list, length, sizeof(*str_list), strcomp_help);
+}
+
 /**
  * Test empty constructor for Target
  */
@@ -360,7 +371,7 @@ int test_target_non_global_op_names(void) {
 
     qk_target_add_instruction(target, QkGate_CRX, crx_params, crx_property_map);
 
-    const char *non_local_gate_names[2] = {"cx", "crx"};
+    char *non_local_gate_names[2] = {"cx", "crx"};
     char **non_local_comp_gate_names = qk_target_non_global_operation_names(target, false);
     for (int i = 0; i < 2; i++) {
         if (strcmp(non_local_gate_names[i], non_local_comp_gate_names[i]) != 0) {
@@ -372,7 +383,7 @@ int test_target_non_global_op_names(void) {
         }
     }
 
-    const char *non_local_gate_names_strict[2] = {"cx", "crx"};
+    char *non_local_gate_names_strict[2] = {"cx", "crx"};
     char **non_local_comp_gate_names_strict = qk_target_non_global_operation_names(target, true);
     for (int i = 0; i < 2; i++) {
         if (strcmp(non_local_gate_names_strict[i], non_local_comp_gate_names_strict[i]) != 0) {
@@ -457,9 +468,12 @@ int test_target_operation_names_for_qargs(void) {
 
     // Retrieve instruction names by qargs for {0,}
     uint32_t qargs_1[1] = {0};
-    char *names[4] = {"id", "rz", "sx", "x"};
+    char *names[5] = {"id", "rz", "sx", "x", "y"};
     char **names_obtained = qk_target_operation_names_for_qargs(target, qargs_1, 1);
-    for (int i = 0; i < 4; i++) {
+    // Sort arrays
+    sort_string_array(names, 5);
+    sort_string_array(names_obtained, 5);
+    for (int i = 0; i < 5; i++) {
         if (strcmp(names[i], names_obtained[i]) != 0) {
             printf("Mismatch in operation names order: %s is not %s.", names[i], names_obtained[i]);
             result = RuntimeError;

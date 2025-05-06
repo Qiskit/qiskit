@@ -363,7 +363,7 @@ pub unsafe extern "C" fn qk_property_map_get(
     let qargs = unsafe { parse_qargs(qargs, num_qubits) };
 
     if let Some(Some(prop)) = prop_map.0.get(&qargs) {
-        Box::into_raw(Box::new(*prop))
+        Box::into_raw(Box::new(prop.clone()))
     } else {
         null_mut()
     }
@@ -408,7 +408,7 @@ pub unsafe extern "C" fn qk_property_map_add(
             Some(const_ptr_as_ref(instruction_properties))
         }
     };
-    prop_map.0.insert(qubits, instruction_properties.copied());
+    prop_map.0.insert(qubits, instruction_properties.cloned());
 }
 
 /// @ingroup QkTarget
@@ -555,7 +555,7 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
         .update_instruction_properties(
             name.to_str().expect("Error while extracting string"),
             &qargs,
-            Some(*properties),
+            Some(properties.clone()),
         )
         .is_ok()
     {
@@ -666,7 +666,7 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
         .get(name.to_str().expect("Error extracting str"))
         .map(|map| map.get(&qargs))
     {
-        Box::into_raw(Box::new(*props))
+        Box::into_raw(Box::new(props.clone()))
     } else {
         null_mut()
     }
@@ -779,6 +779,9 @@ pub unsafe extern "C" fn qk_target_non_global_operation_names(
 /// @ingroup QkTarget
 /// Retrieves the names of all the operations in this Target which have
 /// defined properties for the provided qargs.
+///
+/// @note The order of the gate names is not guaranteed to be the same
+/// between runs of the program.
 ///
 /// @param target A pointer to the Target.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as

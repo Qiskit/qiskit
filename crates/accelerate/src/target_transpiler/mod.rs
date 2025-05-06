@@ -25,7 +25,8 @@ use std::{ops::Index, sync::OnceLock};
 use ahash::RandomState;
 
 use hashbrown::HashSet;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
+use itertools::Itertools;
 
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
@@ -221,7 +222,7 @@ pub struct Target {
     #[pyo3(get)]
     _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
     global_operations: IndexMap<u32, HashSet<String>, RandomState>,
-    qarg_gate_map: IndexMap<Qargs, IndexSet<String, RandomState>>,
+    qarg_gate_map: IndexMap<Qargs, Option<HashSet<String>>, RandomState>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
 }
@@ -427,13 +428,19 @@ impl Target {
     /// Raises:
     ///     KeyError: If qargs is not in target
     #[pyo3(name = "operations_for_qargs", signature=(qargs, /))]
-    pub fn py_operations_for_qargs(&self, qargs: Qargs) -> PyResult<Vec<&TargetOperation>> {
+    pub fn py_operations_for_qargs(&self, py: Python, qargs: Qargs) -> PyResult<Vec<PyObject>> {
         // Move to rust native once Gates are in rust
         Ok(self
-            .operation_names_for_qargs(&qargs)
-            .map_err(|e| PyKeyError::new_err(e.to_string()))?
+            .py_operation_names_for_qargs(qargs)?
             .into_iter()
-            .map(|x| &self._gate_name_map[x])
+            .map(|x| {
+                self._gate_name_map[x]
+                    .into_pyobject(py)
+                    .as_ref()
+                    .unwrap()
+                    .clone()
+                    .unbind()
+            })
             .collect())
     }
 
@@ -450,9 +457,9 @@ impl Target {
     /// Raises:
     ///     KeyError: If ``qargs`` is not in target
     #[pyo3(name = "operation_names_for_qargs", signature=(qargs, /))]
-    pub fn py_operation_names_for_qargs(&self, py: Python, qargs: Qargs) -> PyResult<Py<PySet>> {
+    pub fn py_operation_names_for_qargs(&self, qargs: Qargs) -> PyResult<HashSet<&str>> {
         match self.operation_names_for_qargs(&qargs) {
-            Ok(set) => PySet::new(py, set).map(|set| set.unbind()),
+            Ok(set) => Ok(set),
             Err(e) => Err(PyKeyError::new_err(e.to_string())),
         }
     }
@@ -667,7 +674,7 @@ impl Target {
             let gate_map_oper = props_map.values();
             for inst_props in gate_map_oper {
                 if index_counter == index {
-                    return Ok(*inst_props);
+                    return Ok(inst_props.clone());
                 }
                 index_counter += 1;
             }
@@ -823,10 +830,7 @@ impl Target {
         result_list.set_item("global_operations", self.global_operations.clone())?;
         result_list.set_item(
             "qarg_gate_map",
-            self.qarg_gate_map
-                .iter()
-                .map(|(key, value)| PySet::new(py, value).map(|set| (key, set)))
-                .collect::<PyResult<Vec<_>>>()?,
+            self.qarg_gate_map.clone().into_iter().collect_vec(),
         )?;
         result_list.set_item("non_global_basis", self.non_global_basis.clone())?;
         result_list.set_item(
@@ -873,19 +877,12 @@ impl Target {
             .get_item("global_operations")?
             .unwrap()
             .extract::<IndexMap<u32, HashSet<String>, RandomState>>()?;
-        self.qarg_gate_map = state
-            .get_item("qarg_gate_map")?
-            .unwrap()
-            .try_iter()?
-            .map(|ob| -> PyResult<_> {
-                let (qargs, obj) = ob?.extract::<(Qargs, Bound<PyAny>)>()?;
-                let set: IndexSet<String, RandomState> = obj
-                    .try_iter()?
-                    .map(|ob| -> PyResult<_> { ob?.extract::<String>() })
-                    .collect::<PyResult<_>>()?;
-                Ok((qargs, set))
-            })
-            .collect::<PyResult<_>>()?;
+        self.qarg_gate_map = IndexMap::from_iter(
+            state
+                .get_item("qarg_gate_map")?
+                .unwrap()
+                .extract::<Vec<(Qargs, Option<HashSet<String>>)>>()?,
+        );
         self.non_global_basis = state
             .get_item("non_global_basis")?
             .unwrap()
@@ -999,11 +996,11 @@ impl Target {
                             }) + 1,
                         ));
                     }
-                    if let Some(value) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
+                    if let Some(Some(value)) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
                         value.insert(name.to_string());
                     } else {
                         self.qarg_gate_map
-                            .insert(qarg.clone(), IndexSet::from_iter([name.to_string()]));
+                            .insert(qarg.clone(), Some(HashSet::from_iter([name.to_string()])));
                     }
                 }
             }
@@ -1235,15 +1232,12 @@ impl Target {
     }
 
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
-    pub fn operation_names_for_qargs<'a, T>(
-        &self,
-        qargs: T,
-    ) -> Result<IndexSet<&str, RandomState>, TargetError>
+    pub fn operation_names_for_qargs<'a, T>(&self, qargs: T) -> Result<HashSet<&str>, TargetError>
     where
         T: Into<QargsRef<'a>>,
     {
         // When num_qubits == 0 we return globally defined operators
-        let mut res: IndexSet<&str, RandomState> = IndexSet::default();
+        let mut res: HashSet<&str> = HashSet::default();
         let mut qargs: QargsRef = qargs.into();
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = QargsRef::Global;
@@ -1256,7 +1250,7 @@ impl Target {
                 return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
             }
         }
-        if let Some(qarg_gate_map_arg) = self.qarg_gate_map.get(&qargs).as_ref() {
+        if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
             res.extend(qarg_gate_map_arg.iter().map(|key| key.as_str()));
         }
         for (name, obj) in self._gate_name_map.iter() {
