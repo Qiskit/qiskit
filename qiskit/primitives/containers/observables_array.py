@@ -20,7 +20,7 @@ import re
 from copy import deepcopy
 from collections.abc import Iterable, Mapping as _Mapping
 from functools import lru_cache
-from typing import Union, Mapping, overload, List, TYPE_CHECKING
+from typing import Union, Mapping, overload, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import ArrayLike
