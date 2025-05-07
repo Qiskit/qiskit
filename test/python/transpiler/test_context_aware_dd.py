@@ -192,7 +192,7 @@ class TestContextAwareDD(QiskitTestCase):
         target, max_diff = get_varying_target(5)
         dd = ContextAwareDynamicalDecoupling(target)
 
-        self.assertAlmostEqual(2 * max_diff, dd._min_joinable_duration)
+        self.assertAlmostEqual(2 * max_diff / target.dt, dd._min_joinable_duration)
 
     def test_2q_gate_combos(self):
         """Test the ctrl/tgt specific behavior for CX/ECR and default for others (like CZ).
@@ -574,7 +574,7 @@ class TestContextAwareDD(QiskitTestCase):
         dd = PassManager(
             [
                 ALAPScheduleAnalysis(target.durations(), target=target),
-                ContextAwareDynamicalDecoupling(target),
+                ContextAwareDynamicalDecoupling(target, min_joinable_duration=0),
             ]
         )
         circuit = dd.run(pre.run(circuit))
