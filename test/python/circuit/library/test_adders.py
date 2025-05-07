@@ -134,8 +134,8 @@ class TestAdder(QiskitTestCase):
         (1, "cdkm", "full"),
         (3, "cdkm", "full"),
         (5, "cdkm", "full"),
-        (3, "rv", None),
-        (5, "rv", None),
+        (3, "rv", "half"),
+        (5, "rv", "half"),
         (3, "draper", "half"),
         (5, "draper", "half"),
         (3, "draper", "fixed"),
@@ -156,7 +156,7 @@ class TestAdder(QiskitTestCase):
         for use_function in [True, False]:
             with self.subTest(use_function=use_function):
                 if use_function:
-                    if adder == "rv":  # no kind for this
+                    if adder == "rv":  # no kind for this. we still need kind for the test result
                         circuit = ADDERS[adder](num_state_qubits)
                     else:
                         circuit = ADDERS[adder](num_state_qubits, kind)
