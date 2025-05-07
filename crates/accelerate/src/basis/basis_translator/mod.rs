@@ -17,6 +17,7 @@ use compose_transforms::GateIdentifier;
 use basis_search::basis_search;
 use compose_transforms::compose_transforms;
 use hashbrown::{HashMap, HashSet};
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -28,6 +29,7 @@ use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
+use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
@@ -43,10 +45,13 @@ use smallvec::SmallVec;
 use crate::equivalence::EquivalenceLibrary;
 use crate::nlayout::PhysicalQubit;
 use crate::target_transpiler::exceptions::TranspilerError;
-use crate::target_transpiler::{Qargs, Target};
+use crate::target_transpiler::Qargs;
+use crate::target_transpiler::QargsRef;
+use crate::target_transpiler::Target;
 
-type InstMap = HashMap<GateIdentifier, BasisTransformOut>;
-type ExtraInstructionMap<'a> = HashMap<&'a Option<Qargs>, InstMap>;
+type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
+type ExtraInstructionMap<'a> = IndexMap<&'a PhysicalQargs, InstMap, ahash::RandomState>;
+type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
@@ -54,7 +59,7 @@ fn run(
     py: Python<'_>,
     dag: DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
-    qargs_with_non_global_operation: HashMap<Option<Qargs>, HashSet<String>>,
+    qargs_with_non_global_operation: HashMap<Qargs, HashSet<String>>,
     min_qubits: usize,
     target_basis: Option<HashSet<String>>,
     target: Option<&Target>,
@@ -64,23 +69,40 @@ fn run(
         return Ok(dag);
     }
 
-    let basic_instrs: HashSet<String>;
-    let mut source_basis: HashSet<GateIdentifier> = HashSet::default();
-    let mut new_target_basis: HashSet<String>;
-    let mut qargs_local_source_basis: HashMap<Option<Qargs>, HashSet<GateIdentifier>> =
-        HashMap::default();
+    let qargs_with_non_global_operation: IndexMap<
+        Qargs,
+        IndexSet<String, ahash::RandomState>,
+        ahash::RandomState,
+    > = qargs_with_non_global_operation
+        .into_iter()
+        .map(|(k, v)| {
+            (
+                k,
+                v.into_iter().collect::<IndexSet<_, ahash::RandomState>>(),
+            )
+        })
+        .collect();
+
+    let basic_instrs: IndexSet<String, ahash::RandomState>;
+    let mut source_basis: IndexSet<GateIdentifier, ahash::RandomState> = IndexSet::default();
+    let mut new_target_basis: IndexSet<String, ahash::RandomState>;
+    let mut qargs_local_source_basis: IndexMap<
+        PhysicalQargs,
+        IndexSet<GateIdentifier, ahash::RandomState>,
+        ahash::RandomState,
+    > = IndexMap::default();
     if let Some(target) = target.as_ref() {
         basic_instrs = ["barrier", "snapshot", "store"]
             .into_iter()
             .map(|x| x.to_string())
             .collect();
-        let non_global_str: HashSet<&str> = if let Some(operations) = non_global_operations.as_ref()
-        {
-            operations.iter().map(|x| x.as_str()).collect()
-        } else {
-            HashSet::default()
-        };
-        let target_keys = target.keys().collect::<HashSet<_>>();
+        let non_global_str: IndexSet<&str, ahash::RandomState> =
+            if let Some(operations) = non_global_operations.as_ref() {
+                operations.iter().map(|x| x.as_str()).collect()
+            } else {
+                IndexSet::default()
+            };
+        let target_keys = target.keys().collect::<IndexSet<_, ahash::RandomState>>();
         new_target_basis = target_keys
             .difference(&non_global_str)
             .map(|x| x.to_string())
@@ -99,7 +121,7 @@ fn run(
             .map(|x| x.to_string())
             .collect();
         source_basis = extract_basis(py, &dag, min_qubits)?;
-        new_target_basis = target_basis.unwrap();
+        new_target_basis = target_basis.unwrap().into_iter().collect();
     }
     new_target_basis = new_target_basis
         .union(&basic_instrs)
@@ -108,27 +130,29 @@ fn run(
     // If the source basis is a subset of the target basis and we have no circuit
     // instructions on qargs that have non-global operations there is nothing to
     // translate and we can exit early.
-    let source_basis_names: HashSet<String> = source_basis.iter().map(|x| x.0.clone()).collect();
+    let source_basis_names: IndexSet<String> = source_basis.iter().map(|x| x.0.clone()).collect();
     if source_basis_names.is_subset(&new_target_basis) && qargs_local_source_basis.is_empty() {
         return Ok(dag);
     }
     let basis_transforms = basis_search(equiv_lib, &source_basis, &new_target_basis);
-    let mut qarg_local_basis_transforms: HashMap<
-        Option<Qargs>,
+    let mut qarg_local_basis_transforms: IndexMap<
+        &PhysicalQargs,
         Vec<(GateIdentifier, BasisTransformIn)>,
-    > = HashMap::default();
-    for (qarg, local_source_basis) in qargs_local_source_basis.iter() {
+        ahash::RandomState,
+    > = IndexMap::default();
+    for (qargs, local_source_basis) in qargs_local_source_basis.iter() {
         // For any multiqubit operation that contains a subset of qubits that
         // has a non-local operation, include that non-local operation in the
         // search. This matches with the check we did above to include those
         // subset non-local operations in the check here.
         let mut expanded_target = new_target_basis.clone();
-        if qarg.as_ref().is_some_and(|qarg| qarg.len() > 1) {
-            let qarg_as_set: HashSet<PhysicalQubit> =
-                HashSet::from_iter(qarg.as_ref().unwrap().iter().copied());
+        // Qargs are always guaranteed to be concrete based on `extract_basis_target`.
+        if qargs.len() > 1 {
+            let qarg_as_set: IndexSet<PhysicalQubit> = IndexSet::from_iter(qargs.iter().copied());
             for (non_local_qarg, local_basis) in qargs_with_non_global_operation.iter() {
-                if let Some(non_local_qarg) = non_local_qarg {
-                    let non_local_qarg_as_set = HashSet::from_iter(non_local_qarg.iter().copied());
+                if let Qargs::Concrete(non_local_qarg) = non_local_qarg {
+                    let non_local_qarg_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
+                        IndexSet::from_iter(non_local_qarg.iter().copied());
                     if qarg_as_set.is_superset(&non_local_qarg_as_set) {
                         expanded_target = expanded_target.union(local_basis).cloned().collect();
                     }
@@ -136,13 +160,13 @@ fn run(
             }
         } else {
             expanded_target = expanded_target
-                .union(&qargs_with_non_global_operation[qarg])
+                .union(&qargs_with_non_global_operation[&Qargs::from_iter(qargs.iter().copied())])
                 .cloned()
                 .collect();
         }
         let local_basis_transforms = basis_search(equiv_lib, local_source_basis, &expanded_target);
         if let Some(local_basis_transforms) = local_basis_transforms {
-            qarg_local_basis_transforms.insert(qarg.clone(), local_basis_transforms);
+            qarg_local_basis_transforms.insert(qargs, local_basis_transforms);
         } else {
             return Err(TranspilerError::new_err(format!(
                 "Unable to translate the operations in the circuit: \
@@ -180,8 +204,8 @@ fn run(
         .iter()
         .map(|(qarg, transform)| -> PyResult<_> {
             Ok((
-                qarg,
-                compose_transforms(py, transform, &qargs_local_source_basis[qarg], &dag)?,
+                *qarg,
+                compose_transforms(py, transform, &qargs_local_source_basis[*qarg], &dag)?,
             ))
         })
         .collect::<PyResult<_>>()?;
@@ -198,25 +222,22 @@ fn run(
     Ok(out_dag)
 }
 
-/// Method that extracts all non-calibrated gate instances identifiers from a DAGCircuit.
+/// Method that extracts all gate instances identifiers from a DAGCircuit.
 fn extract_basis(
     py: Python,
     circuit: &DAGCircuit,
     min_qubits: usize,
-) -> PyResult<HashSet<GateIdentifier>> {
-    let mut basis = HashSet::default();
+) -> PyResult<IndexSet<GateIdentifier, ahash::RandomState>> {
+    let mut basis = IndexSet::default();
     // Recurse for DAGCircuit
     fn recurse_dag(
         py: Python,
         circuit: &DAGCircuit,
-        basis: &mut HashSet<GateIdentifier>,
+        basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
     ) -> PyResult<()> {
-        for node in circuit.op_nodes(true) {
-            let operation: &PackedInstruction = circuit.dag()[node].unwrap_operation();
-            if !circuit.has_calibration_for_index(py, node)?
-                && circuit.get_qargs(operation.qubits).len() >= min_qubits
-            {
+        for (_node, operation) in circuit.op_nodes(true) {
+            if circuit.get_qargs(operation.qubits).len() >= min_qubits {
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
             if operation.op.control_flow() {
@@ -224,7 +245,7 @@ fn extract_basis(
                     unreachable!("Control flow operation is not an instance of PyInstruction.")
                 };
                 let inst_bound = inst.instruction.bind(py);
-                for block in inst_bound.getattr("blocks")?.iter()? {
+                for block in inst_bound.getattr("blocks")?.try_iter()? {
                     recurse_circuit(py, block?, basis, min_qubits)?;
                 }
             }
@@ -236,7 +257,7 @@ fn extract_basis(
     fn recurse_circuit(
         py: Python,
         circuit: Bound<PyAny>,
-        basis: &mut HashSet<GateIdentifier>,
+        basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
     ) -> PyResult<()> {
         let circuit_data: PyRef<CircuitData> = circuit
@@ -245,17 +266,13 @@ fn extract_basis(
             .borrow();
         for (index, inst) in circuit_data.iter().enumerate() {
             let instruction_object = circuit.get_item(index)?;
-            let has_calibration = circuit
-                .call_method1(intern!(py, "_has_calibration_for"), (&instruction_object,))?;
-            if !has_calibration.is_truthy()?
-                && circuit_data.get_qargs(inst.qubits).len() >= min_qubits
-            {
+            if circuit_data.get_qargs(inst.qubits).len() >= min_qubits {
                 basis.insert((inst.op.name().to_string(), inst.op.num_qubits()));
             }
             if inst.op.control_flow() {
                 let operation_ob = instruction_object.getattr(intern!(py, "operation"))?;
                 let blocks = operation_ob.getattr("blocks")?;
-                for block in blocks.iter()? {
+                for block in blocks.try_iter()? {
                     recurse_circuit(py, block?, basis, min_qubits)?;
                 }
             }
@@ -268,21 +285,28 @@ fn extract_basis(
 }
 
 /// Method that extracts a mapping of all the qargs in the local_source basis
-/// obtained from the [Target], to all non-calibrated gate instances identifiers from a DAGCircuit.
+/// obtained from the [Target], to all gate instances identifiers from a DAGCircuit.
 /// When dealing with `ControlFlowOp` instances the function will perform a recursion call
 /// to a variant design to handle instances of `QuantumCircuit`.
 fn extract_basis_target(
     py: Python,
     dag: &DAGCircuit,
-    source_basis: &mut HashSet<GateIdentifier>,
-    qargs_local_source_basis: &mut HashMap<Option<Qargs>, HashSet<GateIdentifier>>,
+    source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
+    qargs_local_source_basis: &mut IndexMap<
+        PhysicalQargs,
+        IndexSet<GateIdentifier, ahash::RandomState>,
+        ahash::RandomState,
+    >,
     min_qubits: usize,
-    qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
+    qargs_with_non_global_operation: &IndexMap<
+        Qargs,
+        IndexSet<String, ahash::RandomState>,
+        ahash::RandomState,
+    >,
 ) -> PyResult<()> {
-    for node in dag.op_nodes(true) {
-        let node_obj: &PackedInstruction = dag.dag()[node].unwrap_operation();
+    for (_, node_obj) in dag.op_nodes(true) {
         let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
-        if dag.has_calibration_for_index(py, node)? || qargs.len() < min_qubits {
+        if qargs.len() < min_qubits {
             continue;
         }
         // Treat the instruction as on an incomplete basis if the qargs are in the
@@ -294,25 +318,33 @@ fn extract_basis_target(
         // single qubit operation for (1,) as valid. This pattern also holds
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
-        let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
-            qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
-        let physical_qargs_as_set: HashSet<PhysicalQubit> =
-            HashSet::from_iter(physical_qargs.iter().copied());
-        if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
+        let physical_qargs: PhysicalQargs = qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
+        let physical_qargs_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
+            IndexSet::from_iter(physical_qargs.iter().copied());
+        let physical_qargs: Qargs = physical_qargs.into();
+        if qargs_with_non_global_operation.contains_key(&physical_qargs)
             || qargs_with_non_global_operation
                 .keys()
-                .flatten()
+                .filter_map(|qargs| {
+                    if let QargsRef::Concrete(qargs) = qargs.as_ref() {
+                        Some(qargs)
+                    } else {
+                        None
+                    }
+                })
                 .any(|incomplete_qargs| {
-                    let incomplete_qargs = HashSet::from_iter(incomplete_qargs.iter().copied());
+                    let incomplete_qargs: IndexSet<PhysicalQubit, ahash::RandomState> =
+                        IndexSet::from_iter(incomplete_qargs.iter().copied());
                     physical_qargs_as_set.is_superset(&incomplete_qargs)
                 })
         {
+            let qargs_from_set: PhysicalQargs = physical_qargs_as_set.into_iter().collect();
             qargs_local_source_basis
-                .entry(Some(physical_qargs_as_set.into_iter().collect()))
+                .entry(qargs_from_set)
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
-                .or_insert(HashSet::from_iter([(
+                .or_insert(IndexSet::from_iter([(
                     node_obj.op.name().to_string(),
                     node_obj.op.num_qubits(),
                 )]));
@@ -324,9 +356,10 @@ fn extract_basis_target(
                 unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
             };
             let bound_inst = op.instruction.bind(py);
-            // Use python side extraction instead of the Rust method `op.blocks` due to
-            // required usage of a python-space method `QuantumCircuit.has_calibration_for`.
-            let blocks = bound_inst.getattr("blocks")?.iter()?;
+            // TODO: Use Rust method `op.blocks` instead of Python side extraction now that
+            // the python-space method `QuantumCircuit.has_calibration_for`
+            // has been removed and we don't need to account for it.
+            let blocks = bound_inst.getattr("blocks")?.try_iter()?;
             for block in blocks {
                 extract_basis_target_circ(
                     &block?,
@@ -345,23 +378,28 @@ fn extract_basis_target(
 /// This needs to use a Python instance of `QuantumCircuit` due to it needing
 /// to access `has_calibration_for()` which is unavailable through rust. However,
 /// this API will be removed with the deprecation of `Pulse`.
+/// TODO: pulse is removed, we can use op.blocks
 fn extract_basis_target_circ(
     circuit: &Bound<PyAny>,
-    source_basis: &mut HashSet<GateIdentifier>,
-    qargs_local_source_basis: &mut HashMap<Option<Qargs>, HashSet<GateIdentifier>>,
+    source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
+    qargs_local_source_basis: &mut IndexMap<
+        PhysicalQargs,
+        IndexSet<GateIdentifier, ahash::RandomState>,
+        ahash::RandomState,
+    >,
     min_qubits: usize,
-    qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
+    qargs_with_non_global_operation: &IndexMap<
+        Qargs,
+        IndexSet<String, ahash::RandomState>,
+        ahash::RandomState,
+    >,
 ) -> PyResult<()> {
     let py = circuit.py();
     let circ_data_bound = circuit.getattr("_data")?.downcast_into::<CircuitData>()?;
     let circ_data = circ_data_bound.borrow();
-    for (index, node_obj) in circ_data.iter().enumerate() {
+    for node_obj in circ_data.iter() {
         let qargs = circ_data.get_qargs(node_obj.qubits);
-        if circuit
-            .call_method1("_has_calibration_for", (circuit.get_item(index)?,))?
-            .is_truthy()?
-            || qargs.len() < min_qubits
-        {
+        if qargs.len() < min_qubits {
             continue;
         }
         // Treat the instruction as on an incomplete basis if the qargs are in the
@@ -373,25 +411,33 @@ fn extract_basis_target_circ(
         // single qubit operation for (1,) as valid. This pattern also holds
         // true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
         // and 1q operations in the same manner)
-        let physical_qargs: SmallVec<[PhysicalQubit; 2]> =
-            qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
-        let physical_qargs_as_set: HashSet<PhysicalQubit> =
-            HashSet::from_iter(physical_qargs.iter().copied());
-        if qargs_with_non_global_operation.contains_key(&Some(physical_qargs))
+        let physical_qargs: PhysicalQargs = qargs.iter().map(|x| PhysicalQubit(x.0)).collect();
+        let physical_qargs_as_set: IndexSet<PhysicalQubit, ahash::RandomState> =
+            IndexSet::from_iter(physical_qargs.iter().copied());
+        let physical_qargs: Qargs = physical_qargs.into();
+        if qargs_with_non_global_operation.contains_key(&physical_qargs)
             || qargs_with_non_global_operation
                 .keys()
-                .flatten()
+                .filter_map(|qargs| {
+                    if let QargsRef::Concrete(qargs) = qargs.as_ref() {
+                        Some(qargs)
+                    } else {
+                        None
+                    }
+                })
                 .any(|incomplete_qargs| {
-                    let incomplete_qargs = HashSet::from_iter(incomplete_qargs.iter().copied());
+                    let incomplete_qargs: IndexSet<PhysicalQubit, ahash::RandomState> =
+                        IndexSet::from_iter(incomplete_qargs.iter().copied());
                     physical_qargs_as_set.is_superset(&incomplete_qargs)
                 })
         {
+            let qargs_from_set: PhysicalQargs = physical_qargs_as_set.into_iter().collect();
             qargs_local_source_basis
-                .entry(Some(physical_qargs_as_set.into_iter().collect()))
+                .entry(qargs_from_set)
                 .and_modify(|set| {
                     set.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
                 })
-                .or_insert(HashSet::from_iter([(
+                .or_insert(IndexSet::from_iter([(
                     node_obj.op.name().to_string(),
                     node_obj.op.num_qubits(),
                 )]));
@@ -403,7 +449,7 @@ fn extract_basis_target_circ(
                 unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
             };
             let bound_inst = op.instruction.bind(py);
-            let blocks = bound_inst.getattr("blocks")?.iter()?;
+            let blocks = bound_inst.getattr("blocks")?.try_iter()?;
             for block in blocks {
                 extract_basis_target_circ(
                     &block?,
@@ -421,19 +467,25 @@ fn extract_basis_target_circ(
 fn apply_translation(
     py: Python,
     dag: &DAGCircuit,
-    target_basis: &HashSet<String>,
+    target_basis: &IndexSet<String, ahash::RandomState>,
     instr_map: &InstMap,
     extra_inst_map: &ExtraInstructionMap,
     min_qubits: usize,
-    qargs_with_non_global_operation: &HashMap<Option<Qargs>, HashSet<String>>,
+    qargs_with_non_global_operation: &IndexMap<
+        Qargs,
+        IndexSet<String, ahash::RandomState>,
+        ahash::RandomState,
+    >,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
-    let mut out_dag = dag.copy_empty_like(py, "alike")?;
+    let out_dag = dag.copy_empty_like(py, "alike")?;
+    let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
-        let node_obj = dag.dag()[node].unwrap_operation();
+        let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
-        let qubit_set: HashSet<Qubit> = HashSet::from_iter(node_qarg.iter().copied());
+        let qubit_set: IndexSet<Qubit, ahash::RandomState> =
+            IndexSet::from_iter(node_qarg.iter().copied());
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
@@ -443,7 +495,7 @@ fn apply_translation(
                 let mut flow_blocks = vec![];
                 let bound_obj = control_op.instruction.bind(py);
                 let blocks = bound_obj.getattr("blocks")?;
-                for block in blocks.iter()? {
+                for block in blocks.try_iter()? {
                     let block = block?;
                     let dag_block: DAGCircuit =
                         circuit_to_dag(py, block.extract()?, true, None, None)?;
@@ -471,7 +523,7 @@ fn apply_translation(
                 new_op = Some(replaced_blocks.extract()?);
             }
             if let Some(new_op) = new_op {
-                out_dag.apply_operation_back(
+                out_dag_builder.apply_operation_back(
                     py,
                     new_op.operation,
                     node_qarg,
@@ -481,101 +533,53 @@ fn apply_translation(
                     } else {
                         Some(new_op.params)
                     },
-                    new_op.extra_attrs,
+                    new_op.label.as_deref().cloned(),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )?;
             } else {
-                out_dag.apply_operation_back(
+                out_dag_builder.apply_operation_back(
                     py,
                     node_obj.op.clone(),
                     node_qarg,
                     node_carg,
-                    if node_obj.params_view().is_empty() {
-                        None
-                    } else {
-                        Some(
-                            node_obj
-                                .params_view()
-                                .iter()
-                                .map(|param| param.clone_ref(py))
-                                .collect(),
-                        )
-                    },
-                    node_obj.extra_attrs.clone(),
+                    node_obj.params.as_ref().map(|x| *x.clone()),
+                    node_obj.label.as_deref().cloned(),
                     #[cfg(feature = "cache_pygates")]
                     None,
                 )?;
             }
             continue;
         }
-        let node_qarg_as_physical: Option<Qargs> =
-            Some(node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect());
+        let node_qarg_as_physical: Qargs = node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect();
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
-            out_dag.apply_operation_back(
+            out_dag_builder.apply_operation_back(
                 py,
                 node_obj.op.clone(),
                 node_qarg,
                 node_carg,
-                if node_obj.params_view().is_empty() {
-                    None
-                } else {
-                    Some(
-                        node_obj
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )
-                },
-                node_obj.extra_attrs.clone(),
+                node_obj.params.as_ref().map(|x| *x.clone()),
+                node_obj.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
             continue;
         }
 
-        if dag.has_calibration_for_index(py, node)? {
-            out_dag.apply_operation_back(
-                py,
-                node_obj.op.clone(),
-                node_qarg,
-                node_carg,
-                if node_obj.params_view().is_empty() {
-                    None
-                } else {
-                    Some(
-                        node_obj
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )
-                },
-                node_obj.extra_attrs.clone(),
-                #[cfg(feature = "cache_pygates")]
-                None,
-            )?;
-            continue;
-        }
-        let unique_qargs: Option<Qargs> = if qubit_set.is_empty() {
-            None
-        } else {
-            Some(qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect())
-        };
+        let unique_qargs: PhysicalQargs = qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect();
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
                 py,
-                &mut out_dag,
+                &mut out_dag_builder,
                 node_obj.clone(),
                 &extra_inst_map[&unique_qargs],
             )?;
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(py, &mut out_dag, node_obj.clone(), instr_map)?;
+            replace_node(py, &mut out_dag_builder, node_obj.clone(), instr_map)?;
         } else {
             return Err(TranspilerError::new_err(format!(
                 "BasisTranslator did not map {}",
@@ -584,15 +588,14 @@ fn apply_translation(
         }
         is_updated = true;
     }
-
-    Ok((out_dag, is_updated))
+    Ok((out_dag_builder.build(), is_updated))
 }
 
 fn replace_node(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
-    instr_map: &HashMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit)>,
+    instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
 ) -> PyResult<()> {
     let (target_params, target_dag) =
         &instr_map[&(node.op.name().to_string(), node.op.num_qubits())];
@@ -608,9 +611,9 @@ fn replace_node(
     }
     if node.params_view().is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
-            let inner_node = &target_dag.dag()[inner_index].unwrap_operation();
-            let old_qargs = dag.get_qargs(node.qubits);
-            let old_cargs = dag.get_cargs(node.clbits);
+            let inner_node = &target_dag[inner_index].unwrap_operation();
+            let old_qargs = dag.qargs_interner().get(node.qubits);
+            let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
                 .get_qargs(inner_node.qubits)
                 .iter()
@@ -626,27 +629,11 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-            if node.condition().is_some() {
-                match new_op.view() {
-                    OperationRef::Gate(gate) => {
-                        gate.gate.setattr(py, "condition", node.condition())?
-                    }
-                    OperationRef::Instruction(inst) => {
-                        inst.instruction
-                            .setattr(py, "condition", node.condition())?
-                    }
-                    OperationRef::Operation(oper) => {
-                        oper.operation.setattr(py, "condition", node.condition())?
-                    }
-                    _ => (),
-                }
-            }
             let new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
                 .iter()
                 .map(|param| param.clone_ref(py))
                 .collect();
-            let new_extra_props = node.extra_attrs.clone();
             dag.apply_operation_back(
                 py,
                 new_op,
@@ -657,21 +644,21 @@ fn replace_node(
                 } else {
                     Some(new_params)
                 },
-                new_extra_props,
+                node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
         }
-        dag.add_global_phase(py, target_dag.global_phase())?;
+        dag.add_global_phase(target_dag.global_phase())?;
     } else {
         let parameter_map = target_params
             .iter()
             .zip(node.params_view())
-            .into_py_dict_bound(py);
+            .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
-            let inner_node = &target_dag.dag()[inner_index].unwrap_operation();
-            let old_qargs = dag.get_qargs(node.qubits);
-            let old_cargs = dag.get_cargs(node.clbits);
+            let inner_node = &target_dag[inner_index].unwrap_operation();
+            let old_qargs = dag.qargs_interner().get(node.qubits);
+            let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
                 .get_qargs(inner_node.qubits)
                 .iter()
@@ -702,7 +689,7 @@ fn replace_node(
                     if let Param::ParameterExpression(param_obj) = param {
                         let bound_param = param_obj.bind(py);
                         let exp_params = param.iter_parameters(py)?;
-                        let bind_dict = PyDict::new_bound(py);
+                        let bind_dict = PyDict::new(py);
                         for key in exp_params {
                             let key = key?;
                             bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
@@ -761,51 +748,58 @@ fn replace_node(
                 } else {
                     Some(new_params)
                 },
-                inner_node.extra_attrs.clone(),
+                inner_node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )?;
         }
 
-        if let Param::ParameterExpression(old_phase) = target_dag.global_phase() {
-            let bound_old_phase = old_phase.bind(py);
-            let bind_dict = PyDict::new_bound(py);
-            for key in target_dag.global_phase().iter_parameters(py)? {
-                let key = key?;
-                bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
-            }
-            let mut new_phase: Bound<PyAny>;
-            if bind_dict.values().iter().any(|param| {
-                param
-                    .is_instance(PARAMETER_EXPRESSION.get_bound(py))
-                    .is_ok_and(|x| x)
-            }) {
-                new_phase = bound_old_phase.clone();
-                for key_val in bind_dict.items() {
-                    new_phase =
-                        new_phase.call_method1(intern!(py, "assign"), key_val.downcast()?)?;
+        match target_dag.global_phase() {
+            Param::ParameterExpression(old_phase) => {
+                let bound_old_phase = old_phase.bind(py);
+                let bind_dict = PyDict::new(py);
+                for key in target_dag.global_phase().iter_parameters(py)? {
+                    let key = key?;
+                    bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
                 }
-            } else {
-                new_phase = bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
-            }
-            if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
-                new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
-                if new_phase.is_instance(&PyComplex::type_object_bound(py))? {
-                    return Err(TranspilerError::new_err(format!(
-                        "Global phase must be real, but got {}",
-                        new_phase.repr()?
-                    )));
+                let mut new_phase: Bound<PyAny>;
+                if bind_dict.values().iter().any(|param| {
+                    param
+                        .is_instance(PARAMETER_EXPRESSION.get_bound(py))
+                        .is_ok_and(|x| x)
+                }) {
+                    new_phase = bound_old_phase.clone();
+                    for key_val in bind_dict.items() {
+                        new_phase =
+                            new_phase.call_method1(intern!(py, "assign"), key_val.downcast()?)?;
+                    }
+                } else {
+                    new_phase = bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
                 }
+                if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
+                    new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
+                    if new_phase.is_instance(&PyComplex::type_object(py))? {
+                        return Err(TranspilerError::new_err(format!(
+                            "Global phase must be real, but got {}",
+                            new_phase.repr()?
+                        )));
+                    }
+                }
+                let new_phase: Param = new_phase.extract()?;
+                dag.add_global_phase(&new_phase)?;
             }
-            let new_phase: Param = new_phase.extract()?;
-            dag.add_global_phase(py, &new_phase)?;
+
+            Param::Float(_) => {
+                dag.add_global_phase(target_dag.global_phase())?;
+            }
+
+            _ => {}
         }
     }
 
     Ok(())
 }
 
-#[pymodule]
 pub fn basis_translator(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(run))?;
     Ok(())

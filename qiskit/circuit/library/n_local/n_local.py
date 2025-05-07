@@ -23,7 +23,7 @@ import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit import (
     Instruction,
     Parameter,
@@ -148,6 +148,7 @@ def n_local(
         are made up of a single block per layer:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -160,8 +161,9 @@ def n_local(
         Pauli-Y and Pauli-Z rotations in the rotation layer:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             circuit = n_local(3, ["ry", "rz"], "cz", "full", reps=1, insert_barriers=True)
             circuit.draw("mpl")
@@ -169,8 +171,9 @@ def n_local(
         To omit rotation or entanglement layers, the block can be set to an empty list:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             circuit = n_local(4, [], "cry", reps=2)
             circuit.draw("mpl")
@@ -178,8 +181,9 @@ def n_local(
         The entanglement can be set explicitly via the ``entanglement`` argument:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             entangler_map = [[0, 1], [2, 0]]
             circuit = n_local(3, "x", "crx", entangler_map, reps=2)
@@ -189,9 +193,10 @@ def n_local(
         as input the current layer index, and returns the entanglement structure. For example,
         the following uses different entanglements for odd and even layers:
 
-        .. plot:
+        .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             def entanglement(layer_index):
                 if layer_index % 2 == 0:

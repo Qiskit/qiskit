@@ -1,3 +1,0 @@
-fixes:
-  - |
-    The transpilation pass :class`.InverseCancellation` now runs inside of flow controlled blocks. Previously, it ignores the pairs of gates in classical blocks that can be cancelled. Refer to `#13437 <https://github.com/Qiskit/qiskit/issues/13437>` for more details.

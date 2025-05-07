@@ -28,7 +28,7 @@ import scipy.linalg
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import library
-from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
+from qiskit.circuit.library import HGate, CHGate, CXGate, QFTGate
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators import Operator, ScalarOp
@@ -743,7 +743,7 @@ class TestOperator(OperatorTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = Operator(circ1)
@@ -752,7 +752,7 @@ class TestOperator(OperatorTestCase):
 
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         op = Operator.from_circuit(qc1)
         with self.subTest(msg="str(operator)"):
             str(op)

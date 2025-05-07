@@ -38,6 +38,7 @@ class QFT(BlueprintCircuit):
     For 4 qubits, the circuit that implements this transformation is:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QFT
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -48,6 +49,7 @@ class QFT(BlueprintCircuit):
     The respective circuit diagram is:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QFT
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -64,6 +66,7 @@ class QFT(BlueprintCircuit):
     on 5 qubits with approximation degree 2 yields (the barriers are dropped in this example):
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QFT
        from qiskit.visualization.library import _generate_circuit_library_visualization

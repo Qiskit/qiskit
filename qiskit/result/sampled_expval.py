@@ -30,8 +30,7 @@ def sampled_expectation_value(dist, oper):
 
     Parameters:
         dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
-        oper (str or Pauli or PauliOp or PauliSumOp or SparsePauliOp): The operator for
-                                                                       the observable
+        oper (str or Pauli or SparsePauliOp): The operator for the observable
 
     Returns:
         float: The expectation value

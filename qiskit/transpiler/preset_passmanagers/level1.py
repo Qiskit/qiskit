@@ -49,11 +49,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     init_method = pass_manager_config.init_method or "default"
-    # Unlike other presets, the layout and routing defaults aren't set here because they change
-    # based on whether the input circuit has control flow.
     layout_method = pass_manager_config.layout_method or "default"
-    routing_method = pass_manager_config.routing_method or "sabre"
-    translation_method = pass_manager_config.translation_method or "translator"
+    routing_method = pass_manager_config.routing_method or "default"
+    translation_method = pass_manager_config.translation_method or "default"
     optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
     target = pass_manager_config.target
@@ -77,15 +75,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     translation = plugin_manager.get_passmanager_stage(
         "translation", translation_method, pass_manager_config, optimization_level=1
     )
-
-    if (coupling_map and not coupling_map.is_symmetric) or (
-        target is not None and target.get_non_global_operation_names(strict_direction=True)
-    ):
-        pre_optimization = common.generate_pre_op_passmanager(
-            target, coupling_map, remove_reset_in_zero=False
-        )
-    else:
-        pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=False)
 
     optimization = plugin_manager.get_passmanager_stage(
         "optimization", optimization_method, pass_manager_config, optimization_level=1
@@ -114,7 +103,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         layout=layout,
         routing=routing,
         translation=translation,
-        pre_optimization=pre_optimization,
         optimization=optimization,
         scheduling=sched,
     )

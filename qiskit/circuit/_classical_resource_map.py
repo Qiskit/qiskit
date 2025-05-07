@@ -16,9 +16,8 @@ from __future__ import annotations
 
 import typing
 
-from .bit import Bit
+from . import Bit, Clbit, ClassicalRegister  # pylint: disable=cyclic-import
 from .classical import expr
-from .classicalregister import ClassicalRegister, Clbit
 
 
 class VariableMapper(expr.ExprVisitor[expr.Expr]):
@@ -37,13 +36,17 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
     ``ValueError`` will be raised instead.  The given ``add_register`` callable may choose to raise
     its own exception."""
 
+    # We don't want docstrings for the inherited visitor methods, which are self-explanatory and
+    # would just be noise.
+    # pylint: disable=missing-function-docstring
+
     __slots__ = ("target_cregs", "register_map", "bit_map", "var_map", "add_register")
 
     def __init__(
         self,
         target_cregs: typing.Iterable[ClassicalRegister],
         bit_map: typing.Mapping[Bit, Bit],
-        var_map: typing.Mapping[expr.Var, expr.Var] | None = None,
+        var_map: typing.Mapping[expr.Var | expr.Stretch, expr.Var | expr.Stretch] | None = None,
         *,
         add_register: typing.Callable[[ClassicalRegister], None] | None = None,
     ):
@@ -130,6 +133,9 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
             return expr.Var(self.bit_map[node.var], node.type)
         if isinstance(node.var, ClassicalRegister):
             return expr.Var(self._map_register(node.var), node.type)
+        return self.var_map.get(node, node)
+
+    def visit_stretch(self, node, /):
         return self.var_map.get(node, node)
 
     def visit_value(self, node, /):

@@ -9,6 +9,9 @@ license.workspace = true
 name = "qiskit_qasm2"
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
 num-bigint.workspace = true
 hashbrown.workspace = true

@@ -12,20 +12,10 @@
 
 """Module containing circuit scheduling passes."""
 
-from .alap import ALAPSchedule
-from .asap import ASAPSchedule
-from .dynamical_decoupling import DynamicalDecoupling
 from .scheduling import ALAPScheduleAnalysis, ASAPScheduleAnalysis, SetIOLatency
 from .time_unit_conversion import TimeUnitConversion
-from .padding import (
-    PadDelay,
-    PadDynamicalDecoupling,
-    ContextAwareDynamicalDecoupling,
-)
-from .alignments import InstructionDurationCheck, ValidatePulseGates, ConstrainedReschedule
+from .padding import PadDelay, PadDynamicalDecoupling, ContextAwareDynamicalDecoupling
+from .alignments import InstructionDurationCheck, ConstrainedReschedule
 
 # For backward compatibility
 from . import alignments as instruction_alignments
-
-# TODO Deprecated pass. Will be removed after deprecation period.
-from .alignments import AlignMeasures

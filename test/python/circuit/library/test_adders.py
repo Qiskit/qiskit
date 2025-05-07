@@ -168,7 +168,7 @@ class TestAdder(QiskitTestCase):
             _ = adder(-1)
 
     def test_plugins(self):
-        """Test setting the HLS plugins for the modular adder."""
+        """Test calling HLS plugins for various adder types."""
 
         # all gates with the plugins we check
         modes = {
@@ -203,6 +203,106 @@ class TestAdder(QiskitTestCase):
                     ops = set(synth.count_ops().keys())
 
                     self.assertTrue(expected_ops[plugin] in ops)
+
+    def test_plugins_when_do_not_apply(self):
+        """Test that plugins do not do anything when not enough
+        clean ancilla qubits are available.
+        """
+        with self.subTest(name="FullAdder"):
+            adder = FullAdderGate(3)
+            circuit = QuantumCircuit(9)
+            circuit.append(adder, range(adder.num_qubits))
+            hls_config = HLSConfig(FullAdder=["ripple_v95"])
+            hls = HighLevelSynthesis(hls_config=hls_config)
+            synth = hls(circuit)
+            self.assertEqual(synth.count_ops(), {"FullAdder": 1})
+        with self.subTest(name="HalfAdder"):
+            adder = HalfAdderGate(3)
+            circuit = QuantumCircuit(8)
+            circuit.append(adder, range(adder.num_qubits))
+            hls_config = HLSConfig(HalfAdder=["ripple_v95"])
+            hls = HighLevelSynthesis(hls_config=hls_config)
+            synth = hls(circuit)
+            self.assertEqual(synth.count_ops(), {"HalfAdder": 1})
+        with self.subTest(name="ModularAdder"):
+            adder = ModularAdderGate(3)
+            circuit = QuantumCircuit(7)
+            circuit.append(adder, range(adder.num_qubits))
+            hls_config = HLSConfig(ModularAdder=["ripple_v95"])
+            hls = HighLevelSynthesis(hls_config=hls_config)
+            synth = hls(circuit)
+            self.assertEqual(synth.count_ops(), {"ModularAdder": 1})
+
+    def test_default_plugins(self):
+        """Tests covering different branches in the default synthesis plugins."""
+
+        # Test's name indicates which synthesis method should get used.
+        with self.subTest(name="HalfAdder_use_ripple_v95"):
+            adder = HalfAdderGate(3)
+            circuit = QuantumCircuit(9)
+            circuit.append(adder, range(7))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("Carry" in ops)
+        with self.subTest(name="HalfAdder_use_ripple_c04"):
+            adder = HalfAdderGate(4)
+            circuit = QuantumCircuit(12)
+            circuit.append(adder, range(9))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("MAJ" in ops)
+        with self.subTest(name="HalfAdder_use_qft_d00"):
+            adder = HalfAdderGate(4)
+            circuit = QuantumCircuit(9)
+            circuit.append(adder, range(9))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("cp" in ops)
+
+        with self.subTest(name="FullAdder_use_ripple_c04"):
+            adder = FullAdderGate(4)
+            circuit = QuantumCircuit(10)
+            circuit.append(adder, range(10))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("MAJ" in ops)
+        with self.subTest(name="FullAdder_use_ripple_v95"):
+            adder = FullAdderGate(1)
+            circuit = QuantumCircuit(10)
+            circuit.append(adder, range(4))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("Carry" in ops)
+
+        with self.subTest(name="ModularAdder_use_qft_d00"):
+            adder = ModularAdderGate(4)
+            circuit = QuantumCircuit(8)
+            circuit.append(adder, range(8))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("cp" in ops)
+        with self.subTest(name="ModularAdder_also_use_qft_d00"):
+            adder = ModularAdderGate(6)
+            circuit = QuantumCircuit(12)
+            circuit.append(adder, range(12))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("cp" in ops)
+        with self.subTest(name="ModularAdder_use_ripple_c04"):
+            adder = ModularAdderGate(6)
+            circuit = QuantumCircuit(16)
+            circuit.append(adder, range(12))
+            hls = HighLevelSynthesis()
+            synth = hls(circuit)
+            ops = set(synth.count_ops().keys())
+            self.assertTrue("MAJ" in ops)
 
 
 if __name__ == "__main__":

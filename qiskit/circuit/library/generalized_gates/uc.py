@@ -28,13 +28,13 @@ import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit._accelerate import uc_gate
 
-from .diagonal import Diagonal
+from .diagonal import DiagonalGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -276,7 +276,7 @@ class UCGate(Gate):
             # Important: the diagonal gate is given in the computational basis of the qubits
             # q[k-1],...,q[0],q_target (ordered with decreasing significance),
             # where q[i] are the control qubits and t denotes the target qubit.
-            diagonal = Diagonal(diag)
+            diagonal = DiagonalGate(diag)
 
             circuit.append(diagonal, [q_target] + q_controls)
         return circuit, diag
@@ -286,7 +286,7 @@ class UCGate(Gate):
         This method finds the single qubit gate arising in the decomposition of UCGates given in
         https://arxiv.org/pdf/quant-ph/0410066.pdf.
         """
-        single_qubit_gates = [gate.astype(complex) for gate in self.params]
+        single_qubit_gates = [np.asarray(gate, dtype=complex, order="f") for gate in self.params]
         if self.simp_contr[0]:
             return uc_gate.dec_ucg_help(single_qubit_gates, len(self.simp_contr[1]) + 1)
         return uc_gate.dec_ucg_help(single_qubit_gates, self.num_qubits)

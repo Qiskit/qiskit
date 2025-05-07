@@ -17,7 +17,6 @@ from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -76,17 +75,15 @@ class PhaseGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.PhaseGate
+    _standard_gate = StandardGate.Phase
 
-    def __init__(
-        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("p", 1, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .u import UGate
 
         q = QuantumRegister(1, "q")
@@ -200,7 +197,7 @@ class CPhaseGate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CPhaseGate
+    _standard_gate = StandardGate.CPhase
 
     def __init__(
         self,
@@ -208,8 +205,6 @@ class CPhaseGate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CPhase gate."""
@@ -221,8 +216,6 @@ class CPhaseGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=PhaseGate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
@@ -234,7 +227,7 @@ class CPhaseGate(ControlledGate):
         }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         #      ┌────────┐
         # q_0: ┤ P(λ/2) ├──■───────────────■────────────
@@ -342,8 +335,6 @@ class MCPhaseGate(ControlledGate):
         label: str | None = None,
         ctrl_state: str | int | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new MCPhase gate."""
@@ -355,13 +346,11 @@ class MCPhaseGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=PhaseGate(lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         qr = QuantumRegister(self.num_qubits, "q")
         qc = QuantumCircuit(qr, name=self.name)
@@ -372,24 +361,16 @@ class MCPhaseGate(ControlledGate):
             qc.cp(self.params[0], 0, 1)
         else:
             lam = self.params[0]
-            if type(lam) in [float, int]:
-                q_controls = list(range(self.num_ctrl_qubits))
-                q_target = self.num_ctrl_qubits
-                new_target = q_target
-                for k in range(self.num_ctrl_qubits):
-                    # Note: it's better *not* to run transpile recursively
-                    qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=False)
-                    new_target = q_controls.pop()
-                qc.p(lam / (2**self.num_ctrl_qubits), new_target)
-            else:  # in this case type(lam) is ParameterValueType
-                from .u3 import _gray_code_chain
 
-                scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-                bottom_gate = CPhaseGate(scaled_lam)
-                for operation, qubits, clbits in _gray_code_chain(
-                    qr, self.num_ctrl_qubits, bottom_gate
-                ):
-                    qc._append(operation, qubits, clbits)
+            q_controls = list(range(self.num_ctrl_qubits))
+            q_target = self.num_ctrl_qubits
+            new_target = q_target
+            for k in range(self.num_ctrl_qubits):
+                # Note: it's better *not* to run transpile recursively
+                qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=False)
+                new_target = q_controls.pop()
+            qc.p(lam / (2**self.num_ctrl_qubits), new_target)
+
         self.definition = qc
 
     def control(

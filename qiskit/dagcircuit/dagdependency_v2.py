@@ -13,11 +13,11 @@
 """_DAGDependencyV2 class for representing non-commutativity in a circuit.
 """
 
+import itertools
 import math
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import OrderedDict, namedtuple
 from typing import Dict, List, Generator, Any
 
-import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit import (
@@ -25,11 +25,10 @@ from qiskit.circuit import (
     ClassicalRegister,
     Qubit,
     Clbit,
-    Gate,
     ParameterExpression,
 )
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.bit import Bit
+from qiskit.circuit import Bit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.circuit.commutation_checker import CommutationChecker
@@ -109,7 +108,6 @@ class _DAGDependencyV2:
         self._clbit_indices: Dict[Clbit, BitLocations] = {}
 
         self._global_phase = 0
-        self._calibrations = defaultdict(dict)
 
         # Map of number of each kind of op, keyed on op name
         self._op_names = {}
@@ -140,81 +138,6 @@ class _DAGDependencyV2:
                 self._global_phase = 0
             else:
                 self._global_phase = angle % (2 * math.pi)
-
-    @property
-    def calibrations(self):
-        """Return calibration dictionary.
-
-        The custom pulse definition of a given gate is of the form
-        ``{'gate_name': {(qubits, params): schedule}}``.
-        """
-        return dict(self._calibrations)
-
-    @calibrations.setter
-    def calibrations(self, calibrations):
-        """Set the circuit calibration data from a dictionary of calibration definition.
-
-        Args:
-            calibrations (dict): A dictionary of input in the format
-                {'gate_name': {(qubits, gate_params): schedule}}
-        """
-        self._calibrations = defaultdict(dict, calibrations)
-
-    def add_calibration(self, gate, qubits, schedule, params=None):
-        """Register a low-level, custom pulse definition for the given gate.
-
-        Args:
-            gate (Union[Gate, str]): Gate information.
-            qubits (Union[int, Tuple[int]]): List of qubits to be measured.
-            schedule (Schedule): Schedule information.
-            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
-
-        Raises:
-            Exception: if the gate is of type string and params is None.
-        """
-
-        def _format(operand):
-            try:
-                # Using float/complex value as a dict key is not good idea.
-                # This makes the mapping quite sensitive to the rounding error.
-                # However, the mechanism is already tied to the execution model (i.e. pulse gate)
-                # and we cannot easily update this rule.
-                # The same logic exists in QuantumCircuit.add_calibration.
-                evaluated = complex(operand)
-                if np.isreal(evaluated):
-                    evaluated = float(evaluated.real)
-                    if evaluated.is_integer():
-                        evaluated = int(evaluated)
-                return evaluated
-            except TypeError:
-                # Unassigned parameter
-                return operand
-
-        if isinstance(gate, Gate):
-            params = gate.params
-            gate = gate.name
-        if params is not None:
-            params = tuple(map(_format, params))
-        else:
-            params = ()
-
-        self._calibrations[gate][(tuple(qubits), params)] = schedule
-
-    def has_calibration_for(self, node):
-        """Return True if the dag has a calibration defined for the node operation. In this
-        case, the operation does not need to be translated to the device basis.
-        """
-        if not self.calibrations or node.op.name not in self.calibrations:
-            return False
-        qubits = tuple(self.qubits.index(qubit) for qubit in node.qargs)
-        params = []
-        for p in node.op.params:
-            if isinstance(p, ParameterExpression) and not p.parameters:
-                params.append(float(p))
-            else:
-                params.append(p)
-        params = tuple(params)
-        return (qubits, params) in self.calibrations[node.op.name]
 
     def size(self):
         """Returns the number of gates in the circuit"""
@@ -344,7 +267,6 @@ class _DAGDependencyV2:
             op=operation,
             qargs=qargs,
             cargs=cargs,
-            dag=self,
         )
         new_node._node_id = self._multi_graph.add_node(new_node)
         self._update_edges()
@@ -459,7 +381,9 @@ class _DAGDependencyV2:
         """
 
         def _key(x):
-            return x.sort_key
+            return ",".join(
+                f"{self.find_bit(q).index:04d}" for q in itertools.chain(x.qargs, x.cargs)
+            )
 
         if key is None:
             key = _key
@@ -523,14 +447,15 @@ class _DAGDependencyV2:
         target_dag = _DAGDependencyV2()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
-        target_dag.duration = self.duration
-        target_dag.unit = self.unit
         target_dag.metadata = self.metadata
         target_dag._key_cache = self._key_cache
         target_dag.comm_checker = self.comm_checker
 
         target_dag.add_qubits(self.qubits)
         target_dag.add_clbits(self.clbits)
+
+        target_dag.duration = self.duration
+        target_dag.unit = self.unit
 
         for qreg in self.qregs.values():
             target_dag.add_qreg(qreg)

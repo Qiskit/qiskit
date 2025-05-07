@@ -116,10 +116,10 @@ def dump(circuit: QuantumCircuit, filename_or_stream: os.PathLike | io.TextIOBas
         QASM2ExportError: if the circuit cannot be represented by OpenQASM 2.
     """
     if isinstance(filename_or_stream, io.TextIOBase):
-        print(dumps(circuit), file=filename_or_stream)
+        print(dumps(circuit), file=filename_or_stream)  # pylint: disable=bad-builtin
         return
     with open(filename_or_stream, "w") as stream:
-        print(dumps(circuit), file=stream)
+        print(dumps(circuit), file=stream)  # pylint: disable=bad-builtin
 
 
 def dumps(circuit: QuantumCircuit, /) -> str:
@@ -246,14 +246,6 @@ def _instruction_call_site(operation):
     if operation.params:
         params = ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params])
         qasm2_call = f"{qasm2_call}({params})"
-    if operation._condition is not None:
-        if not isinstance(operation._condition[0], ClassicalRegister):
-            raise QASM2ExportError(
-                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
-            )
-        qasm2_call = (
-            f"if({operation._condition[0].name}=={operation._condition[1]:d}) " + qasm2_call
-        )
     return qasm2_call
 
 
@@ -314,8 +306,8 @@ def _define_custom_operation(operation, gates_to_define):
     # definition, but still continue to return the given object as the call-site object.
     if operation.base_class in known_good_parameterized:
         parameterized_operation = type(operation)(*_FIXED_PARAMETERS[: len(operation.params)])
-    elif hasattr(operation, "_qasm2_decomposition"):
-        new_op = operation._qasm2_decomposition()
+    elif hasattr(operation, "_qasm_decomposition"):
+        new_op = operation._qasm_decomposition()
         parameterized_operation = operation = new_op.copy(name=_escape_name(new_op.name, "gate_"))
     else:
         parameterized_operation = operation

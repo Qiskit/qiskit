@@ -70,12 +70,6 @@ class TestStoreInstruction(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "an explicit cast is required.*may be lossy"):
             Store(lvalue, rvalue)
 
-    def test_rejects_c_if(self):
-        instruction = Store(expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool()))
-        with self.assertRaises(NotImplementedError):
-            with self.assertWarns(DeprecationWarning):
-                instruction.c_if(Clbit(), False)
-
 
 class TestStoreCircuit(QiskitTestCase):
     """Tests of the `QuantumCircuit.store` method and appends of `Store`."""
@@ -236,11 +230,3 @@ class TestStoreCircuit(QiskitTestCase):
         qc = QuantumCircuit(inputs=[lvalue, rvalue])
         with self.assertRaisesRegex(CircuitError, "an explicit cast is required.*may be lossy"):
             qc.store(lvalue, rvalue)
-
-    def test_rejects_c_if(self):
-        a = expr.Var.new("a", types.Bool())
-        qc = QuantumCircuit([Clbit()], inputs=[a])
-        instruction_set = qc.store(a, True)
-        with self.assertRaises(NotImplementedError):
-            with self.assertWarns(DeprecationWarning):
-                instruction_set.c_if(qc.clbits[0], False)

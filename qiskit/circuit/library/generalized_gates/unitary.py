@@ -23,7 +23,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.library.standard_gates.u import UGate
@@ -202,7 +202,7 @@ class UnitaryGate(Gate):
             )
         return gate
 
-    def _qasm2_decomposition(self):
+    def _qasm_decomposition(self):
         """Return an unparameterized version of ourselves, so the OQ2 exporter doesn't choke on the
         non-standard things in our `params` field."""
         out = self.definition.to_gate()

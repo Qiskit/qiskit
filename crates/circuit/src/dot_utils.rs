@@ -20,6 +20,7 @@ use std::io::prelude::*;
 
 use crate::dag_circuit::{DAGCircuit, Wire};
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 use rustworkx_core::petgraph::visit::{
     EdgeRef, IntoEdgeReferences, IntoNodeReferences, NodeIndexable, NodeRef,
 };
@@ -57,9 +58,9 @@ where
     }
     for edge in graph.edge_references() {
         let edge_weight = match edge.weight() {
-            Wire::Qubit(qubit) => dag.qubits().get(*qubit).unwrap(),
-            Wire::Clbit(clbit) => dag.clbits().get(*clbit).unwrap(),
-            Wire::Var(var) => dag.vars().get(*var).unwrap(),
+            Wire::Qubit(qubit) => dag.qubits().get(*qubit).cloned().into_bound_py_any(py)?,
+            Wire::Clbit(clbit) => dag.clbits().get(*clbit).cloned().into_bound_py_any(py)?,
+            Wire::Var(var) => dag.vars().get(*var).cloned().into_bound_py_any(py)?,
         };
         writeln!(
             file,
@@ -77,16 +78,22 @@ where
 static ATTRS_TO_ESCAPE: [&str; 2] = ["label", "tooltip"];
 
 /// Convert an attr map to an output string
-fn attr_map_to_string<T: ToPyObject>(
-    py: Python,
-    attrs: Option<&PyObject>,
+fn attr_map_to_string<'py, T: IntoPyObject<'py>>(
+    py: Python<'py>,
+    attrs: Option<&'py PyObject>,
     weight: T,
-) -> PyResult<String> {
+) -> PyResult<String>
+where
+    <T as pyo3::IntoPyObject<'py>>::Output: pyo3::IntoPyObject<'py>,
+    <T as pyo3::IntoPyObject<'py>>::Error: std::fmt::Debug,
+{
     if attrs.is_none() {
         return Ok("".to_string());
     }
     let attr_callable = |node: T| -> PyResult<BTreeMap<String, String>> {
-        let res = attrs.unwrap().call1(py, (node.to_object(py),))?;
+        let res = attrs
+            .unwrap()
+            .call1(py, (node.into_pyobject(py).unwrap(),))?;
         res.extract(py)
     };
 

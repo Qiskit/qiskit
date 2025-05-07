@@ -111,6 +111,7 @@ def plot_histogram(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             # Plot two counts in the same figure with legends and colors specified.
@@ -215,6 +216,7 @@ def plot_distribution(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             # Plot two counts in the same figure with legends and colors specified.
@@ -406,6 +408,10 @@ def _plotting_core(
     if fig:
         matplotlib_close_if_inline(fig)
     if filename is None:
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)

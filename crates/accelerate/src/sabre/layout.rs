@@ -128,10 +128,10 @@ pub fn sabre_layout_and_routing(
     }
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
     let seed_vec: Vec<u64> = outer_rng
-        .sample_iter(&rand::distributions::Standard)
+        .sample_iter(&rand::distr::StandardUniform)
         .take(starting_layouts.len())
         .collect();
     let res = if run_in_parallel && starting_layouts.len() > 1 {
@@ -182,10 +182,10 @@ pub fn sabre_layout_and_routing(
     };
     (
         res.0,
-        PyArray::from_vec_bound(py, res.1).into(),
+        PyArray::from_vec(py, res.1).into_any().unbind(),
         (
             res.2.map,
-            res.2.node_order.into_pyarray_bound(py).into(),
+            res.2.node_order.into_pyarray(py).into_any().unbind(),
             res.2.node_block_results,
         ),
     )
@@ -243,7 +243,6 @@ fn layout_trial(
         num_qubits: dag.num_qubits,
         num_clbits: dag.num_clbits,
         dag: dag.dag.clone(),
-        nodes: dag.nodes.clone(),
         first_layer: dag.first_layer.clone(),
         node_blocks: dag
             .node_blocks
@@ -251,13 +250,7 @@ fn layout_trial(
             .map(|index| (*index, Vec::new()))
             .collect(),
     };
-    let dag_no_control_reverse = SabreDAG::new(
-        dag_no_control_forward.num_qubits,
-        dag_no_control_forward.num_clbits,
-        dag_no_control_forward.nodes.iter().rev().cloned().collect(),
-        dag_no_control_forward.node_blocks.clone(),
-    )
-    .unwrap();
+    let dag_no_control_reverse = dag_no_control_forward.reverse_dag();
 
     for _iter in 0..max_iterations {
         for dag in [&dag_no_control_forward, &dag_no_control_reverse] {
