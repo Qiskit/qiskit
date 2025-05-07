@@ -29,7 +29,7 @@ from qiskit.circuit.library import (
 from qiskit.synthesis.arithmetic import (
     adder_ripple_c04,
     adder_ripple_v95,
-    adder_ripple_rv25,
+    adder_ripple_r25,
     adder_qft_d00,
 )
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
@@ -38,7 +38,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 ADDERS = {
     "vbe": adder_ripple_v95,
     "cdkm": adder_ripple_c04,
-    "rv": adder_ripple_rv25,
+    "rv": adder_ripple_r25,
     "draper": adder_qft_d00,
 }
 
@@ -170,7 +170,7 @@ class TestAdder(QiskitTestCase):
         VBERippleCarryAdder,
         adder_ripple_c04,
         adder_ripple_v95,
-        adder_ripple_rv25,
+        adder_ripple_r25,
         adder_qft_d00,
     )
     def test_raises_on_wrong_num_bits(self, adder):
@@ -184,7 +184,7 @@ class TestAdder(QiskitTestCase):
         # all gates with the plugins we check
         modes = {
             "ModularAdder": (ModularAdderGate, ["ripple_c04", "ripple_v95", "qft_d00"]),
-            "HalfAdder": (HalfAdderGate, ["ripple_c04", "ripple_v95", "ripple_rv25", "qft_d00"]),
+            "HalfAdder": (HalfAdderGate, ["ripple_c04", "ripple_v95", "ripple_r25", "qft_d00"]),
             "FullAdder": (FullAdderGate, ["ripple_c04", "ripple_v95"]),
         }
 
@@ -192,7 +192,7 @@ class TestAdder(QiskitTestCase):
         expected_ops = {
             "ripple_c04": "MAJ",
             "ripple_v95": "Carry",
-            "ripple_rv25": "ccx",
+            "ripple_r25": "ccx",
             "qft_d00": "cp",
         }
 
