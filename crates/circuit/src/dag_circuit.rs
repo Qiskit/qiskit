@@ -1197,8 +1197,8 @@ impl DAGCircuit {
     /// Raises:
     ///     DAGCircuitError: a clbit is not a :obj:`.Clbit`, is not in the circuit,
     ///         or is not idle.
-    #[pyo3(signature = (*clbits))]
-    pub fn remove_clbits(&mut self, clbits: Vec<ShareableClbit>) -> PyResult<()> {
+    #[pyo3(name = "remove_clbits", signature = (*clbits))]
+    fn py_remove_clbits(&mut self, clbits: Vec<ShareableClbit>) -> PyResult<()> {
         let bit_iter = match self.clbits.map_objects(clbits.iter().cloned()) {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
@@ -1208,103 +1208,7 @@ impl DAGCircuit {
                 )))
             }
         };
-        let clbits: HashSet<Clbit> = bit_iter.collect();
-        let mut busy_bits = Vec::new();
-        for bit in clbits.iter() {
-            if !self.is_wire_idle(Wire::Clbit(*bit))? {
-                busy_bits.push(self.clbits.get(*bit).unwrap());
-            }
-        }
-
-        if !busy_bits.is_empty() {
-            return Err(DAGCircuitError::new_err(format!(
-                "clbits not idle: {:?}",
-                busy_bits
-            )));
-        }
-
-        // Remove any references to bits.
-        let mut cregs_to_remove = Vec::new();
-        for creg in self.cregs.registers() {
-            for bit in creg.bits() {
-                if clbits.contains(&self.clbits.find(&bit).unwrap()) {
-                    cregs_to_remove.push(creg.clone());
-                    break;
-                }
-            }
-        }
-        self.remove_cregs(cregs_to_remove)?;
-
-        // Remove DAG in/out nodes etc.
-        for bit in clbits.iter() {
-            self.remove_idle_wire(Wire::Clbit(*bit))?;
-        }
-
-        // Copy the current clbit mapping so we can use it while remapping
-        // wires used on edges and in operation cargs.
-        let old_clbits = self.clbits.clone();
-
-        // Remove the clbit indices, which will invalidate our mapping of Clbit to
-        // Python bits throughout the entire DAG.
-        self.clbits.remove_indices(clbits.clone())?;
-
-        // Update input/output maps to use new Clbits.
-        let io_mapping: HashMap<Clbit, [NodeIndex; 2]> = self
-            .clbit_io_map
-            .drain(..)
-            .enumerate()
-            .filter_map(|(k, v)| {
-                let clbit = Clbit::new(k);
-                if clbits.contains(&clbit) {
-                    None
-                } else {
-                    Some((
-                        self.clbits
-                            .find(old_clbits.get(Clbit::new(k)).unwrap())
-                            .unwrap(),
-                        v,
-                    ))
-                }
-            })
-            .collect();
-
-        self.clbit_io_map = (0..io_mapping.len())
-            .map(|idx| {
-                let clbit = Clbit::new(idx);
-                io_mapping[&clbit]
-            })
-            .collect();
-
-        // Update edges to use the new Clbits.
-        for edge_weight in self.dag.edge_weights_mut() {
-            if let Wire::Clbit(c) = edge_weight {
-                *c = self.clbits.find(old_clbits.get(*c).unwrap()).unwrap();
-            }
-        }
-
-        // Update operation cargs to use the new Clbits.
-        for node_weight in self.dag.node_weights_mut() {
-            match node_weight {
-                NodeType::Operation(op) => {
-                    let cargs = self.cargs_interner.get(op.clbits);
-                    let carg_bits = old_clbits.map_indices(cargs).cloned();
-                    op.clbits = self
-                        .cargs_interner
-                        .insert_owned(self.clbits.map_objects(carg_bits)?.collect());
-                }
-                NodeType::ClbitIn(c) | NodeType::ClbitOut(c) => {
-                    *c = self.clbits.find(old_clbits.get(*c).unwrap()).unwrap();
-                }
-                _ => (),
-            }
-        }
-
-        // Update bit locations.
-        for (i, bit) in self.clbits.objects().iter().enumerate() {
-            let raw_loc = self.clbit_locations.get_mut(bit).unwrap();
-            raw_loc.index = i as u32;
-        }
-        Ok(())
+        self.remove_clbits(bit_iter)
     }
 
     /// Remove classical registers from the circuit, leaving underlying bits
@@ -1313,36 +1217,9 @@ impl DAGCircuit {
     /// Raises:
     ///     DAGCircuitError: a creg is not a ClassicalRegister, or is not in
     ///     the circuit.
-    #[pyo3(signature = (*cregs))]
-    fn remove_cregs(&mut self, cregs: Vec<ClassicalRegister>) -> PyResult<()> {
-        let mut valid_regs: Vec<ClassicalRegister> = Vec::new();
-        for creg in cregs.into_iter() {
-            if let Some(reg) = self.cregs.get(creg.name()) {
-                if reg != &creg {
-                    return Err(DAGCircuitError::new_err(format!(
-                        "creg not in circuit: {:?}",
-                        reg
-                    )));
-                }
-                valid_regs.push(creg);
-            } else {
-                return Err(DAGCircuitError::new_err(format!(
-                    "creg not in circuit: {:?}",
-                    creg
-                )));
-            }
-        }
-
-        // Use an iterator that will remove the registers from the circuit as it iterates.
-        let valid_names = valid_regs.iter().map(|reg| {
-            for (index, bit) in reg.bits().enumerate() {
-                let bit_position = self.clbit_locations.get_mut(&bit).unwrap();
-                bit_position.remove_register(reg, index);
-            }
-            reg.name().to_string()
-        });
-        self.cregs.remove_registers(valid_names);
-        Ok(())
+    #[pyo3(name = "remove_cregs", signature = (*cregs))]
+    fn py_remove_cregs(&mut self, cregs: Vec<ClassicalRegister>) -> PyResult<()> {
+        self.remove_cregs(cregs)
     }
 
     /// Remove quantum bits from the circuit. All bits MUST be idle.
@@ -1359,8 +1236,8 @@ impl DAGCircuit {
     /// Raises:
     ///     DAGCircuitError: a qubit is not a :obj:`~.circuit.Qubit`, is not in the circuit,
     ///         or is not idle.
-    #[pyo3(signature = (*qubits))]
-    pub fn remove_qubits(&mut self, qubits: Vec<ShareableQubit>) -> PyResult<()> {
+    #[pyo3(name = "remove_qubits", signature = (*qubits))]
+    pub fn py_remove_qubits(&mut self, qubits: Vec<ShareableQubit>) -> PyResult<()> {
         let bit_iter = match self.qubits.map_objects(qubits.iter().cloned()) {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
@@ -1370,99 +1247,7 @@ impl DAGCircuit {
                 )))
             }
         };
-        let qubits: HashSet<Qubit> = bit_iter.collect();
-
-        let mut busy_bits = Vec::new();
-        for bit in qubits.iter() {
-            if !self.is_wire_idle(Wire::Qubit(*bit))? {
-                busy_bits.push(self.qubits.get(*bit).unwrap());
-            }
-        }
-
-        if !busy_bits.is_empty() {
-            return Err(DAGCircuitError::new_err(format!(
-                "qubits not idle: {:?}",
-                busy_bits
-            )));
-        }
-
-        // Remove any references to bits.
-        let mut qregs_to_remove = Vec::new();
-        for qreg in self.qregs.registers() {
-            for bit in qreg.bits() {
-                if qubits.contains(&self.qubits.find(&bit).unwrap()) {
-                    qregs_to_remove.push(qreg.clone());
-                    break;
-                }
-            }
-        }
-        self.remove_qregs(qregs_to_remove)?;
-
-        // Remove DAG in/out nodes etc.
-        for bit in qubits.iter() {
-            self.remove_idle_wire(Wire::Qubit(*bit))?;
-        }
-
-        // Copy the current qubit mapping so we can use it while remapping
-        // wires used on edges and in operation qargs.
-        let old_qubits = self.qubits.clone();
-
-        // Remove the qubit indices, which will invalidate our mapping of Qubit to
-        // Python bits throughout the entire DAG.
-        self.qubits.remove_indices(qubits.clone())?;
-
-        // Update input/output maps to use new Qubits.
-        let io_mapping: HashMap<Qubit, [NodeIndex; 2]> = self
-            .qubit_io_map
-            .drain(..)
-            .enumerate()
-            .filter_map(|(k, v)| {
-                let qubit = Qubit::new(k);
-                if qubits.contains(&qubit) {
-                    None
-                } else {
-                    Some((self.qubits.find(old_qubits.get(qubit).unwrap()).unwrap(), v))
-                }
-            })
-            .collect();
-
-        self.qubit_io_map = (0..io_mapping.len())
-            .map(|idx| {
-                let qubit = Qubit::new(idx);
-                io_mapping[&qubit]
-            })
-            .collect();
-
-        // Update edges to use the new Qubits.
-        for edge_weight in self.dag.edge_weights_mut() {
-            if let Wire::Qubit(b) = edge_weight {
-                *b = self.qubits.find(old_qubits.get(*b).unwrap()).unwrap();
-            }
-        }
-
-        // Update operation qargs to use the new Qubits.
-        for node_weight in self.dag.node_weights_mut() {
-            match node_weight {
-                NodeType::Operation(op) => {
-                    let qargs = self.qargs_interner.get(op.qubits);
-                    let qarg_bits = old_qubits.map_indices(qargs).cloned();
-                    op.qubits = self
-                        .qargs_interner
-                        .insert_owned(self.qubits.map_objects(qarg_bits)?.collect());
-                }
-                NodeType::QubitIn(q) | NodeType::QubitOut(q) => {
-                    *q = self.qubits.find(old_qubits.get(*q).unwrap()).unwrap();
-                }
-                _ => (),
-            }
-        }
-
-        // Update bit locations.
-        for (i, bit) in self.qubits.objects().iter().enumerate() {
-            let raw_loc = self.qubit_locations.get_mut(bit).unwrap();
-            raw_loc.index = i as u32;
-        }
-        Ok(())
+        self.remove_qubits(bit_iter)
     }
 
     /// Remove quantum registers from the circuit, leaving underlying bits
@@ -1471,8 +1256,8 @@ impl DAGCircuit {
     /// Raises:
     ///     DAGCircuitError: a qreg is not a QuantumRegister, or is not in
     ///     the circuit.
-    #[pyo3(signature = (*qregs))]
-    fn remove_qregs(&mut self, qregs: Vec<QuantumRegister>) -> PyResult<()> {
+    #[pyo3(name = "remove_qregs", signature = (*qregs))]
+    fn py_remove_qregs(&mut self, qregs: Vec<QuantumRegister>) -> PyResult<()> {
         // let self_bound_cregs = self.cregs.bind(py);
         let mut valid_regs: Vec<QuantumRegister> = Vec::new();
         for qregs in qregs.into_iter() {
@@ -3211,7 +2996,19 @@ impl DAGCircuit {
                     .collect();
 
                 let qubits = PyTuple::new(py, idle_wires)?;
-                new_dag.remove_qubits(qubits.extract()?)?; // TODO: this does not really work, some issue with remove_qubits itself
+                let bit_iter = match self
+                    .qubits
+                    .map_objects(qubits.iter().map(|x| x.extract().unwrap()))
+                {
+                    Ok(bit_iter) => bit_iter,
+                    Err(_) => {
+                        return Err(DAGCircuitError::new_err(format!(
+                            "qubits not in circuit: {:?}",
+                            qubits
+                        )))
+                    }
+                };
+                new_dag.remove_qubits(bit_iter)?; // TODO: this does not really work, some issue with remove_qubits itself
             }
 
             dags.append(pyo3::Py::new(py, new_dag)?)?;
@@ -4824,6 +4621,273 @@ impl DAGCircuit {
         self.stretches_declare
             .iter()
             .map(|v| self.stretches.get(*v).unwrap())
+    }
+
+    pub fn remove_qubits<T: IntoIterator<Item = Qubit>>(&mut self, qubits: T) -> PyResult<()> {
+        let qubits: HashSet<Qubit> = qubits.into_iter().collect();
+
+        let mut busy_bits = Vec::new();
+        for bit in qubits.iter() {
+            if !self.is_wire_idle(Wire::Qubit(*bit))? {
+                busy_bits.push(self.qubits.get(*bit).unwrap());
+            }
+        }
+
+        if !busy_bits.is_empty() {
+            return Err(DAGCircuitError::new_err(format!(
+                "qubits not idle: {:?}",
+                busy_bits
+            )));
+        }
+
+        // Remove any references to bits.
+        let mut qregs_to_remove = Vec::new();
+        for qreg in self.qregs.registers() {
+            for bit in qreg.bits() {
+                if qubits.contains(&self.qubits.find(&bit).unwrap()) {
+                    qregs_to_remove.push(qreg.clone());
+                    break;
+                }
+            }
+        }
+        self.remove_qregs(qregs_to_remove)?;
+
+        // Remove DAG in/out nodes etc.
+        for bit in qubits.iter() {
+            self.remove_idle_wire(Wire::Qubit(*bit))?;
+        }
+
+        // Copy the current qubit mapping so we can use it while remapping
+        // wires used on edges and in operation qargs.
+        let old_qubits = self.qubits.clone();
+
+        // Remove the qubit indices, which will invalidate our mapping of Qubit to
+        // Python bits throughout the entire DAG.
+        self.qubits.remove_indices(qubits.clone())?;
+
+        // Update input/output maps to use new Qubits.
+        let io_mapping: HashMap<Qubit, [NodeIndex; 2]> = self
+            .qubit_io_map
+            .drain(..)
+            .enumerate()
+            .filter_map(|(k, v)| {
+                let qubit = Qubit::new(k);
+                if qubits.contains(&qubit) {
+                    None
+                } else {
+                    Some((self.qubits.find(old_qubits.get(qubit).unwrap()).unwrap(), v))
+                }
+            })
+            .collect();
+
+        self.qubit_io_map = (0..io_mapping.len())
+            .map(|idx| {
+                let qubit = Qubit::new(idx);
+                io_mapping[&qubit]
+            })
+            .collect();
+
+        // Update edges to use the new Qubits.
+        for edge_weight in self.dag.edge_weights_mut() {
+            if let Wire::Qubit(b) = edge_weight {
+                *b = self.qubits.find(old_qubits.get(*b).unwrap()).unwrap();
+            }
+        }
+
+        // Update operation qargs to use the new Qubits.
+        for node_weight in self.dag.node_weights_mut() {
+            match node_weight {
+                NodeType::Operation(op) => {
+                    let qargs = self.qargs_interner.get(op.qubits);
+                    let qarg_bits = old_qubits.map_indices(qargs).cloned();
+                    op.qubits = self
+                        .qargs_interner
+                        .insert_owned(self.qubits.map_objects(qarg_bits)?.collect());
+                }
+                NodeType::QubitIn(q) | NodeType::QubitOut(q) => {
+                    *q = self.qubits.find(old_qubits.get(*q).unwrap()).unwrap();
+                }
+                _ => (),
+            }
+        }
+
+        // Update bit locations.
+        for (i, bit) in self.qubits.objects().iter().enumerate() {
+            let raw_loc = self.qubit_locations.get_mut(bit).unwrap();
+            raw_loc.index = i as u32;
+        }
+        Ok(())
+    }
+
+    /// Remove the specified quantum registers
+    fn remove_qregs<T: IntoIterator<Item = QuantumRegister>>(&mut self, qregs: T) -> PyResult<()> {
+        // let self_bound_cregs = self.cregs.bind(py);
+        let mut valid_regs: Vec<QuantumRegister> = Vec::new();
+        for qregs in qregs.into_iter() {
+            if let Some(reg) = self.qregs.get(qregs.name()) {
+                if reg != &qregs {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "creg not in circuit: {:?}",
+                        reg
+                    )));
+                }
+                valid_regs.push(qregs);
+            } else {
+                return Err(DAGCircuitError::new_err(format!(
+                    "creg not in circuit: {:?}",
+                    qregs
+                )));
+            }
+        }
+
+        // Use an iterator that will remove the registers from the circuit as it iterates.
+        let valid_names = valid_regs.iter().map(|reg| {
+            for (index, bit) in reg.bits().enumerate() {
+                let bit_position = self.qubit_locations.get_mut(&bit).unwrap();
+                bit_position.remove_register(reg, index);
+            }
+            reg.name().to_string()
+        });
+        self.qregs.remove_registers(valid_names);
+        Ok(())
+    }
+
+    /// Remove the given clbits in the cirucit
+    ///
+    /// This will reorder all the bits in the circuit.
+    pub fn remove_clbits<T: IntoIterator<Item = Clbit>>(&mut self, clbits: T) -> PyResult<()> {
+        let clbits: HashSet<Clbit> = clbits.into_iter().collect();
+        let mut busy_bits = Vec::new();
+        for bit in clbits.iter() {
+            if !self.is_wire_idle(Wire::Clbit(*bit))? {
+                busy_bits.push(self.clbits.get(*bit).unwrap());
+            }
+        }
+
+        if !busy_bits.is_empty() {
+            return Err(DAGCircuitError::new_err(format!(
+                "clbits not idle: {:?}",
+                busy_bits
+            )));
+        }
+
+        // Remove any references to bits.
+        let mut cregs_to_remove = Vec::new();
+        for creg in self.cregs.registers() {
+            for bit in creg.bits() {
+                if clbits.contains(&self.clbits.find(&bit).unwrap()) {
+                    cregs_to_remove.push(creg.clone());
+                    break;
+                }
+            }
+        }
+        self.remove_cregs(cregs_to_remove)?;
+
+        // Remove DAG in/out nodes etc.
+        for bit in clbits.iter() {
+            self.remove_idle_wire(Wire::Clbit(*bit))?;
+        }
+
+        // Copy the current clbit mapping so we can use it while remapping
+        // wires used on edges and in operation cargs.
+        let old_clbits = self.clbits.clone();
+
+        // Remove the clbit indices, which will invalidate our mapping of Clbit to
+        // Python bits throughout the entire DAG.
+        self.clbits.remove_indices(clbits.clone())?;
+
+        // Update input/output maps to use new Clbits.
+        let io_mapping: HashMap<Clbit, [NodeIndex; 2]> = self
+            .clbit_io_map
+            .drain(..)
+            .enumerate()
+            .filter_map(|(k, v)| {
+                let clbit = Clbit::new(k);
+                if clbits.contains(&clbit) {
+                    None
+                } else {
+                    Some((
+                        self.clbits
+                            .find(old_clbits.get(Clbit::new(k)).unwrap())
+                            .unwrap(),
+                        v,
+                    ))
+                }
+            })
+            .collect();
+
+        self.clbit_io_map = (0..io_mapping.len())
+            .map(|idx| {
+                let clbit = Clbit::new(idx);
+                io_mapping[&clbit]
+            })
+            .collect();
+
+        // Update edges to use the new Clbits.
+        for edge_weight in self.dag.edge_weights_mut() {
+            if let Wire::Clbit(c) = edge_weight {
+                *c = self.clbits.find(old_clbits.get(*c).unwrap()).unwrap();
+            }
+        }
+
+        // Update operation cargs to use the new Clbits.
+        for node_weight in self.dag.node_weights_mut() {
+            match node_weight {
+                NodeType::Operation(op) => {
+                    let cargs = self.cargs_interner.get(op.clbits);
+                    let carg_bits = old_clbits.map_indices(cargs).cloned();
+                    op.clbits = self
+                        .cargs_interner
+                        .insert_owned(self.clbits.map_objects(carg_bits)?.collect());
+                }
+                NodeType::ClbitIn(c) | NodeType::ClbitOut(c) => {
+                    *c = self.clbits.find(old_clbits.get(*c).unwrap()).unwrap();
+                }
+                _ => (),
+            }
+        }
+
+        // Update bit locations.
+        for (i, bit) in self.clbits.objects().iter().enumerate() {
+            let raw_loc = self.clbit_locations.get_mut(bit).unwrap();
+            raw_loc.index = i as u32;
+        }
+        Ok(())
+    }
+
+    /// Remove the specified classical registers
+    pub fn remove_cregs<T: IntoIterator<Item = ClassicalRegister>>(
+        &mut self,
+        cregs: T,
+    ) -> PyResult<()> {
+        let mut valid_regs: Vec<ClassicalRegister> = Vec::new();
+        for creg in cregs {
+            if let Some(reg) = self.cregs.get(creg.name()) {
+                if reg != &creg {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "creg not in circuit: {:?}",
+                        reg
+                    )));
+                }
+                valid_regs.push(creg);
+            } else {
+                return Err(DAGCircuitError::new_err(format!(
+                    "creg not in circuit: {:?}",
+                    creg
+                )));
+            }
+        }
+
+        // Use an iterator that will remove the registers from the circuit as it iterates.
+        let valid_names = valid_regs.iter().map(|reg| {
+            for (index, bit) in reg.bits().enumerate() {
+                let bit_position = self.clbit_locations.get_mut(&bit).unwrap();
+                bit_position.remove_register(reg, index);
+            }
+            reg.name().to_string()
+        });
+        self.cregs.remove_registers(valid_names);
+        Ok(())
     }
 
     /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.
