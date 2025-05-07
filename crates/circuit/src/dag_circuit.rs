@@ -5343,14 +5343,7 @@ impl DAGCircuit {
         let OperationRef::Instruction(inst) = instr.op.view() else {
             return false;
         };
-        Python::with_gil(|py| {
-            inst.control_flow()
-                || inst
-                    .instruction
-                    .bind(py)
-                    .is_instance(imports::STORE_OP.get_bound(py))
-                    .unwrap()
-        })
+        inst.control_flow() || inst.op_name == "store"
     }
 
     fn additional_wires(&self, op: OperationRef) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
