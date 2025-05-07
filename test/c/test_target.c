@@ -121,7 +121,7 @@ int test_target_construct(void) {
     qk_target_set_min_length(target, min_length);
     qk_target_set_pulse_alignment(target, p_alignment);
     qk_target_set_acquire_alignment(target, a_alignment);
-    
+
     size_t retrieved_num_qubits = qk_target_num_qubits(target);
     if (retrieved_num_qubits != 2) {
         printf("The number of qubits %lu is not 0.", num_qubits);
