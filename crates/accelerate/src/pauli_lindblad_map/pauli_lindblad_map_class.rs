@@ -24,11 +24,11 @@ use std::sync::{Arc, RwLock};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    cast_array_type, make_py_bit_term, raw_parts_from_sparse_list, ArithmeticError, BitTerm,
+    cast_array_type, make_py_pauli, raw_parts_from_sparse_list, ArithmeticError, Pauli,
     CoherenceError, InnerReadError, InnerWriteError, LabelError, QubitSparsePauliList,
 };
 
-static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
+static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format.
 ///
@@ -67,7 +67,7 @@ impl PauliLindbladMap {
     pub fn new_from_raw_parts(
         num_qubits: u32,
         coeffs: Vec<f64>,
-        bit_terms: Vec<BitTerm>,
+        paulis: Vec<Pauli>,
         indices: Vec<u32>,
         boundaries: Vec<usize>,
     ) -> Result<Self, CoherenceError> {
@@ -78,7 +78,7 @@ impl PauliLindbladMap {
             });
         }
         let qubit_sparse_pauli_list: QubitSparsePauliList =
-            QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+            QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
         Ok(Self {
             coeffs,
             qubit_sparse_pauli_list,
@@ -95,13 +95,13 @@ impl PauliLindbladMap {
     pub unsafe fn new_unchecked(
         num_qubits: u32,
         coeffs: Vec<f64>,
-        bit_terms: Vec<BitTerm>,
+        paulis: Vec<Pauli>,
         indices: Vec<u32>,
         boundaries: Vec<usize>,
     ) -> Self {
         unsafe {
             let qubit_sparse_pauli_list: QubitSparsePauliList =
-                QubitSparsePauliList::new_unchecked(num_qubits, bit_terms, indices, boundaries);
+                QubitSparsePauliList::new_unchecked(num_qubits, paulis, indices, boundaries);
             Self {
                 coeffs,
                 qubit_sparse_pauli_list,
@@ -129,7 +129,7 @@ impl PauliLindbladMap {
             SparseTermView {
                 num_qubits: self.qubit_sparse_pauli_list.num_qubits,
                 coeff: *coeff,
-                bit_terms: &self.qubit_sparse_pauli_list.bit_terms[start..end],
+                paulis: &self.qubit_sparse_pauli_list.paulis[start..end],
                 indices: &self.qubit_sparse_pauli_list.indices[start..end],
             }
         })
@@ -159,7 +159,7 @@ impl PauliLindbladMap {
         &mut self.coeffs
     }
 
-    /// Get the indices of each [BitTerm].
+    /// Get the indices of each [Pauli].
     #[inline]
     pub fn indices(&self) -> &[u32] {
         self.qubit_sparse_pauli_list.indices()
@@ -170,7 +170,7 @@ impl PauliLindbladMap {
     /// # Safety
     ///
     /// Modifying the indices can cause an incoherent state of the [PauliLindbladMap].
-    /// It should be ensured that the indices are consistent with the coeffs, bit_terms, and
+    /// It should be ensured that the indices are consistent with the coeffs, paulis, and
     /// boundaries.
     #[inline]
     pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
@@ -189,22 +189,22 @@ impl PauliLindbladMap {
     ///
     /// Modifying the boundaries can cause an incoherent state of the [PauliLindbladMap].
     /// It should be ensured that the boundaries are sorted and the length/elements are consistent
-    /// with the coeffs, bit_terms, and indices.
+    /// with the coeffs, paulis, and indices.
     #[inline]
     pub unsafe fn boundaries_mut(&mut self) -> &mut [usize] {
         unsafe { self.qubit_sparse_pauli_list.boundaries_mut() }
     }
 
-    /// Get the [BitTerm]s in the map.
+    /// Get the [Pauli]s in the map.
     #[inline]
-    pub fn bit_terms(&self) -> &[BitTerm] {
-        self.qubit_sparse_pauli_list.bit_terms()
+    pub fn paulis(&self) -> &[Pauli] {
+        self.qubit_sparse_pauli_list.paulis()
     }
 
     /// Get a mutable slice of the bit terms.
     #[inline]
-    pub fn bit_terms_mut(&mut self) -> &mut [BitTerm] {
-        self.qubit_sparse_pauli_list.bit_terms_mut()
+    pub fn paulis_mut(&mut self) -> &mut [Pauli] {
+        self.qubit_sparse_pauli_list.paulis_mut()
     }
 
     /// Create a [PauliLindbladMap] representing the identity map on ``num_qubits`` qubits.
@@ -226,9 +226,9 @@ impl PauliLindbladMap {
     /// Create a new identity map (with zero generator) with pre-allocated space for the given
     /// number of summands and single-qubit bit terms.
     #[inline]
-    pub fn with_capacity(num_qubits: u32, num_terms: usize, num_bit_terms: usize) -> Self {
+    pub fn with_capacity(num_qubits: u32, num_terms: usize, num_paulis: usize) -> Self {
         let qubit_sparse_pauli_list =
-            QubitSparsePauliList::with_capacity(num_qubits, num_terms, num_bit_terms);
+            QubitSparsePauliList::with_capacity(num_qubits, num_terms, num_paulis);
         Self {
             coeffs: Vec::with_capacity(num_terms),
             qubit_sparse_pauli_list,
@@ -254,14 +254,14 @@ impl PauliLindbladMap {
         }
         self.coeffs.push(term.coeff);
         self.qubit_sparse_pauli_list
-            .bit_terms
-            .extend_from_slice(term.bit_terms);
+            .paulis
+            .extend_from_slice(term.paulis);
         self.qubit_sparse_pauli_list
             .indices
             .extend_from_slice(term.indices);
         self.qubit_sparse_pauli_list
             .boundaries
-            .push(self.qubit_sparse_pauli_list.bit_terms.len());
+            .push(self.qubit_sparse_pauli_list.paulis.len());
         Ok(())
     }
 
@@ -281,7 +281,7 @@ impl PauliLindbladMap {
         SparseTermView {
             num_qubits: self.qubit_sparse_pauli_list.num_qubits,
             coeff: self.coeffs[index],
-            bit_terms: &self.qubit_sparse_pauli_list.bit_terms[start..end],
+            paulis: &self.qubit_sparse_pauli_list.paulis[start..end],
             indices: &self.qubit_sparse_pauli_list.indices[start..end],
         }
     }
@@ -289,13 +289,13 @@ impl PauliLindbladMap {
 
 /// A view object onto a single term of a `PauliLindbladMap`.
 ///
-/// The lengths of `bit_terms` and `indices` are guaranteed to be created equal, but might be zero
+/// The lengths of `paulis` and `indices` are guaranteed to be created equal, but might be zero
 /// (in the case that the term is proportional to the identity).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct SparseTermView<'a> {
     pub num_qubits: u32,
     pub coeff: f64,
-    pub bit_terms: &'a [BitTerm],
+    pub paulis: &'a [Pauli],
     pub indices: &'a [u32],
 }
 impl SparseTermView<'_> {
@@ -304,7 +304,7 @@ impl SparseTermView<'_> {
         SparseTerm {
             num_qubits: self.num_qubits,
             coeff: self.coeff,
-            bit_terms: self.bit_terms.into(),
+            paulis: self.paulis.into(),
             indices: self.indices.into(),
         }
     }
@@ -314,7 +314,7 @@ impl SparseTermView<'_> {
         let paulis = self
             .indices
             .iter()
-            .zip(self.bit_terms)
+            .zip(self.paulis)
             .rev()
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
@@ -325,14 +325,14 @@ impl SparseTermView<'_> {
 
 /// A mutable view object onto a single term of a [PauliLindbladMap].
 ///
-/// The lengths of [bit_terms] and [indices] are guaranteed to be created equal, but might be zero
+/// The lengths of [paulis] and [indices] are guaranteed to be created equal, but might be zero
 /// (in the case that the generator term is proportional to the identity).  [indices] is not mutable
 /// because this would allow data coherence to be broken.
 #[derive(Debug)]
 pub struct SparseTermViewMut<'a> {
     pub num_qubits: u32,
     pub coeff: &'a mut f64,
-    pub bit_terms: &'a mut [BitTerm],
+    pub paulis: &'a mut [Pauli],
     pub indices: &'a [u32],
 }
 
@@ -343,7 +343,7 @@ pub struct SparseTermViewMut<'a> {
 pub struct IterMut<'a> {
     num_qubits: u32,
     coeffs: &'a mut [f64],
-    bit_terms: &'a mut [BitTerm],
+    paulis: &'a mut [Pauli],
     indices: &'a [u32],
     boundaries: &'a [usize],
     i: usize,
@@ -353,7 +353,7 @@ impl<'a> From<&'a mut PauliLindbladMap> for IterMut<'a> {
         IterMut {
             num_qubits: value.qubit_sparse_pauli_list.num_qubits,
             coeffs: &mut value.coeffs,
-            bit_terms: &mut value.qubit_sparse_pauli_list.bit_terms,
+            paulis: &mut value.qubit_sparse_pauli_list.paulis,
             indices: &value.qubit_sparse_pauli_list.indices,
             boundaries: &value.qubit_sparse_pauli_list.boundaries,
             i: 0,
@@ -377,17 +377,17 @@ impl<'a> Iterator for IterMut<'a> {
         let len = self.boundaries[self.i + 1] - self.boundaries[self.i];
         self.i += 1;
 
-        let all_bit_terms = ::std::mem::take(&mut self.bit_terms);
+        let all_paulis = ::std::mem::take(&mut self.paulis);
         let all_indices = ::std::mem::take(&mut self.indices);
-        let (bit_terms, rest_bit_terms) = all_bit_terms.split_at_mut(len);
+        let (paulis, rest_paulis) = all_paulis.split_at_mut(len);
         let (indices, rest_indices) = all_indices.split_at(len);
-        self.bit_terms = rest_bit_terms;
+        self.paulis = rest_paulis;
         self.indices = rest_indices;
 
         Some(SparseTermViewMut {
             num_qubits: self.num_qubits,
             coeff,
-            bit_terms,
+            paulis,
             indices,
         })
     }
@@ -408,19 +408,19 @@ pub struct SparseTerm {
     num_qubits: u32,
     /// The real coefficient of the term.
     coeff: f64,
-    bit_terms: Box<[BitTerm]>,
+    paulis: Box<[Pauli]>,
     indices: Box<[u32]>,
 }
 impl SparseTerm {
     pub fn new(
         num_qubits: u32,
         coeff: f64,
-        bit_terms: Box<[BitTerm]>,
+        paulis: Box<[Pauli]>,
         indices: Box<[u32]>,
     ) -> Result<Self, CoherenceError> {
-        if bit_terms.len() != indices.len() {
+        if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
-                bit_terms: bit_terms.len(),
+                paulis: paulis.len(),
                 indices: indices.len(),
             });
         }
@@ -432,7 +432,7 @@ impl SparseTerm {
         Ok(Self {
             num_qubits,
             coeff,
-            bit_terms,
+            paulis,
             indices,
         })
     }
@@ -449,15 +449,15 @@ impl SparseTerm {
         &self.indices
     }
 
-    pub fn bit_terms(&self) -> &[BitTerm] {
-        &self.bit_terms
+    pub fn paulis(&self) -> &[Pauli] {
+        &self.paulis
     }
 
     pub fn view(&self) -> SparseTermView {
         SparseTermView {
             num_qubits: self.num_qubits,
             coeff: self.coeff,
-            bit_terms: &self.bit_terms,
+            paulis: &self.paulis,
             indices: &self.indices,
         }
     }
@@ -466,9 +466,9 @@ impl SparseTerm {
     pub fn to_pauli_lindblad_map(&self) -> PauliLindbladMap {
         let qubit_sparse_pauli_list = QubitSparsePauliList {
             num_qubits: self.num_qubits(),
-            bit_terms: self.bit_terms.to_vec(),
+            paulis: self.paulis.to_vec(),
             indices: self.indices.to_vec(),
-            boundaries: vec![0, self.bit_terms.len()],
+            boundaries: vec![0, self.paulis.len()],
         };
         PauliLindbladMap {
             coeffs: vec![self.coeff],
@@ -495,23 +495,23 @@ impl PySparseTerm {
     }
 
     #[new]
-    #[pyo3(signature = (/, num_qubits, coeff, bit_terms, indices))]
+    #[pyo3(signature = (/, num_qubits, coeff, paulis, indices))]
     fn py_new(
         num_qubits: u32,
         coeff: f64,
-        bit_terms: Vec<BitTerm>,
+        paulis: Vec<Pauli>,
         indices: Vec<u32>,
     ) -> PyResult<Self> {
-        if bit_terms.len() != indices.len() {
+        if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
-                bit_terms: bit_terms.len(),
+                paulis: paulis.len(),
                 indices: indices.len(),
             }
             .into());
         }
-        let mut order = (0..bit_terms.len()).collect::<Vec<_>>();
+        let mut order = (0..paulis.len()).collect::<Vec<_>>();
         order.sort_unstable_by_key(|a| indices[*a]);
-        let bit_terms = order.iter().map(|i| bit_terms[*i]).collect();
+        let paulis = order.iter().map(|i| paulis[*i]).collect();
         let mut sorted_indices = Vec::<u32>::with_capacity(order.len());
         for i in order {
             let index = indices[i];
@@ -527,7 +527,7 @@ impl PySparseTerm {
         let inner = SparseTerm::new(
             num_qubits,
             coeff,
-            bit_terms,
+            paulis,
             sorted_indices.into_boxed_slice(),
         )?;
         Ok(PySparseTerm { inner })
@@ -538,9 +538,9 @@ impl PySparseTerm {
         let pauli_lindblad_map = PauliLindbladMap::new_from_raw_parts(
             self.inner.num_qubits(),
             vec![self.inner.coeff()],
-            self.inner.bit_terms().to_vec(),
+            self.inner.paulis().to_vec(),
             self.inner.indices().to_vec(),
-            vec![0, self.inner.bit_terms().len()],
+            vec![0, self.inner.paulis().len()],
         )?;
         Ok(pauli_lindblad_map.into())
     }
@@ -581,7 +581,7 @@ impl PySparseTerm {
         (
             borrowed.inner.num_qubits(),
             borrowed.inner.coeff(),
-            Self::get_bit_terms(slf_.clone()),
+            Self::get_paulis(slf_.clone()),
             Self::get_indices(slf_),
         )
             .into_pyobject(py)
@@ -595,15 +595,15 @@ impl PySparseTerm {
     /// Read-only view onto the individual single-qubit terms.
     ///
     /// The only valid values in the array are those with a corresponding
-    /// :class:`~PauliLindbladMap.BitTerm`.
+    /// :class:`~PauliLindbladMap.Pauli`.
     #[getter]
-    fn get_bit_terms(slf_: Bound<Self>) -> Bound<PyArray1<u8>> {
+    fn get_paulis(slf_: Bound<Self>) -> Bound<PyArray1<u8>> {
         let borrowed = slf_.borrow();
-        let bit_terms = borrowed.inner.bit_terms();
-        let arr = ::ndarray::aview1(::bytemuck::cast_slice::<_, u8>(bit_terms));
+        let paulis = borrowed.inner.paulis();
+        let arr = ::ndarray::aview1(::bytemuck::cast_slice::<_, u8>(paulis));
         // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
         // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
-        // `Box<[BitTerm]>` allocation (including dropping or reallocating it) other than the entire
+        // `Box<[Pauli]>` allocation (including dropping or reallocating it) other than the entire
         // object getting dropped, which Python will keep safe.
         let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
         out.readwrite().make_nonwriteable();
@@ -649,7 +649,7 @@ impl PySparseTerm {
     fn bit_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
         let string: String = self
             .inner
-            .bit_terms()
+            .paulis()
             .iter()
             .map(|bit| bit.py_label())
             .collect();
@@ -690,15 +690,15 @@ impl PySparseTerm {
 /// .. table:: Alphabet of single-qubit Pauli operators used in :class:`PauliLindbladMap`
 ///
 ///   =======  =======================================  ===============  ===========================
-///   Label    Operator                                 Numeric value    :class:`.BitTerm` attribute
+///   Label    Operator                                 Numeric value    :class:`.Pauli` attribute
 ///   =======  =======================================  ===============  ===========================
 ///   ``"I"``  :math:`I` (identity)                     Not stored.      Not stored.
 ///
-///   ``"X"``  :math:`X` (Pauli X)                      ``0b10`` (2)     :attr:`~.BitTerm.X`
+///   ``"X"``  :math:`X` (Pauli X)                      ``0b10`` (2)     :attr:`~.Pauli.X`
 ///
-///   ``"Y"``  :math:`Y` (Pauli Y)                      ``0b11`` (3)     :attr:`~.BitTerm.Y`
+///   ``"Y"``  :math:`Y` (Pauli Y)                      ``0b11`` (3)     :attr:`~.Pauli.Y`
 ///
-///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b01`` (1)     :attr:`~.BitTerm.Z`
+///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b01`` (1)     :attr:`~.Pauli.Z`
 ///
 ///   =======  =======================================  ===============  ===========================
 ///
@@ -716,23 +716,23 @@ impl PySparseTerm {
 ///   ==================  ===========  =============================================================
 ///   :attr:`coeffs`      :math:`t`    The real scalar coefficient for each term.
 ///
-///   :attr:`bit_terms`   :math:`s`    Each of the non-identity single-qubit Pauli operators for all
+///   :attr:`paulis`      :math:`s`    Each of the non-identity single-qubit Pauli operators for all
 ///                                    of the generator terms, in order.  These correspond to the
 ///                                    non-identity :math:`A^{(n)}_i` in the sum description, where
 ///                                    the entries are stored in order of increasing :math:`i`
 ///                                    first, and in order of increasing :math:`n` within each term.
 ///
 ///   :attr:`indices`     :math:`s`    The corresponding qubit (:math:`n`) for each of the operators
-///                                    in :attr:`bit_terms`.  :class:`PauliLindbladMap` requires
+///                                    in :attr:`paulis`.  :class:`PauliLindbladMap` requires
 ///                                    that this list is term-wise sorted, and algorithms can rely
 ///                                    on this invariant being upheld.
 ///
-///   :attr:`boundaries`  :math:`t+1`  The indices that partition :attr:`bit_terms` and
+///   :attr:`boundaries`  :math:`t+1`  The indices that partition :attr:`paulis` and
 ///                                    :attr:`indices` into complete terms.  For term number
 ///                                    :math:`i`, its complex coefficient is ``coeffs[i]``, and its
 ///                                    non-identity single-qubit operators and their corresponding
 ///                                    qubits are the slice ``boundaries[i] : boundaries[i+1]`` into
-///                                    :attr:`bit_terms` and :attr:`indices` respectively.
+///                                    :attr:`paulis` and :attr:`indices` respectively.
 ///                                    :attr:`boundaries` always has an explicit 0 as its first
 ///                                    element.
 ///   ==================  ===========  =============================================================
@@ -745,17 +745,17 @@ impl PySparseTerm {
 /// * in the case of the identity map, which contains no generator terms, :attr:`boundaries` is
 ///   length 1 (a single 0) and all other vectors are empty.
 /// * for the map :math:`\exp\left(2 Z_2 Z_0 - 3 X_3 Y_1`, :attr:`boundaries` is ``[0, 2, 4]``,
-///   :attr:`coeffs` is ``[2.0, -3.0]``, :attr:`bit_terms` is ``[BitTerm.Z, BitTerm.Z, BitTerm.Y,
-///   BitTerm.X]`` and :attr:`indices` is ``[0, 2, 1, 3]``.  The map might act on more than
-///   four qubits, depending on the :attr:`num_qubits` parameter.  The :attr:`bit_terms` are integer
-///   values, whose magic numbers can be accessed via the :class:`BitTerm` attribute class.  Note
+///   :attr:`coeffs` is ``[2.0, -3.0]``, :attr:`paulis` is ``[Pauli.Z, Pauli.Z, Pauli.Y,
+///   Pauli.X]`` and :attr:`indices` is ``[0, 2, 1, 3]``.  The map might act on more than
+///   four qubits, depending on the :attr:`num_qubits` parameter.  The :attr:`paulis` are integer
+///   values, whose magic numbers can be accessed via the :class:`Pauli` attribute class.  Note
 ///   that the single-bit terms and indices are sorted into termwise sorted order.  This is a
 ///   requirement of the class.
 ///
 /// These cases are not special, they're fully consistent with the rules and should not need special
 /// handling.
 ///
-/// The scalar item of the :attr:`bit_terms` array is stored as a numeric byte.  The numeric values
+/// The scalar item of the :attr:`paulis` array is stored as a numeric byte.  The numeric values
 /// are related to the symplectic Pauli representation that :class:`.SparsePauliOp` uses, and are
 /// accessible with named access by an enumeration:
 ///
@@ -765,25 +765,25 @@ impl PySparseTerm {
 ///     else in this source file. The use of `autoattribute` is because it pulls in the numeric
 ///     value.
 ///
-/// .. py:class:: PauliLindbladMap.BitTerm
+/// .. py:class:: PauliLindbladMap.Pauli
 ///
 ///     An :class:`~enum.IntEnum` that provides named access to the numerical values used to
 ///     represent each of the single-qubit alphabet terms enumerated in
 ///     :ref:`pauli-lindblad-map-alphabet`.
 ///
 ///     This class is attached to :class:`.PauliLindbladMap`.  Access it as
-///     :class:`.PauliLindbladMap.BitTerm`.  If this is too much typing, and you are solely dealing
-///     with :class:¬PauliLindbladMap` objects and the :class:`BitTerm` name is not ambiguous, you
+///     :class:`.PauliLindbladMap.Pauli`.  If this is too much typing, and you are solely dealing
+///     with :class:¬PauliLindbladMap` objects and the :class:`Pauli` name is not ambiguous, you
 ///     might want to shorten it as::
 ///
-///         >>> ops = PauliLindbladMap.BitTerm
-///         >>> assert ops.X is PauliLindbladMap.BitTerm.X
+///         >>> ops = PauliLindbladMap.Pauli
+///         >>> assert ops.X is PauliLindbladMap.Pauli.X
 ///
 ///     You can access all the values of the enumeration by either their full all-capitals name, or
 ///     by their single-letter label.  The single-letter labels are not generally valid Python
 ///     identifiers, so you must use indexing notation to access them::
 ///
-///         >>> assert PauliLindbladMap.BitTerm.X is PauliLindbladMap.BitTerm["X"]
+///         >>> assert PauliLindbladMap.Pauli.X is PauliLindbladMap.Pauli["X"]
 ///
 ///     The bits representing each single-qubit Pauli are the (phase-less) symplectic representation
 ///     of the Pauli operator.
@@ -791,29 +791,29 @@ impl PySparseTerm {
 ///     Values
 ///     ------
 ///
-///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.BitTerm.X
+///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.Pauli.X
 ///
 ///         The Pauli :math:`X` operator.  Uses the single-letter label ``"X"``.
 ///
-///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.BitTerm.Y
+///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.Pauli.Y
 ///
 ///         The Pauli :math:`Y` operator.  Uses the single-letter label ``"Y"``.
 ///
-///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.BitTerm.Z
+///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.Pauli.Z
 ///
 ///         The Pauli :math:`Z` operator.  Uses the single-letter label ``"Z"``.
 ///
 ///     Attributes
 ///     ----------
 ///
-///     .. autoproperty:: qiskit.quantum_info::PauliLindbladMap.BitTerm.label
+///     .. autoproperty:: qiskit.quantum_info::PauliLindbladMap.Pauli.label
 ///
 ///
 /// Each of the array-like attributes behaves like a Python sequence.  You can index and slice these
 /// with standard :class:`list`-like semantics.  Slicing an attribute returns a Numpy
 /// :class:`~numpy.ndarray` containing a copy of the relevant data with the natural ``dtype`` of the
 /// field; this lets you easily do mathematics on the results, like bitwise operations on
-/// :attr:`bit_terms`.  You can assign to indices or slices of each of the attributes, but beware
+/// :attr:`paulis`.  You can assign to indices or slices of each of the attributes, but beware
 /// that you must uphold :ref:`the data coherence rules <pauli-lindblad-map-arrays>` while doing
 /// this.  For example::
 ///
@@ -898,7 +898,7 @@ impl PySparseTerm {
 ///   Method                       Summary
 ///   ===========================  =================================================================
 ///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
-///                                ``(bit_terms, indices, coeff)``.
+///                                ``(paulis, indices, coeff)``.
 ///   ===========================  =================================================================
 #[pyclass(name = "PauliLindbladMap", module = "qiskit.quantum_info", sequence)]
 #[derive(Debug)]
@@ -1152,15 +1152,15 @@ impl PyPauliLindbladMap {
             .iter()
             .map(|(label, indices, _)| (label.clone(), indices.clone()))
             .collect();
-        let (bit_terms, indices, boundaries) = raw_parts_from_sparse_list(op_iter, num_qubits)?;
+        let (paulis, indices, boundaries) = raw_parts_from_sparse_list(op_iter, num_qubits)?;
         let qubit_sparse_pauli_list =
-            QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+            QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
         let inner: PauliLindbladMap = PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list)?;
         Ok(inner.into())
     }
 
     // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
-    // the `bit_terms` must all be valid `BitTerm` representations.
+    // the `paulis` must all be valid `Pauli` representations.
     /// Construct a :class:`.PauliLindbladMap` from raw Numpy arrays that match :ref:`the required
     /// data representation described in the class-level documentation
     /// <pauli-lindblad-map-arrays>`.
@@ -1171,20 +1171,20 @@ impl PyPauliLindbladMap {
     ///     num_qubits: number of qubits the map acts on.
     ///     coeffs: float coefficients of each generator term of the map.  This should be a Numpy
     ///         array with dtype :attr:`~numpy.float64`.
-    ///     bit_terms: flattened list of the single-qubit terms comprising all complete terms.  This
+    ///     paulis: flattened list of the single-qubit terms comprising all complete terms.  This
     ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
-    ///         :class:`.BitTerm`).
+    ///         :class:`.Pauli`).
     ///     indices: flattened term-wise sorted list of the qubits each single-qubit term corresponds
     ///         to.  This should be a Numpy array with dtype :attr:`~numpy.uint32`.
-    ///     boundaries: the indices that partition ``bit_terms`` and ``indices`` into terms.  This
+    ///     boundaries: the indices that partition ``paulis`` and ``indices`` into terms.  This
     ///         should be a Numpy array with dtype :attr:`~numpy.uintp`.
     ///     check: if ``True`` (the default), validate that the data satisfies all coherence
     ///         guarantees.  If ``False``, no checks are done.
     ///
     ///         .. warning::
     ///
-    ///             If ``check=False``, the ``bit_terms`` absolutely *must* be all be valid values
-    ///             of :class:`.PauliLindbladMap.BitTerm`.  If they are not, Rust-space undefined
+    ///             If ``check=False``, the ``paulis`` absolutely *must* be all be valid values
+    ///             of :class:`.PauliLindbladMap.Pauli`.  If they are not, Rust-space undefined
     ///             behavior may occur, entirely invalidating the program execution.
     ///
     /// Examples:
@@ -1192,7 +1192,7 @@ impl PyPauliLindbladMap {
     ///     Construct a sum of :math:`Z` on each individual qubit::
     ///
     ///         >>> num_qubits = 100
-    ///         >>> terms = np.full((num_qubits,), PauliLindbladMap.BitTerm.Z, dtype=np.uint8)
+    ///         >>> terms = np.full((num_qubits,), PauliLindbladMap.Pauli.Z, dtype=np.uint8)
     ///         >>> indices = np.arange(num_qubits, dtype=np.uint32)
     ///         >>> coeffs = np.ones((num_qubits,), dtype=float)
     ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
@@ -1200,41 +1200,41 @@ impl PyPauliLindbladMap {
     ///         <PauliLindbladMap with 100 terms on 100 qubits: (1)L(Z_0) + ... + (1)L(Z_99)>
     #[staticmethod]
     #[pyo3(
-        signature = (/, num_qubits, coeffs, bit_terms, indices, boundaries, check=true),
+        signature = (/, num_qubits, coeffs, paulis, indices, boundaries, check=true),
     )]
     unsafe fn from_raw_parts<'py>(
         num_qubits: u32,
         coeffs: PyArrayLike1<'py, f64>,
-        bit_terms: PyArrayLike1<'py, u8>,
+        paulis: PyArrayLike1<'py, u8>,
         indices: PyArrayLike1<'py, u32>,
         boundaries: PyArrayLike1<'py, usize>,
         check: bool,
     ) -> PyResult<Self> {
         let coeffs = coeffs.as_array().to_vec();
-        let bit_terms = if check {
-            bit_terms
+        let paulis = if check {
+            paulis
                 .as_array()
                 .into_iter()
                 .copied()
-                .map(BitTerm::try_from)
+                .map(Pauli::try_from)
                 .collect::<Result<_, _>>()?
         } else {
-            let bit_terms_as_u8 = bit_terms.as_array().to_vec();
-            // SAFETY: the caller enforced that each `u8` is a valid `BitTerm`, and `BitTerm` is be
+            let paulis_as_u8 = paulis.as_array().to_vec();
+            // SAFETY: the caller enforced that each `u8` is a valid `Pauli`, and `Pauli` is be
             // represented by a `u8`.  We can't use `bytemuck` because we're casting a `Vec`.
-            unsafe { ::std::mem::transmute::<Vec<u8>, Vec<BitTerm>>(bit_terms_as_u8) }
+            unsafe { ::std::mem::transmute::<Vec<u8>, Vec<Pauli>>(paulis_as_u8) }
         };
         let indices = indices.as_array().to_vec();
         let boundaries = boundaries.as_array().to_vec();
 
         let inner = if check {
             let qubit_sparse_pauli_list: QubitSparsePauliList =
-                QubitSparsePauliList::new(num_qubits, bit_terms, indices, boundaries)?;
+                QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
             PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list).map_err(PyErr::from)
         } else {
             // SAFETY: the caller promised they have upheld the coherence guarantees.
             Ok(unsafe {
-                PauliLindbladMap::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries)
+                PauliLindbladMap::new_unchecked(num_qubits, coeffs, paulis, indices, boundaries)
             })
         }?;
         Ok(inner.into())
@@ -1287,15 +1287,15 @@ impl PyPauliLindbladMap {
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
     /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
     #[getter]
-    fn get_bit_terms(slf_: &Bound<Self>) -> ArrayView {
+    fn get_paulis(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
         ArrayView {
             base: borrowed.inner.clone(),
-            slot: ArraySlot::BitTerms,
+            slot: ArraySlot::Paulis,
         }
     }
 
-    /// A flat list of the qubit indices that the corresponding entries in :attr:`bit_terms` act on.
+    /// A flat list of the qubit indices that the corresponding entries in :attr:`paulis` act on.
     /// This list must always be term-wise sorted, where a term is a sublist as denoted by
     /// :attr:`boundaries`.
     ///
@@ -1312,9 +1312,9 @@ impl PyPauliLindbladMap {
         }
     }
 
-    /// Indices that partition :attr:`bit_terms` and :attr:`indices` into sublists for each
+    /// Indices that partition :attr:`paulis` and :attr:`indices` into sublists for each
     /// individual term in the sum.  ``boundaries[0] : boundaries[1]`` is the range of indices into
-    /// :attr:`bit_terms` and :attr:`indices` that correspond to the first term of the sum.  All
+    /// :attr:`paulis` and :attr:`indices` that correspond to the first term of the sum.  All
     /// unspecified qubit indices are implicitly the identity.  This is one item longer than
     /// :attr:`coeffs`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
     #[getter]
@@ -1346,9 +1346,9 @@ impl PyPauliLindbladMap {
 
         // turn a SparseView into a Python tuple of (bit terms, indices, coeff)
         let to_py_tuple = |view: SparseTermView| {
-            let mut pauli_string = String::with_capacity(view.bit_terms.len());
+            let mut pauli_string = String::with_capacity(view.paulis.len());
 
-            for bit in view.bit_terms.iter() {
+            for bit in view.paulis.iter() {
                 pauli_string.push_str(bit.py_label());
             }
             let py_string = PyString::new(py, &pauli_string).unbind();
@@ -1371,13 +1371,13 @@ impl PyPauliLindbladMap {
 
     fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let bit_terms: &[u8] = ::bytemuck::cast_slice(inner.bit_terms());
+        let paulis: &[u8] = ::bytemuck::cast_slice(inner.paulis());
         (
             py.get_type::<Self>().getattr("from_raw_parts")?,
             (
                 inner.num_qubits(),
                 PyArray1::from_slice(py, inner.coeffs()),
-                PyArray1::from_slice(py, bit_terms),
+                PyArray1::from_slice(py, paulis),
                 PyArray1::from_slice(py, inner.indices()),
                 PyArray1::from_slice(py, inner.boundaries()),
                 false,
@@ -1427,9 +1427,9 @@ impl PyPauliLindbladMap {
     // `PauliLindbladMap`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn BitTerm(py: Python) -> PyResult<Py<PyType>> {
-        BIT_TERM_PY_ENUM
-            .get_or_try_init(py, || make_py_bit_term(py))
+    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+        PAULI_PY_ENUM
+            .get_or_try_init(py, || make_py_pauli(py))
             .map(|obj| obj.clone_ref(py))
     }
 
@@ -1494,7 +1494,7 @@ impl<'py> IntoPyObject<'py> for PauliLindbladMap {
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ArraySlot {
     Coeffs,
-    BitTerms,
+    Paulis,
     Indices,
     Boundaries,
 }
@@ -1521,12 +1521,12 @@ impl ArrayView {
             ArraySlot::Coeffs => PyList::new(py, pauli_lindblad_map.coeffs())?
                 .repr()?
                 .to_string(),
-            ArraySlot::BitTerms => format!(
+            ArraySlot::Paulis => format!(
                 "[{}]",
                 pauli_lindblad_map
-                    .bit_terms()
+                    .paulis()
                     .iter()
-                    .map(BitTerm::py_label)
+                    .map(Pauli::py_label)
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
@@ -1535,7 +1535,7 @@ impl ArrayView {
             "<pauli lindblad map {} view: {}>",
             match self.slot {
                 ArraySlot::Coeffs => "coeffs",
-                ArraySlot::BitTerms => "bit_terms",
+                ArraySlot::Paulis => "paulis",
                 ArraySlot::Indices => "indices",
                 ArraySlot::Boundaries => "boundaries",
             },
@@ -1549,7 +1549,7 @@ impl ArrayView {
         index: PySequenceIndex,
     ) -> PyResult<Bound<'py, PyAny>> {
         // The slightly verbose generic setup here is to allow the type of a scalar return to be
-        // different to the type that gets put into the Numpy array, since the `BitTerm` enum can be
+        // different to the type that gets put into the Numpy array, since the `Pauli` enum can be
         // a direct scalar, but for Numpy, we need it to be a raw `u8`.
         fn get_from_slice<'py, T, S>(
             py: Python<'py>,
@@ -1570,8 +1570,8 @@ impl ArrayView {
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
             ArraySlot::Coeffs => get_from_slice::<_, f64>(py, pauli_lindblad_map.coeffs(), index),
-            ArraySlot::BitTerms => {
-                get_from_slice::<_, u8>(py, pauli_lindblad_map.bit_terms(), index)
+            ArraySlot::Paulis => {
+                get_from_slice::<_, u8>(py, pauli_lindblad_map.paulis(), index)
             }
             ArraySlot::Indices => get_from_slice::<_, u32>(py, pauli_lindblad_map.indices(), index),
             ArraySlot::Boundaries => {
@@ -1585,7 +1585,7 @@ impl ArrayView {
         /// Rust-space object from the collection of Python-space values.
         ///
         /// This indirects the Python extraction through an intermediate type to marginally improve
-        /// the error messages for things like `BitTerm`, where Python-space extraction might fail
+        /// the error messages for things like `Pauli`, where Python-space extraction might fail
         /// because the user supplied an invalid alphabet letter.
         ///
         /// This allows broadcasting a single item into many locations in a slice (like Numpy), but
@@ -1638,8 +1638,8 @@ impl ArrayView {
             ArraySlot::Coeffs => {
                 set_in_slice::<_, f64>(pauli_lindblad_map.coeffs_mut(), index, values)
             }
-            ArraySlot::BitTerms => {
-                set_in_slice::<BitTerm, u8>(pauli_lindblad_map.bit_terms_mut(), index, values)
+            ArraySlot::Paulis => {
+                set_in_slice::<Pauli, u8>(pauli_lindblad_map.paulis_mut(), index, values)
             }
             ArraySlot::Indices => unsafe {
                 set_in_slice::<_, u32>(pauli_lindblad_map.indices_mut(), index, values)
@@ -1654,7 +1654,7 @@ impl ArrayView {
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         let len = match self.slot {
             ArraySlot::Coeffs => pauli_lindblad_map.coeffs().len(),
-            ArraySlot::BitTerms => pauli_lindblad_map.bit_terms().len(),
+            ArraySlot::Paulis => pauli_lindblad_map.paulis().len(),
             ArraySlot::Indices => pauli_lindblad_map.indices().len(),
             ArraySlot::Boundaries => pauli_lindblad_map.boundaries().len(),
         };
@@ -1694,9 +1694,9 @@ impl ArrayView {
                 PyArray1::from_slice(py, pauli_lindblad_map.boundaries()),
                 dtype,
             ),
-            ArraySlot::BitTerms => {
-                let bit_terms: &[u8] = ::bytemuck::cast_slice(pauli_lindblad_map.bit_terms());
-                cast_array_type(py, PyArray1::from_slice(py, bit_terms), dtype)
+            ArraySlot::Paulis => {
+                let paulis: &[u8] = ::bytemuck::cast_slice(pauli_lindblad_map.paulis());
+                cast_array_type(py, PyArray1::from_slice(py, paulis), dtype)
             }
         }
     }

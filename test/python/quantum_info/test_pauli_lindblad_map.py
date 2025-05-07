@@ -92,7 +92,7 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_from_raw_parts(self):
         # Happiest path: exactly typed inputs.
         num_qubits = 100
-        terms = np.full((num_qubits,), PauliLindbladMap.BitTerm.Z, dtype=np.uint8)
+        terms = np.full((num_qubits,), PauliLindbladMap.Pauli.Z, dtype=np.uint8)
         indices = np.arange(num_qubits, dtype=np.uint32)
         coeffs = np.ones((num_qubits,), dtype=float)
         boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
@@ -100,7 +100,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             num_qubits, coeffs, terms, indices, boundaries
         )
         self.assertEqual(pauli_lindblad_map.num_qubits, num_qubits)
-        np.testing.assert_equal(pauli_lindblad_map.bit_terms, terms)
+        np.testing.assert_equal(pauli_lindblad_map.paulis, terms)
         np.testing.assert_equal(pauli_lindblad_map.indices, indices)
         np.testing.assert_equal(pauli_lindblad_map.coeffs, coeffs)
         np.testing.assert_equal(pauli_lindblad_map.boundaries, boundaries)
@@ -126,7 +126,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             boundaries.astype(np.int16),
         )
         self.assertEqual(pauli_lindblad_map.num_qubits, num_qubits)
-        np.testing.assert_equal(pauli_lindblad_map.bit_terms, terms)
+        np.testing.assert_equal(pauli_lindblad_map.paulis, terms)
         np.testing.assert_equal(pauli_lindblad_map.indices, indices)
         np.testing.assert_equal(pauli_lindblad_map.coeffs, coeffs)
         np.testing.assert_equal(pauli_lindblad_map.boundaries, boundaries)
@@ -153,18 +153,18 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_raw_parts(
                 2,
                 [1.0],
-                [PauliLindbladMap.BitTerm.Z, PauliLindbladMap.BitTerm.Z],
+                [PauliLindbladMap.Pauli.Z, PauliLindbladMap.Pauli.Z],
                 [0, 1],
                 [0, 1, 2],
             )
-        with self.assertRaisesRegex(ValueError, r"must match the length of `bit_terms`"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.BitTerm.Z], [0], [0])
-        with self.assertRaisesRegex(ValueError, r"`bit_terms` \(1\) and `indices` \(0\)"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.BitTerm.Z], [], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"`bit_terms` \(0\) and `indices` \(1\)"):
+        with self.assertRaisesRegex(ValueError, r"must match the length of `paulis`"):
+            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.Pauli.Z], [0], [0])
+        with self.assertRaisesRegex(ValueError, r"`paulis` \(1\) and `indices` \(0\)"):
+            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.Pauli.Z], [], [0, 1])
+        with self.assertRaisesRegex(ValueError, r"`paulis` \(0\) and `indices` \(1\)"):
             PauliLindbladMap.from_raw_parts(2, [1.0], [], [1], [0, 1])
         with self.assertRaisesRegex(ValueError, r"the first item of `boundaries` \(1\) must be 0"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.BitTerm.Z], [0], [1, 1])
+            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.Pauli.Z], [0], [1, 1])
         with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(2\)"):
             PauliLindbladMap.from_raw_parts(2, [1.0], [1], [0], [0, 2])
         with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(1\)"):
@@ -193,11 +193,11 @@ class TestPauliLindbladMap(QiskitTestCase):
                 len(label),
                 [1.0],
                 [
-                    PauliLindbladMap.BitTerm.Y,
-                    PauliLindbladMap.BitTerm.Z,
-                    PauliLindbladMap.BitTerm.Z,
-                    PauliLindbladMap.BitTerm.Y,
-                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.Pauli.Y,
+                    PauliLindbladMap.Pauli.Z,
+                    PauliLindbladMap.Pauli.Z,
+                    PauliLindbladMap.Pauli.Y,
+                    PauliLindbladMap.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
                 [0, 5],
@@ -209,11 +209,11 @@ class TestPauliLindbladMap(QiskitTestCase):
                 len(label),
                 [1.0],
                 [
-                    PauliLindbladMap.BitTerm.Y,
-                    PauliLindbladMap.BitTerm.Z,
-                    PauliLindbladMap.BitTerm.Z,
-                    PauliLindbladMap.BitTerm.Y,
-                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.Pauli.Y,
+                    PauliLindbladMap.Pauli.Z,
+                    PauliLindbladMap.Pauli.Z,
+                    PauliLindbladMap.Pauli.Y,
+                    PauliLindbladMap.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
                 [0, 5],
@@ -226,10 +226,10 @@ class TestPauliLindbladMap(QiskitTestCase):
                 6,
                 [1.0, -0.5],
                 [
-                    PauliLindbladMap.BitTerm.Z,
-                    PauliLindbladMap.BitTerm.X,
-                    PauliLindbladMap.BitTerm.X,
-                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.Pauli.Z,
+                    PauliLindbladMap.Pauli.X,
+                    PauliLindbladMap.Pauli.X,
+                    PauliLindbladMap.Pauli.X,
                 ],
                 [1, 2, 4, 5],
                 [0, 2, 4],
@@ -405,14 +405,14 @@ class TestPauliLindbladMap(QiskitTestCase):
         identity_5 = PauliLindbladMap.identity(5)
         self.assertEqual(identity_5.num_qubits, 5)
         np.testing.assert_equal(identity_5.coeffs, np.array([], dtype=float))
-        np.testing.assert_equal(identity_5.bit_terms, np.array([], dtype=np.uint8))
+        np.testing.assert_equal(identity_5.paulis, np.array([], dtype=np.uint8))
         np.testing.assert_equal(identity_5.indices, np.array([], dtype=np.uint32))
         np.testing.assert_equal(identity_5.boundaries, np.array([0], dtype=np.uintp))
 
         identity_0 = PauliLindbladMap.identity(0)
         self.assertEqual(identity_0.num_qubits, 0)
         np.testing.assert_equal(identity_0.coeffs, np.array([], dtype=float))
-        np.testing.assert_equal(identity_0.bit_terms, np.array([], dtype=np.uint8))
+        np.testing.assert_equal(identity_0.paulis, np.array([], dtype=np.uint8))
         np.testing.assert_equal(identity_0.indices, np.array([], dtype=np.uint32))
         np.testing.assert_equal(identity_0.boundaries, np.array([0], dtype=np.uintp))
 
@@ -421,38 +421,38 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(len(PauliLindbladMap.identity(10)), 0)
         self.assertEqual(len(PauliLindbladMap.from_list([("IIIXIZ", 1.0), ("YYXXII", 0.5)])), 2)
 
-    def test_bit_term_enum(self):
+    def test_pauli_enum(self):
         # These are very explicit tests that effectively just duplicate magic numbers, but the point
         # is that those magic numbers are required to be constant as their values are part of the
         # public interface.
 
         self.assertEqual(
-            set(PauliLindbladMap.BitTerm),
+            set(PauliLindbladMap.Pauli),
             {
-                PauliLindbladMap.BitTerm.X,
-                PauliLindbladMap.BitTerm.Y,
-                PauliLindbladMap.BitTerm.Z,
+                PauliLindbladMap.Pauli.X,
+                PauliLindbladMap.Pauli.Y,
+                PauliLindbladMap.Pauli.Z,
             },
         )
         # All the enumeration items should also be integers.
-        self.assertIsInstance(PauliLindbladMap.BitTerm.X, int)
+        self.assertIsInstance(PauliLindbladMap.Pauli.X, int)
         values = {
             "X": 0b10,
             "Y": 0b11,
             "Z": 0b01,
         }
-        self.assertEqual({name: getattr(PauliLindbladMap.BitTerm, name) for name in values}, values)
+        self.assertEqual({name: getattr(PauliLindbladMap.Pauli, name) for name in values}, values)
 
         # The single-character label aliases can be accessed with index notation.
         labels = {
-            "X": PauliLindbladMap.BitTerm.X,
-            "Y": PauliLindbladMap.BitTerm.Y,
-            "Z": PauliLindbladMap.BitTerm.Z,
+            "X": PauliLindbladMap.Pauli.X,
+            "Y": PauliLindbladMap.Pauli.Y,
+            "Z": PauliLindbladMap.Pauli.Z,
         }
-        self.assertEqual({label: PauliLindbladMap.BitTerm[label] for label in labels}, labels)
+        self.assertEqual({label: PauliLindbladMap.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
         self.assertEqual(
-            {bit_term.label: bit_term for bit_term in PauliLindbladMap.BitTerm}, labels
+            {pauli.label: pauli for pauli in PauliLindbladMap.Pauli}, labels
         )
 
     @ddt.idata(single_cases())
@@ -561,13 +561,13 @@ class TestPauliLindbladMap(QiskitTestCase):
             ),
         )
 
-        bit_terms = PauliLindbladMap.from_sparse_list(
+        paulis = PauliLindbladMap.from_sparse_list(
             [("XZ", (0, 1), 1.5), ("XX", (2, 3), -1.5)], num_qubits=8
         )
-        bit_terms.bit_terms[0] = PauliLindbladMap.BitTerm.Y
-        bit_terms.bit_terms[3] = PauliLindbladMap.BitTerm.Z
+        paulis.paulis[0] = PauliLindbladMap.Pauli.Y
+        paulis.paulis[3] = PauliLindbladMap.Pauli.Z
         self.assertEqual(
-            bit_terms,
+            paulis,
             PauliLindbladMap.from_sparse_list(
                 [("YZ", (0, 1), 1.5), ("XZ", (2, 3), -1.5)], num_qubits=8
             ),
@@ -614,29 +614,29 @@ class TestPauliLindbladMap(QiskitTestCase):
         np.testing.assert_array_equal(coeffs.coeffs, [-0.5, -0.5, -0.5])
 
         # It's hard to broadcast into `indices` without breaking data coherence; the broadcasting is
-        # more meant for fast modifications to `coeffs` and `bit_terms`.
+        # more meant for fast modifications to `coeffs` and `paulis`.
         indices = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIY", 0.5)])
         indices.indices[::2] = 1
         self.assertEqual(
             indices, PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYZI", -0.25), ("ZIIYI", 0.5)])
         )
 
-        bit_terms = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIY", 0.5)])
-        bit_terms.bit_terms[::2] = PauliLindbladMap.BitTerm.Z
+        paulis = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIY", 0.5)])
+        paulis.paulis[::2] = PauliLindbladMap.Pauli.Z
         self.assertEqual(
-            bit_terms,
+            paulis,
             PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIZ", 0.5)]),
         )
-        bit_terms.bit_terms[3:1:-1] = PauliLindbladMap.BitTerm.X
+        paulis.paulis[3:1:-1] = PauliLindbladMap.Pauli.X
         self.assertEqual(
-            bit_terms,
+            paulis,
             PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIXIX", -0.25), ("ZIIIZ", 0.5)]),
         )
-        bit_terms.bit_terms[bit_terms.boundaries[2] : bit_terms.boundaries[3]] = (
-            PauliLindbladMap.BitTerm.X
+        paulis.paulis[paulis.boundaries[2] : paulis.boundaries[3]] = (
+            PauliLindbladMap.Pauli.X
         )
         self.assertEqual(
-            bit_terms,
+            paulis,
             PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIXIX", -0.25), ("XIIIX", 0.5)]),
         )
 
@@ -666,14 +666,14 @@ class TestPauliLindbladMap(QiskitTestCase):
             indices, PauliLindbladMap.from_list([("ZXIIII", 0.25), ("IIIXYI", 1), ("YZIIII", 0.5)])
         )
 
-        bit_terms = PauliLindbladMap.from_list([("IIIIZX", 0.25), ("IIXXII", 1), ("YYIIII", 0.5)])
-        bit_terms.bit_terms[::2] = [
-            PauliLindbladMap.BitTerm.Y,
-            PauliLindbladMap.BitTerm.Y,
-            PauliLindbladMap.BitTerm.Z,
+        paulis = PauliLindbladMap.from_list([("IIIIZX", 0.25), ("IIXXII", 1), ("YYIIII", 0.5)])
+        paulis.paulis[::2] = [
+            PauliLindbladMap.Pauli.Y,
+            PauliLindbladMap.Pauli.Y,
+            PauliLindbladMap.Pauli.Z,
         ]
         self.assertEqual(
-            bit_terms,
+            paulis,
             PauliLindbladMap.from_list([("IIIIZY", 0.25), ("IIXYII", 1), ("YZIIII", 0.5)]),
         )
 
@@ -691,15 +691,15 @@ class TestPauliLindbladMap(QiskitTestCase):
         with self.assertRaises(TypeError):
             pauli_lindblad_map.coeffs[0] = 0.25j
         with self.assertRaises(TypeError):
-            pauli_lindblad_map.bit_terms[0] = [PauliLindbladMap.BitTerm.X] * 4
+            pauli_lindblad_map.paulis[0] = [PauliLindbladMap.Pauli.X] * 4
         with self.assertRaises(TypeError):
             pauli_lindblad_map.indices[0] = [0, 1]
         with self.assertRaises(TypeError):
             pauli_lindblad_map.boundaries[0] = (0, 1)
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            pauli_lindblad_map.bit_terms[0] = 0
+            pauli_lindblad_map.paulis[0] = 0
         with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            pauli_lindblad_map.bit_terms[:] = 0
+            pauli_lindblad_map.paulis[:] = 0
         with self.assertRaisesRegex(
             ValueError, "tried to set a slice of length 2 with a sequence of length 1"
         ):
@@ -707,7 +707,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         with self.assertRaisesRegex(
             ValueError, "tried to set a slice of length 6 with a sequence of length 8"
         ):
-            pauli_lindblad_map.bit_terms[:] = [PauliLindbladMap.BitTerm.Z] * 8
+            pauli_lindblad_map.paulis[:] = [PauliLindbladMap.Pauli.Z] * 8
 
     def test_attributes_sequence(self):
         """Test attributes of the `Sequence` protocol."""
@@ -715,7 +715,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("ZYX", -0.5)])
         self.assertEqual(len(pauli_lindblad_map.coeffs), 2)
         self.assertEqual(len(pauli_lindblad_map.indices), 6)
-        self.assertEqual(len(pauli_lindblad_map.bit_terms), 6)
+        self.assertEqual(len(pauli_lindblad_map.paulis), 6)
         self.assertEqual(len(pauli_lindblad_map.boundaries), 3)
 
         # Iteration
@@ -723,22 +723,22 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(tuple(pauli_lindblad_map.indices), (0, 1, 2, 0, 1, 2))
         self.assertEqual(next(iter(pauli_lindblad_map.boundaries)), 0)
         # multiple iteration through same object
-        bit_terms = pauli_lindblad_map.bit_terms
-        self.assertEqual(set(bit_terms), {PauliLindbladMap.BitTerm[x] for x in "XYZZYX"})
-        self.assertEqual(set(bit_terms), {PauliLindbladMap.BitTerm[x] for x in "XYZZYX"})
+        paulis = pauli_lindblad_map.paulis
+        self.assertEqual(set(paulis), {PauliLindbladMap.Pauli[x] for x in "XYZZYX"})
+        self.assertEqual(set(paulis), {PauliLindbladMap.Pauli[x] for x in "XYZZYX"})
 
         # Implicit iteration methods.
-        self.assertIn(PauliLindbladMap.BitTerm.Y, pauli_lindblad_map.bit_terms)
+        self.assertIn(PauliLindbladMap.Pauli.Y, pauli_lindblad_map.paulis)
         self.assertNotIn(4, pauli_lindblad_map.indices)
         self.assertEqual(list(reversed(pauli_lindblad_map.coeffs)), [-0.5, 1.5])
 
         # Index by scalar
         self.assertEqual(pauli_lindblad_map.coeffs[1], -0.5)
         self.assertEqual(pauli_lindblad_map.indices[-1], 2)
-        self.assertEqual(pauli_lindblad_map.bit_terms[0], PauliLindbladMap.BitTerm.Y)
+        self.assertEqual(pauli_lindblad_map.paulis[0], PauliLindbladMap.Pauli.Y)
         # Make sure that Rust-space actually returns the enum value, not just an `int` (which could
         # have compared equal).
-        self.assertIsInstance(pauli_lindblad_map.bit_terms[0], QubitSparsePauliList.BitTerm)
+        self.assertIsInstance(pauli_lindblad_map.paulis[0], QubitSparsePauliList.Pauli)
         self.assertEqual(pauli_lindblad_map.boundaries[-2], 3)
         with self.assertRaises(IndexError):
             _ = pauli_lindblad_map.coeffs[10]
@@ -757,10 +757,10 @@ class TestPauliLindbladMap(QiskitTestCase):
             np.array([2, 1, 0, 2, 1, 0], dtype=np.uint32),
             strict=True,
         )
-        self.assertIsInstance(pauli_lindblad_map.bit_terms[2:4], np.ndarray)
+        self.assertIsInstance(pauli_lindblad_map.paulis[2:4], np.ndarray)
         np.testing.assert_array_equal(
-            pauli_lindblad_map.bit_terms[2:4],
-            np.array([PauliLindbladMap.BitTerm.X, PauliLindbladMap.BitTerm.X], dtype=np.uint8),
+            pauli_lindblad_map.paulis[2:4],
+            np.array([PauliLindbladMap.Pauli.X, PauliLindbladMap.Pauli.X], dtype=np.uint8),
             strict=True,
         )
         self.assertIsInstance(pauli_lindblad_map.boundaries[-2:-3:-1], np.ndarray)
@@ -779,8 +779,8 @@ class TestPauliLindbladMap(QiskitTestCase):
             pauli_lindblad_map.indices, np.array([0, 1, 2, 0, 1, 2], dtype=np.uint32), strict=True
         )
         np.testing.assert_array_equal(
-            pauli_lindblad_map.bit_terms,
-            np.array([PauliLindbladMap.BitTerm[x] for x in "YZXZYX"], dtype=np.uint8),
+            pauli_lindblad_map.paulis,
+            np.array([PauliLindbladMap.Pauli[x] for x in "YZXZYX"], dtype=np.uint8),
             strict=True,
         )
         np.testing.assert_array_equal(
@@ -810,7 +810,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
             np.asarray(pauli_lindblad_map.indices, copy=False)
         with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_lindblad_map.bit_terms, copy=False)
+            np.asarray(pauli_lindblad_map.paulis, copy=False)
         with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
             np.asarray(pauli_lindblad_map.boundaries, copy=False)
 
@@ -818,7 +818,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         # We're not testing much about the outputs here, just that they don't crash.
         pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("YXZ", -0.5)])
         self.assertIn("coeffs", repr(pauli_lindblad_map.coeffs))
-        self.assertIn("bit_terms", repr(pauli_lindblad_map.bit_terms))
+        self.assertIn("paulis", repr(pauli_lindblad_map.paulis))
         self.assertIn("indices", repr(pauli_lindblad_map.indices))
         self.assertIn("boundaries", repr(pauli_lindblad_map.boundaries))
 
@@ -842,13 +842,13 @@ class TestPauliLindbladMap(QiskitTestCase):
             ],
             num_qubits=5,
         )
-        bit_term = PauliLindbladMap.BitTerm
+        pauli = PauliLindbladMap.Pauli
         expected = [
-            PauliLindbladMap.Term(5, 2, [bit_term.Y, bit_term.Y, bit_term.X], [1, 2, 4]),
+            PauliLindbladMap.Term(5, 2, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
             PauliLindbladMap.Term(5, 0.5, [], []),
-            PauliLindbladMap.Term(5, -0.25, [bit_term.Z, bit_term.Z], [0, 3]),
-            PauliLindbladMap.Term(5, 1.0, [bit_term.X, bit_term.X], [1, 2]),
-            PauliLindbladMap.Term(5, 1, [bit_term.Z, bit_term.Y], [1, 4]),
+            PauliLindbladMap.Term(5, -0.25, [pauli.Z, pauli.Z], [0, 3]),
+            PauliLindbladMap.Term(5, 1.0, [pauli.X, pauli.X], [1, 2]),
+            PauliLindbladMap.Term(5, 1, [pauli.Z, pauli.Y], [1, 4]),
         ]
         self.assertEqual(list(pauli_lindblad_map), expected)
 
@@ -863,13 +863,13 @@ class TestPauliLindbladMap(QiskitTestCase):
             ],
             num_qubits=5,
         )
-        bit_term = PauliLindbladMap.BitTerm
+        pauli = PauliLindbladMap.Pauli
         expected = [
-            PauliLindbladMap.Term(5, 2, [bit_term.Y, bit_term.Y, bit_term.X], [1, 2, 4]),
+            PauliLindbladMap.Term(5, 2, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
             PauliLindbladMap.Term(5, 0.5, [], []),
-            PauliLindbladMap.Term(5, -0.25, [bit_term.Z, bit_term.Z], [0, 3]),
-            PauliLindbladMap.Term(5, 1.0, [bit_term.X, bit_term.X], [1, 2]),
-            PauliLindbladMap.Term(5, 1, [bit_term.Z, bit_term.Y], [1, 4]),
+            PauliLindbladMap.Term(5, -0.25, [pauli.Z, pauli.Z], [0, 3]),
+            PauliLindbladMap.Term(5, 1.0, [pauli.X, pauli.X], [1, 2]),
+            PauliLindbladMap.Term(5, 1, [pauli.Z, pauli.Y], [1, 4]),
         ]
         self.assertEqual(pauli_lindblad_map[0], expected[0])
         self.assertEqual(pauli_lindblad_map[-2], expected[-2])
@@ -946,12 +946,12 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(term.num_qubits, 7)
         self.assertEqual(term.coeff, 5.0)
         np.testing.assert_equal(
-            term.bit_terms,
+            term.paulis,
             np.array(
                 [
-                    PauliLindbladMap.BitTerm.Z,
-                    PauliLindbladMap.BitTerm.X,
-                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.Pauli.Z,
+                    PauliLindbladMap.Pauli.X,
+                    PauliLindbladMap.Pauli.X,
                 ],
                 dtype=np.uint8,
             ),
@@ -962,11 +962,11 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(term.num_qubits, 5)
         self.assertEqual(term.coeff, 0.5)
         self.assertEqual(
-            list(term.bit_terms),
+            list(term.paulis),
             [
-                PauliLindbladMap.BitTerm.Z,
-                PauliLindbladMap.BitTerm.Y,
-                PauliLindbladMap.BitTerm.X,
+                PauliLindbladMap.Pauli.Z,
+                PauliLindbladMap.Pauli.Y,
+                PauliLindbladMap.Pauli.X,
             ],
         )
         self.assertEqual(list(term.indices), [0, 1, 2])
@@ -979,9 +979,9 @@ class TestPauliLindbladMap(QiskitTestCase):
                 9,
                 1.0,
                 [
-                    PauliLindbladMap.BitTerm.Z,
-                    PauliLindbladMap.BitTerm.X,
-                    PauliLindbladMap.BitTerm.X,
+                    PauliLindbladMap.Pauli.Z,
+                    PauliLindbladMap.Pauli.X,
+                    PauliLindbladMap.Pauli.X,
                 ],
                 [3, 4, 5],
             ),
@@ -994,9 +994,9 @@ class TestPauliLindbladMap(QiskitTestCase):
                 9,
                 1.0,
                 [
-                    PauliLindbladMap.BitTerm.X,
-                    PauliLindbladMap.BitTerm.X,
-                    PauliLindbladMap.BitTerm.Z,
+                    PauliLindbladMap.Pauli.X,
+                    PauliLindbladMap.Pauli.X,
+                    PauliLindbladMap.Pauli.Z,
                 ],
                 [4, 5, 3],
             ),
@@ -1005,7 +1005,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(list(expected.indices), [3, 4, 5])
 
         with self.assertRaisesRegex(ValueError, "not term-wise increasing"):
-            PauliLindbladMap.Term(2, 2, [PauliLindbladMap.BitTerm.X] * 2, [0, 0])
+            PauliLindbladMap.Term(2, 2, [PauliLindbladMap.Pauli.X] * 2, [0, 0])
 
     def test_to_sparse_list(self):
         """Test converting to a sparse list."""
