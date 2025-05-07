@@ -58,7 +58,6 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
     }
 }
 
-
 #[pymethods]
 impl ParameterExpression {
     /// parse expression from string
@@ -180,7 +179,8 @@ impl ParameterExpression {
                 symbol_expr::Value::Real(r) => r.into_py_any(py),
                 symbol_expr::Value::Int(i) => i.into_py_any(py),
                 symbol_expr::Value::Complex(c) => {
-                    if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im) {
+                    if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
+                    {
                         c.re.into_py_any(py)
                     } else {
                         c.into_py_any(py)
@@ -291,7 +291,9 @@ impl ParameterExpression {
                         Err(pyo3::exceptions::PyRuntimeError::new_err(
                             "NAN detected while binding parameter",
                         ))
-                    } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im) {
+                    } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
+                        .contains(&c.im)
+                    {
                         Ok(Self {
                             expr: SymbolExpr::Value(symbol_expr::Value::Real(c.re)),
                         })
@@ -332,7 +334,7 @@ impl ParameterExpression {
             None => false,
         }
     }
-    pub fn __ne__(&self,rhs: &Bound<PyAny>) -> bool {
+    pub fn __ne__(&self, rhs: &Bound<PyAny>) -> bool {
         match _extract_value(rhs) {
             Some(rhs) => match rhs.expr {
                 SymbolExpr::Value(v) => match self.expr.eval(true) {
