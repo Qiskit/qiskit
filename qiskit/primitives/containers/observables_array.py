@@ -310,8 +310,6 @@ class ObservablesArray(ShapedMixin):
         self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> ObservablesArray:
         """Apply a transpiler layout to this :class:`~.ObservablesArray`.
-        
-        TODO: Consider example?? SParseObservable has some, for example, https://github.com/Qiskit/qiskit/blob/68926088b287ddfe79de1b80d9ea9e5c8cb5bcda/crates/accelerate/src/sparse_observable/mod.rs#L2205
 
         Args:
             layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
@@ -326,7 +324,7 @@ class ObservablesArray(ShapedMixin):
 
         Returns:
             A new :class:`.ObservablesArray` with the provided layout applied.
-            
+
         Raises:
             QiskitError: ...
         """
