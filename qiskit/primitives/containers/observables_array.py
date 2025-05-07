@@ -26,7 +26,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp, SparseObservable
-from qiskit.exceptions import QiskitError
 
 from .object_array import object_array
 from .shape import ShapedMixin, shape_tuple
@@ -332,25 +331,6 @@ class ObservablesArray(ShapedMixin):
 
         if layout is None and num_qubits is None:
             return self.copy()
-
-        n_qubits = self.num_qubits
-        if isinstance(layout, TranspileLayout):
-            n_qubits = len(layout._output_qubit_list)
-            layout = layout.final_index_layout()
-        if num_qubits is not None:
-            if num_qubits < n_qubits:
-                raise QiskitError(
-                    f"The input num_qubits is too small, a {num_qubits} qubit layout cannot be "
-                    f"applied to a {n_qubits} qubit operator."
-                )
-            n_qubits = num_qubits
-        if layout is None:
-            layout = list(range(self.num_qubits))
-        else:
-            if any(x < 0 or x >= n_qubits for x in layout):
-                raise QiskitError("Provided layout contains indices outside the number of qubits.")
-            if len(set(layout)) != len(layout):
-                raise QiskitError("Provided layout contains duplicate indices.")
 
         new_arr = np.ndarray(self.shape, dtype=SparseObservable)
         for ndi, obs in np.ndenumerate(self._array):
