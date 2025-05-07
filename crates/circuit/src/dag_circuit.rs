@@ -2702,7 +2702,8 @@ impl DAGCircuit {
             let cargs_set = imports::BUILTIN_SET.get_bound(py).call1((cargs_list,))?;
             let cargs_set = cargs_set.downcast::<PySet>().unwrap();
             if self.may_have_additional_wires(&node) {
-                let (add_cargs, _add_vars) = self.additional_wires(node.op.view())?;
+                let (add_cargs, _add_vars) =
+                    Python::with_gil(|py| self.additional_wires(py, node.op.view()))?;
                 for wire in add_cargs.iter() {
                     let clbit = self.clbits.get(*wire).unwrap();
                     if !cargs_set.contains(clbit)? {
@@ -2824,7 +2825,8 @@ impl DAGCircuit {
         let input_dag_var_set: HashSet<&expr::Var> = input_dag.vars.objects().iter().collect();
 
         let node_vars = if self.may_have_additional_wires(&node) {
-            let (_additional_clbits, additional_vars) = self.additional_wires(node.op.view())?;
+            let (_additional_clbits, additional_vars) =
+                Python::with_gil(|py| self.additional_wires(py, node.op.view()))?;
             let var_set: HashSet<&expr::Var> = additional_vars
                 .into_iter()
                 .map(|v| self.vars.get(v).unwrap())
@@ -5065,7 +5067,7 @@ impl DAGCircuit {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
-                    self.additional_wires(instr.op.view())?;
+                    Python::with_gil(|py| self.additional_wires(py, instr.op.view()))?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -5092,7 +5094,8 @@ impl DAGCircuit {
             if self.may_have_additional_wires(&inst) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(inst.clbits).iter().copied());
-                let (additional_clbits, additional_vars) = self.additional_wires(inst.op.view())?;
+                let (additional_clbits, additional_vars) =
+                    Python::with_gil(|py| self.additional_wires(py, inst.op.view()))?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -5346,7 +5349,7 @@ impl DAGCircuit {
         inst.control_flow() || inst.op_name == "store"
     }
 
-    fn additional_wires(&self, op: OperationRef) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
+    fn additional_wires(&self, py: Python, op: OperationRef) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
         let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<Var>)> {
             let mut clbits = Vec::new();
             let mut vars: Vec<Var> = Vec::new();
@@ -5370,43 +5373,14 @@ impl DAGCircuit {
         let mut vars = Vec::new();
 
         if let OperationRef::Instruction(inst) = op {
-            Python::with_gil(|py| -> PyResult<()> {
-                let op = inst.instruction.bind(py);
-                if inst.control_flow() {
-                    // The `condition` field might not exist, for example if this a `for` loop, and
-                    // that's not an exceptional state for us.
-                    if let Ok(condition) = op.getattr(intern!(py, "condition")) {
-                        if !condition.is_none() {
-                            if let Ok(condition) = condition.extract::<expr::Expr>() {
-                                let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
-                                for bit in expr_clbits {
-                                    clbits.push(bit);
-                                }
-                                for var in expr_vars {
-                                    vars.push(var);
-                                }
-                            }
-                        }
-                    }
-
-                    // TODO: this is the Python-side `ControlFlowOp.iter_captured_vars` which iterates
-                    //   over vars in all blocks of the op. This needs to be ported to Rust when control
-                    //   flow is ported.
-                    for var in op.call_method0("iter_captured_vars")?.try_iter()? {
-                        vars.push(self.vars.find(&var?.extract()?).unwrap())
-                    }
-                    if op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
-                        let target = op.getattr(intern!(py, "target"))?;
-                        if target.downcast::<PyClbit>().is_ok() {
-                            let target_clbit: ShareableClbit = target.extract()?;
-                            clbits.push(self.clbits.find(&target_clbit).unwrap());
-                        } else if target.is_instance_of::<PyClassicalRegister>() {
-                            for bit in target.try_iter()? {
-                                let clbit: ShareableClbit = bit?.extract()?;
-                                clbits.push(self.clbits.find(&clbit).unwrap());
-                            }
-                        } else {
-                            let (expr_clbits, expr_vars) = wires_from_expr(&target.extract()?)?;
+            let op = inst.instruction.bind(py);
+            if inst.control_flow() {
+                // The `condition` field might not exist, for example if this a `for` loop, and
+                // that's not an exceptional state for us.
+                if let Ok(condition) = op.getattr(intern!(py, "condition")) {
+                    if !condition.is_none() {
+                        if let Ok(condition) = condition.extract::<expr::Expr>() {
+                            let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
                             for bit in expr_clbits {
                                 clbits.push(bit);
                             }
@@ -5415,26 +5389,50 @@ impl DAGCircuit {
                             }
                         }
                     }
-                } else if op.is_instance(imports::STORE_OP.get_bound(py))? {
-                    let (expr_clbits, expr_vars) =
-                        wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
-                    for bit in expr_clbits {
-                        clbits.push(bit);
-                    }
-                    for var in expr_vars {
-                        vars.push(var);
-                    }
-                    let (expr_clbits, expr_vars) =
-                        wires_from_expr(&op.getattr("rvalue")?.extract()?)?;
-                    for bit in expr_clbits {
-                        clbits.push(bit);
-                    }
-                    for var in expr_vars {
-                        vars.push(var);
+                }
+
+                // TODO: this is the Python-side `ControlFlowOp.iter_captured_vars` which iterates
+                //   over vars in all blocks of the op. This needs to be ported to Rust when control
+                //   flow is ported.
+                for var in op.call_method0("iter_captured_vars")?.try_iter()? {
+                    vars.push(self.vars.find(&var?.extract()?).unwrap())
+                }
+                if op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
+                    let target = op.getattr(intern!(py, "target"))?;
+                    if target.downcast::<PyClbit>().is_ok() {
+                        let target_clbit: ShareableClbit = target.extract()?;
+                        clbits.push(self.clbits.find(&target_clbit).unwrap());
+                    } else if target.is_instance_of::<PyClassicalRegister>() {
+                        for bit in target.try_iter()? {
+                            let clbit: ShareableClbit = bit?.extract()?;
+                            clbits.push(self.clbits.find(&clbit).unwrap());
+                        }
+                    } else {
+                        let (expr_clbits, expr_vars) = wires_from_expr(&target.extract()?)?;
+                        for bit in expr_clbits {
+                            clbits.push(bit);
+                        }
+                        for var in expr_vars {
+                            vars.push(var);
+                        }
                     }
                 }
-                Ok(())
-            })?;
+            } else if op.is_instance(imports::STORE_OP.get_bound(py))? {
+                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
+                for bit in expr_clbits {
+                    clbits.push(bit);
+                }
+                for var in expr_vars {
+                    vars.push(var);
+                }
+                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("rvalue")?.extract()?)?;
+                for bit in expr_clbits {
+                    clbits.push(bit);
+                }
+                for var in expr_vars {
+                    vars.push(var);
+                }
+            }
         }
         Ok((clbits, vars))
     }
@@ -6138,7 +6136,7 @@ impl DAGCircuit {
         }
 
         if self.may_have_additional_wires(inst) {
-            let (clbits, vars) = self.additional_wires(inst.op.view())?;
+            let (clbits, vars) = Python::with_gil(|py| self.additional_wires(py, inst.op.view()))?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
                     return Err(DAGCircuitError::new_err(format!(
@@ -7112,7 +7110,7 @@ impl DAGCircuit {
             )
             .collect();
         let (additional_clbits, additional_vars) =
-            self.additional_wires(new_op.operation.view())?;
+            Python::with_gil(|py| self.additional_wires(py, new_op.operation.view()))?;
         new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
         new_wires.extend(additional_vars.iter().map(|x| Wire::Var(*x)));
 
