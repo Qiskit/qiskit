@@ -117,7 +117,7 @@ def adder_ripple_rv25(num_qubits: int, kind: str = "half") -> QuantumCircuit:
         kind: The type of adder to implement. Currently, only "half" is supported.
 
     Returns:
-        QuantumCircuit: The quantum circuit implementing the RV ripple carry adder.
+        The quantum circuit implementing the RV ripple carry adder.
 
     Raises:
         ValueError: If ``num_state_qubits`` is lower than 1.

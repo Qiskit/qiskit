@@ -13,6 +13,7 @@ features_transpiler:
     * :class:`.HalfAdderSynthesisRV25`, based on :func:`.adder_ripple_rv_25`.
 
     The :class:`.HalfAdderSynthesisDefault` has also been updated to follow the following sequence
-    of HalfAdder synthesizers: "HalfAdder.ripple_rv25" when n_qubits <= 3, "HalfAdder.ripple_c04"
-    when 1 ancillary qubit is available, "HalfAdder.ripple_rv25" in all remaining cases.
+    of half adder synthesizers: ``"HalfAdder.ripple_rv25"`` when the number of qubits is 
+    :math:`\leq 3`, ``"HalfAdder.ripple_c04"`` when 1 ancillary qubit is available, 
+    ``"HalfAdder.ripple_rv25"`` in all remaining cases.
 
