@@ -4765,12 +4765,6 @@ impl DAGCircuit {
         &self.qargs_interner
     }
 
-    /// Returns an mutable view of the Interner used for Qargs
-    #[inline(always)]
-    pub fn qargs_interner_mut(&mut self) -> &mut Interner<[Qubit]> {
-        &mut self.qargs_interner
-    }
-
     /// Returns an immutable view of the Interner used for Cargs
     #[inline(always)]
     pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
