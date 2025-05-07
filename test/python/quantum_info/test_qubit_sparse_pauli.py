@@ -221,9 +221,13 @@ class TestQubitSparsePauli(QiskitTestCase):
         with self.assertRaises(ValueError):
             QubitSparsePauli.from_sparse_label(("\xff", (1, 2)), num_qubits=5)
 
-        with self.assertRaisesRegex(ValueError, "label with length 2 does not match indices"):
+        with self.assertRaisesRegex(
+            ValueError, "label with length 2 does not match indices of length 1"
+        ):
             QubitSparsePauli.from_sparse_label(("XZ", (0,)), num_qubits=5)
-        with self.assertRaisesRegex(ValueError, "label with length 2 does not match indices"):
+        with self.assertRaisesRegex(
+            ValueError, "label with length 2 does not match indices of length 3"
+        ):
             QubitSparsePauli.from_sparse_label(("XZ", (0, 1, 2)), num_qubits=5)
 
         with self.assertRaisesRegex(ValueError, "index 3 is out of range for a 3-qubit operator"):
