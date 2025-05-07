@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Callable
 import scipy
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 from qiskit.synthesis.two_qubit import (
     TwoQubitBasisDecomposer,
     two_qubit_decompose,
@@ -220,8 +220,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
     dmat = np.diag(dvals)
     wmat = dmat @ vmat.T.conjugate() @ um1
 
-    qr = [Qubit() for _ in range(nqubits)]
-    circ = QuantumCircuit(qr)
+    circ = QuantumCircuit(nqubits)
 
     # left gate
     left_gate = qs_decomposition(
@@ -329,7 +328,7 @@ def _extract_multiplex_blocks(umat, k):
     nqubits = dim.bit_length() - 1
     halfdim = dim // 2
 
-    utensor = umat.reshape((2,) * nqubits + (2,) * nqubits)
+    utensor = umat.reshape((2,) * (2 * nqubits))
 
     # Move qubit k to top
     if k != 0:
