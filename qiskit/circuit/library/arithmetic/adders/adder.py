@@ -123,7 +123,7 @@ class HalfAdderGate(Gate):
         # This particular decomposition does not use any ancilla qubits.
         # Note that the transpiler may choose a different decomposition
         # based on the number of ancilla qubits available.
-        self.definition = adder_ripple_r25(self.num_state_qubits, kind="half")
+        self.definition = adder_ripple_r25(self.num_state_qubits)
 
 
 class ModularAdderGate(Gate):

@@ -1,8 +1,8 @@
 ---
 features_synthesis:
   - |
-    Added new half adder that requires no ancillary qubits and has better CX count compared to
-    :func:`.adder_qft_d00`:
+    Added new synthesis algorithm for :class:`.HalfAdderGate` that requires no ancillary qubits
+    and has better CX count compared to :func:`.adder_qft_d00`:
 
     * :func:`.adder_ripple_r25`
 

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2025.
+# (C) Copyright IBM 2025.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -39,7 +39,7 @@ def _mcx_ladder(n_mcx: int, alpha: int):
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
-    def helper(qubit_indices, alphas):
+    def helper(qubit_indices, alphas) -> list[list[int]]:
         k = len(alphas) + 1
         if k == 1:
             return []
@@ -70,13 +70,14 @@ def _mcx_ladder(n_mcx: int, alpha: int):
     qc = QuantumCircuit(n)
     qubit_indices, alphas = list(range(n)), list(range(alpha, n, alpha))
     mcxs = helper(qubit_indices, alphas)
-    [qc.mcx(mcx[:-1], mcx[-1]) for mcx in mcxs]
+    for mcx in mcxs:
+        qc.mcx(mcx[:-1], mcx[-1])
 
     return qc
 
 
-def adder_ripple_r25(num_qubits: int, kind: str = "half") -> QuantumCircuit:
-    # pylint: disable=unused-argument, expression-not-assigned, line-too-long
+def adder_ripple_r25(num_qubits: int) -> QuantumCircuit:
+    # pylint: expression-not-assigned, line-too-long
     r"""The RV ripple carry adder [1].
     Construct an ancilla-free quantum adder circuit with sublinear depth based on the RV ripple-carry
     adder shown in [1]. The implementation has a depth of :math:`O(\log^2 n)` and uses

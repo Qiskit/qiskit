@@ -1782,7 +1782,7 @@ class HalfAdderSynthesisR25(HighLevelSynthesisPlugin):
             return None
 
         num_state_qubits = high_level_object.num_state_qubits
-        return adder_ripple_r25(num_state_qubits, kind="half")
+        return adder_ripple_r25(num_state_qubits)
 
 
 class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):
