@@ -1,6 +1,8 @@
 ---
+features:
+  - |
+    Add support for C++ use of C-API.
+    Use `std::complex` for C++ as complex data type
 fixes:
   - |
-    Fixes cext crates configuration to generate qiskit.h for C-API.
-    Fixed typedef of complex data type for Windows.
-    Fixed to add support for C++ for data type definition for enum types.
+    Fixes for Windows configuration in Makefile for C extensions
