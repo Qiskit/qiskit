@@ -8,7 +8,7 @@ features_synthesis:
 
 features_transpiler:
   - |
-    Added new high-level-synthesis plugin for synthesizing a :class:`.HalfAdder`:
+    Added new high-level-synthesis plugin for synthesizing a :class:`.HalfAdderGate`:
 
     * :class:`.HalfAdderSynthesisR25`, based on :func:`.adder_ripple_rv_25`.
 

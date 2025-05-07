@@ -77,7 +77,7 @@ def _mcx_ladder(n_mcx: int, alpha: int):
 
 
 def adder_ripple_r25(num_qubits: int) -> QuantumCircuit:
-    # pylint: disable=expression-not-assigned, line-too-long
+    # pylint: disable=line-too-long
     r"""The RV ripple carry adder [1].
     Construct an ancilla-free quantum adder circuit with sublinear depth based on the RV ripple-carry
     adder shown in [1]. The implementation has a depth of :math:`O(\log^2 n)` and uses
@@ -147,9 +147,9 @@ def adder_ripple_r25(num_qubits: int) -> QuantumCircuit:
     qc.compose(_mcx_ladder(num_qubits - 1, 1), qr_a[1:] + qr_z[:], inplace=True)
     qc.compose(_mcx_ladder(num_qubits, 2).inverse(), ab_interleaved + qr_z[:], inplace=True)
     qc.cx(qr_a[1:], qr_b[1:])
-    qc.x(qr_b[1 : num_qubits - 1]) if num_qubits > 2 else qc.x(qr_b[1])
+    qc.x(qr_b[1 : max(2, num_qubits - 1)])
     qc.compose(_mcx_ladder(num_qubits - 1, 2), ab_interleaved[:-1], inplace=True)
-    qc.x(qr_b[1 : num_qubits - 1]) if num_qubits > 2 else qc.x(qr_b[1])
+    qc.x(qr_b[1 : max(2, num_qubits - 1)])
     qc.compose(_mcx_ladder(num_qubits - 2, 1).inverse(), qr_a[1:], inplace=True)
     qc.cx(qr_a, qr_b)
 
