@@ -252,7 +252,7 @@ fn py_run_main_loop(
     let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
 
     let out_dag = dag.copy_empty_like(py, "alike")?;
-    let mut out_dag = out_dag.into_builder(py);
+    let mut out_dag = out_dag.into_builder();
 
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
@@ -323,7 +323,7 @@ fn py_run_main_loop(
                     let target_basis_set = match target {
                         Some(target) => get_target_basis_set(target, PhysicalQubit::new(qubit.0)),
                         None => {
-                            let basis_gates: IndexSet<&str> =
+                            let basis_gates: IndexSet<&str, ::ahash::RandomState> =
                                 basis_gates.iter().map(String::as_str).collect();
                             get_euler_basis_set(basis_gates)
                         }

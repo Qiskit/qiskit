@@ -100,7 +100,7 @@ pub fn split_2q_unitaries(
     // The Elide Permutations pass, while also splitting the unitaries to 1-qubit gates
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
     let new_dag = dag.copy_empty_like(py, "alike")?;
-    let mut new_dag = new_dag.into_builder(py);
+    let mut new_dag = new_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let NodeType::Operation(inst) = &dag.dag()[node] else {
             unreachable!("Op nodes contain a non-operation");
