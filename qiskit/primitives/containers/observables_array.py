@@ -327,8 +327,6 @@ class ObservablesArray(ShapedMixin):
         Raises:
             QiskitError: ...
         """
-        from qiskit.transpiler.layout import TranspileLayout
-
         if layout is None and num_qubits is None:
             return self.copy()
 
