@@ -716,8 +716,8 @@ impl From<ArithmeticError> for PyErr {
     }
 }
 
-/// The single-character string label used to represent this term in the :class:`QubitSparsePauliList`
-/// alphabet.
+/// The single-character string label used to represent this term in the 
+/// :class:`QubitSparsePauliList` alphabet.
 #[pyfunction]
 #[pyo3(name = "label")]
 fn pauli_label(py: Python, slf: Pauli) -> &Bound<PyString> {
@@ -891,7 +891,8 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///   ============================  ================================================================
 ///   :meth:`from_label`            Convert a dense string label into a :class:`~.QubitSparsePauli`.
 ///
-///   :meth:`from_sparse_label`     Build a :class:`.QubitSparsePauli` from a tuple of a sparse string label and the qubits they apply to.
+///   :meth:`from_sparse_label`     Build a :class:`.QubitSparsePauli` from a tuple of a sparse 
+///                                 string label and the qubits they apply to.
 ///
 ///   :meth:`from_pauli`            Raise a single :class:`.Pauli` into a single-element
 ///                                 :class:`.QubitSparsePauli`.
@@ -2038,7 +2039,7 @@ impl PyQubitSparsePauliList {
             if label.len() != qubits.len() {
                 return Err(LabelError::WrongLengthIndices {
                     label: label.len(),
-                    indices: indices.len(),
+                    indices: qubits.len(),
                 }
                 .into());
             }
