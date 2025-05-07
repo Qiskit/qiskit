@@ -309,11 +309,13 @@ class ObservablesArray(ShapedMixin):
     def apply_layout(
         self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> ObservablesArray:
-        """Apply a transpiler layout to this :class:`~.ObservablesArray`
+        """Apply a transpiler layout to this :class:`~.ObservablesArray`.
+        
+        TODO: Consider example?? SParseObservable has some, for example, https://github.com/Qiskit/qiskit/blob/68926088b287ddfe79de1b80d9ea9e5c8cb5bcda/crates/accelerate/src/sparse_observable/mod.rs#L2205
 
         Args:
             layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
-                    If both layout and num_qubits are none, a deep copy of the array is
+                    If both layout and ``num_qubits`` are none, a deep copy of the array is
                     returned.
             num_qubits: The number of qubits to expand the array to. If not
                 provided then if ``layout`` is a :class:`~.TranspileLayout` the
@@ -323,7 +325,10 @@ class ObservablesArray(ShapedMixin):
                 None, the array will be expanded to the given number of qubits.
 
         Returns:
-            A new :class:`.ObservablesArray` with the provided layout applied
+            A new :class:`.ObservablesArray` with the provided layout applied.
+            
+        Raises:
+            QiskitError: ...
         """
         from qiskit.transpiler.layout import TranspileLayout
 
