@@ -25,24 +25,70 @@ use std::ptr::null_mut;
 /// @ingroup QkTarget
 /// Construct a new Target with the given number of qubits.
 ///
-/// @param num_qubits The number of qubits the Target will support
+/// @param description A string describing the Target, or a NULL pointer.
+/// @param num_qubits The number of qubits the Target will explicitly support
+///     or a NULL pointer to dynamically assign a number.
+/// @param dt The dt value for the system time resolution of input, or
+///     a NULL pointer.
+/// @param granularity The value for the minimum pulse gate resolution in
+///     units of ``dt``, or a NULL pointer.
+/// @param min_length minimum pulse gate length value in units of ``dt`` or a NULL
+///     pointer.
+/// @param pulse_alignment value representing a time resolution of gate
+///     instruction starting time or a NULL pointer.
+/// @param acquire_alignment value representing a time resolution of measure instruction
+///     starting time, or a NULL pointer.
 ///
 /// @return A pointer to the new Target
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
+///
+/// # Safety
+///
+/// All arguments will be either valid pointers or NULL pointers.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
+pub unsafe extern "C" fn qk_target_new(
+    description: *mut c_char,
+    num_qubits: *const usize,
+    dt: *const f64,
+    granularity: *const u32,
+    min_length: *const usize,
+    pulse_alignment: *const u32,
+    acquire_alignment: *const u32,
+) -> *mut Target {
+    let description = unsafe {
+        if description.is_null() {
+            None
+        } else {
+            // SAFETY: Per documentation, name points to a null-terminated string of characters.
+            let description: &CStr = CStr::from_ptr(description);
+            Some(description.to_str().unwrap())
+        }
+    };
+    // SAFETY: Per documentation, num_qubits points to either a `size_t` value or a null pointer.
+    let num_qubits = unsafe { native_ptr_to_option(num_qubits) };
+    // SAFETY: Per documentation, dt points to either a `double` value or a null pointer.
+    let dt = unsafe { native_ptr_to_option(dt) };
+    // SAFETY: Per documentation, granularity points to either a `uint32_t` value or a null pointer.
+    let granularity = unsafe { native_ptr_to_option(granularity) };
+    // SAFETY: Per documentation, min_length points to either a `size_t` value or a null pointer.
+    let min_length = unsafe { native_ptr_to_option(min_length) };
+    // SAFETY: Per documentation, pulse_alignment points to either a `uint32_t` value or a null pointer.
+    let pulse_alignment = unsafe { native_ptr_to_option(pulse_alignment) };
+    // SAFETY: Per documentation, acquire_alignment points to either a `uint32_t` value or a null pointer.
+    let acquire_alignment = unsafe { native_ptr_to_option(acquire_alignment) };
+
     let target = Target::new(
-        None,
-        Some(num_qubits as usize),
-        None,
-        None,
-        None,
-        None,
-        None,
+        description.map(|name| name.to_string()),
+        num_qubits,
+        dt,
+        granularity,
+        min_length,
+        pulse_alignment,
+        acquire_alignment,
         None,
         None,
     )
@@ -59,7 +105,7 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     uint32_t num_qubits = qk_target_num_qubits(target);
 ///
 /// # Safety
@@ -67,10 +113,156 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
+pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
-    target.num_qubits.unwrap_or_default() as u32
+    target.num_qubits.unwrap_or_default()
+}
+
+/// @ingroup QkTarget
+/// Returns the description of this Target.
+///
+/// @param target A pointer to the Target.
+///
+/// @return The description of the Target.
+///
+/// # Example
+///     
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
+///     char *description = qk_target_description(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_description(target: *const Target) -> *mut c_char {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+    if let Some(description) = target.description.as_deref() {
+        CString::new(description).unwrap().into_raw()
+    } else {
+        null_mut()
+    }
+}
+
+/// @ingroup QkTarget
+/// Returns the dt value of this Target.
+///
+/// @param target A pointer to the Target.
+///
+/// @return The dt value of this tTarget..
+///
+/// # Example
+///     const dt = 10e-9;
+///     QkTarget *target = qk_target_new("New Target", 5, &dt, NULL, NULL, NULL, NULL);
+///     double dt = qk_target_dt(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> *mut f64 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+    if let Some(dt) = target.dt {
+        Box::into_raw(Box::new(dt))
+    } else {
+        null_mut()
+    }
+}
+
+/// @ingroup QkTarget
+/// Returns the granularity value of this Target.
+///
+/// @param target A pointer to the Target.
+///
+/// @return The granularity value of this tTarget..
+///
+/// # Example
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
+///     // The value defaults to 1
+///     uint32_t granularity = qk_target_granularity(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+    target.granularity
+}
+
+/// @ingroup QkTarget
+/// Returns the `min_length` value of this Target.
+///
+/// @param target A pointer to the Target.
+///
+/// @return The min_length value of this tTarget..
+///
+/// # Example
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
+///     // The value defaults to 1
+///     size_t min_length = qk_target_min_length(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+    target.min_length
+}
+
+/// @ingroup QkTarget
+/// Returns the `pulse_alignment` value of this Target.
+///
+/// @param target A pointer to the Target.
+///
+/// @return The pulse_alignment value of this tTarget..
+///
+/// # Example
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
+///     // The value defaults to 1
+///     uint32_t pulse_alignment = qk_target_pulse_alignment(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+    target.pulse_alignment
+}
+
+/// @ingroup QkTarget
+/// Returns the `acquire_alignment` value of this Target.
+///
+/// @param target A pointer to the Target.
+///
+/// @return The acquire_alignment value of this tTarget..
+///
+/// # Example
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
+///     // The value defaults to 0
+///     uint32_t acquire_alignment = qk_target_pulse_alignment(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u32 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+    target.acquire_alignment
 }
 
 /// @ingroup QkTarget
@@ -80,7 +272,7 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     qk_target_free(target);
 ///
 /// # Safety
@@ -424,7 +616,7 @@ pub unsafe extern "C" fn qk_property_map_add(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
@@ -507,7 +699,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
@@ -542,7 +734,7 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
     instruction_properties: *const InstructionProperties,
 ) -> ExitCode {
     // SAFETY: Per documentation, name points to a null-terminated string of characters.
-    let name: Box<CStr> = unsafe { Box::from(CStr::from_ptr(name)) };
+    let name: &CStr = unsafe { CStr::from_ptr(name) };
 
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
@@ -575,7 +767,7 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
@@ -623,7 +815,7 @@ pub unsafe extern "C" fn qk_target_get_prop_map(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
@@ -681,7 +873,7 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -717,7 +909,7 @@ pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> *mu
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     qk_target_phyisical_qubits(target)
 ///
 /// # Safety
@@ -744,7 +936,7 @@ pub unsafe extern "C" fn qk_target_phyisical_qubits(target: *const Target) -> *m
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -792,7 +984,7 @@ pub unsafe extern "C" fn qk_target_non_global_operation_names(
 ///
 /// # Example
 ///
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -850,7 +1042,7 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -914,7 +1106,7 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
 ///
 /// # Example
 ///
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -972,7 +1164,7 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> *mut *mut u32
 ///
 /// # Example
 ///
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -1023,7 +1215,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -1062,7 +1254,7 @@ pub unsafe extern "C" fn qk_target_contains_instr(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new(5);
+///     QkTarget *target = qk_target_new("New Target", 5, NULL, NULL, NULL, NULL, NULL);
 ///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
 ///
 ///     qk_target_length(target, "x")
@@ -1093,4 +1285,12 @@ unsafe fn parse_qargs(qargs: *const u32, num_qubits: u32) -> Qargs {
                 .collect()
         }
     }
+}
+
+/// Parse a pointer to a rust native type into an option.
+unsafe fn native_ptr_to_option<T>(value: *const T) -> Option<T>
+where
+    T: Copy,
+{
+    unsafe { value.as_ref().copied() }
 }
