@@ -121,7 +121,7 @@ pub unsafe extern "C" fn qk_target_description(target: *const Target) -> *mut c_
 ///
 /// @param target A pointer to the Target.
 ///
-/// @return The dt value of this tTarget..
+/// @return The dt value of this Target.
 ///
 /// # Example
 ///     const dt = 10e-9;
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> *mut f64 {
 ///
 /// @param target A pointer to the Target.
 ///
-/// @return The granularity value of this tTarget..
+/// @return The granularity value of this Target.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
 ///
 /// @param target A pointer to the Target.
 ///
-/// @return The min_length value of this tTarget..
+/// @return The min_length value of this Target.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
@@ -194,7 +194,7 @@ pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> usize {
 ///
 /// @param target A pointer to the Target.
 ///
-/// @return The pulse_alignment value of this tTarget..
+/// @return The pulse_alignment value of this Target.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
@@ -217,7 +217,7 @@ pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32
 ///
 /// @param target A pointer to the Target.
 ///
-/// @return The acquire_alignment value of this tTarget..
+/// @return The acquire_alignment value of this Target.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
