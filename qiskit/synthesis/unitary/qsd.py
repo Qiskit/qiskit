@@ -206,9 +206,8 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
     nqubits = dim.bit_length() - 1
     layout = list(range(nqubits))
     if _ctrl_index:
-        rindex = np.arange(nqubits)[::-1][_ctrl_index]
-        pop_element = layout.pop(rindex)
-        layout = layout + [pop_element]
+        rindex = nqubits - 1 - _ctrl_index
+        layout = list(range(0, rindex)) + list(range(rindex + 1, nqubits)) + [rindex]
 
     um0um1 = um0 @ um1.T.conjugate()
     if is_hermitian_matrix(um0um1):
