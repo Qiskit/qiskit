@@ -162,7 +162,7 @@ pub struct DAGCircuit {
     /// Circuit name.  Generally, this corresponds to the name
     /// of the QuantumCircuit from which the DAG was generated.
     #[pyo3(get, set)]
-    name: Option<PyObject>,
+    name: Option<String>,
     /// Circuit metadata
     #[pyo3(get, set)]
     metadata: Option<PyObject>,
@@ -711,7 +711,7 @@ impl DAGCircuit {
 
     fn __getstate__(&self, py: Python) -> PyResult<Py<PyDict>> {
         let out_dict = PyDict::new(py);
-        out_dict.set_item("name", self.name.as_ref().map(|x| x.clone_ref(py)))?;
+        out_dict.set_item("name", self.name.clone())?;
         out_dict.set_item("metadata", self.metadata.as_ref().map(|x| x.clone_ref(py)))?;
         out_dict.set_item("qregs", self.qregs.cached(py))?;
         out_dict.set_item("cregs", self.cregs.cached(py))?;
@@ -6502,7 +6502,7 @@ impl DAGCircuit {
         )?;
 
         // Assign other necessary data
-        new_dag.name = qc.name.map(|ob| ob.unbind());
+        new_dag.name = qc.name;
 
         // Avoid manually acquiring the GIL.
         new_dag.global_phase = match qc_data.global_phase() {
