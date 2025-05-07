@@ -17,7 +17,7 @@ features_transpiler:
     :math:`\leq 3`, ``"HalfAdder.ripple_c04"`` when 1 ancillary qubit is available, 
     ``"HalfAdder.ripple_r25"`` in all remaining cases.
 
-upgrades_circuit:
+upgrade_circuits:
   - |
     The circuit definition of :class:`.HalfAdderGate` has been upgraded to use
     :func:`.adder_ripple_r25`. To obtain the old behaviour, use the definition of
