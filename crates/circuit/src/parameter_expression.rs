@@ -21,7 +21,6 @@ use num_complex::Complex64;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
