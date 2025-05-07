@@ -478,7 +478,7 @@ fn apply_translation(
     >,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
-    let out_dag = dag.copy_empty_like(py, "alike")?;
+    let out_dag = dag.copy_empty_like("alike")?;
     let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();
@@ -524,7 +524,6 @@ fn apply_translation(
             }
             if let Some(new_op) = new_op {
                 out_dag_builder.apply_operation_back(
-                    py,
                     new_op.operation,
                     node_qarg,
                     node_carg,
@@ -539,7 +538,6 @@ fn apply_translation(
                 )?;
             } else {
                 out_dag_builder.apply_operation_back(
-                    py,
                     node_obj.op.clone(),
                     node_qarg,
                     node_carg,
@@ -556,7 +554,6 @@ fn apply_translation(
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
             out_dag_builder.apply_operation_back(
-                py,
                 node_obj.op.clone(),
                 node_qarg,
                 node_carg,
@@ -635,7 +632,6 @@ fn replace_node(
                 .map(|param| param.clone_ref(py))
                 .collect();
             dag.apply_operation_back(
-                py,
                 new_op,
                 &new_qubits,
                 &new_clbits,
@@ -739,7 +735,6 @@ fn replace_node(
                 }
             }
             dag.apply_operation_back(
-                py,
                 new_op,
                 &new_qubits,
                 &new_clbits,

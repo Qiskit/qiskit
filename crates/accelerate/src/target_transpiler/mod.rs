@@ -1289,6 +1289,10 @@ impl Target {
         })
     }
 
+    pub fn num_qargs(&self) -> usize {
+        self.qarg_gate_map.len()
+    }
+
     /// Gets an iterator with all the qargs used by the specified operation name.
     ///
     /// Rust native equivalent of ``BaseTarget.qargs_for_operation_name()``
@@ -1319,10 +1323,6 @@ impl Target {
             return None;
         }
         Some(qargs)
-    }
-
-    pub fn num_qargs(&self) -> usize {
-        self.qarg_gate_map.len()
     }
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.

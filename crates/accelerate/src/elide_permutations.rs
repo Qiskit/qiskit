@@ -37,7 +37,7 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
 
     // note that DAGCircuit::copy_empty_like clones the interners
-    let mut new_dag = dag.copy_empty_like(py, "alike")?;
+    let mut new_dag = dag.copy_empty_like("alike")?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
             match inst.op.name() {
@@ -83,7 +83,6 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                         .collect();
 
                     new_dag.apply_operation_back(
-                        py,
                         inst.op.clone(),
                         &mapped_qargs,
                         cargs,
