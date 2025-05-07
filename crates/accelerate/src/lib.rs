@@ -15,10 +15,8 @@ use std::env;
 use pyo3::import_exception;
 
 pub mod circuit_library;
-pub mod commutation_checker;
 pub mod convert_2q_block_matrix;
 pub mod cos_sin_decomp;
-pub mod equivalence;
 pub mod error_map;
 pub mod euler_one_qubit_decomposer;
 pub mod gate_metrics;
@@ -34,11 +32,11 @@ pub mod sparse_pauli_op;
 pub mod synthesis;
 pub mod two_qubit_decompose;
 pub mod uc_gate;
+pub mod unitary_compose;
 
 mod rayon_ext;
 #[cfg(test)]
 mod test;
-mod unitary_compose;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {

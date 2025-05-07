@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::target::exceptions::TranspilerError;
 use crate::target::Target;
+use crate::TranspilerError;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;

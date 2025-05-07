@@ -42,13 +42,7 @@ use smallvec::SmallVec;
 
 use qiskit_accelerate::nlayout::PhysicalQubit;
 
-use self::exceptions::TranspilerError;
-
-pub(crate) mod exceptions {
-    use pyo3::import_exception_bound;
-    import_exception_bound! {qiskit.exceptions, QiskitError}
-    import_exception_bound! {qiskit.transpiler.exceptions, TranspilerError}
-}
+use crate::TranspilerError;
 
 // Custom types
 type GateMap = IndexMap<String, PropsMap, RandomState>;

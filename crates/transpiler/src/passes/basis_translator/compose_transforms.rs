@@ -24,7 +24,7 @@ use qiskit_circuit::{
 };
 use smallvec::SmallVec;
 
-use qiskit_accelerate::equivalence::CircuitFromPython;
+use crate::equivalence::CircuitFromPython;
 
 // Custom types
 pub type GateIdentifier = (String, u32);

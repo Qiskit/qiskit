@@ -39,10 +39,10 @@ use qiskit_circuit::Clbit;
 use qiskit_circuit::Qubit;
 use smallvec::SmallVec;
 
-use crate::target::exceptions::TranspilerError;
+use crate::equivalence::EquivalenceLibrary;
 use crate::target::Qargs;
 use crate::target::Target;
-use qiskit_accelerate::equivalence::EquivalenceLibrary;
+use crate::TranspilerError;
 use qiskit_accelerate::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_accelerate::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_accelerate::nlayout::PhysicalQubit;

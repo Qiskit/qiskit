@@ -14,7 +14,7 @@ use std::cell::RefCell;
 
 use indexmap::{IndexMap, IndexSet};
 
-use qiskit_accelerate::equivalence::{EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData};
+use crate::equivalence::{EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData};
 use qiskit_circuit::operations::Operation;
 use rustworkx_core::petgraph::stable_graph::{EdgeReference, NodeIndex, StableDiGraph};
 use rustworkx_core::petgraph::visit::Control;

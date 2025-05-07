@@ -42,11 +42,11 @@ use qiskit_circuit::{
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::SmallVec;
 
-use crate::target::exceptions::TranspilerError;
+use crate::equivalence::EquivalenceLibrary;
 use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
-use qiskit_accelerate::equivalence::EquivalenceLibrary;
+use crate::TranspilerError;
 use qiskit_accelerate::nlayout::PhysicalQubit;
 
 type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
