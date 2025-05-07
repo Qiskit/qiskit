@@ -1,0 +1,5 @@
+---
+features_transpiler:
+  - |
+    Support for creation, manipulation, and interaction of :class:`~.Target` have
+    been added to the Qiskit C API.
