@@ -20,7 +20,7 @@ use pyo3::{prelude::*, pyclass};
     name = "BaseInstructionProperties",
     module = "qiskit._accelerate.target"
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct InstructionProperties {
     #[pyo3(get, set)]
     pub duration: Option<f64>,
