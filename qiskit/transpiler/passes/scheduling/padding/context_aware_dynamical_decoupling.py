@@ -138,7 +138,10 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             raise ValueError(f"skip_dd_threshold must be in [0, 1], but is {skip_dd_threshold}")
 
         if min_joinable_duration is None:
-            min_joinable_duration = 2 * _gate_length_variance(target)
+            if target.dt is None:
+                min_joinable_duration = 0
+            else:
+                min_joinable_duration = 2 * _gate_length_variance(target) / target.dt
 
         self._min_joinable_duration = min_joinable_duration
         self._skip_reset_qubits = skip_reset_qubits
@@ -630,10 +633,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
     def _duration(self, node: DAGOpNode, qubit_map: dict[Qubit, int]) -> float:
         # this is cached on the target, so we can repeatedly call it w/o penalty
         instruction_durations = self._target.durations()
-        # if len(node.qargs) > 1:
         indices = [qubit_map[bit] for bit in node.qargs]
-        # else:
-        # index = qubit_map[node.qargs[]]
 
         return instruction_durations.get(node.op, indices)
 
