@@ -267,16 +267,18 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             qc = QuantumCircuit(num_qubits)
             qc.append(gate, layout)
             hidden_mat = Operator(qc).data
+            num_mult = 0
             for j in range(num_qubits):
                 um00, um11, um01, um10 = qsd._extract_multiplex_blocks(hidden_mat, k=j)
                 # Check the off-diagonal
-                is_mult = qsd._off_diagonals_are_zero(um01, um10)
-                if is_mult:
+                if qsd._off_diagonals_are_zero(um01, um10):
+                    num_mult += 1
                     qc_uc = QuantumCircuit(num_qubits)
                     ucgate = UCGate([um00, um11])
                     qc_uc.append(ucgate, layout)
                     uc_op = Operator(qc_uc)
                     self.assertEqual(Operator(qc), uc_op)
+            self.assertTrue(num_mult)
 
     def _get_multiplex_matrix(self, um00, um11, k):
         """form matrix multiplexed wrt qubit k"""
@@ -301,17 +303,19 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             qc = QuantumCircuit(num_qubits)
             qc.append(gate, layout)
             hidden_mat = Operator(qc).data
+            num_mult = 0
             for j in range(num_qubits):
                 um00, um11, um01, um10 = qsd._extract_multiplex_blocks(hidden_mat, k=j)
                 # Check the off-diagonal
-                is_mult = qsd._off_diagonals_are_zero(um01, um10)
-                if is_mult:
+                if qsd._off_diagonals_are_zero(um01, um10):
+                    num_mult += 1
                     qc_uc = QuantumCircuit(num_qubits)
                     uc_mat = self._get_multiplex_matrix(um00, um11, j)
                     uc_gate = UnitaryGate(uc_mat)
                     qc_uc.append(uc_gate, range(num_qubits))
                     uc_op = Operator(qc_uc)
                     self.assertEqual(Operator(qc), uc_op)
+            self.assertTrue(num_mult)
 
     @data(3, 4, 5, 6)
     def test_block_diag_opt(self, num_qubits):
@@ -323,10 +327,10 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         qc.append(gate, layout)
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
-        cqc = transpile(qc, basis_gates=["u", "cx"])
+        cqc = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
 
         qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
-        cqc2 = transpile(qc2, basis_gates=["u", "cx"])
+        cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
         self.assertEqual(hidden_op, op2)
         self.assertLess(cqc2.count_ops().get("cx", 0), 0.6 * cqc.count_ops().get("cx", 0))
@@ -348,10 +352,10 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
-        cqc = transpile(qc, basis_gates=["u", "cx"])
+        cqc = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
 
         qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
-        cqc2 = transpile(qc2, basis_gates=["u", "cx"])
+        cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
         self.assertTrue(matrix_equal(hidden_op.data, op2.data, atol=2**num_qubits * 1e-6))
         self.assertLessEqual(
@@ -373,10 +377,10 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
-        cqc = transpile(qc, basis_gates=["u", "cx"])
+        cqc = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
 
         qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
-        cqc2 = transpile(qc2, basis_gates=["u", "cx"])
+        cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
         self.assertTrue(matrix_equal(hidden_op.data, op2.data, atol=2**num_qubits * 1e-6))
         self.assertLessEqual(
