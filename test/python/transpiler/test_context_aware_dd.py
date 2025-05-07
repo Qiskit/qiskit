@@ -415,7 +415,7 @@ class TestContextAwareDD(QiskitTestCase):
         circuit = QuantumCircuit(1)
         pass_ = ContextAwareDynamicalDecoupling(get_toy_target(1))
 
-        with self.assertRaisesRegex(RuntimeError, "scheduling pass"):
+        with self.assertRaisesRegex(TranspilerError, "scheduling passes"):
             _ = pass_(circuit)
 
     def test_collecting_diamond_with_initial(self):
