@@ -416,9 +416,10 @@ pub unsafe extern "C" fn qk_circuit_unitary(
         .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
         .collect();
 
-    // Create gate -> push to circuit
-    let gate = UnitaryGate::new(mat).expect("Invalid unitary gate");
-    circuit.push_operation(Operation::from(gate), &qargs, &[]);
+    // Create PackedOperation -> push to circuit
+    let u_gate = UnitaryGate::try_from(mat).unwrap();
+    let op = PackedOperation::from_unitary(Box::new(u_gate));
+    circuit.push_packed_operation(op, &[], &qargs, &[]);
     // Return success
     ExitCode::Success
 }
