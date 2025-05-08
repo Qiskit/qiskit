@@ -173,8 +173,8 @@ impl ::std::convert::TryFrom<u8> for Pauli {
 /// failures on entry to Rust from Python space will automatically raise `TypeError`.
 #[derive(Error, Debug)]
 pub enum CoherenceError {
-    #[error("`boundaries` ({boundaries}) must be one element longer than `coeffs` ({coeffs})")]
-    MismatchedTermCount { coeffs: usize, boundaries: usize },
+    #[error("`boundaries` ({boundaries}) must be one element longer than `rates` ({rates})")]
+    MismatchedTermCount { rates: usize, boundaries: usize },
     #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
     MismatchedItemCount { paulis: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
@@ -233,8 +233,7 @@ pub struct QubitSparsePauliList {
     /// Indices that partition `paulis` and `indices` into sublists for each individual sparse
     /// pauli.  `boundaries[0]..boundaries[1]` is the range of indices into `paulis` and
     /// `indices` that correspond to the first term of the sum.  All unspecified qubit indices are
-    /// implicitly the identity.  This is one item longer than `coeffs`, since `boundaries[0]` is
-    /// always an explicit zero (for algorithmic ease).
+    /// implicitly the identity.
     boundaries: Vec<usize>,
 }
 
@@ -372,8 +371,7 @@ impl QubitSparsePauliList {
     /// # Safety
     ///
     /// Modifying the indices can cause an incoherent state of the [QubitSparsePauliList].
-    /// It should be ensured that the indices are consistent with the coeffs, paulis, and
-    /// boundaries.
+    /// It should be ensured that the indices are consistent with the paulis, and boundaries.
     #[inline]
     pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
         &mut self.indices
@@ -1389,13 +1387,13 @@ impl PyQubitSparsePauli {
 ///                                    its first element.
 ///   ==================  ===========  =============================================================
 ///
-/// The length parameter :math:`t` is the number of generator terms in the sum, and the parameter
+/// The length parameter :math:`t` is the number of elements in the list, and the parameter
 /// :math:`s` is the total number of non-identity single-qubit terms.
 ///
 /// As illustrative examples:
 ///
-/// * in the case of the empty list, which contains no generator terms, :attr:`boundaries` is length
-///   1 (a single 0) and all other vectors are empty.
+/// * in the case of the empty list, :attr:`boundaries` is length 1 (a single 0) and all other
+///   vectors are empty.
 /// * for the list :math:`[Z_2 Z_0, X_3 Y_1]`, :attr:`boundaries` is ``[0, 2, 4]``,
 ///   :attr:`paulis` is ``[Pauli.Z, Pauli.Z, Pauli.Y, Pauli.X]`` and :attr:`indices` is
 ///   ``[0, 2, 1, 3]``.  The Paulis might act on more than four qubits, depending on the
@@ -1681,8 +1679,7 @@ impl PyQubitSparsePauliList {
     /// Indices that partition :attr:`paulis` and :attr:`indices` into sublists for each
     /// individual term in the sum.  ``boundaries[0] : boundaries[1]`` is the range of indices into
     /// :attr:`paulis` and :attr:`indices` that correspond to the first term of the sum.  All
-    /// unspecified qubit indices are implicitly the identity.  This is one item longer than
-    /// :attr:`coeffs`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
+    /// unspecified qubit indices are implicitly the identity.
     #[getter]
     fn get_boundaries(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
@@ -1794,8 +1791,7 @@ impl PyQubitSparsePauliList {
     /// :class:`.SparsePauliOp`.
     ///
     /// Args:
-    ///     iter (list[str]): Pairs of labels and their associated coefficients in the
-    ///         generator sum.
+    ///     iter (list[str]): List of dense string labels.
     ///     num_qubits (int | None): It is not necessary to specify this if you are sure that
     ///         ``iter`` is not an empty sequence, since it can be inferred from the label lengths.
     ///         If ``iter`` may be empty, you must specify this argument to disambiguate how many
