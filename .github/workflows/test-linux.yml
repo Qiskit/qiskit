@@ -187,8 +187,6 @@ jobs:
       HAVE_VISUAL_TESTS_RUN: false
     strategy:
       fail-fast: false
-      matrix:
-        os: ["ubuntu-latest", "ubuntu-24.04-arm"]
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
