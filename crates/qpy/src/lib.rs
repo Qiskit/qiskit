@@ -15,6 +15,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyModule;
 use pyo3::{wrap_pyfunction, Bound, PyResult};
 
+pub type Bytes = Vec<u8>;
+
 mod circuits;
 mod formats;
 mod params;

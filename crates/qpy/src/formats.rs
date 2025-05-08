@@ -12,7 +12,7 @@
 
 use binrw::BinWrite;
 
-pub type Bytes = Vec<u8>;
+use crate::Bytes;
 
 /// The overall structure of the QPY file
 #[derive(BinWrite)]

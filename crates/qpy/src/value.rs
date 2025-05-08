@@ -12,26 +12,21 @@
 
 use binrw::meta::WriteEndian;
 use binrw::BinWrite;
+
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple};
-use qiskit_circuit::imports::{
-    ANNOTATED_OPERATION, BUILTIN_RANGE, CASE_DEFAULT, CLASSICAL_REGISTER, CLBIT, CONTROLLED_GATE,
-    EXPR, MODIFIER, NUMPY_ARRAY, PARAMETER, PARAMETER_EXPRESSION, PARAMETER_VECTOR_ELEMENT,
-    PAULI_EVOLUTION_GATE, QUANTUM_CIRCUIT,
-};
+
+use qiskit_circuit::imports;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 
 use crate::circuits::serialize_circuit;
-use crate::formats::{
-    Bytes, ExpressionVarDeclarationPack, GenericDataPack, GenericDataSequencePack, ModifierPack,
-    RangePack,
-};
+use crate::formats;
 use crate::params::{
     serialize_parameter, serialize_parameter_expression, serialize_parameter_vector,
 };
-use crate::{QpyError, UnsupportedFeatureForVersion};
+use crate::{Bytes, QpyError, UnsupportedFeatureForVersion};
 use std::fmt::Debug;
 use std::io::Cursor;
 
@@ -91,29 +86,32 @@ where
 pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
     let py = py_object.py();
     if py_object
-        .is_instance(PARAMETER_VECTOR_ELEMENT.get_bound(py))
+        .is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))
         .unwrap()
     {
         return Ok(tags::PARAMETER_VECTOR);
-    } else if py_object.is_instance(PARAMETER.get_bound(py)).unwrap() {
+    } else if py_object
+        .is_instance(imports::PARAMETER.get_bound(py))
+        .unwrap()
+    {
         return Ok(tags::PARAMETER);
-    } else if py_object.is_instance(PARAMETER_EXPRESSION.get_bound(py))? {
+    } else if py_object.is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))? {
         return Ok(tags::PARAMETER_EXPRESSION);
-    } else if py_object.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+    } else if py_object.is_instance(imports::QUANTUM_CIRCUIT.get_bound(py))? {
         return Ok(tags::CIRCUIT);
-    } else if py_object.is_instance(CLBIT.get_bound(py))?
-        || py_object.is_instance(CLASSICAL_REGISTER.get_bound(py))?
+    } else if py_object.is_instance(imports::CLBIT.get_bound(py))?
+        || py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
     {
         return Ok(tags::REGISTER);
-    } else if py_object.is_instance(EXPR.get_bound(py))?
-        || py_object.is_instance(CLASSICAL_REGISTER.get_bound(py))?
+    } else if py_object.is_instance(imports::EXPR.get_bound(py))?
+        || py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
     {
         return Ok(tags::EXPRESSION);
-    } else if py_object.is_instance(BUILTIN_RANGE.get_bound(py))? {
+    } else if py_object.is_instance(imports::BUILTIN_RANGE.get_bound(py))? {
         return Ok(tags::RANGE);
-    } else if py_object.is_instance(NUMPY_ARRAY.get_bound(py))? {
+    } else if py_object.is_instance(imports::NUMPY_ARRAY.get_bound(py))? {
         return Ok(tags::NUMPY_OBJ);
-    } else if py_object.is_instance(MODIFIER.get_bound(py))? {
+    } else if py_object.is_instance(imports::MODIFIER.get_bound(py))? {
         return Ok(tags::MODIFIER);
     } else if py_object.is_instance_of::<PyInt>() {
         return Ok(tags::INTEGER);
@@ -125,7 +123,7 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
         return Ok(tags::STRING);
     } else if py_object.is_instance_of::<PyTuple>() {
         return Ok(tags::TUPLE);
-    } else if py_object.is(CASE_DEFAULT.get_bound(py)) {
+    } else if py_object.is(imports::CASE_DEFAULT.get_bound(py)) {
         return Ok(tags::CASE_DEFAULT);
     } else if py_object.is_none() {
         return Ok(tags::NULL);
@@ -179,7 +177,7 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<(u8
 
 pub fn dumps_register(register: &Bound<PyAny>) -> PyResult<Bytes> {
     let py = register.py();
-    if register.is_instance(CLASSICAL_REGISTER.get_bound(py))? {
+    if register.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
         return Ok(register
             .getattr("name")?
             .extract::<String>()?
@@ -195,9 +193,12 @@ pub fn dumps_register(register: &Bound<PyAny>) -> PyResult<Bytes> {
     }
 }
 
-pub fn pack_generic_data(py_data: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<GenericDataPack> {
+pub fn pack_generic_data(
+    py_data: &Bound<PyAny>,
+    qpy_data: &QPYData,
+) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = dumps_value(py_data, qpy_data)?;
-    Ok(GenericDataPack {
+    Ok(formats::GenericDataPack {
         type_key,
         data_len: data.len() as u64,
         data,
@@ -207,15 +208,15 @@ pub fn pack_generic_data(py_data: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult
 pub fn pack_generic_sequence(
     py_sequence: &Bound<PyAny>,
     qpy_data: &QPYData,
-) -> PyResult<GenericDataSequencePack> {
-    let elements: Vec<GenericDataPack> = py_sequence
+) -> PyResult<formats::GenericDataSequencePack> {
+    let elements: Vec<formats::GenericDataPack> = py_sequence
         .try_iter()?
         .map(|possible_data_item| {
             let data_item = possible_data_item?;
             pack_generic_data(&data_item, qpy_data)
         })
         .collect::<PyResult<_>>()?;
-    Ok(GenericDataSequencePack {
+    Ok(formats::GenericDataSequencePack {
         num_elements: elements.len() as u64,
         elements,
     })
@@ -238,9 +239,9 @@ pub fn get_circuit_type_key(py: Python, op: &PackedOperation) -> PyResult<u8> {
         OperationRef::Unitary(_) => Ok(circuit_instruction_types::GATE),
         OperationRef::Gate(pygate) => {
             let gate = pygate.gate.bind(py);
-            if gate.is_instance(PAULI_EVOLUTION_GATE.get_bound(py))? {
+            if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
                 Ok(circuit_instruction_types::PAULI_EVOL_GATE)
-            } else if gate.is_instance(CONTROLLED_GATE.get_bound(py))? {
+            } else if gate.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
                 Ok(circuit_instruction_types::CONTROLLED_GATE)
             } else {
                 Ok(circuit_instruction_types::GATE)
@@ -250,7 +251,7 @@ pub fn get_circuit_type_key(py: Python, op: &PackedOperation) -> PyResult<u8> {
             if operation
                 .operation
                 .bind(py)
-                .is_instance(ANNOTATED_OPERATION.get_bound(py))?
+                .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
             {
                 Ok(circuit_instruction_types::ANNOTATED_OPERATION)
             } else {
@@ -267,7 +268,7 @@ fn serialize_range(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
     let start = py_object.getattr("start")?.extract::<i64>()?;
     let stop = py_object.getattr("stop")?.extract::<i64>()?;
     let step = py_object.getattr("step")?.extract::<i64>()?;
-    let range_pack = RangePack { start, stop, step };
+    let range_pack = formats::RangePack { start, stop, step };
     let mut buffer = Cursor::new(Vec::new());
     range_pack.write(&mut buffer).unwrap();
     Ok(buffer.into_inner())
@@ -297,25 +298,25 @@ fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResul
     Ok(result)
 }
 
-fn pack_modifier(modifier: &Bound<PyAny>) -> PyResult<ModifierPack> {
+fn pack_modifier(modifier: &Bound<PyAny>) -> PyResult<formats::ModifierPack> {
     let py = modifier.py();
     let module = py.import("qiskit.circuit.annotated_operation")?;
     if modifier.is_instance(&module.getattr("InverseModifier")?)? {
-        Ok(ModifierPack {
+        Ok(formats::ModifierPack {
             modifier_type: b"i"[0],
             num_ctrl_qubits: 0,
             ctrl_state: 0,
             power: 0.0,
         })
     } else if modifier.is_instance(&module.getattr("ControlModifier")?)? {
-        Ok(ModifierPack {
+        Ok(formats::ModifierPack {
             modifier_type: b"c"[0],
             num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
             ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
             power: 0.0,
         })
     } else if modifier.is_instance(&module.getattr("PowerModifier")?)? {
-        Ok(ModifierPack {
+        Ok(formats::ModifierPack {
             modifier_type: b"p"[0],
             num_ctrl_qubits: 0,
             ctrl_state: 0,
@@ -332,7 +333,7 @@ pub fn pack_standalone_var(
     var: &Bound<PyAny>,
     usage: u8,
     version: u32,
-) -> PyResult<ExpressionVarDeclarationPack> {
+) -> PyResult<formats::ExpressionVarDeclarationPack> {
     let name = var
         .getattr("name")?
         .extract::<String>()?
@@ -343,7 +344,7 @@ pub fn pack_standalone_var(
         .getattr("var")?
         .getattr("bytes")?
         .extract::<[u8; 16]>()?;
-    Ok(ExpressionVarDeclarationPack {
+    Ok(formats::ExpressionVarDeclarationPack {
         uuid_bytes,
         usage,
         name_size: name.len() as u16,
