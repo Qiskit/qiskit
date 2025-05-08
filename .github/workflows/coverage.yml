@@ -70,6 +70,14 @@ jobs:
           ctest -V --test-dir test/c/build
         env:
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
+
+      - name: Generate rust test coverage report
+        run: |
+          python tools/run_cargo_test.py
+        env:
+          RUSTFLAGS: "-Cinstrument-coverage -Cincremental=false"
+          LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
+
       - name: Generate lcov with grcov
         run: |
           # Copy ctest coverage to cwd
