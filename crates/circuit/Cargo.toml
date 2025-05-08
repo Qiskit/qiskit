@@ -22,6 +22,8 @@ num-complex.workspace = true
 thiserror.workspace = true
 itertools.workspace = true
 nalgebra.workspace = true
+nom.workspace = true
+nom-unicode.workspace = true
 uuid.workspace = true
 
 [dependencies.pyo3]

@@ -1182,7 +1182,7 @@ class QASM3Builder:
         # missing, pending a new system in Terra to replace it (2022-03-07).
         if not isinstance(expression, ParameterExpression):
             return expression
-        if isinstance(expression, Parameter):
+        if expression.is_Parameter():
             return self.symbols.get_variable(expression).string
         return expression.subs(
             {
