@@ -10,17 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ffi::{c_char, CStr, CString};
-
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use std::ffi::{c_char, CStr, CString};
 
 use ndarray::Array2;
 use num_complex::Complex64;
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{
-    Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
@@ -413,12 +412,14 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 
     // Build qubit slice
     let qargs: Vec<Qubit> = (0..num_qubits)
-        .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
+        .map(|idx| Qubit(unsafe { *qubits.add(idx as usize) }))
         .collect();
 
-    // Create PackedOperation -> push to circuit
-    let u_gate = UnitaryGate::try_from(mat).unwrap();
-    let op = PackedOperation::from_unitary(Box::new(u_gate));
+    // Create PackedOperation -> push to circuit_data
+    let u_gate = Box::new(UnitaryGate {
+        array: ArrayType::NDArray(mat),
+    });
+    let op = PackedOperation::from_unitary(u_gate);
     circuit.push_packed_operation(op, &[], &qargs, &[]);
     // Return success
     ExitCode::Success
