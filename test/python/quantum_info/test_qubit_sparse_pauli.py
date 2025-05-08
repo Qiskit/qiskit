@@ -421,7 +421,7 @@ class TestQubitSparsePauli(QiskitTestCase):
         )
 
     def test_attributes_to_array(self):
-        pauli = QubitSparsePauliList.from_label("XZY")
+        pauli = QubitSparsePauli.from_label("XZY")
 
         # Natural dtypes.
         np.testing.assert_array_equal(
