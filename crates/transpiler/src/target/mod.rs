@@ -2136,6 +2136,106 @@ mod test {
     }
 
     #[test]
+    fn test_empty_target() {
+        let target = Target::new();
+
+        assert_eq!(target.len(), 0);
+        assert_eq!(target.num_qubits, None);
+        assert_eq!(target.description, None);
+        assert_eq!(target.dt, None);
+        assert_eq!(target.granularity, 1);
+        assert_eq!(target.min_length, 1);
+        assert_eq!(target.pulse_alignment, 1);
+        assert_eq!(target.acquire_alignment, 1);
+        assert!(target.qubit_properties.is_none());
+        assert!(target.concurrent_measurements.is_none());
+    }
+
+    #[test]
+    fn test_target_construct() {
+        let concurrent_measurements = vec![
+            vec![PhysicalQubit(0), PhysicalQubit(1)],
+            vec![PhysicalQubit(2), PhysicalQubit(3), PhysicalQubit(4)],
+        ];
+        let target = Target::new()
+            .with_description("New Target")
+            .with_num_qubits(6)
+            .with_dt(0.009201)
+            .with_granularity(2)
+            .with_min_length(3)
+            .with_pulse_alignment(4)
+            .with_acquire_alignment(5)
+            .with_concurrent_measurements(concurrent_measurements.clone());
+
+        assert_eq!(target.len(), 0);
+        assert_eq!(target.num_qubits, Some(6));
+        assert_eq!(target.description, Some("New Target".to_string()));
+        assert_eq!(target.dt, Some(0.009201));
+        assert_eq!(target.granularity, 2);
+        assert_eq!(target.min_length, 3);
+        assert_eq!(target.pulse_alignment, 4);
+        assert_eq!(target.acquire_alignment, 5);
+        assert!(target.qubit_properties.is_none());
+        assert_eq!(
+            target.concurrent_measurements.as_ref(),
+            Some(concurrent_measurements.as_ref())
+        );
+    }
+
+    #[test]
+    fn test_target_construct_with_qubit_properties() {
+        // Because of the limitations we have with using py
+        // tokens in Rust, we're not allowed to add actual
+        // values to `QubitProperties`. So until these are
+        // ported to Rust. An empty vec should suffice.
+
+        let result = Target::new()
+            .with_description("New Target")
+            // Try and add with num_qubits, since the Target
+            // is empty, this should not panic.
+            .with_num_qubits(2)
+            // Try and add an empty vec which will not match.
+            .try_with_qubit_properties(vec![]);
+
+        assert!(result.is_err());
+
+        // Try the opposite
+        let result = Target::new()
+            .with_description("New Target")
+            // Try and add a property list for qubits.
+            // Since there's not a defined num_qubit value,
+            // this should not panic.
+            .with_qubit_properties(vec![])
+            // Try and set a number of qubits, since it's not zero
+            // it will fail.
+            .try_with_num_qubits(3);
+
+        assert!(result.is_err());
+
+        let result = Target::new()
+            .with_description("New Target")
+            // Try and add with num_qubits, since the Target
+            // is empty, this should not panic.
+            .with_num_qubits(0)
+            // Try and add an empty vec which will match.
+            .try_with_qubit_properties(vec![]);
+        assert!(result.is_ok());
+
+        // Try the opposite
+        let result = Target::new()
+            .with_description("New Target")
+            // Try and add a property list for qubits.
+            // Since there's not a defined num_qubit value,
+            // this should not panic.
+            .with_qubit_properties(vec![])
+            // Try and set a number of qubits, since it's not zero
+            // it will fail.
+            .try_with_num_qubits(0);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_add_invalid_qargs_insruction() {
         let qargs: SmallVec<[PhysicalQubit; 2]> = (0..4).map(PhysicalQubit).collect();
         let inst_prop: Option<InstructionProperties> = None;
