@@ -148,6 +148,7 @@ Adders
 .. autofunction:: adder_qft_d00
 .. autofunction:: adder_ripple_c04
 .. autofunction:: adder_ripple_v95
+.. autofunction:: adder_ripple_r25
 
 Multipliers
 -----------
@@ -240,6 +241,7 @@ from .arithmetic import (
     adder_qft_d00,
     adder_ripple_c04,
     adder_ripple_v95,
+    adder_ripple_r25,
     multiplier_cumulative_h18,
     multiplier_qft_r17,
     synth_integer_comparator_greedy,
