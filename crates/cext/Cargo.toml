@@ -21,6 +21,7 @@ num-complex.workspace = true
 qiskit-accelerate.workspace = true
 qiskit-circuit.workspace = true
 pyo3 = { workspace = true, optional = true }
+ndarray = { version = "0.15", default-features = false, features = ["std"] }
 
 [build-dependencies]
 cbindgen = "0.28"
