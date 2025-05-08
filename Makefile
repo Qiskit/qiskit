@@ -94,17 +94,13 @@ C_DIR_TEST_BUILD = test/c/build
 # `cheader` recipe.  For now, they're just hardcoded.
 C_CARGO_TARGET_DIR = target/release
 ifeq ($(OS), Windows_NT)
-	C_DYLIB_EXT=dll
-	C_LIB_CARGO_BASENAME=qiskit_cext
+	C_LIB_CARGO_FILENAME=qiskit_cext.dll
 else ifeq ($(shell uname), Darwin)
-	C_DYLIB_EXT=dylib
-	C_LIB_CARGO_BASENAME=libqiskit_cext
+	C_LIB_CARGO_FILENAME=libqiskit_cext.dylib
 else
 	# ... probably.
-	C_DYLIB_EXT=so
-	C_LIB_CARGO_BASENAME=libqiskit_cext
+	C_LIB_CARGO_FILENAME=libqiskit_cext.so
 endif
-C_LIB_CARGO_FILENAME=$(C_LIB_CARGO_BASENAME).$(C_DYLIB_EXT)
 C_LIB_CARGO_PATH=$(C_CARGO_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
 
 C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
