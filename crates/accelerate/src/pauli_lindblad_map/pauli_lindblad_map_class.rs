@@ -35,27 +35,27 @@ static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 /// See [PyPauliLindbladMap] for detailed docs.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PauliLindbladMap {
-    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
+    /// The rates of each abstract term in the generator sum.  This has as many elements as
     /// terms in the sum.
-    coeffs: Vec<f64>,
-    /// A list of qubit sparse Paulis witht he corresponding coefficients
+    rates: Vec<f64>,
+    /// A list of qubit sparse Paulis corresponding to the rates
     qubit_sparse_pauli_list: QubitSparsePauliList,
 }
 
 impl PauliLindbladMap {
     pub fn new(
-        coeffs: Vec<f64>,
+        rates: Vec<f64>,
         qubit_sparse_pauli_list: QubitSparsePauliList,
     ) -> Result<Self, CoherenceError> {
-        if coeffs.len() + 1 != qubit_sparse_pauli_list.boundaries().len() {
+        if rates.len() + 1 != qubit_sparse_pauli_list.boundaries().len() {
             return Err(CoherenceError::MismatchedTermCount {
-                coeffs: coeffs.len(),
+                rates: rates.len(),
                 boundaries: qubit_sparse_pauli_list.boundaries().len(),
             });
         }
 
         Ok(Self {
-            coeffs,
+            rates,
             qubit_sparse_pauli_list,
         })
     }
@@ -66,21 +66,21 @@ impl PauliLindbladMap {
     /// correct values, you can call `new_unchecked` instead.
     pub fn new_from_raw_parts(
         num_qubits: u32,
-        coeffs: Vec<f64>,
+        rates: Vec<f64>,
         paulis: Vec<Pauli>,
         indices: Vec<u32>,
         boundaries: Vec<usize>,
     ) -> Result<Self, CoherenceError> {
-        if coeffs.len() + 1 != boundaries.len() {
+        if rates.len() + 1 != boundaries.len() {
             return Err(CoherenceError::MismatchedTermCount {
-                coeffs: coeffs.len(),
+                rates: rates.len(),
                 boundaries: boundaries.len(),
             });
         }
         let qubit_sparse_pauli_list: QubitSparsePauliList =
             QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
         Ok(Self {
-            coeffs,
+            rates,
             qubit_sparse_pauli_list,
         })
     }
@@ -94,7 +94,7 @@ impl PauliLindbladMap {
     #[inline(always)]
     pub unsafe fn new_unchecked(
         num_qubits: u32,
-        coeffs: Vec<f64>,
+        rates: Vec<f64>,
         paulis: Vec<Pauli>,
         indices: Vec<u32>,
         boundaries: Vec<usize>,
@@ -103,7 +103,7 @@ impl PauliLindbladMap {
             let qubit_sparse_pauli_list: QubitSparsePauliList =
                 QubitSparsePauliList::new_unchecked(num_qubits, paulis, indices, boundaries);
             Self {
-                coeffs,
+                rates,
                 qubit_sparse_pauli_list,
             }
         }
@@ -123,12 +123,12 @@ impl PauliLindbladMap {
     /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = SparseTermView<'_>> + '_ {
-        self.coeffs.iter().enumerate().map(|(i, coeff)| {
+        self.rates.iter().enumerate().map(|(i, rate)| {
             let start = self.qubit_sparse_pauli_list.boundaries[i];
             let end = self.qubit_sparse_pauli_list.boundaries[i + 1];
             SparseTermView {
                 num_qubits: self.qubit_sparse_pauli_list.num_qubits,
-                coeff: *coeff,
+                rate: *rate,
                 paulis: &self.qubit_sparse_pauli_list.paulis[start..end],
                 indices: &self.qubit_sparse_pauli_list.indices[start..end],
             }
@@ -144,19 +144,19 @@ impl PauliLindbladMap {
     /// Get the number of generator terms in the map.
     #[inline]
     pub fn num_terms(&self) -> usize {
-        self.coeffs.len()
+        self.rates.len()
     }
 
-    /// Get the coefficients of the generator terms.
+    /// Get the rates of the generator terms.
     #[inline]
-    pub fn coeffs(&self) -> &[f64] {
-        &self.coeffs
+    pub fn rates(&self) -> &[f64] {
+        &self.rates
     }
 
-    /// Get a mutable slice of the coefficients.
+    /// Get a mutable slice of the rates.
     #[inline]
-    pub fn coeffs_mut(&mut self) -> &mut [f64] {
-        &mut self.coeffs
+    pub fn rates_mut(&mut self) -> &mut [f64] {
+        &mut self.rates
     }
 
     /// Get the indices of each [Pauli].
@@ -170,7 +170,7 @@ impl PauliLindbladMap {
     /// # Safety
     ///
     /// Modifying the indices can cause an incoherent state of the [PauliLindbladMap].
-    /// It should be ensured that the indices are consistent with the coeffs, paulis, and
+    /// It should be ensured that the indices are consistent with the rates, paulis, and
     /// boundaries.
     #[inline]
     pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
@@ -189,7 +189,7 @@ impl PauliLindbladMap {
     ///
     /// Modifying the boundaries can cause an incoherent state of the [PauliLindbladMap].
     /// It should be ensured that the boundaries are sorted and the length/elements are consistent
-    /// with the coeffs, paulis, and indices.
+    /// with the rates, paulis, and indices.
     #[inline]
     pub unsafe fn boundaries_mut(&mut self) -> &mut [usize] {
         unsafe { self.qubit_sparse_pauli_list.boundaries_mut() }
@@ -216,10 +216,10 @@ impl PauliLindbladMap {
     pub fn add_dense_label<L: AsRef<[u8]>>(
         &mut self,
         label: L,
-        coeff: f64,
+        rate: f64,
     ) -> Result<(), LabelError> {
         self.qubit_sparse_pauli_list.add_dense_label(label)?;
-        self.coeffs.push(coeff);
+        self.rates.push(rate);
         Ok(())
     }
 
@@ -230,7 +230,7 @@ impl PauliLindbladMap {
         let qubit_sparse_pauli_list =
             QubitSparsePauliList::with_capacity(num_qubits, num_terms, num_paulis);
         Self {
-            coeffs: Vec::with_capacity(num_terms),
+            rates: Vec::with_capacity(num_terms),
             qubit_sparse_pauli_list,
         }
     }
@@ -240,7 +240,7 @@ impl PauliLindbladMap {
     /// This does not change the capacity of the internal allocations, so subsequent addition or
     /// substraction of generator terms may not need to reallocate.
     pub fn clear(&mut self) {
-        self.coeffs.clear();
+        self.rates.clear();
         self.qubit_sparse_pauli_list.clear();
     }
 
@@ -252,7 +252,7 @@ impl PauliLindbladMap {
                 right: term.num_qubits,
             });
         }
-        self.coeffs.push(term.coeff);
+        self.rates.push(term.rate);
         self.qubit_sparse_pauli_list
             .paulis
             .extend_from_slice(term.paulis);
@@ -280,7 +280,7 @@ impl PauliLindbladMap {
         let end = self.qubit_sparse_pauli_list.boundaries[index + 1];
         SparseTermView {
             num_qubits: self.qubit_sparse_pauli_list.num_qubits,
-            coeff: self.coeffs[index],
+            rate: self.rates[index],
             paulis: &self.qubit_sparse_pauli_list.paulis[start..end],
             indices: &self.qubit_sparse_pauli_list.indices[start..end],
         }
@@ -294,7 +294,7 @@ impl PauliLindbladMap {
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct SparseTermView<'a> {
     pub num_qubits: u32,
-    pub coeff: f64,
+    pub rate: f64,
     pub paulis: &'a [Pauli],
     pub indices: &'a [u32],
 }
@@ -303,14 +303,14 @@ impl SparseTermView<'_> {
     pub fn to_term(&self) -> SparseTerm {
         SparseTerm {
             num_qubits: self.num_qubits,
-            coeff: self.coeff,
+            rate: self.rate,
             paulis: self.paulis.into(),
             indices: self.indices.into(),
         }
     }
 
     pub fn to_sparse_str(self) -> String {
-        let coeff = format!("{}", self.coeff).replace('i', "j");
+        let rate = format!("{}", self.rate).replace('i', "j");
         let paulis = self
             .indices
             .iter()
@@ -319,7 +319,7 @@ impl SparseTermView<'_> {
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
             .join(" ");
-        format!("({})L({})", coeff, paulis)
+        format!("({})L({})", rate, paulis)
     }
 }
 
@@ -331,7 +331,7 @@ impl SparseTermView<'_> {
 #[derive(Debug)]
 pub struct SparseTermViewMut<'a> {
     pub num_qubits: u32,
-    pub coeff: &'a mut f64,
+    pub rate: &'a mut f64,
     pub paulis: &'a mut [Pauli],
     pub indices: &'a [u32],
 }
@@ -342,7 +342,7 @@ pub struct SparseTermViewMut<'a> {
 #[derive(Debug)]
 pub struct IterMut<'a> {
     num_qubits: u32,
-    coeffs: &'a mut [f64],
+    rates: &'a mut [f64],
     paulis: &'a mut [Pauli],
     indices: &'a [u32],
     boundaries: &'a [usize],
@@ -352,7 +352,7 @@ impl<'a> From<&'a mut PauliLindbladMap> for IterMut<'a> {
     fn from(value: &mut PauliLindbladMap) -> IterMut {
         IterMut {
             num_qubits: value.qubit_sparse_pauli_list.num_qubits,
-            coeffs: &mut value.coeffs,
+            rates: &mut value.rates,
             paulis: &mut value.qubit_sparse_pauli_list.paulis,
             indices: &value.qubit_sparse_pauli_list.indices,
             boundaries: &value.qubit_sparse_pauli_list.boundaries,
@@ -370,9 +370,9 @@ impl<'a> Iterator for IterMut<'a> {
         // 'self' borrow to see _another_ mutable borrow of the inner data, which would be an
         // aliasing violation.  Instead, we keep splitting the inner views we took out so the
         // mutable references we return don't overlap with the ones we continue to hold.
-        let coeffs = ::std::mem::take(&mut self.coeffs);
-        let (coeff, other_coeffs) = coeffs.split_first_mut()?;
-        self.coeffs = other_coeffs;
+        let rates = ::std::mem::take(&mut self.rates);
+        let (rate, other_rates) = rates.split_first_mut()?;
+        self.rates = other_rates;
 
         let len = self.boundaries[self.i + 1] - self.boundaries[self.i];
         self.i += 1;
@@ -386,14 +386,14 @@ impl<'a> Iterator for IterMut<'a> {
 
         Some(SparseTermViewMut {
             num_qubits: self.num_qubits,
-            coeff,
+            rate,
             paulis,
             indices,
         })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.coeffs.len(), Some(self.coeffs.len()))
+        (self.rates.len(), Some(self.rates.len()))
     }
 }
 impl ExactSizeIterator for IterMut<'_> {}
@@ -406,15 +406,15 @@ impl ::std::iter::FusedIterator for IterMut<'_> {}
 pub struct SparseTerm {
     /// Number of qubits the entire term applies to.
     num_qubits: u32,
-    /// The real coefficient of the term.
-    coeff: f64,
+    /// The real rate of the term.
+    rate: f64,
     paulis: Box<[Pauli]>,
     indices: Box<[u32]>,
 }
 impl SparseTerm {
     pub fn new(
         num_qubits: u32,
-        coeff: f64,
+        rate: f64,
         paulis: Box<[Pauli]>,
         indices: Box<[u32]>,
     ) -> Result<Self, CoherenceError> {
@@ -431,7 +431,7 @@ impl SparseTerm {
 
         Ok(Self {
             num_qubits,
-            coeff,
+            rate,
             paulis,
             indices,
         })
@@ -441,8 +441,8 @@ impl SparseTerm {
         self.num_qubits
     }
 
-    pub fn coeff(&self) -> f64 {
-        self.coeff
+    pub fn rate(&self) -> f64 {
+        self.rate
     }
 
     pub fn indices(&self) -> &[u32] {
@@ -456,7 +456,7 @@ impl SparseTerm {
     pub fn view(&self) -> SparseTermView {
         SparseTermView {
             num_qubits: self.num_qubits,
-            coeff: self.coeff,
+            rate: self.rate,
             paulis: &self.paulis,
             indices: &self.indices,
         }
@@ -471,7 +471,7 @@ impl SparseTerm {
             boundaries: vec![0, self.paulis.len()],
         };
         PauliLindbladMap {
-            coeffs: vec![self.coeff],
+            rates: vec![self.rate],
             qubit_sparse_pauli_list,
         }
     }
@@ -495,10 +495,10 @@ impl PySparseTerm {
     }
 
     #[new]
-    #[pyo3(signature = (/, num_qubits, coeff, paulis, indices))]
+    #[pyo3(signature = (/, num_qubits, rate, paulis, indices))]
     fn py_new(
         num_qubits: u32,
-        coeff: f64,
+        rate: f64,
         paulis: Vec<Pauli>,
         indices: Vec<u32>,
     ) -> PyResult<Self> {
@@ -526,7 +526,7 @@ impl PySparseTerm {
         }
         let inner = SparseTerm::new(
             num_qubits,
-            coeff,
+            rate,
             paulis,
             sorted_indices.into_boxed_slice(),
         )?;
@@ -537,7 +537,7 @@ impl PySparseTerm {
     fn to_pauli_lindblad_map(&self) -> PyResult<PyPauliLindbladMap> {
         let pauli_lindblad_map = PauliLindbladMap::new_from_raw_parts(
             self.inner.num_qubits(),
-            vec![self.inner.coeff()],
+            vec![self.inner.rate()],
             self.inner.paulis().to_vec(),
             self.inner.indices().to_vec(),
             vec![0, self.inner.paulis().len()],
@@ -580,7 +580,7 @@ impl PySparseTerm {
         let borrowed = slf_.borrow();
         (
             borrowed.inner.num_qubits(),
-            borrowed.inner.coeff(),
+            borrowed.inner.rate(),
             Self::get_paulis(slf_.clone()),
             Self::get_indices(slf_),
         )
@@ -616,10 +616,10 @@ impl PySparseTerm {
         self.inner.num_qubits()
     }
 
-    /// The term's coefficient.
+    /// The term's rate.
     #[getter]
-    fn get_coeff(&self) -> f64 {
-        self.inner.coeff()
+    fn get_rate(&self) -> f64 {
+        self.inner.rate()
     }
 
     /// Read-only view onto the indices of each non-identity single-qubit term.
@@ -668,8 +668,8 @@ impl PySparseTerm {
 ///
 ///     \Lamdba = \exp\left(\sum_{P \in K} \lambda_P P \cdot P - \cdot\right)
 ///
-/// where :math:`K` is a subset of :math:`n`-qubit Pauli operators, and the coefficients
-/// :math:`\lambda_P` are real numbers. When all the coefficients :math:`\lambda_P` are
+/// where :math:`K` is a subset of :math:`n`-qubit Pauli operators, and the rates, or coefficients,
+/// :math:`\lambda_P` are real numbers. When all the rates :math:`\lambda_P` are
 /// non-negative, this corresponds to a completely positive and trace preserving map. The sum in the
 /// exponential is called the generator, and each individual term the generators. To simplify
 /// notation in the rest of the documention, we denote :math:`L(P) = P \cdot P - \cdot`.
@@ -714,7 +714,7 @@ impl PySparseTerm {
 ///   ==================  ===========  =============================================================
 ///   Attribute           Length       Description
 ///   ==================  ===========  =============================================================
-///   :attr:`coeffs`      :math:`t`    The real scalar coefficient for each term.
+///   :attr:`rates`       :math:`t`    The real scalar coefficient for each term.
 ///
 ///   :attr:`paulis`      :math:`s`    Each of the non-identity single-qubit Pauli operators for all
 ///                                    of the generator terms, in order.  These correspond to the
@@ -727,14 +727,13 @@ impl PySparseTerm {
 ///                                    that this list is term-wise sorted, and algorithms can rely
 ///                                    on this invariant being upheld.
 ///
-///   :attr:`boundaries`  :math:`t+1`  The indices that partition :attr:`paulis` and
-///                                    :attr:`indices` into complete terms.  For term number
-///                                    :math:`i`, its complex coefficient is ``coeffs[i]``, and its
-///                                    non-identity single-qubit operators and their corresponding
-///                                    qubits are the slice ``boundaries[i] : boundaries[i+1]`` into
-///                                    :attr:`paulis` and :attr:`indices` respectively.
-///                                    :attr:`boundaries` always has an explicit 0 as its first
-///                                    element.
+///   :attr:`boundaries`  :math:`t+1`  The indices that partition :attr:`paulis` and :attr:`indices`
+///                                    into complete terms.  For term number :math:`i`, its real
+///                                    coefficient is ``rates[i]``, and its non-identity
+///                                    single-qubit operators and their corresponding qubits are the
+///                                    slice ``boundaries[i] : boundaries[i+1]`` into :attr:`paulis`
+///                                    and :attr:`indices` respectively. :attr:`boundaries` always
+///                                    has an explicit 0 as its first element.
 ///   ==================  ===========  =============================================================
 ///
 /// The length parameter :math:`t` is the number of generator terms in the sum, and the parameter
@@ -745,7 +744,7 @@ impl PySparseTerm {
 /// * in the case of the identity map, which contains no generator terms, :attr:`boundaries` is
 ///   length 1 (a single 0) and all other vectors are empty.
 /// * for the map :math:`\exp\left(2 Z_2 Z_0 - 3 X_3 Y_1`, :attr:`boundaries` is ``[0, 2, 4]``,
-///   :attr:`coeffs` is ``[2.0, -3.0]``, :attr:`paulis` is ``[Pauli.Z, Pauli.Z, Pauli.Y,
+///   :attr:`rates` is ``[2.0, -3.0]``, :attr:`paulis` is ``[Pauli.Z, Pauli.Z, Pauli.Y,
 ///   Pauli.X]`` and :attr:`indices` is ``[0, 2, 1, 3]``.  The map might act on more than
 ///   four qubits, depending on the :attr:`num_qubits` parameter.  The :attr:`paulis` are integer
 ///   values, whose magic numbers can be accessed via the :class:`Pauli` attribute class.  Note
@@ -818,7 +817,7 @@ impl PySparseTerm {
 /// this.  For example::
 ///
 ///     >>> pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("YXZ", -0.5)])
-///     >>> assert isinstance(pauli_lindblad_map.coeffs[:], np.ndarray)
+///     >>> assert isinstance(pauli_lindblad_map.rates[:], np.ndarray)
 ///
 /// Indexing
 /// --------
@@ -849,10 +848,10 @@ impl PySparseTerm {
 ///   Method                        Summary
 ///   ============================  ================================================================
 ///   :meth:`from_list`             Generators given as a list of tuples of dense string labels and
-///                                 the associated coefficients.
+///                                 the associated rates.
 ///
 ///   :meth:`from_sparse_list`      Generators given as a list of tuples of sparse string labels,
-///                                 the qubits they apply to, and their coefficients.
+///                                 the qubits they apply to, and their rates.
 ///
 ///   :meth:`from_terms`            Sum explicit single :class:`Term` instances.
 ///
@@ -898,7 +897,7 @@ impl PySparseTerm {
 ///   Method                       Summary
 ///   ===========================  =================================================================
 ///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
-///                                ``(paulis, indices, coeff)``.
+///                                ``(paulis, indices, rate)``.
 ///   ===========================  =================================================================
 #[pyclass(name = "PauliLindbladMap", module = "qiskit.quantum_info", sequence)]
 #[derive(Debug)]
@@ -957,7 +956,7 @@ impl PyPauliLindbladMap {
         )))
     }
 
-    /// Construct a Pauli Lindblad map from a list of dense generator labels and coefficients.
+    /// Construct a Pauli Lindblad map from a list of dense generator labels and rates.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_list`. In this dense form, you must supply
     /// all identities explicitly in each label.
@@ -968,7 +967,7 @@ impl PyPauliLindbladMap {
     /// :class:`.SparsePauliOp`.
     ///
     /// Args:
-    ///     iter (list[tuple[str, float]]): Pairs of labels and their associated coefficients in the
+    ///     iter (list[tuple[str, float]]): Pairs of labels and their associated rates in the
     ///         generator sum.
     ///     num_qubits (int | None): It is not necessary to specify this if you are sure that
     ///         ``iter`` is not an empty sequence, since it can be inferred from the label lengths.
@@ -998,11 +997,11 @@ impl PyPauliLindbladMap {
     ///     qubit-arguments field set to decreasing integers::
     ///
     ///         >>> labels = ["XYXZ", "YYZZ", "XYXZ"]
-    ///         >>> coeffs = [1.5, 2.0, -0.5]
-    ///         >>> from_list = PauliLindbladMap.from_list(list(zip(labels, coeffs)))
+    ///         >>> rates = [1.5, 2.0, -0.5]
+    ///         >>> from_list = PauliLindbladMap.from_list(list(zip(labels, rates)))
     ///         >>> from_sparse_list = PauliLindbladMap.from_sparse_list([
-    ///         ...     (label, (3, 2, 1, 0), coeff)
-    ///         ...     for label, coeff in zip(labels, coeffs)
+    ///         ...     (label, (3, 2, 1, 0), rate)
+    ///         ...     for label, rate in zip(labels, rates)
     ///         ... ])
     ///         >>> assert from_list == from_sparse_list
     ///
@@ -1023,8 +1022,8 @@ impl PyPauliLindbladMap {
             None => iter[0].0.len() as u32,
         };
         let mut inner = PauliLindbladMap::with_capacity(num_qubits, iter.len(), 0);
-        for (label, coeff) in iter {
-            inner.add_dense_label(&label, coeff)?;
+        for (label, rate) in iter {
+            inner.add_dense_label(&label, rate)?;
         }
         Ok(inner.into())
     }
@@ -1104,7 +1103,7 @@ impl PyPauliLindbladMap {
     }
 
     /// Construct a Pauli Lindblad map from a list of labels, the qubits each item applies to, and
-    /// the coefficient of the whole term.
+    /// the rate of the whole term.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`.
     ///
@@ -1115,7 +1114,7 @@ impl PyPauliLindbladMap {
     ///
     /// Args:
     ///     iter (list[tuple[str, Sequence[int], float]]): triples of labels, the qubits
-    ///         each single-qubit term applies to, and the coefficient of the entire term.
+    ///         each single-qubit term applies to, and the rate of the entire term.
     ///
     ///     num_qubits (int): the number of qubits the map acts on.
     ///
@@ -1133,11 +1132,11 @@ impl PyPauliLindbladMap {
     ///     field of the triple is set to decreasing integers::
     ///
     ///         >>> labels = ["XYXZ", "YYZZ", "XYXZ"]
-    ///         >>> coeffs = [1.5, 2.0, -0.5]
-    ///         >>> from_list = PauliLindbladMap.from_list(list(zip(labels, coeffs)))
+    ///         >>> rates = [1.5, 2.0, -0.5]
+    ///         >>> from_list = PauliLindbladMap.from_list(list(zip(labels, rates)))
     ///         >>> from_sparse_list = PauliLindbladMap.from_sparse_list([
-    ///         ...     (label, (3, 2, 1, 0), coeff)
-    ///         ...     for label, coeff in zip(labels, coeffs)
+    ///         ...     (label, (3, 2, 1, 0), rate)
+    ///         ...     for label, rate in zip(labels, rates)
     ///         ... ])
     ///         >>> assert from_list == from_sparse_list
     ///
@@ -1147,7 +1146,7 @@ impl PyPauliLindbladMap {
     #[staticmethod]
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(iter: Vec<(String, Vec<u32>, f64)>, num_qubits: u32) -> PyResult<Self> {
-        let coeffs = iter.iter().map(|(_, _, coeff)| *coeff).collect();
+        let rates = iter.iter().map(|(_, _, rate)| *rate).collect();
         let op_iter = iter
             .iter()
             .map(|(label, indices, _)| (label.clone(), indices.clone()))
@@ -1155,7 +1154,7 @@ impl PyPauliLindbladMap {
         let (paulis, indices, boundaries) = raw_parts_from_sparse_list(op_iter, num_qubits)?;
         let qubit_sparse_pauli_list =
             QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
-        let inner: PauliLindbladMap = PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list)?;
+        let inner: PauliLindbladMap = PauliLindbladMap::new(rates, qubit_sparse_pauli_list)?;
         Ok(inner.into())
     }
 
@@ -1169,7 +1168,7 @@ impl PyPauliLindbladMap {
     ///
     /// Args:
     ///     num_qubits: number of qubits the map acts on.
-    ///     coeffs: float coefficients of each generator term of the map.  This should be a Numpy
+    ///     rates: float coefficients of each generator term of the map.  This should be a Numpy
     ///         array with dtype :attr:`~numpy.float64`.
     ///     paulis: flattened list of the single-qubit terms comprising all complete terms.  This
     ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
@@ -1194,23 +1193,23 @@ impl PyPauliLindbladMap {
     ///         >>> num_qubits = 100
     ///         >>> terms = np.full((num_qubits,), PauliLindbladMap.Pauli.Z, dtype=np.uint8)
     ///         >>> indices = np.arange(num_qubits, dtype=np.uint32)
-    ///         >>> coeffs = np.ones((num_qubits,), dtype=float)
+    ///         >>> rates = np.ones((num_qubits,), dtype=float)
     ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
-    ///         >>> PauliLindbladMap.from_raw_parts(num_qubits, coeffs, terms, indices, boundaries)
+    ///         >>> PauliLindbladMap.from_raw_parts(num_qubits, rates, terms, indices, boundaries)
     ///         <PauliLindbladMap with 100 terms on 100 qubits: (1)L(Z_0) + ... + (1)L(Z_99)>
     #[staticmethod]
     #[pyo3(
-        signature = (/, num_qubits, coeffs, paulis, indices, boundaries, check=true),
+        signature = (/, num_qubits, rates, paulis, indices, boundaries, check=true),
     )]
     unsafe fn from_raw_parts<'py>(
         num_qubits: u32,
-        coeffs: PyArrayLike1<'py, f64>,
+        rates: PyArrayLike1<'py, f64>,
         paulis: PyArrayLike1<'py, u8>,
         indices: PyArrayLike1<'py, u32>,
         boundaries: PyArrayLike1<'py, usize>,
         check: bool,
     ) -> PyResult<Self> {
-        let coeffs = coeffs.as_array().to_vec();
+        let rates = rates.as_array().to_vec();
         let paulis = if check {
             paulis
                 .as_array()
@@ -1230,11 +1229,11 @@ impl PyPauliLindbladMap {
         let inner = if check {
             let qubit_sparse_pauli_list: QubitSparsePauliList =
                 QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
-            PauliLindbladMap::new(coeffs, qubit_sparse_pauli_list).map_err(PyErr::from)
+            PauliLindbladMap::new(rates, qubit_sparse_pauli_list).map_err(PyErr::from)
         } else {
             // SAFETY: the caller promised they have upheld the coherence guarantees.
             Ok(unsafe {
-                PauliLindbladMap::new_unchecked(num_qubits, coeffs, paulis, indices, boundaries)
+                PauliLindbladMap::new_unchecked(num_qubits, rates, paulis, indices, boundaries)
             })
         }?;
         Ok(inner.into())
@@ -1276,11 +1275,11 @@ impl PyPauliLindbladMap {
     /// The coefficients of each abstract term in the generator sum.  This has as many elements as
     /// terms in the sum.
     #[getter]
-    fn get_coeffs(slf_: &Bound<Self>) -> ArrayView {
+    fn get_rates(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
         ArrayView {
             base: borrowed.inner.clone(),
-            slot: ArraySlot::Coeffs,
+            slot: ArraySlot::Rates,
         }
     }
 
@@ -1316,7 +1315,7 @@ impl PyPauliLindbladMap {
     /// individual term in the sum.  ``boundaries[0] : boundaries[1]`` is the range of indices into
     /// :attr:`paulis` and :attr:`indices` that correspond to the first term of the sum.  All
     /// unspecified qubit indices are implicitly the identity.  This is one item longer than
-    /// :attr:`coeffs`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
+    /// :attr:`rates`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
     #[getter]
     fn get_boundaries(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
@@ -1344,7 +1343,7 @@ impl PyPauliLindbladMap {
     fn to_sparse_list(&self, py: Python) -> PyResult<Py<PyList>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
 
-        // turn a SparseView into a Python tuple of (bit terms, indices, coeff)
+        // turn a SparseView into a Python tuple of (bit terms, indices, rate)
         let to_py_tuple = |view: SparseTermView| {
             let mut pauli_string = String::with_capacity(view.paulis.len());
 
@@ -1353,9 +1352,9 @@ impl PyPauliLindbladMap {
             }
             let py_string = PyString::new(py, &pauli_string).unbind();
             let py_indices = PyList::new(py, view.indices.iter())?.unbind();
-            let py_coeff = view.coeff.into_py_any(py)?;
+            let py_rate = view.rate.into_py_any(py)?;
 
-            PyTuple::new(py, vec![py_string.as_any(), py_indices.as_any(), &py_coeff])
+            PyTuple::new(py, vec![py_string.as_any(), py_indices.as_any(), &py_rate])
         };
 
         let out = PyList::empty(py);
@@ -1376,7 +1375,7 @@ impl PyPauliLindbladMap {
             py.get_type::<Self>().getattr("from_raw_parts")?,
             (
                 inner.num_qubits(),
-                PyArray1::from_slice(py, inner.coeffs()),
+                PyArray1::from_slice(py, inner.rates()),
                 PyArray1::from_slice(py, paulis),
                 PyArray1::from_slice(py, inner.indices()),
                 PyArray1::from_slice(py, inner.boundaries()),
@@ -1493,7 +1492,7 @@ impl<'py> IntoPyObject<'py> for PauliLindbladMap {
 /// Helper class of `ArrayView` that denotes the slot of the `PauliLindbladMap` we're looking at.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ArraySlot {
-    Coeffs,
+    Rates,
     Paulis,
     Indices,
     Boundaries,
@@ -1518,7 +1517,7 @@ impl ArrayView {
             ArraySlot::Boundaries => format!("{:?}", pauli_lindblad_map.boundaries()),
             // Complexes don't have a nice repr in Rust, so just delegate the whole load to Python
             // and convert back.
-            ArraySlot::Coeffs => PyList::new(py, pauli_lindblad_map.coeffs())?
+            ArraySlot::Rates => PyList::new(py, pauli_lindblad_map.rates())?
                 .repr()?
                 .to_string(),
             ArraySlot::Paulis => format!(
@@ -1534,7 +1533,7 @@ impl ArrayView {
         Ok(format!(
             "<pauli lindblad map {} view: {}>",
             match self.slot {
-                ArraySlot::Coeffs => "coeffs",
+                ArraySlot::Rates => "rates",
                 ArraySlot::Paulis => "paulis",
                 ArraySlot::Indices => "indices",
                 ArraySlot::Boundaries => "boundaries",
@@ -1569,7 +1568,7 @@ impl ArrayView {
 
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
-            ArraySlot::Coeffs => get_from_slice::<_, f64>(py, pauli_lindblad_map.coeffs(), index),
+            ArraySlot::Rates => get_from_slice::<_, f64>(py, pauli_lindblad_map.rates(), index),
             ArraySlot::Paulis => {
                 get_from_slice::<_, u8>(py, pauli_lindblad_map.paulis(), index)
             }
@@ -1635,8 +1634,8 @@ impl ArrayView {
 
         let mut pauli_lindblad_map = self.base.write().map_err(|_| InnerWriteError)?;
         match self.slot {
-            ArraySlot::Coeffs => {
-                set_in_slice::<_, f64>(pauli_lindblad_map.coeffs_mut(), index, values)
+            ArraySlot::Rates => {
+                set_in_slice::<_, f64>(pauli_lindblad_map.rates_mut(), index, values)
             }
             ArraySlot::Paulis => {
                 set_in_slice::<Pauli, u8>(pauli_lindblad_map.paulis_mut(), index, values)
@@ -1653,7 +1652,7 @@ impl ArrayView {
     fn __len__(&self, _py: Python) -> PyResult<usize> {
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         let len = match self.slot {
-            ArraySlot::Coeffs => pauli_lindblad_map.coeffs().len(),
+            ArraySlot::Rates => pauli_lindblad_map.rates().len(),
             ArraySlot::Paulis => pauli_lindblad_map.paulis().len(),
             ArraySlot::Indices => pauli_lindblad_map.indices().len(),
             ArraySlot::Boundaries => pauli_lindblad_map.boundaries().len(),
@@ -1679,9 +1678,9 @@ impl ArrayView {
         }
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
-            ArraySlot::Coeffs => cast_array_type(
+            ArraySlot::Rates => cast_array_type(
                 py,
-                PyArray1::from_slice(py, pauli_lindblad_map.coeffs()),
+                PyArray1::from_slice(py, pauli_lindblad_map.rates()),
                 dtype,
             ),
             ArraySlot::Indices => cast_array_type(

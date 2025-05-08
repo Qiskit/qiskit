@@ -234,7 +234,7 @@ pub struct QubitSparsePauliList {
     /// pauli.  `boundaries[0]..boundaries[1]` is the range of indices into `paulis` and
     /// `indices` that correspond to the first term of the sum.  All unspecified qubit indices are
     /// implicitly the identity.
-    boundaries: Vec<usize>,
+    pub boundaries: Vec<usize>,
 }
 
 impl QubitSparsePauliList {
