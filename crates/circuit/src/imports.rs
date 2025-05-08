@@ -96,6 +96,8 @@ pub static CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ControlledGate");
 pub static ANNOTATED_OPERATION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "AnnotatedOperation");
+pub static MODIFIER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.annotated_operation", "Modifier");
 pub static CASE_DEFAULT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "CASE_DEFAULT");    
 pub static CLBIT: ImportOnceCell =

@@ -15,23 +15,26 @@ use pyo3::{prelude::*, IntoPyObjectExt};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple};
 use binrw::BinWrite;
-use qiskit_circuit::imports::{PARAMETER, PARAMETER_EXPRESSION, PARAMETER_VECTOR_ELEMENT, QUANTUM_CIRCUIT, NUMPY_ARRAY, CONTROLLED_GATE, PAULI_EVOLUTION_GATE, ANNOTATED_OPERATION, BUILTIN_RANGE, CLBIT, CLASSICAL_REGISTER, CASE_DEFAULT, EXPR};
+use qiskit_circuit::imports::{PARAMETER, PARAMETER_EXPRESSION, PARAMETER_VECTOR_ELEMENT, QUANTUM_CIRCUIT, NUMPY_ARRAY, CONTROLLED_GATE, PAULI_EVOLUTION_GATE, ANNOTATED_OPERATION, BUILTIN_RANGE, CLBIT, CLASSICAL_REGISTER, CASE_DEFAULT, EXPR, MODIFIER};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::Clbit;
 
 use crate::params::{serialize_parameter, serialize_parameter_expression, serialize_parameter_vector};
 use crate::circuits::serialize_circuit;
-use crate::formats::{Bytes, RangePack, GenericDataPack, GenericDataSequencePack};
+use crate::formats::{Bytes, RangePack, GenericDataPack, GenericDataSequencePack, ModifierPack, ExpressionVarDeclarationPack};
+use crate::{UnsupportedFeatureForVersion, QpyError};
 use std::fmt::Debug;
 use std::io::{Cursor, Write};
 
 const QPY_VERSION: u32 = 14;
 
+
 pub struct QPYData {
     pub version: u32,
     pub use_symengine: bool,
-    pub clbit_indices: Py<PyDict>
+    pub clbit_indices: Py<PyDict>,
+    pub standalone_var_indices: Py<PyDict>,
 
 }
 // For debugging purposes
@@ -61,7 +64,22 @@ pub mod tags {
     pub const CIRCUIT: u8 = b'q';
 }
 
-pub fn serialize<T>(value: T) -> PyResult<Bytes>
+pub mod expression_types {
+    pub const BOOL: u8 = b'b';
+    pub const UINT: u8 = b'u';
+    pub const FLOAT: u8 = b'f';
+    pub const DURATION: u8 = b'd';
+}
+
+pub mod expression_var_declaration {
+    pub const INPUT: u8 = b'I';
+    pub const CAPTURE: u8 = b'C';
+    pub const LOCAL: u8 = b'L';
+    pub const STRETCH_CAPTURE: u8 = b'A';
+    pub const STRETCH_LOCAL: u8 = b'O';
+}
+
+pub fn serialize<T>(value: &T) -> PyResult<Bytes>
 where 
     T: BinWrite + WriteEndian + Debug,
     for<'a> <T as BinWrite>::Args<'a>: Default
@@ -91,6 +109,8 @@ pub fn get_type_key(py: Python, py_object: &Bound<PyAny>) -> PyResult<u8> {
         return Ok(tags::RANGE);
     } else if py_object.is_instance(NUMPY_ARRAY.get_bound(py))? {
         return Ok(tags::NUMPY_OBJ);
+    } else if py_object.is_instance(MODIFIER.get_bound(py))? {
+        return Ok(tags::MODIFIER);        
     } else if py_object.is_instance_of::<PyInt>() {
         return Ok(tags::INTEGER);
     } else if py_object.is_instance_of::<PyFloat>() {
@@ -125,7 +145,7 @@ pub fn dumps_value(py: Python, py_object: &Bound<PyAny>, qpy_data: &QPYData) -> 
             bytes
         }
         tags::RANGE => serialize_range(py_object)?,
-        tags::TUPLE => serialize(pack_generic_sequence(py, py_object, qpy_data)?)?,
+        tags::TUPLE => serialize(&pack_generic_sequence(py, py_object, qpy_data)?)?,
         tags::PARAMETER => serialize_parameter(py, py_object)?,
         tags::PARAMETER_VECTOR => serialize_parameter_vector(py, py_object)?,
         tags::PARAMETER_EXPRESSION => serialize_parameter_expression(py, py_object, qpy_data)?,
@@ -136,6 +156,7 @@ pub fn dumps_value(py: Python, py_object: &Bound<PyAny>, qpy_data: &QPYData) -> 
             np.call_method1("save", (&buffer, py_object))?;
             buffer.call_method0("getvalue")?.extract::<Bytes>()?
         }
+        tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
         tags::STRING => py_object.extract::<String>()?.into_bytes(),
         tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
         tags::NULL | tags::CASE_DEFAULT => Vec::new(),
@@ -150,16 +171,11 @@ pub fn dumps_register(py: Python, register: &Bound<PyAny>) -> PyResult<Bytes>{
     if register.is_instance(CLASSICAL_REGISTER.get_bound(py))? {
         return Ok(register.getattr("name")?.extract::<String>()?.as_bytes().to_vec())
     } else {
-        // TODO: explicitly verify this works
-        println!("Dumping clbit {:?}", register);
-//        let index: usize = register.call_method0("index")?.extract()?;
         let index: usize = register.getattr("_index")?.extract()?;
-        println!("Got index {:?}", index);
         //let index_string = index.to_be_bytes().to_vec();
         let index_string = index.to_string().as_bytes().to_vec();
         let mut result = vec![0x00];
         result.extend_from_slice(&index_string);
-        println!("Extending the index {:?} results in hex {:?}", index, &result);
         Ok(result)
     }
 }
@@ -226,20 +242,88 @@ fn serialize_range(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
 }
 
 fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<Bytes> {
-    println!("About to serialize expression {:?}", py_object);
     let py = py_object.py();
     let clbit_indices = PyDict::new(py);
     for (key, val) in qpy_data.clbit_indices.bind(py).iter() {
         let index = val.getattr("index")?;
         clbit_indices.set_item(key, index)?;
     }
-    // TODO: set clbit_indices and standalone_var_indices from inputs
-    let standalone_var_indices = PyDict::new(py);
     let io = py.import("io")?;
     let buffer = io.call_method0("BytesIO")?;
     let value = py.import("qiskit.qpy.binary_io.value")?;
-    value.call_method1("_write_expr", (&buffer, py_object, clbit_indices, standalone_var_indices, qpy_data.version))?;
+    value.call_method1("_write_expr", (&buffer, py_object, clbit_indices, &qpy_data.standalone_var_indices, qpy_data.version))?;
     let result = buffer.call_method0("getvalue")?.extract::<Bytes>()?;
-    println!("Serialized expression {:?}, got {:?}", py_object, hex_string(&result));
     Ok(result)
+}
+
+fn pack_modifier(modifier: &Bound<PyAny>) -> PyResult<ModifierPack> {
+    let py = modifier.py();
+    let module = py.import("qiskit.circuit.annotated_operation")?;
+    if modifier.is_instance(&module.getattr("InverseModifier")?)?{
+        Ok(ModifierPack{
+            modifier_type: b"i"[0],
+            num_ctrl_qubits: 0,
+            ctrl_state: 0,
+            power: 0.0,
+            
+        })
+    } else if modifier.is_instance(&module.getattr("ControlModifier")?)?{
+        Ok(ModifierPack{
+            modifier_type: b"c"[0],
+            num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
+            ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
+            power: 0.0,
+        })
+    } else if modifier.is_instance(&module.getattr("PowerModifier")?)?{
+        Ok(ModifierPack{
+            modifier_type: b"p"[0],
+            num_ctrl_qubits: 0,
+            ctrl_state: 0,
+            power: modifier.getattr("power")?.extract::<f64>()?,
+        })
+    } else {
+        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!("Unsupported modifier.")))
+    }
+}
+
+
+pub fn pack_standalone_var(var: &Bound<PyAny>, usage: u8, version: u32) -> PyResult<ExpressionVarDeclarationPack> {
+    let name = var.getattr("name")?.extract::<String>()?.as_bytes().to_vec();
+    let exp_type = serialize_expression_type(&var.getattr("type")?, version)?;
+    let uuid_bytes = var.getattr("var")?.getattr("bytes")?.extract::<[u8;16]>()?;
+    Ok(ExpressionVarDeclarationPack {
+        uuid_bytes,
+        usage,
+        name_size: name.len() as u16,
+        exp_type,
+        name,
+    })
+}
+
+fn serialize_expression_type(exp_type: &Bound<PyAny>, version: u32) -> PyResult<Bytes> {
+    let kind = exp_type.getattr("kind")?;
+    let py = exp_type.py();
+    let types_module = py.import("qiskit.circuit.classical.types")?;
+    if kind.is(&types_module.getattr("Bool")?) {
+        Ok(expression_types::BOOL.to_be_bytes().to_vec())
+    } else if kind.is(&types_module.getattr("Uint")?) {
+        let mut result = expression_types::UINT.to_be_bytes().to_vec();
+        let width = exp_type.getattr("width")?.extract::<u32>()?.to_be_bytes();
+        result.extend_from_slice(&width);
+        Ok(result)
+    } else if kind.is(&types_module.getattr("Float")?) {
+        if version < 14 {
+            return Err(UnsupportedFeatureForVersion::new_err(("float-typed expressions", 14, version)));
+            //return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!("float-typed expressions require version>=14"))) // TODO: better exception handling
+        }
+        Ok(expression_types::FLOAT.to_be_bytes().to_vec())
+    } else if kind.is(&types_module.getattr("Duration")?) {
+        if version < 14 {
+            return Err(UnsupportedFeatureForVersion::new_err(("duration-typed expressions", 14, version)));
+            //return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!("duration-typed expressions require version>=14"))) // TODO: better exception handling
+        }
+        Ok(expression_types::DURATION.to_be_bytes().to_vec())
+    } else {
+        return Err(QpyError::new_err((format!("unhandled Type object {:?}", exp_type),)));
+    }
 }

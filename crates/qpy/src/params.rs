@@ -41,7 +41,6 @@ fn serialize_parameter_replay_entry(py: Python, inst: &Bound<PyAny>, r_side: boo
     // Also integers and floats are padded with 0
     let mut extra_data = Bytes::new();
     let key_type = get_type_key(py, inst)?; // TODO: get_key_type won't work! it should return "n" for None, but it returns it for numpy
-    println!("serialize_parameter_replay_entry, got key type {:}", key_type);
     let data = match key_type {
         tags::PARAMETER | tags::PARAMETER_VECTOR => inst
             .getattr(intern!(py, "uuid"))?
@@ -72,7 +71,6 @@ fn serialize_parameter_replay_entry(py: Python, inst: &Bound<PyAny>, r_side: boo
             .unwrap(),
         tags::PARAMETER_EXPRESSION => {
             let mut buffer = Cursor::new(Vec::new());
-            println!("RUST: printing parameter expression for inst {:?}", inst);
             let entry = if r_side {
                 ParameterExpressionElementPack {
                     op_code: 255,
@@ -91,9 +89,7 @@ fn serialize_parameter_replay_entry(py: Python, inst: &Bound<PyAny>, r_side: boo
                 }
             };
             entry.write(&mut buffer).unwrap();
-            println!("RUST: first entry {:?}", hex_string(&buffer.clone().into_inner()));
             let serialized_expression = serialize_parameter_expression_elements(py, inst, &mut PyDict::new(py), qpy_data)?;
-            println!("RUST: serialized expression {:?}", hex_string(&serialized_expression));
             buffer.write_all(&serialized_expression).unwrap();
             let entry = if r_side {
                 ParameterExpressionElementPack {
@@ -204,12 +200,7 @@ fn serialize_parameter_expression_element(
         serialize_parameter_replay_entry(py, &getattr_or_none(replay_obj,"lhs")?, false, qpy_data)?;
     let (rhs_type, rhs, extra_rhs_data) =
         serialize_parameter_replay_entry(py, &getattr_or_none(replay_obj,"rhs")?, true, qpy_data)?;
-    println!("RUST: about to read opcode from {:?}", replay_obj);
-    println!("RUST replay_obj.hasattr('op')={:?}",replay_obj.hasattr("op")?);
-    println!("RUST replay_obj.__class__={:?}",replay_obj.getattr("__class__")?);
     let op_code = replay_obj.getattr(intern!(py, "op"))?.extract::<u8>()?;
-    println!("RUST: Serializing op_code {:?}", op_code);
-    println!("RUST: Serializing lhs_type {:?}", lhs_type);
     let packed_element = ParameterExpressionElementPack {
         op_code,
         lhs_type,
@@ -237,7 +228,6 @@ fn serialize_parameter_expression_elements(py: Python, py_object: &Bound<PyAny>,
 }
 
 fn pack_symbol(py: Python, symbol: &Bound<PyAny>, value: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<ParameterExpressionSymbolPack> {
-    println!("Packing symbol {:?}", symbol);
     let symbol_key = get_type_key(py, &symbol)?;
     let symbol_data: Bytes = match symbol_key {
         tags::PARAMETER => serialize_parameter(py, &symbol)?,
@@ -361,25 +351,21 @@ pub fn dumps_instruction_param_value(py: Python, py_object: &Bound<PyAny>, qpy_d
     // we need a hack here to encode floats and integers are little endian
     // since for some reason it was done in the original python code
     // TODO This should be fixed in next QPY version.
-    println!("Dumping instruction_param_value: {:?}", py_object);
     let type_key: u8 = get_type_key(py, py_object)?;
-    println!("Dumping instruction_param_value with type key {:?}", type_key);
     let value: Bytes = match type_key {
         tags::INTEGER => py_object.extract::<i64>()?.to_le_bytes().to_vec(),
         tags::FLOAT => py_object.extract::<f64>()?.to_le_bytes().to_vec(),
-        tags::TUPLE => serialize(pack_generic_instruction_param_sequence(py, py_object, qpy_data)?)?,
+        tags::TUPLE => serialize(&pack_generic_instruction_param_sequence(py, py_object, qpy_data)?)?,
         tags::REGISTER => dumps_register(py, py_object)?,
         _ => {
             let (_, value) = dumps_value(py, py_object, qpy_data)?;
             value
         }
     };
-    println!("Dumped value: {:?}", hex_string(&value));
     Ok((type_key, value))
 }
 
 pub fn pack_param(py: Python, param: &Param, qpy_data: &QPYData) -> PyResult<PackedParam> {
-    println!("Packing param {:?}", param);
     let (type_key, data) =
     match param {
         Param::Float(val) => (tags::FLOAT, val.to_le_bytes().to_vec()), // using le instead of be for this QPY version

@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 use pyo3::{wrap_pyfunction, Bound, PyResult};
@@ -25,3 +26,6 @@ pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(circuits::py_write_circuit, module)?)?;
     Ok(())
 }
+
+import_exception!(qiskit.qpy.exceptions, UnsupportedFeatureForVersion);
+import_exception!(qiskit.qpy.exceptions, QpyError);

@@ -19,6 +19,7 @@ pub type Bytes = Vec<u8>;
 #[brw(big)]
 pub struct QPYFormatV13 {
     pub header: HeaderData,
+    pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
     pub instructions: Vec<CircuitInstructionV2Pack>,
     pub calibration_header: Bytes,
@@ -281,4 +282,25 @@ pub struct RangePack {
     pub start: i64,
     pub stop: i64,
     pub step: i64,
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ModifierPack {
+    pub modifier_type: u8,
+    pub num_ctrl_qubits: u32,
+    pub ctrl_state: u32,
+    pub power: f64,
+}
+
+#[derive(BinWrite)]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ExpressionVarDeclarationPack {
+    pub uuid_bytes: [u8; 16],
+    pub usage: u8,
+    pub name_size: u16,
+    pub exp_type: Bytes,
+    pub name: Bytes,
 }
