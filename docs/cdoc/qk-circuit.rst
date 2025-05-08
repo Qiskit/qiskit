@@ -39,6 +39,14 @@ state defined as:
     // Free the created circuit.
     qk_circuit_free(qc);
 
+The circuit C API currently only supports creating circuits that contain
+operations defined in Qiskit's internal Rust data model. Generally this
+includes only gates in the standard gate library, standard non-unitary
+operations (currently :class:`.Barrier`, :class:`.Measure`, :class:`.Reset`, and
+:class:`.Delay`) and :class:`.UnitaryGate`. This functionality will be
+expanded over time as the Rust data model is expanded to natively support
+more functionality.
+
 Data Types
 ==========
 
@@ -57,4 +65,3 @@ Functions
 .. doxygengroup:: QkCircuit
    :members:
    :content-only:
-
