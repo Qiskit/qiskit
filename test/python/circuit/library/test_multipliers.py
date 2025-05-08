@@ -139,10 +139,13 @@ class TestMultiplier(QiskitTestCase):
             _ = HRSCumulativeMultiplier(3, 3, adder=VBERippleCarryAdder(3))
 
     def test_plugins(self):
-        """Test setting the HLS plugins for the modular adder."""
+        """Test setting HLS plugins for the multiplier."""
 
-        # all gates with the plugins we check, including an expected operation
-        plugins = [("cumulative_h18", "ch"), ("qft_r17", "mcphase")]
+        # For each plugin, we check the presence of an expected operation after
+        # using this plugin.
+        # Note that HighLevelSynthesis runs without basis_gates, so it does not
+        # synthesize down to 1-qubit and 2-qubit gates.
+        plugins = [("cumulative_h18", "ccx"), ("qft_r17", "mcphase")]
 
         num_state_qubits = 2
 

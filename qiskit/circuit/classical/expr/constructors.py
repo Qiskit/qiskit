@@ -683,16 +683,8 @@ Duration())
         left = _coerce_lossless(left, type)
         right = _coerce_lossless(right, type)
     elif left.type.kind is types.Duration and right.type.kind in {types.Uint, types.Float}:
-        if not right.const:
-            raise ValueError(
-                f"multiplying operands '{left}' and '{right}' would result in a non-const '{left.type}'"
-            )
         type = left.type
     elif right.type.kind is types.Duration and left.type.kind in {types.Uint, types.Float}:
-        if not left.const:
-            raise ValueError(
-                f"multiplying operands '{left}' and '{right}' would result in a non-const '{right.type}'"
-            )
         type = right.type
     else:
         raise TypeError(f"invalid types for '{Binary.Op.MUL}': '{left.type}' and '{right.type}'")
@@ -761,10 +753,6 @@ Duration())
             left = _coerce_lossless(left, type)
             right = _coerce_lossless(right, type)
     elif left.type.kind is types.Duration and right.type.kind in {types.Uint, types.Float}:
-        if not right.const:
-            raise ValueError(
-                f"division of '{left}' and '{right}' would result in a non-const '{left.type}'"
-            )
         type = left.type
     else:
         raise TypeError(f"invalid types for '{Binary.Op.DIV}': '{left.type}' and '{right.type}'")

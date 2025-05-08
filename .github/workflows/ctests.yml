@@ -10,8 +10,19 @@ on:
 jobs:
   tests:
     if: github.repository_owner == 'Qiskit'
-    name: linux-tests-c
-    runs-on: ubuntu-latest
+    name: tests-c-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          # Used for the x86_64 builds.
+          - macos-13
+          # Used for the ARM builds.
+          - macos-14
+          - ubuntu-24.04-arm
+          - windows-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies

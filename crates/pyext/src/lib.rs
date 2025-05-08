@@ -38,6 +38,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::commutation_cancellation::commutation_cancellation, "commutation_cancellation")?;
     add_submodule(m, ::qiskit_accelerate::commutation_checker::commutation_checker, "commutation_checker")?;
     add_submodule(m, ::qiskit_accelerate::consolidate_blocks::consolidate_blocks_mod, "consolidate_blocks")?;
+    add_submodule(m, ::qiskit_accelerate::cos_sin_decomp::cos_sin_decomp, "cos_sin_decomp")?;
     add_submodule(m, ::qiskit_accelerate::dense_layout::dense_layout, "dense_layout")?;
     add_submodule(m, ::qiskit_accelerate::equivalence::equivalence, "equivalence")?;
     add_submodule(m, ::qiskit_accelerate::error_map::error_map, "error_map")?;
