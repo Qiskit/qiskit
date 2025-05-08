@@ -357,15 +357,24 @@ pub unsafe extern "C" fn qk_circuit_barrier(
     ExitCode::Success
 }
 
+/// An individual operation count represented by the operation name
+/// and the number of instances in the circuit.
 #[repr(C)]
 pub struct OpCount {
+    /// A nul terminated string representing the operation name
     name: *const c_char,
+    /// The number of instances of this operation in the circuit
     count: usize,
 }
 
+/// An array of ``OpCount`` objects representing the total counts of all
+/// the operation types in a circuit.
 #[repr(C)]
 pub struct OpCounts {
+    /// A array of size ``len`` containing ``OpCount`` objects for each
+    /// type of operation in the circuit
     data: *mut OpCount,
+    /// The number of elements in ``data``
     len: usize,
 }
 
@@ -424,8 +433,6 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
     circuit.__len__()
 }
 
-/// @ingroup QkCircuit
-///
 /// A circuit instruction representation.
 ///
 /// This struct represents the data contained in an individual instruction in a ``QkCircuit``.
