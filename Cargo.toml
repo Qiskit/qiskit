@@ -28,7 +28,7 @@ thiserror = "2.0"
 rustworkx-core = "0.16"
 approx = "0.5"
 itertools = "0.13.0"
-ahash = "0.8.11"
+ahash = "0.8.12"
 rayon = "1.10"
 uuid = { version = "1.16", features = ["v4", "fast-rng"] }
 
