@@ -159,18 +159,18 @@ jobs:
           set -e
           python -m pip install --upgrade pip setuptools wheel virtualenv
           virtualenv test-job
-          - name: Install Qiskit directly
-          if: ${{ !inputs.install-from-sdist }}
-          run: |
-            set -e
-            source test-job/bin/activate
-            python -m pip install -U \
-              -c constraints.txt \
-              -r requirements.txt \
-              -r requirements-dev.txt \
-              -e .
-            # Build and install both qiskit and qiskit-terra so that any optionals
-            # depending on `qiskit` will resolve correctly.
+      - name: Install Qiskit directly
+        if: ${{ !inputs.install-from-sdist }}
+        run: |
+          set -e
+          source test-job/bin/activate
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            -e .
+          # Build and install both qiskit and qiskit-terra so that any optionals
+          # depending on `qiskit` will resolve correctly.
       - name: Run Rust Tests
         # Note that we use the virtual env with Qiskit installed to run the Rust
         # tests since some of them still depend on Qiskit's Python API via PyO3.
@@ -206,18 +206,18 @@ jobs:
           set -e
           python -m pip install --upgrade pip setuptools wheel virtualenv
           virtualenv test-job
-          - name: Install Qiskit directly
-          if: ${{ !inputs.install-from-sdist }}
-          run: |
-            set -e
-            source test-job/bin/activate
-            python -m pip install -U \
-              -c constraints.txt \
-              -r requirements.txt \
-              -r requirements-dev.txt \
-              -e .
-            # Build and install both qiskit and qiskit-terra so that any optionals
-            # depending on `qiskit` will resolve correctly.
+      - name: Install Qiskit directly
+        if: ${{ !inputs.install-from-sdist }}
+        run: |
+          set -e
+          source test-job/bin/activate
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            -e .
+          # Build and install both qiskit and qiskit-terra so that any optionals
+          # depending on `qiskit` will resolve correctly.
       - name: Install Image dependencies
         run: |
           set -e
