@@ -25,9 +25,7 @@ jobs:
       - name: Install ubuntu docs dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
       - name: Run docs
-        run: |
-          make cformat
-          tox -e docs
+        run: tox -e docs
       - name: Clean up docs detritus
         run: rm -rf docs/_build/html/{.doctrees,.buildinfo}
       - name: Store built documentation artifact
@@ -55,4 +53,6 @@ jobs:
       - name: Install ubuntu docs dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
       - name: Run lint
-        run: tox -e lint
+        run: |
+          make cformat
+          tox -e lint

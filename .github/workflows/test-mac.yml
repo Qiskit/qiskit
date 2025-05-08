@@ -50,8 +50,8 @@ jobs:
       - name: "Install dependencies"
         run: |
           set -e
-          python -m pip install --upgrade pip setuptools wheel virtualenv
-          virtualenv test-job
+          python -m pip install --upgrade pip setuptools wheel
+          python -m venv test-job
           source test-job/bin/activate
           python -m pip install -U pip setuptools wheel
           python -m pip install -U \

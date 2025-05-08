@@ -35,11 +35,24 @@ jobs:
       install-optionals: true
       test-rust: true
       test-images: true
+      system-suffix: "latest"
 
   # The rest of the PR pipeline is to test the oldest and newest supported
   # versions of Python. It's very rare for a failure to be specific to an
   # intermediate version of Python, so we just catch those in the cron-job
   # pipeline to reduce the amount of resources used.
+  main-tests-ubuntu-3-9-arm:
+    if: github.repository_owner == 'Qiskit'
+    name: Main Tests (ubuntu)
+    needs: [lint-docs, preliminary-tests]
+    uses: ./.github/workflows/test-linux.yml
+    with:
+      python-version: "3.9"
+      test-rust: false
+      test-images: false
+      install-from-sdist: true
+      install-optionals: false
+      system-suffix: "24.04-arm"
   main-tests-ubuntu:
     if: github.repository_owner == 'Qiskit'
     name: Main Tests (ubuntu)
@@ -47,6 +60,7 @@ jobs:
     strategy:
       matrix:
         python_version: ["3.13"]
+        os-suffix: ["latest", "24.04-arm"]
     uses: ./.github/workflows/test-linux.yml
     with:
       python-version: ${{ matrix.python_version }}
@@ -54,6 +68,7 @@ jobs:
       test-images: false
       install-from-sdist: true
       install-optionals: false
+      system-suffix: ${{ matrix.os-suffix }}
 
   main-tests-mac:
     if: github.repository_owner == 'Qiskit'

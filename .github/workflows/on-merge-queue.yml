@@ -28,11 +28,13 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.13"]
+        os-suffix: ["latest", "24.04-arm"]
     with:
       python-version: ${{ matrix.python-version }}
       install-optionals: ${{ matrix.python-version == '3.9' }}
       test-rust: ${{ matrix.python-version == '3.9' }}
       test-images: ${{ matrix.python-version == '3.9' }}
+      system-suffix: ${{ matrix.os-suffix }}
   test-mac:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-mac.yml

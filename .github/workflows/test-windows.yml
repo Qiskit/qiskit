@@ -48,8 +48,8 @@ jobs:
           path: .stestr
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools wheel virtualenv
-          python -m virtualenv test-job
+          python -m pip install --upgrade pip setuptools wheel
+          python -m venv test-job
           .\test-job\Scripts\activate
           python -m pip install -U pip setuptools wheel
           python -m pip install -U `
