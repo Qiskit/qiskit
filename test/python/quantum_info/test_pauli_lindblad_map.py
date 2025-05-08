@@ -451,9 +451,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         }
         self.assertEqual({label: PauliLindbladMap.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
-        self.assertEqual(
-            {pauli.label: pauli for pauli in PauliLindbladMap.Pauli}, labels
-        )
+        self.assertEqual({pauli.label: pauli for pauli in PauliLindbladMap.Pauli}, labels)
 
     @ddt.idata(single_cases())
     def test_pickle(self, pauli_lindblad_map):
@@ -632,9 +630,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             paulis,
             PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIXIX", -0.25), ("ZIIIZ", 0.5)]),
         )
-        paulis.paulis[paulis.boundaries[2] : paulis.boundaries[3]] = (
-            PauliLindbladMap.Pauli.X
-        )
+        paulis.paulis[paulis.boundaries[2] : paulis.boundaries[3]] = PauliLindbladMap.Pauli.X
         self.assertEqual(
             paulis,
             PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIXIX", -0.25), ("XIIIX", 0.5)]),

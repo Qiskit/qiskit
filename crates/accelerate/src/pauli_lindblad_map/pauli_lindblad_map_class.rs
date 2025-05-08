@@ -24,8 +24,8 @@ use std::sync::{Arc, RwLock};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    cast_array_type, make_py_pauli, raw_parts_from_sparse_list, ArithmeticError, Pauli,
-    CoherenceError, InnerReadError, InnerWriteError, LabelError, QubitSparsePauliList,
+    cast_array_type, make_py_pauli, raw_parts_from_sparse_list, ArithmeticError, CoherenceError,
+    InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList,
 };
 
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
@@ -496,12 +496,7 @@ impl PySparseTerm {
 
     #[new]
     #[pyo3(signature = (/, num_qubits, rate, paulis, indices))]
-    fn py_new(
-        num_qubits: u32,
-        rate: f64,
-        paulis: Vec<Pauli>,
-        indices: Vec<u32>,
-    ) -> PyResult<Self> {
+    fn py_new(num_qubits: u32, rate: f64, paulis: Vec<Pauli>, indices: Vec<u32>) -> PyResult<Self> {
         if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
                 paulis: paulis.len(),
@@ -524,12 +519,7 @@ impl PySparseTerm {
             }
             sorted_indices.push(index)
         }
-        let inner = SparseTerm::new(
-            num_qubits,
-            rate,
-            paulis,
-            sorted_indices.into_boxed_slice(),
-        )?;
+        let inner = SparseTerm::new(num_qubits, rate, paulis, sorted_indices.into_boxed_slice())?;
         Ok(PySparseTerm { inner })
     }
 
@@ -1569,9 +1559,7 @@ impl ArrayView {
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
             ArraySlot::Rates => get_from_slice::<_, f64>(py, pauli_lindblad_map.rates(), index),
-            ArraySlot::Paulis => {
-                get_from_slice::<_, u8>(py, pauli_lindblad_map.paulis(), index)
-            }
+            ArraySlot::Paulis => get_from_slice::<_, u8>(py, pauli_lindblad_map.paulis(), index),
             ArraySlot::Indices => get_from_slice::<_, u32>(py, pauli_lindblad_map.indices(), index),
             ArraySlot::Boundaries => {
                 get_from_slice::<_, usize>(py, pauli_lindblad_map.boundaries(), index)

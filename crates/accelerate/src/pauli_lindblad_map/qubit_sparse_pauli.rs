@@ -2184,8 +2184,7 @@ pub fn raw_parts_from_sparse_list(
             return Err(LabelError::WrongLengthIndices {
                 label: label.len(),
                 indices: qubits.len(),
-            }
-            .into());
+            });
         }
         for (letter, index) in label.iter().zip(qubits) {
             if index >= num_qubits {
