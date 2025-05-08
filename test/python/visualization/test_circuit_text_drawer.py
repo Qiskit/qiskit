@@ -403,8 +403,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             expected,
         )
 
-<<<<<<< HEAD
-=======
     def test_box_end_after_transpile(self):
         """Test that drawing a `box` doesn't explode."""
         # The exact output is not important - feel free to change it.  We only care that it doesn't
@@ -463,7 +461,6 @@ q_4: ────────────────────────┤
 """.rstrip()
         self.assertEqual(actual, expected)
 
->>>>>>> 3e96ade54 (Fix display of Box End after transpile in text drawer (#14278))
     def test_text_swap(self):
         """Swap drawing."""
         expected = "\n".join(
