@@ -370,6 +370,56 @@ pub struct OpCounts {
 }
 
 /// @ingroup QkCircuit
+/// Append an arbitrary unitary matrix to the circuit.
+/// The user passes a row-major array of interleaved real-imaginary pairs #[
+/// representing the unitary matrix.
+///
+/// @param curcuit      A pointer to the circuit to add the unitary to.
+/// @param num_qubits   The width of unitary gate.
+/// @param qubits       The pointer to array of quibit indices.
+/// The array length must be equal to num_qubits.
+/// @param matrix       The pointer to the row-major `(re, im)` doucle array///
+/// # Example
+///
+///
+///
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_unitary(
+    circuit: *mut CircuitData,
+    num_qubits: u32,
+    qubits: *const u32,
+    matrix: *const f64,
+) -> ExitCode {
+    // SAFETY: Caller quarantees pointer validation, alignment
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // Dimension of the unitart: 2^n
+    let dim = 1 << num_qubits;
+
+    // Copy (re, im) pairs to Complex64
+    let raw = unsafe { std::slice::from_raw_parts(matrix, dim * dim * 2) };
+    let data: Vec<Complex64> = raw
+        .chunks_exact(2)
+        .map(|x| Complex64::new(x[0], x[1]))
+        .collect();
+
+    // Build ndarray::Array2
+    let mat = Array2::from_shape_vec((dim, dim), data).expect("Invalid shape for unitary matrix");
+
+    // Build qubit slice
+    let qargs: Vec<Qubit> = (0..num_qubits)
+        .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
+        .collect();
+
+    // Create gate -> push to circuit
+    let gate = UnitaryGate::new(mat).expect("Invalid unitary gate");
+    circuit.push_operation(Operation::from(gate), &qargs, &[]);
+    // Return success
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
 /// Return a list of string names for instructions in a circuit and their counts.
 ///
 /// @param circuit A pointer to the circuit to get the counts for.
