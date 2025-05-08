@@ -572,11 +572,16 @@ pub unsafe extern "C" fn qk_opcounts_free(op_counts: OpCounts) {
 }
 
 /// @ingroup QkCircuit
-/// Convert to a Python-space ``QuantumCircuit``
+/// Convert to a Python-space ``QuantumCircuit``.
 ///
-/// @param circuit the C-space ``QkCircuit`` pointer
+/// This function takes ownership of the pointer and gives it to Python. Using
+/// the input ``circuit`` pointer after it's passed to this function is
+/// undefined behavior. In particular, ``qk_circuit_free`` should not be called
+/// on this pointer anymore.
 ///
-/// @return A Python ``QuantumCircuit`` object
+/// @param circuit The C-space ``QkCircuit`` pointer.
+///
+/// @return A Python ``QuantumCircuit`` object.
 ///
 /// # Safety
 ///
@@ -586,10 +591,6 @@ pub unsafe extern "C" fn qk_opcounts_free(op_counts: OpCounts) {
 /// It is assumed that the thread currently executing this function holds the
 /// Python GIL. This is required to create the Python object returned by this
 /// function.
-///
-/// This function takes ownership of the pointer and gives it to Python. Using
-/// the input ``circuit`` pointer after it's passed to this function is
-/// undefined behavior.
 #[no_mangle]
 #[cfg(feature = "python_binding")]
 #[cfg(feature = "cbinding")]
