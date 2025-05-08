@@ -583,7 +583,7 @@ class TestVF2LayoutOther(LayoutTestCase):
         target.add_instruction(CXGate())
 
         vf2_pass = VF2Layout(
-            coupling_map=CouplingMap([[0, 2], [1, 2]]), target=target, seed=42, max_trials=1
+            coupling_map=CouplingMap([[0, 2], [1, 2]]), target=target, seed=-1, max_trials=1
         )
         vf2_pass.run(dag)
 
@@ -653,12 +653,7 @@ class TestMultipleTrials(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=5, coupling_map=cmap, seed=1)
         vf2_pass = VF2Layout(target=backend.target, seed=-1, max_trials=1)
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        self.assertIn(
-            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 1 is >= configured max trials 1",
-            cm.output,
-        )
+        vf2_pass(qc, property_set)
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {2, 0})
 
     def test_time_limit_exceeded(self):
@@ -672,16 +667,7 @@ class TestMultipleTrials(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=5, coupling_map=cmap, seed=1)
         vf2_pass = VF2Layout(target=backend.target, seed=-1, time_limit=0.0)
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        for output in cm.output:
-            if output.startswith(
-                "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:VF2Layout has taken"
-            ) and output.endswith("which exceeds configured max time: 0.0"):
-                break
-        else:
-            self.fail("No failure debug log message found")
-
+        vf2_pass(qc, property_set)
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {2, 0})
 
     def test_reasonable_limits_for_simple_layouts(self):

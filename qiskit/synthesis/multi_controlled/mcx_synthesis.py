@@ -32,9 +32,12 @@ def synth_mcx_n_dirty_i15(
     action_only: bool = False,
 ) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
-    dirty ancillary qubits producing a circuit with :math:`2 * k - 1` qubits and at most
-    :math:`8 * k - 6` CX gates, by Iten et. al. [1].
+    Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
+    by Iten et al. [1].
+
+    For :math:`k\ge 4` the method uses :math:`k - 2` dirty ancillary qubits, producing a circuit
+    with :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates. For :math:`k\le 3`
+    explicit efficient circuits are used instead.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -53,27 +56,26 @@ def synth_mcx_n_dirty_i15(
            `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
 
+    # First, handle some special cases
     if num_ctrl_qubits == 1:
-        num_qubits = 2
-    else:
-        num_qubits = 2 * num_ctrl_qubits - 1
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        return qc
+    elif num_ctrl_qubits == 2:
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+        return qc
+    elif num_ctrl_qubits == 3 and not relative_phase:
+        qc = synth_c3x()
+        qc.name = "mcx_vchain"
+        return qc
+
+    num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
     qc = QuantumCircuit(q, name="mcx_vchain")
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
-
-    if num_ctrl_qubits == 1:
-        qc.cx(q_controls, q_target)
-        return qc
-    elif num_ctrl_qubits == 2:
-        qc.ccx(q_controls[0], q_controls[1], q_target)
-        return qc
-    elif not relative_phase and num_ctrl_qubits == 3:
-        circuit = synth_c3x()
-        qc.compose(circuit, [*q_controls, q_target], inplace=True, copy=False)
-        return qc
-
     num_ancillas = num_ctrl_qubits - 2
     targets = [q_target] + q_ancillas[:num_ancillas][::-1]
 
@@ -181,7 +183,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls using a single
     clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
-    :math:`16 * k - 8` CX gates, by Barenco et al. [1].
+    :math:`16 * k - 24` CX gates, by [1], [2].
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -190,8 +192,10 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
         The synthesized quantum circuit.
 
     References:
-        1. Barenco et. al., Phys.Rev. A52 3457 (1995),
+        1. Barenco et. al., *Elementary gates for quantum computation*, Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
+        2. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
+           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
 
     if num_ctrl_qubits == 3:
@@ -208,32 +212,27 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     q_ancilla = q[-1]
     q_target = q[-2]
     middle = ceil(num_ctrl_qubits / 2)
-    first_half = [*q[:middle]]
-    second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
 
-    qc_first_half = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(first_half))
-    qc_second_half = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(second_half))
+    # The contruction involving 4 MCX gates is described in Lemma 7.3 of [1], and also
+    # appears as Lemma 9 in [2]. The optimization that the first and third MCX gates
+    # can be synthesized up to relative phase follows from Lemma 7 in [2], as a diagonal
+    # gate following the first MCX gate commutes with the second MCX gate, and
+    # thus cancels with the inverse diagonal gate preceding the third MCX gate. The
+    # same optimization cannot be applied to the second MCX gate, since a diagonal
+    # gate following the second MCX gate would not satisfy the preconditions of Lemma 7,
+    # and would not necessarily commute with the third MCX gate.
+    controls1 = [*q[:middle]]
+    mcx1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(controls1), relative_phase=True)
+    qubits1 = [*controls1, q_ancilla, *q[middle : middle + mcx1.num_qubits - len(controls1) - 1]]
 
-    qc.append(
-        qc_first_half,
-        qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
-        cargs=[],
-    )
-    qc.append(
-        qc_second_half,
-        qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
-        cargs=[],
-    )
-    qc.append(
-        qc_first_half,
-        qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
-        cargs=[],
-    )
-    qc.append(
-        qc_second_half,
-        qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
-        cargs=[],
-    )
+    controls2 = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+    mcx2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(controls2))
+    qc2_qubits = [*controls2, q_target, *q[0 : mcx2.num_qubits - len(controls2) - 1]]
+
+    qc.compose(mcx1, qubits1, inplace=True)
+    qc.compose(mcx2, qc2_qubits, inplace=True)
+    qc.compose(mcx1.inverse(), qubits1, inplace=True)
+    qc.compose(mcx2, qc2_qubits, inplace=True)
 
     return qc
 
