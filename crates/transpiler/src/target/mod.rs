@@ -298,11 +298,11 @@ impl Target {
         }
         if let Some(qubit_properties) = qubit_properties {
             target_build = target_build
-                .with_qubit_properties(qubit_properties)
+                .try_with_qubit_properties(qubit_properties)
                 .map_err(|err| PyValueError::new_err(err.to_string()))?;
         } else if let Some(num_qubits) = num_qubits {
             target_build = target_build
-                .with_num_qubits(num_qubits)
+                .try_with_num_qubits(num_qubits)
                 .map_err(|err| PyValueError::new_err(err.to_string()))?;
         }
         if let Some(dt) = dt {
@@ -392,7 +392,7 @@ impl Target {
     ///
     /// Args:
     ///     operation (str): The operation name to get qargs for
-    /// Returns:
+    /// Returns
     ///     list: The list of qargs the gate instance applies to.
     #[pyo3(name = "qargs_for_operation_name")]
     pub fn py_qargs_for_operation_name(&self, operation: &str) -> PyResult<Option<Vec<&Qargs>>> {
@@ -407,7 +407,7 @@ impl Target {
     /// Args:
     ///     instruction (str): The instruction name to get the
     ///         :class:`~qiskit.circuit.Instruction` instance for
-    /// Returns:
+    /// Returns
     ///     qiskit.circuit.Instruction: The Instruction instance corresponding to the
     ///     name. This also can also be the class for globally defined variable with
     ///     operations.
@@ -432,7 +432,7 @@ impl Target {
     ///         to it. For example, ``(0,)`` will return the set of all
     ///         instructions that apply to qubit 0. If set to ``None`` this will
     ///         return any globally defined operations in the target.
-    /// Returns:
+    /// Returns
     ///     list: The list of :class:`~qiskit.circuit.Instruction` instances
     ///     that apply to the specified qarg. This may also be a class if
     ///     a variable width operation is globally defined.
@@ -463,7 +463,7 @@ impl Target {
     ///         to it. For example, ``(0,)`` will return the set of all
     ///         instructions that apply to qubit 0. If set to ``None`` this will
     ///         return the names for any globally defined operations in the target.
-    /// Returns:
+    /// Returns
     ///     set: The set of operation names that apply to the specified ``qargs``.
     ///
     /// Raises:
@@ -535,7 +535,7 @@ impl Target {
     ///         instances this flag will have no effect as angle bounds only impact
     ///         non-parameterized operations in the circuit.
     ///
-    /// Returns:
+    /// Returns
     ///     bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
     #[pyo3(
         name = "instruction_supported",
@@ -649,7 +649,7 @@ impl Target {
     ///         :attr:`~qiskit.transpiler.Target.instructions` attribute. For, example
     ///         if you want the properties from the third element in
     ///         :attr:`~qiskit.transpiler.Target.instructions` you would set this to be ``2``.
-    /// Returns:
+    /// Returns
     ///     InstructionProperties: The instruction properties for the specified instruction tuple
     pub fn instruction_properties(&self, index: usize) -> PyResult<Option<InstructionProperties>> {
         let mut index_counter = 0;
@@ -682,7 +682,7 @@ impl Target {
     ///         non-global, but if ``strict_direction`` is set ``True`` both
     ///         ``cx`` and ``ecr`` would be returned.
     ///
-    /// Returns:
+    /// Returns
     ///     List[str]: A list of operation names for operations that aren't global in this target
     #[pyo3(name = "_get_non_global_operation_names", signature = (/, strict_direction=false,))]
     fn py_get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
@@ -962,7 +962,44 @@ impl Target {
     ///        noiseless simulator that doesn't have constraints on the
     ///        instructions so the transpiler knows how many qubits are
     ///        available.
-    /// # Returns:
+    /// # Returns
+    ///
+    /// Initialized [Target] with a defined number of qubits.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if there was a specified [Target::qubit_properties]
+    /// attribute and its length is not equal to ``num_qubits``.
+    ///
+    /// /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_num_qubits(1);
+    /// assert_eq!(target.unwrap().num_qubits, Some(1));
+    /// ```
+    pub fn with_num_qubits(self, num_qubits: u32) -> Self {
+        self.try_with_num_qubits(num_qubits)
+            .unwrap_or_else(|e| panic!("{}", e.to_string()))
+    }
+
+    /// Sets the num qubits attribute to a newly constructed [Target]
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_qubits` - An optional int to specify the number of qubits
+    ///        the backend target has. If not set it will be implicitly set
+    ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
+    ///        is called. Note this must be set if the backend target is for a
+    ///        noiseless simulator that doesn't have constraints on the
+    ///        instructions so the transpiler knows how many qubits are
+    ///        available.
+    ///
+    /// # Returns
     ///
     /// * `Ok`: (if the number of qubits was successfully set.) [Target]
     /// * `Err`: (if there was a specified [Target::qubit_properties] attribute and the
@@ -973,11 +1010,11 @@ impl Target {
     /// ```rust
     /// use qiskit_accelerate::target_transpiler::Target;
     ///
-    /// let mut target = Target::new().with_num_qubits(1);
+    /// let mut target = Target::new().try_with_num_qubits(1);
     /// assert!(target.is_ok());
     /// assert_eq!(target.unwrap().num_qubits, Some(1));
     /// ```
-    pub fn with_num_qubits(mut self, num_qubits: u32) -> Result<Self, TargetError> {
+    pub fn try_with_num_qubits(mut self, num_qubits: u32) -> Result<Self, TargetError> {
         if let Some(qubit_properties) = self.qubit_properties.as_ref() {
             if num_qubits as usize != qubit_properties.len() {
                 return Err(TargetError::NumQubitsMismatch(
@@ -1150,7 +1187,43 @@ impl Target {
     ///        are defined for. If some qubits don't have properties available you
     ///        can set that entry to ``None``.
     ///
-    /// # Returns:
+    /// # Returns
+    ///
+    /// Initialized [Target] with a defined ``qubit_properties`` attribute.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if there was a specified [Target::num_qubits] attribute and the
+    /// the length of the provided list is not equal to [Target::num_qubits].
+    ///
+    /// /// # Examples
+    ///
+    /// ```rust
+    /// use qiskit_accelerate::target_transpiler::Target;
+    ///
+    /// let mut target = Target::new().with_qubit_properties(vec![]);
+    /// assert_eq!(target.num_qubits, Some(0));
+    /// ```
+    pub fn with_qubit_properties(self, qubit_properties: Vec<QubitProperties>) -> Self {
+        self.try_with_qubit_properties(qubit_properties)
+            .unwrap_or_else(|e| panic!("{}", e.to_string()))
+    }
+
+    /// Sets a list of the characteristics of each qubit on the [Target] device.
+    ///
+    /// **Warning:** Should only be used during the construction process of [Target],
+    /// after calling [Target::new] or any other construction methods.
+    ///
+    /// # Arguments
+    ///
+    /// * `qubit_properties` - A list of python `QubitProperties` objects defining
+    ///        the characteristics of each qubit on the target device. If specified
+    ///        the length of this list must match the number of qubits in the target,
+    ///        where the index in the list matches the qubit number the properties
+    ///        are defined for. If some qubits don't have properties available you
+    ///        can set that entry to ``None``.
+    ///
+    /// # Returns
     ///
     /// * `Ok`: (if the`qubit_properties` were successfully set.) [Target]
     /// * `Err`: (if there was a specified [Target::num_qubits] attribute and the
@@ -1161,12 +1234,12 @@ impl Target {
     /// ```rust
     /// use qiskit_accelerate::target_transpiler::Target;
     ///
-    /// let mut target = Target::new().with_qubit_properties(vec![]);
+    /// let mut target = Target::new().try_with_qubit_properties(vec![]);
     /// assert!(target.is_ok());
     /// // This should change the number of qubits to the length of the list.
     /// assert_eq!(target.num_qubits, Some(0));
     /// ```
-    pub fn with_qubit_properties(
+    pub fn try_with_qubit_properties(
         mut self,
         qubit_properties: Vec<QubitProperties>,
     ) -> Result<Self, TargetError> {
@@ -2254,8 +2327,7 @@ mod test {
         // num_qubits is 2, but only 1 qubit_properties
         let result = Target::new()
             .with_num_qubits(2)
-            .unwrap()
-            .with_qubit_properties(props);
+            .try_with_qubit_properties(props);
         assert!(result.is_err());
     }
 }
