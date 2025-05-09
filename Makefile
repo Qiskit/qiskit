@@ -136,7 +136,10 @@ cheader: $(C_QISKIT_H)
 c: $(C_LIBQISKIT) $(C_QISKIT_H)
 
 # Use ctest to run C API tests
-ctest: $(C_LIB_CARGO_PATH) $(C_QISKIT_H)
+ctest: $(C_DIR_INCLUDE)
+	cargo rustc --crate-type cdylib -p qiskit-cext
+	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
+
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build
 	cmake -S. -B$(C_DIR_TEST_BUILD)

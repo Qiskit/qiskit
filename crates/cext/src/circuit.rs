@@ -21,6 +21,15 @@ use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruc
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
+#[cfg(feature = "python_binding")]
+use pyo3::ffi::PyObject;
+#[cfg(feature = "python_binding")]
+use pyo3::types::PyAnyMethods;
+#[cfg(feature = "python_binding")]
+use pyo3::{intern, Python};
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::imports::QUANTUM_CIRCUIT;
+
 /// @ingroup QkCircuit
 /// Construct a new circuit with the given number of qubits and clbits.
 ///
@@ -559,5 +568,40 @@ pub unsafe extern "C" fn qk_opcounts_free(op_counts: OpCounts) {
     // SAFETY: Loading a box from the slice pointer created above
     unsafe {
         let _ = Box::from_raw(data);
+    }
+}
+
+/// @ingroup QkCircuit
+/// Convert to a Python-space ``QuantumCircuit``.
+///
+/// This function takes ownership of the pointer and gives it to Python. Using
+/// the input ``circuit`` pointer after it's passed to this function is
+/// undefined behavior. In particular, ``qk_circuit_free`` should not be called
+/// on this pointer anymore.
+///
+/// @param circuit The C-space ``QkCircuit`` pointer.
+///
+/// @return A Python ``QuantumCircuit`` object.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to
+/// a ``QkCircuit``
+///
+/// It is assumed that the thread currently executing this function holds the
+/// Python GIL. This is required to create the Python object returned by this
+/// function.
+#[no_mangle]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut PyObject {
+    unsafe {
+        let circuit = Box::from_raw(mut_ptr_as_ref(circuit));
+        let py = Python::assume_gil_acquired();
+        QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_circuit_data"), (*circuit,))
+            .expect("Unabled to create a Python circuit")
+            .into_ptr()
     }
 }
