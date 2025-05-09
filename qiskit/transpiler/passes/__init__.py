@@ -45,7 +45,6 @@ Routing
    LookaheadSwap
    SabreSwap
    Commuting2qGateRouter
-   StarPreRouting
 
 Basis Change
 ============
@@ -188,7 +187,6 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import SabreSwap
 from .routing import Commuting2qGateRouter
-from .routing import StarPreRouting
 
 # basis change
 from .basis import Decompose
