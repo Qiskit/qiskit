@@ -1,12 +1,12 @@
 [package]
-name = "qiskit-accelerate"
+name = "qiskit-transpiler"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
 [lib]
-name = "qiskit_accelerate"
+name = "qiskit_transpiler"
 doctest = false
 
 [lints]
@@ -15,22 +15,16 @@ workspace = true
 [dependencies]
 rayon.workspace = true
 numpy.workspace = true
+ahash.workspace = true
+itertools.workspace = true
+nalgebra.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
-rand_distr.workspace = true
-ahash.workspace = true
-num-traits.workspace = true
 num-complex.workspace = true
 rustworkx-core.workspace = true
-num-bigint.workspace = true
-faer = "0.19.4"
-itertools.workspace = true
 qiskit-circuit.workspace = true
+qiskit-accelerate.workspace = true
 thiserror.workspace = true
-ndarray-einsum = "0.8.0"
-rustiq-core = "0.0.11"
-bytemuck.workspace = true
-nalgebra.workspace = true
 
 [dependencies.smallvec]
 workspace = true
@@ -55,14 +49,6 @@ features = ["rayon"]
 [dependencies.indexmap]
 workspace = true
 features = ["rayon"]
-
-[dependencies.faer-ext]
-version = "0.3.0"
-features = ["ndarray"]
-
-[dependencies.pulp]
-version = "0.21.5"
-features = ["macro"]
 
 [dev-dependencies]
 pyo3 = { workspace = true, features = ["auto-initialize"] }

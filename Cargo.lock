@@ -1486,6 +1486,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-qasm2",
  "qiskit-qasm3",
+ "qiskit-transpiler",
 ]
 
 [[package]]
@@ -1507,6 +1508,30 @@ dependencies = [
  "indexmap",
  "oq3_semantics",
  "pyo3",
+]
+
+[[package]]
+name = "qiskit-transpiler"
+version = "2.1.0"
+dependencies = [
+ "ahash 0.8.11",
+ "approx",
+ "hashbrown 0.15.2",
+ "indexmap",
+ "itertools 0.13.0",
+ "nalgebra",
+ "ndarray",
+ "num-complex",
+ "numpy",
+ "pyo3",
+ "qiskit-accelerate",
+ "qiskit-circuit",
+ "rand 0.9.1",
+ "rand_pcg 0.9.0",
+ "rayon",
+ "rustworkx-core",
+ "smallvec",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

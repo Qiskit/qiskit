@@ -30,6 +30,10 @@ approx = "0.5"
 itertools = "0.13.0"
 ahash = "0.8.12"
 rayon = "1.10"
+rand = "0.9"
+rand_pcg = "0.9"
+rand_distr = "0.5"
+num-traits = "0.2"
 uuid = { version = "1.16", features = ["v4", "fast-rng"] }
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
@@ -45,6 +49,7 @@ qiskit-circuit = { path = "crates/circuit" }
 qiskit-qasm2 = { path = "crates/qasm2" }
 qiskit-qasm3 = { path = "crates/qasm3" }
 qiskit-cext = { path = "crates/cext" }
+qiskit-transpiler = { path = "crates/transpiler" }
 
 [workspace.lints.clippy]
 # The lint forbids things like `if a < b {} else if a == b {}`, and suggests matching on `a.cmp(&b)`
