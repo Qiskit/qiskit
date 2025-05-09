@@ -1438,6 +1438,7 @@ dependencies = [
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.12",
+ "uuid",
 ]
 
 [[package]]
