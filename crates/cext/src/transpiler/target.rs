@@ -22,6 +22,29 @@ use std::ffi::{c_char, CStr, CString};
 use std::mem::forget;
 use std::ptr::null_mut;
 
+// Helper structures
+
+/// Represent a list of instruction names coming from the target.
+#[repr(C)]
+pub struct QkTargetNameList {
+    list: *mut *mut c_char,
+    length: usize,
+}
+
+/// Represent a list of qargs coming from the target.
+#[repr(C)]
+pub struct QkTargetQargsList {
+    list: *mut QkTargetQargs,
+    length: usize,
+}
+
+/// Represent qargs coming from the target.
+#[repr(C)]
+pub struct QkTargetQargs {
+    args: *mut u32,
+    length: usize,
+}
+
 /// @ingroup QkTarget
 /// Construct a new Target with the given number of qubits.
 ///
@@ -1016,7 +1039,7 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> *mut *mut c_char {
+pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> QkTargetNameList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
     let mut names: Vec<*mut c_char> = target
@@ -1024,10 +1047,14 @@ pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> *mu
         .map(|name| CString::new(name).unwrap().into_raw())
         .collect();
     let pointer = names.as_mut_ptr();
+    let length = names.len();
 
     // Prevent vec from being destroyed
     forget(names);
-    pointer
+    QkTargetNameList {
+        list: pointer,
+        length,
+    }
 }
 
 /// @ingroup QkTarget
@@ -1082,7 +1109,7 @@ pub unsafe extern "C" fn qk_target_phyisical_qubits(target: *const Target) -> *m
 pub unsafe extern "C" fn qk_target_non_global_operation_names(
     target: *mut Target,
     strict_direction: bool,
-) -> *mut *mut c_char {
+) -> QkTargetNameList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
 
@@ -1092,10 +1119,11 @@ pub unsafe extern "C" fn qk_target_non_global_operation_names(
         .iter()
         .map(|items| CString::new(items.as_str()).unwrap().into_raw())
         .collect();
+    let length = operation_names.len();
     let ptr = operation_names.as_mut_ptr();
     // Prevent original vec from being forgotten
     forget(operation_names);
-    ptr
+    QkTargetNameList { list: ptr, length }
 }
 
 /// @ingroup QkTarget
@@ -1138,7 +1166,7 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
     target: *const Target,
     qargs: *mut u32,
     num_qubits: u32,
-) -> *mut *mut c_char {
+) -> QkTargetNameList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
@@ -1154,12 +1182,12 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
     } else {
         vec![]
     };
-
+    let length = result.len();
     let ptr = result.as_mut_ptr();
 
     // Prevent origin from being destroyed
     forget(result);
-    ptr
+    QkTargetNameList { list: ptr, length }
 }
 
 /// @ingroup QkTarget
@@ -1191,24 +1219,32 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
 pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
     target: *const Target,
     name: *mut c_char,
-) -> *mut *mut u32 {
+) -> QkTargetQargsList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
 
     let target = unsafe { const_ptr_as_ref(target) };
     // SAFETY: Per documentation, name points to a null-terminated string of characters.
     let name = unsafe { CStr::from_ptr(name) };
 
-    let mut result: Vec<*mut u32> =
+    let mut result: Vec<QkTargetQargs> =
         if let Ok(Some(qargs)) = target.qargs_for_operation_name(name.to_str().unwrap()) {
             qargs
                 .map(|qargs| {
                     if let Qargs::Concrete(qargs) = qargs {
                         let mut value = qargs.iter().map(|bit| bit.0).collect::<Vec<_>>();
                         let value_ptr = value.as_mut_ptr();
+                        let length = value.len();
                         forget(value);
-                        value_ptr
+
+                        QkTargetQargs {
+                            args: value_ptr,
+                            length,
+                        }
                     } else {
-                        null_mut()
+                        QkTargetQargs {
+                            args: null_mut(),
+                            length: 0,
+                        }
                     }
                 })
                 .collect()
@@ -1221,10 +1257,11 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
     } else {
         result.as_mut_ptr()
     };
+    let length = result.len();
 
     // Prevent original from being destroyed
     forget(result);
-    ptr
+    QkTargetQargsList { list: ptr, length }
 }
 
 /// @ingroup QkTarget
@@ -1249,20 +1286,27 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> *mut *mut u32 {
+pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargsList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
-    let mut result: Vec<*mut u32> = if let Some(qargs) = target.qargs() {
+    let mut result: Vec<QkTargetQargs> = if let Some(qargs) = target.qargs() {
         qargs
             .map(|qargs| {
                 if let Qargs::Concrete(qargs) = qargs {
                     let mut value = qargs.iter().map(|bit| bit.0).collect::<Vec<_>>();
                     let value_ptr = value.as_mut_ptr();
+                    let length = value.len();
                     forget(value);
-                    value_ptr
+                    QkTargetQargs {
+                        args: value_ptr,
+                        length,
+                    }
                 } else {
-                    null_mut()
+                    QkTargetQargs {
+                        args: null_mut(),
+                        length: 0,
+                    }
                 }
             })
             .collect()
@@ -1274,10 +1318,11 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> *mut *mut u32
     } else {
         result.as_mut_ptr()
     };
+    let length = result.len();
 
     // Prevent original from being destroyed
     forget(result);
-    ptr
+    QkTargetQargsList { list: ptr, length }
 }
 
 /// @ingroup QkTarget
