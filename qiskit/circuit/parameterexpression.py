@@ -624,10 +624,7 @@ class ParameterExpression:
             val = self._symbol_expr.value()
             return not isinstance(val, complex)
         except RuntimeError:
-            if self.parameters:
-                raise TypeError(
-                    f"ParameterExpression with unbound parameters ({self.parameters}) "
-                ) from None
+            return None
 
     def numeric(self) -> int | float | complex:
         """Return a Python number representing this object, using the most restrictive of
