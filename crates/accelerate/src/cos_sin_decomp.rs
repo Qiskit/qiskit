@@ -220,7 +220,7 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     let thetas: Vec<f64> = c
         .iter()
         .zip(s.iter())
-        .map(|(&ci, &si)| if ci < 0.5 { ci.acos() } else { si.asin() })
+        .map(|(&ci, &si)| si.atan2(ci))
         .collect();
 
     (l0, l1, r0, r1, thetas)
