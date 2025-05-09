@@ -70,9 +70,9 @@ int test_empty_target(void) {
         return EqualityError;
     }
 
-    double *retrieved_dt = qk_target_dt(target);
-    if (retrieved_dt != NULL) {
-        printf("The dt value of this target %f is not %p.", *retrieved_dt, NULL);
+    double retrieved_dt = qk_target_dt(target);
+    if (retrieved_dt != 0) {
+        printf("The dt value of this target %f is not %p.", retrieved_dt, NULL);
         return EqualityError;
     }
 
@@ -134,7 +134,7 @@ int test_target_construct(void) {
         return EqualityError;
     }
 
-    double retrieved_dt = *qk_target_dt(target);
+    double retrieved_dt = qk_target_dt(target);
     if (retrieved_dt != dt) {
         printf("The dt value of this target %f is not %f.", retrieved_dt, dt);
         return EqualityError;
