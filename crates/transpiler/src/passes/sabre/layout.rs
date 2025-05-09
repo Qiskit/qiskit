@@ -22,7 +22,7 @@ use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
 use qiskit_accelerate::getenv_use_multiple_threads;
-use qiskit_accelerate::nlayout::{NLayout, PhysicalQubit};
+use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
 
 use super::heuristic::Heuristic;
 use super::neighbor_table::NeighborTable;
