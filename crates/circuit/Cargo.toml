@@ -23,6 +23,8 @@ thiserror.workspace = true
 itertools.workspace = true
 nalgebra.workspace = true
 uuid.workspace = true
+nom.workspace = true
+nom-unicode.workspace = true
 
 [dependencies.pyo3]
 workspace = true
