@@ -390,7 +390,7 @@ pub struct OpCounts {
 /// @param num_qubits   The width of unitary gate.
 /// @param qubits       The pointer to array of quibit indices.
 /// The array length must be equal to num_qubits.
-/// @param matrix       The pointer to the row-major `(re, im)` doucle array///
+/// @param matrix       The pointer to the row-major `(re, im)` double array
 /// # Example
 ///
 ///
