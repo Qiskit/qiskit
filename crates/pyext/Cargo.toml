@@ -20,7 +20,7 @@ workspace = true
 # crates as standalone binaries, executables, we need `libpython` to be linked in, so we make the
 # feature a default, and run `cargo test --no-default-features` to turn it off.
 default = ["pyo3/extension-module"]
-cache_pygates = ["pyo3/extension-module", "qiskit-circuit/cache_pygates", "qiskit-accelerate/cache_pygates"]
+cache_pygates = ["pyo3/extension-module", "qiskit-circuit/cache_pygates", "qiskit-accelerate/cache_pygates", "qiskit-transpiler/cache_pygates"]
 
 [dependencies]
 pyo3.workspace = true
@@ -29,3 +29,4 @@ qiskit-circuit.workspace = true
 qiskit-qasm2.workspace = true
 qiskit-qasm3.workspace = true
 qiskit-cext = { workspace = true, features = ["python_binding"] }
+qiskit-transpiler.workspace = true
