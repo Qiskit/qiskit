@@ -46,12 +46,12 @@ pub struct QkTargetQargs {
 }
 
 /// @ingroup QkTarget
-/// Construct a new Target with the given number of qubits.
+/// Construct a new ``Target`` with the given number of qubits.
 ///
-/// @param description A string describing the Target, or a NULL pointer.
-/// @param num_qubits The number of qubits the Target will explicitly support.
+/// @param description A string describing the ``Target``, or a NULL pointer.
+/// @param num_qubits The number of qubits the ``Target`` will explicitly support.
 ///
-/// @return A pointer to the new Target
+/// @return A pointer to the new ``Target``
 ///
 /// # Example
 ///     
@@ -90,9 +90,9 @@ pub unsafe extern "C" fn qk_target_new(description: *mut c_char, num_qubits: usi
 }
 
 /// @ingroup QkTarget
-/// Returns the number of qubits of this Target.
+/// Returns the number of qubits of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
 /// @return The number of qubits this target can use.
 ///
@@ -113,16 +113,18 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> usize {
 }
 
 /// @ingroup QkTarget
-/// Returns the description of this Target.
+/// Returns the description of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
-/// @return The description of the Target.
+/// @return The description of the ``Target``.
 ///
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     char *description = qk_target_description(target);
+///     printf("%s", description);
+///     free(description);
 ///
 /// # Safety
 ///
@@ -140,15 +142,16 @@ pub unsafe extern "C" fn qk_target_description(target: *const Target) -> *mut c_
 }
 
 /// @ingroup QkTarget
-/// Returns the dt value of this Target.
+/// Returns the dt value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
-/// @return The dt value of this Target.
+/// @return The dt value of this ``Target``.
 ///
 /// # Example
 ///     const dt = 10e-9;
-///     QkTarget *target = qk_target_new("New Target", 5, &dt, NULL, NULL, NULL, NULL);
+///     QkTarget *target = qk_target_new("New Target", 5);
+///     qk_target_set_dt(target, 10e-9);
 ///     double dt = qk_target_dt(target);
 ///
 /// # Safety
@@ -156,22 +159,18 @@ pub unsafe extern "C" fn qk_target_description(target: *const Target) -> *mut c_
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> *mut f64 {
+pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
-    if let Some(dt) = target.dt {
-        Box::into_raw(Box::new(dt))
-    } else {
-        null_mut()
-    }
+    target.dt.unwrap_or_default()
 }
 
 /// @ingroup QkTarget
-/// Returns the granularity value of this Target.
+/// Returns the granularity value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
-/// @return The granularity value of this Target.
+/// @return The granularity value of this ``Target``.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
@@ -190,11 +189,11 @@ pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
 }
 
 /// @ingroup QkTarget
-/// Returns the `min_length` value of this Target.
+/// Returns the `min_length` value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
-/// @return The min_length value of this Target.
+/// @return The min_length value of this ``Target``.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
@@ -213,11 +212,11 @@ pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> usize {
 }
 
 /// @ingroup QkTarget
-/// Returns the `pulse_alignment` value of this Target.
+/// Returns the `pulse_alignment` value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
-/// @return The pulse_alignment value of this Target.
+/// @return The pulse_alignment value of this ``Target``.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
@@ -236,11 +235,11 @@ pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32
 }
 
 /// @ingroup QkTarget
-/// Returns the `acquire_alignment` value of this Target.
+/// Returns the `acquire_alignment` value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
-/// @return The acquire_alignment value of this Target.
+/// @return The acquire_alignment value of this ``Target``.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
@@ -259,10 +258,10 @@ pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u
 }
 
 /// @ingroup QkTarget
-/// Sets the description of this Target.
+/// Sets the description of this ``Target``.
 ///
-/// @param target A pointer to the Target.
-/// @param description A string describing the Target.
+/// @param target A pointer to the ``Target``.
+/// @param description A string describing the ``Target``.
 ///
 /// # Example
 ///     
@@ -290,15 +289,14 @@ pub unsafe extern "C" fn qk_target_set_description(
 }
 
 /// @ingroup QkTarget
-/// Sets the dt value of this Target.
+/// Sets the dt value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param dt The dt value for the system time resolution of input.
 ///
 /// # Example
-///     const dt = 10e-9;
-///     QkTarget *target = qk_target_new("New Target", 5, &dt, NULL, NULL, NULL, NULL);
-///     double dt = qk_target_dt(target);
+///     QkTarget *target = qk_target_new("New Target", 5);
+///     double dt = qk_target_set_dt(target, 10e-9);
 ///
 /// # Safety
 ///
@@ -313,9 +311,9 @@ pub unsafe extern "C" fn qk_target_set_dt(target: *mut Target, dt: f64) -> ExitC
 }
 
 /// @ingroup QkTarget
-/// Sets the granularity value of this Target.
+/// Sets the granularity value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param granularity The value for the minimum pulse gate resolution in
 ///     units of ``dt``.
 ///
@@ -340,15 +338,15 @@ pub unsafe extern "C" fn qk_target_set_granularity(
 }
 
 /// @ingroup QkTarget
-/// Sets the `min_length` value of this Target.
+/// Sets the `min_length` value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param min_length minimum pulse gate length value in units of ``dt``.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     // The value defaults to 1
-///     qk_set_target_min_length(target, 3);
+///     qk_target_set_min_length(target, 3);
 ///
 /// # Safety
 ///
@@ -366,15 +364,15 @@ pub unsafe extern "C" fn qk_target_set_min_length(
 }
 
 /// @ingroup QkTarget
-/// Returns the `pulse_alignment` value of this Target.
+/// Returns the `pulse_alignment` value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param pulse_alignment value representing a time resolution of gate.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     // The value defaults to 1
-///     qk_target_pulse_alignment(target, 4);
+///     qk_target_set_pulse_alignment(target, 4);
 ///
 /// # Safety
 ///
@@ -392,9 +390,9 @@ pub unsafe extern "C" fn qk_target_set_pulse_alignment(
 }
 
 /// @ingroup QkTarget
-/// Sets the `acquire_alignment` value of this Target.
+/// Sets the `acquire_alignment` value of this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param acquire_alignment value representing a time resolution of measure instruction
 ///     starting time.
 ///
@@ -419,9 +417,9 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 }
 
 /// @ingroup QkTarget
-/// Free the Target.
+/// Free the ``Target``.
 ///
-/// @param target A pointer to the Target to free.
+/// @param target A pointer to the ``Target`` to free.
 ///
 /// # Example
 ///     
@@ -757,10 +755,10 @@ pub unsafe extern "C" fn qk_property_map_add(
 }
 
 /// @ingroup QkTarget
-/// Adds a StandardGate to the Target.
+/// Adds a StandardGate to the ``Target``.
 ///
-/// @param target A pointer to the Target.
-/// @param operation The StandardGate to be added to the Target.
+/// @param target A pointer to the ``Target``.
+/// @param operation The StandardGate to be added to the ``Target``.
 /// @param params The pointer to the array of ``double`` values to use as
 /// parameters to the StandardGate. This can be a null pointer if there
 /// are no parameters to be added.
@@ -841,9 +839,9 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 }
 
 /// @ingroup QkTarget
-/// Modifies the properties of a gate in the Target.
+/// Modifies the properties of a gate in the ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param name The name of the gate to modify.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
@@ -911,9 +909,9 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 }
 
 /// @ingroup QkTarget
-/// Retrieves the mapping of qargs and properties from the Target.
+/// Retrieves the mapping of qargs and properties from the ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param name The name of the gate to modify.
 ///
 /// @return The property map associated with the gate name.
@@ -956,9 +954,9 @@ pub unsafe extern "C" fn qk_target_get_prop_map(
 
 /// @ingroup QkTarget
 /// Retrieves the instruction properties associated with some qargs for an
-/// instruction in the Target.
+/// instruction in the ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param name The name of the gate to modify.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
@@ -1018,9 +1016,9 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
 }
 
 /// @ingroup QkTarget
-/// Retrieves the names of all the operations in this Target.
+/// Retrieves the names of all the operations in this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
 /// @return A list of the operation names.
 ///
@@ -1058,11 +1056,11 @@ pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> QkT
 }
 
 /// @ingroup QkTarget
-/// Retrieves the physical qubits in this Target.
+/// Retrieves the physical qubits in this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
-/// @return An array with all of the physical qubits in the Target.
+/// @return An array of size ``num_qubits`` with all of the physical qubits in the ``Target``.
 ///
 /// # Example
 ///     
@@ -1083,13 +1081,13 @@ pub unsafe extern "C" fn qk_target_phyisical_qubits(target: *const Target) -> *m
 }
 
 /// @ingroup QkTarget
-/// Retrieves the names of all non-global operations in this Target.
+/// Retrieves the names of all non-global operations in this ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param strict_direction Checks whether the direction of the instruction's
 /// qargs should be considered when classifying it.
 ///
-/// @return A list of the names for the global operations in the Target.
+/// @return A list of the names for the global operations in the ``Target``.
 ///
 /// # Example
 ///     
@@ -1127,13 +1125,13 @@ pub unsafe extern "C" fn qk_target_non_global_operation_names(
 }
 
 /// @ingroup QkTarget
-/// Retrieves the names of all the operations in this Target which have
+/// Retrieves the names of all the operations in this ``Target`` which have
 /// defined properties for the provided qargs.
 ///
 /// @note The order of the gate names is not guaranteed to be the same
 /// between runs of the program.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
 /// @param num_qubits The number of qubits in the array.
@@ -1193,7 +1191,7 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
 /// @ingroup QkTarget
 /// Retrieves the specified qargs for the provided operation name.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param name The name of the gate to modify.
 ///
 /// @return A list of the qargs associated with this operation.
@@ -1265,11 +1263,11 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
 }
 
 /// @ingroup QkTarget
-/// Retrieves all of the qargs specified in the Target.
+/// Retrieves all of the qargs specified in the ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
-/// @return all of the specified qargs in the Target.
+/// @return all of the specified qargs in the ``Target``.
 ///
 /// # Example
 ///
@@ -1327,9 +1325,9 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargs
 
 /// @ingroup QkTarget
 /// Checks if the provided instruction and its qargs are supported by this
-/// Target.
+/// ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @parsm name The name of the instruction to check.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
@@ -1381,12 +1379,12 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 }
 
 /// @ingroup QkTarget
-/// Check if the provided operation name exists within the Target.
+/// Check if the provided operation name exists within the ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 /// @param name The name of the gate to check.
 ///
-/// @return Whether the gate is present in the Target or not.
+/// @return Whether the gate is present in the ``Target`` or not.
 ///
 /// # Example
 ///     
@@ -1420,9 +1418,9 @@ pub unsafe extern "C" fn qk_target_contains_instr(
 }
 
 /// @ingroup QkTarget
-/// Get the length of the Target.
+/// Get the length of the ``Target``.
 ///
-/// @param target A pointer to the Target.
+/// @param target A pointer to the ``Target``.
 ///
 /// @return The length of the target.
 ///
