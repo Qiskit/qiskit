@@ -129,7 +129,7 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not either null or a valid pointer to a
-/// [CircuitData].
+/// [QkCircuit].
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_gate(qc, QkGate_H, *[0], *[]);
 ///
 /// # Safety
 ///
@@ -469,7 +469,7 @@ pub struct CInstruction {
 /// Return the instruction details for an instruction in the circuit
 ///
 /// This function is used to get the instruction details for a given instruction in
-/// the circuit. It returns
+/// the circuit.
 ///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
