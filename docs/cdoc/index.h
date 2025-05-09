@@ -9,3 +9,7 @@
 /**
  * @defgroup QkBitTerm QkBitTerm
  */
+
+/**
+ * @defgroup QkCircuit QkCircuit
+ */
