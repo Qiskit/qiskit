@@ -47,9 +47,11 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
             expr: SymbolExpr::Value(symbol_expr::Value::from(r)),
         })
     } else if let Ok(s) = value.extract::<String>() {
-        Some(ParameterExpression {
-            expr: parse_expression(&s),
-        })
+        if let Ok(expr) = parse_expression(&s) {
+            Some(ParameterExpression { expr })
+        } else {
+            None
+        }
     } else if let Ok(e) = value.extract::<ParameterExpression>() {
         Some(e)
     } else {
@@ -64,9 +66,10 @@ impl ParameterExpression {
     #[pyo3(signature = (in_expr=None))]
     pub fn new(in_expr: Option<String>) -> PyResult<Self> {
         match in_expr {
-            Some(e) => Ok(ParameterExpression {
-                expr: parse_expression(&e),
-            }),
+            Some(e) => match parse_expression(&e) {
+                Ok(expr) => Ok(ParameterExpression { expr }),
+                Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
+            },
             None => Ok(ParameterExpression {
                 expr: SymbolExpr::Value(symbol_expr::Value::Int(0)),
             }),
@@ -102,13 +105,14 @@ impl ParameterExpression {
     /// create new expression from string
     #[allow(non_snake_case)]
     #[staticmethod]
-    pub fn Expression(expr: String) -> Self {
+    pub fn Expression(expr: String) -> PyResult<Self> {
         // check if expr contains replacements for sympy
         let expr = expr
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
-        ParameterExpression {
-            expr: parse_expression(&expr),
+        match parse_expression(&expr) {
+            Ok(expr) => Ok(ParameterExpression { expr }),
+            Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
         }
     }
 
@@ -471,7 +475,9 @@ impl ParameterExpression {
         self.__str__()
     }
     fn __setstate__(&mut self, state: String) {
-        self.expr = parse_expression(&state);
+        if let Ok(expr) = parse_expression(&state) {
+            self.expr = expr;
+        }
     }
 }
 
