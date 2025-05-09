@@ -35,7 +35,7 @@ use qiskit_accelerate::two_qubit_decompose::{
 
 use crate::target::Qargs;
 use crate::target::Target;
-use qiskit_accelerate::nlayout::PhysicalQubit;
+use qiskit_circuit::PhysicalQubit;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, FromPyObject)]

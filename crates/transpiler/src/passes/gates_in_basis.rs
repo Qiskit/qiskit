@@ -15,10 +15,10 @@ use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 
 use crate::target::{Qargs, Target};
-use qiskit_accelerate::nlayout::PhysicalQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::Qubit;
 
 #[pyfunction]

@@ -29,9 +29,10 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;
 
+use super::error_map::ErrorMap;
 use crate::target::{Qargs, Target};
-use qiskit_accelerate::error_map::ErrorMap;
-use qiskit_accelerate::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
+use qiskit_circuit::nlayout::NLayout;
+use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 
 const PARALLEL_THRESHOLD: usize = 50;
 

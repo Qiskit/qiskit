@@ -14,7 +14,7 @@ use indexmap::IndexMap;
 use ndarray::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 
-use qiskit_accelerate::nlayout::PhysicalQubit;
+use qiskit_circuit::PhysicalQubit;
 
 /// A container for the current non-routable parts of the front layer.  This only ever holds
 /// two-qubit gates; the only reason a 0q- or 1q operation can be unroutable is because it has an
