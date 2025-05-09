@@ -29,8 +29,8 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;
 
-use crate::target::{Qargs, Target};
 use super::error_map::ErrorMap;
+use crate::target::{Qargs, Target};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 

@@ -34,13 +34,13 @@ use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
     operations::{Operation, OperationRef},
 };
 use qiskit_circuit::{Clbit, Qubit};
-use qiskit_circuit::PhysicalQubit;
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;

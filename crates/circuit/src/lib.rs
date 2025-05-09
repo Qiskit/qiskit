@@ -24,6 +24,7 @@ pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
+pub mod nlayout;
 pub mod object_registry;
 pub mod operations;
 pub mod packed_instruction;
@@ -31,7 +32,6 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
-pub mod nlayout;
 
 pub mod rustworkx_core_vnext;
 
