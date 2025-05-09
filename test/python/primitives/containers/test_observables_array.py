@@ -17,6 +17,9 @@ import ddt
 import numpy as np
 
 import qiskit.quantum_info as qi
+from qiskit import QuantumCircuit
+from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.primitives import BackendEstimatorV2
 from qiskit.primitives.containers.observables_array import ObservablesArray
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -204,7 +207,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
     def test_init_validate_false(self):
         """Test init validate kwarg"""
         obj = [["X", "Y", "Z"], ["I", "0", "1"]]
-        obs = ObservablesArray(obj, validate=False)
+        obs = ObservablesArray(obj, validate=False, num_qubits=1)
         self.assertEqual(obs.shape, (2, 3))
         self.assertEqual(obs.size, 6)
         for i in range(2):
@@ -355,3 +358,121 @@ class ObservablesArrayTestCase(QiskitTestCase):
                             {labels_rs[idx]: 1},
                             msg=f"failed for shape {shape} with input format {input_shape}",
                         )
+
+    def test_num_qubits(self):
+        """Test num_qubits method"""
+        obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"IYX": 3}])
+        self.assertEqual(obs.num_qubits, 3)
+
+        with self.assertRaisesRegex(ValueError, "number of qubits"):
+            obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"IYX": 3}], num_qubits=20)
+
+        with self.assertRaisesRegex(ValueError, "number of qubits"):
+            obs = ObservablesArray([{"XXY": 1, "YZI": 2}, {"YX": 3}], num_qubits=20)
+
+        obs = ObservablesArray([{"XX": 1}] * 15).reshape((3, 5))
+        self.assertEqual(obs.num_qubits, 2)
+
+        obs = ObservablesArray([{"XX": 1}] * 15)[4:6]
+        self.assertEqual(obs.num_qubits, 2)
+
+        obs = ObservablesArray(
+            [ObservablesArray.coerce({"XX": 1}), ObservablesArray.coerce({"XYZ": 1})],
+            validate=False,
+        )
+        self.assertEqual(obs.num_qubits, 2)
+
+    def test_estimator_workflow(self):
+        """Test that everything plays together when observables are specified with
+        SparseObservable."""
+        backend = BasicSimulator()
+        estimator = BackendEstimatorV2(backend=backend)
+
+        circ = QuantumCircuit(1)
+        circ.x(0)
+
+        obs = qi.SparseObservable.from_label("Z")
+
+        res = estimator.run([(circ, [obs])]).result()
+        self.assertEqual(res[0].data.evs, -1)
+
+        obs_array = ObservablesArray([obs] * 15).reshape(3, 5)
+        res = estimator.run([(circ, obs_array)]).result()
+        self.assertTrue(np.all(res[0].data.evs == -np.ones((3, 5))))
+
+    def test_equivalent(self):
+        """Test equivalent method"""
+
+        arr1 = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])
+        arr2 = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])
+        self.assertTrue(arr1.equivalent(arr2))
+
+        arr2 = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4}, {"YZ": 6}]])
+        self.assertFalse(arr1.equivalent(arr2))
+
+        arr2 = ObservablesArray(
+            [[{"IXY": 1}, {"IYZ": 2, "IZI": 3}], [{"IIX": 4, "IXY": 5}, {"IYZ": 6}]]
+        )
+        self.assertFalse(arr1.equivalent(arr2))
+
+        arr2 = ObservablesArray([{"XY": 1}, {"YZ": 2, "ZI": 3}])
+        self.assertFalse(arr1.equivalent(arr2))
+
+        arr2 = ObservablesArray({"YZ": 2, "ZI": 3})
+        self.assertFalse(arr1.equivalent(arr2))
+
+        arr1 = ObservablesArray({"YZ": 2, "ZI": 3})
+        self.assertTrue(arr1.equivalent(arr2))
+
+    def test_apply_layout(self):
+        """Test apply_layout method"""
+
+        arr = ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])
+        new_arr = arr.apply_layout([2, 0], 3)
+        self.assertTrue(
+            new_arr.equivalent(
+                ObservablesArray(
+                    [[{"YIX": 1}, {"ZIY": 2, "IIZ": 3}], [{"XII": 4, "YIX": 5}, {"ZIY": 6}]]
+                )
+            )
+        )
+
+        new_arr = arr.apply_layout(None, 3)
+        self.assertTrue(
+            new_arr.equivalent(
+                ObservablesArray(
+                    [[{"IXY": 1}, {"IYZ": 2, "IZI": 3}], [{"IIX": 4, "IXY": 5}, {"IYZ": 6}]]
+                )
+            )
+        )
+
+        new_arr = arr.apply_layout([1, 0])
+        self.assertTrue(
+            new_arr.equivalent(
+                ObservablesArray([[{"YX": 1}, {"ZY": 2, "IZ": 3}], [{"XI": 4, "YX": 5}, {"ZY": 6}]])
+            )
+        )
+
+        new_arr = arr.apply_layout(None)
+        self.assertTrue(
+            new_arr.equivalent(
+                ObservablesArray([[{"XY": 1}, {"YZ": 2, "ZI": 3}], [{"IX": 4, "XY": 5}, {"YZ": 6}]])
+            )
+        )
+
+        arr = ObservablesArray({"YZ": 2, "ZI": 3})
+        new_arr = arr.apply_layout([2, 0], 3)
+        self.assertTrue(new_arr.equivalent(ObservablesArray({"ZIY": 2, "IIZ": 3})))
+
+    def test_validate(self):
+        """Test the validate method"""
+        ObservablesArray({"XX": 1}).validate()
+        ObservablesArray([{"XX": 1}] * 5).validate()
+        ObservablesArray([{"XX": 1}] * 15).reshape((3, 5)).validate()
+
+        obs = ObservablesArray(
+            [ObservablesArray.coerce({"XX": 1}), ObservablesArray.coerce({"XYZ": 1})],
+            validate=False,
+        )
+        with self.assertRaisesRegex(ValueError, "number of qubits"):
+            obs.validate()
