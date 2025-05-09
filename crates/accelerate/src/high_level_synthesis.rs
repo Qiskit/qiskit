@@ -484,13 +484,13 @@ fn run_on_circuitdata(
         // In the future, we can also consider other possible optimizations, e.g.:
         //   - improved qubit tracking after a SWAP gate
         //   - automatically simplify control gates with control at 0.
-        if ["id", "delay", "barrier"].contains(&inst.op.name()) {
+        if ["id", "delay", "barrier"].contains(&inst.op().name()) {
             output_circuit.push(py, inst.clone())?;
             // tracker is not updated, these are no-ops
             continue;
         }
 
-        if inst.op.name() == "reset" {
+        if inst.op().name() == "reset" {
             output_circuit.push(py, inst.clone())?;
             tracker.set_clean(op_qubits);
             continue;
@@ -498,7 +498,7 @@ fn run_on_circuitdata(
 
         // Check if synthesis for this operation can be skipped
         let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit::new(*q)).collect();
-        if definitely_skip_op(py, data, &inst.op, &op_qargs) {
+        if definitely_skip_op(py, data, inst.op(), &op_qargs) {
             output_circuit.push(py, inst.clone())?;
             tracker.set_dirty(op_qubits);
             continue;
@@ -510,9 +510,9 @@ fn run_on_circuitdata(
         // that different subcircuits may choose to use different auxiliary global qubits, and to
         // avoid complications related to tracking qubit status for while- loops.
         // In the future, this handling can potentially be improved.
-        if inst.op.control_flow() {
+        if inst.op().control_flow() {
             let quantum_circuit_cls = QUANTUM_CIRCUIT.get_bound(py);
-            if let OperationRef::Instruction(py_inst) = inst.op.view() {
+            if let OperationRef::Instruction(py_inst) = inst.op().view() {
                 let old_blocks_as_bound_obj = py_inst.instruction.bind(py);
 
                 // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
@@ -554,15 +554,15 @@ fn run_on_circuitdata(
                     .call_method1(intern!(py, "replace_blocks"), (new_blocks_py,))?;
 
                 let synthesized_op: OperationFromPython = replaced_blocks.extract()?;
-                let packed_instruction = PackedInstruction {
-                    op: synthesized_op.operation,
-                    qubits: inst.qubits,
-                    clbits: inst.clbits,
-                    params: inst.params.clone(),
-                    label: inst.label.clone(),
+                let packed_instruction = PackedInstruction::new(
+                    synthesized_op.operation,
+                    inst.qubits,
+                    inst.clbits,
+                    inst.params_raw().clone(),
+                    inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
-                    py_op: std::sync::OnceLock::new(),
-                };
+                    std::sync::OnceLock::new(),
+                );
                 output_circuit.push(py, packed_instruction)?;
                 tracker.set_dirty(op_qubits);
                 continue;
@@ -579,7 +579,7 @@ fn run_on_circuitdata(
             data,
             tracker,
             &op_qubits,
-            &inst.op,
+            inst.op(),
             inst.params_view(),
             inst.label.as_ref().map(|x| x.as_str()),
         )?;
@@ -635,7 +635,7 @@ fn run_on_circuitdata(
                         inst_inner_clbits.iter().map(|c| Clbit(c.0)).collect();
 
                     output_circuit.push_packed_operation(
-                        inst_inner.op.clone(),
+                        inst_inner.op().clone(),
                         inst_inner.params_view(),
                         &inst_outer_qubits,
                         &inst_outer_clbits,
@@ -959,7 +959,7 @@ fn py_run_on_dag(
 
     for (_, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
-        if !definitely_skip_op(py, data, &inst.op, qubits) {
+        if !definitely_skip_op(py, data, inst.op(), qubits) {
             fast_path = false;
             break;
         }
@@ -1002,16 +1002,16 @@ fn convert_circuit_to_dag_with_data(
     new_dag.try_extend(
         py,
         circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
-            Ok(PackedInstruction {
+            Ok(PackedInstruction::new(
                 // SHould this be: op: instr.op.py_deepcopy(py, None)?,
-                op: instr.op.clone(),
-                qubits: qarg_map[instr.qubits],
-                clbits: carg_map[instr.clbits],
-                params: instr.params.clone(),
-                label: instr.label.clone(),
+                instr.op().clone(),
+                qarg_map[instr.qubits],
+                carg_map[instr.clbits],
+                instr.params_raw().clone(),
+                instr.label.clone(),
                 #[cfg(feature = "cache_pygates")]
-                py_op: OnceLock::new(),
-            })
+                OnceLock::new(),
+            ))
         }),
     )?;
     Ok(new_dag)

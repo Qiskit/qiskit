@@ -39,15 +39,15 @@ pub fn split_2q_unitaries(
     let mut has_swaps = false;
     for node in nodes {
         if let NodeType::Operation(inst) = &dag[node] {
-            let qubits = dag.get_qargs(inst.qubits).to_vec();
+            let qubits = dag.get_qargs(inst.qubits()).to_vec();
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
             // to the supported basis gate set.
-            if qubits.len() != 2 || !matches!(inst.op.view(), OperationRef::Unitary(_)) {
+            if qubits.len() != 2 || !matches!(inst.op().view(), OperationRef::Unitary(_)) {
                 continue;
             }
             let matrix = inst
-                .op
+                .op()
                 .matrix(inst.params_view())
                 .expect("'unitary' gates should always have a matrix form");
             let decomp = TwoQubitWeylDecomposition::new_inner(
@@ -104,10 +104,10 @@ pub fn split_2q_unitaries(
     let mut new_dag = dag.copy_empty_like(py, "alike")?;
     for node in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag.dag()[node] {
-            let qubits = dag.get_qargs(inst.qubits).to_vec();
-            if qubits.len() == 2 && inst.op.name() == "unitary" {
+            let qubits = dag.get_qargs(inst.qubits()).to_vec();
+            if qubits.len() == 2 && inst.op().name() == "unitary" {
                 let matrix = inst
-                    .op
+                    .op()
                     .matrix(inst.params_view())
                     .expect("'unitary' gates should always have a matrix form");
                 let decomp = TwoQubitWeylDecomposition::new_inner(
@@ -135,7 +135,7 @@ pub fn split_2q_unitaries(
                         array: ArrayType::OneQ(k1l_mat),
                     });
                     // perform the virtual swap
-                    let qargs = dag.get_qargs(inst.qubits);
+                    let qargs = dag.get_qargs(inst.qubits());
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
@@ -165,8 +165,8 @@ pub fn split_2q_unitaries(
                 }
             }
             // General instruction
-            let qargs = dag.get_qargs(inst.qubits);
-            let cargs = dag.get_cargs(inst.clbits);
+            let qargs = dag.get_qargs(inst.qubits());
+            let cargs = dag.get_cargs(inst.clbits());
             let mapped_qargs: Vec<Qubit> = qargs
                 .iter()
                 .map(|q| Qubit::new(mapping[q.index()]))
@@ -174,13 +174,13 @@ pub fn split_2q_unitaries(
 
             new_dag.apply_operation_back(
                 py,
-                inst.op.clone(),
+                inst.op().clone(),
                 &mapped_qargs,
                 cargs,
-                inst.params.as_deref().cloned(),
+                inst.params_raw().as_deref().cloned(),
                 inst.label.as_ref().map(|x| x.to_string()),
                 #[cfg(feature = "cache_pygates")]
-                inst.py_op.get().map(|x| x.clone_ref(py)),
+                inst.py_op().get().map(|x| x.clone_ref(py)),
             )?;
         }
     }

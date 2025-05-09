@@ -25,7 +25,7 @@ use qiskit_circuit::Qubit;
 fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     #[inline]
     fn is_universal(gate: &PackedInstruction) -> bool {
-        matches!(gate.op.name(), "barrier" | "store")
+        matches!(gate.op().name(), "barrier" | "store")
     }
 
     fn visit_gate(
@@ -35,12 +35,12 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
         wire_map: &HashMap<Qubit, PhysicalQubit>,
     ) -> PyResult<bool> {
         let qargs_mapped: Qargs = qargs.iter().map(|q| wire_map[q]).collect();
-        if !target.instruction_supported(gate.op.name(), &qargs_mapped) {
+        if !target.instruction_supported(gate.op().name(), &qargs_mapped) {
             return Ok(true);
         }
 
-        if gate.op.control_flow() {
-            for block in gate.op.blocks() {
+        if gate.op().control_flow() {
+            for block in gate.op().blocks() {
                 let block_qubits = (0..block.num_qubits()).map(Qubit::new);
                 let inner_wire_map = qargs
                     .iter()
@@ -64,7 +64,7 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
             if is_universal(gate) {
                 continue;
             }
-            let qargs = circuit.qargs_interner().get(gate.qubits);
+            let qargs = circuit.qargs_interner().get(gate.qubits());
             if visit_gate(target, gate, qargs, wire_map)? {
                 return Ok(true);
             }
@@ -82,7 +82,7 @@ fn any_gate_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<b
         if is_universal(gate) {
             continue;
         }
-        let qargs = dag.qargs_interner().get(gate.qubits);
+        let qargs = dag.qargs_interner().get(gate.qubits());
         if visit_gate(target, gate, qargs, &wire_map)? {
             return Ok(true);
         }
