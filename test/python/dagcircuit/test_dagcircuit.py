@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import collections
 import pickle
 import copy
 import io
@@ -1006,6 +1007,114 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertTrue(self.dag.is_predecessor(cx_node, measure_node))
         self.assertFalse(self.dag.is_predecessor(reset_node, measure_node))
         self.assertTrue(self.dag.is_predecessor(reset_node, cx_node))
+
+    def test_bfs_successors(self):
+        """Test that the successors can be found in BFS order."""
+        qr = QuantumRegister(3, "q")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        ins, outs = dag.input_map, dag.output_map
+        h_0 = dag.apply_operation_back(HGate(), [qr[0]], [])
+        cx_0 = dag.apply_operation_back(CXGate(), [qr[1], qr[2]], [])
+        cx_1 = dag.apply_operation_back(CXGate(), [qr[0], qr[1]], [])
+        h_1 = dag.apply_operation_back(HGate(), [qr[2]], [])
+        h_2_0 = dag.apply_operation_back(HGate(), [qr[0]], [])
+        h_2_1 = dag.apply_operation_back(HGate(), [qr[1]], [])
+        h_2_2 = dag.apply_operation_back(HGate(), [qr[2]], [])
+
+        successors = {
+            outs[qr[2]]: [],
+            outs[qr[1]]: [],
+            outs[qr[0]]: [],
+            h_2_2: [outs[qr[2]]],
+            h_2_1: [outs[qr[1]]],
+            h_2_0: [outs[qr[0]]],
+            h_1: [h_2_2],
+            cx_1: [h_2_0, h_2_1],
+            cx_0: [cx_1, h_1],
+            h_0: [cx_1],
+            ins[qr[2]]: [cx_0],
+            ins[qr[1]]: [cx_0],
+            ins[qr[0]]: [h_0],
+        }
+
+        def bfs(node):
+            queue = collections.deque([node])
+            seen = set()
+            out = []
+            while queue:
+                node = queue.popleft()
+                unseen_children = []
+                # The `reversed` here is most likely an internal implementation detail of rustworkx
+                # and/or petgraph.  It's important that the output is deterministic, but not
+                # necessarily that the successors are iterated in reverse order from how they're
+                # defined in our `successors` structure.
+                for child in reversed(successors[node]):
+                    if child not in seen:
+                        unseen_children.append(child)
+                        queue.append(child)
+                        seen.add(child)
+                if unseen_children:
+                    out.append((node, unseen_children))
+            return out
+
+        dag_bfs = {node: list(dag.bfs_successors(node)) for node in dag.topological_nodes()}
+        our_bfs = {node: bfs(node) for node in dag.topological_nodes()}
+        self.assertEqual(dag_bfs, our_bfs)
+
+    def test_bfs_predecessors(self):
+        """Test that the predecessors can be found in BFS order."""
+        qr = QuantumRegister(3, "q")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        ins, outs = dag.input_map, dag.output_map
+        h_0 = dag.apply_operation_back(HGate(), [qr[0]], [])
+        cx_0 = dag.apply_operation_back(CXGate(), [qr[1], qr[2]], [])
+        cx_1 = dag.apply_operation_back(CXGate(), [qr[0], qr[1]], [])
+        h_1 = dag.apply_operation_back(HGate(), [qr[2]], [])
+        h_2_0 = dag.apply_operation_back(HGate(), [qr[0]], [])
+        h_2_1 = dag.apply_operation_back(HGate(), [qr[1]], [])
+        h_2_2 = dag.apply_operation_back(HGate(), [qr[2]], [])
+
+        predecessors = {
+            ins[qr[0]]: [],
+            ins[qr[1]]: [],
+            ins[qr[2]]: [],
+            h_0: [ins[qr[0]]],
+            cx_0: [ins[qr[1]], ins[qr[2]]],
+            cx_1: [h_0, cx_0],
+            h_1: [cx_0],
+            h_2_0: [cx_1],
+            h_2_1: [cx_1],
+            h_2_2: [h_1],
+            outs[qr[0]]: [h_2_0],
+            outs[qr[1]]: [h_2_1],
+            outs[qr[2]]: [h_2_2],
+        }
+
+        def bfs(node):
+            queue = collections.deque([node])
+            seen = set()
+            out = []
+            while queue:
+                node = queue.popleft()
+                unseen_parents = []
+                # The `reversed` here is most likely an internal implementation detail of rustworkx
+                # and/or petgraph.  It's important that the output is deterministic, but not
+                # necessarily that the successors are iterated in reverse order from how they're
+                # defined in our `successors` structure.
+                for parent in reversed(predecessors[node]):
+                    if parent not in seen:
+                        unseen_parents.append(parent)
+                        queue.append(parent)
+                        seen.add(parent)
+                if unseen_parents:
+                    out.append((node, unseen_parents))
+            return out
+
+        dag_bfs = {node: list(dag.bfs_predecessors(node)) for node in dag.topological_nodes()}
+        our_bfs = {node: bfs(node) for node in dag.topological_nodes()}
+        self.assertEqual(dag_bfs, our_bfs)
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
