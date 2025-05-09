@@ -13,11 +13,9 @@
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
-use qiskit_accelerate::{
-    nlayout::PhysicalQubit,
-    target_transpiler::{InstructionProperties, Qargs, Target},
-};
+use qiskit_accelerate::nlayout::PhysicalQubit;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
 use std::ffi::{c_char, CStr, CString};
 use std::mem::forget;
 use std::ptr::null_mut;

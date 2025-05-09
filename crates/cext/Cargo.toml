@@ -20,6 +20,7 @@ thiserror.workspace = true
 num-complex.workspace = true
 qiskit-accelerate.workspace = true
 qiskit-circuit.workspace = true
+qiskit-transpiler.workspace = true
 pyo3 = { workspace = true, optional = true }
 indexmap.workspace = true
 ahash.workspace = true
