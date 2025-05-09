@@ -78,6 +78,7 @@ def dump(
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
+    use_rust: bool = True,
 ):
     """Write QPY binary data to a file
 
@@ -201,6 +202,7 @@ def dump(
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
+            use_rust=use_rust,
         )
 
 
