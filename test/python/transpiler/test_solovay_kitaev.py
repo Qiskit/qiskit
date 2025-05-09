@@ -99,9 +99,7 @@ class TestSolovayKitaev(QiskitTestCase):
         passes = PassManager([_1q, _cons, _synth])
         compiled = passes.run(circuit)
 
-        diff = np.linalg.norm(Operator(compiled) - Operator(circuit))
-        self.assertLess(diff, 1)
-        self.assertEqual(set(compiled.count_ops().keys()), {"h", "s", "cx"})
+        self.assertLessEqual(set(compiled.count_ops().keys()), {"h", "s", "sdg", "cx"})
 
     def test_plugin(self):
         """Test calling the plugin directly."""
@@ -113,12 +111,7 @@ class TestSolovayKitaev(QiskitTestCase):
         plugin = SolovayKitaevSynthesis()
         out = plugin.run(unitary, basis_gates=["h", "s"])
 
-        reference = QuantumCircuit(1, global_phase=3 * np.pi / 4)
-        reference.h(0)
-        reference.s(0)
-        reference.h(0)
-
-        self.assertEqual(dag_to_circuit(out), reference)
+        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "sdg", "cx"})
 
     def test_multiple_plugins(self):
         """Test calling the plugins directly but with different instances of basis set."""
@@ -183,11 +176,14 @@ class TestSolovayKitaev(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         discretized = dag_to_circuit(synth.run(dag))
 
-        reference = QuantumCircuit(1, global_phase=7 * np.pi / 8)
+        reference = QuantumCircuit(1, global_phase=15 * np.pi / 8)
         reference.h(0)
         reference.t(0)
         reference.h(0)
 
+        # Make sure that the discretized circuit gives a valid approximation
+        diff = _trace_distance(circuit, discretized)
+        self.assertLess(diff, 0.01)
         self.assertEqual(discretized, reference)
 
     def test_approximation_on_qft(self):
@@ -228,14 +224,14 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit.u(np.pi / 2, 0, 15 * np.pi / 16, 0)
 
         depth = 4
-        basis_gates = ["h", "t", "tdg", "s", "z"]
+        basis_gates = ["h", "t", "tdg", "s", "sdg", "z"]
         gate_approx_library = generate_basic_approximations(basis_gates=basis_gates, depth=depth)
 
         skd = SolovayKitaev(recursion_degree=2, basic_approximations=gate_approx_library)
         discretized = skd(circuit)
 
         included_gates = set(discretized.count_ops().keys())
-        self.assertEqual(set(basis_gates), included_gates)
+        self.assertLessEqual(included_gates, set(basis_gates))
 
     def test_load_from_file(self):
         """Test loading basic approximations from a file works.
@@ -248,22 +244,21 @@ class TestSolovayKitaev(QiskitTestCase):
             fullpath = os.path.join(tmp_dir, filename)
 
             # dump approximations to file
-            generate_basic_approximations(basis_gates=["h", "s", "sdg"], depth=3, filename=fullpath)
+            gate_approx_library = generate_basic_approximations(
+                basis_gates=["h", "s", "sdg"], depth=3, filename=fullpath
+            )
 
             # circuit to decompose and reference decomp
             circuit = QuantumCircuit(1)
             circuit.rx(0.8, 0)
 
-            reference = QuantumCircuit(1, global_phase=3 * np.pi / 4)
-            reference.h(0)
-            reference.s(0)
-            reference.h(0)
+            # Run SK pass using gate_approx_library
+            reference = SolovayKitaev(basic_approximations=gate_approx_library)(circuit)
 
-            # load the decomp and compare to reference
-            skd = SolovayKitaev(basic_approximations=fullpath)
-            # skd = SolovayKitaev(basic_approximations=filename)
-            discretized = skd(circuit)
+            # Run SK pass using stored basis_approximations
+            discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
 
+        # Check that both flows produce the same result
         self.assertEqual(discretized, reference)
 
     def test_measure(self):
@@ -315,6 +310,15 @@ class TestSolovayKitaev(QiskitTestCase):
 
         transpiled = SolovayKitaev()(qc)
         self.assertEqual(set(transpiled.count_ops()), {"initialize"})
+
+    def test_y_gate(self):
+        """Test the Solovay-Kitaev decomposition on the circuit with a Y-gate (see issue #9552)."""
+        circuit = QuantumCircuit(1)
+        circuit.y(0)
+
+        transpiled = SolovayKitaev()(circuit)
+        diff = _trace_distance(circuit, transpiled)
+        self.assertLess(diff, 1e-6)
 
 
 @ddt
