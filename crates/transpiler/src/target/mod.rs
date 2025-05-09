@@ -40,7 +40,7 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
 
-use qiskit_accelerate::nlayout::PhysicalQubit;
+use qiskit_circuit::PhysicalQubit;
 
 use crate::TranspilerError;
 
@@ -1484,7 +1484,7 @@ mod test {
     use smallvec::SmallVec;
 
     use crate::target::QargsRef;
-    use qiskit_accelerate::nlayout::PhysicalQubit;
+    use qiskit_circuit::PhysicalQubit;
 
     use super::{instruction_properties::InstructionProperties, Qargs, Target};
 

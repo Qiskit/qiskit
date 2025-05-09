@@ -18,8 +18,8 @@ use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, Param, Stan
 
 use crate::target::Target;
 
-use qiskit_accelerate::nlayout::PhysicalQubit;
 use qiskit_accelerate::QiskitError;
+use qiskit_circuit::PhysicalQubit;
 use rustworkx_core::dag_algo::longest_path;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
 use rustworkx_core::petgraph::visit::{EdgeRef, IntoEdgeReferences};
