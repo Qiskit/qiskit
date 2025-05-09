@@ -420,9 +420,9 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     let mat = Array2::from_shape_vec((dim, dim), data).expect("Invalid shape for unitary matrix");
 
     // Build qubit slice
-    let qargs: Vec<Qubit> = (0..num_qubits)
-        .map(|idx| Qubit(unsafe { *qubits.add(idx as usize) }))
-        .collect();
+    let qargs: &[Qubit] = unsafe {
+        std::slice::from_raw_parts(qubits as *const, num_qubits as usize)
+    };
 
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate {
