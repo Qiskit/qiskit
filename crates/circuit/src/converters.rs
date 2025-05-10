@@ -26,7 +26,7 @@ use crate::packed_instruction::PackedInstruction;
 #[derive(Debug, Clone)]
 pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
-    pub name: Option<Bound<'py, PyAny>>,
+    pub name: Option<String>,
     pub metadata: Option<Bound<'py, PyAny>>,
     pub input_vars: Vec<expr::Var>,
     pub captured_vars: Vec<expr::Var>,
@@ -42,7 +42,7 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         let data_borrowed = circuit_data.extract::<CircuitData>()?;
         Ok(QuantumCircuitData {
             data: data_borrowed,
-            name: ob.getattr(intern!(py, "name")).ok(),
+            name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?
