@@ -26,7 +26,7 @@ use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
 
-use crate::quantum_info::{VersorSU2, VersorU2, VersorU2Error};
+use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
 
 #[inline]

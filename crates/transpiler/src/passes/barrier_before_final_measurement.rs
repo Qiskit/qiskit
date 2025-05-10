@@ -112,7 +112,7 @@ pub fn run_barrier_before_final_measurements(
     };
 
     let final_ops: Vec<NodeIndex> = if dag.num_qubits() >= PARALLEL_THRESHOLD
-        && ::qiskit_accelerate::getenv_use_multiple_threads()
+        && ::qiskit_circuit::getenv_use_multiple_threads()
     {
         dag.qubit_io_map()
             .par_iter()

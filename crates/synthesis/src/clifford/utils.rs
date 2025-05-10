@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear::utils::calc_inverse_matrix_inner;
+use crate::linear::utils::calc_inverse_matrix_inner;
 use ndarray::{azip, s, Array1, Array2, ArrayView2};
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;

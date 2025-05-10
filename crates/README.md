@@ -11,8 +11,9 @@ The intention is that (much) longer term, we might be wanting to expose more of 
 * `qiskit-cext` is the crate that defines the C FFI for Qiskit. It defines the C API to work with the rust code directly. It has 2 modes of operation a standalone mode
   that compiles to a C dynamic library without any runtime dependency on the Python interpreter and a embedded mode where the API is re-exported from `qiskit-pyext`
   and used to accelerate Python worklows when writing compiled extensions that interact with Qiskit.
-* `qiskit-accelerate` is a catch-all crate for one-off accelerators.
-  If what you're working on is small and largely self-contained, you probably just want to put it in here, then bind it to the C extension module in `qiskit-pyext`.
+* `qiskit-accelerate` is a catch-all crate for one-off accelerators. This should be the end of the dependency tree and only be in the dependency list for the public
+  interface crates: `qiskit-pyext` or `qiskit-cext`. If what you're working on is small and largely self-contained, and doesn't fit in another crate you probably just
+  want to put it in here, then bind it to the C extension module in `qiskit-pyext`.
 * `qiskit-circuit` is a base crate defining the Rust-space circuit objects.
   This is one of the lowest points of the stack; everything that builds or works with circuits from Rust space depends on this.
 * `qiskit-transpiler` is the crate defining the transpiler functionality.
@@ -20,6 +21,8 @@ The intention is that (much) longer term, we might be wanting to expose more of 
   This depends on `qiskit-circuit`, but is otherwise pretty standalone, and it's unlikely that other things will need to interact with it.
 * `qiskit-qasm3` is the Qiskit-specific side of the OpenQASM 3 importer.
   The actual parser lives at https://github.com/Qiskit/openqasm3_parser, and is its own set of Rust-only crates.
+* `qiskit-quantum-info` is the crate for quantum information.
+* `qiskit-synthesis` is the crate for synthesis functionality.
 
 We use a structure with several crates in it for a couple of reasons:
 
