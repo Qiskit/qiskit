@@ -562,6 +562,50 @@ cleanup:
   return result;
 }
 
+int test_unitary_circuit(void) {
+  QkCircuit *qc = qk_circuit_new(2, 0);
+  uint32_t qubits[2] = {0, 1};
+
+  double matrix[32] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0};
+
+  int ec = qk_circuit_unitary(qc, qubits, 2, matrix);
+  if (ec != ExitCode_Success) {
+    qk_circuit_free(qc);
+    return ec;
+  }
+
+  int result = Ok;
+
+  num_inst = qk_circuit_num_instructions(qc);
+  if (num_inst != 1) {
+    result = EqualityError;
+    goto cleanup;
+  }
+
+  QkOpCounts op_counts = qk_circuit_count_ops(qc);
+  if (op_counts.len != 1 || strcmp(op_counts.data[0].name, "unitary") != 0 ||
+      op_counts.data[0].count != 1) {
+    result = EqualityError;
+    qk_opcounts_free(op_counts);
+    goto cleanup;
+  }
+  qk_opcounts_free(op_counts);
+
+  QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
+  do {
+    if strcmp (inst.name, "unitary") != 0 || inst.num_clbits != 0 ||
+       inst.num_params != 0 || inst.num_qubits != 2) {
+        result = EqualityError;
+      }
+  } while (0);
+  qk_circuit_instruction_free(inst);
+
+cleanup:
+  qk_circuit_free(qc);
+  return result;
+}
+
 int test_circuit(void) {
   int num_failed = 0;
   num_failed += RUN_TEST(test_empty);
@@ -577,52 +621,4 @@ int test_circuit(void) {
   fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
 
   return num_failed;
-}
-
-int test_unitary_circuit(void) {
-  QkCircuit *qc = qk_circuit_new(2, 0);
-  uint32_t qubits[2] = {0, 1};
-
-  double matrix[32] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0};
-
-  int ec = qk_circuit_unitary(qc, qubits, 2, matrix);
-  if (ec != 0) {
-    qk_circuit_free(qc);
-    return ec;
-  }
-
-  int result = Ok;
-
-  size_t num_instructions = qk_circuit_num_instructions(qc);
-  if (num_instructions != 1) {
-    result = EqualityError;
-    goto cleanup;
-  }
-
-  QkOpcounts op_counts = qk_circuit_count_ops(qc);
-  if (counts.len != 1 || strcmp(counts.data[0].name, "unitary") != 0 ||
-      counts.data[0].count != 1) {
-    result = EqualityError;
-    goto cleanup;
-  }
-
-  QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
-  do {
-    if (strcmp(inst.name, "unitary") != 0) {
-      if (inst.num_qubits != 2 || inst.qubits[0] != 0 || inst.qubits[1] != 1 ||
-          inst.num_clbits != 0 || inst.num_params != 2) {
-        result = EqualityError;
-        break;
-      }
-      while (0)
-        ;
-      qk_circuit_instruction_free(inst);
-
-    cleanup:
-      qk_circuit_free(qc);
-      qk_opcounts_free(op_counts);
-      return result;
-    }
-  }
 }
