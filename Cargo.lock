@@ -1414,15 +1414,11 @@ version = "2.1.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
- "bytemuck",
- "faer",
- "faer-ext",
  "hashbrown 0.15.2",
  "indexmap",
  "itertools 0.13.0",
  "nalgebra",
  "ndarray",
- "ndarray-einsum",
  "num-bigint",
  "num-complex",
  "num-traits",
@@ -1430,11 +1426,11 @@ dependencies = [
  "pulp 0.21.5",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-transpiler",
  "rand 0.9.1",
  "rand_distr 0.5.1",
  "rand_pcg 0.9.0",
  "rayon",
- "rustiq-core",
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.12",
@@ -1448,8 +1444,8 @@ dependencies = [
  "num-complex",
  "pyo3",
  "pyo3-build-config",
- "qiskit-accelerate",
  "qiskit-circuit",
+ "qiskit-quantum-info",
  "thiserror 2.0.12",
 ]
 
@@ -1486,6 +1482,8 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-qasm2",
  "qiskit-qasm3",
+ "qiskit-quantum-info",
+ "qiskit-synthesis",
  "qiskit-transpiler",
 ]
 
@@ -1511,6 +1509,58 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiskit-quantum-info"
+version = "2.1.0"
+dependencies = [
+ "ahash 0.8.12",
+ "approx",
+ "bytemuck",
+ "hashbrown 0.15.2",
+ "indexmap",
+ "itertools 0.13.0",
+ "nalgebra",
+ "ndarray",
+ "ndarray-einsum",
+ "num-complex",
+ "num-traits",
+ "numpy",
+ "pyo3",
+ "qiskit-circuit",
+ "rayon",
+ "rustworkx-core",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "qiskit-synthesis"
+version = "2.1.0"
+dependencies = [
+ "ahash 0.8.12",
+ "approx",
+ "faer",
+ "faer-ext",
+ "hashbrown 0.15.2",
+ "indexmap",
+ "itertools 0.13.0",
+ "nalgebra",
+ "ndarray",
+ "num-complex",
+ "num-traits",
+ "numpy",
+ "pyo3",
+ "qiskit-circuit",
+ "qiskit-quantum-info",
+ "rand 0.9.1",
+ "rand_distr 0.5.1",
+ "rand_pcg 0.9.0",
+ "rayon",
+ "rustiq-core",
+ "rustworkx-core",
+ "smallvec",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "qiskit-transpiler"
 version = "2.1.0"
 dependencies = [
@@ -1524,8 +1574,9 @@ dependencies = [
  "num-complex",
  "numpy",
  "pyo3",
- "qiskit-accelerate",
  "qiskit-circuit",
+ "qiskit-quantum-info",
+ "qiskit-synthesis",
  "rand 0.9.1",
  "rand_pcg 0.9.0",
  "rayon",

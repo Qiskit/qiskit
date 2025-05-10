@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear::lnn::synth_cnot_lnn_instructions;
-use crate::synthesis::linear::utils::calc_inverse_matrix_inner;
+use crate::linear::lnn::synth_cnot_lnn_instructions;
+use crate::linear::utils::calc_inverse_matrix_inner;
 
 use hashbrown::HashSet;
 use ndarray::{s, Array2, ArrayView2};

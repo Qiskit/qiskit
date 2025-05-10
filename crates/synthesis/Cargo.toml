@@ -1,31 +1,38 @@
 [package]
-name = "qiskit-transpiler"
+name = "qiskit-synthesis"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
 [lib]
-name = "qiskit_transpiler"
+name = "qiskit_synthesis"
 doctest = false
 
 [lints]
 workspace = true
 
 [dependencies]
-rayon.workspace = true
-numpy.workspace = true
+qiskit-circuit.workspace = true
+qiskit-quantum-info.workspace = true
+num-complex.workspace = true
+nalgebra.workspace = true
+thiserror.workspace = true
 ahash.workspace = true
 itertools.workspace = true
-nalgebra.workspace = true
+numpy.workspace = true
+rayon.workspace = true
+num-traits.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
-num-complex.workspace = true
+rand_distr.workspace = true
+faer = "0.19.4"
 rustworkx-core.workspace = true
-qiskit-circuit.workspace = true
-qiskit-synthesis.workspace = true
-qiskit-quantum-info.workspace = true
-thiserror.workspace = true
+rustiq-core = "0.0.11"
+
+[dependencies.faer-ext]
+version = "0.3.0"
+features = ["ndarray"]
 
 [dependencies.smallvec]
 workspace = true
@@ -53,6 +60,3 @@ features = ["rayon"]
 
 [dev-dependencies]
 pyo3 = { workspace = true, features = ["auto-initialize"] }
-
-[features]
-cache_pygates = ["qiskit-circuit/cache_pygates"]

@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear::utils::{
+use crate::linear::utils::{
     binary_matmul_inner, calc_inverse_matrix_inner, replace_row_inner, swap_rows_inner,
 };
 use ndarray::{concatenate, s, Array1, Array2, ArrayView2, ArrayViewMut2, Axis};

@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::env;
+
 pub mod bit;
 pub mod bit_locator;
 pub mod circuit_data;
@@ -147,6 +149,19 @@ macro_rules! impl_intopyobject_for_copy_pyclass {
             }
         }
     };
+}
+
+#[inline]
+pub fn getenv_use_multiple_threads() -> bool {
+    let parallel_context = env::var("QISKIT_IN_PARALLEL")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    let force_threads = env::var("QISKIT_FORCE_THREADS")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    !parallel_context || force_threads
 }
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {

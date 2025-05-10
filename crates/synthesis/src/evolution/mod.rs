@@ -17,7 +17,7 @@ use pyo3::types::PyList;
 
 use qiskit_circuit::circuit_data::CircuitData;
 
-use crate::synthesis::evolution::pauli_network::pauli_network_synthesis_inner;
+use crate::evolution::pauli_network::pauli_network_synthesis_inner;
 
 /// Calls Rustiq's pauli network synthesis algorithm and returns the
 /// Qiskit circuit data with Clifford gates and rotations.

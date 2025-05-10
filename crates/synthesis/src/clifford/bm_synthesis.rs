@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::clifford::utils::{Clifford, CliffordGatesVec};
+use crate::clifford::utils::{Clifford, CliffordGatesVec};
 use itertools::iproduct;
 use ndarray::{arr1, arr2, s, ArrayView2};
 use qiskit_circuit::operations::StandardGate;
