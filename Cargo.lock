@@ -1412,16 +1412,13 @@ dependencies = [
 name = "qiskit-accelerate"
 version = "2.1.0"
 dependencies = [
- "ahash 0.8.12",
  "approx",
  "hashbrown 0.15.2",
- "indexmap",
  "itertools 0.13.0",
  "nalgebra",
  "ndarray",
  "num-bigint",
  "num-complex",
- "num-traits",
  "numpy",
  "pulp 0.21.5",
  "pyo3",
@@ -1433,7 +1430,6 @@ dependencies = [
  "rayon",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -1557,7 +1553,6 @@ dependencies = [
  "rustiq-core",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.12",
 ]
 
 [[package]]

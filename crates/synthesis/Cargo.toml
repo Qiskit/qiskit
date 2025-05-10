@@ -17,7 +17,6 @@ qiskit-circuit.workspace = true
 qiskit-quantum-info.workspace = true
 num-complex.workspace = true
 nalgebra.workspace = true
-thiserror.workspace = true
 ahash.workspace = true
 itertools.workspace = true
 numpy.workspace = true
