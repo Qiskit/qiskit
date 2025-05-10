@@ -26,13 +26,19 @@ from qiskit.circuit.library import (
     HalfAdderGate,
     FullAdderGate,
 )
-from qiskit.synthesis.arithmetic import adder_ripple_c04, adder_ripple_v95, adder_qft_d00
+from qiskit.synthesis.arithmetic import (
+    adder_ripple_c04,
+    adder_ripple_v95,
+    adder_ripple_r25,
+    adder_qft_d00,
+)
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 ADDERS = {
     "vbe": adder_ripple_v95,
     "cdkm": adder_ripple_c04,
+    "rv": adder_ripple_r25,
     "draper": adder_qft_d00,
 }
 
@@ -128,6 +134,8 @@ class TestAdder(QiskitTestCase):
         (1, "cdkm", "full"),
         (3, "cdkm", "full"),
         (5, "cdkm", "full"),
+        (3, "rv", "half"),
+        (5, "rv", "half"),
         (3, "draper", "half"),
         (5, "draper", "half"),
         (3, "draper", "fixed"),
@@ -148,8 +156,13 @@ class TestAdder(QiskitTestCase):
         for use_function in [True, False]:
             with self.subTest(use_function=use_function):
                 if use_function:
-                    circuit = ADDERS[adder](num_state_qubits, kind)
+                    if adder == "rv":  # no kind for this. we still need kind for the test result
+                        circuit = ADDERS[adder](num_state_qubits)
+                    else:
+                        circuit = ADDERS[adder](num_state_qubits, kind)
                 else:
+                    if adder == "rv":  # no adder circuit for this
+                        continue
                     circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
 
         self.assertAdditionIsCorrect(num_state_qubits, circuit, True, kind)
@@ -160,6 +173,7 @@ class TestAdder(QiskitTestCase):
         VBERippleCarryAdder,
         adder_ripple_c04,
         adder_ripple_v95,
+        adder_ripple_r25,
         adder_qft_d00,
     )
     def test_raises_on_wrong_num_bits(self, adder):
@@ -173,7 +187,7 @@ class TestAdder(QiskitTestCase):
         # all gates with the plugins we check
         modes = {
             "ModularAdder": (ModularAdderGate, ["ripple_c04", "ripple_v95", "qft_d00"]),
-            "HalfAdder": (HalfAdderGate, ["ripple_c04", "ripple_v95", "qft_d00"]),
+            "HalfAdder": (HalfAdderGate, ["ripple_c04", "ripple_v95", "ripple_r25", "qft_d00"]),
             "FullAdder": (FullAdderGate, ["ripple_c04", "ripple_v95"]),
         }
 
@@ -181,6 +195,7 @@ class TestAdder(QiskitTestCase):
         expected_ops = {
             "ripple_c04": "MAJ",
             "ripple_v95": "Carry",
+            "ripple_r25": "ccx",
             "qft_d00": "cp",
         }
 
@@ -237,14 +252,14 @@ class TestAdder(QiskitTestCase):
         """Tests covering different branches in the default synthesis plugins."""
 
         # Test's name indicates which synthesis method should get used.
-        with self.subTest(name="HalfAdder_use_ripple_v95"):
+        with self.subTest(name="HalfAdder_use_ripple_rv_25"):
             adder = HalfAdderGate(3)
             circuit = QuantumCircuit(9)
             circuit.append(adder, range(7))
             hls = HighLevelSynthesis()
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
-            self.assertTrue("Carry" in ops)
+            self.assertTrue("ccx" in ops)
         with self.subTest(name="HalfAdder_use_ripple_c04"):
             adder = HalfAdderGate(4)
             circuit = QuantumCircuit(12)
@@ -253,14 +268,14 @@ class TestAdder(QiskitTestCase):
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
             self.assertTrue("MAJ" in ops)
-        with self.subTest(name="HalfAdder_use_qft_d00"):
+        with self.subTest(name="HalfAdder_use_ripple_rv_25"):
             adder = HalfAdderGate(4)
             circuit = QuantumCircuit(9)
             circuit.append(adder, range(9))
             hls = HighLevelSynthesis()
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
-            self.assertTrue("cp" in ops)
+            self.assertTrue("ccx" in ops)
 
         with self.subTest(name="FullAdder_use_ripple_c04"):
             adder = FullAdderGate(4)

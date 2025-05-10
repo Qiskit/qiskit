@@ -59,7 +59,7 @@ class InstructionDurationCheck(AnalysisPass):
         self.property_set["reschedule_required"] = False
 
         # Rescheduling is not necessary
-        if self.acquire_align == 1 and self.pulse_align == 1:
+        if (self.acquire_align == 1 and self.pulse_align == 1) or dag.num_stretches != 0:
             return
 
         # Check delay durations
