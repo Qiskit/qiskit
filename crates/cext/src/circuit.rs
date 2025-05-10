@@ -10,14 +10,17 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ffi::{c_char, CStr, CString};
-
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use std::ffi::{c_char, CStr, CString};
 
+use ndarray::Array2;
+use num_complex::Complex64;
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
+use qiskit_circuit::operations::{
+    ArrayType, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -376,6 +379,59 @@ pub struct OpCount {
 pub struct OpCounts {
     data: *mut OpCount,
     len: usize,
+}
+
+/// @ingroup QkCircuit
+/// Append an arbitrary unitary matrix to the circuit.
+/// The user passes a row-major array of interleaved real-imaginary pairs #[
+/// representing the unitary matrix.
+///
+/// @param circuit      A pointer to the circuit to add the unitary to.
+/// @param num_qubits   The width of unitary gate.
+/// @param qubits       The pointer to array of quibit indices.
+/// The array length must be equal to num_qubits.
+/// @param matrix       The pointer to the row-major `(re, im)` double array
+/// # Example
+///
+///
+///
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_unitary(
+    circuit: *mut CircuitData,
+    num_qubits: u32,
+    qubits: *const u32,
+    matrix: *const f64,
+) -> ExitCode {
+    // SAFETY: Caller quarantees pointer validation, alignment
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // Dimension of the unitart: 2^n
+    let dim = 1 << num_qubits;
+
+    // Copy (re, im) pairs to Complex64
+    let raw = unsafe { std::slice::from_raw_parts(matrix, dim * dim * 2) };
+    let data: Vec<Complex64> = raw
+        .chunks_exact(2)
+        .map(|x| Complex64::new(x[0], x[1]))
+        .collect();
+
+    // Build ndarray::Array2
+    let mat = Array2::from_shape_vec((dim, dim), data).expect("Invalid shape for unitary matrix");
+
+    // Build qubit slice
+    let qargs: &[Qubit] = unsafe {
+        std::slice::from_raw_parts(qubits as *const, num_qubits as usize)
+    };
+
+    // Create PackedOperation -> push to circuit_data
+    let u_gate = Box::new(UnitaryGate {
+        array: ArrayType::NDArray(mat),
+    });
+    let op = PackedOperation::from_unitary(u_gate);
+    circuit.push_packed_operation(op, &[], &qargs, &[]);
+    // Return success
+    ExitCode::Success
 }
 
 /// @ingroup QkCircuit
