@@ -386,7 +386,7 @@ pub struct OpCounts {
 /// The user passes a row-major array of interleaved real-imaginary pairs #[
 /// representing the unitary matrix.
 ///
-/// @param curcuit      A pointer to the circuit to add the unitary to.
+/// @param circuit      A pointer to the circuit to add the unitary to.
 /// @param num_qubits   The width of unitary gate.
 /// @param qubits       The pointer to array of quibit indices.
 /// The array length must be equal to num_qubits.
