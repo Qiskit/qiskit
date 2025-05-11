@@ -437,7 +437,7 @@ def _parse_seed_transpiler(seed_transpiler):
     return seed_transpiler
 
 
-def generate_discrete_pass_manager(
+def generate_clifford_t_pass_manager(
     optimization_level=2,
     backend=None,
     target=None,
@@ -458,7 +458,7 @@ def generate_discrete_pass_manager(
     _skip_target=False,
 ):
     """Generate a preset :class:`~.PassManager` optimized for transpilation into
-    discrete basis."""
+    Clifford+T basis."""
 
     return generate_preset_pass_manager(
         optimization_level=optimization_level,
@@ -469,15 +469,15 @@ def generate_discrete_pass_manager(
         initial_layout=initial_layout,
         layout_method=layout_method,
         routing_method=routing_method,
-        translation_method="discrete",
+        translation_method="clifford_t",
         scheduling_method=scheduling_method,
         approximation_degree=approximation_degree,
         seed_transpiler=seed_transpiler,
         unitary_synthesis_method=unitary_synthesis_method,
         unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
         hls_config=hls_config,
-        init_method="discrete",
-        optimization_method="discrete",
+        init_method="clifford_t",
+        optimization_method="clifford_t",
         dt=dt,
         qubits_initially_zero=qubits_initially_zero,
     )

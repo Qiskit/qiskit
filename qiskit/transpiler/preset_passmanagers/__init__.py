@@ -71,7 +71,7 @@ from .common import (
 )
 from .generate_preset_pass_manager import (
     generate_preset_pass_manager,
-    generate_discrete_pass_manager,
+    generate_clifford_t_pass_manager,
 )
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager

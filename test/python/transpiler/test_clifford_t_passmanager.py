@@ -10,29 +10,29 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test discrete transpilation pipeline"""
+"""Test Clifford+T transpilation pipeline"""
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import QFTGate, iqp, GraphStateGate
 from qiskit.transpiler.preset_passmanagers import (
-    generate_discrete_pass_manager,
+    generate_clifford_t_pass_manager,
 )
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-class TestDiscretePassManager(QiskitTestCase):
-    """Test discrete transpilation pipeline."""
+class TestCliffordTPassManager(QiskitTestCase):
+    """Test Clifford+T transpilation pipeline."""
 
     def setUp(self):
         super().setUp()
         self.basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        self.pm = generate_discrete_pass_manager(basis_gates=self.basis_gates)
+        self.pm = generate_clifford_t_pass_manager(basis_gates=self.basis_gates)
 
     def test_cliffords_1q(self):
-        """Discrete transpilation of a circuit with single-qubit Clifford gates."""
+        """Clifford+T transpilation of a circuit with single-qubit Clifford gates."""
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.s(1)
@@ -55,7 +55,7 @@ class TestDiscretePassManager(QiskitTestCase):
         self.assertEqual(transpiled, expected)
 
     def test_complex_clifford(self):
-        """Discrete transpilation of a more complex Clifford circuit."""
+        """Clifford+T transpilation of a more complex Clifford circuit."""
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.s(0)
@@ -74,7 +74,7 @@ class TestDiscretePassManager(QiskitTestCase):
         self.assertNotIn("u", transpiled_ops)
 
     def test_t_gates(self):
-        """Discrete transpilation of a circuit with T/Tdg-gates."""
+        """Clifford+T transpilation of a circuit with T/Tdg-gates."""
         qc = QuantumCircuit(3)
         qc.t(0)
         qc.tdg(1)
@@ -92,7 +92,7 @@ class TestDiscretePassManager(QiskitTestCase):
         self.assertEqual(transpiled, expected)
 
     def test_ccx(self):
-        """Discrete transpilation of the Toffoli circuit."""
+        """Clifford+T transpilation of the Toffoli circuit."""
         qc = QuantumCircuit(3)
         qc.ccx(0, 1, 2)
 
@@ -102,7 +102,7 @@ class TestDiscretePassManager(QiskitTestCase):
         self.assertEqual(transpiled.count_ops(), {"cx": 6, "t": 4, "tdg": 3, "h": 2})
 
     def test_rx(self):
-        """Discrete transpilation of a circuit with a single-qubit rotation gate,
+        """Clifford+T transpilation of a circuit with a single-qubit rotation gate,
         requiring the usage of the Solovay-Kitaev decomposition.
         """
         qc = QuantumCircuit(1)
@@ -114,7 +114,7 @@ class TestDiscretePassManager(QiskitTestCase):
         )
 
     def test_qft(self):
-        """Discrete transpilation of a more complex circuit, requiring the usage of the
+        """Clifford+T transpilation of a more complex circuit, requiring the usage of the
         Solovay-Kitaev decomposition.
         """
         qc = QuantumCircuit(4)
@@ -126,7 +126,7 @@ class TestDiscretePassManager(QiskitTestCase):
         )
 
     def test_iqp(self):
-        """Discrete transpilation of IQP circuits."""
+        """Clifford+T transpilation of IQP circuits."""
         interactions = np.array([[6, 5, 1], [5, 4, 3], [1, 3, 2]])
         qc = iqp(interactions)
 
@@ -139,7 +139,7 @@ class TestDiscretePassManager(QiskitTestCase):
         self.assertLessEqual(transpiled.size(), 30)
 
     def test_graph_state(self):
-        """Discrete transpilation of graph-state circuits."""
+        """Clifford+T transpilation of graph-state circuits."""
         adjacency_matrix = [
             [0, 1, 0, 0, 1],
             [1, 0, 1, 0, 0],

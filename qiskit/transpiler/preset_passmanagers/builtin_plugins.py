@@ -994,15 +994,15 @@ def _get_trial_count(default_trials=5):
 
 
 # In the following, we adapt/simplify different transpiler stage plugins for transpilation into
-# discrete basis.
+# Clifford+T basis.
 #
 # The plan is to have something working and to imporve on that later.
 #
 # As a rule of thumb, if the original circuit already consists only of Clifford or only of
 # Clifford+T gates, then we don't want the transpilation to make it significantly worse.
 # In particular, we avoid collecting and resynthesizing 2-qubit blocks.
-class DiscreteInitPassManager(PassManagerStagePlugin):
-    """Plugin class for discrete init stage."""
+class CliffordTInitPassManager(PassManagerStagePlugin):
+    """Plugin class for Clifford+T init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         if optimization_level == 0:
@@ -1119,14 +1119,14 @@ class DiscreteInitPassManager(PassManagerStagePlugin):
         return init
 
 
-class DiscreteTranslatorPassManager(PassManagerStagePlugin):
+class CliffordTTranslatorPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         return common.generate_translation_passmanager(
             pass_manager_config.target,
             basis_gates=pass_manager_config.basis_gates,
-            method="discrete",
+            method="clifford_t",
             approximation_degree=pass_manager_config.approximation_degree,
             coupling_map=pass_manager_config.coupling_map,
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
@@ -1136,7 +1136,7 @@ class DiscreteTranslatorPassManager(PassManagerStagePlugin):
         )
 
 
-class DiscreteOptimizationPassManager(PassManagerStagePlugin):
+class CliffordTOptimizationPassManager(PassManagerStagePlugin):
     """Plugin class for optimization stage"""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:

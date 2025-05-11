@@ -1,17 +1,17 @@
 ---
 features_transpiler:
   - |
-    Added a new function :func:`~.generate_discrete_pass_manager` which generates a
-    :class:`~.PassManager` object for transpiling into the discrete basis set of
+    Added a new function :func:`~.generate_clifford_t_pass_manager` which generates a
+    :class:`~.PassManager` object for transpiling into the basis set of
     Clifford+T gates.
 
     For example::
 
       from qiskit.circuit import QuantumCircuit
-      from qiskit.transpiler.preset_passmanagers import generate_discrete_pass_manager
+      from qiskit.transpiler.preset_passmanagers import generate_clifford_t_pass_manager
 
       basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-      pm = generate_discrete_pass_manager(basis_gates=basis_gates)
+      pm = generate_clifford_t_pass_manager(basis_gates=basis_gates)
 
       qc1 = QuantumCircuit(1)
       qc1.rx(0.8, 0)

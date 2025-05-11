@@ -485,8 +485,8 @@ def generate_translation_passmanager(
             translator,
         ]
         fix_1q = [translator]
-    elif method == "discrete":
-        # The extended basis gates is the list of discrete basis gates (which includes "cx", "h", "t",
+    elif method == "clifford_t":
+        # The extended basis gates is the list of Clifford+T basis gates (which includes "cx", "h", "t",
         # and "tdg") and the 1q-gate "u".
         extended_basis_gates = basis_gates + ["u"]
 
