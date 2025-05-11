@@ -565,7 +565,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for StandardGate {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 52
+        *bits < (STANDARD_GATE_SIZE as u8)
     }
 }
 unsafe impl ::bytemuck::NoUninit for StandardGate {}
@@ -2869,6 +2869,18 @@ pub enum ArrayType {
 #[repr(align(8))]
 pub struct UnitaryGate {
     pub array: ArrayType,
+}
+
+impl PartialEq for UnitaryGate {
+    fn eq(&self, other: &Self) -> bool {
+        match (&self.array, &other.array) {
+            (ArrayType::OneQ(mat1), ArrayType::OneQ(mat2)) => mat1 == mat2,
+            (ArrayType::TwoQ(mat1), ArrayType::TwoQ(mat2)) => mat1 == mat2,
+            // we could also slightly optimize comparisons between NDArray and OneQ/TwoQ if
+            // this becomes performance critical
+            _ => self.matrix(&[]) == other.matrix(&[]),
+        }
+    }
 }
 
 impl Operation for UnitaryGate {

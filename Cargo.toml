@@ -14,29 +14,34 @@ license = "Apache-2.0"
 #
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
-bytemuck = "1.22"
+bytemuck = "1.23"
 bitfield-struct = "0.9.3"
-indexmap.version = "2.7.1"
+indexmap.version = "2.9.0"
 hashbrown.version = "0.15.2"
 num-bigint = "0.4"
 num-complex = "0.4"
 nalgebra = "0.33"
-numpy = "0.23"
+numpy = "0.24"
 ndarray = "0.16"
-smallvec = "1.14"
+smallvec = "1.15"
 thiserror = "2.0"
 rustworkx-core = "0.16"
 approx = "0.5"
 itertools = "0.13.0"
-ahash = "0.8.11"
+ahash = "0.8.12"
 rayon = "1.10"
+rand = "0.9"
+rand_pcg = "0.9"
+rand_distr = "0.5"
+num-traits = "0.2"
+uuid = { version = "1.16", features = ["v4", "fast-rng"] }
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python
 # distributions).  We only activate that feature when building the C extension module; we still need
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
-pyo3 = { version = "0.23", features = ["abi3-py39"] }
+pyo3 = { version = "0.24", features = ["abi3-py39"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }
@@ -44,6 +49,7 @@ qiskit-circuit = { path = "crates/circuit" }
 qiskit-qasm2 = { path = "crates/qasm2" }
 qiskit-qasm3 = { path = "crates/qasm3" }
 qiskit-cext = { path = "crates/cext" }
+qiskit-transpiler = { path = "crates/transpiler" }
 
 [workspace.lints.clippy]
 # The lint forbids things like `if a < b {} else if a == b {}`, and suggests matching on `a.cmp(&b)`

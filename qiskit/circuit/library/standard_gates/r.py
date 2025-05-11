@@ -32,9 +32,10 @@ class RGate(Gate):
 
     .. code-block:: text
 
-             ┌──────┐
-        q_0: ┤ R(ϴ) ├
-             └──────┘
+               ┌─────────┐
+        q_0:   ┤ R(θ,ϕ)  ├ 
+               └─────────┘
+
 
     **Matrix Representation:**
 

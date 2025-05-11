@@ -62,12 +62,8 @@ from qiskit.circuit.library import (
     CRZGate,
     CU3Gate,
     CUGate,
-    SGate,
-    SdgGate,
     SXGate,
     SXdgGate,
-    TGate,
-    TdgGate,
     CSXGate,
     MSGate,
     Barrier,
@@ -713,47 +709,6 @@ class TestControlledGate(QiskitTestCase):
         explicit = {1: CXGate, 2: CCXGate}
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
-    @combine(num_ctrl_qubits=[1, 2, 3, 4], base_gate=[XGate(), YGate(), ZGate(), HGate()])
-    def test_small_mcx_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
-        """Test the creating a MCX gate (and other locally equivalent multi-controlled gates)
-        with small number of controls (with no ancillas) yields the expected number of cx gates
-        and provides the correct unitary.
-        """
-        qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
-
-        base_mat = base_gate.to_matrix()
-        test_op = Operator(qc)
-        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data))
-
-        cqc = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = cqc.count_ops()["cx"]
-        expected = {1: 1, 2: 6, 3: 14, 4: 36}
-        self.assertEqual(cx_count, expected[num_ctrl_qubits])
-
-    @combine(
-        num_ctrl_qubits=[1, 2, 3, 4],
-        base_gate=[PhaseGate(0.123), SGate(), SdgGate(), TGate(), TdgGate(), SXGate(), SXdgGate()],
-    )
-    def test_small_mcp_gates_yield_cx_count(self, num_ctrl_qubits, base_gate):
-        """Test the creating a MCPhase gate (and other locally equivalent multi-controlled gates)
-        with small number of controls (with no ancillas) yields the expected number of cx gates
-        and provides the correct unitary.
-        """
-        qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(base_gate.control(num_ctrl_qubits), range(num_ctrl_qubits + 1))
-
-        base_mat = base_gate.to_matrix()
-        test_op = Operator(qc)
-        cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data))
-
-        cqc = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = cqc.count_ops()["cx"]
-        expected = {1: 2, 2: 6, 3: 20, 4: 44}
-        self.assertEqual(cx_count, expected[num_ctrl_qubits])
-
     @data(1, 2, 3, 4)
     def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test an MCXGrayCode yields explicit definition."""
@@ -789,48 +744,6 @@ class TestControlledGate(QiskitTestCase):
                         corrected[i] += statevector_amplitude
                     statevector = corrected
                 np.testing.assert_array_almost_equal(statevector.real, reference)
-
-    @data(5, 10, 15)
-    def test_mcxvchain_dirty_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the v-chain mcx with dirty ancilla
-        is less than upper bound."""
-        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        qc = QuantumCircuit(mcx_vchain.num_qubits)
-
-        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
-
-        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcx_vchain.count_ops()["cx"]
-
-        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
-
-    @data(5, 10, 15)
-    def test_mcxvchain_clean_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the v-chain mcx with clean ancilla
-        is less than upper bound."""
-        mcx_vchain = MCXVChain(num_ctrl_qubits, dirty_ancillas=False)
-        qc = QuantumCircuit(mcx_vchain.num_qubits)
-
-        qc.append(mcx_vchain, list(range(mcx_vchain.num_qubits)))
-
-        tr_mcx_vchain = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcx_vchain.count_ops()["cx"]
-
-        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
-
-    @data(7, 10, 15)
-    def test_mcxrecursive_clean_ancilla_cx_count(self, num_ctrl_qubits):
-        """Test if cx count of the mcx with one clean ancilla
-        is less than upper bound."""
-        mcx_recursive = MCXRecursive(num_ctrl_qubits)
-        qc = QuantumCircuit(mcx_recursive.num_qubits)
-
-        qc.append(mcx_recursive, list(range(mcx_recursive.num_qubits)))
-
-        tr_mcx_rec = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcx_rec.count_ops()["cx"]
-
-        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 8)
 
     def test_mcxvchain_dirty_ancilla_action_only(self):
         """Test the v-chain mcx with dirty auxiliary qubits

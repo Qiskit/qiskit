@@ -83,10 +83,10 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///
 /// ```text
 /// StandardGate:
-/// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_SSSSSSSS_xxxxx000
-///                                                          |------|      |-|
-///                                                              |          |
-///                      Standard gate, stored inline as a u8. --+          +-- Discriminant.
+/// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSS000
+///                                                               |-------||-|
+///                                                                   |     |
+///                      Standard gate, stored inline as a u8. -------+     +-- Discriminant.
 ///
 /// StandardInstruction:
 /// 0b_DDDDDDDD_DDDDDDDD_DDDDDDDD_DDDDDDDD_xxxxxxxx_xxxxxxxx_SSSSSSSS_xxxxx001
@@ -446,6 +446,7 @@ impl PackedOperation {
             (OperationRef::Operation(left), OperationRef::Operation(right)) => {
                 left.operation.bind(py).eq(&right.operation)
             }
+            (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
             _ => Ok(false),
         }
     }

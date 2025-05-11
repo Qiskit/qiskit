@@ -126,7 +126,7 @@ pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
         ))
     }
 
-    for i in 0..((n + 1) / 2 - 1) {
+    for i in 0..(n.div_ceil(2) - 1) {
         gates.push((
             StandardGate::CX,
             smallvec![],
@@ -145,7 +145,7 @@ pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
         ))
     }
 
-    for i in 0..((n + 1) / 2 - 1) {
+    for i in 0..(n.div_ceil(2) - 1) {
         gates.push((
             StandardGate::CX,
             smallvec![],
@@ -156,8 +156,8 @@ pub(crate) fn _append_cx_stage2(gates: &mut LnnGatesVec, n: usize) {
 
 /// Append reverse permutation to a QuantumCircuit for linear nearest-neighbor architectures
 /// using Kutin, Moulton, Smithline method.
-fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usize) {
-    (0..(num_qubits + 1) / 2).for_each(|_| {
+pub(crate) fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_qubits: usize) {
+    (0..num_qubits.div_ceil(2)).for_each(|_| {
         _append_cx_stage1(gates, num_qubits);
         _append_cx_stage2(gates, num_qubits);
     });

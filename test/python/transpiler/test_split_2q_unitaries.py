@@ -13,6 +13,9 @@
 """
 Tests for the Split2QUnitaries transpiler pass.
 """
+
+import io
+
 from math import pi
 from test import QiskitTestCase
 import numpy as np
@@ -26,6 +29,7 @@ from qiskit.transpiler import PassManager
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
+from qiskit import qpy
 
 
 class TestSplit2QUnitaries(QiskitTestCase):
@@ -377,3 +381,41 @@ class TestSplit2QUnitaries(QiskitTestCase):
         )  # the original 2-qubit unitary should be split into 2 1-qubit unitaries.
         self.assertTrue(expected_op.equiv(res_op))
         self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
+
+    def test_overloaded_unitary_name_from_qasm(self):
+        """Test that an otherwise invalid custom gate named unitary created via valid Qiskit
+        API calls doesn't crash the pass
+
+        See: https://github.com/Qiskit/qiskit/issues/14103
+        """
+
+        qasm_str = """OPENQASM 2.0;
+        include "qelib1.inc";
+        gate cx_o0 q0,q1 { x q0; cx q0,q1; x q0; }
+        gate unitary q0,q1 { u(pi/2,0.6763483147328913,0) q0; u(1.6719020266110614,-pi/2,0) q1; cx q0,q1; u(pi,-0.9111063207475532,3.1249343449042435) q0; u(1.6719020266110616,0,-pi/2) q1; }
+        qreg v__0__0_[0];
+        qreg l___0__0___1_[2];
+        qreg l___0__0___2_[2];
+        qreg v__0__1_[0];
+        qreg l___0__1___1_[2];
+        qreg v__1__0_[0];
+        qreg l___1__0___1_[2];
+        qreg l___1__0___2_[2];
+        qreg v__1__1_[0];
+        qreg l___1__1___1_[2];
+        creg meas[12];
+        unitary l___0__0___2_[0],l___0__1___1_[0];
+        """
+        # Parse qasm string to get custom unitary gate that's not a UnitaryGate (but has matrix defined)
+        qc = QuantumCircuit.from_qasm_str(qasm_str)
+        # Roundtrip QPY to lose the custom matrix definition from qasm2
+        # unitary
+        with io.BytesIO() as buf:
+            qpy.dump(qc, buf)
+            # Rewind back to the beginning of the "file".
+            buf.seek(0)
+            qc = qpy.load(buf)[0]
+        # Run split unitaries pass with custom gate named unitary that has
+        # no matrix.
+        res = Split2QUnitaries()(qc)
+        self.assertEqual(res, qc)

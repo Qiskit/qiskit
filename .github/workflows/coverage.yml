@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-            cargo install grcov
+            cargo install grcov@0.8.24
             sudo apt-get install lcov
 
       # This is needed to support any requirements, particularly in the `optionals` set,
@@ -54,16 +54,38 @@ jobs:
           python -m pip install -c constraints.txt -r requirements-dev.txt -r requirements-optional.txt
           python tools/report_numpy_state.py
           stestr run
-          # We set the --source-dir to '.' because we want all paths to appear relative to the repo
-          # root (we need to combine them with the Python ones), but we only care about `grcov`
-          # keeping the `crates/*` files; we don't care about coverage in dependencies.
-          grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'crates/*'
         env:
           QISKIT_TEST_CAPTURE_STREAMS: 1
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           PYTHON: "coverage run --source qiskit --parallel-mode"
 
+      - name: Generate ctest coverage report
+        run: |
+          cargo rustc --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
+          mkdir -p dist/c/include
+          cp target/qiskit.h dist/c/include/.
+          cmake -S. -Btest/c/build
+          cmake --build test/c/build
+          ctest -V --test-dir test/c/build
+        env:
+          LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
+
+      - name: Generate rust test coverage report
+        run: |
+          python tools/run_cargo_test.py
+        env:
+          RUSTFLAGS: "-Cinstrument-coverage -Cincremental=false"
+          LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
+
+      - name: Generate lcov with grcov
+        run: |
+          # Copy ctest coverage to cwd
+          cp test/c/build/test/c/*profraw .
+          # We set the --source-dir to '.' because we want all paths to appear relative to the repo
+          # root (we need to combine them with the Python ones), but we only care about `grcov`
+          # keeping the `crates/*` files; we don't care about coverage in dependencies.
+          grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'crates/*'
       - name: Convert to lcov and combine data
         run: |
           set -e

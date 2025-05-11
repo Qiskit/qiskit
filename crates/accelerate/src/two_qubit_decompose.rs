@@ -559,16 +559,16 @@ impl TwoQubitWeylDecomposition {
     ) -> PyResult<()> {
         match self.specialization {
             Specialization::MirrorControlledEquiv => {
-                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
+                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)]);
                 sequence.push_standard_gate(
                     StandardGate::RZZ,
                     &[Param::Float((PI4 - self.c) * 2.)],
                     &[Qubit(0), Qubit(1)],
-                )?;
+                );
                 *global_phase += PI4
             }
             Specialization::SWAPEquiv => {
-                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
+                sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)]);
                 *global_phase -= 3. * PI / 4.
             }
             _ => {
@@ -577,21 +577,21 @@ impl TwoQubitWeylDecomposition {
                         StandardGate::RXX,
                         &[Param::Float(-self.a * 2.)],
                         &[Qubit(0), Qubit(1)],
-                    )?;
+                    );
                 }
                 if !simplify || self.b.abs() > atol {
                     sequence.push_standard_gate(
                         StandardGate::RYY,
                         &[Param::Float(-self.b * 2.)],
                         &[Qubit(0), Qubit(1)],
-                    )?;
+                    );
                 }
                 if !simplify || self.c.abs() > atol {
                     sequence.push_standard_gate(
                         StandardGate::RZZ,
                         &[Param::Float(-self.c * 2.)],
                         &[Qubit(0), Qubit(1)],
-                    )?;
+                    );
                 }
             }
         }
@@ -1204,7 +1204,7 @@ impl TwoQubitWeylDecomposition {
                 gate.0,
                 &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
                 &[Qubit(0)],
-            )?
+            )
         }
         global_phase += c2r.global_phase;
         let c2l = unitary_to_gate_sequence_inner(
@@ -1221,7 +1221,7 @@ impl TwoQubitWeylDecomposition {
                 gate.0,
                 &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
                 &[Qubit(1)],
-            )?
+            )
         }
         global_phase += c2l.global_phase;
         self.weyl_gate(
@@ -1244,7 +1244,7 @@ impl TwoQubitWeylDecomposition {
                 gate.0,
                 &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
                 &[Qubit(0)],
-            )?
+            )
         }
         global_phase += c2r.global_phase;
         let c1l = unitary_to_gate_sequence_inner(
@@ -1261,7 +1261,7 @@ impl TwoQubitWeylDecomposition {
                 gate.0,
                 &gate.1.into_iter().map(Param::Float).collect::<Vec<_>>(),
                 &[Qubit(1)],
-            )?
+            )
         }
         gate_sequence.set_global_phase(Param::Float(global_phase))?;
         Ok(gate_sequence)
@@ -2479,6 +2479,28 @@ impl RXXEquivalent {
         }
     }
 }
+impl<'a, 'py> IntoPyObject<'py> for &'a RXXEquivalent {
+    type Target = PyAny;
+    type Output = Borrowed<'a, 'py, Self::Target>;
+    type Error = PyErr;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind_borrowed(py)),
+            RXXEquivalent::CustomPython(gate) => Ok(gate.as_any().bind_borrowed(py)),
+        }
+    }
+}
+impl<'py> IntoPyObject<'py> for RXXEquivalent {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            RXXEquivalent::Standard(gate) => Ok(gate.get_gate_class(py)?.bind(py).clone()),
+            RXXEquivalent::CustomPython(gate) => Ok(gate.bind(py).clone().into_any()),
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
@@ -2920,6 +2942,10 @@ impl TwoQubitControlledUDecomposer {
 
 #[pymethods]
 impl TwoQubitControlledUDecomposer {
+    fn __getnewargs__(&self) -> (&RXXEquivalent, &str) {
+        (&self.rxx_equivalent_gate, self.euler_basis.as_str())
+    }
+
     ///  Initialize the KAK decomposition.
     ///  Args:
     ///      rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:

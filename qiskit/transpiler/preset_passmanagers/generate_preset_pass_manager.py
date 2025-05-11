@@ -13,7 +13,7 @@
 """
 Preset pass manager generation function
 """
-
+import copy
 import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
@@ -129,9 +129,9 @@ def generate_preset_pass_manager(
             :class:`~.StagedPassManager`. You can see a list of installed plugins by using
             :func:`~.list_stage_plugins` with ``"layout"`` for the ``stage_name`` argument.
         routing_method (str): The pass to use for routing qubits on the
-            architecture. Valid choices are ``'basic'``, ``'lookahead'``, ``'stochastic'``,
+            architecture. Valid choices are ``'basic'``, ``'lookahead'``,
             ``'sabre'``, and ``'none'`` representing :class:`~.BasicSwap`,
-            :class:`~.LookaheadSwap`, :class:`~.StochasticSwap`, :class:`~.SabreSwap`, and
+            :class:`~.LookaheadSwap`, :class:`~.SabreSwap`, and
             erroring if routing is required respectively. This can also be the external plugin
             name to use for the ``routing`` stage of the output :class:`~.StagedPassManager`.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
@@ -200,12 +200,14 @@ def generate_preset_pass_manager(
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = basis_gates is None and coupling_map is None and dt is None
 
+    # If the only loose constraint is dt => use backend target and modify dt
+    _adjust_dt = backend is not None and dt is not None
+
     # Warn about inconsistencies in backend + loose constraints path (dt shouldn't be a problem)
     if backend is not None and (coupling_map is not None or basis_gates is not None):
         warnings.warn(
             "Providing `coupling_map` and/or `basis_gates` along with `backend` is not "
-            "recommended. This may introduce inconsistencies in the transpilation target, "
-            "leading to potential errors.",
+            "recommended, as this will invalidate the backend's gate durations and error rates.",
             category=UserWarning,
             stacklevel=2,
         )
@@ -226,13 +228,17 @@ def generate_preset_pass_manager(
                 raise ValueError(
                     f"Gates with 3 or more qubits ({gate}) in `basis_gates` or `backend` are "
                     "incompatible with a custom `coupling_map`. To include 3-qubit or larger "
-                    " gates in the transpilation basis, use a custom `target` instance instead."
+                    " gates in the transpilation basis, provide a custom `target` instead."
                 )
 
     if target is None:
         if backend is not None and _no_loose_constraints:
             # If a backend is specified without loose constraints, use its target directly.
             target = backend.target
+        elif _adjust_dt:
+            # If a backend is specified with loose dt, use its target and adjust the dt value.
+            target = copy.deepcopy(backend.target)
+            target.dt = dt
         else:
             if basis_gates is not None:
                 # Build target from constraints.
@@ -255,7 +261,7 @@ def generate_preset_pass_manager(
                     dt=dt,
                 )
 
-    # update loose constraints to populate pm options
+    # Update loose constraints to populate pm options
     if coupling_map is None:
         coupling_map = target.build_coupling_map()
     if basis_gates is None and len(target.operation_names) > 0:
