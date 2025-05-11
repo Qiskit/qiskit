@@ -17,7 +17,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
+use qiskit_circuit::operations::{DelayUnit, Operation, Param, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -604,4 +604,67 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
             .expect("Unabled to create a Python circuit")
             .into_ptr()
     }
+}
+
+/// @ingroup QKCircuit
+/// Append a delay instruction to the circuit.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
+/// @param duration The duration of the delay.
+/// @param unit A C string representing the unit of the duration.
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(1, 0);
+///     qk_circuit_delay(qc, 0, 100.0, "ns");
+///     
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// The ``unit`` pointer must be a C valid string.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_delay(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration: f64,
+    unit: *const c_char,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: Per documentation `unit` is a valid C string.
+    let c_str_unit = unsafe { CStr::from_ptr(unit) };
+    let rust_unit_str = match c_str_unit.to_str() {
+        Ok(s) => s,
+        Err(_) => {
+            return ExitCode::CInputError;
+        }
+    };
+
+    let delay_unit_variant = match rust_unit_str {
+        "s" => DelayUnit::S,
+        "ms" => DelayUnit::MS,
+        "us" => DelayUnit::US,
+        "ns" => DelayUnit::NS,
+        "ps" => DelayUnit::PS,
+        "dt" => DelayUnit::DT,
+        "expr" => DelayUnit::EXPR,
+        _ => {
+            return ExitCode::CInputError;
+        }
+    };
+
+    let duration_param: Param = duration.into();
+    let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(delay_instruction),
+        &[duration_param],
+        &[Qubit(qubit)],
+        &[],
+    );
+
+    ExitCode::Success
 }

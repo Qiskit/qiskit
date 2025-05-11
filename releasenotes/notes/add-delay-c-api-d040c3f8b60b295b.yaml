@@ -1,0 +1,4 @@
+---
+features_circuits:
+  - |
+    There is a now a C API function to add a delay to a circuit.
