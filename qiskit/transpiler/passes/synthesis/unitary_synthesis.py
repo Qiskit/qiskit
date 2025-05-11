@@ -294,7 +294,7 @@ class UnitarySynthesis(TransformationPass):
 
         out_dag = dag.copy_empty_like()
         for node in dag.topological_op_nodes():
-            if node.name == "unitary" and len(node.qargs) >= self._min_qubits:
+            if node.name in self._synth_gates and len(node.qargs) >= self._min_qubits:
                 synth_dag = None
                 unitary = node.matrix
                 n_qubits = len(node.qargs)
