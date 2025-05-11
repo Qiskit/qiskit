@@ -854,7 +854,7 @@ class TestControlledGate(QiskitTestCase):
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=num_ctrl_qubits * 1e-3))
+        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-5))
 
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
