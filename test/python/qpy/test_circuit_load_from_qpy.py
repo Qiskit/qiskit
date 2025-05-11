@@ -299,12 +299,13 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(two_theta, 0)
         qc.measure_all()
+        has_symengine = True if optionals.HAS_SYMENGINE else False
         # Assert Roundtrip works
-        self.assert_roundtrip_equal(qc, use_symengine=optionals.HAS_SYMENGINE, version=13)
+        self.assert_roundtrip_equal(qc, use_symengine=has_symengine, version=13)
         # Also check the qpy symbolic expression encoding is correct in the
         # payload
         with io.BytesIO() as file_obj:
-            dump(qc, file_obj, use_symengine=optionals.HAS_SYMENGINE)
+            dump(qc, file_obj, use_symengine=has_symengine)
             file_obj.seek(0)
             header_data = FILE_HEADER_V10._make(
                 struct.unpack(
