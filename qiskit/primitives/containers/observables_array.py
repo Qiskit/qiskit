@@ -16,10 +16,8 @@ ND-Array container class for Estimator observables.
 """
 from __future__ import annotations
 
-import re
 from copy import deepcopy
 from collections.abc import Iterable, Mapping as _Mapping
-from functools import lru_cache
 from typing import Union, Mapping, overload, TYPE_CHECKING
 
 import numpy as np
@@ -106,7 +104,7 @@ class ObservablesArray(ShapedMixin):
 
     @staticmethod
     def _obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
-        """Convert a sparse observable to a mapping from Pauli strings to coefficients"""
+        """Convert a sparse observable to a mapping from Pauli strings to coefficients."""
         result = {}
         for sparse_pauli_str, pauli_qubits, coeff in obs.to_sparse_list():
 
@@ -157,7 +155,7 @@ class ObservablesArray(ShapedMixin):
         return self.__array__().tolist()
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:  # pylint: disable=unused-argument
-        """Convert to a Numpy.ndarray"""
+        """Convert to a Numpy.ndarray with elements of type dict."""
         if dtype is None or dtype == object:
             tmp_result = self.__getitem__(tuple(slice(None) for _ in self._array.shape))
             if len(self._array.shape) == 0:
@@ -169,6 +167,11 @@ class ObservablesArray(ShapedMixin):
                     result[ndi] = self._obs_to_dict(obs)
             return result
         raise ValueError("Type must be 'None' or 'object'")
+
+    def sparse_observables_array(self, copy: bool = False) -> np.ndarray:
+        """Convert to a Numpy.ndarray with elements of type SparseObservable."""
+        obs = self.copy() if copy else self
+        return obs._array
 
     IndexType = Union[int, slice, None, Ellipsis]
 
@@ -194,14 +197,14 @@ class ObservablesArray(ShapedMixin):
     ) -> ObservablesArray: ...
 
     def get_sparse_observable(self, args):
-        """Return a projection of the array to the specified dimensions.
-        
-        Args:
-            args: The dimensions to project to.
-
-        Returns:
-            A new array or a single element.
-        """
+        """Return a projection of the array to the specified dimensions."""
+        #
+        # Args:
+        #    args: The dimensions to project to.
+        #
+        # Returns:
+        ##    A new array or a single element.
+        # ""
         item = self._array[args]
         if not isinstance(item, np.ndarray):
             return item
@@ -235,7 +238,7 @@ class ObservablesArray(ShapedMixin):
 
     @property
     def num_qubits(self) -> int:
-        """Return the observable array's number of qubits"""
+        """Return the observable array's number of qubits."""
         return self._num_qubits
 
     @classmethod
@@ -368,15 +371,3 @@ class ObservablesArray(ShapedMixin):
                     "An observable was detected, whose number of qubits"
                     " does not match the array's number of qubits"
                 )
-
-
-@lru_cache(1)
-def _regex_match(allowed_chars: str) -> re.Pattern:
-    """Return pattern for matching if a string contains only the allowed characters."""
-    return re.compile(f"^[{re.escape(allowed_chars)}]*$")
-
-
-@lru_cache(1)
-def _regex_invalid(allowed_chars: str) -> re.Pattern:
-    """Return pattern for selecting invalid strings"""
-    return re.compile(f"[^{re.escape(allowed_chars)}]")

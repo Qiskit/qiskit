@@ -609,3 +609,16 @@ class ObservablesArrayTestCase(QiskitTestCase):
         )
         with self.assertRaisesRegex(ValueError, "number of qubits"):
             obs.validate()
+
+    def test_sparse_observables_array(self):
+        """Test sparse_observables_array method"""
+        obsarray = ObservablesArray([{"Z": 1}])
+        arr = obsarray._array
+
+        arr1 = obsarray.sparse_observables_array(copy=True)
+        self.assertEqual(arr1, arr)
+        self.assertNotEqual(id(arr1), id(arr))
+
+        arr2 = obsarray.sparse_observables_array(copy=False)
+        self.assertEqual(arr2, arr)
+        self.assertEqual(id(arr2), id(arr))
