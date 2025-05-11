@@ -1,17 +1,20 @@
 ---
 features_transpiler:
   - |
-    Added a new function :func:`~.generate_clifford_t_pass_manager` which generates a
-    :class:`~.PassManager` object for transpiling into the basis set of
-    Clifford+T gates.
+    The default plugins for generating init, translation and optimization pass manager
+    stages have been extended to detect whether the basis set consists of Clifford+T
+    gates only. When this is the case, dedicated plugins for transpiling into Clifford+T 
+    basis set are used instead. In particular, for a Clifford+T basis,
+    the function :func:`~.generate_clifford_t_pass_manager` provides a more efficient
+    translation into Clifford+T gates.
 
     For example::
 
       from qiskit.circuit import QuantumCircuit
-      from qiskit.transpiler.preset_passmanagers import generate_clifford_t_pass_manager
+      from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
       basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-      pm = generate_clifford_t_pass_manager(basis_gates=basis_gates)
+      pm = generate_preset_pass_manager(basis_gates=basis_gates)
 
       qc1 = QuantumCircuit(1)
       qc1.rx(0.8, 0)

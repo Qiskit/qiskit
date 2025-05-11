@@ -51,6 +51,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.utils import deprecate_func
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -727,3 +728,21 @@ def get_vf2_limits(
                 250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
             )
     return limits
+
+
+# Clifford+T basis, consisting of Clifford+T gate names + additional instruction names
+# that are a part of every basis
+_CLIFFORD_T_BASIS = _CLIFFORD_GATE_NAMES.union(
+    {"t", "tdg", "delay", "barrier", "reset", "measure"}.union(CONTROL_FLOW_OP_NAMES)
+)
+
+
+def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
+    """Checks whether all of the supported operations are Clifford+T."""
+    if target is not None:
+        basis = set(target.operation_names)
+    elif basis_gates is not None:
+        basis = set(basis_gates)
+    else:
+        basis = set()
+    return basis.issubset(_CLIFFORD_T_BASIS)

@@ -16,9 +16,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import QFTGate, iqp, GraphStateGate
-from qiskit.transpiler.preset_passmanagers import (
-    generate_clifford_t_pass_manager,
-)
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -29,7 +27,7 @@ class TestCliffordTPassManager(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        self.pm = generate_clifford_t_pass_manager(basis_gates=self.basis_gates)
+        self.pm = generate_preset_pass_manager(basis_gates=self.basis_gates)
 
     def test_cliffords_1q(self):
         """Clifford+T transpilation of a circuit with single-qubit Clifford gates."""

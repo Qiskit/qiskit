@@ -554,5 +554,7 @@ _BASIS_2Q = {
     "ecr": _append_ecr,
     "dcx": _append_dcx,
 }
+# Clifford gate names
+_CLIFFORD_GATE_NAMES = set(_BASIS_1Q.keys()).union(set(_BASIS_2Q.keys()))
 # Non-clifford gates
 _NON_CLIFFORD = {"t", "tdg", "ccx", "ccz"}

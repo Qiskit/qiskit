@@ -86,6 +86,13 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+
+        # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if common.is_clifford_t_basis(
+            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
+        ):
+            return CliffordTInitPassManager().pass_manager(pass_manager_config, optimization_level)
+
         if optimization_level == 0:
             init = None
             if (
@@ -215,6 +222,15 @@ class DefaultTranslationPassManager(PassManagerStagePlugin):
         # future if we want to change the default method to do more context-aware switching, or to
         # start transitioning the default method without breaking the semantics of the default
         # string referring to the `BasisTranslator`.
+
+        # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if common.is_clifford_t_basis(
+            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
+        ):
+            return CliffordTTranslatorPassManager().pass_manager(
+                pass_manager_config, optimization_level
+            )
+
         return BasisTranslatorPassManager().pass_manager(pass_manager_config, optimization_level)
 
 
@@ -496,6 +512,15 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
+
+        # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if common.is_clifford_t_basis(
+            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
+        ):
+            return CliffordTOptimizationPassManager().pass_manager(
+                pass_manager_config, optimization_level
+            )
+
         # Obtain the translation method required for this pass to work
         translation_method = pass_manager_config.translation_method or "default"
         optimization = PassManager()
