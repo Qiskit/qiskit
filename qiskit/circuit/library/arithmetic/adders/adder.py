@@ -118,12 +118,12 @@ class HalfAdderGate(Gate):
 
     def _define(self):
         """Populates self.definition with some decomposition of this gate."""
-        from qiskit.synthesis.arithmetic import adder_qft_d00
+        from qiskit.synthesis.arithmetic import adder_ripple_r25
 
         # This particular decomposition does not use any ancilla qubits.
         # Note that the transpiler may choose a different decomposition
         # based on the number of ancilla qubits available.
-        self.definition = adder_qft_d00(self.num_state_qubits, kind="half")
+        self.definition = adder_ripple_r25(self.num_state_qubits)
 
 
 class ModularAdderGate(Gate):

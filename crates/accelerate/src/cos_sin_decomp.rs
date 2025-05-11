@@ -126,19 +126,16 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     let mut c: DVector<f64> = svd.singular_values.column(0).into_owned();
 
     // We have u00 = l0 c r0, where l0 and r0 are unitary, and c is a diagonal matrix
-    // with positive entries in the descending order. However, we want the entries of c
-    // to be in the ascending order instead (otherwise, we will not be able to guarantee
-    // that s is a diagonal matrix too). Fortunately, it is easy to modify l0, c, and r0,
-    // so that this becomes true.
+    // with positive entries in the descending order. Also note that u00 is a submatrix
+    // of a unitary matrix, and hence its singular values (the entries of c) are all <= 1
+    // (well, due to floating-point precision errors, it is possible that some of
+    // the c-values are just a tiny bit larger than 1, so we have to be careful about that).
+    // However, we want the entries of c to be in the ascending order instead (otherwise,
+    // we will not be able to guarantee that s is a diagonal matrix too). Fortunately,
+    // it is easy to modify l0, c, and r0, so that this becomes true.
     reverse_rows(&mut r0);
     reverse_columns(&mut l0);
     reverse_vec(&mut c);
-
-    // Compute the angles theta. Because u00 is a submatrix of a unitary matrix, its
-    // singular values (the entries of c) are all <= 1. Due to floating-point precision
-    // errors, it is possible that some of the c-values are just a tiny bit larger than 1,
-    // so we correct for that.
-    let thetas: Vec<f64> = c.iter().map(|f| f.min(1.0).acos()).collect();
 
     // Apply QR to u10 r0*.
     // We have u10 r0* = l1 s, where l1 is unitary and s is upper-triangular.
@@ -213,6 +210,18 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
     // it might be a tiny bit away from a unitary. We "fix" this by finding
     // the closest unitary.
     let r1 = closest_unitary(r1);
+
+    // Compute the angles theta given approximate values of their cosines (entries of c)
+    // and their sines (entries of s).
+    // We can compute theta either as c.acos() or as s.asin(), however the first formula
+    // is not very accurate when c is close to 1 (an epsilon error in c leads to a
+    // sqrt(epsilon) error in theta), while the second formula is not very accurate when
+    // c is close to 0.
+    let thetas: Vec<f64> = c
+        .iter()
+        .zip(s.iter())
+        .map(|(&ci, &si)| si.atan2(ci))
+        .collect();
 
     (l0, l1, r0, r1, thetas)
 }
