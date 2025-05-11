@@ -52,6 +52,9 @@ import qiskit._numpy_compat
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
+sys.modules["qiskit._accelerate.circuit.classical"] = _accelerate.circuit.classical
+sys.modules["qiskit._accelerate.circuit.classical.expr"] = _accelerate.circuit.classical.expr
+sys.modules["qiskit._accelerate.circuit.classical.types"] = _accelerate.circuit.classical.types
 sys.modules["qiskit._accelerate.circuit_library"] = _accelerate.circuit_library
 sys.modules["qiskit._accelerate.basis_translator"] = _accelerate.basis_translator
 sys.modules["qiskit._accelerate.converters"] = _accelerate.converters
@@ -63,6 +66,9 @@ sys.modules["qiskit._accelerate.isometry"] = _accelerate.isometry
 sys.modules["qiskit._accelerate.uc_gate"] = _accelerate.uc_gate
 sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
     _accelerate.euler_one_qubit_decomposer
+)
+sys.modules["qiskit._accelerate.optimize_1q_gates_decomposition"] = (
+    _accelerate.optimize_1q_gates_decomposition
 )
 sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
@@ -98,6 +104,7 @@ sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.ev
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
+sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
@@ -107,6 +114,7 @@ sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
 sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_synthesis
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
+sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

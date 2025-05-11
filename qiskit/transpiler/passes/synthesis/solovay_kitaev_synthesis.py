@@ -211,7 +211,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
     Supported parameters in the dictionary:
 
-    basis_approximations (str | dict):
+    basic_approximations (str | dict):
         The basic approximations for the finding the best discrete decomposition at the root of the
         recursion. If a string, it specifies the ``.npy`` file to load the approximations from.
         If a dictionary, it contains ``{label: SO(3)-matrix}`` pairs. If None, a default based on
@@ -219,20 +219,31 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
     basis_gates (list):
         A list of strings specifying the discrete basis gates to decompose to. If None,
-        defaults to ``["h", "t", "tdg"]``.
+        it defaults to ``["h", "t", "tdg"]``. If ``basic_approximations`` is not None,
+        ``basis_set`` is required to correspond to the basis set that was used to
+        generate it.
 
     depth (int):
         The gate-depth of the basic approximations. All possible, unique combinations of the
         basis gates up to length ``depth`` are considered. If None, defaults to 10.
+        If ``basic_approximations`` is not None, ``depth`` is required to correspond to the
+        depth that was used to generate it.
 
     recursion_degree (int):
         The number of times the decomposition is recursively improved. If None, defaults to 3.
     """
 
-    # For each basis, we generate the computationally expensive basis approximations of single
-    # qubit gates only once. The global class attribute _sks is a dict from a basis to a (cached)
-    # instance of the Solovay-Kitaev class.
-    _sks = {}
+    # Generating basic approximations of single-qubit gates is computationally expensive.
+    # We cache the instance of the Solovay-Kitaev class (which contains the approximations),
+    # as well as the basis gates and the depth (used to generate it).
+    # When the plugin is called again, we check if the specified basis gates and depth are
+    # the same as before. If so, the stored basic approximations are reused, and if not, the
+    # approximations are re-generated. In practice (when the plugin is run as a part of the
+    # UnitarySynthesis transpiler pass), the basis gates and the depth do not change, and
+    # basic approximations are not re-generated.
+    _sk = None
+    _basis_gates = None
+    _depth = None
 
     @property
     def max_qubits(self):
@@ -282,6 +293,8 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         return False
 
     def run(self, unitary, **options):
+        """Run the SolovayKitaevSynthesis synthesis plugin on the given unitary."""
+
         # We first check if the unitary matrix happens to be Clifford, in which case we
         # provide the decomposition in terms of Clifford gates only.
         try:
@@ -292,26 +305,23 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
             pass
 
         # If the matrix is not Clifford, we run the Solovay-Kitaev decomposition.
-
         config = options.get("config") or {}
-        recursion_degree = config.get("recursion_degree", 3)
         basis_gates = options.get("basis_gates", ["h", "t", "tdg"])
-        basis_gates_as_hashable = tuple(set(basis_gates))
+        depth = config.get("depth", 10)
         basic_approximations = config.get("basic_approximations", None)
+        recursion_degree = config.get("recursion_degree", 3)
 
-        # if we didn't yet construct the Solovay-Kitaev instance for this basis set,
-        # do it now
-        if basis_gates_as_hashable not in self._sks:
-            # if the basic approximations are not generated and not given,
-            # generate them
+        # Check if we didn't yet construct the Solovay-Kitaev instance (which contains the basic
+        # approximations) or if the basic approximations need need to be recomputed.
+        if (SolovayKitaevSynthesis._sk is None) or (
+            (basis_gates != SolovayKitaevSynthesis._basis_gates)
+            or (depth != SolovayKitaevSynthesis._depth)
+        ):
             if basic_approximations is None:
-                depth = config.get("depth", 10)
                 basic_approximations = generate_basic_approximations(basis_gates, depth)
-                SolovayKitaevSynthesis._sks[basis_gates_as_hashable] = SolovayKitaevDecomposition(
-                    basic_approximations
-                )
 
-        approximate_circuit = SolovayKitaevSynthesis._sks[basis_gates_as_hashable].run(
-            unitary, recursion_degree
-        )
+            SolovayKitaevSynthesis._basis_gates = basis_gates
+            SolovayKitaevSynthesis._depth = depth
+            SolovayKitaevSynthesis._sk = SolovayKitaevDecomposition(basic_approximations)
+        approximate_circuit = SolovayKitaevSynthesis._sk.run(unitary, recursion_degree)
         return circuit_to_dag(approximate_circuit)

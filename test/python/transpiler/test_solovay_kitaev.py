@@ -111,7 +111,7 @@ class TestSolovayKitaev(QiskitTestCase):
         plugin = SolovayKitaevSynthesis()
         out = plugin.run(unitary, basis_gates=["h", "s"])
 
-        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "sdg", "cx", "x"})
+        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "sdg", "cx"})
 
     def test_multiple_plugins(self):
         """Test calling the plugins directly but with different instances of basis set."""
