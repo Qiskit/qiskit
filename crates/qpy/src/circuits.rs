@@ -784,7 +784,7 @@ fn pack_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pack>
         final_layout_size = final_layout.call_method0("__len__")?.extract()?;
         let final_layout_physical = final_layout.call_method0("get_physical_bits")?;
         for i in 0..num_qubits {
-            let virtual_bit = final_layout_physical.downcast::<PyList>()?.get_item(i)?;
+            let virtual_bit = final_layout_physical.downcast::<PyDict>()?.get_item(i)?;
             final_layout_array.append(
                 circuit
                     .call_method1("find_bit", (virtual_bit,))?

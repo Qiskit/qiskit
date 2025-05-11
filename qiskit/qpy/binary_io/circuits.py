@@ -47,6 +47,7 @@ from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit._accelerate import qpy as _qpy
 
+
 def _read_header_v12(file_obj, version, vectors, metadata_deserializer=None):
     data = formats.CIRCUIT_HEADER_V12._make(
         struct.unpack(
@@ -1203,7 +1204,12 @@ def _read_layout_v2(file_obj, circuit):
 
 
 def write_circuit(
-    file_obj, circuit, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION, use_rust = False
+    file_obj,
+    circuit,
+    metadata_serializer=None,
+    use_symengine=False,
+    version=common.QPY_VERSION,
+    use_rust=False,
 ):
     """Write a single QuantumCircuit object in the file like object.
 
