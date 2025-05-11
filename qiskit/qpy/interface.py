@@ -137,6 +137,7 @@ def dump(
             to generate an older QPY format version.  You can access the current QPY version and
             minimum compatible version with :attr:`.qpy.QPY_VERSION` and
             :attr:`.qpy.QPY_COMPATIBILITY_VERSION` respectively.
+        use_rust: whether to use the rust based serialization engine. On by default.
 
             .. note::
 

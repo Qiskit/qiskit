@@ -1225,6 +1225,7 @@ def write_circuit(
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
         version (int): The QPY format version to use for serializing this circuit
+        use_rust (bool): whether to use the rust based serialization engine. On by default.
     """
     if use_rust:
         _qpy.py_write_circuit(file_obj, circuit, metadata_serializer, use_symengine, version)
