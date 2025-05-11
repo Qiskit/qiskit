@@ -198,13 +198,6 @@ class ObservablesArray(ShapedMixin):
 
     def get_sparse_observable(self, args):
         """Return a projection of the array to the specified dimensions."""
-        #
-        # Args:
-        #    args: The dimensions to project to.
-        #
-        # Returns:
-        ##    A new array or a single element.
-        # ""
         item = self._array[args]
         if not isinstance(item, np.ndarray):
             return item
