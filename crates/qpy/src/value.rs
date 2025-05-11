@@ -104,9 +104,9 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
         || py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
     {
         return Ok(tags::REGISTER);
-    } else if py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
-        return Ok(tags::EXPRESSION);
-    } else if let Ok(_) = py_object.extract::<Expr>() {
+    } else if py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
+        || py_object.extract::<Expr>().is_ok()
+    {
         return Ok(tags::EXPRESSION);
     } else if py_object.is_instance(imports::BUILTIN_RANGE.get_bound(py))? {
         return Ok(tags::RANGE);
@@ -324,9 +324,9 @@ fn pack_modifier(modifier: &Bound<PyAny>) -> PyResult<formats::ModifierPack> {
             power: modifier.getattr("power")?.extract::<f64>()?,
         })
     } else {
-        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
-            "Unsupported modifier."
-        )))
+        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+            "Unsupported modifier.",
+        ))
     }
 }
 

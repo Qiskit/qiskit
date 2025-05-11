@@ -236,7 +236,7 @@ fn serialize_parameter_expression_elements(
     let result_data: Bytes = qpy_replay
         .iter()
         .flat_map(|replay_obj| {
-            serialize_parameter_expression_element(&replay_obj.bind(py), extra_symbols, qpy_data)
+            serialize_parameter_expression_element(replay_obj.bind(py), extra_symbols, qpy_data)
                 .unwrap()
         })
         .collect();
@@ -249,11 +249,11 @@ fn pack_symbol(
     value: &Bound<PyAny>,
     qpy_data: &QPYData,
 ) -> PyResult<formats::ParameterExpressionSymbolPack> {
-    let symbol_key = get_type_key(&symbol)?;
+    let symbol_key = get_type_key(symbol)?;
     let symbol_data: Bytes = match symbol_key {
-        tags::PARAMETER => serialize_parameter(&symbol)?,
-        tags::PARAMETER_EXPRESSION => serialize_parameter_expression(py, &symbol, qpy_data)?,
-        tags::PARAMETER_VECTOR => serialize_parameter_vector(&symbol)?,
+        tags::PARAMETER => serialize_parameter(symbol)?,
+        tags::PARAMETER_EXPRESSION => serialize_parameter_expression(py, symbol, qpy_data)?,
+        tags::PARAMETER_VECTOR => serialize_parameter_vector(symbol)?,
         _ => {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
                 "Unhandled symbol_key: {}",
@@ -267,15 +267,15 @@ fn pack_symbol(
         .is_truthy()?
     {
         true => (symbol_key, Vec::new()),
-        false => dumps_value(&value, qpy_data)?,
+        false => dumps_value(value, qpy_data)?,
     };
 
     Ok(formats::ParameterExpressionSymbolPack {
-        symbol_key: symbol_key,
-        value_key: value_key,
+        symbol_key,
+        value_key,
         value_data_len: value_data.len() as u64,
-        symbol_data: symbol_data,
-        value_data: value_data,
+        symbol_data,
+        value_data,
     })
 }
 fn serialize_symbol_table(
@@ -309,14 +309,14 @@ fn serialize_extra_symbol_table(
     let keys = PyIterator::from_object(&extra_symbols.keys())?
         .map(|item| {
             let symbol = item?;
-            Ok(pack_symbol(py, &symbol, &symbol, qpy_data)?)
+            pack_symbol(py, &symbol, &symbol, qpy_data)
         })
         .collect::<PyResult<_>>()?;
 
     let values = PyIterator::from_object(&extra_symbols.values())?
         .map(|item| {
             let symbol = item?;
-            Ok(pack_symbol(py, &symbol, &symbol, qpy_data)?)
+            pack_symbol(py, &symbol, &symbol, qpy_data)
         })
         .collect::<PyResult<_>>()?;
     let extra_symbol_table = formats::ExtraSymbolsTablePack { keys, values };
@@ -356,14 +356,14 @@ pub fn serialize_parameter(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
         .getattr(intern!(py, "name"))?
         .extract::<String>()?
         .into_bytes();
-    let uuid_bytes = py_object
+    let uuid = py_object
         .getattr(intern!(py, "uuid"))?
         .getattr(intern!(py, "bytes"))?
         .extract::<[u8; 16]>()?;
     let packed_parameter = formats::ParameterPack {
         name_length: name.len() as u16,
-        uuid: uuid_bytes,
-        name: name,
+        uuid,
+        name,
     };
     let mut parameter_buffer = Cursor::new(Vec::new());
     packed_parameter.write(&mut parameter_buffer).unwrap();
