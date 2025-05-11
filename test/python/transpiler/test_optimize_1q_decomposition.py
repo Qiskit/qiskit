@@ -753,11 +753,13 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
 
         self.assertEqual(result, expected)
 
-    def test_unitary_gate_ndarray(self):
-        """Test that pass handles unitary single-qubit gates."""
+    def test_unitary_gate_row_major(self):
+        """
+        Test that pass handles unitary single-qubit gates constructed
+        using the default row-major ordering.
+        """
 
         qc = QuantumCircuit(1)
-        # The Rust code is not able to interpret mat as nalgebra matrix
         mat = np.asarray(SGate().to_matrix(), dtype=complex)
         qc.append(UnitaryGate(mat), [0])
         result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
@@ -766,10 +768,12 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected.u(0, 0, np.pi / 2, [0])
         self.assertEqual(result, expected)
 
-    def test_unitary_gate_oneq(self):
-        """Test that pass handles unitary single-qubit gates."""
+    def test_unitary_gate_column_major(self):
+        """
+        Test that pass handles unitary single-qubit gates constructed
+        using the column-major ordering.
+        """
         qc = QuantumCircuit(1)
-        # The Rust code is able to interpret mat as nalgebra matrix
         mat = np.asarray(SGate().to_matrix(), dtype=complex, order="f")
         qc.append(UnitaryGate(mat), [0])
         result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
