@@ -173,7 +173,7 @@ class ObservablesArray(ShapedMixin):
         obs = self.copy() if copy else self
         return obs._array
 
-    IndexType = Union[int, slice, None, Ellipsis]
+    IndexType = Union[int, slice, None]
 
     @overload
     def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]: ...
