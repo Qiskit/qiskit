@@ -82,7 +82,6 @@ class ObservablesArray(ShapedMixin):
         super().__init__()
         if isinstance(observables, ObservablesArray):
             observables = observables._array
-
         self._array = object_array(observables, copy=copy, list_types=(PauliList,))
         self._shape = self._array.shape
         self._num_qubits = num_qubits
@@ -171,16 +170,41 @@ class ObservablesArray(ShapedMixin):
             return result
         raise ValueError("Type must be 'None' or 'object'")
 
+    IndexType = Union[int, slice, None, Ellipsis]
+
     @overload
     def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]: ...
 
     @overload
-    def __getitem__(self, args: slice | tuple[slice, ...]) -> ObservablesArray: ...
+    def __getitem__(self, args: IndexType | tuple[IndexType, ...]) -> ObservablesArray: ...
 
     def __getitem__(self, args):
         item = self._array[args]
         if not isinstance(item, np.ndarray):
             return self._obs_to_dict(item)
+
+        return ObservablesArray(item, copy=False, validate=False)
+
+    @overload
+    def get_sparse_observable(self, args: int | tuple[int, ...]) -> SparseObservable: ...
+
+    @overload
+    def get_sparse_observable(
+        self, args: IndexType | tuple[IndexType, ...]
+    ) -> ObservablesArray: ...
+
+    def get_sparse_observable(self, args):
+        """Return a projection of the array to the specified dimensions.
+        
+        Args:
+            args: The dimensions to project to.
+
+        Returns:
+            A new array or a single element.
+        """
+        item = self._array[args]
+        if not isinstance(item, np.ndarray):
+            return item
 
         return ObservablesArray(item, copy=False, validate=False)
 
