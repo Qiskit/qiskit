@@ -133,6 +133,7 @@ pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
 );
 pub static PAULI_EVOLUTION_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "PauliEvolutionGate");
+pub static MCMT_GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "MCMTGate");
 pub static BLUEPRINT_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "BlueprintCircuit");
 pub static QS_DECOMPOSITION: ImportOnceCell =

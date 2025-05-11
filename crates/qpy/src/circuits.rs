@@ -28,6 +28,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
 use qiskit_circuit::imports;
 
+use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -324,7 +325,7 @@ fn get_condition_data_from_inst(
     match getattr_or_none(inst.bind(py), "_condition")? {
         None => Ok((0, 0, 0, Vec::new())),
         Some(condition) => {
-            if condition.is_instance(imports::EXPR.get_bound(py))? {
+            if let Ok(_) = condition.extract::<Expr>() {
                 let condition_raw = serialize(&pack_generic_data(&condition, qpy_data)?)?;
                 Ok((condition_types::EXPRESSION, 0, 0, condition_raw))
             } else if condition.is_instance_of::<PyTuple>() {
@@ -399,13 +400,20 @@ fn recognize_custom_operation(
         return Ok(Some(new_name));
     }
 
-    if ["ControlledGate", "AnnotatedOperation"].contains(&name.as_str()) {
+    if ["ControlledGate", "AnnotatedOperation"].contains(&name.as_str())
+        || is_python_gate(py, op, imports::MCMT_GATE.get_bound(py))?
+    {
         return Ok(Some(format!("{}_{}", op.name(), Uuid::new_v4())));
     }
 
     if is_python_gate(py, op, imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
         return Ok(Some(format!("###PauliEvolutionGate_{}", Uuid::new_v4())));
     }
+
+    // elif isinstance(instruction.operation, library.MCMTGate):
+    //     gate_class_name = instruction.operation.name + "_" + str(uuid.uuid4())
+    //     custom_operations[gate_class_name] = instruction.operation
+    //     custom_operations_list.append(gate_class_name)
 
     Ok(None)
 }

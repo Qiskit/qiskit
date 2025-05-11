@@ -17,6 +17,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple};
 
+use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -103,9 +104,9 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
         || py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
     {
         return Ok(tags::REGISTER);
-    } else if py_object.is_instance(imports::EXPR.get_bound(py))?
-        || py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
-    {
+    } else if py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
+        return Ok(tags::EXPRESSION);
+    } else if let Ok(_) = py_object.extract::<Expr>() {
         return Ok(tags::EXPRESSION);
     } else if py_object.is_instance(imports::BUILTIN_RANGE.get_bound(py))? {
         return Ok(tags::RANGE);
