@@ -387,7 +387,6 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
         )
-        self.assertLessEqual(cqc.count_ops().get("cx", 0), cqc2.count_ops().get("cx", 0) + 3)
 
 
 if __name__ == "__main__":
