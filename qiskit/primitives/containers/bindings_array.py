@@ -112,7 +112,7 @@ class BindingsArray(ShapedMixin):
             ValueError: If all inputs are ``None``.
             ValueError: If the shape cannot be automatically inferred from the arrays, or if there
                 is some inconsistency in the shape of the given arrays.
-            TypeError: If some of the vaules can't be cast to a float type.
+            TypeError: If some of the values can't be cast to a float type.
         """
         super().__init__()
 
