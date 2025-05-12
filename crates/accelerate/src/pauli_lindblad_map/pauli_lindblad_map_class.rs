@@ -30,7 +30,8 @@ use super::qubit_sparse_pauli::{
 
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 
-/// A Pauli Lindblad map that stores its data in a qubit-sparse format.
+/// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
+/// probabilities, and negative_rates is 
 ///
 /// See [PyPauliLindbladMap] for detailed docs.
 #[derive(Clone, Debug, PartialEq)]
@@ -40,6 +41,13 @@ pub struct PauliLindbladMap {
     rates: Vec<f64>,
     /// A list of qubit sparse Paulis corresponding to the rates
     qubit_sparse_pauli_list: QubitSparsePauliList,
+    /// The gamma parameter.
+    gamma: f64,
+    /// Probability of application of a given Pauli operator in product form. Note that if the
+    /// corresponding rate is less than 0, this is a quasi-probability.
+    probabilities: Vec<f64>,
+    /// List of boolean values for the statement rate < 0 for each rate in rates.
+    negative_rates: Vec<bool>
 }
 
 impl PauliLindbladMap {
@@ -53,10 +61,19 @@ impl PauliLindbladMap {
                 boundaries: qubit_sparse_pauli_list.boundaries().len(),
             });
         }
+        
+        let omegas: Vec<f64> = rates.iter().map(|r| 0.5 * (1.0 + (-2.0 * r).exp())).collect();
+        let gammas: Vec<f64> = omegas.iter().map(|w| w.abs() + (1.0 - w).abs()).collect();
+        let gamma: f64 = gammas.iter().fold(1.0, |res, g| res * g);
+        let probabilities: Vec<f64> = omegas.iter().zip(gammas).map(|(w, g)| *w / g).collect();
+        let negative_rates: Vec<bool> = rates.iter().map(|r| *r < 0.0).collect();
 
         Ok(Self {
             rates,
             qubit_sparse_pauli_list,
+            gamma,
+            probabilities,
+            negative_rates
         })
     }
 
@@ -79,10 +96,7 @@ impl PauliLindbladMap {
         }
         let qubit_sparse_pauli_list: QubitSparsePauliList =
             QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
-        Ok(Self {
-            rates,
-            qubit_sparse_pauli_list,
-        })
+        Ok(Self::new(rates, qubit_sparse_pauli_list)?)
     }
 
     /// Create a new [PauliLindbladMap] from the raw components without checking data coherence.
@@ -99,12 +113,21 @@ impl PauliLindbladMap {
         indices: Vec<u32>,
         boundaries: Vec<usize>,
     ) -> Self {
+
+        let omegas: Vec<f64> = rates.iter().map(|r| 0.5 * (1.0 + (-2.0 * r).exp())).collect();
+        let gammas: Vec<f64> = omegas.iter().map(|w| w.abs() + (1.0 - w).abs()).collect();
+        let gamma: f64 = gammas.iter().fold(1.0, |res, g| res * g);
+        let probabilities: Vec<f64> = omegas.iter().zip(gammas).map(|(w, g)| *w / g).collect();
+        let negative_rates: Vec<bool> = rates.iter().map(|r| *r < 0.0).collect();
         unsafe {
             let qubit_sparse_pauli_list: QubitSparsePauliList =
                 QubitSparsePauliList::new_unchecked(num_qubits, paulis, indices, boundaries);
             Self {
                 rates,
                 qubit_sparse_pauli_list,
+                gamma,
+                probabilities,
+                negative_rates
             }
         }
     }
@@ -232,6 +255,9 @@ impl PauliLindbladMap {
         Self {
             rates: Vec::with_capacity(num_terms),
             qubit_sparse_pauli_list,
+            gamma: 1.0,
+            probabilities: Vec::with_capacity(num_terms),
+            negative_rates: Vec::with_capacity(num_terms)
         }
     }
 
@@ -463,17 +489,14 @@ impl SparseTerm {
     }
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
-    pub fn to_pauli_lindblad_map(&self) -> PauliLindbladMap {
+    pub fn to_pauli_lindblad_map(&self) -> Result<PauliLindbladMap, CoherenceError> {
         let qubit_sparse_pauli_list = QubitSparsePauliList {
             num_qubits: self.num_qubits(),
             paulis: self.paulis.to_vec(),
             indices: self.indices.to_vec(),
             boundaries: vec![0, self.paulis.len()],
         };
-        PauliLindbladMap {
-            rates: vec![self.rate],
-            qubit_sparse_pauli_list,
-        }
+        PauliLindbladMap::new(vec![self.rate], qubit_sparse_pauli_list)
     }
 }
 
@@ -1064,7 +1087,7 @@ impl PyPauliLindbladMap {
                     ));
                 };
                 let py_term = first?.downcast::<PySparseTerm>()?.borrow();
-                py_term.inner.to_pauli_lindblad_map()
+                py_term.inner.to_pauli_lindblad_map()?
             }
         };
         for bound_py_term in iter {
