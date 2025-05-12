@@ -15,7 +15,7 @@ Data containers for primitives.
 """
 
 
-from .bindings_array import BindingsArray, BindingsArrayLike
+from .bindings_array import ParameterLike, BindingsArray, BindingsArrayLike
 from .bit_array import BitArray
 from .data_bin import DataBin, make_data_bin
 from .estimator_pub import EstimatorPub, EstimatorPubLike

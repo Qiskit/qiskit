@@ -408,6 +408,15 @@ level, however, here are some notable differences keep in mind when migrating fr
 Primitives API
 ==============
 
+Parameters V2
+-------------
+
+.. autosummary::
+   :toctree: ../stubs/
+   ParameterLike
+   BindingsArray
+   BindingsArrayLike
+
 Estimator V2
 ------------
 
@@ -487,8 +496,9 @@ from .containers import (
     EstimatorPubLike,
     SamplerPub,
     SamplerPubLike,
-    BindingsArray,
     SamplerPubResult,
+    ParameterLike,
+    BindingsArray,
     BindingsArrayLike,
     ObservableLike,
     ObservablesArray,
