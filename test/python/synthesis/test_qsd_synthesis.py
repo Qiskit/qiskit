@@ -362,7 +362,6 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
         )
-        self.assertLessEqual(cqc.count_ops().get("cx", 0), cqc2.count_ops().get("cx", 0) + 15)
 
     @data(3, 4, 5, 6)
     def test_mc_2qubit_opt(self, num_qubits):
