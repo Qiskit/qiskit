@@ -17,9 +17,10 @@ ND-Array container class for Estimator observables.
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from collections.abc import Iterable, Mapping as _Mapping
 from functools import lru_cache
-from typing import Union, Mapping, overload
+from typing import Union, Mapping, overload, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -29,6 +30,11 @@ from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp, SparseObservabl
 from .object_array import object_array
 from .shape import ShapedMixin, shape_tuple
 
+
+if TYPE_CHECKING:
+    from qiskit.transpiler.layout import TranspileLayout
+
+
 # Public API classes
 __all__ = ["ObservableLike", "ObservablesArrayLike"]
 
@@ -36,6 +42,7 @@ ObservableLike = Union[
     str,
     Pauli,
     SparsePauliOp,
+    SparseObservable,
     Mapping[Union[str, Pauli], float],
 ]
 """Types that can be natively used to construct a Hermitian Estimator observable."""
@@ -272,6 +279,62 @@ class ObservablesArray(ShapedMixin):
         if isinstance(observables, ObservablesArray):
             return observables
         return cls(observables)
+
+    def equivalent(self, other: ObservablesArray, tol: float = 1e-08) -> bool:
+        """Compute whether the observable arrays are equal within a given tolerance.
+
+        Args:
+            other: Another observables array to compare with.
+            tol: The tolerance to provide to :attr:`~.SparseObservable.simplify` during checking.
+
+        Returns:
+            Whether the two observables arrays have the same shape and number of qubits,
+            and if so, whether they are equal within tolerance.
+        """
+        if self.num_qubits != other.num_qubits or self.shape != other.shape:
+            return False
+
+        zero_obs = SparseObservable.zero(self.num_qubits)
+        for obs1, obs2 in zip(self._array.ravel(), other._array.ravel()):
+            if (obs1 - obs2).simplify(tol) != zero_obs:
+                return False
+
+        return True
+
+    def copy(self):
+        """Return a deep copy of the array."""
+        return deepcopy(self)
+
+    def apply_layout(
+        self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
+    ) -> ObservablesArray:
+        """Apply a transpiler layout to this :class:`~.ObservablesArray`.
+
+        Args:
+            layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
+                    If both layout and ``num_qubits`` are none, a deep copy of the array is
+                    returned.
+            num_qubits: The number of qubits to expand the array to. If not
+                provided then if ``layout`` is a :class:`~.TranspileLayout` the
+                number of the transpiler output circuit qubits will be used by
+                default. If ``layout`` is a list of integers the permutation
+                specified will be applied without any expansion. If layout is
+                None, the array will be expanded to the given number of qubits.
+
+        Returns:
+            A new :class:`.ObservablesArray` with the provided layout applied.
+
+        Raises:
+            QiskitError: ...
+        """
+        if layout is None and num_qubits is None:
+            return self.copy()
+
+        new_arr = np.ndarray(self.shape, dtype=SparseObservable)
+        for ndi, obs in np.ndenumerate(self._array):
+            new_arr[ndi] = obs.apply_layout(layout, num_qubits)
+
+        return ObservablesArray(new_arr, validate=False)
 
     def validate(self):
         """Validate the consistency in observables array."""

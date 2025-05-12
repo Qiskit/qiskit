@@ -15,11 +15,11 @@ workspace = true
 [dependencies]
 rayon.workspace = true
 numpy.workspace = true
-rand = "0.9"
-rand_pcg = "0.9"
-rand_distr = "0.5"
+rand.workspace = true
+rand_pcg.workspace = true
+rand_distr.workspace = true
 ahash.workspace = true
-num-traits = "0.2"
+num-traits.workspace = true
 num-complex.workspace = true
 rustworkx-core.workspace = true
 num-bigint.workspace = true
