@@ -30,18 +30,27 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VirtualQubit};
 
-use crate::TranspilerError;
 use crate::target::{Qargs, Target};
-
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
+use crate::TranspilerError;
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
 static COUPLING_MAP: ImportOnceCell =
     ImportOnceCell::new("qiskit.transpiler.coupling", "CouplingMap");
+
+pub struct DisjointComponent {
+    pub physical_qubits: Vec<PhysicalQubit>,
+    pub sub_dag: DAGCircuit,
+    pub virtual_qubits: Vec<VirtualQubit>,
+}
+
+pub enum DisjointSplit {
+    NoneNeeded,
+    TargetSubset(Vec<PhysicalQubit>),
+    Arbitrary(Vec<DisjointComponent>),
+}
 
 type CouplingMap = StableDiGraph<NodeIndex, ()>;
 
@@ -68,7 +77,7 @@ pub fn py_run_pass_over_connected_components(
     target: &Target,
     run_func: Bound<PyAny>,
 ) -> PyResult<Option<Vec<PyObject>>> {
-    let func = |dag: &DAGCircuit, cmap: &CouplingMap| -> PyResult<PyObject> {
+    let func = |dag: DAGCircuit, cmap: &CouplingMap| -> PyResult<PyObject> {
         let py = run_func.py();
         let coupling_map_cls = COUPLING_MAP.get_bound(py);
         let endpoints: Vec<[usize; 2]> = cmap
@@ -86,22 +95,49 @@ pub fn py_run_pass_over_connected_components(
                 .set_item(node.index(), cmap.node_weight(node).unwrap().index())?;
         }
         // TODO: Remove the dag clone
-        Ok(run_func.call1((dag.clone(), py_cmap))?.unbind())
+        Ok(run_func.call1((dag, py_cmap))?.unbind())
     };
-    run_pass_over_connected_components(dag, target, func)
+    match distribute_components(dag, target)? {
+        DisjointSplit::NoneNeeded => {
+            let coupling_map: CouplingMap = match build_coupling_map(target) {
+                Some(map) => map,
+                None => return Ok(None),
+            };
+            Ok(Some(vec![func(dag.clone(), &coupling_map)?]))
+        }
+        DisjointSplit::TargetSubset(qubits) => {
+            let coupling_map = build_coupling_map(target).unwrap();
+            let cmap = subgraph(
+                &coupling_map,
+                &qubits.iter().map(|x| NodeIndex::new(x.index())).collect(),
+            );
+            Ok(Some(vec![func(dag.clone(), &cmap)?]))
+        }
+        DisjointSplit::Arbitrary(components) => Some(
+            components
+                .into_iter()
+                .map(|component| {
+                    let coupling_map = build_coupling_map(target).unwrap();
+                    let cmap = subgraph(
+                        &coupling_map,
+                        &component
+                            .physical_qubits
+                            .iter()
+                            .map(|x| NodeIndex::new(x.index()))
+                            .collect(),
+                    );
+                    func(component.sub_dag, &cmap)
+                })
+                .collect::<PyResult<Vec<_>>>(),
+        )
+        .transpose(),
+    }
 }
 
-pub fn run_pass_over_connected_components<T, F>(
-    dag: &mut DAGCircuit,
-    target: &Target,
-    mut run_func: F,
-) -> PyResult<Option<Vec<T>>>
-where
-    F: FnMut(&DAGCircuit, &CouplingMap) -> PyResult<T>,
-{
+pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<DisjointSplit> {
     let coupling_map: CouplingMap = match build_coupling_map(target) {
         Some(map) => map,
-        None => return Ok(None),
+        None => return Ok(DisjointSplit::NoneNeeded),
     };
     let cmap_components = connected_components(&coupling_map);
     if cmap_components.len() == 1 {
@@ -111,7 +147,7 @@ where
                 "components in the coupling map."
             )));
         }
-        return Ok(Some(vec![run_func(dag, &coupling_map)?]));
+        return Ok(DisjointSplit::NoneNeeded);
     }
     let dag_components = separate_dag(dag)?;
     let mapped_components = map_components(&dag_components, &cmap_components)?;
@@ -146,11 +182,36 @@ where
             Ok((out_dag, subgraph))
         })
         .collect::<PyResult<Vec<_>>>()?;
-    Ok(Some(
+    if out_component_pairs.len() == 1 {
+        return Ok(DisjointSplit::TargetSubset(
+            out_component_pairs[0]
+                .1
+                .node_weights()
+                .map(|x| PhysicalQubit::new(x.index() as u32))
+                .collect(),
+        ));
+    }
+    Ok(DisjointSplit::Arbitrary(
         out_component_pairs
             .into_iter()
-            .map(|(out_dag, cmap)| run_func(&out_dag, &cmap))
-            .collect::<PyResult<Vec<_>>>()?,
+            .map(|(sub_dag, coupling_map)| {
+                let physical_qubits = coupling_map
+                    .node_weights()
+                    .map(|x| PhysicalQubit::new(x.index() as u32))
+                    .collect();
+                let virtual_qubits = sub_dag
+                    .qubits()
+                    .objects()
+                    .iter()
+                    .map(|x| VirtualQubit::new(dag.qubit_locations().get(x).unwrap().index()))
+                    .collect();
+                DisjointComponent {
+                    physical_qubits,
+                    sub_dag,
+                    virtual_qubits,
+                }
+            })
+            .collect(),
     ))
 }
 
@@ -339,17 +400,12 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                 .collect::<HashSet<Qubit>>()
         })
         .collect();
-    let qubits: HashSet<Qubit> = (0..dag.num_qubits())
-        .map(Qubit::new)
-        .collect();
+    let qubits: HashSet<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
     let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
         .into_iter()
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
             let mut new_dag = dag.copy_empty_like("alike")?;
-            let qubits_to_revmove: Vec<Qubit> = qubits
-                .difference(&dag_qubits)
-                .copied()
-                .collect();
+            let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;
             new_dag.set_global_phase(Param::Float(0.))?;
@@ -360,8 +416,12 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                 if dag_qubits.is_superset(&qargs) {
                     let qargs = dag.get_qargs(node.qubits);
                     let qarg_bits = old_qubits.map_indices(qargs).cloned();
-                    let mapped_qubits: Vec<Qubit> = new_dag.qubits().map_objects(qarg_bits)?.collect();
-                    let mapped_clbits: Vec<Clbit> = new_dag.cargs_interner().get(node.clbits).iter().cloned().collect();
+                    let mapped_qubits: Vec<Qubit> =
+                        new_dag.qubits().map_objects(qarg_bits)?.collect();
+                    let mapped_clbits: Vec<Clbit> = new_dag
+                        .cargs_interner()
+                        .get(node.clbits)
+                        .to_vec();
                     new_dag.apply_operation_back(
                         node.op.clone(),
                         &mapped_qubits,
