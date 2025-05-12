@@ -167,6 +167,7 @@ def _loads_instruction_parameter(
     circuit,
     use_symengine,
     standalone_vars,
+    initialize_full_vec,
 ):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
@@ -186,6 +187,7 @@ def _loads_instruction_parameter(
                 circuit=circuit,
                 use_symengine=use_symengine,
                 standalone_vars=standalone_vars,
+                initialize_full_vec=initialize_full_vec,
             )
         )
     elif type_key == type_keys.Value.INTEGER:
@@ -207,6 +209,7 @@ def _loads_instruction_parameter(
             cregs=registers["c"],
             use_symengine=use_symengine,
             standalone_vars=standalone_vars,
+            initialize_full_vec=initialize_full_vec,
         )
 
     return param
@@ -294,6 +297,14 @@ def _read_instruction(
     # Load Parameters
     for _param in range(instruction.num_parameters):
         type_key, data_bytes = common.read_generic_typed_data(file_obj)
+        # If the gate is in the list of exceptions (subclasses of BlueprintCircuit),
+        # and the parameter type is a parameter vector, initialize all elements of
+        # the vector. This is to avoid unnecessary UserWarnings about elements in
+        # the non-user-actionable parameter vector not being initialized.
+        initialize_full_vec = any(
+            exception in gate_name
+            for exception in ["ZZFeatureMap", "ZFeatureMap", "PauliFeatureMap"]
+        )
         param = _loads_instruction_parameter(
             type_key,
             data_bytes,
@@ -303,6 +314,7 @@ def _read_instruction(
             circuit,
             use_symengine,
             standalone_vars,
+            initialize_full_vec,
         )
         params.append(param)
 

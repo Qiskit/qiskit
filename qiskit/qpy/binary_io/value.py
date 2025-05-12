@@ -455,7 +455,7 @@ def _read_parameter(file_obj):
     return Parameter(name, uuid=param_uuid)
 
 
-def _read_parameter_vec(file_obj, vectors, from_expr):
+def _read_parameter_vec(file_obj, vectors, initialize_full_vec):
     data = formats.PARAMETER_VECTOR_ELEMENT(
         *struct.unpack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
@@ -468,7 +468,7 @@ def _read_parameter_vec(file_obj, vectors, from_expr):
     if param_uuid not in vectors:
         vectors[param_uuid] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[param_uuid][0]
-    if from_expr:
+    if initialize_full_vec:
         for index in range(data.vector_size):
             vectors[param_uuid][1].add(index)
             vector._params[index] = ParameterVectorElement(vector, index, uuid=param_uuid)
@@ -539,7 +539,8 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            symbol = _read_parameter_vec(file_obj, vectors, from_expr=True)
+            # If a parameter vector is used within an expression, initialize all elements.
+            symbol = _read_parameter_vec(file_obj, vectors, initialize_full_vec=True)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
@@ -587,7 +588,8 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            symbol = _read_parameter_vec(file_obj, vectors, from_expr=True)
+            # If a parameter vector is used within an expression, initialize all elements.
+            symbol = _read_parameter_vec(file_obj, vectors, initialize_full_vec=True)
         elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
             symbol = _read_parameter_expression_v13(file_obj, vectors, version)
 
@@ -653,12 +655,14 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             size = struct.unpack_from("!QQ", expression_data.LHS)[0]
             subs_map_data = buf.read(size)
             with io.BytesIO(subs_map_data) as mapping_buf:
+                # If a parameter vector is used within the replay of a
+                # substitution operation, initialize all elements.
                 mapping = common.read_mapping(
                     mapping_buf,
                     deserializer=loads_value,
                     version=version,
                     vectors=vectors,
-                    from_expr=True,
+                    initialize_full_vec=True,
                 )
             stack.append({name_map[k]: v for k, v in mapping.items()})
         else:
@@ -1075,7 +1079,7 @@ def loads_value(
     cregs=None,
     use_symengine=False,
     standalone_vars=(),
-    from_expr=False,
+    initialize_full_vec=False,
 ):
     """Deserialize input binary data to value object.
 
@@ -1120,7 +1124,10 @@ def loads_value(
         return CASE_DEFAULT
     if type_key == type_keys.Value.PARAMETER_VECTOR:
         return common.data_from_binary(
-            binary_data, _read_parameter_vec, vectors=vectors, from_expr=from_expr
+            binary_data,
+            _read_parameter_vec,
+            vectors=vectors,
+            initialize_full_vec=initialize_full_vec,
         )
     if type_key == type_keys.Value.PARAMETER:
         return common.data_from_binary(binary_data, _read_parameter)

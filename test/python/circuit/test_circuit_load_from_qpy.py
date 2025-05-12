@@ -912,7 +912,6 @@ class TestLoadFromQPY(QiskitTestCase):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/14088."""
         qc = ZZFeatureMap(2, reps=1)
-        print(qc.parameters)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
