@@ -1,14 +1,15 @@
 #ifndef QISKIT__COMPLEX_H
 #define QISKIT__COMPLEX_H
-
-/// A complex double.
-///
-/// See also ``qk_complex64_to_native`` and ``qk_complex64_from_native`` to convert
-/// this struct to (or from) a compiler-native complex number representation.
+/**
+ * A complex double.
+ *
+ * See also ``qk_complex64_to_native`` and ``qk_complex64_from_native`` to convert
+ * this struct to (or from) a compiler-native complex number representation.
+ */
 typedef struct {
-    /// The real part.
+    /* The real part. */
     double re;
-    /// The imaginary part.
+    /* The imaginary part. */
     double im;
 } QkComplex64;
 
@@ -32,43 +33,48 @@ static QkComplex64 qk_complex64_from_native(_Dcomplex *value) {
     return (QkComplex64){creal(*value), cimag(*value)};
 }
 #else
-/// @ingroup QkComplex64
-/// Convert a ``QkComplex64`` to a compiler-native complex number representation.
-///
-/// @param value A pointer to the ``QkComplex64`` to convert.
-/// @return A native representation of the complex number.
-///
-/// # Example
-///
-/// Assuming a GNU/clang compiler with ``complex double`` as native complex number, we have
-///
-///     QkComplex64 qk_value = {1, 1}; // represents 1 + i
-///     complex double value = qk_complex64_to_native(&qk_value);
-///
-/// # Safety
-///
-/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkComplex64``.
-static double complex qk_complex64_to_native(QkComplex64 *value) {
+/**
+ * @ingroup QkComplex64
+ * Convert a ``QkComplex64`` to a compiler-native complex number representation.
+ *
+ * @param value A pointer to the ``QkComplex64`` to convert.
+ *
+ * @return A native representation of the complex number.
+ *
+ * # Example
+ *
+ * Assuming a GNU/clang compiler with ``complex double`` as native complex number, we have
+ *
+ *     QkComplex64 qk_value = {1, 1}; // represents 1 + i
+ *     complex double value = qk_complex64_to_native(&qk_value);
+ *
+ * # Safety
+ *
+ * Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkComplex64``.
+ */
+static _Complex double qk_complex64_to_native(QkComplex64 *value) {
     return value->re + I * value->im;
 }
 
-/// @ingroup QkComplex64
-/// Convert a compiler-native complex number to a ``QkComplex64``.
-///
-/// @param value A pointer to the native complex number.
-/// @return The ``QkComplex64`` representation.
-///
-/// # Example
-///
-/// Assuming a GNU/clang compiler with ``complex double`` as native complex number, we have
-///
-///     complex double value = 1 + I;
-///     QkComplex64 qk_value = qk_complex64_from_native(&value);
-///
-/// # Safety
-///
-/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a complex number.
-static QkComplex64 qk_complex64_from_native(complex double *value) {
+/**
+ * @ingroup QkComplex64
+ * Convert a compiler-native complex number to a ``QkComplex64``.
+ *
+ * @param value A pointer to the native complex number.
+ * @return The ``QkComplex64`` representation.
+ *
+ * # Example
+ *
+ * Assuming a GNU/clang compiler with ``complex double`` as native complex number, we have
+ *
+ *     complex double value = 1 + I;
+ *     QkComplex64 qk_value = qk_complex64_from_native(&value);
+ *
+ * # Safety
+ *
+ * Behavior is undefined if ``value`` is not a valid, non-null pointer to a complex number.
+ */
+static QkComplex64 qk_complex64_from_native(_Complex double *value) {
     return (QkComplex64){creal(*value), cimag(*value)};
 }
 #endif // _MSC_VER
