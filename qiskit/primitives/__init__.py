@@ -417,6 +417,11 @@ Estimator V2
    BaseEstimatorV2
    StatevectorEstimator
    BackendEstimatorV2
+   EstimatorPub
+   EstimatorPubLike
+   ObservablesArray
+   ObservablesArrayLike
+   ObservableLike
 
 Sampler V2
 ----------
@@ -427,6 +432,8 @@ Sampler V2
    BaseSamplerV2
    StatevectorSampler
    BackendSamplerV2
+   SamplerPub
+   SamplerPubLike
 
 Results V2
 ----------
@@ -476,11 +483,15 @@ from .containers import (
     DataBin,
     PrimitiveResult,
     PubResult,
+    EstimatorPub,
     EstimatorPubLike,
+    SamplerPub,
     SamplerPubLike,
+    BindingsArray,
     SamplerPubResult,
     BindingsArrayLike,
     ObservableLike,
+    ObservablesArray,
     ObservablesArrayLike,
 )
 from .primitive_job import BasePrimitiveJob, PrimitiveJob
