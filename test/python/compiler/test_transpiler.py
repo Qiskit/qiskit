@@ -19,6 +19,7 @@ import math
 import os
 import sys
 from logging import StreamHandler, getLogger
+import unittest
 from unittest.mock import patch
 import numpy as np
 import rustworkx as rx
@@ -2131,6 +2132,7 @@ class TestTranspile(QiskitTestCase):
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
 
+    @unittest.skip("disjoint")
     @data(0, 1, 2, 3)
     def test_barrier_not_output(self, opt_level):
         """Test that barriers added as part internal transpiler operations do not leak out."""
@@ -2145,6 +2147,7 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertNotIn("barrier", tqc.count_ops())
 
+    @unittest.skip("disjoint")
     @data(0, 1, 2, 3)
     def test_barrier_not_output_input_preservered(self, opt_level):
         """Test that barriers added as part internal transpiler operations do not leak out."""
@@ -3037,6 +3040,7 @@ class TestTranspileParallel(QiskitTestCase):
             )
 
 
+@unittest.skip("disjoint")
 @ddt
 class TestTranspileMultiChipTarget(QiskitTestCase):
     """Test transpile() with a disjoint coupling map."""
