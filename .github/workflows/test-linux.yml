@@ -157,6 +157,22 @@ jobs:
           set -e
           python -m pip install --upgrade pip setuptools wheel virtualenv
           virtualenv test-job
+      - name: Install Qiskit from sdist
+        if: ${{ inputs.install-from-sdist }}
+        run: |
+          set -e
+          # Use stable Rust, rather than MSRV, to spot-check that stable builds properly.
+          rustup override set stable
+          source test-job/bin/activate
+          python -m pip install -U pip build
+          python -m build --sdist .
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            dist/qiskit-*.tar.gz
+          # Build and install both qiskit and qiskit-terra so that any optionals
+          # depending on `qiskit` will resolve correctly.
       - name: Install Qiskit directly
         if: ${{ !inputs.install-from-sdist }}
         run: |
