@@ -333,7 +333,7 @@ fn all_instructions_supported(
     data: &Bound<HighLevelSynthesisData>,
     dag: &DAGCircuit,
 ) -> PyResult<bool> {
-    let ops = dag.count_ops(py, false)?;
+    let ops = dag.count_ops(py, true)?;
     let mut op_keys = ops.keys();
 
     let borrowed_data = data.borrow();
