@@ -34,6 +34,7 @@ use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
@@ -47,7 +48,6 @@ use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
 use crate::TranspilerError;
-use qiskit_accelerate::nlayout::PhysicalQubit;
 
 type InstMap = IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>;
 type ExtraInstructionMap<'a> = IndexMap<&'a PhysicalQargs, InstMap, ahash::RandomState>;

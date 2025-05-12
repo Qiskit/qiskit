@@ -41,7 +41,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::cos_sin_decomp::cos_sin_decomp, "cos_sin_decomp")?;
     add_submodule(m, ::qiskit_transpiler::passes::dense_layout_mod, "dense_layout")?;
     add_submodule(m, ::qiskit_transpiler::equivalence::equivalence, "equivalence")?;
-    add_submodule(m, ::qiskit_accelerate::error_map::error_map, "error_map")?;
+    add_submodule(m, ::qiskit_transpiler::passes::error_map_mod, "error_map")?;
     add_submodule(m, ::qiskit_transpiler::passes::elide_permutations_mod, "elide_permutations")?;
     add_submodule(m, ::qiskit_accelerate::euler_one_qubit_decomposer::euler_one_qubit_decomposer, "euler_one_qubit_decomposer")?;
     add_submodule(m, ::qiskit_transpiler::passes::filter_op_nodes_mod, "filter_op_nodes")?;
@@ -49,7 +49,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::gates_in_basis_mod, "gates_in_basis")?;
     add_submodule(m, ::qiskit_transpiler::passes::inverse_cancellation_mod, "inverse_cancellation")?;
     add_submodule(m, ::qiskit_accelerate::isometry::isometry, "isometry")?;
-    add_submodule(m, ::qiskit_accelerate::nlayout::nlayout, "nlayout")?;
+    add_submodule(m, ::qiskit_circuit::nlayout::nlayout, "nlayout")?;
     add_submodule(m, ::qiskit_accelerate::optimize_1q_gates::optimize_1q_gates, "optimize_1q_gates")?;
     add_submodule(m, ::qiskit_transpiler::passes::optimize_1q_gates_decomposition_mod, "optimize_1q_gates_decomposition")?;
     add_submodule(m, ::qiskit_accelerate::pauli_exp_val::pauli_expval, "pauli_expval")?;

@@ -45,8 +45,8 @@ use crate::target::Target;
 use crate::TranspilerError;
 use qiskit_accelerate::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_accelerate::euler_one_qubit_decomposer::EulerBasis;
-use qiskit_accelerate::nlayout::PhysicalQubit;
 use qiskit_accelerate::two_qubit_decompose::TwoQubitBasisDecomposer;
+use qiskit_circuit::PhysicalQubit;
 
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;

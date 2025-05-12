@@ -33,8 +33,8 @@ use hashbrown::HashMap;
 use hashbrown::HashSet;
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
-use qiskit_accelerate::nlayout::PhysicalQubit;
-use qiskit_accelerate::nlayout::VirtualQubit;
+use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::VirtualQubit;
 
 /// Python function to perform star prerouting on a SabreDAG.
 /// This function processes star blocks and updates the DAG and qubit mapping.

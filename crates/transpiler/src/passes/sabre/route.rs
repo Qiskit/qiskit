@@ -30,7 +30,7 @@ use rustworkx_core::token_swapper::token_swapper;
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_accelerate::getenv_use_multiple_threads;
-use qiskit_accelerate::nlayout::{NLayout, PhysicalQubit};
+use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
 
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
