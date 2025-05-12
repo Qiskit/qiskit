@@ -21,6 +21,15 @@ use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruc
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
+#[cfg(feature = "python_binding")]
+use pyo3::ffi::PyObject;
+#[cfg(feature = "python_binding")]
+use pyo3::types::PyAnyMethods;
+#[cfg(feature = "python_binding")]
+use pyo3::{intern, Python};
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::imports::QUANTUM_CIRCUIT;
+
 /// @ingroup QkCircuit
 /// Construct a new circuit with the given number of qubits and clbits.
 ///
@@ -120,7 +129,7 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not either null or a valid pointer to a
-/// [CircuitData].
+/// ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
@@ -150,7 +159,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_gate(qc, QkGate_H, *[0], *[]);
 ///
 /// # Safety
 ///
@@ -256,8 +265,8 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 /// Append a measurement to the circuit
 ///
 /// @param circuit A pointer to the circuit to add the measurement to
-/// @param qubits The ``uint32_t`` for the qubit to measure
-/// @param clbits The ``uint32_t`` for the clbit to store the measurement outcome in
+/// @param qubit The ``uint32_t`` for the qubit to measure
+/// @param clbit The ``uint32_t`` for the clbit to store the measurement outcome in
 ///
 /// # Example
 ///
@@ -289,7 +298,7 @@ pub unsafe extern "C" fn qk_circuit_measure(
 /// Append a reset to the circuit
 ///
 /// @param circuit A pointer to the circuit to add the reset to
-/// @param qubits The ``uint32_t`` for the qubit to reset
+/// @param qubit The ``uint32_t`` for the qubit to reset
 ///
 /// # Example
 ///
@@ -357,15 +366,24 @@ pub unsafe extern "C" fn qk_circuit_barrier(
     ExitCode::Success
 }
 
+/// An individual operation count represented by the operation name
+/// and the number of instances in the circuit.
 #[repr(C)]
 pub struct OpCount {
+    /// A nul terminated string representing the operation name
     name: *const c_char,
+    /// The number of instances of this operation in the circuit
     count: usize,
 }
 
+/// An array of ``OpCount`` objects representing the total counts of all
+/// the operation types in a circuit.
 #[repr(C)]
 pub struct OpCounts {
+    /// A array of size ``len`` containing ``OpCount`` objects for each
+    /// type of operation in the circuit
     data: *mut OpCount,
+    /// The number of elements in ``data``
     len: usize,
 }
 
@@ -424,8 +442,6 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
     circuit.__len__()
 }
 
-/// @ingroup QkCircuit
-///
 /// A circuit instruction representation.
 ///
 /// This struct represents the data contained in an individual instruction in a ``QkCircuit``.
@@ -453,7 +469,7 @@ pub struct CInstruction {
 /// Return the instruction details for an instruction in the circuit
 ///
 /// This function is used to get the instruction details for a given instruction in
-/// the circuit. It returns
+/// the circuit.
 ///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
@@ -559,5 +575,40 @@ pub unsafe extern "C" fn qk_opcounts_free(op_counts: OpCounts) {
     // SAFETY: Loading a box from the slice pointer created above
     unsafe {
         let _ = Box::from_raw(data);
+    }
+}
+
+/// @ingroup QkCircuit
+/// Convert to a Python-space ``QuantumCircuit``.
+///
+/// This function takes ownership of the pointer and gives it to Python. Using
+/// the input ``circuit`` pointer after it's passed to this function is
+/// undefined behavior. In particular, ``qk_circuit_free`` should not be called
+/// on this pointer anymore.
+///
+/// @param circuit The C-space ``QkCircuit`` pointer.
+///
+/// @return A Python ``QuantumCircuit`` object.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to
+/// a ``QkCircuit``
+///
+/// It is assumed that the thread currently executing this function holds the
+/// Python GIL. This is required to create the Python object returned by this
+/// function.
+#[no_mangle]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut PyObject {
+    unsafe {
+        let circuit = Box::from_raw(mut_ptr_as_ref(circuit));
+        let py = Python::assume_gil_acquired();
+        QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_circuit_data"), (*circuit,))
+            .expect("Unabled to create a Python circuit")
+            .into_ptr()
     }
 }
