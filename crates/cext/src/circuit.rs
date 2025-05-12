@@ -631,7 +631,7 @@ pub enum QkDelayUnit {
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
 /// @param duration The duration of the delay.
-/// @param unit A C enum representing the unit of the duration.
+/// @param unit An enum representing the unit of the duration.
 ///
 /// # Example
 ///
