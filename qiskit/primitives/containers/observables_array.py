@@ -169,7 +169,14 @@ class ObservablesArray(ShapedMixin):
         raise ValueError("Type must be 'None' or 'object'")
 
     def sparse_observables_array(self, copy: bool = False) -> np.ndarray:
-        """Convert to a Numpy.ndarray with elements of type SparseObservable."""
+        """Convert to a :class:`numpy.ndarray` with elements of type :class:`~.SparseObservable`.
+        
+        Args:
+            copy: Whether to make a new array instance with new sparse observables as elements.
+            
+        Returns:
+            A :class:`numpy.ndarray` with elements of type :class:`~.SparseObservable`.
+        """
         obs = self.copy() if copy else self
         return obs._array
 
