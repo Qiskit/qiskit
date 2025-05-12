@@ -608,15 +608,21 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
 
 /// @ingroup QkCircuit
 ///
-/// C compatible enum for DelayUnit
-#[repr(C)]
+/// Units for circuit delays.
+#[repr(u8)]
 pub enum QkDelayUnit {
-    S,
-    MS,
-    US,
-    NS,
-    PS,
-    DT,
+    /// Seconds.
+    S = 0,
+    /// Milliseconds.
+    MS = 1,
+    /// Microseconds.
+    US = 2,
+    /// Nanoseconds.
+    NS = 3,
+    /// Picoseconds.
+    PS = 4,
+    /// Device-native time unit ``dt``.
+    DT = 5,
 }
 
 /// @ingroup QkCircuit
