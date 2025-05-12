@@ -633,6 +633,8 @@ pub enum QkDelayUnit {
 /// @param duration The duration of the delay.
 /// @param unit An enum representing the unit of the duration.
 ///
+/// @return An exit code.
+///
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(1, 0);
