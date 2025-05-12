@@ -462,6 +462,8 @@ def _read_parameter_vec(file_obj, vectors, initialize_full_vec):
             file_obj.read(formats.PARAMETER_VECTOR_ELEMENT_SIZE),
         ),
     )
+    # Starting in version 15, the parameter uuid is used instead of the
+    # parameter name.
     param_uuid = uuid.UUID(bytes=data.uuid)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
 
@@ -623,17 +625,13 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
 
 def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
     param_uuid_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
-    if version < 15:
-        name_map = {str(v): k for k, v in symbol_map.items()}
-    else:
-        name_map = {symbol.uuid: symbol for symbol in symbol_map if isinstance(symbol, Parameter)}
+    name_map = {str(v): k for k, v in symbol_map.items()}
     data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
     stack = []
     while data:
         expression_data = formats.PARAM_EXPR_ELEM_V13._make(
             struct.unpack(formats.PARAM_EXPR_ELEM_V13_PACK, data)
         )
-
         # LHS
         if expression_data.LHS_TYPE == b"p":
             stack.append(param_uuid_map[uuid.UUID(bytes=expression_data.LHS)])
@@ -664,7 +662,11 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
                     vectors=vectors,
                     initialize_full_vec=True,
                 )
-            stack.append({name_map[k]: v for k, v in mapping.items()})
+            # Starting in version 15, the uuid is used instead of the name
+            if version < 15:
+                stack.append({name_map[k]: v for k, v in mapping.items()})
+            else:
+                stack.append({param_uuid_map[k]: v for k, v in mapping.items()})
         else:
             raise exceptions.QpyError(
                 "Unknown ParameterExpression operation type {expression_data.LHS_TYPE}"
@@ -696,13 +698,6 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
             rhs = stack.pop()
             lhs = stack.pop()
-            if expression_data.OP_CODE == 15:
-                for key, value in rhs.items():
-                    for index in range(len(vectors[value.uuid][0])):
-                        vectors[value.uuid][1].add(index)
-                    for index in range(len(vectors[key.uuid][0])):
-                        vectors[key.uuid][1].add(index)
-
             # Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
             # op codes 13 and 15 can never be reversed and 18, 19, 20
             # are the reversed versions of non-commuative operations
