@@ -606,54 +606,53 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
     }
 }
 
-/// @ingroup QKCircuit
+/// @ingroup QkCircuit
+///
+/// C compatible enum for DelayUnit
+#[repr(C)]
+pub enum QkDelayUnit {
+    S,
+    MS,
+    US,
+    NS,
+    PS,
+    DT,
+}
+
+/// @ingroup QkCircuit
 /// Append a delay instruction to the circuit.
 ///
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
 /// @param duration The duration of the delay.
-/// @param unit A C string representing the unit of the duration.
+/// @param unit A C enum representing the unit of the duration.
 ///
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(1, 0);
-///     qk_circuit_delay(qc, 0, 100.0, "ns");
+///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
 ///     
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-/// The ``unit`` pointer must be a C valid string.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_delay(
     circuit: *mut CircuitData,
     qubit: u32,
     duration: f64,
-    unit: *const c_char,
+    unit: QkDelayUnit,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
-    // SAFETY: Per documentation `unit` is a valid C string.
-    let c_str_unit = unsafe { CStr::from_ptr(unit) };
-    let rust_unit_str = match c_str_unit.to_str() {
-        Ok(s) => s,
-        Err(_) => {
-            return ExitCode::CInputError;
-        }
-    };
-
-    let delay_unit_variant = match rust_unit_str {
-        "s" => DelayUnit::S,
-        "ms" => DelayUnit::MS,
-        "us" => DelayUnit::US,
-        "ns" => DelayUnit::NS,
-        "ps" => DelayUnit::PS,
-        "dt" => DelayUnit::DT,
-        "expr" => DelayUnit::EXPR,
-        _ => {
-            return ExitCode::CInputError;
-        }
+    let delay_unit_variant = match unit {
+        QkDelayUnit::S => DelayUnit::S,
+        QkDelayUnit::MS => DelayUnit::MS,
+        QkDelayUnit::US => DelayUnit::US,
+        QkDelayUnit::NS => DelayUnit::NS,
+        QkDelayUnit::PS => DelayUnit::PS,
+        QkDelayUnit::DT => DelayUnit::DT,
     };
 
     let duration_param: Param = duration.into();
