@@ -121,7 +121,7 @@ pub fn cos_sin_decomposition(u: DMatrix<Complex64>) -> CosSinDecompReturn {
 
     // Apply SVD to u00
     let svd = u00
-        .try_svd(true, true, 1e-8, 0)
+        .try_svd(true, true, 1e-12, 0)
         .expect("Problem with SVD decomposition");
     let mut l0 = svd.u.unwrap();
     let mut r0 = svd.v_t.unwrap();
