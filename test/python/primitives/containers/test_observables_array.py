@@ -266,8 +266,8 @@ class ObservablesArrayTestCase(QiskitTestCase):
         self.assertEqual(item, base_obs)
 
     @ddt.data(0, 1, 2, 3)
-    def test_get_sparse_observable_single(self, ndim):
-        """Test get_sparse_observable method for size=1 array"""
+    def test_sparse_observables_array_slice_single(self, ndim):
+        """Test sparse_observables_array_slice method for size=1 array"""
         base_obs = qi.SparseObservable.from_label("XX")
         obs = base_obs
         for _ in range(ndim):
@@ -363,8 +363,8 @@ class ObservablesArrayTestCase(QiskitTestCase):
         self.assertTrue(isinstance(obs_none, ObservablesArray))
         self.assertTrue(obs_none[0].equivalent(obs))
 
-    def test_get_sparse_observable_1d(self):
-        """Test get_sparse_observable for 1D array"""
+    def test_sparse_observables_array_slice_1d(self):
+        """Test sparse_observables_array_slice for 1D array"""
         obj = [
             qi.SparseObservable.from_list([obs]) for obs in [("I", 1), ("X", 2), ("Y", 3), ("Z", 4)]
         ]
@@ -378,8 +378,8 @@ class ObservablesArrayTestCase(QiskitTestCase):
         for i in range(2):
             self.assertEqual(sub_obs.sparse_observables_array_slice(i), obj[i + 1])
 
-    def test_get_sparse_observable_2d(self):
-        """Test get_sparse_observable for 2D array"""
+    def test_sparse_observables_array_slice_2d(self):
+        """Test sparse_observables_array_slice for 2D array"""
         obj = object_array(
             [
                 [qi.SparseObservable.from_list([obs]) for obs in [("II", 1), ("XI", 2), ("IY", 3)]],
@@ -392,21 +392,21 @@ class ObservablesArrayTestCase(QiskitTestCase):
             row = obs.sparse_observables_array_slice(i)
             self.assertEqual(row.shape, (3,))
             for j in range(3):
-                self.assertEqual(row.get_sparse_observable(j), obj[i][j])
+                self.assertEqual(row.sparse_observables_array_slice(j), obj[i][j])
 
         sub_obs_slice = obs.sparse_observables_array_slice(slice(1, 2))
         row = sub_obs_slice.sparse_observables_array_slice(0)
         self.assertTrue(isinstance(row, ObservablesArray))
         self.assertEqual(row.shape, (3,))
         for j in range(3):
-            self.assertEqual(row.get_sparse_observable(j), obj[1][j])
+            self.assertEqual(row.sparse_observables_array_slice(j), obj[1][j])
 
         sub_obs_two_slices = obs.sparse_observables_array_slice((slice(1, 2), slice(1, 3)))
         row = sub_obs_two_slices.sparse_observables_array_slice(0)
         self.assertTrue(isinstance(row, ObservablesArray))
         self.assertEqual(row.shape, (2,))
         for j in range(2):
-            self.assertEqual(row.get_sparse_observable(j), obj[i][j + 1])
+            self.assertEqual(row.sparse_observables_array_slice(j), obj[i][j + 1])
 
         sub_obs_int_and_slice = obs.sparse_observables_array_slice((1, slice(1, 3)))
         self.assertTrue(isinstance(sub_obs_int_and_slice, ObservablesArray))
@@ -428,14 +428,14 @@ class ObservablesArrayTestCase(QiskitTestCase):
         self.assertTrue(isinstance(sub_obs_ellipsis, ObservablesArray))
         self.assertEqual(sub_obs_ellipsis.shape, (2,))
         for i in range(2):
-            self.assertEqual(sub_obs_ellipsis.get_sparse_observable(i), obj[i][1])
+            self.assertEqual(sub_obs_ellipsis.sparse_observables_array_slice(i), obj[i][1])
 
         obs_none = obs.sparse_observables_array_slice(None)
         self.assertTrue(isinstance(obs_none, ObservablesArray))
         self.assertTrue(obs_none.sparse_observables_array_slice(0).equivalent(obs))
 
     def test_get_dim_zero(self):
-        """Test __getitem__ and get_sparse_observable for arrays of dimension 0"""
+        """Test __getitem__ and sparse_observables_array_slice for arrays of dimension 0"""
         obs = qi.SparseObservable.from_label("Z")
         arr = ObservablesArray(obs)
 
