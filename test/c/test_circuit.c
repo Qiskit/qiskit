@@ -558,6 +558,27 @@ cleanup:
     return result;
 }
 
+int test_delay_instruction(void){
+    QkCircuit *qc = qk_circuit_new(2, 0)
+    int result = Ok
+
+    ExitCode delay_dt = qk_circuit_delay(qc, 1, 10, "dt");
+    if (delay_dt != Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    ExitCode delay_s = qk_circuit_delay(qc, 0, 0.001, "s");
+     if (delay_s != Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_circuit_free(qc);
+    return result;    
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -568,6 +589,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_get_gate_counts_bv_resets_barrier_and_measures);
     num_failed += RUN_TEST(test_gate_num_qubits);
     num_failed += RUN_TEST(test_gate_num_params);
+    num_failed += RUN_TEST(test_delay_instruction)
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
