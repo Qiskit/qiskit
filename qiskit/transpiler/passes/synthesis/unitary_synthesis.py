@@ -223,6 +223,7 @@ class UnitarySynthesis(TransformationPass):
                 self._min_qubits,
                 self._target,
                 self._basis_gates,
+                self._synth_gates,
                 _coupling_edges,
                 self._approximation_degree,
                 self._natural_direction,
