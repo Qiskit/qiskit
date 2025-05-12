@@ -204,7 +204,16 @@ class ObservablesArray(ShapedMixin):
     ) -> ObservablesArray: ...
 
     def get_sparse_observable(self, args):
-        """Return a projection of the array to the specified dimensions."""
+        """Take a slice of the observables in this array.
+        
+        .. note::
+           This method does not copy observables; modifying the returned observables will affect this
+           instance.
+        
+        Returns:
+            A single :class:`~.SparseObservable` if an integer is given for every array axis, otherwise,
+            a new :class:`~.ObservablesArray`.
+        """
         item = self._array[args]
         if not isinstance(item, np.ndarray):
             return item
