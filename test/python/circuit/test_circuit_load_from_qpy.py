@@ -17,6 +17,8 @@ import io
 import json
 import random
 import unittest
+import warnings
+import re
 
 import ddt
 import numpy as np
@@ -887,27 +889,46 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
 
-    def test_zz_feature_map(self):
+    def test_zz_feature_map_new(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/14088."""
-        # legacy construction
+        qc = zz_feature_map(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_zz_feature_map_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
         qc = ZZFeatureMap(2, reps=1)
         print(qc.parameters)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
         self.assertEqual(qc, new_circuit)
 
-        # # new construction
-        # qc = zz_feature_map(2, reps=1)
-        # qpy_file = io.BytesIO()
-        # dump(qc, qpy_file)
-        # qpy_file.seek(0)
-        # new_circuit = load(qpy_file)[0]
-        # self.assertEqual(qc, new_circuit)
-
-    def test_duplicated_param_name(self):
+    def test_duplicated_param_name_legacy(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/14089."""
         op = SparsePauliOp(["ZIZI", "IZIZ", "ZIIZ"])
@@ -921,9 +942,23 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
         self.assertEqual(qc, new_circuit)
 
+    def test_duplicated_param_name_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14089."""
+        op = SparsePauliOp(["ZIZI", "IZIZ", "ZIIZ"])
+        x = ParameterVector("γ", 1)
         # new construction
         ansatz = qaoa_ansatz(op, reps=1)
         ansatz = ansatz.assign_parameters({ansatz.parameters[1]: x[0]})
@@ -932,7 +967,16 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
         self.assertEqual(qc, new_circuit)
 
     def test_parameter_expression_global_phase(self):
