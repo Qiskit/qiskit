@@ -22,7 +22,7 @@ use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict, PyIterator, PyList, PyTuple};
+use pyo3::types::{PyAny, PyDict, PyIterator, PyList, PyTuple, PyBytes};
 use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::CircuitInstruction;
@@ -39,9 +39,10 @@ use uuid::Uuid;
 
 use crate::formats;
 
+use crate::formats::RegisterV4Pack;
 use crate::params::pack_param;
-use crate::value::{circuit_instruction_types, dumps_value, get_circuit_type_key, QPYData};
-use crate::value::{expression_var_declaration, pack_generic_data, pack_standalone_var, serialize};
+use crate::value::{circuit_instruction_types, dumps_value, get_circuit_type_key, QPYData, DumpedValue};
+use crate::value::{expression_var_declaration, pack_generic_data, pack_standalone_var, serialize, deserialize};
 use crate::Bytes;
 use crate::UnsupportedFeatureForVersion;
 use binrw::BinWrite;
@@ -49,6 +50,15 @@ use binrw::BinWrite;
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 type CustomOperationsMap = HashMap<String, PackedOperation>;
 type CustomOperationsList = Vec<String>;
+
+// For debugging purposes
+fn hex_string(bytes: &[u8]) -> String {
+    bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>()
+}
+
 
 fn getattr_or_none<'py>(
     py_object: &'py Bound<'py, PyAny>,
@@ -552,8 +562,8 @@ fn pack_register(
     let packed_reg = formats::RegisterV4Pack {
         register_type: reg_type,
         standalone: standalone as u8,
-        size: register.getattr("size")?.extract::<u32>()?,
-        name_size: reg_name.len() as u16,
+        // size: register.getattr("size")?.extract::<u32>()?,
+        // name_size: reg_name.len() as u16,
         in_circuit: is_in_circuit as u8,
         name: reg_name,
         bit_indices,
@@ -619,62 +629,109 @@ fn serialize_registers(
     Ok((length, result))
 }
 
+fn pack_registers(
+    in_circ_regs: &Bound<PyAny>,
+    bits: &Bound<PyList>,
+) -> PyResult<Vec<RegisterV4Pack>> {
+    let py = in_circ_regs.py();
+    let bitmap = PyDict::new(py);
+    let out_circ_regs = PyList::new(py, Vec::<PyObject>::new())?;
+
+    bits.iter()
+        .enumerate()
+        .try_for_each(|(index, bit)| -> PyResult<()> {
+            bitmap.set_item(&bit, index)?;
+            match getattr_or_none(&bit, "_register")? {
+                None => Ok(()),
+                Some(register) => {
+                    if !(in_circ_regs.contains(&register).unwrap_or(false))
+                        && !(out_circ_regs.contains(&register).unwrap_or(true))
+                    {
+                        out_circ_regs.append(register)?;
+                    }
+                    Ok(())
+                }
+            }
+        })?;
+    let mut result = Vec::new();
+    in_circ_regs
+        .downcast::<PyList>()?
+        .iter()
+        .try_for_each(|register| -> PyResult<()> {
+            result.push(pack_register(&register, &bitmap, true)?);
+            Ok(())
+        })?;
+
+    out_circ_regs
+        .iter()
+        .try_for_each(|register| -> PyResult<()> {
+            result.push(pack_register(&register, &bitmap, false)?);
+            Ok(())
+        })?;
+    Ok(result)
+}
+
 fn pack_circuit_header(
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
     qpy_data: &QPYData,
-) -> PyResult<formats::HeaderData> {
+) -> PyResult<formats::CircuitHeaderV12Pack> {
     let py = circuit.py();
     let circuit_name = circuit
         .getattr(intern!(py, "name"))?
-        .extract::<String>()?
-        .into_bytes();
+        .extract::<String>()?;
+//        .into_bytes();
     let metadata = serialize_metadata(
         &circuit.getattr(intern!(py, "metadata"))?,
         metadata_serializer,
     )?;
-    let (global_phase_type, global_phase_data) =
-        dumps_value(&circuit.getattr(intern!(py, "global_phase"))?, qpy_data)?;
-    let (num_qregs, qregs) = serialize_registers(
+    let global_phase_data = DumpedValue::from(&circuit.getattr(intern!(py, "global_phase"))?, qpy_data)?;
+    // let (num_qregs, qregs) = serialize_registers(
+    //     &circuit.getattr(intern!(py, "qregs"))?,
+    //     circuit
+    //         .getattr(intern!(py, "qubits"))?
+    //         .downcast::<PyList>()?,
+    // )?;
+    // let (num_cregs, cregs) = serialize_registers(
+    //     &circuit.getattr(intern!(py, "cregs"))?,
+    //     circuit
+    //         .getattr(intern!(py, "clbits"))?
+    //         .downcast::<PyList>()?,
+    // )?;
+    let qregs = pack_registers(
         &circuit.getattr(intern!(py, "qregs"))?,
         circuit
             .getattr(intern!(py, "qubits"))?
             .downcast::<PyList>()?,
     )?;
-    let (num_cregs, cregs) = serialize_registers(
+    let cregs= pack_registers(
         &circuit.getattr(intern!(py, "cregs"))?,
         circuit
             .getattr(intern!(py, "clbits"))?
             .downcast::<PyList>()?,
     )?;
+    let mut registers = qregs;
+    registers.extend(cregs);
     let header = formats::CircuitHeaderV12Pack {
-        name_size: circuit_name.len() as u16,
-        global_phase_type,
-        global_phase_size: global_phase_data.len() as u16,
         num_qubits: circuit
             .getattr(intern!(py, "num_qubits"))?
             .extract::<u32>()?,
         num_clbits: circuit
             .getattr(intern!(py, "num_clbits"))?
             .extract::<u32>()?,
-        metadata_size: metadata.len() as u64,
-        num_registers: num_qregs + num_cregs,
         num_instructions: circuit
             .call_method0(intern!(py, "__len__"))?
             .extract::<u64>()?,
         num_vars: circuit
             .getattr(intern!(py, "num_identifiers"))?
             .extract::<u32>()?,
-    };
-
-    Ok(formats::HeaderData {
-        header,
         circuit_name,
         global_phase_data,
         metadata,
-        qregs,
-        cregs,
-    })
+        registers,
+    };
+
+    Ok(header)
 }
 
 fn pack_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pack> {
@@ -1210,6 +1267,29 @@ pub fn serialize_circuit(
     Ok(buffer.into_inner())
 }
 
+pub fn deserialize_circuit<'py>(
+    py: Python<'py>,
+    serialized_circuit: &[u8],
+    version: u32,
+    metadata_deserializer: &Bound<PyAny>,
+    use_symengine: bool,
+) -> PyResult<Bound<'py, PyAny>> {
+    println!("Deserializing header for {:?}", hex_string(serialized_circuit));
+    let (circuit_header, remaining_bytes) = deserialize::<formats::CircuitHeaderV12Pack>(serialized_circuit)?;
+    println!("Got circut header: {:?}", circuit_header);
+    println!("Circuit name: {:?}", circuit_header.circuit_name);
+    println!("Remaining bytes: {:?}", hex_string(remaining_bytes));
+
+
+    let qubits = None;
+    let clbits = None;
+    let data = None;
+    let reserve = 0;
+    let global_phase = Param::Float(0f64);
+    let data = CircuitData::new(qubits, clbits, data, reserve, global_phase)?;
+    imports::QUANTUM_CIRCUIT.get_bound(py).call_method1(intern!(py, "_from_circuit_data"), (data,))
+}
+
 #[pyfunction]
 #[pyo3(signature = (file_obj, circuit, metadata_serializer, use_symengine, version))]
 pub fn py_write_circuit(
@@ -1227,4 +1307,20 @@ pub fn py_write_circuit(
         (pyo3::types::PyBytes::new(py, &serialized_circuit),),
     )?;
     Ok(serialized_circuit.len())
+}
+
+#[pyfunction]
+#[pyo3(signature = (file_obj, version, metadata_deserializer, use_symengine))]
+pub fn py_read_circuit<'py>(
+    py: Python<'py>,
+    file_obj: &Bound<PyAny>,
+    version: u32,
+    metadata_deserializer: &Bound<PyAny>,
+    use_symengine: bool,    
+) -> PyResult<Bound<'py, PyAny>> {
+    // TODO: this currently reads *everything* so storing multiple files will fail
+    let bytes = file_obj.call_method0("read")?;
+    let serialized_circuit: &[u8] = bytes.downcast::<PyBytes>()?.as_bytes();
+    println!("Got serialized data: {:?}", hex_string(serialized_circuit));
+    deserialize_circuit(py, serialized_circuit, version, metadata_deserializer, use_symengine)    
 }

@@ -10,15 +10,35 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use binrw::BinWrite;
-
+use binrw::{binread, binwrite, BinRead, BinResult, BinWrite, Endian};
+use std::io::{Read, Write, Seek};
 use crate::Bytes;
+use crate::value::DumpedValue;
+
+fn write_string<W: Write>(
+    value: &String,
+    writer: &mut W,
+    endian: Endian,
+    args: (),
+) -> binrw::BinResult<()> {
+    Ok(writer.write_all(value.as_bytes())?)
+}
+
+fn read_string<R: Read + Seek> (
+    reader: &mut R,
+    endian: Endian,
+    (len, ): (usize,),
+) -> BinResult<String> {
+    let mut buf = vec![0u8; len];
+    reader.read_exact(&mut buf)?;
+    Ok(String::from_utf8(buf).unwrap())
+}
 
 /// The overall structure of the QPY file
 #[derive(BinWrite)]
 #[brw(big)]
 pub struct QPYFormatV13 {
-    pub header: HeaderData,
+    pub header: CircuitHeaderV12Pack,
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
     pub instructions: Vec<CircuitInstructionV2Pack>,
@@ -26,31 +46,37 @@ pub struct QPYFormatV13 {
     pub layout: LayoutV2Pack,
 }
 
-// header related
-#[derive(BinWrite)]
-#[brw(big)]
-pub struct HeaderData {
-    pub header: CircuitHeaderV12Pack,
-    pub circuit_name: Bytes,
-    pub global_phase_data: Bytes,
-    pub metadata: Bytes,
-    pub qregs: Bytes,
-    pub cregs: Bytes,
-}
-
-#[derive(BinWrite)]
+#[binwrite]
+#[binread]
+#[derive(Debug)]
 #[brw(big)]
 pub struct CircuitHeaderV12Pack {
+    #[bw(calc = circuit_name.len() as u16)]
     pub name_size: u16,
+    #[bw(calc = global_phase_data.data_type)]
     pub global_phase_type: u8,
+    #[bw(calc = global_phase_data.data.len() as u16)]
     pub global_phase_size: u16,
     pub num_qubits: u32,
     pub num_clbits: u32,
+    #[bw(calc = metadata.len() as u64)]
     pub metadata_size: u64,
+    #[bw(calc = registers.len() as u32)]
     pub num_registers: u32,
     pub num_instructions: u64,
     pub num_vars: u32,
+    #[br(parse_with = read_string, args(name_size as usize))]
+    #[bw(write_with = write_string)]
+    pub circuit_name: String,
+    #[br(parse_with = DumpedValue::read, args(global_phase_size as usize, global_phase_type))]
+    #[bw(write_with = DumpedValue::write)]
+    pub global_phase_data: DumpedValue,
+    #[br(count = metadata_size)]
+    pub metadata: Bytes,
+    #[br(count = num_registers)] // TODO: this is wrong
+    pub registers: Vec<RegisterV4Pack>,
 }
+
 
 // circuit instructions related
 #[derive(BinWrite, Debug)]
@@ -107,16 +133,21 @@ pub struct CustomCircuitInstructionDefPack {
     pub base_gate_raw: Bytes,
 }
 
-#[derive(BinWrite)]
+#[binread]
+#[binwrite]
 #[brw(big)]
 #[derive(Debug)]
 pub struct RegisterV4Pack {
     pub register_type: u8,
     pub standalone: u8,
+    #[bw(calc = bit_indices.len() as u32)]
     pub size: u32,
+    #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     pub in_circuit: u8,
+    #[br(count = name_size)]
     pub name: Bytes,
+    #[br(count = size)]
     pub bit_indices: Vec<i64>,
 }
 

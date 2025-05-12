@@ -26,6 +26,7 @@ mod value;
 /// be re-exposed directly to public Python space.
 pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(circuits::py_write_circuit, module)?)?;
+    module.add_function(wrap_pyfunction!(circuits::py_read_circuit, module)?)?;
     Ok(())
 }
 

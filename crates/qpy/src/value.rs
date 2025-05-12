@@ -10,9 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use binrw::meta::WriteEndian;
-use binrw::BinWrite;
-
+use binrw::meta::{ReadEndian, WriteEndian};
+use binrw::{binread, binwrite, BinRead, BinResult, BinWrite, Endian};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple};
@@ -28,8 +27,9 @@ use crate::params::{
     serialize_parameter, serialize_parameter_expression, serialize_parameter_vector,
 };
 use crate::{Bytes, QpyError, UnsupportedFeatureForVersion};
+use core::fmt;
 use std::fmt::Debug;
-use std::io::Cursor;
+use std::io::{Cursor, Write, Read, Seek};
 
 const QPY_VERSION: u32 = 14;
 
@@ -74,6 +74,14 @@ pub mod expression_var_declaration {
     pub const STRETCH_LOCAL: u8 = b'O';
 }
 
+// For debugging purposes
+fn hex_string(bytes: &[u8]) -> String {
+    bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>()
+}
+
 pub fn serialize<T>(value: &T) -> PyResult<Bytes>
 where
     T: BinWrite + WriteEndian + Debug,
@@ -82,6 +90,17 @@ where
     let mut buffer = Cursor::new(Vec::new());
     value.write(&mut buffer).unwrap();
     Ok(buffer.into_inner())
+}
+
+pub fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, &[u8])> 
+where 
+    T: BinRead + ReadEndian + Debug,
+    for<'a> <T as BinRead>::Args<'a>: Default,
+{
+    let mut cursor = Cursor::new(bytes);
+    let value = T::read(&mut cursor).unwrap(); //TODO better error handling
+    let pos = cursor.position() as usize;
+    Ok((value, &bytes[pos..]))    
 }
 
 pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
@@ -390,5 +409,46 @@ fn serialize_expression_type(exp_type: &Bound<PyAny>, version: u32) -> PyResult<
             "unhandled Type object {:?}",
             exp_type
         ),)));
+    }
+}
+
+
+pub struct DumpedValue {
+    pub data_type: u8,
+    pub data: Bytes,
+}
+
+impl DumpedValue {
+    pub fn from(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<Self> {
+        let (data_type, data) = dumps_value(py_object, qpy_data)?;
+        Ok(DumpedValue {data_type, data})
+    }
+    pub fn write<W: Write>(
+        value: &DumpedValue,
+        writer: &mut W,
+        endian: Endian,
+        args: (),
+    ) -> binrw::BinResult<()> {
+        Ok(writer.write_all(&value.data)?)
+    }
+    
+    pub fn read<R: Read + Seek> (
+        reader: &mut R,
+        endian: Endian,
+        (len, data_type,): (usize, u8,),
+    ) -> BinResult<DumpedValue> {
+        let mut buf = vec![0u8; len];
+        reader.read_exact(&mut buf)?;
+        Ok(DumpedValue{data_type, data: buf})
+    }
+}
+
+impl fmt::Debug for DumpedValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f
+        .debug_struct("DumpedValue")
+        .field("type", &self.data_type)
+        .field("data", &hex_string(&self.data))
+        .finish()
     }
 }
