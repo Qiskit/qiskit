@@ -71,6 +71,9 @@ class BindingsArray(ShapedMixin):
        :include-source:
        :nofigs:
 
+       import numpy as np
+       from qiskit.primitives import BindingsArray
+
         # 0-d array (i.e. only one binding)
         BindingsArray({"a": 4, ("b", "c"): [5, 6]})
 
