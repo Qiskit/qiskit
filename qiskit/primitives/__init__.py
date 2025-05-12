@@ -413,6 +413,7 @@ Parameters V2
 
 .. autosummary::
    :toctree: ../stubs/
+
    ParameterLike
    BindingsArray
    BindingsArrayLike
