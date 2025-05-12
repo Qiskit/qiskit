@@ -79,7 +79,7 @@ int test_qkcomplex_roundtrip(void) {
 int test_native_roundtrip(void) {
     const double real = 1.003;
     const double imag = 2.31;
-    ComplexDouble native = csqrt(make_complex(real, imag)); // call some complex function
+    ComplexDouble native = make_complex(real, imag);
     QkComplex64 value = qk_complex64_from_native(&native);
     ComplexDouble native_roundtrip = qk_complex64_to_native(&value);
 

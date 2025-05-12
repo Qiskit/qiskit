@@ -28,7 +28,7 @@ static QkComplex64 qk_complex64_from_native(std::complex<double> *value) {
 static _Dcomplex qk_complex64_to_native(QkComplex64 *value) {
     return (_Dcomplex){value->re, value->im};
 }
-static QkComplex64 qk_complex64_from_native(_DComplex *value) {
+static QkComplex64 qk_complex64_from_native(_Dcomplex *value) {
     return (QkComplex64){creal(*value), cimag(*value)};
 }
 #else
