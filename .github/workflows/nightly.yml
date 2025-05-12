@@ -27,10 +27,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [nightly-tests]
     steps:
-      - uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: 7864
-          body: |
-            Nightly matrix test run failed at commit ${{ github.sha }}.
+      - name: "Create comment on failed test run"
+        run: gh issue comment "$NUMBER" --body "$BODY"
+        env:
+          NUMBER: 7864
+          BODY: >
+            Randomized tests failed at commit ${{ github.sha }}.
 
             _Logs_: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.
