@@ -196,14 +196,12 @@ class ObservablesArray(ShapedMixin):
         return ObservablesArray(item, copy=False, validate=False)
 
     @overload
-    def sparse_observables_array_slice(self, args: int | tuple[int, ...]) -> SparseObservable: ...
+    def slice(self, args: int | tuple[int, ...]) -> SparseObservable: ...
 
     @overload
-    def sparse_observables_array_slice(
-        self, args: IndexType | tuple[IndexType, ...]
-    ) -> ObservablesArray: ...
+    def slice(self, args: IndexType | tuple[IndexType, ...]) -> ObservablesArray: ...
 
-    def sparse_observables_array_slice(self, args):
+    def slice(self, args):
         """Take a slice of the observables in this array.
 
         .. note::
