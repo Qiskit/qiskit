@@ -237,14 +237,20 @@ fn apply_synth_sequence(
 /// This function is currently used in the Python `UnitarySynthesis`` transpiler pass as a replacement for the `_run_main_loop` method.
 /// It returns a new `DAGCircuit` with the different synthesized gates.
 #[pyfunction]
+<<<<<<< HEAD:crates/accelerate/src/unitary_synthesis.rs
 #[pyo3(name = "run_main_loop", signature=(dag, qubit_indices, min_qubits, target, basis_gates, coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
 fn py_run_main_loop(
+=======
+#[pyo3(name = "run_main_loop", signature=(dag, qubit_indices, min_qubits, target, basis_gates, synth_gates, coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
+pub fn run_unitary_synthesis(
+>>>>>>> 0c2ce6488 (Fix UnitarySynthesis to respect synth_gates (#14345)):crates/transpiler/src/passes/unitary_synthesis.rs
     py: Python,
     dag: &mut DAGCircuit,
     qubit_indices: Vec<usize>,
     min_qubits: usize,
     target: Option<&Target>,
     basis_gates: HashSet<String>,
+    synth_gates: HashSet<String>,
     coupling_edges: HashSet<[PhysicalQubit; 2]>,
     approximation_degree: Option<f64>,
     natural_direction: Option<bool>,
@@ -290,6 +296,7 @@ fn py_run_main_loop(
                     min_qubits,
                     target,
                     basis_gates.clone(),
+                    synth_gates.clone(),
                     coupling_edges.clone(),
                     approximation_degree,
                     natural_direction,
@@ -312,16 +319,17 @@ fn py_run_main_loop(
                 py_op: new_node.unbind().into(),
             };
         }
-        if !(packed_instr.op.name() == "unitary"
+        if !(synth_gates.contains(packed_instr.op.name())
             && packed_instr.op.num_qubits() >= min_qubits as u32)
         {
             out_dag.push_back(py, packed_instr)?;
             continue;
         }
-        let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match packed_instr.op.matrix(&[]) {
-            Some(unitary) => unitary,
-            None => return Err(QiskitError::new_err("Unitary not found")),
-        };
+        let unitary: Array<Complex<f64>, Dim<[usize; 2]>> =
+            match packed_instr.op.matrix(packed_instr.params_view()) {
+                Some(unitary) => unitary,
+                None => return Err(QiskitError::new_err("Unitary not found")),
+            };
         match unitary.shape() {
             // Run 1q synthesis
             [2, 2] => {
