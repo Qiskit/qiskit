@@ -352,7 +352,6 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
-        cqc = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
 
         qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
@@ -376,7 +375,6 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
         hidden_op = Operator(qc)
         hidden_mat = hidden_op.data
-        cqc = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
 
         qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
