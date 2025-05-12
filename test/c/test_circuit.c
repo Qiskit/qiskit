@@ -558,7 +558,7 @@ cleanup:
     return result;
 }
 
-int test_delay_instruction(void){
+int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
 
@@ -572,14 +572,14 @@ int test_delay_instruction(void){
     }
 
     delay_s_code = qk_circuit_delay(qc, 0, 0.001, "s");
-     if (delay_s_code != QkExitCode_Success) {
+    if (delay_s_code != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
 
 cleanup:
     qk_circuit_free(qc);
-    return result;    
+    return result;
 }
 
 int test_circuit(void) {
