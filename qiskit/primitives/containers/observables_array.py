@@ -170,10 +170,10 @@ class ObservablesArray(ShapedMixin):
 
     def sparse_observables_array(self, copy: bool = False) -> np.ndarray:
         """Convert to a :class:`numpy.ndarray` with elements of type :class:`~.SparseObservable`.
-        
+
         Args:
             copy: Whether to make a new array instance with new sparse observables as elements.
-            
+
         Returns:
             A :class:`numpy.ndarray` with elements of type :class:`~.SparseObservable`.
         """
@@ -205,11 +205,11 @@ class ObservablesArray(ShapedMixin):
 
     def sparse_observables_array_slice(self, args):
         """Take a slice of the observables in this array.
-        
+
         .. note::
            This method does not copy observables; modifying the returned observables will affect this
            instance.
-        
+
         Returns:
             A single :class:`~.SparseObservable` if an integer is given for every array axis, otherwise,
             a new :class:`~.ObservablesArray`.
