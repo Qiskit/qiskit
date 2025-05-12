@@ -1092,8 +1092,9 @@ def loads_value(
         standalone_vars (Sequence[Var]): standalone :class:`.expr.Var` nodes in the order that they
             were declared by the circuit header.
         initialize_full_vec (bool): If True, de-serialized parameter vectors will be considered
-            initialized independently of whether they are currently part of the circuit or not.
-            This flag is set to True when loading parameter expressions.
+            fully initialized independently of whether all elements are currently used the
+            circuit or not. This flag is set to True when loading parameter expressions to avoid
+            raising unnecessary user warnings.
 
     Returns:
         any: Deserialized value object.
