@@ -28,6 +28,7 @@ mod commutation_analysis;
 mod commutation_cancellation;
 mod consolidate_blocks;
 mod dense_layout;
+mod disjoint_layout;
 mod elide_permutations;
 mod filter_op_nodes;
 mod gate_direction;
@@ -52,6 +53,7 @@ pub use commutation_analysis::{analyze_commutations, commutation_analysis_mod};
 pub use commutation_cancellation::{cancel_commutations, commutation_cancellation_mod};
 pub use consolidate_blocks::{consolidate_blocks_mod, run_consolidate_blocks, DecomposerType};
 pub use dense_layout::{best_subset, dense_layout_mod};
+pub use disjoint_layout::{disjoint_utils_mod, run_pass_over_connected_components, combine_barriers};
 pub use elide_permutations::{elide_permutations_mod, run_elide_permutations};
 pub use filter_op_nodes::{filter_labeled_op, filter_op_nodes_mod};
 pub use gate_direction::{

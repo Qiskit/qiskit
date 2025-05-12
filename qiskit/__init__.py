@@ -59,6 +59,7 @@ sys.modules["qiskit._accelerate.circuit_library"] = _accelerate.circuit_library
 sys.modules["qiskit._accelerate.basis_translator"] = _accelerate.basis_translator
 sys.modules["qiskit._accelerate.converters"] = _accelerate.converters
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
+sys.modules["qiskit._accelerate.disjoint_utils"] = _accelerate.disjoint_utils
 sys.modules["qiskit._accelerate.equivalence"] = _accelerate.equivalence
 sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map
 sys.modules["qiskit._accelerate.gates_in_basis"] = _accelerate.gates_in_basis

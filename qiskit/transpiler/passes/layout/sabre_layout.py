@@ -29,11 +29,12 @@ from qiskit.transpiler.passes.layout.set_layout import SetLayout
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
-from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.layout import disjoint_utils as disjoint_py
+from qiskit._accelerate import disjoint_utils
 from qiskit._accelerate.nlayout import NLayout
 from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, NeighborTable, SetScaling
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
@@ -267,7 +268,16 @@ class SabreLayout(TransformationPass):
             inner_run = functools.partial(
                 self._inner_run, starting_layouts=self.property_set["sabre_starting_layouts"]
             )
-        components = disjoint_utils.run_pass_over_connected_components(dag, target, inner_run)
+        if self.target is not None:
+            components = disjoint_utils.run_pass_over_connected_components(
+                dag, self.target, inner_run
+            )
+            # If components is None we can't build a coupling map from the target so we must have
+            # one provided:
+            if components is None:
+                components = disjoint_py.run_pass_over_connected_components(dag, target, inner_run)
+        else:
+            components = disjoint_py.run_pass_over_connected_components(dag, target, inner_run)
         self.property_set["layout"] = Layout(
             {
                 component.dag.qubits[logic]: component.coupling_map.graph[phys]
