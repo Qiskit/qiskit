@@ -13,3 +13,7 @@
 /**
  * @defgroup QkComplex64 QkComplex64
  */
+
+/**
+ * @defgroup QkCircuit QkCircuit
+ */
