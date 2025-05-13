@@ -734,14 +734,49 @@ impl PySparseTerm {
 ///
 /// .. math::
 ///
-///     \Lamdba = \exp\left(\sum_{P \in K} \lambda_P P \cdot P - \cdot\right)
+///     \Lamdba = \exp\left(\sum_{P \in K} \lambda_P (P \cdot P - \cdot)\right)
 ///
 /// where :math:`K` is a subset of :math:`n`-qubit Pauli operators, and the rates, or coefficients,
 /// :math:`\lambda_P` are real numbers. When all the rates :math:`\lambda_P` are
 /// non-negative, this corresponds to a completely positive and trace preserving map. The sum in the
 /// exponential is called the generator, and each individual term the generators. To simplify
 /// notation in the rest of the documention, we denote :math:`L(P) = P \cdot P - \cdot`.
+/// 
+/// Quasi-probability representation
+/// ================================
+/// 
+/// The map :math:`\Lambda` can be written as a product:
+/// 
+/// .. math::
+/// 
+///     \Lambda = \prod_{P \in K}\exp\left(\lambda_P(P \cdot P - \cdot)\right).
+/// 
+/// For each :math:`P`, it holds that
+/// 
+/// .. math::
+/// 
+///     \exp\left(\lambda_P(P \cdot P - \cdot)\right) = \omega(\lambda_P) \cdot + (1 - \omega(\lambda_P)) P \cdot P,
 ///
+/// where :math:`\omega(x) = \frac{1}{2}(1 + e^{-2 x})`. Observe that if :math:`\lambda_P \geq 0`,
+/// then :math:`\omega(\lambda_P) \in (\frac{1}{2}, 1]`, and this term is a completely-positive and
+/// trace-preserving map. However, if :math:`\lambda_P < 0`, then :math:`\omega(\lambda_P) > 1` and
+/// the map is not completely positive or trace preserving. Letting
+/// :math:`\gamma_P = \omega(\lambda_P) + |1 - \omega(\lambda_P)|`, 
+/// :math:`p_P = \omega(\lambda_P) / \gamma_P` and :math:`b_P \in \{0, 1\}` be :math:`1` if 
+/// :math:`\lambda_P < 0` and :math:`0` otherwise, we rewrite the map as: 
+/// 
+/// .. math::
+/// 
+///     \omega(\lambda_P) \cdot + (1 - \omega(\lambda_P)) P \cdot P = \gamma_P \left(p_P \cdot + (-1)^b_P(1 - p_P) P \cdot P\right).
+/// 
+/// If :math:`\lambda_P \geq 0`, :math:`\gamma_P = 1` and the expression reduces to the standard
+/// mixture of the identity map and conjugation by :math:`P`. If :math:`\lambda_P < 0`, 
+/// :math:`\gamma_P > 1`, and the map is a scaled differences of the identity map and conjugation by
+/// :math:`P`, with probability weights (hence "quasi-probability"). Note that this is a slightly
+/// different presentation than in the literature, but this notation allows us to handle both
+/// positive and negative rates simultaneously. The overall :math:`\gamma` of the channel is the
+/// product :math:`\gamma = \prod_{P \in K} \gamma_P`.
+/// 
 /// Representation
 /// ==============
 ///
@@ -777,7 +812,7 @@ impl PySparseTerm {
 /// contiguous arrays:
 ///
 /// .. _pauli-lindblad-map-arrays:
-/// .. table:: Data arrays used to represent :class:`.PauliLindbladMap`
+/// .. table:: Data arrays used to specify a :class:`.PauliLindbladMap`
 ///
 ///   ==================  ===========  =============================================================
 ///   Attribute           Length       Description
@@ -821,6 +856,22 @@ impl PySparseTerm {
 ///
 /// These cases are not special, they're fully consistent with the rules and should not need special
 /// handling.
+/// 
+/// In addition to the above arrays, :class:`.PauliLindbladMap` stores the overall channel 
+/// :math:`gamma` in the :attr:`gamma` attribute, as well as the following arrays derived from
+/// :attr:`rates`.
+/// 
+/// .. _pauli-lindblad-map-derived-arrays:
+/// .. table:: Additional data arrays for :class:`.PauliLindbladMap`
+///
+///   =====================  ===========  ==========================================================
+///   Attribute              Length       Description
+///   =====================  ===========  ==========================================================
+///   :attr:`probabilities`  :math:`t`    The probabilities in the pseudo-probability decomposition.
+///
+///   :attr:`negative_rates` :math:`t`    A vector of booleans, where each boolean stores the value
+///                                       of the logical statement :math:`\lambda_P < 0`.
+///   =====================  ===========  ==========================================================
 ///
 /// The scalar item of the :attr:`paulis` array is stored as a numeric byte.  The numeric values
 /// are related to the symplectic Pauli representation that :class:`.SparsePauliOp` uses, and are
