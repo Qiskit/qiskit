@@ -15,6 +15,7 @@ use std::ffi::{c_char, CStr, CString};
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
+use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{DelayUnit, Operation, Param, StandardGate, StandardInstruction};
@@ -66,6 +67,186 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 
     let circuit = CircuitData::new(qubits, clbits, None, 0, (0.).into()).unwrap();
     Box::into_raw(Box::new(circuit))
+}
+
+/// @ingroup QkCircuit
+/// Construct a new owning quantum register with a given number of qubits and name
+///
+/// @param num_qubits The number of qubits to create the register for
+/// @param name The name string for the created register. The name must be comprised of
+/// valid UTF-8 characters.
+///
+/// @return A pointer to the created register
+///
+/// # Example
+///
+///     QkQuantumRegister *qr = qk_quantum_register_new(5, "five_qubits");
+///
+/// # Safety
+///
+/// The `name` parameter must be a pointer to memory that contains a valid
+/// nul terminator at the end of the string. It also must be valid for reads of
+/// bytes up to and including the nul terminator.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_quantum_register_new(
+    num_qubits: u32,
+    name: *const c_char,
+) -> *mut QuantumRegister {
+    let name = unsafe {
+        CStr::from_ptr(name)
+            .to_str()
+            .expect("Invalid UTF-8 character")
+            .to_string()
+    };
+    // SAFETY: Per documentation the pointer for name is a valid CStr pointer
+    let reg = QuantumRegister::new_owning(name, num_qubits);
+    Box::into_raw(Box::new(reg))
+}
+
+/// @ingroup QkCircuit
+/// Free a quantum register.
+///
+/// @param register A pointer to the register to free.
+///
+/// # Example
+///
+///     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qreg");
+///     qk_quantum_register_free(qc);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``reg`` is not either null or a valid pointer to a
+/// ``QkQuantumRegister``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
+    if !reg.is_null() {
+        if !reg.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+
+        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
+        // readable by Box.
+        unsafe {
+            let _ = Box::from_raw(reg);
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+/// Free a classical register.
+///
+/// @param register A pointer to the register to free.
+///
+/// # Example
+///
+///     QkClassicalRegister *qr = qk_classical_register_new(1024, "creg");
+///     qk_classical_register_free(qr);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``reg`` is not either null or a valid pointer to a
+/// ``QkClassicalRegister``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister) {
+    if !reg.is_null() {
+        if !reg.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+
+        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
+        // readable by Box.
+        unsafe {
+            let _ = Box::from_raw(reg);
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+/// Construct a new owning classical register with a given number of qubits and name
+///
+/// @param num_clbits The number of clbits to create the register for
+/// @param name The name string for the created register. The name must be comprised of
+/// valid UTF-8 characters.
+///
+/// @return A pointer to the created register
+///
+/// # Example
+///
+///     QkClassicalRegister *qr = qk_classical_register_new(5, "five_qubits");
+///
+/// # Safety
+///
+/// The `name` parameter must be a pointer to memory that contains a valid
+/// nul terminator at the end of the string. It also must be valid for reads of
+/// bytes up to and including the nul terminator.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_classical_register_new(
+    num_qubits: u32,
+    name: *const c_char,
+) -> *mut ClassicalRegister {
+    // SAFETY: Per documentation the pointer for name is a valid CStr pointer
+    let name = unsafe {
+        CStr::from_ptr(name)
+            .to_str()
+            .expect("Invalid UTF-8 character")
+            .to_string()
+    };
+    let reg = ClassicalRegister::new_owning(name, num_qubits);
+    Box::into_raw(Box::new(reg))
+}
+
+/// @ingroup QkCircuit
+/// Add a quantum register to a given quantum circuit
+///
+/// @param circuit A pointer to the circuit.
+/// @param reg A pointer to the quantum register
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
+/// if ``reg`` is not a valid, non-null pointer to a ``QkQuantumRegister``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_add_quantum_register(
+    circuit: *mut CircuitData,
+    reg: *const QuantumRegister,
+) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let qreg = unsafe { const_ptr_as_ref(reg) };
+
+    circuit
+        .add_qreg_ref(qreg, true)
+        .expect("Invalid register unable to be added to circuit");
+}
+
+/// @ingroup QkCircuit
+/// Add a classical register to a given quantum circuit
+///
+/// @param circuit A pointer to the circuit.
+/// @param reg A pointer to the classical register
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
+/// if ``reg`` is not a valid, non-null pointer to a ``QkClassicalRegister``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_add_classical_register(
+    circuit: *mut CircuitData,
+    reg: *const ClassicalRegister,
+) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let creg = unsafe { const_ptr_as_ref(reg) };
+
+    circuit
+        .add_creg_ref(creg, true)
+        .expect("Invalid register unable to be added to circuit");
 }
 
 /// @ingroup QkCircuit
@@ -646,7 +827,7 @@ pub enum QkDelayUnit {
 ///
 ///     QkCircuit *qc = qk_circuit_new(1, 0);
 ///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
-///     
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
