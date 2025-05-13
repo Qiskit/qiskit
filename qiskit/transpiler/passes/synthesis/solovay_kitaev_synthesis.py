@@ -28,16 +28,12 @@ import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.gate import Gate
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.exceptions import QiskitError
-from qiskit.synthesis.clifford.clifford_decompose_bm import synth_clifford_bm
 from qiskit.synthesis.discrete_basis.solovay_kitaev import SolovayKitaevDecomposition
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
 )
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
-
-from qiskit.quantum_info import Clifford
 
 from .plugin import UnitarySynthesisPlugin
 
