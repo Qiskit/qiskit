@@ -127,26 +127,26 @@ impl Expr {
         ExprIterator { stack: vec![self] }
     }
 
-    pub fn visit_mut<F>(&mut self, mut visitor: F)
+    pub fn visit_mut<F>(&mut self, mut visitor: F) -> PyResult<()>
     where
-        F: FnMut(ExprRefMut),
+        F: FnMut(ExprRefMut) -> PyResult<()>,
     {
         match self {
-            Expr::Unary(u) => u.operand.visit_mut(&mut visitor),
+            Expr::Unary(u) => u.operand.visit_mut(&mut visitor)?,
             Expr::Binary(b) => {
-                b.left.visit_mut(&mut visitor);
-                b.right.visit_mut(&mut visitor);
+                b.left.visit_mut(&mut visitor)?;
+                b.right.visit_mut(&mut visitor)?;
             }
-            Expr::Cast(c) => c.operand.visit_mut(&mut visitor),
+            Expr::Cast(c) => c.operand.visit_mut(&mut visitor)?,
             Expr::Value(_) => {}
             Expr::Var(_) => {}
             Expr::Stretch(_) => {}
             Expr::Index(i) => {
-                i.target.visit_mut(&mut visitor);
-                i.index.visit_mut(&mut visitor);
+                i.target.visit_mut(&mut visitor)?;
+                i.index.visit_mut(&mut visitor)?;
             }
         }
-        visitor(self.as_deref_mut());
+        visitor(self.as_deref_mut())
     }
 }
 

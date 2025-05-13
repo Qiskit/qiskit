@@ -2933,20 +2933,6 @@ impl DAGCircuit {
             wire_map_dict.insert(source_bit.cloned().unwrap(), target_bit.cloned().unwrap());
         }
 
-        // Note: creating this list to hold new registers created by the mapper is a temporary
-        // measure until qiskit.expr is ported to Rust. It is necessary because we cannot easily
-        // have Python call back to DAGCircuit::add_creg while we're currently borrowing
-        // the DAGCircuit.
-        let new_registers = PyList::empty(py);
-        let add_new_register = new_registers.getattr("append")?.unbind();
-        let flush_new_registers = |dag: &mut DAGCircuit| -> PyResult<()> {
-            for reg in &new_registers {
-                dag.add_creg(reg.extract()?)?;
-            }
-            new_registers.del_slice(0, new_registers.len())?;
-            Ok(())
-        };
-
         let variable_mapper = VariableMapper::new(
             self.cregs.registers().to_vec(),
             wire_map_dict,
@@ -2973,14 +2959,15 @@ impl DAGCircuit {
                                 .map(|x| PyString::new(py, x.as_str())),
                         )?;
 
+                        let mapped_target = variable_mapper
+                            .map_target(&target, |new_reg| self.add_creg(new_reg.clone()))?;
                         let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
                             (
-                                variable_mapper.map_target(&target),
+                                mapped_target,
                                 old_op.instruction.call_method0(py, "cases_specifier")?,
                             ),
                             Some(&kwargs),
                         )?;
-                        flush_new_registers(self)?;
 
                         if let NodeType::Operation(ref mut new_inst) =
                             &mut self.dag[*new_node_index]
@@ -3007,9 +2994,11 @@ impl DAGCircuit {
                             .and_then(|c| c.extract())
                         {
                             if old_inst.op.name() != "switch_case" {
-                                let new_condition =
-                                    variable_mapper.map_condition(&condition, false);
-                                flush_new_registers(self)?;
+                                let new_condition = variable_mapper.map_condition(
+                                    &condition,
+                                    false,
+                                    |new_reg| self.add_creg(new_reg.clone()),
+                                )?;
 
                                 if let NodeType::Operation(ref mut new_inst) =
                                     &mut self.dag[*new_node_index]

@@ -95,15 +95,26 @@ impl VariableMapper {
     /// [DAGCircuit::compose]; nowhere else does this, and in general this would require *far*
     /// more complex classical rewriting than Qiskit needs to worry about in the full expression
     /// era.
-    pub fn map_condition(&self, condition: &Condition, allow_reorder: bool) -> Condition {
-        match condition {
+    pub fn map_condition<F>(
+        &self,
+        condition: &Condition,
+        allow_reorder: bool,
+        mut add_register: F,
+    ) -> PyResult<Condition>
+    where
+        F: FnMut(&ClassicalRegister) -> PyResult<()>,
+    {
+        Ok(match condition {
             Condition::Bit(target, value) => {
                 Condition::Bit(self.bit_map.get(target).unwrap().clone(), *value)
             }
-            Condition::Expr(e) => Condition::Expr(self.map_expr(e)),
+            Condition::Expr(e) => Condition::Expr(self.map_expr(e, &mut add_register)?),
             Condition::Register(target, value) => {
                 if !allow_reorder {
-                    return Condition::Register(self.map_register(target), *value);
+                    return Ok(Condition::Register(
+                        self.map_register(target, &mut add_register)?,
+                        *value,
+                    ));
                 }
                 // This is maintaining the legacy behavior of `DAGCircuit.compose`.  We don't
                 // attempt to speed-up this lookup with a cache, since that would just make the more
@@ -116,20 +127,24 @@ impl VariableMapper {
                 let mapped_bits_set: HashSet<ShareableClbit> =
                     mapped_bits_order.iter().cloned().collect();
 
-                let found_register = self.target_cregs.iter().find(|register| {
-                    let register_set: HashSet<ShareableClbit> = register.iter().collect();
-                    mapped_bits_set == register_set
-                });
-
-                // TODO: handle this case
-                // else:
-                //     if self.add_register is None:
-                //         raise self.exc_type(
-                //             f"Register '{target.name}' has no counterpart in the destination."
-                //         )
-                //     mapped_theirs = ClassicalRegister(bits=mapped_bits_order)
-                //     self.add_register(mapped_theirs)
-                let mapped_theirs = found_register.cloned().unwrap();
+                let mapped_theirs = self
+                    .target_cregs
+                    .iter()
+                    .find(|register| {
+                        let register_set: HashSet<ShareableClbit> = register.iter().collect();
+                        mapped_bits_set == register_set
+                    })
+                    .cloned()
+                    .map(Ok::<_, PyErr>)
+                    .unwrap_or_else(|| {
+                        let mapped_theirs = ClassicalRegister::new_alias(
+                            // TODO: is this right? old code didn't specify name at all
+                            target.name().to_string(),
+                            mapped_bits_order.clone(),
+                        );
+                        add_register(&mapped_theirs)?;
+                        Ok(mapped_theirs)
+                    })?;
 
                 let new_order: HashMap<ShareableClbit, usize> = mapped_bits_order
                     .into_iter()
@@ -157,21 +172,29 @@ impl VariableMapper {
                     usize::from_str_radix(&mapped_str, 2).unwrap(),
                 )
             }
-        }
+        })
     }
 
     /// Map the real-time variables in a `target` of a `SwitchCaseOp` to the new
     /// circuit.
-    pub fn map_target(&self, target: &Target) -> Target {
-        match target {
+    pub fn map_target<F>(&self, target: &Target, mut add_register: F) -> PyResult<Target>
+    where
+        F: FnMut(&ClassicalRegister) -> PyResult<()>,
+    {
+        Ok(match target {
             Target::Bit(bit) => Target::Bit(self.bit_map.get(bit).cloned().unwrap()),
-            Target::Register(register) => Target::Register(self.map_register(register)),
-            Target::Expr(expr) => Target::Expr(self.map_expr(expr)),
-        }
+            Target::Register(register) => {
+                Target::Register(self.map_register(register, &mut add_register)?)
+            }
+            Target::Expr(expr) => Target::Expr(self.map_expr(expr, &mut add_register)?),
+        })
     }
 
     /// Map the variables in an [expr::Expr] node to the new circuit.
-    pub fn map_expr(&self, expr: &expr::Expr) -> expr::Expr {
+    pub fn map_expr<F>(&self, expr: &expr::Expr, mut add_register: F) -> PyResult<expr::Expr>
+    where
+        F: FnMut(&ClassicalRegister) -> PyResult<()>,
+    {
         let mut mapped = expr.clone();
         mapped.visit_mut(|e| match e {
             expr::ExprRefMut::Var(var) => match var {
@@ -179,49 +202,65 @@ impl VariableMapper {
                     if let Some(mapping) = self.var_map.get(var).cloned() {
                         *var = mapping;
                     }
+                    Ok(())
                 }
                 expr::Var::Bit { bit } => {
                     let bit = self.bit_map.get(bit).cloned().unwrap();
                     *var = expr::Var::Bit { bit };
+                    Ok(())
                 }
                 expr::Var::Register { register, ty } => {
                     let ty = *ty;
-                    let register = self.map_register(register);
-                    *var = expr::Var::Register { register, ty }
+                    let register = self.map_register(register, &mut add_register)?;
+                    *var = expr::Var::Register { register, ty };
+                    Ok(())
                 }
             },
             expr::ExprRefMut::Stretch(stretch) => {
                 if let Some(mapping) = self.stretch_map.get(stretch).cloned() {
                     *stretch = mapping;
                 }
+                Ok(())
             }
-            _ => (),
-        });
-        mapped
+            _ => Ok(()),
+        })?;
+        Ok(mapped)
     }
 
     /// Map the target's registers to suitable equivalents in the destination, adding an
     /// extra one if there's no exact match."""
-    fn map_register(&self, theirs: &ClassicalRegister) -> ClassicalRegister {
+    fn map_register<F>(
+        &self,
+        theirs: &ClassicalRegister,
+        mut add_register: F,
+    ) -> PyResult<ClassicalRegister>
+    where
+        F: FnMut(&ClassicalRegister) -> PyResult<()>,
+    {
         if let Some(mapped_theirs) = self.register_map.borrow().get(theirs.name()) {
-            return mapped_theirs.clone();
+            return Ok(mapped_theirs.clone());
         }
 
         let mapped_bits: Vec<_> = theirs.iter().map(|b| self.bit_map[&b].clone()).collect();
-        let mapped_theirs = self.target_cregs.iter().find(|register| {
-            let register: Vec<_> = register.bits().collect();
-            mapped_bits == register
-        });
+        let mapped_theirs = self
+            .target_cregs
+            .iter()
+            .find(|register| {
+                let register: Vec<_> = register.bits().collect();
+                mapped_bits == register
+            })
+            .cloned()
+            .map(Ok::<_, PyErr>)
+            .unwrap_or_else(|| {
+                let mapped_theirs =
+                    ClassicalRegister::new_alias(theirs.name().to_string(), mapped_bits.clone());
+                add_register(&mapped_theirs)?;
+                Ok(mapped_theirs)
+            })?;
 
-        // TODO: handle this case
-        // if self.add_register is None:
-        //     raise ValueError(f"Register '{theirs.name}' has no counterpart in the destination.")
-        // mapped_theirs = ClassicalRegister(bits=mapped_bits)
-        // self.add_register(mapped_theirs)
-        let mapped_theirs = mapped_theirs.cloned().unwrap();
         self.register_map
             .borrow_mut()
             .insert(theirs.name().to_string(), mapped_theirs.clone());
-        mapped_theirs
+        Ok(mapped_theirs)
     }
 }
