@@ -14,7 +14,6 @@ use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::{intern, IntoPyObjectExt};
-use std::ops::{Deref, DerefMut};
 
 /// A classical expression.
 ///
@@ -130,7 +129,7 @@ impl Expr {
 
     pub fn visit_mut<F>(&mut self, mut visitor: F)
     where
-        F: FnMut(ExprRefMut) -> (),
+        F: FnMut(ExprRefMut),
     {
         match self {
             Expr::Unary(u) => u.operand.visit_mut(&mut visitor),

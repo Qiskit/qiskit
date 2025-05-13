@@ -1,8 +1,18 @@
-use crate::bit::{ClassicalRegister, Register, ShareableBit, ShareableClbit};
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2025
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
+use crate::bit::{ClassicalRegister, Register, ShareableClbit};
 use crate::classical::expr;
-use crate::classical::expr::{Binary, Cast, Expr, ExprRefMut, Index, Stretch, Unary, Value, Var};
 use hashbrown::{HashMap, HashSet};
-use itertools::Itertools;
 use pyo3::prelude::*;
 use pyo3::{Bound, FromPyObject, PyAny, PyResult};
 use std::cell::RefCell;
@@ -10,10 +20,11 @@ use std::cell::RefCell;
 /// A control flow operation's condition.
 ///
 /// TODO: move this to control flow mod once that's in Rust.
+#[derive(IntoPyObject)]
 pub(crate) enum Condition {
     Bit(ShareableClbit, usize),
     Register(ClassicalRegister, usize),
-    Expr(Expr),
+    Expr(expr::Expr),
 }
 
 impl<'py> FromPyObject<'py> for Condition {
@@ -31,10 +42,11 @@ impl<'py> FromPyObject<'py> for Condition {
 /// A control flow operation's target.
 ///
 /// TODO: move this to control flow mod once that's in Rust.
+#[derive(IntoPyObject)]
 pub(crate) enum Target {
     Bit(ShareableClbit),
     Register(ClassicalRegister),
-    Expr(Expr),
+    Expr(expr::Expr),
 }
 
 impl<'py> FromPyObject<'py> for Target {
@@ -53,16 +65,16 @@ pub(crate) struct VariableMapper {
     target_cregs: Vec<ClassicalRegister>,
     register_map: RefCell<HashMap<String, ClassicalRegister>>,
     bit_map: HashMap<ShareableClbit, ShareableClbit>,
-    var_map: HashMap<Var, Var>,
-    stretch_map: HashMap<Stretch, Stretch>,
+    var_map: HashMap<expr::Var, expr::Var>,
+    stretch_map: HashMap<expr::Stretch, expr::Stretch>,
 }
 
 impl VariableMapper {
     pub fn new(
         target_cregs: Vec<ClassicalRegister>,
         bit_map: HashMap<ShareableClbit, ShareableClbit>,
-        var_map: HashMap<Var, Var>,
-        stretch_map: HashMap<Stretch, Stretch>,
+        var_map: HashMap<expr::Var, expr::Var>,
+        stretch_map: HashMap<expr::Stretch, expr::Stretch>,
     ) -> Self {
         Self {
             target_cregs,
@@ -126,7 +138,7 @@ impl VariableMapper {
                     .collect();
 
                 // Build the little-endian bit string
-                let mut value_bits: Vec<char> = format!("{:0width$b}", value, width = target.len())
+                let value_bits: Vec<char> = format!("{:0width$b}", value, width = target.len())
                     .chars()
                     .rev()
                     .collect();
@@ -158,27 +170,27 @@ impl VariableMapper {
         }
     }
 
-    /// Map the variables in an [Expr] node to the new circuit.
-    pub fn map_expr(&self, expr: &Expr) -> Expr {
+    /// Map the variables in an [expr::Expr] node to the new circuit.
+    pub fn map_expr(&self, expr: &expr::Expr) -> expr::Expr {
         let mut mapped = expr.clone();
         mapped.visit_mut(|e| match e {
-            ExprRefMut::Var(var) => match var {
-                Var::Standalone { .. } => {
+            expr::ExprRefMut::Var(var) => match var {
+                expr::Var::Standalone { .. } => {
                     if let Some(mapping) = self.var_map.get(var).cloned() {
                         *var = mapping;
                     }
                 }
-                Var::Bit { bit } => {
+                expr::Var::Bit { bit } => {
                     let bit = self.bit_map.get(bit).cloned().unwrap();
-                    *var = Var::Bit { bit };
+                    *var = expr::Var::Bit { bit };
                 }
-                Var::Register { register, ty } => {
+                expr::Var::Register { register, ty } => {
                     let ty = *ty;
                     let register = self.map_register(register);
-                    *var = Var::Register { register, ty }
+                    *var = expr::Var::Register { register, ty }
                 }
             },
-            ExprRefMut::Stretch(stretch) => {
+            expr::ExprRefMut::Stretch(stretch) => {
                 if let Some(mapping) = self.stretch_map.get(stretch).cloned() {
                     *stretch = mapping;
                 }

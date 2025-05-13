@@ -69,11 +69,11 @@ use rustworkx_core::traversal::{
     bfs_successors as core_bfs_successors, descendants as core_descendants,
 };
 
+use crate::variable_mapper::VariableMapper;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
-
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -2715,7 +2715,11 @@ impl DAGCircuit {
             _ => return Err(DAGCircuitError::new_err("expected node")),
         };
 
-        type WireMapsTuple = (HashMap<Qubit, Qubit>, HashMap<Clbit, Clbit>, HashMap<Var, Var>);
+        type WireMapsTuple = (
+            HashMap<Qubit, Qubit>,
+            HashMap<Clbit, Clbit>,
+            HashMap<expr::Var, expr::Var>,
+        );
 
         let build_wire_map = |wires: &Bound<PyList>| -> PyResult<WireMapsTuple> {
             let qargs_list = imports::BUILTIN_LIST
@@ -2728,7 +2732,7 @@ impl DAGCircuit {
             let cargs_list = cargs_list.downcast::<PyList>().unwrap();
             let cargs_set = imports::BUILTIN_SET.get_bound(py).call1((cargs_list,))?;
             let cargs_set = cargs_set.downcast::<PySet>().unwrap();
-            if self.may_have_additional_wires(py, &node) {
+            if self.may_have_additional_wires(py, node.op.view()) {
                 let (add_cargs, _add_vars) = self.additional_wires(py, node.op.view())?;
                 for wire in add_cargs.iter() {
                     let clbit = self.clbits.get(*wire).unwrap();
@@ -2787,13 +2791,14 @@ impl DAGCircuit {
                     ));
                 }
             }
+            // TODO: why does the existing code bother returning an empty var map here?
             Ok((qubit_wire_map, clbit_wire_map, var_map))
         };
 
         let (qubit_wire_map, clbit_wire_map, mut var_map): (
             HashMap<Qubit, Qubit>,
             HashMap<Clbit, Clbit>,
-            HashMap<Var, Var>,
+            HashMap<expr::Var, expr::Var>,
         ) = match wires {
             Some(wires) => match wires.downcast::<PyDict>() {
                 Ok(bound_wires) => {
@@ -2822,15 +2827,7 @@ impl DAGCircuit {
                                     .unwrap(),
                             );
                         } else {
-                            var_map.insert(
-                                input_dag
-                                    .vars
-                                    .find(&source_wire.extract::<expr::Var>()?)
-                                    .unwrap(),
-                                self.vars
-                                    .find(&target_wire.extract::<expr::Var>()?)
-                                    .unwrap(),
-                            );
+                            var_map.insert(source_wire.extract()?, target_wire.extract()?);
                         }
                     }
                     (qubit_wire_map, clbit_wire_map, var_map)
@@ -2858,7 +2855,7 @@ impl DAGCircuit {
 
         let input_dag_var_set: HashSet<&expr::Var> = input_dag.vars.objects().iter().collect();
 
-        let node_vars = if self.may_have_additional_wires(py, &node) {
+        let node_vars = if self.may_have_additional_wires(py, node.op.view()) {
             let (_additional_clbits, additional_vars) =
                 self.additional_wires(py, node.op.view())?;
             let var_set: HashSet<&expr::Var> = additional_vars
@@ -2875,12 +2872,6 @@ impl DAGCircuit {
         } else {
             HashSet::default()
         };
-        // let bound_var_map = var_map.bind(py);
-        for var in input_dag_var_set.iter() {
-            var_map.insert(input_dag.find(var).unwrap(), self.vars.find(var).unwrap());
-            // bound_var_map.set_item((*var).clone(), (*var).clone())?;
-        }
-
         for contracted_var in node_vars.difference(&input_dag_var_set) {
             let pred = self
                 .dag
@@ -2911,17 +2902,19 @@ impl DAGCircuit {
             );
         }
 
+        for var in input_dag_var_set {
+            var_map.insert(var.clone(), var.clone());
+        }
+
         // Now that we don't need these, we've got to drop them since they hold
         // references to variables owned by the DAG, which we'll need to mutate
         // when perform the substitution.
-        drop(input_dag_var_set);
         drop(node_vars);
 
         let new_input_dag: Option<DAGCircuit> = None;
         // It doesn't make sense to try and propagate a condition from a control-flow op; a
         // replacement for the control-flow op should implement the operation completely.
         let node_map = self.substitute_node_with_subgraph(
-            py,
             node_index,
             input_dag,
             &qubit_wire_map,
@@ -2930,16 +2923,15 @@ impl DAGCircuit {
         )?;
         self.global_phase = add_global_phase(&self.global_phase, &input_dag.global_phase)?;
 
-        let wire_map_dict = PyDict::new(py);
+        let mut wire_map_dict = HashMap::new();
         for (source, target) in clbit_wire_map.iter() {
             let source_bit = match new_input_dag {
                 Some(ref in_dag) => in_dag.clbits.get(*source),
                 None => input_dag.clbits.get(*source),
             };
             let target_bit = self.clbits.get(*target);
-            wire_map_dict.set_item(source_bit, target_bit)?;
+            wire_map_dict.insert(source_bit.cloned().unwrap(), target_bit.cloned().unwrap());
         }
-        let bound_var_map = var_map.bind(py);
 
         // Note: creating this list to hold new registers created by the mapper is a temporary
         // measure until qiskit.expr is ported to Rust. It is necessary because we cannot easily
@@ -2955,13 +2947,13 @@ impl DAGCircuit {
             Ok(())
         };
 
-        let variable_mapper = PyVariableMapper::new(
-            py,
-            self.cregs.registers().to_vec().into_bound_py_any(py)?,
-            Some(wire_map_dict),
-            Some(bound_var_map.clone()),
-            Some(add_new_register),
-        )?;
+        let variable_mapper = VariableMapper::new(
+            self.cregs.registers().to_vec(),
+            wire_map_dict,
+            var_map,
+            // stretch_map,
+            HashMap::new(),
+        );
 
         for (old_node_index, new_node_index) in node_map.iter() {
             let old_node = match new_input_dag {
@@ -2971,8 +2963,7 @@ impl DAGCircuit {
             if let NodeType::Operation(old_inst) = old_node {
                 if let OperationRef::Instruction(old_op) = old_inst.op.view() {
                     if old_op.name() == "switch_case" {
-                        let raw_target = old_op.instruction.getattr(py, "target")?;
-                        let target = raw_target.bind(py);
+                        let target = old_op.instruction.bind(py).getattr("target")?.extract()?;
                         let kwargs = PyDict::new(py);
                         kwargs.set_item(
                             "label",
@@ -2984,7 +2975,7 @@ impl DAGCircuit {
 
                         let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
                             (
-                                variable_mapper.map_target(target)?,
+                                variable_mapper.map_target(&target),
                                 old_op.instruction.call_method0(py, "cases_specifier")?,
                             ),
                             Some(&kwargs),
@@ -3009,13 +3000,15 @@ impl DAGCircuit {
                             }
                         }
                     } else if old_inst.op.control_flow() {
-                        if let Ok(condition) =
-                            old_op.instruction.getattr(py, intern!(py, "condition"))
+                        if let Ok(condition) = old_op
+                            .instruction
+                            .bind(py)
+                            .getattr(intern!(py, "condition"))
+                            .and_then(|c| c.extract())
                         {
                             if old_inst.op.name() != "switch_case" {
-                                let new_condition: Option<PyObject> = variable_mapper
-                                    .map_condition(condition.bind(py), false)?
-                                    .extract()?;
+                                let new_condition =
+                                    variable_mapper.map_condition(&condition, false);
                                 flush_new_registers(self)?;
 
                                 if let NodeType::Operation(ref mut new_inst) =
@@ -5093,7 +5086,7 @@ impl DAGCircuit {
         instr: &PackedInstruction,
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(py, instr) {
+            if self.may_have_additional_wires(py, instr.op.view()) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
@@ -5121,7 +5114,7 @@ impl DAGCircuit {
     fn push_front(&mut self, py: Python, inst: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = inst.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(py, &inst) {
+            if self.may_have_additional_wires(py, inst.op.view()) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(inst.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
@@ -5377,8 +5370,8 @@ impl DAGCircuit {
         Ok(child == output_node)
     }
 
-    fn may_have_additional_wires(&self, py: Python, instr: &PackedInstruction) -> bool {
-        let OperationRef::Instruction(inst) = instr.op.view() else {
+    fn may_have_additional_wires(&self, py: Python, op: OperationRef) -> bool {
+        let OperationRef::Instruction(inst) = op else {
             return false;
         };
         inst.control_flow()
@@ -5849,12 +5842,11 @@ impl DAGCircuit {
 
     fn substitute_node_with_subgraph(
         &mut self,
-        py: Python,
         node: NodeIndex,
         other: &DAGCircuit,
         qubit_map: &HashMap<Qubit, Qubit>,
         clbit_map: &HashMap<Clbit, Clbit>,
-        var_map: &Py<PyDict>,
+        var_map: &HashMap<expr::Var, expr::Var>,
     ) -> PyResult<IndexMap<NodeIndex, NodeIndex, RandomState>> {
         if self.dag.node_weight(node).is_none() {
             return Err(PyIndexError::new_err(format!(
@@ -5923,7 +5915,6 @@ impl DAGCircuit {
             }
         }
 
-        let bound_var_map = var_map.bind(py);
         let node_filter = |node: NodeIndex| -> bool {
             match other.dag[node] {
                 NodeType::Operation(_) => !other
@@ -5932,9 +5923,7 @@ impl DAGCircuit {
                     .any(|edge| match edge.weight() {
                         Wire::Qubit(qubit) => !qubit_map.contains_key(qubit),
                         Wire::Clbit(clbit) => !clbit_map.contains_key(clbit),
-                        Wire::Var(var) => !bound_var_map
-                            .contains(other.vars.get(*var).cloned())
-                            .unwrap(),
+                        Wire::Var(var) => !var_map.contains_key(other.vars.get(*var).unwrap()),
                     }),
                 _ => false,
             }
@@ -5943,10 +5932,8 @@ impl DAGCircuit {
             qubit_map.iter().map(|(x, y)| (*y, *x)).collect();
         let reverse_clbit_map: HashMap<Clbit, Clbit> =
             clbit_map.iter().map(|(x, y)| (*y, *x)).collect();
-        let reverse_var_map = PyDict::new(py);
-        for (k, v) in bound_var_map.iter() {
-            reverse_var_map.set_item(v, k)?;
-        }
+        let reverse_var_map: HashMap<&expr::Var, &expr::Var> =
+            var_map.iter().map(|(x, y)| (y, x)).collect();
         // Copy nodes from other to self
         let mut out_map: IndexMap<NodeIndex, NodeIndex, RandomState> =
             IndexMap::with_capacity_and_hasher(other.dag.node_count(), RandomState::default());
@@ -6000,12 +5987,7 @@ impl DAGCircuit {
                     Wire::Clbit(clbit) => Wire::Clbit(clbit_map[clbit]),
                     Wire::Var(var) => Wire::Var(
                         self.vars
-                            .find(
-                                &bound_var_map
-                                    .get_item(other.vars.get(*var).unwrap().clone())?
-                                    .unwrap()
-                                    .extract()?,
-                            )
+                            .find(var_map.get(other.vars.get(*var).unwrap()).unwrap())
                             .unwrap(),
                     ),
                 },
@@ -6030,12 +6012,7 @@ impl DAGCircuit {
                 Wire::Var(var) => {
                     let index = other
                         .vars
-                        .find(
-                            &reverse_var_map
-                                .get_item(self.vars.get(var).unwrap().clone())?
-                                .unwrap()
-                                .extract()?,
-                        )
+                        .find(reverse_var_map[self.vars.get(var).unwrap()])
                         .unwrap()
                         .index();
                     other.var_io_map.get(index).map(|x| x[0])
@@ -6075,12 +6052,7 @@ impl DAGCircuit {
                 Wire::Var(var) => {
                     let index = other
                         .vars
-                        .find(
-                            &reverse_var_map
-                                .get_item(self.vars.get(var).unwrap().clone())?
-                                .unwrap()
-                                .extract()?,
-                        )
+                        .find(reverse_var_map[self.vars.get(var).unwrap()])
                         .unwrap()
                         .index();
                     other.var_io_map.get(index).map(|x| x[1])
@@ -6180,7 +6152,7 @@ impl DAGCircuit {
             }
         }
 
-        if self.may_have_additional_wires(py, inst) {
+        if self.may_have_additional_wires(py, inst.op.view()) {
             let (clbits, vars) = self.additional_wires(py, inst.op.view())?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
