@@ -67,7 +67,6 @@ pub(super) fn compose_transforms<'a>(
         let gate_obj: OperationFromPython = gate.extract()?;
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
         dag.apply_operation_back(
-            py,
             gate_obj.operation,
             &qubits,
             &[],
