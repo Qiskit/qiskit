@@ -19,8 +19,8 @@ import rustworkx
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 from qiskit._accelerate import disjoint_utils
-from qiskit.transpiler.passes.layout import disjoint_utils as disjoint_py
 
 from qiskit._accelerate.dense_layout import best_subset
 
@@ -74,15 +74,21 @@ class DenseLayout(AnalysisPass):
                 self._inner_run,
             )
             if layout_components is None:
-                layout_components = disjoint_py.run_pass_over_connected_components(
+                target = Target.from_configuration(
+                    basis_gates=["u", "cx"], coupling_map=self.coupling_map
+                )
+                layout_components = disjoint_utils.run_pass_over_connected_components(
                     dag,
-                    self.coupling_map,
+                    target,
                     self._inner_run,
                 )
         else:
-            layout_components = disjoint_py.run_pass_over_connected_components(
+            target = Target.from_configuration(
+                basis_gates=["u", "cx"], coupling_map=self.coupling_map
+            )
+            layout_components = disjoint_utils.run_pass_over_connected_components(
                 dag,
-                self.coupling_map,
+                target,
                 self._inner_run,
             )
         layout_mapping = {}

@@ -33,7 +33,6 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout import disjoint_utils as disjoint_py
 from qiskit._accelerate import disjoint_utils
 from qiskit._accelerate.nlayout import NLayout
 from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, NeighborTable, SetScaling
@@ -275,9 +274,17 @@ class SabreLayout(TransformationPass):
             # If components is None we can't build a coupling map from the target so we must have
             # one provided:
             if components is None:
-                components = disjoint_py.run_pass_over_connected_components(dag, target, inner_run)
+                temp_target = Target.from_configuration(
+                    basis_gates=["u", "cx"], coupling_map=target
+                )
+                components = disjoint_utils.run_pass_over_connected_components(
+                    dag, temp_target, inner_run
+                )
         else:
-            components = disjoint_py.run_pass_over_connected_components(dag, target, inner_run)
+            temp_target = Target.from_configuration(basis_gates=["u", "cx"], coupling_map=target)
+            components = disjoint_utils.run_pass_over_connected_components(
+                dag, temp_target, inner_run
+            )
         self.property_set["layout"] = Layout(
             {
                 component.dag.qubits[logic]: component.coupling_map.graph[phys]
