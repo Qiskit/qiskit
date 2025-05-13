@@ -14,9 +14,12 @@
 
 import numpy as np
 
+from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import QFTGate, iqp, GraphStateGate
+from qiskit.transpiler.passes.utils import CheckGateDirection, GateDirection
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.transpiler import CouplingMap
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -106,7 +109,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.rx(0.8, 0)
 
         transpiled = self.pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops().keys()), set(self.basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()), set(self.basis_gates))
 
     def test_qft(self):
         """Clifford+T transpilation of a more complex circuit, requiring the usage of the
@@ -116,7 +119,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.append(QFTGate(4), [0, 1, 2, 3])
 
         transpiled = self.pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops().keys()), set(self.basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()), set(self.basis_gates))
 
     def test_iqp(self):
         """Clifford+T transpilation of IQP circuits."""
@@ -126,7 +129,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         transpiled = self.pm.run(qc)
         transpiled_ops = transpiled.count_ops()
 
-        self.assertLessEqual(set(transpiled_ops.keys()), set(self.basis_gates))
+        self.assertLessEqual(set(transpiled_ops), set(self.basis_gates))
 
         # The transpiled circuit should be fairly efficient in terms of gates.
         self.assertLessEqual(transpiled.size(), 33)
@@ -150,3 +153,23 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         # The resulting circuit should not have any T/Tdg-gates.
         self.assertEqual(transpiled_ops, {"h": 5, "cx": 5})
+
+    def test_gate_direction_remapped(self):
+        """Test that gate directions are correct."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+
+        basis_gates = ["cx", "h", "t", "tdg"]
+        coupling_map = CouplingMap([[1, 0]])
+
+        pm = generate_preset_pass_manager(
+            basis_gates=basis_gates, coupling_map=coupling_map, optimization_level=0
+        )
+
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+        # Make sure gate direction is correct
+        pass_ = CheckGateDirection(coupling_map=coupling_map)
+        pass_.run(circuit_to_dag(transpiled))
+        self.assertTrue(pass_.property_set["is_direction_mapped"])

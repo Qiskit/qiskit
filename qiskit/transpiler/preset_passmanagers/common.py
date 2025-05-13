@@ -542,7 +542,8 @@ def generate_translation_passmanager(
                 target=None,
             ),
         ]
-        fix_1q = []
+        translator = BasisTranslator(sel, basis_gates, target)
+        fix_1q = [translator]
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
@@ -743,9 +744,13 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
 
     For this we require that:
     1. The set only contains Clifford+T gates
-    2. The set contains either T or Tdg
+    2. The set contains H
+    3. The set contains either T or Tdg
 
-    The second condition guarantees that the empty basis set is not
+    The second and the third condition guarantees that [H, T, Tdg] gates produced by
+    Solovay-Kitaev synthesis can be translated to basis gates.
+
+    In addition, these conditions guarantee that the empty basis set is not
     considered as Clifford+T.
     """
 
