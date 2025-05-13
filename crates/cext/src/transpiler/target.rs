@@ -664,7 +664,6 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
 /// @param num_qubits The number of qubits in the array.
-/// @param instruction_properties The instruction properties objects to replace by.
 /// @param duration The instruction's duration in seconds on the specific set of
 ///     qubits.
 /// @param error The instruction's average error rate on the specific set of qubits.
@@ -683,7 +682,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
-/// The ``qargs` type is expected to be a pointer to an array of ``u32int_t`` where the length
+/// The ``qargs`` type is expected to be a pointer to an array of ``u32int_t`` where the length
 /// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
 /// array is insufficently long the behavior of this function is undefined as this will read
 /// outside the bounds of the array. It can be a null pointer if there are no qubits for
@@ -786,7 +785,7 @@ pub unsafe extern "C" fn qk_target_get_prop_map(
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
-/// The ``qargs` type is expected to be a pointer to an array of ``u32int_t`` where the length
+/// The ``qargs`` type is expected to be a pointer to an array of ``u32int_t`` where the length
 /// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
 /// array is insufficently long the behavior of this function is undefined as this will read
 /// outside the bounds of the array. It can be a null pointer if there are no qubits for
@@ -958,7 +957,7 @@ pub unsafe extern "C" fn qk_target_non_global_operations(
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
-/// The ``qargs` type is expected to be a pointer to an array of ``u32int_t`` where the length
+/// The ``qargs`` type is expected to be a pointer to an array of ``u32int_t`` where the length
 /// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
 /// array is insufficently long the behavior of this function is undefined as this will read
 /// outside the bounds of the array. It can be a null pointer if there are no qubits for
@@ -998,7 +997,7 @@ pub unsafe extern "C" fn qk_target_operations_for_qargs(
 /// Retrieves the specified qargs for the provided operatioh.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param instruction The instruction whose properties we want to modify.
+/// @param operation The instruction whose properties we want to modify.
 ///
 /// @return A list of the qargs associated with this instruction.
 ///
@@ -1129,7 +1128,7 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargs
 /// ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @parsm instruction The instruction to check for.
+/// @param operation The instruction to check for.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
 /// @param num_qubits The number of qubits in the array.
@@ -1150,7 +1149,7 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargs
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
-/// The ``qargs` type is expected to be a pointer to an array of ``u32int_t`` where the length
+/// The ``qargs`` type is expected to be a pointer to an array of ``u32int_t`` where the length
 /// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
 /// array is insufficently long the behavior of this function is undefined as this will read
 /// outside the bounds of the array. It can be a null pointer if there are no qubits for

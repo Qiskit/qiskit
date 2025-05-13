@@ -13,3 +13,11 @@
 /**
  * @defgroup QkCircuit QkCircuit
  */
+
+ /**
+ * @defgroup QkTarget QkTarget
+ */
+
+ /**
+ * @defgroup QkPropsMap QkPropsMap
+ */
