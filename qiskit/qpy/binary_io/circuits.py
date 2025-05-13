@@ -1444,7 +1444,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
     if version >= 5:
         _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
-    for _, (vector, initialized_params) in vectors.items():
+    for vector, initialized_params in vectors.values():
         if len(initialized_params) != len(vector):
             warnings.warn(
                 f"The ParameterVector: '{vector.name}' is not fully identical to its "
