@@ -8,7 +8,7 @@
 name: Nightly Main tests
 on:
   # remove when proven to work
-  pull_request:
+  # pull_request:
   schedule:
     - cron: "20 6 * * *"
   workflow_dispatch:

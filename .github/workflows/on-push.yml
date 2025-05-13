@@ -4,7 +4,7 @@
 name: Push
 on:
   # Remove when proven to work
-  pull_request:
+  # pull_request:
   push:
     branches: [main, "stable/*"]
 

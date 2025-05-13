@@ -10,7 +10,7 @@
 name: Merge queue
 on:
   # remove when proven to work
-  pull_request:
+  # pull_request:
   merge_group:
     branches: [main, "stable/*"]
 concurrency:
