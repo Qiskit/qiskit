@@ -24,6 +24,7 @@ pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
+pub mod nlayout;
 pub mod object_registry;
 pub mod operations;
 pub mod packed_instruction;
@@ -52,6 +53,9 @@ pub struct Var(u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Stretch(u32);
+
+pub use nlayout::PhysicalQubit;
+pub use nlayout::VirtualQubit;
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {

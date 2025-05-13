@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-OS := $(shell uname -s)
+ifneq ($(OS), Windows_NT)
+	OS := $(shell uname -s)
+endif
 
 .PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean cheader clib ctest cformat fix_cformat cclean
 
@@ -91,16 +93,14 @@ C_DIR_TEST_BUILD = test/c/build
 # Whether this is target/debug or target/release depends on the flags in the
 # `cheader` recipe.  For now, they're just hardcoded.
 C_CARGO_TARGET_DIR = target/release
-C_LIB_CARGO_BASENAME=libqiskit_cext
 ifeq ($(OS), Windows_NT)
-	C_DYLIB_EXT=dll
+	C_LIB_CARGO_FILENAME=qiskit_cext.dll
 else ifeq ($(shell uname), Darwin)
-	C_DYLIB_EXT=dylib
+	C_LIB_CARGO_FILENAME=libqiskit_cext.dylib
 else
 	# ... probably.
-	C_DYLIB_EXT=so
+	C_LIB_CARGO_FILENAME=libqiskit_cext.so
 endif
-C_LIB_CARGO_FILENAME=$(C_LIB_CARGO_BASENAME).$(C_DYLIB_EXT)
 C_LIB_CARGO_PATH=$(C_CARGO_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
 
 C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
