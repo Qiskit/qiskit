@@ -10,11 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ops::{Deref, DerefMut};
 use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::{intern, IntoPyObjectExt};
+use std::ops::{Deref, DerefMut};
 
 /// A classical expression.
 ///
@@ -33,15 +33,20 @@ pub enum Expr {
     Index(Box<Index>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ExprRefMut<'a> {
     Unary(&'a mut Unary),
     Binary(&'a mut Binary),
     Cast(&'a mut Cast),
-    Value(Value),
-    Var(Var),
-    Stretch(Stretch),
+    Value(&'a mut Value),
+    Var(&'a mut Var),
+    Stretch(&'a mut Stretch),
     Index(&'a mut Index),
+}
+
+pub enum IdentifierRef<'a> {
+    Var(&'a Var),
+    Stretch(&'a Stretch),
 }
 
 // impl Deref for Expr {
@@ -64,9 +69,9 @@ impl Expr {
             Expr::Unary(u) => ExprRefMut::Unary(u.as_mut()),
             Expr::Binary(b) => ExprRefMut::Binary(b.as_mut()),
             Expr::Cast(c) => ExprRefMut::Cast(c.as_mut()),
-            Expr::Value(v) => ExprRefMut::Value(v.clone()),
-            Expr::Var(v) => ExprRefMut::Var(v.clone()),
-            Expr::Stretch(s) => ExprRefMut::Stretch(s.clone()),
+            Expr::Value(v) => ExprRefMut::Value(v),
+            Expr::Var(v) => ExprRefMut::Var(v),
+            Expr::Stretch(s) => ExprRefMut::Stretch(s),
             Expr::Index(i) => ExprRefMut::Index(i.as_mut()),
         }
     }
@@ -113,20 +118,8 @@ impl Expr {
 
     /// Returns an iterator over the [Var] nodes in this expression in some
     /// deterministic order.
-    pub fn identifiers_mut(&mut self) -> impl Iterator<Item = IdentifierRefMut<'_>> {
-        IdentIteratorMut(ExprIteratorMut { stack: vec![self] })
-    }
-
-    /// Returns an iterator over the [Var] nodes in this expression in some
-    /// deterministic order.
     pub fn vars(&self) -> impl Iterator<Item = &Var> {
         VarIterator(ExprIterator { stack: vec![self] })
-    }
-
-    /// Returns an iterator over the [Var] nodes in this expression in some
-    /// deterministic order.
-    pub fn vars_mut(&mut self) -> impl Iterator<Item = &mut Var> {
-        VarIteratorMut(ExprIteratorMut { stack: vec![self] })
     }
 
     /// Returns an iterator over all nodes in this expression in some deterministic
@@ -135,24 +128,28 @@ impl Expr {
         ExprIterator { stack: vec![self] }
     }
 
-    /// Returns an iterator over all nodes in this expression in some deterministic
-    /// order.
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Expr> {
-        ExprIteratorMut { stack: vec![self] }
+    pub fn visit_mut<F>(&mut self, mut visitor: F)
+    where
+        F: FnMut(ExprRefMut) -> (),
+    {
+        match self {
+            Expr::Unary(u) => u.operand.visit_mut(&mut visitor),
+            Expr::Binary(b) => {
+                b.left.visit_mut(&mut visitor);
+                b.right.visit_mut(&mut visitor);
+            }
+            Expr::Cast(c) => c.operand.visit_mut(&mut visitor),
+            Expr::Value(_) => {}
+            Expr::Var(_) => {}
+            Expr::Stretch(_) => {}
+            Expr::Index(i) => {
+                i.target.visit_mut(&mut visitor);
+                i.index.visit_mut(&mut visitor);
+            }
+        }
+        visitor(self.as_deref_mut());
     }
 }
-
-
-pub enum IdentifierRef<'a> {
-    Var(&'a Var),
-    Stretch(&'a Stretch),
-}
-
-pub enum IdentifierRefMut<'a> {
-    Var(&'a mut Var),
-    Stretch(&'a mut Stretch),
-}
-
 
 /// A private iterator over the [Expr] nodes of an expression
 /// by reference.
@@ -222,155 +219,6 @@ impl<'a> Iterator for IdentIterator<'a> {
         None
     }
 }
-
-/// A private iterator over the [Expr] nodes of an expression
-/// by reference.
-///
-/// The first node reference returned is the [Expr] itself.
-struct ExprIteratorMut<'a> {
-    stack: Vec<&'a mut Expr>,
-}
-
-impl<'a> Iterator for ExprIteratorMut<'a> {
-    type Item = &'a mut Expr;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut old_stack = std::mem::take(&mut self.stack);
-        let expr = old_stack.pop()?;
-        match expr {
-            Expr::Unary(u) => {
-                old_stack.push(&mut u.operand);
-            }
-            Expr::Binary(b) => {
-                old_stack.push(&mut b.left);
-                old_stack.push(&mut b.right);
-            }
-            Expr::Cast(c) => old_stack.push(&mut c.operand),
-            Expr::Value(_) => {}
-            Expr::Var(_) => {}
-            Expr::Stretch(_) => {}
-            Expr::Index(i) => {
-                old_stack.push(&mut i.index);
-                old_stack.push(&mut i.target);
-            }
-        }
-        Some(expr)
-    }
-}
-
-/// A private iterator over the [Var] nodes contained within an [Expr].
-struct VarIteratorMut<'a>(ExprIteratorMut<'a>);
-
-impl<'a> Iterator for VarIteratorMut<'a> {
-    type Item = &'a mut Var;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        for expr in self.0.by_ref() {
-            if let Expr::Var(v) = expr {
-                return Some(v);
-            }
-        }
-        None
-    }
-}
-
-/// A private iterator over the [Var] and [Stretch] nodes contained within an [Expr].
-struct IdentIteratorMut<'a>(ExprIteratorMut<'a>);
-
-impl<'a> Iterator for IdentIteratorMut<'a> {
-    type Item = IdentifierRefMut<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        for expr in &mut self.0 {
-            if let Expr::Var(v) = expr {
-                return Some(IdentifierRefMut::Var(v));
-            }
-            if let Expr::Stretch(s) = expr {
-                return Some(IdentifierRefMut::Stretch(s));
-            }
-        }
-        None
-    }
-}
-
-// pub trait ExprVisitor {
-//     type Output;
-//
-//     fn visit_expr(&self, expr: &Expr) -> Self::Output {
-//         match expr {
-//             Expr::Unary(u) => self.visit_unary(u),
-//             Expr::Binary(b) => self.visit_binary(b),
-//             Expr::Cast(c) => self.visit_cast(c),
-//             Expr::Value(v) => self.visit_value(v),
-//             Expr::Var(v) => self.visit_var(v),
-//             Expr::Stretch(s) => self.visit_stretch(s),
-//             Expr::Index(i) => self.visit_index(i),
-//         }
-//     }
-//
-//     fn visit_unary(&self, u: &Unary) -> Self::Output;
-//     fn visit_binary(&self, b: &Binary) -> Self::Output;
-//     fn visit_cast(&self, c: &Cast) -> Self::Output;
-//     fn visit_value(&self, v: &Value) -> Self::Output;
-//     fn visit_var(&self, v: &Var) -> Self::Output;
-//     fn visit_stretch(&self, s: &Stretch) -> Self::Output;
-//     fn visit_index(&self, i: &Index) -> Self::Output;
-// }
-//
-// pub struct ExprRewriterDefault;
-//
-// impl ExprVisitor for ExprRewriterDefault {
-//     type Output = Expr;
-//
-//     fn visit_unary(&self, u: &Unary) -> Expr {
-//         Expr::Unary(Box::new(Unary {
-//             op: u.op,
-//             ty: u.ty,
-//             constant: u.constant,
-//             operand: self.visit_expr(&u.operand),
-//         }))
-//     }
-//
-//     fn visit_binary(&self, b: &Binary) -> Expr {
-//         Expr::Binary(Box::new(Binary {
-//             op: b.op,
-//             ty: b.ty,
-//             constant: b.constant,
-//             left: self.visit_expr(&b.left),
-//             right: self.visit_expr(&b.right),
-//         }))
-//     }
-//
-//     fn visit_cast(&self, c: &Cast) -> Expr {
-//         Expr::Cast(Box::new(Cast {
-//             ty: c.ty,
-//             constant: c.constant,
-//             operand: self.visit_expr(&c.operand),
-//             implicit: c.implicit,
-//         }))
-//     }
-//
-//     fn visit_value(&self, v: &Value) -> Expr {
-//         Expr::Value(v.clone())
-//     }
-//
-//     fn visit_var(&self, v: &Var) -> Expr {
-//         Expr::Var(v.clone())
-//     }
-//
-//     fn visit_stretch(&self, s: &Stretch) -> Expr {
-//         Expr::Stretch(s.clone())
-//     }
-//
-//     fn visit_index(&self, i: &Index) -> Expr {
-//         Expr::Index(Box::new(Index {
-//             ty: i.ty,
-//             constant: i.constant,
-//             target: self.visit_expr(&i.target),
-//             index: self.visit_expr(&i.index),
-//         }))
-//     }
-// }
 
 impl From<Unary> for Expr {
     fn from(value: Unary) -> Self {
