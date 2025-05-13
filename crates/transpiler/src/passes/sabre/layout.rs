@@ -70,7 +70,7 @@ pub fn sabre_layout_and_routing(
     let layout_component = |target, sabre, dag| {
         let mut starting_layouts = (0..num_random_trials).map(|_| vec![]).collect::<Vec<_>>();
         starting_layouts.extend(partial_layouts.iter().cloned());
-        add_heuristic_layouts(&mut starting_layouts, target, allow_parallel);
+        add_heuristic_layouts(&mut starting_layouts, dag, target, allow_parallel);
         let outer_rng = match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
             None => Pcg64Mcg::from_os_rng(),
@@ -274,17 +274,14 @@ fn compute_dense_starting_layout(
 /// work well.
 fn add_heuristic_layouts(
     starting_layouts: &mut Vec<Vec<Option<u32>>>,
+    dag: &DAGCircuit,
     target: &RoutingTarget,
     run_in_parallel: bool,
 ) {
     let num_physical_qubits = target.neighbors.num_qubits();
     // Run a dense layout trial
     starting_layouts.push(compute_dense_starting_layout(
-        // TODO: This actually should be `dag.num_qubits()`, but a side-effect of the previous
-        // Python-space disjoint coupling handling meant that DAGs were being expanded to full
-        // hardware width (of the relevant component) before Sabre was called, so were running in
-        // this configuration instead.  This behaviour is initially kept for RNG compatibility.
-        num_physical_qubits,
+        dag.num_qubits(),
         target,
         run_in_parallel,
     ));
