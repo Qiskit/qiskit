@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 #include "common.h"
+#include "math.h"
 #include <complex.h>
 #include <qiskit.h>
 #include <stdbool.h>
@@ -357,7 +358,7 @@ int test_target_update_instruction(void) {
     }
 
     // change the intruction property of cx
-    double cx_new_inst_error = 0.102902;
+    double cx_new_inst_error = NAN;
     double cx_new_inst_duration = 0.09457;
     qk_target_update_instruction_prop(target, QkGate_CX, qargs, 2, cx_new_inst_duration,
                                       cx_new_inst_error);
@@ -370,7 +371,7 @@ int test_target_update_instruction(void) {
         result = RuntimeError;
         goto cleanup;
     }
-    if (new_cx_retrieved_inst.error != cx_new_inst_error) {
+    if (!isnan(new_cx_retrieved_inst.error)) {
         printf(
             "The incorrect duration was recorded for the instruction property, expected %f, got %f",
             new_cx_retrieved_inst.error, cx_new_inst_error);
