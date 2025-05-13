@@ -52,7 +52,7 @@ pub enum DisjointSplit {
     Arbitrary(Vec<DisjointComponent>),
 }
 
-type CouplingMap = StableDiGraph<NodeIndex, ()>;
+type CouplingMap = UnGraph<PhysicalQubit, ()>;
 
 fn subgraph(graph: &CouplingMap, node_set: &HashSet<NodeIndex>) -> CouplingMap {
     let mut node_map: HashMap<NodeIndex, NodeIndex> = HashMap::with_capacity(node_set.len());
@@ -82,9 +82,13 @@ pub fn py_run_pass_over_connected_components(
         let coupling_map_cls = COUPLING_MAP.get_bound(py);
         let endpoints: Vec<[usize; 2]> = cmap
             .edge_indices()
-            .map(|edge| {
+            .flat_map(|edge| {
                 let endpoints = cmap.edge_endpoints(edge).unwrap();
-                [endpoints.0.index(), endpoints.1.index()]
+                // Return bidirectional edges here because the rust space graph is
+                // undirected and Python space CouplingMap is explicitly a directed graph.
+                // Adding the reverse edge here is to ensure we are representing the coupling
+                // map in Python as rust is working with it.
+                [[endpoints.0.index(), endpoints.1.index()], [endpoints.1.index(), endpoints.0.index()]]
             })
             .collect();
         let out_list = PyList::new(py, endpoints)?;
@@ -247,14 +251,14 @@ fn map_components(
     Ok(out_mapping)
 }
 
-fn build_coupling_map<Ty: EdgeType>(target: &Target) -> Option<StableGraph<NodeIndex, (), Ty>> {
+fn build_coupling_map(target: &Target) -> Option<UnGraph<PhysicalQubit, ()>> {
     let num_qubits = target.num_qubits.unwrap_or_default();
     if target.num_qargs() == 0 {
         return None;
     }
-    let mut cm_graph = StableGraph::with_capacity(num_qubits, target.num_qargs() - num_qubits);
+    let mut cm_graph = UnGraph::with_capacity(num_qubits, target.num_qargs() - num_qubits);
     for i in 0..num_qubits {
-        cm_graph.add_node(NodeIndex::new(i));
+        cm_graph.add_node(PhysicalQubit::new(i as u32));
     }
     let qargs = target.qargs()?;
     for qarg in qargs {
@@ -284,7 +288,7 @@ fn build_coupling_map<Ty: EdgeType>(target: &Target) -> Option<StableGraph<NodeI
 }
 
 struct InteractionGraphData<Ty: EdgeType> {
-    im_graph: StableGraph<(), (), Ty>,
+    im_graph: Graph<(), (), Ty>,
     reverse_im_graph_node_map: Vec<Option<Qubit>>,
 }
 
@@ -292,7 +296,7 @@ fn generate_directed_interaction(dag: &DAGCircuit) -> PyResult<InteractionGraphD
     let mut im_graph_node_map: Vec<Option<NodeIndex>> = vec![None; dag.num_qubits()];
     let mut reverse_im_graph_node_map: Vec<Option<Qubit>> = vec![None; dag.num_qubits()];
     let wire_map: Vec<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
-    let mut im_graph = StableDiGraph::with_capacity(dag.num_qubits(), dag.num_qubits());
+    let mut im_graph = DiGraph::with_capacity(dag.num_qubits(), dag.num_qubits());
     build_interaction_graph(
         dag,
         &wire_map,
@@ -309,7 +313,7 @@ fn generate_directed_interaction(dag: &DAGCircuit) -> PyResult<InteractionGraphD
 fn build_interaction_graph<Ty: EdgeType>(
     dag: &DAGCircuit,
     wire_map: &[Qubit],
-    im_graph: &mut StableGraph<(), (), Ty>,
+    im_graph: &mut Graph<(), (), Ty>,
     im_graph_node_map: &mut [Option<NodeIndex>],
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
