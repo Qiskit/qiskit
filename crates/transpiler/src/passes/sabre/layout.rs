@@ -444,11 +444,7 @@ fn add_heuristic_layouts(
     let num_physical_qubits = problem.target.neighbors.num_qubits();
     // Run a dense layout trial
     starting_layouts.push(compute_dense_starting_layout(
-        // TODO: This actually should be `dag.num_qubits()`, but a side-effect of the previous
-        // Python-space disjoint coupling handling meant that DAGs were being expanded to full
-        // hardware width (of the relevant component) before Sabre was called, so were running in
-        // this configuration instead.  This behaviour is initially kept for RNG compatibility.
-        num_physical_qubits,
+        problem.dag.num_qubits(),
         problem.target,
         run_in_parallel,
     ));
