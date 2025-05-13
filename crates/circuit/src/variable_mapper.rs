@@ -2,8 +2,10 @@ use crate::bit::{ClassicalRegister, Register, ShareableBit, ShareableClbit};
 use crate::classical::expr;
 use crate::classical::expr::{Binary, Cast, Expr, ExprRefMut, Index, Stretch, Unary, Value, Var};
 use hashbrown::{HashMap, HashSet};
+use itertools::Itertools;
 use pyo3::prelude::*;
 use pyo3::{Bound, FromPyObject, PyAny, PyResult};
+use std::cell::RefCell;
 
 /// A control flow operation's condition.
 ///
@@ -26,8 +28,30 @@ impl<'py> FromPyObject<'py> for Condition {
     }
 }
 
+/// A control flow operation's target.
+///
+/// TODO: move this to control flow mod once that's in Rust.
+pub(crate) enum Target {
+    Bit(ShareableClbit),
+    Register(ClassicalRegister),
+    Expr(Expr),
+}
+
+impl<'py> FromPyObject<'py> for Target {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(bit) = ob.extract::<ShareableClbit>() {
+            Ok(Target::Bit(bit))
+        } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
+            Ok(Target::Register(register))
+        } else {
+            Ok(Target::Expr(ob.extract()?))
+        }
+    }
+}
+
 pub(crate) struct VariableMapper {
     target_cregs: Vec<ClassicalRegister>,
+    register_map: RefCell<HashMap<String, ClassicalRegister>>,
     bit_map: HashMap<ShareableClbit, ShareableClbit>,
     var_map: HashMap<Var, Var>,
     stretch_map: HashMap<Stretch, Stretch>,
@@ -42,12 +66,23 @@ impl VariableMapper {
     ) -> Self {
         Self {
             target_cregs,
+            register_map: RefCell::default(),
             bit_map,
             var_map,
             stretch_map,
         }
     }
 
+    /// Map the given `condition` so that it only references variables in the destination
+    /// circuit (as given to this class on initialization).
+    ///
+    /// If `allow_reorder` is `true`, then when a legacy condition (the two-tuple form) is made
+    /// on a register that has a counterpart in the destination with all the same (mapped) bits but
+    /// in a different order, then that register will be used and the value suitably modified to
+    /// make the equality condition work.  This is maintaining legacy (tested) behavior of
+    /// [DAGCircuit::compose]; nowhere else does this, and in general this would require *far*
+    /// more complex classical rewriting than Qiskit needs to worry about in the full expression
+    /// era.
     pub fn map_condition(&self, condition: &Condition, allow_reorder: bool) -> Condition {
         match condition {
             Condition::Bit(target, value) => {
@@ -105,11 +140,25 @@ impl VariableMapper {
                     .rev()
                     .collect();
 
-                Condition::Register(mapped_theirs, usize::from_str_radix(&mapped_str, 2).unwrap())
+                Condition::Register(
+                    mapped_theirs,
+                    usize::from_str_radix(&mapped_str, 2).unwrap(),
+                )
             }
         }
     }
 
+    /// Map the real-time variables in a `target` of a `SwitchCaseOp` to the new
+    /// circuit.
+    pub fn map_target(&self, target: &Target) -> Target {
+        match target {
+            Target::Bit(bit) => Target::Bit(self.bit_map.get(bit).cloned().unwrap()),
+            Target::Register(register) => Target::Register(self.map_register(register)),
+            Target::Expr(expr) => Target::Expr(self.map_expr(expr)),
+        }
+    }
+
+    /// Map the variables in an [Expr] node to the new circuit.
     pub fn map_expr(&self, expr: &Expr) -> Expr {
         let mut mapped = expr.clone();
         mapped.visit_mut(|e| match e {
@@ -139,7 +188,28 @@ impl VariableMapper {
         mapped
     }
 
+    /// Map the target's registers to suitable equivalents in the destination, adding an
+    /// extra one if there's no exact match."""
     fn map_register(&self, theirs: &ClassicalRegister) -> ClassicalRegister {
-        todo!()
+        if let Some(mapped_theirs) = self.register_map.borrow().get(theirs.name()) {
+            return mapped_theirs.clone();
+        }
+
+        let mapped_bits: Vec<_> = theirs.iter().map(|b| self.bit_map[&b].clone()).collect();
+        let mapped_theirs = self.target_cregs.iter().find(|register| {
+            let register: Vec<_> = register.bits().collect();
+            mapped_bits == register
+        });
+
+        // TODO: handle this case
+        // if self.add_register is None:
+        //     raise ValueError(f"Register '{theirs.name}' has no counterpart in the destination.")
+        // mapped_theirs = ClassicalRegister(bits=mapped_bits)
+        // self.add_register(mapped_theirs)
+        let mapped_theirs = mapped_theirs.cloned().unwrap();
+        self.register_map
+            .borrow_mut()
+            .insert(theirs.name().to_string(), mapped_theirs.clone());
+        mapped_theirs
     }
 }
