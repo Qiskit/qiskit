@@ -8,9 +8,9 @@ on:
           Python version to currently test
         type: string
         required: true
-      system-suffix:
+      runner:
         description: >
-          Decides whether the user will test on latest or arm version
+          Describes the system this workflow should run on.
         type: string
         required: true
       test-rust:
@@ -40,8 +40,8 @@ on:
 jobs:
   unit-tests:
     if: github.repository_owner == 'Qiskit'
-    name: ubuntu-${{ inputs.system-suffix }}-tests-Python-${{ inputs.python-version }}
-    runs-on: ubuntu-${{ inputs.system-suffix }}
+    name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
+    runs-on: ${{ inputs.runner }}
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       PIP_CACHE_DIR: ${{ github.workspace }}/.pip
@@ -133,8 +133,8 @@ jobs:
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           RUST_BACKTRACE: 1
   test-rust:
-    name: ubuntu-${{ inputs.system-suffix }}-tests-Rust-${{ inputs.python-version }}
-    runs-on: ubuntu-${{ inputs.system-suffix }}
+    name: ubuntu-${{ inputs.runner }}-tests-Rust-${{ inputs.python-version }}
+    runs-on: ubuntu-${{ inputs.runner }}
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       PIP_CACHE_DIR: ${{ github.workspace }}/.pip
@@ -194,8 +194,8 @@ jobs:
           python tools/run_cargo_test.py
   test-images:
     if: github.repository_owner == 'Qiskit' && inputs.test-rust == true
-    name: ubuntu-${{ inputs.system-suffix }}-test-images-${{ inputs.python-version }}
-    runs-on: ubuntu-${{ inputs.system-suffix }}
+    name: ubuntu-${{ inputs.runner }}-test-images-${{ inputs.python-version }}
+    runs-on: ubuntu-${{ inputs.runner }}
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       PIP_CACHE_DIR: ${{ github.workspace }}/.pip

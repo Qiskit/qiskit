@@ -28,22 +28,30 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.13"]
-        os-suffix: ["latest", "24.04-arm"]
+        runner: ["latest", "24.04-arm"]
     with:
       python-version: ${{ matrix.python-version }}
       install-optionals: ${{ matrix.python-version == '3.9' }}
       test-rust: ${{ matrix.python-version == '3.9' }}
       test-images: ${{ matrix.python-version == '3.9' }}
-      system-suffix: ${{ matrix.os-suffix }}
+      runner: ${{ matrix.runner }}
   test-mac:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-mac.yml
+    strategy:
+      matrix:
+        runner: ["macos-13", "macos-14"]
     with:
       python-version: "3.13"
       install-optionals: false
+      runner: ${{ matrix.runner }}
   test-windows:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-windows.yml
+    strategy:
+      matrix:
+        runner: ["windows-latest"]
     with:
       python-version: "3.13"
       install-optionals: false
+      runner: ${{ matrix.runner }}

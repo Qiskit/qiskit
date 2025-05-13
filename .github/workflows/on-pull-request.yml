@@ -35,7 +35,7 @@ jobs:
       install-optionals: true
       test-rust: true
       test-images: true
-      system-suffix: "latest"
+      runner: "latest"
 
   # The rest of the PR pipeline is to test the oldest and newest supported
   # versions of Python. It's very rare for a failure to be specific to an
@@ -52,7 +52,7 @@ jobs:
       test-images: false
       install-from-sdist: true
       install-optionals: false
-      system-suffix: "24.04-arm"
+      runner: "ubuntu-24.04-arm"
   main-tests-ubuntu:
     if: github.repository_owner == 'Qiskit'
     name: Main Tests (ubuntu)
@@ -60,7 +60,7 @@ jobs:
     strategy:
       matrix:
         python_version: ["3.13"]
-        os-suffix: ["latest", "24.04-arm"]
+        runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
     uses: ./.github/workflows/test-linux.yml
     with:
       python-version: ${{ matrix.python_version }}
@@ -68,7 +68,7 @@ jobs:
       test-images: false
       install-from-sdist: true
       install-optionals: false
-      system-suffix: ${{ matrix.os-suffix }}
+      runner: ${{ matrix.runner }}
 
   main-tests-mac:
     if: github.repository_owner == 'Qiskit'
@@ -77,10 +77,12 @@ jobs:
     strategy:
       matrix:
         python_version: ["3.9", "3.13"]
+        runner: ["macos-13", "macos-14"]
     uses: ./.github/workflows/test-mac.yml
     with:
       python-version: ${{ matrix.python_version }}
       install-optionals: ${{ matrix.python_version == '3.9'}}
+      runner: ${{ matrix.runner }}
 
   main-tests-windows:
     if: github.repository_owner == 'Qiskit'
@@ -89,7 +91,9 @@ jobs:
     strategy:
       matrix:
         python_version: ["3.9", "3.13"]
+        runner: ["windows-latest"]
     uses: ./.github/workflows/test-windows.yml
     with:
       python-version: ${{ matrix.python_version }}
       install-optionals: ${{ matrix.python_version == '3.9'}}
+      runner: ${{ matrix.runner }}

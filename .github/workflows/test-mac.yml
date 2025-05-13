@@ -15,13 +15,19 @@ on:
         type: boolean
         default: false
 
+      runner:
+        description: >
+          Describes the system this workflow should run on.
+        type: string
+        required: true
+
   merge_group:
 
 jobs:
   tests-mac:
     if: github.repository_owner == 'Qiskit'
     name: macOS-arm64-tests-Python-${{ inputs.python-version }}
-    runs-on: macOS-14
+    runs-on: ${{ inputs.runner }}
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip

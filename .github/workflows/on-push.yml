@@ -15,18 +15,20 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.13"]
+        runner: ["macos-13", "macos-14"]
     with:
       python-version: ${{ matrix.python-version }}
       install-optionals: false
+      runner: ${{ matrix.runner }}
   test-linux:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-linux.yml
     strategy:
       matrix:
-        os-suffix: ["latest", "24.04-arm"]
+        runner: ["ubuntu-latest", "ubuntu-4.04-arm"]
     with:
       python-version: "3.9"
       test-rust: true
       test-images: true
       install-optionals: false
-      system-suffix: ${{ matrix.os-suffix }}
+      runner: ${{ matrix.runner }}
