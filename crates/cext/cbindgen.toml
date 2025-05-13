@@ -58,5 +58,4 @@ prefix_with_name = true
 "CInstruction" = "QkCircuitInstruction"
 "ExitCode" = "QkExitCode"
 "Target" = "QkTarget"
-"InstructionProperties" = "QkInstructionProps"
 "PropertyMap" = "QkPropsMap"

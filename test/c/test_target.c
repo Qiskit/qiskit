@@ -155,28 +155,6 @@ int test_target_construct(void) {
 }
 
 /**
- * Test construction of an `InstructionProperties` instance
- */
-int test_instruction_properties_construction(void) {
-    const double duration = 0.090903;
-    const double error = 0.0038484;
-
-    const QkInstructionProps *inst_prop = qk_instruction_properties_new(duration, error);
-    double inst_duration = qk_instruction_properties_get_duration(inst_prop);
-    double inst_error = qk_instruction_properties_get_error(inst_prop);
-
-    if (duration != inst_duration) {
-        printf("The duration assigned to this instance: %f difference from the original: %f",
-               duration, inst_duration);
-    }
-    if (error != inst_error) {
-        printf("The duration assigned to this instance: %f difference from the original: %f", error,
-               inst_error);
-    }
-    return Ok;
-}
-
-/**
  * Test construction of PropsMap
  */
 int test_property_map_construction(void) {
@@ -191,9 +169,8 @@ int test_property_map_construction(void) {
 
     // Add some qargs and properties
     uint32_t qargs[2] = {0, 1};
-    QkInstructionProps *inst_prop = qk_instruction_properties_new(0.00018, 0.00002);
 
-    qk_property_map_add(property_map, qargs, 2, inst_prop);
+    qk_property_map_add(property_map, qargs, 2, 0.00018, 0.00002);
     // Test length
     const size_t new_length = qk_property_map_length(property_map);
     if (new_length != 1) {
@@ -208,7 +185,6 @@ int test_property_map_construction(void) {
     }
 
     qk_property_map_free(property_map);
-    qk_instruction_properties_free(inst_prop);
     return Ok;
 }
 
@@ -221,13 +197,11 @@ int test_target_add_instruction(void) {
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
     // Add an X Gate.
-    // Create prop_map for the instruction
-    // This operation is global, so props_map stays empty
-    QkPropsMap *property_map = qk_property_map_new();
     // X Gate is not parametric.
     double *params = NULL;
 
-    qk_target_add_instruction(target, QkGate_X, params, property_map);
+    // This operation is global, no property map is provided
+    qk_target_add_instruction(target, QkGate_X, params, NULL);
 
     // Number of qubits of the target should not change.
     size_t current_num_qubits = qk_target_num_qubits(target);
@@ -250,13 +224,11 @@ int test_target_add_instruction(void) {
     // Add a CX Gate.
     // Create prop_map for the instruction
     // Add property for (0, 1)
-    property_map = qk_property_map_new();
+    QkPropsMap *property_map = qk_property_map_new();
     uint32_t qargs[2] = {0, 1};
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
-    QkInstructionProps *instruction_props =
-        qk_instruction_properties_new(inst_error, inst_duration);
-    qk_property_map_add(property_map, qargs, 2, instruction_props);
+    qk_property_map_add(property_map, qargs, 2, inst_duration, inst_error);
     // CX Gate is not paramtric. Re-use Null
     double *cx_params = NULL;
 
@@ -294,9 +266,7 @@ int test_target_add_instruction(void) {
     uint32_t crx_qargs[2] = {1, 2};
     double crx_inst_error = 0.0129023;
     double crx_inst_duration = 0.92939;
-    QkInstructionProps *crx_instruction_props =
-        qk_instruction_properties_new(crx_inst_error, crx_inst_duration);
-    qk_property_map_add(property_map, crx_qargs, 2, crx_instruction_props);
+    qk_property_map_add(property_map, crx_qargs, 2, crx_inst_duration, crx_inst_error);
     // CX Gate is not paramtric.
     double crx_params[1] = {3.14};
 
@@ -344,8 +314,6 @@ int test_target_add_instruction(void) {
 
 cleanup:
     qk_target_free(target);
-    qk_instruction_properties_free(instruction_props);
-    qk_instruction_properties_free(crx_instruction_props);
     qk_property_map_free(property_map);
     qk_property_map_free(crx_property_map);
     return result;
@@ -367,27 +335,23 @@ int test_target_update_instruction(void) {
     uint32_t qargs[2] = {0, 1};
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
-    QkInstructionProps *instruction_props =
-        qk_instruction_properties_new(inst_duration, inst_error);
-    qk_property_map_add(property_map, qargs, 2, instruction_props);
+    qk_property_map_add(property_map, qargs, 2, inst_duration, inst_error);
     // CX Gate is not paramtric. Re-use Null
     qk_target_add_instruction(target, QkGate_CX, NULL, property_map);
 
     // check current instruction property for cx at (0,1)
-    QkInstructionProps *retrieved_inst = qk_target_get_inst_prop(target, QkGate_CX, qargs, 2);
-    double retrieved_duration = qk_instruction_properties_get_duration(retrieved_inst);
-    if (retrieved_duration != inst_duration) {
+    QkInstructionProps retrieved_inst = qk_target_get_inst_prop(target, QkGate_CX, qargs, 2);
+    if (retrieved_inst.duration != inst_duration) {
         printf(
             "The incorrect duration was recorded for the instruction property, expected %f, got %f",
-            retrieved_duration, inst_duration);
+            retrieved_inst.duration, inst_duration);
         result = RuntimeError;
         goto cleanup;
     }
-    double retrieved_error = qk_instruction_properties_get_error(retrieved_inst);
-    if (retrieved_error != inst_error) {
+    if (retrieved_inst.error != inst_error) {
         printf(
             "The incorrect duration was recorded for the instruction property, expected %f, got %f",
-            retrieved_error, inst_error);
+            retrieved_inst.error, inst_error);
         result = RuntimeError;
         goto cleanup;
     }
@@ -395,35 +359,27 @@ int test_target_update_instruction(void) {
     // change the intruction property of cx
     double cx_new_inst_error = 0.102902;
     double cx_new_inst_duration = 0.09457;
-    QkInstructionProps *new_cx_instruction_props =
-        qk_instruction_properties_new(cx_new_inst_duration, cx_new_inst_error);
-    qk_target_update_instruction_prop(target, QkGate_CX, qargs, 2, new_cx_instruction_props);
+    qk_target_update_instruction_prop(target, QkGate_CX, qargs, 2, cx_new_inst_duration,
+                                      cx_new_inst_error);
     // check current instruction property for cx at (0,1)
-    QkInstructionProps *new_cx_retrieved_inst =
-        qk_target_get_inst_prop(target, QkGate_CX, qargs, 2);
-    double new_retrieved_duration = qk_instruction_properties_get_duration(new_cx_retrieved_inst);
-    if (new_retrieved_duration != cx_new_inst_duration) {
+    QkInstructionProps new_cx_retrieved_inst = qk_target_get_inst_prop(target, QkGate_CX, qargs, 2);
+    if (new_cx_retrieved_inst.duration != cx_new_inst_duration) {
         printf(
             "The incorrect duration was recorded for the instruction property, expected %f, got %f",
-            new_retrieved_duration, cx_new_inst_duration);
+            new_cx_retrieved_inst.duration, cx_new_inst_duration);
         result = RuntimeError;
         goto cleanup;
     }
-    double new_retrieved_error = qk_instruction_properties_get_error(new_cx_retrieved_inst);
-    if (new_retrieved_error != cx_new_inst_error) {
+    if (new_cx_retrieved_inst.error != cx_new_inst_error) {
         printf(
             "The incorrect duration was recorded for the instruction property, expected %f, got %f",
-            new_retrieved_error, cx_new_inst_error);
+            new_cx_retrieved_inst.error, cx_new_inst_error);
         result = RuntimeError;
         goto cleanup;
     }
 
 cleanup:
     qk_target_free(target);
-    qk_instruction_properties_free(instruction_props);
-    qk_instruction_properties_free(retrieved_inst);
-    qk_instruction_properties_free(new_cx_instruction_props);
-    qk_instruction_properties_free(new_cx_retrieved_inst);
     qk_property_map_free(property_map);
     return result;
 }
@@ -447,8 +403,7 @@ int test_target_non_global_op_names(void) {
     // Add property for (0, 1)
     property_map = qk_property_map_new();
     uint32_t qargs[2] = {0, 1};
-    QkInstructionProps *instruction_props = qk_instruction_properties_new(0, 0);
-    qk_property_map_add(property_map, qargs, 2, instruction_props);
+    qk_property_map_add(property_map, qargs, 2, 0, 0);
     qk_target_add_instruction(target, QkGate_CX, NULL, property_map);
 
     // Add a CRX Gate.
@@ -456,8 +411,7 @@ int test_target_non_global_op_names(void) {
     // Add property for (2, 1)
     QkPropsMap *crx_property_map = qk_property_map_new();
     uint32_t crx_qargs[2] = {2, 1};
-    QkInstructionProps *crx_instruction_props = qk_instruction_properties_new(0, 0);
-    qk_property_map_add(crx_property_map, crx_qargs, 2, crx_instruction_props);
+    qk_property_map_add(crx_property_map, crx_qargs, 2, 0, 0);
     // CX Gate is not paramtric.
     double crx_params[1] = {3.14};
 
@@ -490,8 +444,6 @@ int test_target_non_global_op_names(void) {
 
 cleanup:
     qk_target_free(target);
-    qk_instruction_properties_free(instruction_props);
-    qk_instruction_properties_free(crx_instruction_props);
     qk_property_map_free(property_map);
     qk_property_map_free(crx_property_map);
     return result;
@@ -500,7 +452,7 @@ cleanup:
 /**
  * Test retrieving operation names based on their qargs.
  */
-int test_target_operation_names_for_qargs(void) {
+int test_target_operations_for_qargs(void) {
     const size_t num_qubits = 1;
     // Build sample target
     QkTarget *target = qk_target_new(num_qubits);
@@ -508,8 +460,7 @@ int test_target_operation_names_for_qargs(void) {
     QkPropsMap *i_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *i_props = qk_instruction_properties_new(35.5e-9, 0.);
-        qk_property_map_add(i_property_map, qargs, 1, i_props);
+        qk_property_map_add(i_property_map, qargs, 1, 35.5e-9, 0.);
     }
     qk_target_add_instruction(target, QkGate_I, NULL, i_property_map);
 
@@ -517,24 +468,21 @@ int test_target_operation_names_for_qargs(void) {
     double rz_params[1] = {3.14};
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *rz_props = qk_instruction_properties_new(0., 0.);
-        qk_property_map_add(rz_property_map, qargs, 1, rz_props);
+        qk_property_map_add(rz_property_map, qargs, 1, 0., 0.);
     }
     qk_target_add_instruction(target, QkGate_RZ, rz_params, i_property_map);
 
     QkPropsMap *sx_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *sx_props = qk_instruction_properties_new(35.5e-9, 0.);
-        qk_property_map_add(sx_property_map, qargs, 1, sx_props);
+        qk_property_map_add(sx_property_map, qargs, 1, 35.5e-9, 0.);
     }
     qk_target_add_instruction(target, QkGate_SX, NULL, sx_property_map);
 
     QkPropsMap *x_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *x_props = qk_instruction_properties_new(35.5e-9, 0.0005);
-        qk_property_map_add(x_property_map, qargs, 1, x_props);
+        qk_property_map_add(x_property_map, qargs, 1, 35.5e-9, 0.0005);
     }
     qk_target_add_instruction(target, QkGate_X, NULL, x_property_map);
 
@@ -542,23 +490,17 @@ int test_target_operation_names_for_qargs(void) {
     uint32_t qarg_samples[8][2] = {
         {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
     };
-    QkInstructionProps *props[8] = {
-        qk_instruction_properties_new(2.7022e-11, 0.00713),
-        qk_instruction_properties_new(3.0577 - 11, 0.00713),
-        qk_instruction_properties_new(4.6222 - 11, 0.00929),
-        qk_instruction_properties_new(4.9777 - 11, 0.00929),
-        qk_instruction_properties_new(2.2755 - 11, 0.00659),
-        qk_instruction_properties_new(2.6311 - 11, 0.00659),
-        qk_instruction_properties_new(5.1911 - 11, 0.01201),
-        qk_instruction_properties_new(5.1911 - 11, 0.01201),
+    double props[8][2] = {
+        {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
+        {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
     };
     for (int i = 0; i < 8; i++) {
-        qk_property_map_add(cx_property_map, qarg_samples[i], 2, props[i]);
+        qk_property_map_add(cx_property_map, qarg_samples[i], 2, props[i][0], props[i][1]);
     }
     qk_target_add_instruction(target, QkGate_CX, NULL, cx_property_map);
 
     // Add global Y Gate
-    qk_target_add_instruction(target, QkGate_Y, NULL, qk_property_map_new());
+    qk_target_add_instruction(target, QkGate_Y, NULL, NULL);
 
     // Retrieve instruction names by qargs for {0,}
     uint32_t qargs_1[1] = {0};
@@ -608,9 +550,6 @@ cleanup:
     qk_property_map_free(rz_property_map);
     qk_property_map_free(cx_property_map);
 
-    for (int i = 0; i < 8; i++) {
-        qk_instruction_properties_free(props[i]);
-    }
     return result;
 }
 
@@ -625,8 +564,7 @@ int test_target_qargs_for_operation_names(void) {
     QkPropsMap *i_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *i_props = qk_instruction_properties_new(35.5e-9, 0.);
-        qk_property_map_add(i_property_map, qargs, 1, i_props);
+        qk_property_map_add(i_property_map, qargs, 1, 35.5e-9, 0.);
     }
     qk_target_add_instruction(target, QkGate_I, NULL, i_property_map);
 
@@ -634,24 +572,21 @@ int test_target_qargs_for_operation_names(void) {
     double rz_params[1] = {3.14};
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *rz_props = qk_instruction_properties_new(0., 0.);
-        qk_property_map_add(rz_property_map, qargs, 1, rz_props);
+        qk_property_map_add(rz_property_map, qargs, 1, 0., 0.);
     }
     qk_target_add_instruction(target, QkGate_RZ, rz_params, i_property_map);
 
     QkPropsMap *sx_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *sx_props = qk_instruction_properties_new(35.5e-9, 0.);
-        qk_property_map_add(sx_property_map, qargs, 1, sx_props);
+        qk_property_map_add(sx_property_map, qargs, 1, 35.5e-9, 0.);
     }
     qk_target_add_instruction(target, QkGate_SX, NULL, sx_property_map);
 
     QkPropsMap *x_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *x_props = qk_instruction_properties_new(35.5e-9, 0.0005);
-        qk_property_map_add(x_property_map, qargs, 1, x_props);
+        qk_property_map_add(x_property_map, qargs, 1, 35.5e-9, 0.0005);
     }
     qk_target_add_instruction(target, QkGate_X, NULL, x_property_map);
 
@@ -659,23 +594,17 @@ int test_target_qargs_for_operation_names(void) {
     uint32_t qarg_samples[8][2] = {
         {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
     };
-    QkInstructionProps *props[8] = {
-        qk_instruction_properties_new(2.7022e-11, 0.00713),
-        qk_instruction_properties_new(3.0577 - 11, 0.00713),
-        qk_instruction_properties_new(4.6222 - 11, 0.00929),
-        qk_instruction_properties_new(4.9777 - 11, 0.00929),
-        qk_instruction_properties_new(2.2755 - 11, 0.00659),
-        qk_instruction_properties_new(2.6311 - 11, 0.00659),
-        qk_instruction_properties_new(5.1911 - 11, 0.01201),
-        qk_instruction_properties_new(5.1911 - 11, 0.01201),
+    double props[8][2] = {
+        {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
+        {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
     };
     for (int i = 0; i < 8; i++) {
-        qk_property_map_add(cx_property_map, qarg_samples[i], 2, props[i]);
+        qk_property_map_add(cx_property_map, qarg_samples[i], 2, props[i][0], props[i][1]);
     }
     qk_target_add_instruction(target, QkGate_CX, NULL, cx_property_map);
 
     // Add global Y Gate
-    qk_target_add_instruction(target, QkGate_Y, NULL, qk_property_map_new());
+    qk_target_add_instruction(target, QkGate_Y, NULL, NULL);
 
     // Test all single qubit instructions
     QkGate names[4] = {QkGate_I, QkGate_X, QkGate_RZ, QkGate_SX};
@@ -727,10 +656,6 @@ cleanup:
     qk_property_map_free(x_property_map);
     qk_property_map_free(rz_property_map);
     qk_property_map_free(cx_property_map);
-
-    for (int i = 0; i < 8; i++) {
-        qk_instruction_properties_free(props[i]);
-    }
     return result;
 }
 
@@ -744,8 +669,7 @@ int test_target_qargs(void) {
     QkPropsMap *i_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *i_props = qk_instruction_properties_new(35.5e-9, 0.);
-        qk_property_map_add(i_property_map, qargs, 1, i_props);
+        qk_property_map_add(i_property_map, qargs, 1, 35.5e-9, 0.);
     }
     qk_target_add_instruction(target, QkGate_I, NULL, i_property_map);
 
@@ -753,24 +677,21 @@ int test_target_qargs(void) {
     double rz_params[1] = {3.14};
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *rz_props = qk_instruction_properties_new(0., 0.);
-        qk_property_map_add(rz_property_map, qargs, 1, rz_props);
+        qk_property_map_add(rz_property_map, qargs, 1, 0., 0.);
     }
     qk_target_add_instruction(target, QkGate_RZ, rz_params, i_property_map);
 
     QkPropsMap *sx_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *sx_props = qk_instruction_properties_new(35.5e-9, 0.);
-        qk_property_map_add(sx_property_map, qargs, 1, sx_props);
+        qk_property_map_add(sx_property_map, qargs, 1, 35.5e-9, 0.);
     }
     qk_target_add_instruction(target, QkGate_SX, NULL, sx_property_map);
 
     QkPropsMap *x_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
-        QkInstructionProps *x_props = qk_instruction_properties_new(35.5e-9, 0.0005);
-        qk_property_map_add(x_property_map, qargs, 1, x_props);
+        qk_property_map_add(x_property_map, qargs, 1, 35.5e-9, 0.0005);
     }
     qk_target_add_instruction(target, QkGate_X, NULL, x_property_map);
 
@@ -778,23 +699,17 @@ int test_target_qargs(void) {
     uint32_t qarg_samples[8][2] = {
         {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
     };
-    QkInstructionProps *props[8] = {
-        qk_instruction_properties_new(2.7022e-11, 0.00713),
-        qk_instruction_properties_new(3.0577 - 11, 0.00713),
-        qk_instruction_properties_new(4.6222 - 11, 0.00929),
-        qk_instruction_properties_new(4.9777 - 11, 0.00929),
-        qk_instruction_properties_new(2.2755 - 11, 0.00659),
-        qk_instruction_properties_new(2.6311 - 11, 0.00659),
-        qk_instruction_properties_new(5.1911 - 11, 0.01201),
-        qk_instruction_properties_new(5.1911 - 11, 0.01201),
+    double props[8][2] = {
+        {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
+        {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
     };
     for (int i = 0; i < 8; i++) {
-        qk_property_map_add(cx_property_map, qarg_samples[i], 2, props[i]);
+        qk_property_map_add(cx_property_map, qarg_samples[i], 2, props[i][0], props[i][1]);
     }
     qk_target_add_instruction(target, QkGate_CX, NULL, cx_property_map);
 
     // Add global Y Gate
-    qk_target_add_instruction(target, QkGate_Y, NULL, qk_property_map_new());
+    qk_target_add_instruction(target, QkGate_Y, NULL, NULL);
 
     // Check all qargs
     QkTargetQargsList all_qargs = qk_target_qargs(target);
@@ -844,10 +759,6 @@ cleanup:
     qk_property_map_free(x_property_map);
     qk_property_map_free(rz_property_map);
     qk_property_map_free(cx_property_map);
-
-    for (int i = 0; i < 8; i++) {
-        qk_instruction_properties_free(props[i]);
-    }
     return result;
 }
 
@@ -855,12 +766,11 @@ int test_target(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty_target);
     num_failed += RUN_TEST(test_target_construct);
-    num_failed += RUN_TEST(test_instruction_properties_construction);
     num_failed += RUN_TEST(test_property_map_construction);
     num_failed += RUN_TEST(test_target_add_instruction);
     num_failed += RUN_TEST(test_target_update_instruction);
     num_failed += RUN_TEST(test_target_non_global_op_names);
-    num_failed += RUN_TEST(test_target_operation_names_for_qargs);
+    num_failed += RUN_TEST(test_target_operations_for_qargs);
     num_failed += RUN_TEST(test_target_qargs_for_operation_names);
     num_failed += RUN_TEST(test_target_qargs);
 

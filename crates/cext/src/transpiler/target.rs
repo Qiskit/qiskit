@@ -12,6 +12,7 @@
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use core::f64;
 use indexmap::IndexMap;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::PhysicalQubit;
@@ -40,6 +41,13 @@ pub struct QkTargetQargsList {
 pub struct QkTargetQargs {
     args: *mut u32,
     length: usize,
+}
+
+/// Represents the properties of an instruction in the Target
+#[repr(C)]
+pub struct QkInstructionProps {
+    duration: f64,
+    error: f64,
 }
 
 /// @ingroup QkTarget
@@ -370,123 +378,6 @@ pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
     }
 }
 
-/// @ingroup QkInstructionProps
-/// Construct a new InstructionProperties object with the defined properties.
-///
-/// @param duration The duration of the instruction.
-/// @param error The error rate of the instruction.
-///
-/// @return A pointer to the new instance of InstructionProperties.
-///
-/// # Example
-///
-///     QkInstructionProps *inst_props = qk_instruction_properties_new(1.098e-9, 2.000109e-10);
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub extern "C" fn qk_instruction_properties_new(
-    duration: f64,
-    error: f64,
-) -> *mut InstructionProperties {
-    Box::into_raw(Box::new(InstructionProperties::new(
-        Some(duration),
-        Some(error),
-    )))
-}
-
-/// @ingroup QkInstructionProps
-/// Gets the duration of the instruction.
-///
-/// @param instruction_properties The pointer to the instruction property.
-///
-/// @return The duration of the instruction.
-///
-/// # Example
-///
-///     QkInstructionProps *inst_props = qk_instruction_properties_new(1.098e-9, 2.000109e-10);
-///     double duration = qk_instruction_properties_get_duration(inst_props);
-///
-/// # Safety
-///
-/// Behavior is undefined if ``instruction_properties`` is not a valid, non-null pointer to
-/// a ``QkInstructionProps``.
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_instruction_properties_get_duration(
-    instruction_properties: *const InstructionProperties,
-) -> f64 {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let instruction_properties = unsafe { const_ptr_as_ref(instruction_properties) };
-
-    let Some(duration) = instruction_properties.duration else {
-        // TODO: Double check if this is a valid option
-        return 0.0;
-    };
-    duration
-}
-
-/// @ingroup QkInstructionProps
-/// Gets the error rate of the instruction.
-///
-/// @param instruction_properties The pointer to the instruction property.
-///
-/// @return The error rate of the instruction.
-///
-/// # Example
-///
-///     QkInstructionProps *inst_props = qk_instruction_properties_new(1.098e-9, 2.000109e-10);
-///     double error = qk_instruction_properties_get_errorn(inst_props);
-///
-/// # Safety
-///
-/// Behavior is undefined if ``instruction_properties`` is not a valid, non-null pointer to
-/// a ``QkInstructionProps``.
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_instruction_properties_get_error(
-    instruction_properties: *const InstructionProperties,
-) -> f64 {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let instruction_properties = unsafe { const_ptr_as_ref(instruction_properties) };
-
-    let Some(error) = instruction_properties.error else {
-        // TODO: Double check if this is a valid option
-        return 0.0;
-    };
-    error
-}
-
-/// @ingroup QkInstructionProps
-/// Free the InstructionProperties object.
-///
-/// @param target A pointer to the InstructionProperties object to free.
-///
-/// # Example
-///     
-///     QkInstructionProps *inst_props = qk_instruction_properties_new(1.098e-9, 2.000109e-10);
-///     qk_instruction_properties_free(inst_props);
-///
-/// # Safety
-///
-/// Behavior is undefined if ``instruction_properties`` is not a valid, non-null pointer to
-/// a ``QkInstructionProps`` object.
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_instruction_properties_free(
-    instruction_properties: *mut InstructionProperties,
-) {
-    if !instruction_properties.is_null() {
-        if !instruction_properties.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(instruction_properties);
-        }
-    }
-}
-
 /// Represents the mapping between qargs and `InstructionProperties`
 pub struct PropertyMap(IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>);
 
@@ -610,7 +501,7 @@ pub unsafe extern "C" fn qk_property_map_contains_qargs(
 ///
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
-///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
 ///     qk_property_map_contains_qargs(props_map, qargs, 2);
 ///
 /// # Safety
@@ -644,13 +535,15 @@ pub unsafe extern "C" fn qk_property_map_get(
 /// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
 ///     gate on, can be a null pointer to check for global properties.
 /// @param num_qubits The length of the qargs array.
-/// @param instruction_properties The instruction properties to be added.
+/// @param duration The instruction's duration in seconds on the specific set of
+///     qubits.
+/// @param error The instruction's average error rate on the specific set of qubits.
 ///
 /// # Example
 ///
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
-///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
 ///
 /// # Safety
 ///
@@ -662,21 +555,23 @@ pub unsafe extern "C" fn qk_property_map_add(
     property_map: *mut PropertyMap,
     qargs: *mut u32,
     num_qubits: u32,
-    instruction_properties: *const InstructionProperties,
+    duration: f64,
+    error: f64,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let prop_map = unsafe { mut_ptr_as_ref(property_map) };
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qubits: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let instruction_properties = unsafe {
-        if instruction_properties.is_null() {
-            None
-        } else {
-            Some(const_ptr_as_ref(instruction_properties))
-        }
+    let duration = if duration.is_nan() {
+        None
+    } else {
+        Some(duration)
     };
-    prop_map.0.insert(qubits, instruction_properties.cloned());
+    let error = if error.is_nan() { None } else { Some(error) };
+    prop_map
+        .0
+        .insert(qubits, Some(InstructionProperties::new(duration, error)));
 }
 
 /// @ingroup QkTarget
@@ -696,7 +591,7 @@ pub unsafe extern "C" fn qk_property_map_add(
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
-///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
 ///
 /// # Safety
@@ -722,7 +617,13 @@ pub unsafe extern "C" fn qk_target_add_instruction(
     let target = unsafe { mut_ptr_as_ref(target) };
 
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let property_map = unsafe { const_ptr_as_ref(property_map) };
+    let property_map = unsafe {
+        if property_map.is_null() {
+            None
+        } else {
+            Some(const_ptr_as_ref(property_map))
+        }
+    };
     // SAFETY: Per the documentation the params pointers are arrays of num_params() elements.
     let parsed_params: &[Param] = unsafe {
         match instruction.num_params() {
@@ -747,11 +648,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
             _ => unreachable!(),
         }
     };
-    let props_map = if property_map.0.is_empty() {
-        None
-    } else {
-        Some(property_map.0.clone())
-    };
+    let props_map = property_map.map(|props| props.0.clone());
 
     match target.add_instruction(instruction.into(), parsed_params, None, props_map) {
         Ok(_) => ExitCode::Success,
@@ -768,17 +665,19 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// qargs. Can be ``NULL`` if global.
 /// @param num_qubits The number of qubits in the array.
 /// @param instruction_properties The instruction properties objects to replace by.
-///
+/// @param duration The instruction's duration in seconds on the specific set of
+///     qubits.
+/// @param error The instruction's average error rate on the specific set of qubits.
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
-///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
 ///
-///     qk_target_update_instruction_properties(target, QkGate_CRX, qargs, 2, qk_instruction_properties_new(0.0012, 1.1))
+///     qk_target_update_instruction_properties(target, QkGate_CRX, qargs, 2, 0.0012, 1.1)
 ///
 /// # Safety
 ///
@@ -790,9 +689,6 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// outside the bounds of the array. It can be a null pointer if there are no qubits for
 /// a given gate. You can check `qk_gate_num_qubits` to determine how many qubits are required
 /// for a given gate.
-///
-/// Behavior is undefined if ``instruction_properties`` is not a valid, non-null pointer
-/// to a ``QkInstructionProps``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_update_instruction_prop(
@@ -800,17 +696,26 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
     instruction: StandardGate,
     qargs: *mut u32,
     num_qubits: u32,
-    instruction_properties: *const InstructionProperties,
+    duration: f64,
+    error: f64,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let properties = unsafe { const_ptr_as_ref(instruction_properties) };
 
-    match target.update_instruction_properties(instruction.name(), &qargs, Some(properties.clone()))
-    {
+    let duration = if duration.is_nan() {
+        None
+    } else {
+        Some(duration)
+    };
+    let error = if error.is_nan() { None } else { Some(error) };
+
+    match target.update_instruction_properties(
+        instruction.name(),
+        &qargs,
+        Some(InstructionProperties::new(duration, error)),
+    ) {
         Ok(_) => ExitCode::Success,
         Err(e) => target_error_to_error_code(e),
     }
@@ -830,7 +735,7 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
-///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
 ///
 ///     qk_target_get_prop_map(target, QkGate_CRX)
@@ -872,7 +777,7 @@ pub unsafe extern "C" fn qk_target_get_prop_map(
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
-///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
 ///
 ///     qk_target_get_inst_prop(target, QkGate_CRX, qargs, 2)
@@ -894,7 +799,7 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
     instruction: StandardGate,
     qargs: *mut u32,
     num_qubits: u32,
-) -> *mut InstructionProperties {
+) -> QkInstructionProps {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
@@ -902,9 +807,9 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
     let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
 
     if let Some(Some(Some(props))) = target.get(instruction.name()).map(|map| map.get(&qargs)) {
-        Box::into_raw(Box::new(props.clone()))
+        instruction_props_to_qk_inst_props(props)
     } else {
-        null_mut()
+        panic!("The instruction or qargs are not present in this Target")
     }
 }
 
@@ -919,9 +824,9 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
 ///     
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     QkPropsMap *props_map = qk_property_map_new();
-///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
-///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
 ///     qk_target_operations(target)
 ///
@@ -986,9 +891,9 @@ pub unsafe extern "C" fn qk_target_phyisical_qubits(target: *const Target) -> *m
 ///     
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     QkPropsMap *props_map = qk_property_map_new();
-///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
-///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
 ///     qk_target_non_global_operation_names(target, true)
 ///
@@ -1042,9 +947,9 @@ pub unsafe extern "C" fn qk_target_non_global_operations(
 ///
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     QkPropsMap *props_map = qk_property_map_new();
-///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
-///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///     
 ///     uint32_t qargs[2] = { 0, 1 };
 ///     qk_target_operations_for_qargs(target, qargs, 2);
@@ -1101,9 +1006,9 @@ pub unsafe extern "C" fn qk_target_operations_for_qargs(
 ///     
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     QkPropsMap *props_map = qk_property_map_new();
-///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
-///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
 ///     qk_target_qargs_for_operation(target, QkGate_CX)
 ///
@@ -1169,9 +1074,9 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation(
 ///
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     QkPropsMap *props_map = qk_property_map_new();
-///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
-///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
 ///     qk_target_qargs(target)
 ///
@@ -1235,9 +1140,9 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargs
 ///
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     QkPropsMap *props_map = qk_property_map_new();
-///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
-///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
 ///     qk_target_instruction_supported(target, QkGate_CRX, [0, 1], 2)
 ///
@@ -1280,9 +1185,9 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 ///     
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///     QkPropsMap *props_map = qk_property_map_new();
-///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
+///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
-///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
 ///     qk_target_contains_instr(target, "x")
 ///
@@ -1312,7 +1217,7 @@ pub unsafe extern "C" fn qk_target_contains_instr(
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new("New Target", 5);
-///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
 ///     qk_target_length(target, "x")
 ///
@@ -1357,5 +1262,18 @@ fn target_error_to_error_code(e: TargetError) -> ExitCode {
             arguments: _,
         } => ExitCode::TargetInvalidQargsKey,
         TargetError::QargsWithoutInstruction(_) => ExitCode::TargetQargsWithoutInstruction,
+    }
+}
+
+// fn qk_inst_props_to_instruction_props(props: QkInstructionProps) -> InstructionProperties {
+//     let duration = if props.duration.is_nan() {None}  else {Some(props.duration)};
+//     let error = if props.error.is_nan() {None}  else {Some(props.error)};
+//     InstructionProperties { duration, error }
+// }
+
+fn instruction_props_to_qk_inst_props(props: &InstructionProperties) -> QkInstructionProps {
+    QkInstructionProps {
+        duration: props.duration.unwrap_or(f64::NAN),
+        error: props.error.unwrap_or(f64::NAN),
     }
 }
