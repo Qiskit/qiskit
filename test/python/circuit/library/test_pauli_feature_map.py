@@ -324,7 +324,7 @@ class TestPauliFeatureMap(QiskitTestCase):
 
         def zz(circuit, i, j):
             circuit.cx(i, j)
-            circuit.p(2.0 * (params[j] - np.pi) * (params[i] - np.pi), j)
+            circuit.p(2 * (np.pi - params[i]) * (np.pi - params[j]), j)
             circuit.cx(i, j)
 
         ref = QuantumCircuit(3)

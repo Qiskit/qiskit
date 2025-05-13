@@ -22,6 +22,7 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use num_complex::Complex64;
 
+// epsilon for SymbolExpr is hearistically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
 /// node types of expression tree
