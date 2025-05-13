@@ -418,10 +418,8 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                     let qarg_bits = old_qubits.map_indices(qargs).cloned();
                     let mapped_qubits: Vec<Qubit> =
                         new_dag.qubits().map_objects(qarg_bits)?.collect();
-                    let mapped_clbits: Vec<Clbit> = new_dag
-                        .cargs_interner()
-                        .get(node.clbits)
-                        .to_vec();
+                    let mapped_clbits: Vec<Clbit> =
+                        new_dag.cargs_interner().get(node.clbits).to_vec();
                     new_dag.apply_operation_back(
                         node.op.clone(),
                         &mapped_qubits,
