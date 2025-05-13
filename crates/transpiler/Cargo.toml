@@ -14,6 +14,7 @@ workspace = true
 
 [dependencies]
 rayon.workspace = true
+rayon-cond = "0.4.0"
 numpy.workspace = true
 ahash.workspace = true
 itertools.workspace = true
@@ -25,6 +26,7 @@ rustworkx-core.workspace = true
 qiskit-circuit.workspace = true
 qiskit-accelerate.workspace = true
 thiserror.workspace = true
+fixedbitset = "0.5.7"
 
 [dependencies.smallvec]
 workspace = true
