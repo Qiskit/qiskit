@@ -158,9 +158,12 @@ fn _pow(lhs: SymbolExpr, rhs: SymbolExpr) -> SymbolExpr {
 // functions to make new expr for neg
 #[inline(always)]
 fn _neg(expr: SymbolExpr) -> SymbolExpr {
-    SymbolExpr::Unary {
-        op: UnaryOp::Neg,
-        expr: Box::new(expr),
+    match expr.neg_opt() {
+        Some(e) => e,
+        None => SymbolExpr::Unary {
+            op: UnaryOp::Neg,
+            expr: Box::new(expr),
+        },
     }
 }
 
@@ -488,106 +491,100 @@ impl SymbolExpr {
     }
 
     /// calculate derivative of the equantion for a symbol passed by param
-    pub fn derivative(&self, param: &SymbolExpr) -> SymbolExpr {
+    pub fn derivative(&self, param: &SymbolExpr) -> Result<SymbolExpr, String> {
         if self == param {
-            SymbolExpr::Value(Value::Real(1.0))
+            Ok(SymbolExpr::Value(Value::Real(1.0)))
         } else {
             match self {
-                SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => SymbolExpr::Value(Value::Real(0.0)),
+                SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => {
+                    Ok(SymbolExpr::Value(Value::Real(0.0)))
+                }
                 SymbolExpr::Unary { op, expr } => {
-                    let expr_d = expr.derivative(param);
+                    let expr_d = expr.derivative(param)?;
                     match op {
-                        UnaryOp::Abs => {
-                            &(expr.as_ref() * &expr_d)
-                                / &SymbolExpr::Unary {
-                                    op: op.clone(),
-                                    expr: Box::new(expr.as_ref().clone()),
-                                }
-                        }
-                        UnaryOp::Neg => SymbolExpr::Unary {
+                        UnaryOp::Abs => Ok(&(expr.as_ref() * &expr_d)
+                            / &SymbolExpr::Unary {
+                                op: op.clone(),
+                                expr: Box::new(expr.as_ref().clone()),
+                            }),
+                        UnaryOp::Neg => Ok(SymbolExpr::Unary {
                             op: UnaryOp::Neg,
                             expr: Box::new(expr_d),
-                        },
+                        }),
                         UnaryOp::Sin => {
                             let lhs = SymbolExpr::Unary {
                                 op: UnaryOp::Cos,
                                 expr: Box::new(expr.as_ref().clone()),
                             };
-                            lhs * expr_d
+                            Ok(lhs * expr_d)
                         }
                         UnaryOp::Asin => {
                             let d = &SymbolExpr::Value(Value::Real(1.0))
                                 - &(expr.as_ref() * expr.as_ref());
-                            let lhs = match d {
+                            let rhs = match d {
                                 SymbolExpr::Value(v) => SymbolExpr::Value(v.sqrt()),
                                 _ => _pow(d, SymbolExpr::Value(Value::Real(0.5))),
                             };
-                            &lhs * &expr_d
+                            Ok(&expr_d / &rhs)
                         }
                         UnaryOp::Cos => {
                             let lhs = SymbolExpr::Unary {
                                 op: UnaryOp::Sin,
                                 expr: Box::new(expr.as_ref().clone()),
                             };
-                            &-&lhs * &expr_d
+                            Ok(&-&lhs * &expr_d)
                         }
                         UnaryOp::Acos => {
                             let d = &SymbolExpr::Value(Value::Real(1.0))
                                 - &(expr.as_ref() * expr.as_ref());
-                            let lhs = match d {
+                            let rhs = match d {
                                 SymbolExpr::Value(v) => SymbolExpr::Value(v.sqrt()),
                                 _ => _pow(d, SymbolExpr::Value(Value::Real(0.5))),
                             };
-                            &-&lhs * &expr_d
+                            Ok(&-&expr_d / &rhs)
                         }
                         UnaryOp::Tan => {
                             let d = SymbolExpr::Unary {
                                 op: UnaryOp::Cos,
                                 expr: Box::new(expr.as_ref().clone()),
                             };
-                            &(&expr_d / &d) / &d
+                            Ok(&(&expr_d / &d) / &d)
                         }
                         UnaryOp::Atan => {
                             let d = &SymbolExpr::Value(Value::Real(1.0))
                                 + &(expr.as_ref() * expr.as_ref());
-                            &expr_d / &d
+                            Ok(&expr_d / &d)
                         }
-                        UnaryOp::Exp => {
-                            &SymbolExpr::Unary {
-                                op: UnaryOp::Exp,
-                                expr: Box::new(expr.as_ref().clone()),
-                            } * &expr_d
+                        UnaryOp::Exp => Ok(&SymbolExpr::Unary {
+                            op: UnaryOp::Exp,
+                            expr: Box::new(expr.as_ref().clone()),
+                        } * &expr_d),
+                        UnaryOp::Log => Ok(&expr_d / expr.as_ref()),
+                        UnaryOp::Sign => {
+                            Err("SymbolExpr::derivative does not support sign function."
+                                .to_string())
                         }
-                        UnaryOp::Log => &expr_d / expr.as_ref(),
-                        UnaryOp::Sign => SymbolExpr::Unary {
-                            op: UnaryOp::Sign,
-                            expr: Box::new(expr_d),
-                        },
-                        UnaryOp::Conj => SymbolExpr::Unary {
-                            op: UnaryOp::Conj,
-                            expr: Box::new(expr_d),
-                        },
+                        UnaryOp::Conj => {
+                            Err("SymbolExpr::derivative does not support conjugate operator"
+                                .to_string())
+                        }
                     }
                 }
                 SymbolExpr::Binary { op, lhs, rhs } => match op {
-                    BinaryOp::Add => lhs.derivative(param) + rhs.derivative(param),
-                    BinaryOp::Sub => lhs.derivative(param) - rhs.derivative(param),
-                    BinaryOp::Mul => {
-                        &(&lhs.derivative(param) * rhs.as_ref())
-                            + &(lhs.as_ref() * &rhs.derivative(param))
-                    }
-                    BinaryOp::Div => {
-                        &(&(&(&lhs.derivative(param) * rhs.as_ref())
-                            - &(lhs.as_ref() * &rhs.derivative(param)))
-                            / rhs.as_ref())
-                            / rhs.as_ref()
-                    }
+                    BinaryOp::Add => Ok(lhs.derivative(param)? + rhs.derivative(param)?),
+                    BinaryOp::Sub => Ok(lhs.derivative(param)? - rhs.derivative(param)?),
+                    BinaryOp::Mul => Ok(&(&lhs.derivative(param)? * rhs.as_ref())
+                        + &(lhs.as_ref() * &rhs.derivative(param)?)),
+                    BinaryOp::Div => Ok(&(&(&(&lhs.derivative(param)? * rhs.as_ref())
+                        - &(lhs.as_ref() * &rhs.derivative(param)?))
+                        / rhs.as_ref())
+                        / rhs.as_ref()),
                     BinaryOp::Pow => {
                         if !lhs.has_symbol(&param.to_string()) {
                             if !rhs.has_symbol(&param.to_string()) {
-                                SymbolExpr::Value(Value::Real(0.0))
+                                Ok(SymbolExpr::Value(Value::Real(0.0)))
                             } else {
-                                _mul(
+                                Ok(_mul(
                                     SymbolExpr::Binary {
                                         op: BinaryOp::Pow,
                                         lhs: Box::new(lhs.as_ref().clone()),
@@ -597,17 +594,17 @@ impl SymbolExpr {
                                         op: UnaryOp::Log,
                                         expr: Box::new(lhs.as_ref().clone()),
                                     },
-                                )
+                                ))
                             }
                         } else if !rhs.has_symbol(&param.to_string()) {
-                            rhs.as_ref()
+                            Ok(rhs.as_ref()
                                 * &SymbolExpr::Binary {
                                     op: BinaryOp::Pow,
                                     lhs: Box::new(lhs.as_ref().clone()),
                                     rhs: Box::new(
                                         rhs.as_ref() - &SymbolExpr::Value(Value::Real(1.0)),
                                     ),
-                                }
+                                })
                         } else {
                             let new_expr = SymbolExpr::Unary {
                                 op: UnaryOp::Exp,
@@ -2289,6 +2286,23 @@ impl SymbolExpr {
             }
         }
     }
+
+    // convert sympy compatible format
+    pub fn sympify(&self) -> SymbolExpr {
+        match self {
+            SymbolExpr::Symbol(_) => self.clone(),
+            SymbolExpr::Value(e) => e.sympify(),
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
+                op: op.clone(),
+                expr: Box::new(expr.sympify()),
+            },
+            SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
+                op: op.clone(),
+                lhs: Box::new(lhs.sympify()),
+                rhs: Box::new(rhs.sympify()),
+            },
+        }
+    }
 }
 
 impl Add for SymbolExpr {
@@ -2944,6 +2958,21 @@ impl Value {
                 }
             }
             _ => None,
+        }
+    }
+
+    // convert sympy compatible format
+    pub fn sympify(&self) -> SymbolExpr {
+        match self {
+            // imaginary number is comverted to value * symbol 'I'
+            Value::Complex(c) => _add(
+                SymbolExpr::Value(Value::Real(c.re)),
+                _mul(
+                    SymbolExpr::Value(Value::Real(c.im)),
+                    SymbolExpr::Symbol(Box::new("I".to_string())),
+                ),
+            ),
+            _ => SymbolExpr::Value(self.clone()),
         }
     }
 }

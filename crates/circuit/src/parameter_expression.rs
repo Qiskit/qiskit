@@ -111,14 +111,21 @@ impl ParameterExpression {
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
         match parse_expression(&expr) {
-            Ok(expr) => Ok(ParameterExpression { expr }),
+            // substitute 'I' to imaginary number i before returning expression
+            Ok(expr) => Ok(ParameterExpression {
+                expr: expr.bind(&HashMap::from([(
+                    "I".to_string(),
+                    symbol_expr::Value::from(Complex64::i()),
+                )])),
+            }),
             Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
         }
     }
 
     // return string to pass to sympify
     pub fn expr_for_sympy(&self) -> String {
-        let ret = self.expr.optimize().to_string();
+        // using altenate format for sympify
+        let ret = self.expr.optimize().sympify().to_string();
         ret.replace("$\\", "__begin_sympy_replace__")
             .replace('$', "__end_sympy_replace__")
     }
@@ -209,9 +216,10 @@ impl ParameterExpression {
         }
     }
     /// return derivative of this expression for param
-    pub fn derivative(&self, param: &Self) -> Self {
-        Self {
-            expr: self.expr.derivative(&param.expr),
+    pub fn derivative(&self, param: &Self) -> PyResult<Self> {
+        match self.expr.derivative(&param.expr) {
+            Ok(expr) => Ok(Self { expr }),
+            Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
         }
     }
 
