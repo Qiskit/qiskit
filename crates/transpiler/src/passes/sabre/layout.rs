@@ -107,13 +107,16 @@ pub fn sabre_layout_and_routing(
         mut qubit_fn: impl FnMut(PhysicalQubit) -> PhysicalQubit,
     ) -> NLayout {
         assert!(layout.num_qubits() <= num_qubits as usize);
-        let mut out = NLayout::generate_trivial_layout(num_qubits);
+        let max = VirtualQubit(u32::MAX);
+        let mut virtuals = vec![max; num_qubits as usize];
         for (virt, phys) in layout.iter_virtual() {
-            let new_phys = qubit_fn(phys);
-            let orig_phys = virt.to_phys(&out);
-            out.swap_physical(orig_phys, new_phys);
+            virtuals[qubit_fn(phys).index()] = virt;
         }
-        out
+        let first_ancilla = layout.num_qubits() as u32;
+        for (offset, virt) in virtuals.iter_mut().filter(|virt| **virt == max).enumerate() {
+            *virt = VirtualQubit(first_ancilla + offset as u32);
+        }
+        NLayout::from_physical_to_virtual(virtuals).expect("all indices are valid")
     }
     match distribute_components(dag, target).as_slice() {
         [] => {
@@ -220,6 +223,18 @@ fn layout_trial<'a>(
         .fold(initial_layout, |initial, sabre| {
             swap_map_trial(target, sabre, dag, heuristic, &initial, routing_seed).final_layout
         });
+    // Remap implicit ancillas to be assigned in numerical order.  This is pretty meaningless, but
+    // ensures we have exact RNG compatibility with previous versions of Sabre.
+    let initial_layout = {
+        let first_ancilla = dag.num_qubits();
+        let (mut virt_to_phys, mut phys_to_virt) = initial_layout.take();
+        let ancillas = &mut virt_to_phys[first_ancilla..];
+        ancillas.sort_unstable_by_key(|q| q.index());
+        for (offset, phys) in ancillas.iter().enumerate() {
+            phys_to_virt[phys.index()] = VirtualQubit((first_ancilla + offset) as u32);
+        }
+        NLayout::from_vecs_unchecked(virt_to_phys, phys_to_virt)
+    };
     swap_map(
         target,
         sabre,

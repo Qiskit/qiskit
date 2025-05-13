@@ -211,6 +211,18 @@ impl NLayout {
             phys_to_virt,
         })
     }
+
+    #[staticmethod]
+    pub fn from_physical_to_virtual(phys_to_virt: Vec<VirtualQubit>) -> PyResult<Self> {
+        let mut virt_to_phys = vec![PhysicalQubit(u32::MAX); phys_to_virt.len()];
+        for (phys, virt) in phys_to_virt.iter().enumerate() {
+            virt_to_phys[virt.index()] = PhysicalQubit(phys.try_into()?);
+        }
+        Ok(NLayout {
+            virt_to_phys,
+            phys_to_virt,
+        })
+    }
 }
 
 impl NLayout {
@@ -235,6 +247,24 @@ impl NLayout {
 
     pub fn num_qubits(&self) -> usize {
         self.virt_to_phys.len()
+    }
+
+    /// Destructure `self` into the two backing arrays.
+    pub fn take(self) -> (Vec<PhysicalQubit>, Vec<VirtualQubit>) {
+        (self.virt_to_phys, self.phys_to_virt)
+    }
+
+    /// Directly create a new layout without sanity checking the coherence of the inputs.
+    ///
+    /// This is the opposite of [take].
+    pub fn from_vecs_unchecked(
+        virt_to_phys: Vec<PhysicalQubit>,
+        phys_to_virt: Vec<VirtualQubit>,
+    ) -> Self {
+        Self {
+            virt_to_phys,
+            phys_to_virt,
+        }
     }
 }
 
