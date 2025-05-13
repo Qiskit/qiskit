@@ -295,24 +295,6 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
     def run(self, unitary, **options):
         """Run the SolovayKitaevSynthesis synthesis plugin on the given unitary."""
 
-        # We first check if the unitary matrix happens to be Clifford, in which case we
-        # first compute the decomposition in terms of Clifford gates only and then
-        # translate this decomposition into the required basis gates.
-        try:
-            cliff = Clifford.from_matrix(unitary)
-            clifford_circuit = synth_clifford_bm(cliff)
-
-            # pylint: disable=cyclic-import
-            from qiskit.transpiler.passes import BasisTranslator
-            from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-
-            clifford_dag = circuit_to_dag(clifford_circuit)
-            clifford_dag = BasisTranslator(sel, self._basis_gates, None).run(clifford_dag)
-            return clifford_dag
-        except QiskitError:
-            pass
-
-        # If the matrix is not Clifford, we run the Solovay-Kitaev decomposition.
         config = options.get("config") or {}
         basis_gates = options.get("basis_gates", ["h", "t", "tdg"])
         depth = config.get("depth", 10)
