@@ -44,7 +44,6 @@ jobs:
   main-tests-ubuntu-3-9-arm:
     if: github.repository_owner == 'Qiskit'
     name: Main Tests (ubuntu)
-    needs: [lint-docs, preliminary-tests]
     uses: ./.github/workflows/test-linux.yml
     with:
       python-version: "3.9"
@@ -56,7 +55,6 @@ jobs:
   main-tests-ubuntu:
     if: github.repository_owner == 'Qiskit'
     name: Main Tests (ubuntu)
-    needs: [lint-docs, preliminary-tests]
     strategy:
       matrix:
         python_version: ["3.13"]
@@ -73,7 +71,6 @@ jobs:
   main-tests-mac:
     if: github.repository_owner == 'Qiskit'
     name: Main Tests (macos)
-    needs: [lint-docs, preliminary-tests]
     strategy:
       matrix:
         python_version: ["3.9", "3.13"]
@@ -87,7 +84,6 @@ jobs:
   main-tests-windows:
     if: github.repository_owner == 'Qiskit'
     name: Main Tests (windows-latest)
-    needs: [lint-docs, preliminary-tests]
     strategy:
       matrix:
         python_version: ["3.9", "3.13"]
