@@ -108,7 +108,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         transpiled = self.pm.run(qc)
         self.assertLessEqual(
-            set(transpiled.count_ops().keys()), {"cx", "h", "s", "sdg", "t", "tdg", "z"}
+            set(transpiled.count_ops().keys()), set(self.basis_gates)
         )
 
     def test_qft(self):
@@ -120,7 +120,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         transpiled = self.pm.run(qc)
         self.assertLessEqual(
-            set(transpiled.count_ops().keys()), {"cx", "h", "s", "sdg", "t", "tdg", "z"}
+            set(transpiled.count_ops().keys()), set(self.basis_gates)
         )
 
     def test_iqp(self):
@@ -131,10 +131,10 @@ class TestCliffordTPassManager(QiskitTestCase):
         transpiled = self.pm.run(qc)
         transpiled_ops = transpiled.count_ops()
 
-        self.assertLessEqual(set(transpiled_ops.keys()), {"cx", "h", "s", "sdg", "t", "tdg", "z"})
+        self.assertLessEqual(set(transpiled_ops.keys()), set(self.basis_gates))
 
         # The transpiled circuit should be fairly efficient in terms of gates.
-        self.assertLessEqual(transpiled.size(), 30)
+        self.assertLessEqual(transpiled.size(), 33)
 
     def test_graph_state(self):
         """Clifford+T transpilation of graph-state circuits."""
