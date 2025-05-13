@@ -40,15 +40,29 @@ create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 static COUPLING_MAP: ImportOnceCell =
     ImportOnceCell::new("qiskit.transpiler.coupling", "CouplingMap");
 
+/// An individual disjoint component that provides the mapping of virtual qubits in the
+/// original dag to the physical qubits components to run an isolated layout on.
+/// The sub dag contains a filtered dag that removes the qubits outside of virtual qubits
+/// You will need to map the `ShareableQubits` in `sub_dag` to the original dag's to figure out the
+/// final mapping of `VirtualQubit` -> `PhysicalQubit`.
 pub struct DisjointComponent {
     pub physical_qubits: Vec<PhysicalQubit>,
     pub sub_dag: DAGCircuit,
     pub virtual_qubits: Vec<VirtualQubit>,
 }
 
+/// The possible outcomes when trying to
 pub enum DisjointSplit {
+    /// There is no disjoint component in the connectivity graph so you don't need to do any
+    /// special handling of disjoint components
     NoneNeeded,
+    /// The are disjoint components but the entire DAG can fit in a single target component. This
+    /// contains a list of the physical qubits that make up that single component to filter the
+    /// layout problem to.
     TargetSubset(Vec<PhysicalQubit>),
+    /// There are multiple disjoint components in the DAG and the connectivity graph that need to
+    /// be mapped and the combined to form a complete initial layout. This contains a list of
+    /// [DisjointComponent] objects which outline the isolated layout problems to solve.
     Arbitrary(Vec<DisjointComponent>),
 }
 
