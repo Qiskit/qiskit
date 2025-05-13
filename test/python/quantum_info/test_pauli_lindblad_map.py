@@ -1044,6 +1044,42 @@ class TestPauliLindbladMap(QiskitTestCase):
             [(labels, indices, 1)], pauli_lindblad_map.num_qubits
         )
         self.assertEqual(pauli_lindblad_map, reconstructed)
+    
+    def test_derived_properties(self):
+        """Test whether gamma, probabilities, and negative_rates are correctly calculated."""
+
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
+        w = 0.5 * (1 + np.exp(-2 * 1.))
+        self.assertEqual(w, pauli_lindblad_map.probabilities[0])
+        self.assertEqual(1., pauli_lindblad_map.gamma)
+        self.assertEqual(False, pauli_lindblad_map.negative_rates[0])
+
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -1.0)])
+        w = 0.5 * (1 + np.exp(-2 * -1.))
+        gamma = w + np.abs(1 - w)
+        prob = w / gamma
+        self.assertEqual(prob, pauli_lindblad_map.probabilities[0])
+        self.assertEqual(gamma, pauli_lindblad_map.gamma)
+        self.assertEqual(True, pauli_lindblad_map.negative_rates[0])
+
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
+        w = 0.5 * (1 + np.exp(-2 * -0.5))
+        gamma = w + np.abs(1 - w)
+        prob = w / gamma
+        self.assertEqual(prob, pauli_lindblad_map.probabilities[0])
+        self.assertEqual(gamma, pauli_lindblad_map.gamma)
+        self.assertEqual(True, pauli_lindblad_map.negative_rates[0])
+
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)])
+        rates = np.array([-1., 1., -0.5])
+        w = 0.5 * (1 + np.exp(-2 * rates))
+        gammas = w + np.abs(1 - w)
+        probs = w / gammas
+        gamma = np.prod(gammas)
+        self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
+        self.assertEqual(gamma, pauli_lindblad_map.gamma)
+        self.assertTrue(all((rates < 0.) == pauli_lindblad_map.negative_rates))
+
 
 
 def canonicalize_term(pauli, indices, rate):
