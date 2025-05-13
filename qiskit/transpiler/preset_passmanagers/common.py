@@ -738,13 +738,25 @@ _CLIFFORD_T_BASIS = _CLIFFORD_GATE_NAMES.union(
 
 
 def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
-    """Checks whether all of the supported operations are Clifford+T."""
+    """
+    Checks whether the given basis set can be considered as Clifford+T.
+
+    For this we require that:
+    1. The set only contains Clifford+T gates
+    2. The set contains either T or Tdg
+
+    The second condition guarantees that the empty basis set is not
+    considered as Clifford+T.
+    """
+
     if target is not None:
         basis = set(target.operation_names)
     elif basis_gates is not None:
         basis = set(basis_gates)
     else:
         basis = set()
-    if (basis_gates is None) or ("t" not in basis_gates) or ("h" not in basis_gates):
+
+    if (basis_gates is None) or (("t" not in basis_gates) and ("tdg" not in basis_gates)):
         return False
+
     return basis.issubset(_CLIFFORD_T_BASIS)
