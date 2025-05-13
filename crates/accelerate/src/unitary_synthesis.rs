@@ -237,13 +237,8 @@ fn apply_synth_sequence(
 /// This function is currently used in the Python `UnitarySynthesis`` transpiler pass as a replacement for the `_run_main_loop` method.
 /// It returns a new `DAGCircuit` with the different synthesized gates.
 #[pyfunction]
-<<<<<<< HEAD:crates/accelerate/src/unitary_synthesis.rs
-#[pyo3(name = "run_main_loop", signature=(dag, qubit_indices, min_qubits, target, basis_gates, coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
-fn py_run_main_loop(
-=======
 #[pyo3(name = "run_main_loop", signature=(dag, qubit_indices, min_qubits, target, basis_gates, synth_gates, coupling_edges, approximation_degree=None, natural_direction=None, pulse_optimize=None))]
-pub fn run_unitary_synthesis(
->>>>>>> 0c2ce6488 (Fix UnitarySynthesis to respect synth_gates (#14345)):crates/transpiler/src/passes/unitary_synthesis.rs
+fn py_run_main_loop(
     py: Python,
     dag: &mut DAGCircuit,
     qubit_indices: Vec<usize>,
