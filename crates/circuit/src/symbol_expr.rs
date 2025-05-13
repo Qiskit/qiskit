@@ -356,7 +356,7 @@ impl SymbolExpr {
                 Some(v) => SymbolExpr::Value(*v),
                 None => self.clone(),
             },
-            SymbolExpr::Value(e) => SymbolExpr::Value(e.clone()),
+            SymbolExpr::Value(e) => SymbolExpr::Value(*e),
             SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
                 op: op.clone(),
                 expr: Box::new(expr.bind(maps)),
@@ -2973,7 +2973,7 @@ impl Value {
                     SymbolExpr::Symbol(Box::new("I".to_string())),
                 ),
             ),
-            _ => SymbolExpr::Value(self.clone()),
+            _ => SymbolExpr::Value(*self),
         }
     }
 }
