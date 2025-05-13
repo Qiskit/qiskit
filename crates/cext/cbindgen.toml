@@ -33,6 +33,9 @@ typedef double complex QkComplex64;
 // Always expose [cfg(feature = "cbinding")] -- workaround for
 // https://github.com/mozilla/cbindgen/issues/995
 #define QISKIT_WITH_CBINDINGS
+
+typedef struct QkQuantumRegister QkQuantumRegister;
+typedef struct QkClassicalRegister QkClassicalRegister;
 """
 
 [defines]
