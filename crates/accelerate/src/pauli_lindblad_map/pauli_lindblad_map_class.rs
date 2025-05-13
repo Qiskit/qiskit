@@ -12,7 +12,7 @@
 
 use numpy::{PyArray1, PyArrayLike1, PyArrayMethods};
 use pyo3::{
-    exceptions::{PyTypeError, PyValueError},
+    exceptions::{PyTypeError, PyValueError, PyAttributeError},
     intern,
     prelude::*,
     sync::GILOnceCell,
@@ -20,6 +20,7 @@ use pyo3::{
     IntoPyObjectExt, PyErr,
 };
 use std::sync::{Arc, RwLock};
+use thiserror::Error;
 
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
@@ -1597,6 +1598,20 @@ enum ArraySlot {
     Boundaries,
 }
 
+#[derive(Error, Debug)]
+pub enum DerivedPropertyError {
+    #[error("attribute 'probabilities' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable")]
+    ProbabilitiesIsDerived,
+    #[error("attribute 'negative_rates' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable")]
+    NegativeRatesIsDerived,
+}
+
+impl From<DerivedPropertyError> for PyErr {
+    fn from(value: DerivedPropertyError) -> PyErr {
+        PyAttributeError::new_err(value.to_string())
+    }
+}
+
 /// Custom wrapper sequence class to get safe views onto the Rust-space data.  We can't directly
 /// expose Python-managed wrapped pointers without introducing some form of runtime exclusion on the
 /// ability of `PauliLindbladMap` to re-allocate in place; we can't leave dangling pointers for
@@ -1745,10 +1760,10 @@ impl ArrayView {
                 set_in_slice::<_, f64>(pauli_lindblad_map.rates_mut(), index, values)
             }
             ArraySlot::Probabilities => {
-                set_in_slice::<_, f64>(pauli_lindblad_map.probabilities_mut(), index, values)
+                return Err(DerivedPropertyError::ProbabilitiesIsDerived.into());
             }
             ArraySlot::NegativeRates => {
-                set_in_slice::<_, bool>(pauli_lindblad_map.negative_rates_mut(), index, values)
+                return Err(DerivedPropertyError::NegativeRatesIsDerived.into());
             }
             ArraySlot::Paulis => {
                 set_in_slice::<Pauli, u8>(pauli_lindblad_map.paulis_mut(), index, values)

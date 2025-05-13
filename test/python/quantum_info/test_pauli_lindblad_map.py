@@ -1079,6 +1079,21 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
         self.assertTrue(all((rates < 0.) == pauli_lindblad_map.negative_rates))
+    
+    def test_set_derived_properties_errors(self):
+        """Test that setting derived properties raises an error."""
+
+        with self.assertRaisesRegex(AttributeError, r"attribute 'gamma' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable"):
+            pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
+            pauli_lindblad_map.gamma = 3.
+        
+        with self.assertRaisesRegex(AttributeError, r"attribute 'probabilities' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable"):
+            pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
+            pauli_lindblad_map.probabilities[0] = 3.
+        
+        with self.assertRaisesRegex(AttributeError, r"attribute 'negative_rates' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable"):
+            pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
+            pauli_lindblad_map.negative_rates[0] = True
 
 
 
