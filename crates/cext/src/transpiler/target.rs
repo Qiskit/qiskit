@@ -15,7 +15,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::PhysicalQubit;
-use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
+use qiskit_transpiler::target::{InstructionProperties, Qargs, Target, TargetError};
 use std::ffi::{c_char, CStr, CString};
 use std::mem::forget;
 use std::ptr::null_mut;
@@ -24,8 +24,8 @@ use std::ptr::null_mut;
 
 /// Represent a list of instruction names coming from the target.
 #[repr(C)]
-pub struct QkTargetNameList {
-    list: *mut *mut c_char,
+pub struct QkTargetOpsList {
+    list: *mut StandardGate,
     length: usize,
 }
 
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn qk_target_new(description: *mut c_char, num_qubits: usi
         if description.is_null() {
             None
         } else {
-            // SAFETY: Per documentation, name points to a null-terminated string of characters.
+            // SAFETY: Per documentation, description points to a null-terminated string of characters.
             let description: &CStr = CStr::from_ptr(description);
             Some(description.to_str().unwrap())
         }
@@ -280,7 +280,7 @@ pub unsafe extern "C" fn qk_target_set_description(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
-    // SAFETY: Per documentation, name points to a null-terminated string of characters.
+    // SAFETY: Per documentation, description points to a null-terminated string of characters.
     let description: &CStr = unsafe { CStr::from_ptr(description) };
     target.description = Some(description.to_str().unwrap().to_string());
     ExitCode::Success
@@ -756,7 +756,7 @@ pub unsafe extern "C" fn qk_property_map_add(
 /// Adds a StandardGate to the ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param operation The StandardGate to be added to the ``Target``.
+/// @param instruction The StandardGate to be added to the ``Target``.
 /// @param params The pointer to the array of ``double`` values to use as
 /// parameters to the StandardGate. This can be a null pointer if there
 /// are no parameters to be added.
@@ -787,7 +787,7 @@ pub unsafe extern "C" fn qk_property_map_add(
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_add_instruction(
     target: *mut Target,
-    operation: StandardGate,
+    instruction: StandardGate,
     params: *mut f64,
     property_map: *const PropertyMap,
 ) -> ExitCode {
@@ -798,7 +798,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
     let property_map = unsafe { const_ptr_as_ref(property_map) };
     // SAFETY: Per the documentation the params pointers are arrays of num_params() elements.
     let parsed_params: &[Param] = unsafe {
-        match operation.num_params() {
+        match instruction.num_params() {
             0 => &[],
             1 => &[(*params.wrapping_add(0)).into()],
             2 => &[
@@ -826,13 +826,9 @@ pub unsafe extern "C" fn qk_target_add_instruction(
         Some(property_map.0.clone())
     };
 
-    if target
-        .add_instruction(operation.into(), parsed_params, None, props_map)
-        .is_ok()
-    {
-        ExitCode::Success
-    } else {
-        ExitCode::CInputError
+    match target.add_instruction(instruction.into(), parsed_params, None, props_map) {
+        Ok(_) => ExitCode::Success,
+        Err(e) => target_error_to_error_code(e),
     }
 }
 
@@ -840,7 +836,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// Modifies the properties of a gate in the ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param name The name of the gate to modify.
+/// @param instruction The instruction to modify.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
 /// @param num_qubits The number of qubits in the array.
@@ -855,14 +851,11 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 ///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
 ///
-///     qk_target_update_instruction_properties(target, "cx", qargs, 2, qk_instruction_properties_new(0.0012, 1.1))
+///     qk_target_update_instruction_properties(target, QkGate_CRX, qargs, 2, qk_instruction_properties_new(0.0012, 1.1))
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-///
-/// The ``name`` type is expected to be a pointer to a null-terminated valid string. If the
-/// pointer is not valid or not null ending, the behavior will be undefined.
 ///
 /// The ``qargs` type is expected to be a pointer to an array of ``u32int_t`` where the length
 /// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
@@ -877,14 +870,11 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_update_instruction_prop(
     target: *mut Target,
-    name: *mut c_char,
+    instruction: StandardGate,
     qargs: *mut u32,
     num_qubits: u32,
     instruction_properties: *const InstructionProperties,
 ) -> ExitCode {
-    // SAFETY: Per documentation, name points to a null-terminated string of characters.
-    let name: &CStr = unsafe { CStr::from_ptr(name) };
-
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
@@ -892,17 +882,10 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let properties = unsafe { const_ptr_as_ref(instruction_properties) };
 
-    if target
-        .update_instruction_properties(
-            name.to_str().expect("Error while extracting string"),
-            &qargs,
-            Some(properties.clone()),
-        )
-        .is_ok()
+    match target.update_instruction_properties(instruction.name(), &qargs, Some(properties.clone()))
     {
-        ExitCode::Success
-    } else {
-        ExitCode::CInputError
+        Ok(_) => ExitCode::Success,
+        Err(e) => target_error_to_error_code(e),
     }
 }
 
@@ -910,9 +893,9 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 /// Retrieves the mapping of qargs and properties from the ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param name The name of the gate to modify.
+/// @param instruction The instruction to query.
 ///
-/// @return The property map associated with the gate name.
+/// @return The property map associated with the instruction.
 ///
 /// # Example
 ///     
@@ -923,27 +906,21 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 ///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
 ///
-///     qk_target_get_prop_map(target, "cx")
+///     qk_target_get_prop_map(target, QkGate_CRX)
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-///
-/// The ``name`` type expected to be a pointer to a null-terminated valid string. If the
-/// pointer is not valid or not null ending, the behavior will be undefined.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_get_prop_map(
     target: *const Target,
-    name: *mut c_char,
+    instruction: StandardGate,
 ) -> *const PropertyMap {
-    // SAFETY: Per documentation, name points to a null-terminated string of characters.
-    let name: Box<CStr> = unsafe { Box::from(CStr::from_ptr(name)) };
-
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
-    if let Some(props) = target.get(name.to_str().expect("Error extracting str")) {
+    if let Some(props) = target.get(instruction.name()) {
         Box::into_raw(Box::new(PropertyMap(props.clone())))
     } else {
         null_mut()
@@ -955,12 +932,12 @@ pub unsafe extern "C" fn qk_target_get_prop_map(
 /// instruction in the ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param name The name of the gate to modify.
+/// @param instruction The instruction to query.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
 /// @param num_qubits The number of qubits in the array.
 ///
-/// @return The InstructionProperties instance associated with the name and qargs.
+/// @return The InstructionProperties instance associated with the instruction and qargs.
 ///
 /// # Example
 ///     
@@ -971,14 +948,11 @@ pub unsafe extern "C" fn qk_target_get_prop_map(
 ///     qk_property_map_add(props_map, qargs, 2, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
 ///
-///     qk_target_get_inst_prop(target, "cx", qargs, 2)
+///     qk_target_get_inst_prop(target, QkGate_CRX, qargs, 2)
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-///
-/// The ``name`` type expected to be a pointer to a null-terminated valid string. If the
-/// pointer is not valid or not null ending, the behavior will be undefined.
 ///
 /// The ``qargs` type is expected to be a pointer to an array of ``u32int_t`` where the length
 /// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
@@ -990,23 +964,17 @@ pub unsafe extern "C" fn qk_target_get_prop_map(
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_get_inst_prop(
     target: *const Target,
-    name: *mut c_char,
+    instruction: StandardGate,
     qargs: *mut u32,
     num_qubits: u32,
 ) -> *mut InstructionProperties {
-    // SAFETY: Per documentation, name points to a null-terminated string of characters.
-    let name: Box<CStr> = unsafe { Box::from(CStr::from_ptr(name)) };
-
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
 
-    if let Some(Some(Some(props))) = target
-        .get(name.to_str().expect("Error extracting str"))
-        .map(|map| map.get(&qargs))
-    {
+    if let Some(Some(Some(props))) = target.get(instruction.name()).map(|map| map.get(&qargs)) {
         Box::into_raw(Box::new(props.clone()))
     } else {
         null_mut()
@@ -1014,11 +982,11 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
 }
 
 /// @ingroup QkTarget
-/// Retrieves the names of all the operations in this ``Target``.
+/// Retrieves the list of all the operations in this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
 ///
-/// @return A list of the operation names.
+/// @return A list of the operations.
 ///
 /// # Example
 ///     
@@ -1028,26 +996,26 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
 ///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
 ///
-///     qk_target_operation_names(target)
+///     qk_target_operations(target)
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_operation_names(target: *const Target) -> QkTargetNameList {
+pub unsafe extern "C" fn qk_target_operations(target: *const Target) -> QkTargetOpsList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
-    let mut names: Vec<*mut c_char> = target
-        .operation_names()
-        .map(|name| CString::new(name).unwrap().into_raw())
+    let mut operations: Vec<StandardGate> = target
+        .operations()
+        .map(|instruction| instruction.operation.standard_gate())
         .collect();
-    let pointer = names.as_mut_ptr();
-    let length = names.len();
+    let pointer = operations.as_mut_ptr();
+    let length = operations.len();
 
     // Prevent vec from being destroyed
-    forget(names);
-    QkTargetNameList {
+    forget(operations);
+    QkTargetOpsList {
         list: pointer,
         length,
     }
@@ -1102,24 +1070,31 @@ pub unsafe extern "C" fn qk_target_phyisical_qubits(target: *const Target) -> *m
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_non_global_operation_names(
+pub unsafe extern "C" fn qk_target_non_global_operations(
     target: *mut Target,
     strict_direction: bool,
-) -> QkTargetNameList {
+) -> QkTargetOpsList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
+
+    use qiskit_transpiler::target::TargetOperation;
     let target = unsafe { mut_ptr_as_ref(target) };
 
-    let mut operation_names: Vec<*mut c_char> = target
+    let operation_names = target
         .get_non_global_operation_names(strict_direction)
         .unwrap()
-        .iter()
-        .map(|items| CString::new(items.as_str()).unwrap().into_raw())
+        .to_owned();
+    let mut operations: Vec<StandardGate> = operation_names
+        .into_iter()
+        .filter_map(|op_name| match target.operation_from_name(&op_name) {
+            Some(TargetOperation::Normal(normal)) => Some(normal.operation.standard_gate()),
+            _ => None,
+        })
         .collect();
-    let length = operation_names.len();
-    let ptr = operation_names.as_mut_ptr();
+    let length = operations.len();
+    let ptr = operations.as_mut_ptr();
     // Prevent original vec from being forgotten
-    forget(operation_names);
-    QkTargetNameList { list: ptr, length }
+    forget(operations);
+    QkTargetOpsList { list: ptr, length }
 }
 
 /// @ingroup QkTarget
@@ -1134,7 +1109,7 @@ pub unsafe extern "C" fn qk_target_non_global_operation_names(
 /// qargs. Can be ``NULL`` if global.
 /// @param num_qubits The number of qubits in the array.
 ///
-/// @return The list of all the operation names with those qargs associated.
+/// @return The list of all the instruction names with those qargs associated.
 ///
 /// # Example
 ///
@@ -1143,8 +1118,9 @@ pub unsafe extern "C" fn qk_target_non_global_operation_names(
 ///     qk_property_map_add(props_map, NULL, 0, qk_instruction_properties_new(0.0, 0.1));
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
 ///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
-///
-///     qk_target_operation_names_for_qargs(target, *[0, 1], 2)
+///     
+///     uint32_t qargs[2] = { 0, 1 };
+///     qk_target_operations_for_qargs(target, qargs, 2);
 ///
 /// # Safety
 ///
@@ -1158,22 +1134,22 @@ pub unsafe extern "C" fn qk_target_non_global_operation_names(
 /// for a given gate.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
+pub unsafe extern "C" fn qk_target_operations_for_qargs(
     target: *const Target,
     qargs: *mut u32,
     num_qubits: u32,
-) -> QkTargetNameList {
+) -> QkTargetOpsList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
 
-    let mut result: Vec<*mut c_char> = if let Ok(names) = target.operation_names_for_qargs(&qargs) {
+    let mut result: Vec<StandardGate> = if let Ok(names) = target.operations_for_qargs(&qargs) {
         // Temporary measure to ensure consistent results for the instruction names
         names
             .into_iter()
-            .map(|name| CString::new(name).unwrap().into_raw())
+            .map(|operation| operation.operation.standard_gate())
             .collect()
     } else {
         vec![]
@@ -1183,16 +1159,16 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
 
     // Prevent origin from being destroyed
     forget(result);
-    QkTargetNameList { list: ptr, length }
+    QkTargetOpsList { list: ptr, length }
 }
 
 /// @ingroup QkTarget
-/// Retrieves the specified qargs for the provided operation name.
+/// Retrieves the specified qargs for the provided operatioh.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param name The name of the gate to modify.
+/// @param instruction The instruction whose properties we want to modify.
 ///
-/// @return A list of the qargs associated with this operation.
+/// @return A list of the qargs associated with this instruction.
 ///
 /// # Example
 ///     
@@ -1202,28 +1178,23 @@ pub unsafe extern "C" fn qk_target_operation_names_for_qargs(
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
 ///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
 ///
-///     qk_target_qargs_for_operation_names(target, "x")
+///     qk_target_qargs_for_operation(target, QkGate_CX)
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-///
-/// The ``name`` type expected to be a pointer to a null-terminated valid string. If the
-/// pointer is not valid or not null ending, the behavior will be undefined.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_qargs_for_operation_names(
+pub unsafe extern "C" fn qk_target_qargs_for_operation(
     target: *const Target,
-    name: *mut c_char,
+    operation: StandardGate,
 ) -> QkTargetQargsList {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
 
     let target = unsafe { const_ptr_as_ref(target) };
-    // SAFETY: Per documentation, name points to a null-terminated string of characters.
-    let name = unsafe { CStr::from_ptr(name) };
 
     let mut result: Vec<QkTargetQargs> =
-        if let Ok(Some(qargs)) = target.qargs_for_operation_name(name.to_str().unwrap()) {
+        if let Ok(Some(qargs)) = target.qargs_for_operation_name(operation.name()) {
             qargs
                 .map(|qargs| {
                     if let Qargs::Concrete(qargs) = qargs {
@@ -1326,7 +1297,7 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargs
 /// ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @parsm name The name of the instruction to check.
+/// @parsm instruction The instruction to check for.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
 /// @param num_qubits The number of qubits in the array.
@@ -1341,14 +1312,11 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargs
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
 ///     qk_target_add_instruction(target, QkGate_H, NULL, qk_property_map_new());
 ///
-///     qk_target_instruction_supported(target, "cx*, [0, 1], 2)
+///     qk_target_instruction_supported(target, QkGate_CRX, [0, 1], 2)
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-///
-/// The ``name`` type expected to be a pointer to a null-terminated valid string. If the
-/// pointer is not valid or not null ending, the behavior will be undefined.
 ///
 /// The ``qargs` type is expected to be a pointer to an array of ``u32int_t`` where the length
 /// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
@@ -1360,29 +1328,26 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargs
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_instruction_supported(
     target: *const Target,
-    name: *mut c_char,
+    operation: StandardGate,
     qargs: *mut u32,
     num_qubits: u32,
 ) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
-    // SAFETY: Per documentation, name points to a null-terminated string of characters.
-    let operation_name = unsafe { CStr::from_ptr(name) };
-
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
 
-    target.instruction_supported(operation_name.to_str().unwrap(), &qargs)
+    target.instruction_supported(operation.name(), &qargs)
 }
 
 /// @ingroup QkTarget
-/// Check if the provided operation name exists within the ``Target``.
+/// Check if the provided instruction exists within the ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param name The name of the gate to check.
+/// @param instruction The instruction to check for.
 ///
-/// @return Whether the gate is present in the ``Target`` or not.
+/// @return Whether the instruction is present in the ``Target`` or not.
 ///
 /// # Example
 ///     
@@ -1397,22 +1362,16 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-///
-/// The ``name`` type expected to be a pointer to a null-terminated valid string. If the
-/// pointer is not valid or not null ending, the behavior will be undefined.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_contains_instr(
     target: *const Target,
-    name: *mut c_char,
+    instruction: StandardGate,
 ) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
-    // SAFETY: Per documentation, name points to a null-terminated string of characters.
-    let operation_name = unsafe { CStr::from_ptr(name) };
-
-    target.contains_key(operation_name.to_str().unwrap())
+    target.contains_key(instruction.name())
 }
 
 /// @ingroup QkTarget
@@ -1455,5 +1414,21 @@ unsafe fn parse_qargs(qargs: *const u32, num_qubits: u32) -> Qargs {
                 .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
                 .collect()
         }
+    }
+}
+
+fn target_error_to_error_code(e: TargetError) -> ExitCode {
+    match e {
+        TargetError::InvalidKey(_) => ExitCode::TargetInvalidInstKey,
+        TargetError::AlreadyExists(_) => ExitCode::TargetInstAlreadyExists,
+        TargetError::QargsMismatch {
+            instruction: _,
+            arguments: _,
+        } => ExitCode::TargetQargMismatch,
+        TargetError::InvalidQargsKey {
+            instruction: _,
+            arguments: _,
+        } => ExitCode::TargetInvalidQargsKey,
+        TargetError::QargsWithoutInstruction(_) => ExitCode::TargetQargsWithoutInstruction,
     }
 }

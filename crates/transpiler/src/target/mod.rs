@@ -16,7 +16,7 @@ mod errors;
 mod instruction_properties;
 mod qargs;
 
-use errors::TargetError;
+pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
 

@@ -42,14 +42,14 @@ bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t size) {
 }
 
 // Helper comp for qsort
-int strcomp_help(const void *string1, const void *string2) {
-    char *const *string_as_pointer1 = string1;
-    char *const *string_as_pointer2 = string2;
-    return strcmp(*string_as_pointer1, *string_as_pointer2);
+int gate_comp_help(const void *lhs, const void *rhs) {
+    const QkGate *lhs_as_pointer = lhs;
+    const QkGate *rhs_as_pointer = rhs;
+    return *lhs_as_pointer - *rhs_as_pointer;
 }
 
-void sort_string_array(char **str_list, int length) {
-    qsort(str_list, length, sizeof(*str_list), strcomp_help);
+void sort_gate_array(QkGate *gate_list, int length) {
+    qsort(gate_list, length, sizeof(*gate_list), gate_comp_help);
 }
 
 /**
@@ -255,7 +255,7 @@ int test_target_add_instruction(void) {
         return EqualityError;
     }
     // Check that the instruction exists in there
-    if (!qk_target_contains_instr(target, "x")) {
+    if (!qk_target_contains_instr(target, QkGate_X)) {
         printf("This target did not correctly add the instruction 'x'");
         return RuntimeError;
     }
@@ -288,13 +288,13 @@ int test_target_add_instruction(void) {
         printf("The size of this target is not correct: Expected 2, got %zu", current_size);
         return EqualityError;
     }
-    if (!qk_target_contains_instr(target, "cx")) {
+    if (!qk_target_contains_instr(target, QkGate_CX)) {
         printf("This target did not correctly add the instruction 'cx'");
         result = RuntimeError;
         goto cleanup;
     }
     // Instruction should now show compatibility with (0,1)
-    if (!qk_target_instruction_supported(target, "cx", qargs, 2)) {
+    if (!qk_target_instruction_supported(target, QkGate_CX, qargs, 2)) {
         printf("This target did not correctly demonstrate compatibility with 'cx' and qargs [0,1]");
         result = RuntimeError;
         goto cleanup;
@@ -328,13 +328,13 @@ int test_target_add_instruction(void) {
         printf("The size of this target is not correct: Expected 3, got %zu", current_size);
         return EqualityError;
     }
-    if (!qk_target_contains_instr(target, "crx")) {
+    if (!qk_target_contains_instr(target, QkGate_CRX)) {
         printf("This target did not correctly add the instruction 'cx'");
         result = RuntimeError;
         goto cleanup;
     }
     // Instruction should now show compatibility with (0,1)
-    if (!qk_target_instruction_supported(target, "crx", crx_qargs, 2)) {
+    if (!qk_target_instruction_supported(target, QkGate_CRX, crx_qargs, 2)) {
         printf("This target did not correctly demonstrate compatibility with 'crx' and qargs ");
         print_qargs(crx_qargs, 2);
         printf(".");
@@ -342,14 +342,14 @@ int test_target_add_instruction(void) {
         goto cleanup;
     }
 
-    const char *gate_names[3] = {"x", "cx", "crx"};
-    QkTargetNameList comp_gate_names = qk_target_operation_names(target);
+    const QkGate gate_names[3] = {QkGate_X, QkGate_CX, QkGate_CRX};
+    QkTargetOpsList comp_gate_names = qk_target_operations(target);
 
     for (int i = 0; i < comp_gate_names.length; i++) {
-        if (strcmp(gate_names[i], comp_gate_names.list[i]) != 0) {
-            printf(
-                "Gate comparison order is not correct in this target: At index %d, %s is not %s.",
-                i, gate_names[i], comp_gate_names.list[i]);
+        if (gate_names[i] != comp_gate_names.list[i]) {
+            printf("Gate comparison order is not correct in this target: At index %d, %hhu is not "
+                   "%hhu.",
+                   i, gate_names[i], comp_gate_names.list[i]);
             result = RuntimeError;
             goto cleanup;
         }
@@ -387,7 +387,7 @@ int test_target_update_instruction(void) {
     qk_target_add_instruction(target, QkGate_CX, NULL, property_map);
 
     // check current instruction property for cx at (0,1)
-    QkInstructionProps *retrieved_inst = qk_target_get_inst_prop(target, "cx", qargs, 2);
+    QkInstructionProps *retrieved_inst = qk_target_get_inst_prop(target, QkGate_CX, qargs, 2);
     double retrieved_duration = qk_instruction_properties_get_duration(retrieved_inst);
     if (retrieved_duration != inst_duration) {
         printf(
@@ -410,9 +410,10 @@ int test_target_update_instruction(void) {
     double cx_new_inst_duration = 0.09457;
     QkInstructionProps *new_cx_instruction_props =
         qk_instruction_properties_new(cx_new_inst_duration, cx_new_inst_error);
-    qk_target_update_instruction_prop(target, "cx", qargs, 2, new_cx_instruction_props);
+    qk_target_update_instruction_prop(target, QkGate_CX, qargs, 2, new_cx_instruction_props);
     // check current instruction property for cx at (0,1)
-    QkInstructionProps *new_cx_retrieved_inst = qk_target_get_inst_prop(target, "cx", qargs, 2);
+    QkInstructionProps *new_cx_retrieved_inst =
+        qk_target_get_inst_prop(target, QkGate_CX, qargs, 2);
     double new_retrieved_duration = qk_instruction_properties_get_duration(new_cx_retrieved_inst);
     if (new_retrieved_duration != cx_new_inst_duration) {
         printf(
@@ -475,27 +476,26 @@ int test_target_non_global_op_names(void) {
 
     qk_target_add_instruction(target, QkGate_CRX, crx_params, crx_property_map);
 
-    char *non_local_gate_names[2] = {"cx", "crx"};
-    QkTargetNameList non_local_comp_gate_names =
-        qk_target_non_global_operation_names(target, false);
+    QkGate non_local_gate_names[2] = {QkGate_CX, QkGate_CRX};
+    QkTargetOpsList non_local_comp_gate_names = qk_target_non_global_operations(target, false);
     for (int i = 0; i < non_local_comp_gate_names.length; i++) {
-        if (strcmp(non_local_gate_names[i], non_local_comp_gate_names.list[i]) != 0) {
-            printf(
-                "Gate comparison order is not correct in this target: At index %u, %s is not %s.",
-                i, non_local_gate_names[i], non_local_comp_gate_names.list[i]);
+        if (non_local_gate_names[i] != non_local_comp_gate_names.list[i]) {
+            printf("Gate comparison order is not correct in this target: At index %u, %hhu is not "
+                   "%hhu.",
+                   i, non_local_gate_names[i], non_local_comp_gate_names.list[i]);
             result = RuntimeError;
             goto cleanup;
         }
     }
 
-    char *non_local_gate_names_strict[2] = {"cx", "crx"};
-    QkTargetNameList non_local_comp_gate_names_strict =
-        qk_target_non_global_operation_names(target, true);
+    QkGate non_local_gate_names_strict[2] = {QkGate_CX, QkGate_CRX};
+    QkTargetOpsList non_local_comp_gate_names_strict =
+        qk_target_non_global_operations(target, true);
     for (int i = 0; i < non_local_comp_gate_names_strict.length; i++) {
-        if (strcmp(non_local_gate_names_strict[i], non_local_comp_gate_names_strict.list[i]) != 0) {
-            printf(
-                "Gate comparison order is not correct in this target: At index %u, %s is not %s.",
-                i, non_local_gate_names_strict[i], non_local_comp_gate_names_strict.list[i]);
+        if (non_local_gate_names_strict[i] != non_local_comp_gate_names_strict.list[i]) {
+            printf("Gate comparison order is not correct in this target: At index %u, %hhu is not "
+                   "%hhu.",
+                   i, non_local_gate_names_strict[i], non_local_comp_gate_names_strict.list[i]);
             result = RuntimeError;
             goto cleanup;
         }
@@ -575,14 +575,14 @@ int test_target_operation_names_for_qargs(void) {
 
     // Retrieve instruction names by qargs for {0,}
     uint32_t qargs_1[1] = {0};
-    char *names[5] = {"id", "rz", "sx", "x", "y"};
-    QkTargetNameList names_obtained = qk_target_operation_names_for_qargs(target, qargs_1, 1);
+    QkGate names[5] = {QkGate_I, QkGate_RZ, QkGate_SX, QkGate_X, QkGate_Y};
+    QkTargetOpsList names_obtained = qk_target_operations_for_qargs(target, qargs_1, 1);
     // Sort arrays
-    sort_string_array(names, 5);
-    sort_string_array(names_obtained.list, names_obtained.length);
+    sort_gate_array(names, 5);
+    sort_gate_array(names_obtained.list, names_obtained.length);
     for (int i = 0; i < names_obtained.length; i++) {
-        if (strcmp(names[i], names_obtained.list[i]) != 0) {
-            printf("Mismatch in operation names order: %s is not %s.", names[i],
+        if (names[i] != names_obtained.list[i]) {
+            printf("Mismatch in operation names order: %hhu is not %hhu.", names[i],
                    names_obtained.list[i]);
             result = RuntimeError;
             goto cleanup;
@@ -591,22 +591,22 @@ int test_target_operation_names_for_qargs(void) {
 
     // Retrieve instruction names by qargs for {0,1}
     uint32_t qargs_2[2] = {0, 1};
-    char *two_names[1] = {"cx"};
-    QkTargetNameList two_names_obtained = qk_target_operation_names_for_qargs(target, qargs_2, 2);
+    QkGate two_names[1] = {QkGate_CX};
+    QkTargetOpsList two_names_obtained = qk_target_operations_for_qargs(target, qargs_2, 2);
     for (int i = 0; i < two_names_obtained.length; i++) {
-        if (strcmp(two_names[i], two_names_obtained.list[i]) != 0) {
-            printf("Mismatch in operation names order: %s is not %s.", two_names[i],
+        if (two_names[i] != two_names_obtained.list[i]) {
+            printf("Mismatch in operation names order: %hhu is not %hhu.", two_names[i],
                    two_names_obtained.list[i]);
             result = RuntimeError;
             goto cleanup;
         }
     }
 
-    char *global_names[1] = {"y"};
-    QkTargetNameList global_names_obtained = qk_target_operation_names_for_qargs(target, NULL, 1);
+    QkGate global_names[1] = {QkGate_Y};
+    QkTargetOpsList global_names_obtained = qk_target_operations_for_qargs(target, NULL, 1);
     for (int i = 0; i < global_names_obtained.length; i++) {
-        if (strcmp(global_names[i], global_names_obtained.list[i]) != 0) {
-            printf("Mismatch in operation names order: %s is not %s.", global_names[i],
+        if (global_names[i] != global_names_obtained.list[i]) {
+            printf("Mismatch in operation names order: %hhu is not %hhu.", global_names[i],
                    global_names_obtained.list[i]);
             result = RuntimeError;
             goto cleanup;
@@ -691,14 +691,14 @@ int test_target_qargs_for_operation_names(void) {
     qk_target_add_instruction(target, QkGate_Y, NULL, qk_property_map_new());
 
     // Test all single qubit instructions
-    char *names[4] = {"id", "x", "rz", "sx"};
+    QkGate names[4] = {QkGate_I, QkGate_X, QkGate_RZ, QkGate_SX};
     for (int i = 0; i < 4; i++) {
-        QkTargetQargsList i_qargs = qk_target_qargs_for_operation_names(target, names[i]);
+        QkTargetQargsList i_qargs = qk_target_qargs_for_operation(target, names[i]);
         for (int j = 0; j < 4; j++) {
             uint32_t qarg_sample[1] = {j};
             QkTargetQargs qargs_obtained = i_qargs.list[j];
             if (!compare_qargs(qarg_sample, qargs_obtained.args, qargs_obtained.length)) {
-                printf("Mismatch of obtained qargs for instruction '%s': ", names[i]);
+                printf("Mismatch of obtained qargs for instruction '%hhu': ", names[i]);
                 print_qargs(qargs_obtained.args, qargs_obtained.length);
                 printf(" is not ");
                 print_qargs(qarg_sample, 1);
@@ -710,7 +710,7 @@ int test_target_qargs_for_operation_names(void) {
     }
 
     // Test cx (only two qubit instruction).
-    QkTargetQargsList cx_qargs = qk_target_qargs_for_operation_names(target, "cx");
+    QkTargetQargsList cx_qargs = qk_target_qargs_for_operation(target, QkGate_CX);
     for (int j = 0; j < 8; j++) {
         QkTargetQargs qargs_obtained = cx_qargs.list[j];
         if (!compare_qargs(qargs_obtained.args, qarg_samples[j], 2)) {
@@ -725,7 +725,7 @@ int test_target_qargs_for_operation_names(void) {
     }
 
     // Test y (only global operation)
-    QkTargetQargsList y_qargs = qk_target_qargs_for_operation_names(target, "y");
+    QkTargetQargsList y_qargs = qk_target_qargs_for_operation(target, QkGate_Y);
     if (y_qargs.list != NULL) {
         printf("Mismatch of obtained qargs for instruction 'cx': Did not receive NULL but %p.",
                y_qargs.list);

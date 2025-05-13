@@ -41,6 +41,18 @@ pub enum ExitCode {
     ArithmeticError = 200,
     /// Mismatching number of qubits.
     MismatchedQubits = 201,
+    /// Target related error
+    TargetError = 300,
+    /// Instruction already exists in the Target
+    TargetInstAlreadyExists = 301,
+    /// Properties with incorrect qargs was added
+    TargetQargMismatch = 302,
+    /// Trying to query into the target with non-existent qargs.
+    TargetInvalidQargsKey = 303,
+    /// Querying an operation that doesn't exist in the Target.
+    TargetInvalidInstKey = 304,
+    /// Qargs are not operated on in this Target
+    TargetQargsWithoutInstruction = 305,
 }
 
 impl From<ArithmeticError> for ExitCode {
