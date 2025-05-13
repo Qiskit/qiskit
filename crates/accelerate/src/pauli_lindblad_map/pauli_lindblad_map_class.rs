@@ -175,7 +175,7 @@ impl PauliLindbladMap {
         &mut self.rates
     }
 
-    /// Get the probabilities of the generator terms.
+    /// Get the probabilities associated with each generator term.
     #[inline]
     pub fn probabilities(&self) -> &[f64] {
         &self.probabilities
@@ -1359,8 +1359,7 @@ impl PyPauliLindbladMap {
         Ok(inner.gamma)
     }
 
-    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
-    /// terms in the sum.
+    /// The probability of application of each generator in the quasi-probability representation.
     #[getter]
     fn get_probabilities(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
@@ -1370,8 +1369,7 @@ impl PyPauliLindbladMap {
         }
     }
 
-    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
-    /// terms in the sum.
+    /// A pre-computed list of booleans evaluating rate < 0 for each rate in rates.
     #[getter]
     fn get_negative_rates(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
@@ -1629,8 +1627,6 @@ impl ArrayView {
             // Simple integers look the same in Rust-space debug as Python.
             ArraySlot::Indices => format!("{:?}", pauli_lindblad_map.indices()),
             ArraySlot::Boundaries => format!("{:?}", pauli_lindblad_map.boundaries()),
-            // Complexes don't have a nice repr in Rust, so just delegate the whole load to Python
-            // and convert back.
             ArraySlot::Rates => PyList::new(py, pauli_lindblad_map.rates())?
                 .repr()?
                 .to_string(),
