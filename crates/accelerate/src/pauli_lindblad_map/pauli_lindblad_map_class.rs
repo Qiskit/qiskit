@@ -62,11 +62,7 @@ impl PauliLindbladMap {
             });
         }
         
-        let omegas: Vec<f64> = rates.iter().map(|r| 0.5 * (1.0 + (-2.0 * r).exp())).collect();
-        let gammas: Vec<f64> = omegas.iter().map(|w| w.abs() + (1.0 - w).abs()).collect();
-        let gamma: f64 = gammas.iter().fold(1.0, |res, g| res * g);
-        let probabilities: Vec<f64> = omegas.iter().zip(gammas).map(|(w, g)| *w / g).collect();
-        let negative_rates: Vec<bool> = rates.iter().map(|r| *r < 0.0).collect();
+        let (gamma, probabilities, negative_rates) = derived_values_from_rates(&rates);
 
         Ok(Self {
             rates,
@@ -114,11 +110,7 @@ impl PauliLindbladMap {
         boundaries: Vec<usize>,
     ) -> Self {
 
-        let omegas: Vec<f64> = rates.iter().map(|r| 0.5 * (1.0 + (-2.0 * r).exp())).collect();
-        let gammas: Vec<f64> = omegas.iter().map(|w| w.abs() + (1.0 - w).abs()).collect();
-        let gamma: f64 = gammas.iter().fold(1.0, |res, g| res * g);
-        let probabilities: Vec<f64> = omegas.iter().zip(gammas).map(|(w, g)| *w / g).collect();
-        let negative_rates: Vec<bool> = rates.iter().map(|r| *r < 0.0).collect();
+        let (gamma, probabilities, negative_rates) = derived_values_from_rates(&rates);
         unsafe {
             let qubit_sparse_pauli_list: QubitSparsePauliList =
                 QubitSparsePauliList::new_unchecked(num_qubits, paulis, indices, boundaries);
@@ -182,6 +174,30 @@ impl PauliLindbladMap {
         &mut self.rates
     }
 
+    /// Get the probabilities of the generator terms.
+    #[inline]
+    pub fn probabilities(&self) -> &[f64] {
+        &self.probabilities
+    }
+
+    /// Get a mutable slice of the probabilities.
+    #[inline]
+    pub fn probabilities_mut(&mut self) -> &mut [f64] {
+        &mut self.probabilities
+    }
+
+    /// Get the list of booleans for which rates are negative.
+    #[inline]
+    pub fn negative_rates(&self) -> &[bool] {
+        &self.negative_rates
+    }
+
+    /// Get a mutable slice of the negative rates.
+    #[inline]
+    pub fn negative_rates_mut(&mut self) -> &mut [bool] {
+        &mut self.negative_rates
+    }
+
     /// Get the indices of each [Pauli].
     #[inline]
     pub fn indices(&self) -> &[u32] {
@@ -242,7 +258,12 @@ impl PauliLindbladMap {
         rate: f64,
     ) -> Result<(), LabelError> {
         self.qubit_sparse_pauli_list.add_dense_label(label)?;
+
+        let (g, p, nr) = derived_values_from_rate(&rate);
         self.rates.push(rate);
+        self.gamma *= g;
+        self.probabilities.push(p);
+        self.negative_rates.push(nr);
         Ok(())
     }
 
@@ -267,6 +288,9 @@ impl PauliLindbladMap {
     /// substraction of generator terms may not need to reallocate.
     pub fn clear(&mut self) {
         self.rates.clear();
+        self.gamma = 1.0;
+        self.probabilities.clear();
+        self.negative_rates.clear();
         self.qubit_sparse_pauli_list.clear();
     }
 
@@ -278,7 +302,11 @@ impl PauliLindbladMap {
                 right: term.num_qubits,
             });
         }
+        let (g, p, nr) = derived_values_from_rate(&term.rate);
         self.rates.push(term.rate);
+        self.gamma *= g;
+        self.probabilities.push(p);
+        self.negative_rates.push(nr);
         self.qubit_sparse_pauli_list
             .paulis
             .extend_from_slice(term.paulis);
@@ -311,6 +339,32 @@ impl PauliLindbladMap {
             indices: &self.qubit_sparse_pauli_list.indices[start..end],
         }
     }
+}
+
+/// Given a rate, return the corresponding gamma, probability, and boolean for whether the rate is
+/// negative.
+fn derived_values_from_rate(rate: &f64) -> (f64, f64, bool) {
+    let rate = *rate;
+    let w: f64 = 0.5 * (1.0 + (-2.0 * rate).exp());
+    let g: f64 = w.abs() + (1.0 - w).abs();
+    let p: f64 = w / g;
+    let nr: bool = rate < 0.0;
+    (g, p, nr)
+}
+
+/// Return the gamma, probabilities, and negative rates bools for a vector of rates.
+fn derived_values_from_rates(rates: &Vec<f64>) -> (f64, Vec<f64>, Vec<bool>) {
+    let mut gamma = 1.0;
+    let mut probabilities = Vec::new();
+    let mut negative_rates = Vec::new();
+
+    for rate in rates {
+        let (g, p, nr) = derived_values_from_rate(rate);
+        gamma *= g;
+        probabilities.push(p);
+        negative_rates.push(nr);
+    }
+    (gamma, probabilities, negative_rates)
 }
 
 /// A view object onto a single term of a `PauliLindbladMap`.
@@ -1296,6 +1350,36 @@ impl PyPauliLindbladMap {
         }
     }
 
+    /// The gamma for the map.
+    #[getter]
+    #[inline]
+    fn get_gamma(&self) -> PyResult<f64> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(inner.gamma)
+    }
+
+    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
+    /// terms in the sum.
+    #[getter]
+    fn get_probabilities(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
+        ArrayView {
+            base: borrowed.inner.clone(),
+            slot: ArraySlot::Probabilities,
+        }
+    }
+
+    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
+    /// terms in the sum.
+    #[getter]
+    fn get_negative_rates(slf_: &Bound<Self>) -> ArrayView {
+        let borrowed = slf_.borrow();
+        ArrayView {
+            base: borrowed.inner.clone(),
+            slot: ArraySlot::NegativeRates,
+        }
+    }
+
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
     /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
     #[getter]
@@ -1506,6 +1590,8 @@ impl<'py> IntoPyObject<'py> for PauliLindbladMap {
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ArraySlot {
     Rates,
+    Probabilities,
+    NegativeRates,
     Paulis,
     Indices,
     Boundaries,
@@ -1533,6 +1619,12 @@ impl ArrayView {
             ArraySlot::Rates => PyList::new(py, pauli_lindblad_map.rates())?
                 .repr()?
                 .to_string(),
+            ArraySlot::Probabilities => PyList::new(py, pauli_lindblad_map.probabilities())?
+                .repr()?
+                .to_string(),
+            ArraySlot::NegativeRates => PyList::new(py, pauli_lindblad_map.negative_rates())?
+                .repr()?
+                .to_string(),
             ArraySlot::Paulis => format!(
                 "[{}]",
                 pauli_lindblad_map
@@ -1547,6 +1639,8 @@ impl ArrayView {
             "<pauli lindblad map {} view: {}>",
             match self.slot {
                 ArraySlot::Rates => "rates",
+                ArraySlot::Probabilities => "probabilities",
+                ArraySlot::NegativeRates => "negative_rates",
                 ArraySlot::Paulis => "paulis",
                 ArraySlot::Indices => "indices",
                 ArraySlot::Boundaries => "boundaries",
@@ -1582,6 +1676,8 @@ impl ArrayView {
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
             ArraySlot::Rates => get_from_slice::<_, f64>(py, pauli_lindblad_map.rates(), index),
+            ArraySlot::Probabilities => get_from_slice::<_, f64>(py, pauli_lindblad_map.probabilities(), index),
+            ArraySlot::NegativeRates => get_from_slice::<_, bool>(py, pauli_lindblad_map.negative_rates(), index),
             ArraySlot::Paulis => get_from_slice::<_, u8>(py, pauli_lindblad_map.paulis(), index),
             ArraySlot::Indices => get_from_slice::<_, u32>(py, pauli_lindblad_map.indices(), index),
             ArraySlot::Boundaries => {
@@ -1648,6 +1744,12 @@ impl ArrayView {
             ArraySlot::Rates => {
                 set_in_slice::<_, f64>(pauli_lindblad_map.rates_mut(), index, values)
             }
+            ArraySlot::Probabilities => {
+                set_in_slice::<_, f64>(pauli_lindblad_map.probabilities_mut(), index, values)
+            }
+            ArraySlot::NegativeRates => {
+                set_in_slice::<_, bool>(pauli_lindblad_map.negative_rates_mut(), index, values)
+            }
             ArraySlot::Paulis => {
                 set_in_slice::<Pauli, u8>(pauli_lindblad_map.paulis_mut(), index, values)
             }
@@ -1664,6 +1766,8 @@ impl ArrayView {
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         let len = match self.slot {
             ArraySlot::Rates => pauli_lindblad_map.rates().len(),
+            ArraySlot::Probabilities => pauli_lindblad_map.probabilities().len(),
+            ArraySlot::NegativeRates => pauli_lindblad_map.negative_rates().len(),
             ArraySlot::Paulis => pauli_lindblad_map.paulis().len(),
             ArraySlot::Indices => pauli_lindblad_map.indices().len(),
             ArraySlot::Boundaries => pauli_lindblad_map.boundaries().len(),
@@ -1692,6 +1796,16 @@ impl ArrayView {
             ArraySlot::Rates => cast_array_type(
                 py,
                 PyArray1::from_slice(py, pauli_lindblad_map.rates()),
+                dtype,
+            ),
+            ArraySlot::Probabilities => cast_array_type(
+                py,
+                PyArray1::from_slice(py, pauli_lindblad_map.probabilities()),
+                dtype,
+            ),
+            ArraySlot::NegativeRates => cast_array_type(
+                py,
+                PyArray1::from_slice(py, pauli_lindblad_map.negative_rates()),
                 dtype,
             ),
             ArraySlot::Indices => cast_array_type(
