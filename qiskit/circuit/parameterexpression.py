@@ -670,6 +670,7 @@ class ParameterExpression:
             information used in circuit-parameter binding and assignment.
         """
         import sympy as sym
+
         print(self._symbol_expr.expr_for_sympy())
 
         return sym.sympify(self._symbol_expr.expr_for_sympy())
