@@ -16,7 +16,6 @@ use indexmap::IndexMap;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_transpiler::target::{InstructionProperties, Qargs, Target, TargetError};
-use std::ffi::{c_char, CStr, CString};
 use std::mem::forget;
 use std::ptr::null_mut;
 
@@ -45,8 +44,10 @@ pub struct QkTargetQargs {
 
 /// @ingroup QkTarget
 /// Construct a new ``Target`` with the given number of qubits.
+/// The number of qubits is bound to change if an instruction is added with properties
+/// that apply to a collection of qargs in which any index is higher than the specified
+/// number of qubits
 ///
-/// @param description A string describing the ``Target``, or a NULL pointer.
 /// @param num_qubits The number of qubits the ``Target`` will explicitly support.
 ///
 /// @return A pointer to the new ``Target``
@@ -55,25 +56,11 @@ pub struct QkTargetQargs {
 ///     
 ///     QkTarget *target = qk_target_new("New Target", 5);
 ///
-/// # Safety
-///
-/// The ``description`` type is expected to be a pointer to a null-terminated valid string. If the
-/// pointer is not valid or not null ending, the behavior will be undefined.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_new(description: *mut c_char, num_qubits: usize) -> *mut Target {
-    let description = unsafe {
-        if description.is_null() {
-            None
-        } else {
-            // SAFETY: Per documentation, description points to a null-terminated string of characters.
-            let description: &CStr = CStr::from_ptr(description);
-            Some(description.to_str().unwrap())
-        }
-    };
-
+pub extern "C" fn qk_target_new(num_qubits: usize) -> *mut Target {
     let target = Target::new(
-        description.map(|name| name.to_string()),
+        None,
         Some(num_qubits),
         None,
         None,
@@ -108,35 +95,6 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
     target.num_qubits.unwrap_or_default()
-}
-
-/// @ingroup QkTarget
-/// Returns the description of this ``Target``.
-///
-/// @param target A pointer to the ``Target``.
-///
-/// @return The description of the ``Target``.
-///
-/// # Example
-///     
-///     QkTarget *target = qk_target_new("New Target", 5);
-///     char *description = qk_target_description(target);
-///     printf("%s", description);
-///     free(description);
-///
-/// # Safety
-///
-/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_description(target: *const Target) -> *mut c_char {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let target = unsafe { const_ptr_as_ref(target) };
-    if let Some(description) = target.description.as_deref() {
-        CString::new(description).unwrap().into_raw()
-    } else {
-        null_mut()
-    }
 }
 
 /// @ingroup QkTarget
@@ -253,37 +211,6 @@ pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
     target.acquire_alignment
-}
-
-/// @ingroup QkTarget
-/// Sets the description of this ``Target``.
-///
-/// @param target A pointer to the ``Target``.
-/// @param description A string describing the ``Target``.
-///
-/// # Example
-///     
-///     QkTarget *target = qk_target_new("New Target", 5);
-///     qk_target_set_description(target, "New_Name");
-///
-/// # Safety
-///
-/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-///
-/// The ``description`` type is expected to be a pointer to a null-terminated valid string. If the
-/// pointer is not valid or not null ending, the behavior will be undefined.
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_set_description(
-    target: *mut Target,
-    description: *mut c_char,
-) -> ExitCode {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let target = unsafe { mut_ptr_as_ref(target) };
-    // SAFETY: Per documentation, description points to a null-terminated string of characters.
-    let description: &CStr = unsafe { CStr::from_ptr(description) };
-    target.description = Some(description.to_str().unwrap().to_string());
-    ExitCode::Success
 }
 
 /// @ingroup QkTarget

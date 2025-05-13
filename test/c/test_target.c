@@ -56,17 +56,11 @@ void sort_gate_array(QkGate *gate_list, int length) {
  * Test empty constructor for Target
  */
 int test_empty_target(void) {
-    QkTarget *target = qk_target_new(NULL, 0);
+    QkTarget *target = qk_target_new(0);
     size_t num_qubits = qk_target_num_qubits(target);
 
     if (num_qubits != 0) {
         printf("The number of qubits %lu is not 0.", num_qubits);
-        return EqualityError;
-    }
-
-    char *description = qk_target_description(target);
-    if (description != NULL) {
-        printf("The description of the target: '%s' is not 'New_Target'.", description);
         return EqualityError;
     }
 
@@ -113,9 +107,8 @@ int test_target_construct(void) {
     const uint32_t p_alignment = 4;
     const uint32_t a_alignment = 1;
 
-    QkTarget *target = qk_target_new("New", num_qubits);
-    // Set the rest of the attributes
-    qk_target_set_description(target, "New_Target");
+    QkTarget *target = qk_target_new(num_qubits);
+
     qk_target_set_dt(target, dt);
     qk_target_set_granularity(target, granularity);
     qk_target_set_min_length(target, min_length);
@@ -125,12 +118,6 @@ int test_target_construct(void) {
     size_t retrieved_num_qubits = qk_target_num_qubits(target);
     if (retrieved_num_qubits != 2) {
         printf("The number of qubits %lu is not 0.", num_qubits);
-        return EqualityError;
-    }
-
-    char *description = qk_target_description(target);
-    if (strcmp(description, "New_Target") != 0) {
-        printf("The description of the target: '%s' is not 'New_Target'.", description);
         return EqualityError;
     }
 
@@ -231,7 +218,7 @@ int test_property_map_construction(void) {
 int test_target_add_instruction(void) {
     const size_t num_qubits = 1;
     // Let's create a target with one qubit for now
-    QkTarget *target = qk_target_new("Test", num_qubits);
+    QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
     // Add an X Gate.
     // Create prop_map for the instruction
@@ -371,7 +358,7 @@ cleanup:
 int test_target_update_instruction(void) {
     const size_t num_qubits = 1;
     // Let's create a target with one qubit for now
-    QkTarget *target = qk_target_new("Test", num_qubits);
+    QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
     // Add a CX Gate.
     // Create prop_map for the instruction
@@ -447,7 +434,7 @@ cleanup:
 int test_target_non_global_op_names(void) {
     const size_t num_qubits = 1;
     // Let's create a target with one qubit for now
-    QkTarget *target = qk_target_new("Test", num_qubits);
+    QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
     // Add an X Gate.
     // Create prop_map for the instruction
@@ -516,7 +503,7 @@ cleanup:
 int test_target_operation_names_for_qargs(void) {
     const size_t num_qubits = 1;
     // Build sample target
-    QkTarget *target = qk_target_new("Test", num_qubits);
+    QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
     QkPropsMap *i_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
@@ -633,7 +620,7 @@ cleanup:
  */
 int test_target_qargs_for_operation_names(void) {
     // Build sample target
-    QkTarget *target = qk_target_new("Test", 0);
+    QkTarget *target = qk_target_new(0);
     int result = Ok;
     QkPropsMap *i_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
@@ -752,7 +739,7 @@ cleanup:
  */
 int test_target_qargs(void) {
     // Build sample target
-    QkTarget *target = qk_target_new(NULL, 0);
+    QkTarget *target = qk_target_new(0);
     int result = Ok;
     QkPropsMap *i_property_map = qk_property_map_new();
     for (int i = 0; i < 4; i++) {
