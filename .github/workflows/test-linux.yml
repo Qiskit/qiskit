@@ -133,8 +133,8 @@ jobs:
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           RUST_BACKTRACE: 1
   test-rust:
-    name: ubuntu-${{ inputs.runner }}-tests-Rust-${{ inputs.python-version }}
-    runs-on: ubuntu-${{ inputs.runner }}
+    name: ${{ inputs.runner }}-tests-Rust-${{ inputs.python-version }}
+    runs-on: ${{ inputs.runner }}
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       PIP_CACHE_DIR: ${{ github.workspace }}/.pip
@@ -194,8 +194,8 @@ jobs:
           python tools/run_cargo_test.py
   test-images:
     if: github.repository_owner == 'Qiskit' && inputs.test-rust == true
-    name: ubuntu-${{ inputs.runner }}-test-images-${{ inputs.python-version }}
-    runs-on: ubuntu-${{ inputs.runner }}
+    name: ${{ inputs.runner }}-test-images-${{ inputs.python-version }}
+    runs-on: ${{ inputs.runner }}
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       PIP_CACHE_DIR: ${{ github.workspace }}/.pip

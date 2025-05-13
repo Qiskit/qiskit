@@ -26,7 +26,7 @@ on:
 jobs:
   tests-mac:
     if: github.repository_owner == 'Qiskit'
-    name: macOS-arm64-tests-Python-${{ inputs.python-version }}
+    name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
