@@ -94,7 +94,6 @@ pub fn py_run_pass_over_connected_components(
                 .getattr(intern!(py, "graph"))?
                 .set_item(node.index(), cmap.node_weight(node).unwrap().index())?;
         }
-        // TODO: Remove the dag clone
         Ok(run_func.call1((dag, py_cmap))?.unbind())
     };
     match distribute_components(dag, target)? {
