@@ -99,7 +99,7 @@ class TestSolovayKitaev(QiskitTestCase):
         passes = PassManager([_1q, _cons, _synth])
         compiled = passes.run(circuit)
 
-        self.assertLessEqual(set(compiled.count_ops().keys()), {"h", "s", "sdg", "cx", "x"})
+        self.assertLessEqual(set(compiled.count_ops().keys()), {"h", "s", "cx"})
 
     def test_plugin(self):
         """Test calling the plugin directly."""
@@ -111,7 +111,7 @@ class TestSolovayKitaev(QiskitTestCase):
         plugin = SolovayKitaevSynthesis()
         out = plugin.run(unitary, basis_gates=["h", "s"])
 
-        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "sdg", "cx"})
+        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "cx"})
 
     def test_multiple_plugins(self):
         """Test calling the plugins directly but with different instances of basis set."""
