@@ -62,7 +62,7 @@ pub struct QkInstructionProps {
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
@@ -91,7 +91,7 @@ pub extern "C" fn qk_target_new(num_qubits: usize) -> *mut Target {
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     uint32_t num_qubits = qk_target_num_qubits(target);
 ///
 /// # Safety
@@ -114,7 +114,7 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> usize {
 ///
 /// # Example
 ///     const dt = 10e-9;
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     qk_target_set_dt(target, 10e-9);
 ///     double dt = qk_target_dt(target);
 ///
@@ -137,7 +137,7 @@ pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
 /// @return The granularity value of this ``Target``.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     uint32_t granularity = qk_target_granularity(target);
 ///
@@ -160,7 +160,7 @@ pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
 /// @return The min_length value of this ``Target``.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     size_t min_length = qk_target_min_length(target);
 ///
@@ -183,7 +183,7 @@ pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> usize {
 /// @return The pulse_alignment value of this ``Target``.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     uint32_t pulse_alignment = qk_target_pulse_alignment(target);
 ///
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32
 /// @return The acquire_alignment value of this ``Target``.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 0
 ///     uint32_t acquire_alignment = qk_target_pulse_alignment(target);
 ///
@@ -228,7 +228,7 @@ pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u
 /// @param dt The dt value for the system time resolution of input.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     double dt = qk_target_set_dt(target, 10e-9);
 ///
 /// # Safety
@@ -251,7 +251,7 @@ pub unsafe extern "C" fn qk_target_set_dt(target: *mut Target, dt: f64) -> ExitC
 ///     units of ``dt``.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     qk_target_set_granularity(target, 2);
 ///
@@ -277,7 +277,7 @@ pub unsafe extern "C" fn qk_target_set_granularity(
 /// @param min_length minimum pulse gate length value in units of ``dt``.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     qk_target_set_min_length(target, 3);
 ///
@@ -303,7 +303,7 @@ pub unsafe extern "C" fn qk_target_set_min_length(
 /// @param pulse_alignment value representing a time resolution of gate.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     qk_target_set_pulse_alignment(target, 4);
 ///
@@ -330,7 +330,7 @@ pub unsafe extern "C" fn qk_target_set_pulse_alignment(
 ///     starting time.
 ///
 /// # Example
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 0
 ///     qk_target_set_acquire_alignment(target, 5);
 ///
@@ -356,7 +356,7 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     qk_target_free(target);
 ///
 /// # Safety
@@ -587,7 +587,7 @@ pub unsafe extern "C" fn qk_property_map_add(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
@@ -670,7 +670,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// @param error The instruction's average error rate on the specific set of qubits.
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
@@ -731,7 +731,7 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
@@ -773,7 +773,7 @@ pub unsafe extern "C" fn qk_target_get_prop_map(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
@@ -822,7 +822,7 @@ pub unsafe extern "C" fn qk_target_get_inst_prop(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -862,7 +862,7 @@ pub unsafe extern "C" fn qk_target_operations(target: *const Target) -> QkTarget
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     qk_target_phyisical_qubits(target)
 ///
 /// # Safety
@@ -889,7 +889,7 @@ pub unsafe extern "C" fn qk_target_phyisical_qubits(target: *const Target) -> *m
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -945,7 +945,7 @@ pub unsafe extern "C" fn qk_target_non_global_operations(
 ///
 /// # Example
 ///
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -1004,7 +1004,7 @@ pub unsafe extern "C" fn qk_target_operations_for_qargs(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -1072,7 +1072,7 @@ pub unsafe extern "C" fn qk_target_qargs_for_operation(
 ///
 /// # Example
 ///
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -1138,7 +1138,7 @@ pub unsafe extern "C" fn qk_target_qargs(target: *const Target) -> QkTargetQargs
 ///
 /// # Example
 ///
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -1183,7 +1183,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     QkPropsMap *props_map = qk_property_map_new();
 ///     qk_property_map_add(props_map, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, QkGate_CRX, *[3.14], props_map);
@@ -1216,7 +1216,7 @@ pub unsafe extern "C" fn qk_target_contains_instr(
 ///
 /// # Example
 ///     
-///     QkTarget *target = qk_target_new("New Target", 5);
+///     QkTarget *target = qk_target_new(5);
 ///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
 ///     qk_target_length(target, "x")
