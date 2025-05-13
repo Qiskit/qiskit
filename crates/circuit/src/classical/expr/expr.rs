@@ -48,20 +48,6 @@ pub enum IdentifierRef<'a> {
     Stretch(&'a Stretch),
 }
 
-// impl Deref for Expr {
-//     type Target = ();
-//
-//     fn deref(&self) -> &Self::Target {
-//         todo!()
-//     }
-// }
-//
-// impl DerefMut for Expr {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         todo!()
-//     }
-// }
-
 impl Expr {
     pub fn as_deref_mut(&mut self) -> ExprRefMut<'_> {
         match self {
