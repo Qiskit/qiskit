@@ -1757,7 +1757,13 @@ impl ArrayView {
         let mut pauli_lindblad_map = self.base.write().map_err(|_| InnerWriteError)?;
         match self.slot {
             ArraySlot::Rates => {
-                set_in_slice::<_, f64>(pauli_lindblad_map.rates_mut(), index, values)
+                let x = set_in_slice::<_, f64>(pauli_lindblad_map.rates_mut(), index, values);
+                // After updating rates, recompute derived properties
+                let (gamma, probabilities, negative_rates) = derived_values_from_rates(&pauli_lindblad_map.rates);
+                pauli_lindblad_map.gamma = gamma;
+                pauli_lindblad_map.probabilities = probabilities;
+                pauli_lindblad_map.negative_rates = negative_rates;
+                x
             }
             ArraySlot::Probabilities => {
                 return Err(DerivedPropertyError::ProbabilitiesIsDerived.into());
