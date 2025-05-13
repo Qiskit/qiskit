@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.13"]
-        runner: ["latest", "24.04-arm"]
+        runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
     with:
       python-version: ${{ matrix.python-version }}
       install-optionals: ${{ matrix.python-version == '3.9' }}

@@ -35,7 +35,7 @@ jobs:
       install-optionals: true
       test-rust: true
       test-images: true
-      runner: "latest"
+      runner: "ubuntu-latest"
 
   # The rest of the PR pipeline is to test the oldest and newest supported
   # versions of Python. It's very rare for a failure to be specific to an
