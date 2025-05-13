@@ -88,7 +88,10 @@ pub fn py_run_pass_over_connected_components(
                 // undirected and Python space CouplingMap is explicitly a directed graph.
                 // Adding the reverse edge here is to ensure we are representing the coupling
                 // map in Python as rust is working with it.
-                [[endpoints.0.index(), endpoints.1.index()], [endpoints.1.index(), endpoints.0.index()]]
+                [
+                    [endpoints.0.index(), endpoints.1.index()],
+                    [endpoints.1.index(), endpoints.0.index()],
+                ]
             })
             .collect();
         let out_list = PyList::new(py, endpoints)?;
