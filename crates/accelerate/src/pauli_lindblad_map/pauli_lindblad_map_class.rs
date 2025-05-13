@@ -32,7 +32,7 @@ use super::qubit_sparse_pauli::{
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
-/// probabilities, and negative_rates is 
+/// probabilities, and positive_rates is 
 ///
 /// See [PyPauliLindbladMap] for detailed docs.
 #[derive(Clone, Debug, PartialEq)]
@@ -48,7 +48,7 @@ pub struct PauliLindbladMap {
     /// corresponding rate is less than 0, this is a quasi-probability.
     probabilities: Vec<f64>,
     /// List of boolean values for the statement rate < 0 for each rate in rates.
-    negative_rates: Vec<bool>
+    positive_rates: Vec<bool>
 }
 
 impl PauliLindbladMap {
@@ -63,14 +63,14 @@ impl PauliLindbladMap {
             });
         }
         
-        let (gamma, probabilities, negative_rates) = derived_values_from_rates(&rates);
+        let (gamma, probabilities, positive_rates) = derived_values_from_rates(&rates);
 
         Ok(Self {
             rates,
             qubit_sparse_pauli_list,
             gamma,
             probabilities,
-            negative_rates
+            positive_rates
         })
     }
 
@@ -111,7 +111,7 @@ impl PauliLindbladMap {
         boundaries: Vec<usize>,
     ) -> Self {
 
-        let (gamma, probabilities, negative_rates) = derived_values_from_rates(&rates);
+        let (gamma, probabilities, positive_rates) = derived_values_from_rates(&rates);
         unsafe {
             let qubit_sparse_pauli_list: QubitSparsePauliList =
                 QubitSparsePauliList::new_unchecked(num_qubits, paulis, indices, boundaries);
@@ -120,7 +120,7 @@ impl PauliLindbladMap {
                 qubit_sparse_pauli_list,
                 gamma,
                 probabilities,
-                negative_rates
+                positive_rates
             }
         }
     }
@@ -187,16 +187,16 @@ impl PauliLindbladMap {
         &mut self.probabilities
     }
 
-    /// Get the list of booleans for which rates are negative.
+    /// Get the list of booleans for which rates are positive.
     #[inline]
-    pub fn negative_rates(&self) -> &[bool] {
-        &self.negative_rates
+    pub fn positive_rates(&self) -> &[bool] {
+        &self.positive_rates
     }
 
-    /// Get a mutable slice of the negative rates.
+    /// Get a mutable slice of positive_rates.
     #[inline]
-    pub fn negative_rates_mut(&mut self) -> &mut [bool] {
-        &mut self.negative_rates
+    pub fn positive_rates_mut(&mut self) -> &mut [bool] {
+        &mut self.positive_rates
     }
 
     /// Get the indices of each [Pauli].
@@ -260,11 +260,11 @@ impl PauliLindbladMap {
     ) -> Result<(), LabelError> {
         self.qubit_sparse_pauli_list.add_dense_label(label)?;
 
-        let (g, p, nr) = derived_values_from_rate(&rate);
+        let (g, p, pr) = derived_values_from_rate(&rate);
         self.rates.push(rate);
         self.gamma *= g;
         self.probabilities.push(p);
-        self.negative_rates.push(nr);
+        self.positive_rates.push(pr);
         Ok(())
     }
 
@@ -279,7 +279,7 @@ impl PauliLindbladMap {
             qubit_sparse_pauli_list,
             gamma: 1.0,
             probabilities: Vec::with_capacity(num_terms),
-            negative_rates: Vec::with_capacity(num_terms)
+            positive_rates: Vec::with_capacity(num_terms)
         }
     }
 
@@ -291,7 +291,7 @@ impl PauliLindbladMap {
         self.rates.clear();
         self.gamma = 1.0;
         self.probabilities.clear();
-        self.negative_rates.clear();
+        self.positive_rates.clear();
         self.qubit_sparse_pauli_list.clear();
     }
 
@@ -303,11 +303,11 @@ impl PauliLindbladMap {
                 right: term.num_qubits,
             });
         }
-        let (g, p, nr) = derived_values_from_rate(&term.rate);
+        let (g, p, pr) = derived_values_from_rate(&term.rate);
         self.rates.push(term.rate);
         self.gamma *= g;
         self.probabilities.push(p);
-        self.negative_rates.push(nr);
+        self.positive_rates.push(pr);
         self.qubit_sparse_pauli_list
             .paulis
             .extend_from_slice(term.paulis);
@@ -343,29 +343,29 @@ impl PauliLindbladMap {
 }
 
 /// Given a rate, return the corresponding gamma, probability, and boolean for whether the rate is
-/// negative.
+/// positive.
 fn derived_values_from_rate(rate: &f64) -> (f64, f64, bool) {
     let rate = *rate;
     let w: f64 = 0.5 * (1.0 + (-2.0 * rate).exp());
     let g: f64 = w.abs() + (1.0 - w).abs();
     let p: f64 = w / g;
-    let nr: bool = rate < 0.0;
-    (g, p, nr)
+    let pr: bool = rate >= 0.0;
+    (g, p, pr)
 }
 
-/// Return the gamma, probabilities, and negative rates bools for a vector of rates.
+/// Return the gamma, probabilities, and positive rates bools for a vector of rates.
 fn derived_values_from_rates(rates: &Vec<f64>) -> (f64, Vec<f64>, Vec<bool>) {
     let mut gamma = 1.0;
     let mut probabilities = Vec::new();
-    let mut negative_rates = Vec::new();
+    let mut positive_rates = Vec::new();
 
     for rate in rates {
-        let (g, p, nr) = derived_values_from_rate(rate);
+        let (g, p, pr) = derived_values_from_rate(rate);
         gamma *= g;
         probabilities.push(p);
-        negative_rates.push(nr);
+        positive_rates.push(pr);
     }
-    (gamma, probabilities, negative_rates)
+    (gamma, probabilities, positive_rates)
 }
 
 /// A view object onto a single term of a `PauliLindbladMap`.
@@ -869,8 +869,8 @@ impl PySparseTerm {
 ///   =====================  ===========  ==========================================================
 ///   :attr:`probabilities`  :math:`t`    The probabilities in the pseudo-probability decomposition.
 ///
-///   :attr:`negative_rates` :math:`t`    A vector of booleans, where each boolean stores the value
-///                                       of the logical statement :math:`\lambda_P < 0`.
+///   :attr:`positive_rates` :math:`t`    A vector of booleans, where each boolean stores the value
+///                                       of the logical statement :math:`\lambda_P \geq 0`.
 ///   =====================  ===========  ==========================================================
 ///
 /// The scalar item of the :attr:`paulis` array is stored as a numeric byte.  The numeric values
@@ -1422,11 +1422,11 @@ impl PyPauliLindbladMap {
 
     /// A pre-computed list of booleans evaluating rate < 0 for each rate in rates.
     #[getter]
-    fn get_negative_rates(slf_: &Bound<Self>) -> ArrayView {
+    fn get_positive_rates(slf_: &Bound<Self>) -> ArrayView {
         let borrowed = slf_.borrow();
         ArrayView {
             base: borrowed.inner.clone(),
-            slot: ArraySlot::NegativeRates,
+            slot: ArraySlot::PositiveRates,
         }
     }
 
@@ -1641,7 +1641,7 @@ impl<'py> IntoPyObject<'py> for PauliLindbladMap {
 enum ArraySlot {
     Rates,
     Probabilities,
-    NegativeRates,
+    PositiveRates,
     Paulis,
     Indices,
     Boundaries,
@@ -1651,8 +1651,8 @@ enum ArraySlot {
 pub enum DerivedPropertyError {
     #[error("attribute 'probabilities' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable")]
     ProbabilitiesIsDerived,
-    #[error("attribute 'negative_rates' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable")]
-    NegativeRatesIsDerived,
+    #[error("attribute 'positive_rates' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable")]
+    PositiveRatesIsDerived,
 }
 
 impl From<DerivedPropertyError> for PyErr {
@@ -1684,7 +1684,7 @@ impl ArrayView {
             ArraySlot::Probabilities => PyList::new(py, pauli_lindblad_map.probabilities())?
                 .repr()?
                 .to_string(),
-            ArraySlot::NegativeRates => PyList::new(py, pauli_lindblad_map.negative_rates())?
+            ArraySlot::PositiveRates => PyList::new(py, pauli_lindblad_map.positive_rates())?
                 .repr()?
                 .to_string(),
             ArraySlot::Paulis => format!(
@@ -1702,7 +1702,7 @@ impl ArrayView {
             match self.slot {
                 ArraySlot::Rates => "rates",
                 ArraySlot::Probabilities => "probabilities",
-                ArraySlot::NegativeRates => "negative_rates",
+                ArraySlot::PositiveRates => "positive_rates",
                 ArraySlot::Paulis => "paulis",
                 ArraySlot::Indices => "indices",
                 ArraySlot::Boundaries => "boundaries",
@@ -1739,7 +1739,7 @@ impl ArrayView {
         match self.slot {
             ArraySlot::Rates => get_from_slice::<_, f64>(py, pauli_lindblad_map.rates(), index),
             ArraySlot::Probabilities => get_from_slice::<_, f64>(py, pauli_lindblad_map.probabilities(), index),
-            ArraySlot::NegativeRates => get_from_slice::<_, bool>(py, pauli_lindblad_map.negative_rates(), index),
+            ArraySlot::PositiveRates => get_from_slice::<_, bool>(py, pauli_lindblad_map.positive_rates(), index),
             ArraySlot::Paulis => get_from_slice::<_, u8>(py, pauli_lindblad_map.paulis(), index),
             ArraySlot::Indices => get_from_slice::<_, u32>(py, pauli_lindblad_map.indices(), index),
             ArraySlot::Boundaries => {
@@ -1806,17 +1806,17 @@ impl ArrayView {
             ArraySlot::Rates => {
                 let x = set_in_slice::<_, f64>(pauli_lindblad_map.rates_mut(), index, values);
                 // After updating rates, recompute derived properties
-                let (gamma, probabilities, negative_rates) = derived_values_from_rates(&pauli_lindblad_map.rates);
+                let (gamma, probabilities, positive_rates) = derived_values_from_rates(&pauli_lindblad_map.rates);
                 pauli_lindblad_map.gamma = gamma;
                 pauli_lindblad_map.probabilities = probabilities;
-                pauli_lindblad_map.negative_rates = negative_rates;
+                pauli_lindblad_map.positive_rates = positive_rates;
                 x
             }
             ArraySlot::Probabilities => {
                 return Err(DerivedPropertyError::ProbabilitiesIsDerived.into());
             }
-            ArraySlot::NegativeRates => {
-                return Err(DerivedPropertyError::NegativeRatesIsDerived.into());
+            ArraySlot::PositiveRates => {
+                return Err(DerivedPropertyError::PositiveRatesIsDerived.into());
             }
             ArraySlot::Paulis => {
                 set_in_slice::<Pauli, u8>(pauli_lindblad_map.paulis_mut(), index, values)
@@ -1835,7 +1835,7 @@ impl ArrayView {
         let len = match self.slot {
             ArraySlot::Rates => pauli_lindblad_map.rates().len(),
             ArraySlot::Probabilities => pauli_lindblad_map.probabilities().len(),
-            ArraySlot::NegativeRates => pauli_lindblad_map.negative_rates().len(),
+            ArraySlot::PositiveRates => pauli_lindblad_map.positive_rates().len(),
             ArraySlot::Paulis => pauli_lindblad_map.paulis().len(),
             ArraySlot::Indices => pauli_lindblad_map.indices().len(),
             ArraySlot::Boundaries => pauli_lindblad_map.boundaries().len(),
@@ -1871,9 +1871,9 @@ impl ArrayView {
                 PyArray1::from_slice(py, pauli_lindblad_map.probabilities()),
                 dtype,
             ),
-            ArraySlot::NegativeRates => cast_array_type(
+            ArraySlot::PositiveRates => cast_array_type(
                 py,
-                PyArray1::from_slice(py, pauli_lindblad_map.negative_rates()),
+                PyArray1::from_slice(py, pauli_lindblad_map.positive_rates()),
                 dtype,
             ),
             ArraySlot::Indices => cast_array_type(

@@ -1046,13 +1046,13 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(pauli_lindblad_map, reconstructed)
     
     def test_derived_properties(self):
-        """Test whether gamma, probabilities, and negative_rates are correctly calculated."""
+        """Test whether gamma, probabilities, and positive_rates are correctly calculated."""
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
         w = 0.5 * (1 + np.exp(-2 * 1.))
         self.assertEqual(w, pauli_lindblad_map.probabilities[0])
         self.assertEqual(1., pauli_lindblad_map.gamma)
-        self.assertEqual(False, pauli_lindblad_map.negative_rates[0])
+        self.assertEqual(True, pauli_lindblad_map.positive_rates[0])
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -1.0)])
         w = 0.5 * (1 + np.exp(-2 * -1.))
@@ -1060,7 +1060,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         prob = w / gamma
         self.assertEqual(prob, pauli_lindblad_map.probabilities[0])
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
-        self.assertEqual(True, pauli_lindblad_map.negative_rates[0])
+        self.assertEqual(False, pauli_lindblad_map.positive_rates[0])
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
         w = 0.5 * (1 + np.exp(-2 * -0.5))
@@ -1068,7 +1068,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         prob = w / gamma
         self.assertEqual(prob, pauli_lindblad_map.probabilities[0])
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
-        self.assertEqual(True, pauli_lindblad_map.negative_rates[0])
+        self.assertEqual(False, pauli_lindblad_map.positive_rates[0])
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)])
         rates = np.array([-1., 1., -0.5])
@@ -1078,7 +1078,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         gamma = np.prod(gammas)
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
-        self.assertTrue(all((rates < 0.) == pauli_lindblad_map.negative_rates))
+        self.assertTrue(all((rates >= 0.) == pauli_lindblad_map.positive_rates))
     
     def test_set_derived_properties_errors(self):
         """Test that setting derived properties raises an error."""
@@ -1091,9 +1091,9 @@ class TestPauliLindbladMap(QiskitTestCase):
             pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
             pauli_lindblad_map.probabilities[0] = 3.
         
-        with self.assertRaisesRegex(AttributeError, r"attribute 'negative_rates' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable"):
+        with self.assertRaisesRegex(AttributeError, r"attribute 'positive_rates' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable"):
             pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
-            pauli_lindblad_map.negative_rates[0] = True
+            pauli_lindblad_map.positive_rates[0] = True
 
 
 
