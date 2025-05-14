@@ -12,7 +12,7 @@
 
 use numpy::{PyArray1, PyArrayLike1, PyArrayMethods};
 use pyo3::{
-    exceptions::{PyTypeError, PyValueError, PyAttributeError},
+    exceptions::{PyAttributeError, PyTypeError, PyValueError},
     intern,
     prelude::*,
     sync::GILOnceCell,
@@ -32,7 +32,7 @@ use super::qubit_sparse_pauli::{
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
-/// probabilities, and non_negative_rates is 
+/// probabilities, and non_negative_rates is
 ///
 /// See [PyPauliLindbladMap] for detailed docs.
 #[derive(Clone, Debug, PartialEq)]
@@ -48,7 +48,7 @@ pub struct PauliLindbladMap {
     /// corresponding rate is less than 0, this is a quasi-probability.
     probabilities: Vec<f64>,
     /// List of boolean values for the statement rate >= 0 for each rate in rates.
-    non_negative_rates: Vec<bool>
+    non_negative_rates: Vec<bool>,
 }
 
 impl PauliLindbladMap {
@@ -62,7 +62,7 @@ impl PauliLindbladMap {
                 boundaries: qubit_sparse_pauli_list.boundaries().len(),
             });
         }
-        
+
         let (gamma, probabilities, non_negative_rates) = derived_values_from_rates(&rates);
 
         Ok(Self {
@@ -70,7 +70,7 @@ impl PauliLindbladMap {
             qubit_sparse_pauli_list,
             gamma,
             probabilities,
-            non_negative_rates
+            non_negative_rates,
         })
     }
 
@@ -93,7 +93,7 @@ impl PauliLindbladMap {
         }
         let qubit_sparse_pauli_list: QubitSparsePauliList =
             QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
-        Ok(Self::new(rates, qubit_sparse_pauli_list)?)
+        Self::new(rates, qubit_sparse_pauli_list)
     }
 
     /// Create a new [PauliLindbladMap] from the raw components without checking data coherence.
@@ -110,7 +110,6 @@ impl PauliLindbladMap {
         indices: Vec<u32>,
         boundaries: Vec<usize>,
     ) -> Self {
-
         let (gamma, probabilities, non_negative_rates) = derived_values_from_rates(&rates);
         unsafe {
             let qubit_sparse_pauli_list: QubitSparsePauliList =
@@ -120,7 +119,7 @@ impl PauliLindbladMap {
                 qubit_sparse_pauli_list,
                 gamma,
                 probabilities,
-                non_negative_rates
+                non_negative_rates,
             }
         }
     }
@@ -279,7 +278,7 @@ impl PauliLindbladMap {
             qubit_sparse_pauli_list,
             gamma: 1.0,
             probabilities: Vec::with_capacity(num_terms),
-            non_negative_rates: Vec::with_capacity(num_terms)
+            non_negative_rates: Vec::with_capacity(num_terms),
         }
     }
 
@@ -741,42 +740,42 @@ impl PySparseTerm {
 /// non-negative, this corresponds to a completely positive and trace preserving map. The sum in the
 /// exponential is called the generator, and each individual term the generators. To simplify
 /// notation in the rest of the documention, we denote :math:`L(P) = P \cdot P - \cdot`.
-/// 
+///
 /// Quasi-probability representation
 /// ================================
-/// 
+///
 /// The map :math:`\Lambda` can be written as a product:
-/// 
+///
 /// .. math::
-/// 
+///
 ///     \Lambda = \prod_{P \in K}\exp\left(\lambda_P(P \cdot P - \cdot)\right).
-/// 
+///
 /// For each :math:`P`, it holds that
-/// 
+///
 /// .. math::
-/// 
+///
 ///     \exp\left(\lambda_P(P \cdot P - \cdot)\right) = \omega(\lambda_P) \cdot + (1 - \omega(\lambda_P)) P \cdot P,
 ///
 /// where :math:`\omega(x) = \frac{1}{2}(1 + e^{-2 x})`. Observe that if :math:`\lambda_P \geq 0`,
 /// then :math:`\omega(\lambda_P) \in (\frac{1}{2}, 1]`, and this term is a completely-positive and
 /// trace-preserving map. However, if :math:`\lambda_P < 0`, then :math:`\omega(\lambda_P) > 1` and
 /// the map is not completely positive or trace preserving. Letting
-/// :math:`\gamma_P = \omega(\lambda_P) + |1 - \omega(\lambda_P)|`, 
-/// :math:`p_P = \omega(\lambda_P) / \gamma_P` and :math:`b_P \in \{0, 1\}` be :math:`1` if 
-/// :math:`\lambda_P < 0` and :math:`0` otherwise, we rewrite the map as: 
-/// 
+/// :math:`\gamma_P = \omega(\lambda_P) + |1 - \omega(\lambda_P)|`,
+/// :math:`p_P = \omega(\lambda_P) / \gamma_P` and :math:`b_P \in \{0, 1\}` be :math:`1` if
+/// :math:`\lambda_P < 0` and :math:`0` otherwise, we rewrite the map as:
+///
 /// .. math::
-/// 
+///
 ///     \omega(\lambda_P) \cdot + (1 - \omega(\lambda_P)) P \cdot P = \gamma_P \left(p_P \cdot + (-1)^b_P(1 - p_P) P \cdot P\right).
-/// 
+///
 /// If :math:`\lambda_P \geq 0`, :math:`\gamma_P = 1` and the expression reduces to the standard
-/// mixture of the identity map and conjugation by :math:`P`. If :math:`\lambda_P < 0`, 
+/// mixture of the identity map and conjugation by :math:`P`. If :math:`\lambda_P < 0`,
 /// :math:`\gamma_P > 1`, and the map is a scaled differences of the identity map and conjugation by
 /// :math:`P`, with probability weights (hence "quasi-probability"). Note that this is a slightly
 /// different presentation than in the literature, but this notation allows us to handle both
 /// non-negative and negative rates simultaneously. The overall :math:`\gamma` of the channel is the
 /// product :math:`\gamma = \prod_{P \in K} \gamma_P`.
-/// 
+///
 /// Representation
 /// ==============
 ///
@@ -856,22 +855,22 @@ impl PySparseTerm {
 ///
 /// These cases are not special, they're fully consistent with the rules and should not need special
 /// handling.
-/// 
-/// In addition to the above arrays, :class:`.PauliLindbladMap` stores the overall channel 
+///
+/// In addition to the above arrays, :class:`.PauliLindbladMap` stores the overall channel
 /// :math:`gamma` in the :attr:`gamma` attribute, as well as the following arrays derived from
 /// :attr:`rates`.
-/// 
+///
 /// .. _pauli-lindblad-map-derived-arrays:
 /// .. table:: Additional data arrays for :class:`.PauliLindbladMap`
 ///
 ///   ==========================  ===========  =====================================================
 ///   Attribute                   Length       Description
 ///   ==========================  ===========  =====================================================
-///   :attr:`probabilities`       :math:`t`    The probabilities in the pseudo-probability 
+///   :attr:`probabilities`       :math:`t`    The probabilities in the pseudo-probability
 ///                                            decomposition.
 ///
 ///   :attr:`non_negative_rates`  :math:`t`    A vector of booleans, where each boolean stores the
-///                                            value of the logical statement 
+///                                            value of the logical statement
 ///                                            :math:`\lambda_P \geq 0`.
 ///   ==========================  ===========  =====================================================
 ///
@@ -1686,9 +1685,11 @@ impl ArrayView {
             ArraySlot::Probabilities => PyList::new(py, pauli_lindblad_map.probabilities())?
                 .repr()?
                 .to_string(),
-            ArraySlot::NonNegativeRates => PyList::new(py, pauli_lindblad_map.non_negative_rates())?
-                .repr()?
-                .to_string(),
+            ArraySlot::NonNegativeRates => {
+                PyList::new(py, pauli_lindblad_map.non_negative_rates())?
+                    .repr()?
+                    .to_string()
+            }
             ArraySlot::Paulis => format!(
                 "[{}]",
                 pauli_lindblad_map
@@ -1740,8 +1741,12 @@ impl ArrayView {
         let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
         match self.slot {
             ArraySlot::Rates => get_from_slice::<_, f64>(py, pauli_lindblad_map.rates(), index),
-            ArraySlot::Probabilities => get_from_slice::<_, f64>(py, pauli_lindblad_map.probabilities(), index),
-            ArraySlot::NonNegativeRates => get_from_slice::<_, bool>(py, pauli_lindblad_map.non_negative_rates(), index),
+            ArraySlot::Probabilities => {
+                get_from_slice::<_, f64>(py, pauli_lindblad_map.probabilities(), index)
+            }
+            ArraySlot::NonNegativeRates => {
+                get_from_slice::<_, bool>(py, pauli_lindblad_map.non_negative_rates(), index)
+            }
             ArraySlot::Paulis => get_from_slice::<_, u8>(py, pauli_lindblad_map.paulis(), index),
             ArraySlot::Indices => get_from_slice::<_, u32>(py, pauli_lindblad_map.indices(), index),
             ArraySlot::Boundaries => {
@@ -1808,17 +1813,16 @@ impl ArrayView {
             ArraySlot::Rates => {
                 let x = set_in_slice::<_, f64>(pauli_lindblad_map.rates_mut(), index, values);
                 // After updating rates, recompute derived properties
-                let (gamma, probabilities, non_negative_rates) = derived_values_from_rates(&pauli_lindblad_map.rates);
+                let (gamma, probabilities, non_negative_rates) =
+                    derived_values_from_rates(&pauli_lindblad_map.rates);
                 pauli_lindblad_map.gamma = gamma;
                 pauli_lindblad_map.probabilities = probabilities;
                 pauli_lindblad_map.non_negative_rates = non_negative_rates;
                 x
             }
-            ArraySlot::Probabilities => {
-                return Err(DerivedPropertyError::ProbabilitiesIsDerived.into());
-            }
+            ArraySlot::Probabilities => Err(DerivedPropertyError::ProbabilitiesIsDerived.into()),
             ArraySlot::NonNegativeRates => {
-                return Err(DerivedPropertyError::NonNegativeRatesIsDerived.into());
+                Err(DerivedPropertyError::NonNegativeRatesIsDerived.into())
             }
             ArraySlot::Paulis => {
                 set_in_slice::<Pauli, u8>(pauli_lindblad_map.paulis_mut(), index, values)
