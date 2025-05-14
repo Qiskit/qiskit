@@ -1932,16 +1932,6 @@ impl PyQubitSparsePauliList {
             str_num_terms, str_num_qubits, str_terms
         ))
     }
-
-    // The documentation for this is inlined into the class-level documentation of
-    // `QubitSparsePauliList`.
-    #[allow(non_snake_case)]
-    #[classattr]
-    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
-        PAULI_PY_ENUM
-            .get_or_try_init(py, || make_py_pauli(py))
-            .map(|obj| obj.clone_ref(py))
-    }
 }
 
 impl From<QubitSparsePauli> for PyQubitSparsePauli {
