@@ -892,8 +892,8 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///   :meth:`from_sparse_label`     Build a :class:`.QubitSparsePauli` from a tuple of a sparse
 ///                                 string label and the qubits they apply to.
 ///
-///   :meth:`from_pauli`            Raise a single :class:`.Pauli` into a single-element
-///                                 :class:`.QubitSparsePauli`.
+///   :meth:`from_pauli`            Raise a single :class:`~.quantum_info.Pauli` into a
+///                                 single-element :class:`.QubitSparsePauli`.
 ///
 ///   :meth:`from_raw_parts`        Build the list from :ref:`the raw data arrays
 ///                                 <qubit-sparse-pauli-arrays>`.
@@ -1021,7 +1021,7 @@ impl PyQubitSparsePauli {
     ///
     /// The label must be a sequence of the alphabet ``'IXYZ'``.  The label is interpreted
     /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
-    /// 0, and so on.  This is the same as the labels for :class:`.Pauli` and
+    /// 0, and so on.  This is the same as the labels for :class:`~.quantum_info.Pauli` and
     /// :class:`.SparsePauliOp`.
     ///
     /// Args:
@@ -1065,12 +1065,12 @@ impl PyQubitSparsePauli {
         Ok(inner.into())
     }
 
-    /// Construct a :class:`.QubitSparsePauli` from a single :class:`.Pauli` instance.
+    /// Construct a :class:`.QubitSparsePauli` from a single :class:`~.quantum_info.Pauli` instance.
     ///
     /// Note that the phase of the Pauli is dropped.
     ///
     /// Args:
-    ///     pauli (:class:`.Pauli`): the single Pauli to convert.
+    ///     pauli (:class:`~.quantum_info.Pauli`): the single Pauli to convert.
     ///
     /// Examples:
     ///
@@ -1499,8 +1499,8 @@ impl PyQubitSparsePauli {
 ///   :meth:`from_sparse_list`          Elements given as a list of tuples of sparse string labels
 ///                                     and the qubits they apply to.
 ///
-///   :meth:`from_pauli`                Raise a single :class:`.Pauli` into a single-element
-///                                     :class:`.QubitSparsePauliList`.
+///   :meth:`from_pauli`                Raise a single :class:`~.quantum_info.Pauli` into a
+///                                     single-element :class:`.QubitSparsePauliList`.
 ///
 ///   :meth:`from_qubit_sparse_paulis`  Construct from a list of :class:`QubitSparsePauli`s.
 ///
@@ -1706,12 +1706,13 @@ impl PyQubitSparsePauliList {
         QubitSparsePauliList::empty(num_qubits).into()
     }
 
-    /// Construct a :class:`.QubitSparsePauliList` from a single :class:`.Pauli` instance.
+    /// Construct a :class:`.QubitSparsePauliList` from a single :class:`~.quantum_info.Pauli`
+    /// instance.
     ///
     /// The output list will have a single term. Note that the phase is dropped.
     ///
     /// Args:
-    ///     pauli (:class:`.Pauli`): the single Pauli to convert.
+    ///     pauli (:class:`~.quantum_info.Pauli`): the single Pauli to convert.
     ///
     /// Examples:
     ///
@@ -1753,7 +1754,7 @@ impl PyQubitSparsePauliList {
     ///
     /// The label must be a sequence of the alphabet ``'IXYZ'``.  The label is interpreted
     /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
-    /// 0, and so on.  This is the same as the labels for :class:`.Pauli` and
+    /// 0, and so on.  This is the same as the labels for :class:`~.quantum_info.Pauli` and
     /// :class:`.SparsePauliOp`.
     ///
     /// Args:
@@ -1787,7 +1788,7 @@ impl PyQubitSparsePauliList {
     ///
     /// The label must be a sequence of the alphabet ``'IXYZ'``.  The label is interpreted
     /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
-    /// 0, and so on.  This is the same as the labels for :class:`.Pauli` and
+    /// 0, and so on.  This is the same as the labels for :class:`~.quantum_info.Pauli` and
     /// :class:`.SparsePauliOp`.
     ///
     /// Args:
@@ -1899,7 +1900,7 @@ impl PyQubitSparsePauliList {
     ///     num_qubits: number of qubits the elements of the list act on.
     ///     paulis: flattened list of the single-qubit terms comprising all complete terms.  This
     ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
-    ///         :class:`.Pauli`).
+    ///         :class:`~.Pauli`).
     ///     indices: flattened term-wise sorted list of the qubits each single-qubit term corresponds
     ///         to.  This should be a Numpy array with dtype :attr:`~numpy.uint32`.
     ///     boundaries: the indices that partition ``paulis`` and ``indices`` into list elements.
