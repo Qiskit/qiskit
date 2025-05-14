@@ -2,5 +2,6 @@
 fixes:
   - |
     Fixed the construction of Instantaneous Quantum Polynomial time (IQP) circuits
-    in :class:`~qiskit.circuit.library.IQP` and by :func:`~qiskit.circuit.library.iqp`:
-    T-gate is equivalent to P(pi/4) and not to P(pi/8).
+    in :class:`~qiskit.circuit.library.IQP` and by :func:`~qiskit.circuit.library.iqp`.
+    The previous implementation incorrectly used powers of the :math:`\sqrt{T}` gate
+    instead of powers of the :math:`T` gate.
