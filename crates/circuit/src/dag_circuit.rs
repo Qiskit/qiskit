@@ -249,54 +249,6 @@ fn node_resources(node: &Bound<PyAny>) -> PyResult<PyLegacyResources> {
     })
 }
 
-#[derive(IntoPyObject)]
-struct PyVariableMapper {
-    mapper: Py<PyAny>,
-}
-
-impl PyVariableMapper {
-    fn new(
-        py: Python,
-        target_cregs: Bound<PyAny>,
-        bit_map: Option<Bound<PyDict>>,
-        var_map: Option<Bound<PyDict>>,
-        add_register: Option<Py<PyAny>>,
-    ) -> PyResult<Self> {
-        let kwargs: HashMap<&str, Option<Py<PyAny>>> =
-            HashMap::from_iter([("add_register", add_register)]);
-        Ok(PyVariableMapper {
-            mapper: imports::VARIABLE_MAPPER
-                .get_bound(py)
-                .call(
-                    (target_cregs, bit_map, var_map),
-                    Some(&kwargs.into_py_dict(py)?),
-                )?
-                .unbind(),
-        })
-    }
-
-    fn map_condition<'py>(
-        &self,
-        condition: &Bound<'py, PyAny>,
-        allow_reorder: bool,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        let py = condition.py();
-        let kwargs: HashMap<&str, bool> = HashMap::from_iter([("allow_reorder", allow_reorder)]);
-        self.mapper.bind(py).call_method(
-            intern!(py, "map_condition"),
-            (condition,),
-            Some(&kwargs.into_py_dict(py)?),
-        )
-    }
-
-    fn map_target<'py>(&self, target: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        let py = target.py();
-        self.mapper
-            .bind(py)
-            .call_method1(intern!(py, "map_target"), (target,))
-    }
-}
-
 fn reject_new_register(reg: &ClassicalRegister) -> PyResult<()> {
     Err(DAGCircuitError::new_err(format!(
         "No register with '{:?}' to map this expression onto.",
