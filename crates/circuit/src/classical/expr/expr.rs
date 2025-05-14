@@ -49,7 +49,8 @@ pub enum IdentifierRef<'a> {
 }
 
 impl Expr {
-    pub fn as_deref_mut(&mut self) -> ExprRefMut<'_> {
+    /// Converts from `&mut Expr` to `ExprRefMut`.
+    pub fn as_mut(&mut self) -> ExprRefMut<'_> {
         match self {
             Expr::Unary(u) => ExprRefMut::Unary(u.as_mut()),
             Expr::Binary(b) => ExprRefMut::Binary(b.as_mut()),
@@ -95,7 +96,7 @@ impl Expr {
         }
     }
 
-    /// Returns an iterator over the [Var] nodes in this expression in some
+    /// Returns an iterator over the identifier nodes in this expression in some
     /// deterministic order.
     pub fn identifiers(&self) -> impl Iterator<Item = IdentifierRef<'_>> {
         IdentIterator(ExprIterator { stack: vec![self] })
@@ -113,26 +114,34 @@ impl Expr {
         ExprIterator { stack: vec![self] }
     }
 
+    /// Visits all nodes by mutable reference, in a post-order traversal.
     pub fn visit_mut<F>(&mut self, mut visitor: F) -> PyResult<()>
     where
         F: FnMut(ExprRefMut) -> PyResult<()>,
     {
+        self.visit_mut_impl(&mut visitor)
+    }
+
+    fn visit_mut_impl<F>(&mut self, visitor: &mut F) -> PyResult<()>
+    where
+        F: FnMut(ExprRefMut) -> PyResult<()>,
+    {
         match self {
-            Expr::Unary(u) => u.operand.visit_mut(&mut visitor)?,
+            Expr::Unary(u) => u.operand.visit_mut_impl(visitor)?,
             Expr::Binary(b) => {
-                b.left.visit_mut(&mut visitor)?;
-                b.right.visit_mut(&mut visitor)?;
+                b.left.visit_mut_impl(visitor)?;
+                b.right.visit_mut_impl(visitor)?;
             }
-            Expr::Cast(c) => c.operand.visit_mut(&mut visitor)?,
+            Expr::Cast(c) => c.operand.visit_mut_impl(visitor)?,
             Expr::Value(_) => {}
             Expr::Var(_) => {}
             Expr::Stretch(_) => {}
             Expr::Index(i) => {
-                i.target.visit_mut(&mut visitor)?;
-                i.index.visit_mut(&mut visitor)?;
+                i.target.visit_mut_impl(visitor)?;
+                i.index.visit_mut_impl(visitor)?;
             }
         }
-        visitor(self.as_deref_mut())
+        visitor(self.as_mut())
     }
 }
 
