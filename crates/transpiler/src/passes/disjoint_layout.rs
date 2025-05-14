@@ -169,6 +169,21 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
         }
         return Ok(DisjointSplit::NoneNeeded);
     }
+    if let Some(largest_component) = cmap_components.iter().max_by_key(|x| x.len()) {
+        let num_active_qubits = dag
+            .qubit_io_map()
+            .iter()
+            .filter(|[source, target]| dag.dag().find_edge(*source, *target).is_none())
+            .count();
+        if largest_component.len() >= num_active_qubits {
+            return Ok(DisjointSplit::TargetSubset(
+                largest_component
+                    .iter()
+                    .map(|x| PhysicalQubit(x.index() as u32))
+                    .collect(),
+            ));
+        }
+    }
     let dag_components = separate_dag(dag)?;
     let mapped_components = map_components(&dag_components, &cmap_components)?;
     let out_component_pairs: Vec<(DAGCircuit, CouplingMap)> = mapped_components
