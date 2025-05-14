@@ -9,8 +9,6 @@
 # throughput in low-contention cases, and guarantees a longer critical path.
 name: Merge queue
 on:
-  # remove when proven to work
-  # pull_request:
   merge_group:
     branches: [main, "stable/*"]
 concurrency:

@@ -3,8 +3,6 @@
 # be in the triggers at the top of this file.
 name: Push
 on:
-  # Remove when proven to work
-  # pull_request:
   push:
     branches: [main, "stable/*"]
 
