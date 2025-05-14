@@ -514,11 +514,11 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauli.from_raw_parts(
                 len(label),
                 [
-                    QubitSparsePauliList.Pauli.Y,
-                    QubitSparsePauliList.Pauli.Z,
-                    QubitSparsePauliList.Pauli.Z,
-                    QubitSparsePauliList.Pauli.Y,
-                    QubitSparsePauliList.Pauli.X,
+                    QubitSparsePauli.Pauli.Y,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.Y,
+                    QubitSparsePauli.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
             ),
@@ -528,11 +528,11 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauli.from_raw_parts(
                 len(label),
                 [
-                    QubitSparsePauliList.Pauli.Y,
-                    QubitSparsePauliList.Pauli.Z,
-                    QubitSparsePauliList.Pauli.Z,
-                    QubitSparsePauliList.Pauli.Y,
-                    QubitSparsePauliList.Pauli.X,
+                    QubitSparsePauli.Pauli.Y,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.Y,
+                    QubitSparsePauli.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
             ),
@@ -543,8 +543,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauli.from_raw_parts(
                 6,
                 [
-                    QubitSparsePauliList.Pauli.Z,
-                    QubitSparsePauliList.Pauli.X,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.X,
                 ],
                 [1, 2],
             ),
@@ -555,8 +555,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauli.from_raw_parts(
                 6,
                 [
-                    QubitSparsePauliList.Pauli.X,
-                    QubitSparsePauliList.Pauli.X,
+                    QubitSparsePauli.Pauli.X,
+                    QubitSparsePauli.Pauli.X,
                 ],
                 [4, 5],
             ),
@@ -801,33 +801,33 @@ class TestQubitSparsePauliList(QiskitTestCase):
         # public interface.
 
         self.assertEqual(
-            set(QubitSparsePauliList.Pauli),
+            set(QubitSparsePauli.Pauli),
             {
-                QubitSparsePauliList.Pauli.X,
-                QubitSparsePauliList.Pauli.Y,
-                QubitSparsePauliList.Pauli.Z,
+                QubitSparsePauli.Pauli.X,
+                QubitSparsePauli.Pauli.Y,
+                QubitSparsePauli.Pauli.Z,
             },
         )
         # All the enumeration items should also be integers.
-        self.assertIsInstance(QubitSparsePauliList.Pauli.X, int)
+        self.assertIsInstance(QubitSparsePauli.Pauli.X, int)
         values = {
             "X": 0b10,
             "Y": 0b11,
             "Z": 0b01,
         }
         self.assertEqual(
-            {name: getattr(QubitSparsePauliList.Pauli, name) for name in values}, values
+            {name: getattr(QubitSparsePauli.Pauli, name) for name in values}, values
         )
 
         # The single-character label aliases can be accessed with index notation.
         labels = {
-            "X": QubitSparsePauliList.Pauli.X,
-            "Y": QubitSparsePauliList.Pauli.Y,
-            "Z": QubitSparsePauliList.Pauli.Z,
+            "X": QubitSparsePauli.Pauli.X,
+            "Y": QubitSparsePauli.Pauli.Y,
+            "Z": QubitSparsePauli.Pauli.Z,
         }
-        self.assertEqual({label: QubitSparsePauliList.Pauli[label] for label in labels}, labels)
+        self.assertEqual({label: QubitSparsePauli.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
-        self.assertEqual({pauli.label: pauli for pauli in QubitSparsePauliList.Pauli}, labels)
+        self.assertEqual({pauli.label: pauli for pauli in QubitSparsePauli.Pauli}, labels)
 
     @ddt.idata(single_cases_list())
     def test_pickle(self, qubit_sparse_pauli_list):
@@ -924,7 +924,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
             ],
             num_qubits=5,
         )
-        pauli = QubitSparsePauliList.Pauli
+        pauli = QubitSparsePauli.Pauli
         expected = [
             QubitSparsePauli.from_raw_parts(5, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
             QubitSparsePauli.from_raw_parts(5, [], []),
@@ -945,7 +945,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
             ],
             num_qubits=5,
         )
-        pauli = QubitSparsePauliList.Pauli
+        pauli = QubitSparsePauli.Pauli
         expected = [
             QubitSparsePauli.from_raw_parts(5, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
             QubitSparsePauli.from_raw_parts(5, [], []),
