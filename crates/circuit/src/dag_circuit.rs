@@ -35,6 +35,7 @@ use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
+use crate::variable_mapper::VariableMapper;
 use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var};
 
 use hashbrown::{HashMap, HashSet};
@@ -69,7 +70,6 @@ use rustworkx_core::traversal::{
     bfs_successors as core_bfs_successors, descendants as core_descendants,
 };
 
-use crate::variable_mapper::VariableMapper;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
@@ -2742,7 +2742,6 @@ impl DAGCircuit {
                     ));
                 }
             }
-            // TODO: why does the existing code bother returning an empty var map here?
             Ok((qubit_wire_map, clbit_wire_map, var_map))
         };
 
@@ -2888,7 +2887,6 @@ impl DAGCircuit {
             self.cregs.registers().to_vec(),
             wire_map_dict,
             var_map,
-            // stretch_map,
             HashMap::new(),
         );
 
@@ -6838,27 +6836,17 @@ impl DAGCircuit {
             self.add_declared_stretch(other.stretches.get(*stretch).unwrap().clone())?;
         }
         let build_var_mapper = |cregs: &RegisterData<ClassicalRegister>| -> VariableMapper {
-            let edge_map = if clbit_map.is_empty() {
+            let mut edge_map = HashMap::new();
+            if clbit_map.is_empty() {
                 // try to ido a 1-1 mapping in order
-                let mut out_dict = HashMap::new();
-                // for (a, b) in identity_qubit_map.iter() {
-                //     out_dict.insert(a.clone(), b.clone());
-                // }
                 for (a, b) in identity_clbit_map.iter() {
-                    out_dict.insert(a.clone(), b.clone());
+                    edge_map.insert(a.clone(), b.clone());
                 }
-                out_dict
             } else {
-                let mut out_dict = HashMap::new();
-                // for (a, b) in qubit_map.iter() {
-                //     out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                // }
                 for (a, b) in clbit_map.iter() {
-                    out_dict.insert(a.clone(), b.clone());
+                    edge_map.insert(a.clone(), b.clone());
                 }
-                out_dict
             };
-
             VariableMapper::new(
                 cregs.registers().to_vec(),
                 edge_map,

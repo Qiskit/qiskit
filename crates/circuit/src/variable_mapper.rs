@@ -70,6 +70,11 @@ pub(crate) struct VariableMapper {
 }
 
 impl VariableMapper {
+    /// Constructs a new mapper.
+    ///
+    /// The `stretch_map` is only used for direct calls to [VariableMapper::map_expr]
+    /// since `condition`s and `target`s expressions are never durations. Provide
+    /// an empty map if you don't need this.
     pub fn new(
         target_cregs: Vec<ClassicalRegister>,
         bit_map: HashMap<ShareableClbit, ShareableClbit>,
