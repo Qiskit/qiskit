@@ -112,7 +112,7 @@ pub unsafe extern "C" fn qk_quantum_register_new(
 /// # Example
 ///
 ///     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qreg");
-///     qk_quantum_register_free(qc);
+///     qk_quantum_register_free(qr);
 ///
 /// # Safety
 ///
@@ -141,8 +141,8 @@ pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
 ///
 /// # Example
 ///
-///     QkClassicalRegister *qr = qk_classical_register_new(1024, "creg");
-///     qk_classical_register_free(qr);
+///     QkClassicalRegister *cr = qk_classical_register_new(1024, "creg");
+///     qk_classical_register_free(cr);
 ///
 /// # Safety
 ///
@@ -165,7 +165,7 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 }
 
 /// @ingroup QkCircuit
-/// Construct a new owning classical register with a given number of qubits and name
+/// Construct a new owning classical register with a given number of clbits and name
 ///
 /// @param num_clbits The number of clbits to create the register for
 /// @param name The name string for the created register. The name must be comprised of
@@ -175,7 +175,7 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 ///
 /// # Example
 ///
-///     QkClassicalRegister *qr = qk_classical_register_new(5, "five_qubits");
+///     QkClassicalRegister *cr = qk_classical_register_new(5, "five_qubits");
 ///
 /// # Safety
 ///
