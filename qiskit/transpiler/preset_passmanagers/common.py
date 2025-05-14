@@ -487,13 +487,14 @@ def generate_translation_passmanager(
         ]
         fix_1q = [translator]
     elif method == "clifford_t":
-        # The extended basis gates is the list of Clifford+T basis gates (which includes "cx", "h", "t",
-        # and "tdg") and the 1q-gate "u".
+        # The list of extended basis gates consists of the specified Clifford+T basis gates and
+        # additionally the 1q-gate "u".
+        # We set target=None to make sure extended_basis_gates is not overwritten by the target.
         extended_basis_gates = basis_gates + ["u"]
 
         unroll = [
-            # Use the UnitarySynthesis pass to unroll gates named "unitary".
-            # It is especially important to unroll 2-qubit "unitary" gates.
+            # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
+            # extended_basis_gates.
             UnitarySynthesis(
                 basis_gates=extended_basis_gates,
                 approximation_degree=approximation_degree,
@@ -502,11 +503,9 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=None,
             ),
-            # Use the HighLevelSynthesis pass to unroll all remaining custom 1q and 2q
-            # gates into ["cx", "t", "tdg", "u"] and the gates in the equivalence library.
-            # We use target=None to make sure extended_basis_gates is not overwritten by
-            # the target, and moreoever to make sure that only ["cx", "h", "t", "tdg", "u"]
-            # and the gates in the equivalence library remain.
+            # Use the HighLevelSynthesis pass to unroll all the remaining 1q and 2q custom
+            # gates into extended_basis_gates + the gates in the equivalence library.
+            # We set target=None to make sure extended_basis_gates is not overwritten by the target.
             HighLevelSynthesis(
                 hls_config=hls_config,
                 coupling_map=coupling_map,
@@ -516,7 +515,12 @@ def generate_translation_passmanager(
                 basis_gates=extended_basis_gates,
                 qubits_initially_zero=qubits_initially_zero,
             ),
-            # Use the BasisTranslator pass to translate all gates into ["cx", "h", "t", "tdg", "u"].
+            # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
+            # In other words, this translates the gates in the equivalence library that are not
+            # in extended_basis_gates to gates in extended_basis_gates only.
+            # Note that we do not want to make any assumptions on which Clifford gates are present
+            # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
+            # a helpful error message otherwise).
             BasisTranslator(sel, extended_basis_gates, None),
             # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
             # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
@@ -528,10 +532,7 @@ def generate_translation_passmanager(
                 approximation_degree=approximation_degree,
                 force_consolidate=True,
             ),
-            # We can call the Solovay-Kitaev decomposition either via the SolovayKitaevtranspiler pass
-            # or via the plugin mechanism for "sk" UnitarySynthesisPlugin. Due to various differences
-            # in the two approaches it is slightly more convenient to use the plugin approach. Morover,
-            # the plugin has been extended to recognize 1q-Clifford gates.
+            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk" UnitarySynthesisPlugin.
             UnitarySynthesis(
                 basis_gates=["h", "t", "tdg"],
                 approximation_degree=approximation_degree,
@@ -542,6 +543,7 @@ def generate_translation_passmanager(
                 target=None,
             ),
         ]
+        # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection into basis_gates.
         translator = BasisTranslator(sel, basis_gates, target)
         fix_1q = [translator]
     elif method == "synthesis":
@@ -744,11 +746,10 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
 
     For this we require that:
     1. The set only contains Clifford+T gates
-    2. The set contains H
-    3. The set contains either T or Tdg
+    2. The set contains H, T and Tdg gates.
 
-    The second and the third condition guarantees that [H, T, Tdg] gates produced by
-    Solovay-Kitaev synthesis can be translated to basis gates.
+    The second ondition guarantees that [H, T, Tdg] gates produced by
+    Solovay-Kitaev synthesis are in the basis gates.
 
     In addition, these conditions guarantee that the empty basis set is not
     considered as Clifford+T.
@@ -761,7 +762,12 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
     else:
         basis = set()
 
-    if (basis_gates is None) or (("t" not in basis_gates) and ("tdg" not in basis_gates)):
+    if (
+        (basis_gates is None)
+        or ("h" not in basis_gates)
+        or ("t" not in basis_gates)
+        or ("tdg" not in basis_gates)
+    ):
         return False
 
     return basis.issubset(_CLIFFORD_T_BASIS)
