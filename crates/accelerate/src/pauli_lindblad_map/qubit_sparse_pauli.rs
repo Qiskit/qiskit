@@ -10,9 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use numpy::{
-    PyArray1, PyArrayMethods, PyReadonlyArray1
-};
+use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
     intern,
@@ -1870,10 +1868,7 @@ impl PyQubitSparsePauliList {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         (
             py.get_type::<Self>().getattr("from_sparse_list")?,
-            (
-                self.to_sparse_list(py)?,
-                inner.num_qubits(),
-            ),
+            (self.to_sparse_list(py)?, inner.num_qubits()),
         )
             .into_pyobject(py)
     }

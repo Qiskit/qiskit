@@ -14,7 +14,6 @@
 
 import copy
 import pickle
-import unittest
 
 import ddt
 import numpy as np
@@ -486,11 +485,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
         # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
         qs_list = QubitSparsePauliList.from_label("IXXIIZZIYYIXYZ")
         self.assertEqual(len(qs_list), 1)
-        
-        self.assertEqual(
-            qs_list[0],
-            QubitSparsePauli.from_label("IXXIIZZIYYIXYZ")
-        )
+
+        self.assertEqual(qs_list[0], QubitSparsePauli.from_label("IXXIIZZIYYIXYZ"))
 
     def test_from_label_failures(self):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
@@ -610,12 +606,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
             num_qubits=3,
         )
         self.assertEqual(from_unsorted, QubitSparsePauliList.from_list(["XYZ", "XZY"]))
-        np.testing.assert_equal(
-            from_unsorted[0].indices, np.array([0, 1, 2], dtype=np.uint32)
-        )
-        np.testing.assert_equal(
-            from_unsorted[1].indices, np.array([0, 1, 2], dtype=np.uint32)
-        )
+        np.testing.assert_equal(from_unsorted[0].indices, np.array([0, 1, 2], dtype=np.uint32))
+        np.testing.assert_equal(from_unsorted[1].indices, np.array([0, 1, 2], dtype=np.uint32))
 
         # Explicit identities should still work, just be skipped over.
         explicit_identity = QubitSparsePauliList.from_sparse_list(
@@ -815,9 +807,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
             "Y": 0b11,
             "Z": 0b01,
         }
-        self.assertEqual(
-            {name: getattr(QubitSparsePauli.Pauli, name) for name in values}, values
-        )
+        self.assertEqual({name: getattr(QubitSparsePauli.Pauli, name) for name in values}, values)
 
         # The single-character label aliases can be accessed with index notation.
         labels = {
