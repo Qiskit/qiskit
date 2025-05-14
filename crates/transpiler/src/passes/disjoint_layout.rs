@@ -545,29 +545,30 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
 
 fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(true) {
-        if let OperationRef::StandardInstruction(StandardInstruction::Barrier(num_qubits)) =
+        let OperationRef::StandardInstruction(StandardInstruction::Barrier(num_qubits)) =
             inst.op.view()
-        {
-            if num_qubits == 1 {
-                continue;
-            }
-            let barrier_uuid = match &inst.label {
-                Some(label) => format!("{}_uuid={}", label, Uuid::new_v4()),
-                None => format!("_none_uuid={}", Uuid::new_v4()),
-            };
-            let mut split_dag = DAGCircuit::new()?;
-            for q in 0..num_qubits {
-                split_dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
-                split_dag.apply_operation_back(
-                    PackedOperation::from_standard_instruction(StandardInstruction::Barrier(1)),
-                    &[Qubit(q)],
-                    &[],
-                    None,
-                    Some(barrier_uuid.clone()),
-                    #[cfg(feature = "cache_pygates")]
-                    None,
-                )?;
-            }
+        else {
+            continue;
+        };
+        if num_qubits == 1 {
+            continue;
+        }
+        let barrier_uuid = match &inst.label {
+            Some(label) => format!("{}_uuid={}", label, Uuid::new_v4()),
+            None => format!("_none_uuid={}", Uuid::new_v4()),
+        };
+        let mut split_dag = DAGCircuit::new()?;
+        for q in 0..num_qubits {
+            split_dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
+            split_dag.apply_operation_back(
+                PackedOperation::from_standard_instruction(StandardInstruction::Barrier(1)),
+                &[Qubit(q)],
+                &[],
+                None,
+                Some(barrier_uuid.clone()),
+                #[cfg(feature = "cache_pygates")]
+                None,
+            )?;
         }
     }
     Ok(())
