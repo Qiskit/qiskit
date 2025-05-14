@@ -19,9 +19,7 @@ on:
         description: >
           Describes the system this workflow should run on.
         type: string
-        required: true
-
-  merge_group:
+        required: true 
 
 jobs:
   tests-mac:

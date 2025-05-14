@@ -35,8 +35,6 @@ on:
         type: boolean
         default: false
 
-  merge_group:
-
 jobs:
   unit-tests:
     if: github.repository_owner == 'Qiskit'
@@ -133,6 +131,7 @@ jobs:
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           RUST_BACKTRACE: 1
   test-rust:
+    if: ${{ inputs.test-rust }}
     name: ${{ inputs.runner }}-tests-Rust-${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
     env:
