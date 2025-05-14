@@ -205,6 +205,14 @@ pub unsafe extern "C" fn qk_classical_register_new(
 /// @param circuit A pointer to the circuit.
 /// @param reg A pointer to the quantum register
 ///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(0, 0);
+///     QkQuantumRegister *qr = qk_quantum_register_new(1024, "my_little_register");
+///     qk_circuit_add_quantum_register(qc, qr);
+///     qk_quantum_register_free(qr);
+///     qk_circuit_free(qc)
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
@@ -229,6 +237,14 @@ pub unsafe extern "C" fn qk_circuit_add_quantum_register(
 ///
 /// @param circuit A pointer to the circuit.
 /// @param reg A pointer to the classical register
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(0, 0);
+///     QkClassicalRegister *cr = qk_classical_register_new(24, "my_big_register");
+///     qk_circuit_add_classical_register(qc, cr);
+///     qk_classical_register_free(cr);
+///     qk_circuit_free(qc)
 ///
 /// # Safety
 ///
