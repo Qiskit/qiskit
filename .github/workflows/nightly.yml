@@ -30,6 +30,7 @@ jobs:
       - name: "Create comment on failed test run"
         run: gh issue comment "$NUMBER" --body "$BODY"
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NUMBER: 7864
           BODY: >
             Randomized tests failed at commit ${{ github.sha }}.
