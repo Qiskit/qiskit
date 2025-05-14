@@ -708,7 +708,7 @@ class Pauli(BasePauli):
     def apply_layout(
         self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> Pauli:
-        """Apply a transpiler layout to this :class:`~.Pauli`
+        """Apply a transpiler layout to this :class:`~.quantum_info.Pauli`
 
         Args:
             layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
