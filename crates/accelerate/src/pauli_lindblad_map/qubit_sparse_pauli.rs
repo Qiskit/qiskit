@@ -819,8 +819,7 @@ impl<'py> FromPyObject<'py> for Pauli {
     }
 }
 
-/// A phase-less Pauli operator stored in a qubit-sparse format. This class represents a single
-/// element of a :class:`QubitSparsePauliList`.
+/// A phase-less Pauli operator stored in a qubit-sparse format.
 ///
 /// Representation
 /// ==============
@@ -829,9 +828,23 @@ impl<'py> FromPyObject<'py> for Pauli {
 /// \bigotimes_n A^{(n)}_i`, for :math:`A^{(n)}_i \in \{I, X, Y, Z\}`. The internal representation
 /// of a :class:`QubitSparsePauli` stores only the non-identity single-qubit Pauli operators.
 ///
-/// Internally, each single-qubit Pauli operator is stored with a numeric value. See the alphabet
-/// table :ref:`qubit-sparse-pauli-alphabet` in the documentation for :class:`QubitSparsePauliList`
-/// for details.
+/// Internally, each single-qubit Pauli operator is stored with a numeric value, explicitly:
+///
+/// .. _qubit-sparse-pauli-alphabet:
+/// .. table:: Alphabet of single-qubit Pauli operators used in :class:`QubitSparsePauliList`
+///
+///   =======  =======================================  ===============  ===========================
+///   Label    Operator                                 Numeric value    :class:`.Pauli` attribute
+///   =======  =======================================  ===============  ===========================
+///   ``"I"``  :math:`I` (identity)                     Not stored.      Not stored.
+///
+///   ``"X"``  :math:`X` (Pauli X)                      ``0b10`` (2)     :attr:`~.Pauli.X`
+///
+///   ``"Y"``  :math:`Y` (Pauli Y)                      ``0b11`` (3)     :attr:`~.Pauli.Y`
+///
+///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b01`` (1)     :attr:`~.Pauli.Z`
+///
+///   =======  =======================================  ===============  ===========================
 ///
 /// .. _qubit-sparse-pauli-arrays:
 /// .. table:: Data arrays used to represent :class:`.QubitSparsePauli`
@@ -1369,7 +1382,7 @@ impl PyQubitSparsePauli {
 ///   :meth:`from_pauli`                Raise a single :class:`~.quantum_info.Pauli` into a
 ///                                     single-element :class:`.QubitSparsePauliList`.
 ///
-///   :meth:`from_qubit_sparse_paulis`  Construct from a list of :class:`QubitSparsePauli`s.
+///   :meth:`from_qubit_sparse_paulis`  Construct from a list of :class:`.QubitSparsePauli`\s.
 ///   ================================  ============================================================
 ///
 /// .. py:function:: QubitSparsePauliList.__new__(data, /, num_qubits=None)
