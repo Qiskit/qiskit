@@ -8,7 +8,7 @@ on:
           Python version to currently test
         type: string
         required: true
-      
+
       runner:
         description: >
           Describes the system this workflow should run on.
@@ -26,6 +26,7 @@ jobs:
     if: github.repository_owner == 'Qiskit'
     name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
+    timeout-minutes: 60
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       QISKIT_TEST_CAPTURE_STREAMS: 1

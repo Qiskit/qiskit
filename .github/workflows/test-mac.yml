@@ -19,13 +19,14 @@ on:
         description: >
           Describes the system this workflow should run on.
         type: string
-        required: true 
+        required: true
 
 jobs:
   tests-mac:
     if: github.repository_owner == 'Qiskit'
     name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
+    timeout-minutes: 60
     env:
       QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
