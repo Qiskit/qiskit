@@ -297,11 +297,10 @@ impl PyVariableMapper {
     }
 }
 
-#[pyfunction]
-fn reject_new_register(reg: &Bound<PyAny>) -> PyResult<()> {
+fn reject_new_register(reg: &ClassicalRegister) -> PyResult<()> {
     Err(DAGCircuitError::new_err(format!(
         "No register with '{:?}' to map this expression onto.",
-        reg.getattr("bits")?
+        reg.bits().collect_vec()
     )))
 }
 
@@ -6886,38 +6885,36 @@ impl DAGCircuit {
         for stretch in &other.stretches_declare {
             self.add_declared_stretch(other.stretches.get(*stretch).unwrap().clone())?;
         }
-        let build_var_mapper =
-            |cregs: &RegisterData<ClassicalRegister>| -> PyResult<PyVariableMapper> {
-                let edge_map = if qubit_map.is_empty() && clbit_map.is_empty() {
-                    // try to ido a 1-1 mapping in order
-                    let out_dict = PyDict::new(py);
-                    for (a, b) in identity_qubit_map.iter() {
-                        out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                    }
-                    for (a, b) in identity_clbit_map.iter() {
-                        out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                    }
-                    out_dict
-                } else {
-                    let out_dict = PyDict::new(py);
-                    for (a, b) in qubit_map.iter() {
-                        out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                    }
-                    for (a, b) in clbit_map.iter() {
-                        out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                    }
-                    out_dict
-                };
-
-                PyVariableMapper::new(
-                    py,
-                    PyList::new(py, cregs.registers())?.into_any(),
-                    Some(edge_map),
-                    None,
-                    Some(wrap_pyfunction!(reject_new_register, py)?.into_py_any(py)?),
-                )
+        let build_var_mapper = |cregs: &RegisterData<ClassicalRegister>| -> VariableMapper {
+            let edge_map = if clbit_map.is_empty() {
+                // try to ido a 1-1 mapping in order
+                let mut out_dict = HashMap::new();
+                // for (a, b) in identity_qubit_map.iter() {
+                //     out_dict.insert(a.clone(), b.clone());
+                // }
+                for (a, b) in identity_clbit_map.iter() {
+                    out_dict.insert(a.clone(), b.clone());
+                }
+                out_dict
+            } else {
+                let mut out_dict = HashMap::new();
+                // for (a, b) in qubit_map.iter() {
+                //     out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
+                // }
+                for (a, b) in clbit_map.iter() {
+                    out_dict.insert(a.clone(), b.clone());
+                }
+                out_dict
             };
-        let mut variable_mapper: Option<PyVariableMapper> = None;
+
+            VariableMapper::new(
+                cregs.registers().to_vec(),
+                edge_map,
+                HashMap::default(),
+                HashMap::default(),
+            )
+        };
+        let mut variable_mapper: Option<VariableMapper> = None;
 
         for node in other.topological_nodes()? {
             match &other.dag[node] {
@@ -6972,17 +6969,26 @@ impl DAGCircuit {
                         if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
                             || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
                         {
-                            if let Ok(condition) = py_op.getattr(intern!(py, "condition")) {
+                            if let Ok(condition) = py_op
+                                .getattr(intern!(py, "condition"))
+                                .and_then(|c| c.extract())
+                            {
                                 match variable_mapper {
                                     Some(ref variable_mapper) => {
-                                        let condition =
-                                            variable_mapper.map_condition(&condition, true)?;
+                                        let condition = variable_mapper.map_condition(
+                                            &condition,
+                                            true,
+                                            reject_new_register,
+                                        )?;
                                         py_op.setattr(intern!(py, "condition"), condition)?;
                                     }
                                     None => {
-                                        let var_mapper = build_var_mapper(&self.cregs)?;
-                                        let condition =
-                                            var_mapper.map_condition(&condition, true)?;
+                                        let var_mapper = build_var_mapper(&self.cregs);
+                                        let condition = var_mapper.map_condition(
+                                            &condition,
+                                            true,
+                                            reject_new_register,
+                                        )?;
                                         py_op.setattr(intern!(py, "condition"), condition)?;
                                         variable_mapper = Some(var_mapper);
                                     }
@@ -6993,16 +6999,20 @@ impl DAGCircuit {
                                 Some(ref variable_mapper) => {
                                     py_op.setattr(
                                         intern!(py, "target"),
-                                        variable_mapper
-                                            .map_target(&py_op.getattr(intern!(py, "target"))?)?,
+                                        variable_mapper.map_target(
+                                            &py_op.getattr(intern!(py, "target"))?.extract()?,
+                                            reject_new_register,
+                                        )?,
                                     )?;
                                 }
                                 None => {
-                                    let var_mapper = build_var_mapper(&self.cregs)?;
+                                    let var_mapper = build_var_mapper(&self.cregs);
                                     py_op.setattr(
                                         intern!(py, "target"),
-                                        var_mapper
-                                            .map_target(&py_op.getattr(intern!(py, "target"))?)?,
+                                        var_mapper.map_target(
+                                            &py_op.getattr(intern!(py, "target"))?.extract()?,
+                                            reject_new_register,
+                                        )?,
                                     )?;
                                     variable_mapper = Some(var_mapper);
                                 }
