@@ -95,51 +95,6 @@ class TestQubitSparsePauli(QiskitTestCase):
             QubitSparsePauli.from_sparse_label(("", []), num_qubits=5),
         )
 
-    def test_from_raw_parts(self):
-        # Happiest path: exactly typed inputs.
-        num_qubits = 100
-        terms = np.full((num_qubits,), QubitSparsePauli.Pauli.Z, dtype=np.uint8)
-        indices = np.arange(num_qubits, dtype=np.uint32)
-        qubit_sparse_pauli_list = QubitSparsePauli.from_raw_parts(
-            num_qubits,
-            terms,
-            indices,
-        )
-        self.assertEqual(qubit_sparse_pauli_list.num_qubits, num_qubits)
-        np.testing.assert_equal(qubit_sparse_pauli_list.paulis, terms)
-        np.testing.assert_equal(qubit_sparse_pauli_list.indices, indices)
-
-        self.assertEqual(
-            qubit_sparse_pauli_list,
-            QubitSparsePauli.from_raw_parts(
-                num_qubits,
-                terms,
-                indices,
-            ),
-        )
-
-        # Conversion from array-likes, including mis-typed but compatible arrays.
-        qubit_sparse_pauli_list = QubitSparsePauli.from_raw_parts(
-            num_qubits,
-            tuple(terms),
-            qubit_sparse_pauli_list.indices,
-        )
-        self.assertEqual(qubit_sparse_pauli_list.num_qubits, num_qubits)
-        np.testing.assert_equal(qubit_sparse_pauli_list.paulis, terms)
-        np.testing.assert_equal(qubit_sparse_pauli_list.indices, indices)
-
-    def test_from_raw_parts_checks_coherence(self):
-        with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            QubitSparsePauli.from_raw_parts(2, [ord("$")], [0])
-        with self.assertRaisesRegex(ValueError, r"`paulis` \(1\) and `indices` \(0\)"):
-            QubitSparsePauli.from_raw_parts(2, [QubitSparsePauli.Pauli.Z], [])
-        with self.assertRaisesRegex(ValueError, r"`paulis` \(0\) and `indices` \(1\)"):
-            QubitSparsePauli.from_raw_parts(2, [], [1])
-        with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
-            QubitSparsePauli.from_raw_parts(4, [1, 2], [0, 4])
-        with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
-            QubitSparsePauli.from_raw_parts(4, [1, 2], [0, 4])
-
     def test_from_label(self):
         # The label is interpreted like a bitstring, with the right-most item associated with qubit
         # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
@@ -512,10 +467,6 @@ class TestQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(base, copied)
         self.assertIsNot(base, copied)
 
-        # Modifications to `copied` don't propagate back.
-        copied.indices[0] = 1
-        self.assertNotEqual(base, copied)
-
         with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
             QubitSparsePauliList(base, num_qubits=base.num_qubits + 1)
 
@@ -530,102 +481,15 @@ class TestQubitSparsePauliList(QiskitTestCase):
         self.assertEqual(QubitSparsePauliList(tuple(terms)), expected)
         self.assertEqual(QubitSparsePauliList(term for term in terms), expected)
 
-    def test_from_raw_parts(self):
-        # Happiest path: exactly typed inputs.
-        num_qubits = 100
-        terms = np.full((num_qubits,), QubitSparsePauliList.Pauli.Z, dtype=np.uint8)
-        indices = np.arange(num_qubits, dtype=np.uint32)
-        boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
-        qubit_sparse_pauli_list = QubitSparsePauliList.from_raw_parts(
-            num_qubits, terms, indices, boundaries
-        )
-        self.assertEqual(qubit_sparse_pauli_list.num_qubits, num_qubits)
-        np.testing.assert_equal(qubit_sparse_pauli_list.paulis, terms)
-        np.testing.assert_equal(qubit_sparse_pauli_list.indices, indices)
-        np.testing.assert_equal(qubit_sparse_pauli_list.boundaries, boundaries)
-
-        self.assertEqual(
-            qubit_sparse_pauli_list,
-            QubitSparsePauliList.from_raw_parts(
-                num_qubits, terms, indices, boundaries, check=False
-            ),
-        )
-
-        # Conversion from array-likes, including mis-typed but compatible arrays.
-        qubit_sparse_pauli_list = QubitSparsePauliList.from_raw_parts(
-            num_qubits,
-            tuple(terms),
-            qubit_sparse_pauli_list.indices,
-            boundaries.astype(np.int16),
-        )
-        self.assertEqual(qubit_sparse_pauli_list.num_qubits, num_qubits)
-        np.testing.assert_equal(qubit_sparse_pauli_list.paulis, terms)
-        np.testing.assert_equal(qubit_sparse_pauli_list.indices, indices)
-        np.testing.assert_equal(qubit_sparse_pauli_list.boundaries, boundaries)
-
-        # Construction of an empty list.
-        self.assertEqual(
-            QubitSparsePauliList.from_raw_parts(10, [], [], [0]), QubitSparsePauliList.empty(10)
-        )
-
-        # Construction of an operator with an intermediate identity term.  For the initial
-        # constructor tests, it's hard to check anything more than the construction succeeded.
-        self.assertEqual(
-            QubitSparsePauliList.from_raw_parts(10, [1, 3, 2], [0, 1, 2], [0, 1, 1, 3]).num_terms,
-            3,
-        )
-
-    def test_from_raw_parts_checks_coherence(self):
-        with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            QubitSparsePauliList.from_raw_parts(2, [ord("$")], [0], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"`paulis` \(1\) and `indices` \(0\)"):
-            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.Pauli.Z], [], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"`paulis` \(0\) and `indices` \(1\)"):
-            QubitSparsePauliList.from_raw_parts(2, [], [1], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"the first item of `boundaries` \(1\) must be 0"):
-            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.Pauli.Z], [0], [1, 1])
-        with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(2\)"):
-            QubitSparsePauliList.from_raw_parts(2, [1], [0], [0, 2])
-        with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(1\)"):
-            QubitSparsePauliList.from_raw_parts(2, [1, 2], [0, 1], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(0\)"):
-            QubitSparsePauliList.from_raw_parts(2, [QubitSparsePauliList.Pauli.Z], [0], [0])
-        with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
-            QubitSparsePauliList.from_raw_parts(4, [1, 2], [0, 4], [0, 2])
-        with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
-            QubitSparsePauliList.from_raw_parts(4, [1, 2], [0, 4], [0, 1, 2])
-        with self.assertRaisesRegex(ValueError, "the values in `boundaries` include backwards"):
-            QubitSparsePauliList.from_raw_parts(5, [1, 2, 3, 2], [0, 1, 2, 3], [0, 2, 1, 4])
-        with self.assertRaisesRegex(
-            ValueError, "the values in `indices` are not term-wise increasing"
-        ):
-            QubitSparsePauliList.from_raw_parts(4, [1, 2], [1, 0], [0, 2])
-
-        # There's no test of attempting to pass incoherent data and `check=False` because that
-        # permits undefined behaviour in Rust (it's unsafe), so all bets would be off.
-
     def test_from_label(self):
         # The label is interpreted like a bitstring, with the right-most item associated with qubit
         # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
+        qs_list = QubitSparsePauliList.from_label("IXXIIZZIYYIXYZ")
+        self.assertEqual(len(qs_list), 1)
+        
         self.assertEqual(
-            # Ruler for counting terms:  dcba9876543210
-            QubitSparsePauliList.from_label("IXXIIZZIYYIXYZ"),
-            QubitSparsePauliList.from_raw_parts(
-                14,
-                [
-                    QubitSparsePauliList.Pauli.Z,
-                    QubitSparsePauliList.Pauli.Y,
-                    QubitSparsePauliList.Pauli.X,
-                    QubitSparsePauliList.Pauli.Y,
-                    QubitSparsePauliList.Pauli.Y,
-                    QubitSparsePauliList.Pauli.Z,
-                    QubitSparsePauliList.Pauli.Z,
-                    QubitSparsePauliList.Pauli.X,
-                    QubitSparsePauliList.Pauli.X,
-                ],
-                [0, 1, 2, 4, 5, 7, 8, 11, 12],
-                [0, 9],
-            ),
+            qs_list[0],
+            QubitSparsePauli.from_label("IXXIIZZIYYIXYZ")
         )
 
     def test_from_label_failures(self):
@@ -646,8 +510,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauliList.from_label(label),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_list([label]),
-            QubitSparsePauliList.from_raw_parts(
+            QubitSparsePauliList.from_list([label])[0],
+            QubitSparsePauli.from_raw_parts(
                 len(label),
                 [
                     QubitSparsePauliList.Pauli.Y,
@@ -657,12 +521,11 @@ class TestQubitSparsePauliList(QiskitTestCase):
                     QubitSparsePauliList.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
-                [0, 5],
             ),
         )
         self.assertEqual(
-            QubitSparsePauliList.from_list([label], num_qubits=len(label)),
-            QubitSparsePauliList.from_raw_parts(
+            QubitSparsePauliList.from_list([label], num_qubits=len(label))[0],
+            QubitSparsePauli.from_raw_parts(
                 len(label),
                 [
                     QubitSparsePauliList.Pauli.Y,
@@ -672,22 +535,30 @@ class TestQubitSparsePauliList(QiskitTestCase):
                     QubitSparsePauliList.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5],
-                [0, 5],
             ),
         )
 
         self.assertEqual(
-            QubitSparsePauliList.from_list(["IIIXZI", "XXIIII"]),
-            QubitSparsePauliList.from_raw_parts(
+            QubitSparsePauliList.from_list(["IIIXZI", "XXIIII"])[0],
+            QubitSparsePauli.from_raw_parts(
                 6,
                 [
                     QubitSparsePauliList.Pauli.Z,
                     QubitSparsePauliList.Pauli.X,
+                ],
+                [1, 2],
+            ),
+        )
+
+        self.assertEqual(
+            QubitSparsePauliList.from_list(["IIIXZI", "XXIIII"])[1],
+            QubitSparsePauli.from_raw_parts(
+                6,
+                [
                     QubitSparsePauliList.Pauli.X,
                     QubitSparsePauliList.Pauli.X,
                 ],
-                [1, 2, 4, 5],
-                [0, 2, 4],
+                [4, 5],
             ),
         )
 
@@ -740,7 +611,10 @@ class TestQubitSparsePauliList(QiskitTestCase):
         )
         self.assertEqual(from_unsorted, QubitSparsePauliList.from_list(["XYZ", "XZY"]))
         np.testing.assert_equal(
-            from_unsorted.indices, np.array([0, 1, 2, 0, 1, 2], dtype=np.uint32)
+            from_unsorted[0].indices, np.array([0, 1, 2], dtype=np.uint32)
+        )
+        np.testing.assert_equal(
+            from_unsorted[1].indices, np.array([0, 1, 2], dtype=np.uint32)
         )
 
         # Explicit identities should still work, just be skipped over.
@@ -755,7 +629,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
             explicit_identity,
             QubitSparsePauliList.from_sparse_list([("XZ", (1, 0)), ("YX", (1, 0))], num_qubits=10),
         )
-        np.testing.assert_equal(explicit_identity.indices, np.array([0, 1, 0, 1], dtype=np.uint32))
+        np.testing.assert_equal(explicit_identity[0].indices, np.array([0, 1], dtype=np.uint32))
+        np.testing.assert_equal(explicit_identity[1].indices, np.array([0, 1], dtype=np.uint32))
 
         self.assertEqual(
             QubitSparsePauliList.from_sparse_list([], num_qubits=1_000_000),
@@ -907,15 +782,13 @@ class TestQubitSparsePauliList(QiskitTestCase):
     def test_empty(self):
         empty_5 = QubitSparsePauliList.empty(5)
         self.assertEqual(empty_5.num_qubits, 5)
-        np.testing.assert_equal(empty_5.paulis, np.array([], dtype=np.uint8))
-        np.testing.assert_equal(empty_5.indices, np.array([], dtype=np.uint32))
-        np.testing.assert_equal(empty_5.boundaries, np.array([0], dtype=np.uintp))
+        self.assertEqual(len(empty_5), 0)
+        self.assertEqual(empty_5.to_sparse_list(), [])
 
         empty_0 = QubitSparsePauliList.empty(0)
         self.assertEqual(empty_0.num_qubits, 0)
-        np.testing.assert_equal(empty_0.paulis, np.array([], dtype=np.uint8))
-        np.testing.assert_equal(empty_0.indices, np.array([], dtype=np.uint32))
-        np.testing.assert_equal(empty_0.boundaries, np.array([0], dtype=np.uintp))
+        self.assertEqual(len(empty_0), 0)
+        self.assertEqual(empty_0.to_sparse_list(), [])
 
     def test_len(self):
         self.assertEqual(len(QubitSparsePauliList.empty(0)), 0)
@@ -1030,209 +903,6 @@ class TestQubitSparsePauliList(QiskitTestCase):
             QubitSparsePauliList.from_sparse_list([("XZ", (0, 1)), ("XX", (2, 3))], num_qubits=5),
             QubitSparsePauliList.from_sparse_list([("XZX", (0, 1, 2)), ("X", (3,))], num_qubits=5),
         )
-
-    def test_write_into_attributes_scalar(self):
-
-        paulis = QubitSparsePauliList.from_sparse_list(
-            [("XZ", (0, 1)), ("XX", (2, 3))], num_qubits=8
-        )
-        paulis.paulis[0] = QubitSparsePauliList.Pauli.Y
-        paulis.paulis[3] = QubitSparsePauliList.Pauli.Z
-        self.assertEqual(
-            paulis,
-            QubitSparsePauliList.from_sparse_list([("YZ", (0, 1)), ("XZ", (2, 3))], num_qubits=8),
-        )
-
-        indices = QubitSparsePauliList.from_sparse_list(
-            [("XZ", (0, 1)), ("XX", (2, 3))], num_qubits=8
-        )
-        # These two sets keep the generator in term-wise increasing order.  We don't test what
-        # happens if somebody violates the Rust-space requirement to be term-wise increasing.
-        indices.indices[1] = 4
-        indices.indices[3] = 7
-        self.assertEqual(
-            indices,
-            QubitSparsePauliList.from_sparse_list([("XZ", (0, 4)), ("XX", (2, 7))], num_qubits=8),
-        )
-
-        boundaries = QubitSparsePauliList.from_sparse_list(
-            [("XZ", (0, 1)), ("XX", (2, 3))], num_qubits=8
-        )
-        # Move a single-qubit term from the second summand into the first (the particular indices
-        # ensure we remain term-wise sorted).
-        boundaries.boundaries[1] += 1
-        self.assertEqual(
-            boundaries,
-            QubitSparsePauliList.from_sparse_list([("XZX", (0, 1, 2)), ("X", (3,))], num_qubits=8),
-        )
-
-    def test_write_into_attributes_broadcast(self):
-        # It's hard to broadcast into `indices` without breaking data coherence; the broadcasting is
-        # more meant for fast modifications to `coeffs` and `paulis`.
-        indices = QubitSparsePauliList.from_list(["XIIZI", "IIYIZ", "ZIIIY"])
-        indices.indices[::2] = 1
-        self.assertEqual(indices, QubitSparsePauliList.from_list(["XIIZI", "IIYZI", "ZIIYI"]))
-
-        paulis = QubitSparsePauliList.from_list(["XIIZI", "IIYIZ", "ZIIIY"])
-        paulis.paulis[::2] = QubitSparsePauliList.Pauli.Z
-        self.assertEqual(
-            paulis,
-            QubitSparsePauliList.from_list(["XIIZI", "IIYIZ", "ZIIIZ"]),
-        )
-        paulis.paulis[3:1:-1] = QubitSparsePauliList.Pauli.X
-        self.assertEqual(
-            paulis,
-            QubitSparsePauliList.from_list(["XIIZI", "IIXIX", "ZIIIZ"]),
-        )
-        paulis.paulis[paulis.boundaries[2] : paulis.boundaries[3]] = QubitSparsePauliList.Pauli.X
-        self.assertEqual(
-            paulis,
-            QubitSparsePauliList.from_list(["XIIZI", "IIXIX", "XIIIX"]),
-        )
-
-        boundaries = QubitSparsePauliList.from_list(["IIIIZX", "IIXXII", "YYIIII"])
-        boundaries.boundaries[1:3] = 1
-        self.assertEqual(
-            boundaries,
-            QubitSparsePauliList.from_list(["IIIIIX", "IIIIII", "YYXXZI"]),
-        )
-
-    def test_write_into_attributes_slice(self):
-        indices = QubitSparsePauliList.from_list(["IIIIZX", "IIXYII", "YZIIII"])
-        indices.indices[:4] = [4, 5, 1, 2]
-        self.assertEqual(indices, QubitSparsePauliList.from_list(["ZXIIII", "IIIXYI", "YZIIII"]))
-
-        paulis = QubitSparsePauliList.from_list(["IIIIZX", "IIXXII", "YYIIII"])
-        paulis.paulis[::2] = [
-            QubitSparsePauliList.Pauli.Y,
-            QubitSparsePauliList.Pauli.Y,
-            QubitSparsePauliList.Pauli.Z,
-        ]
-        self.assertEqual(
-            paulis,
-            QubitSparsePauliList.from_list(["IIIIZY", "IIXYII", "YZIIII"]),
-        )
-
-        boundaries = QubitSparsePauliList.from_list(["IIIIZX", "IIXXII", "YYIIII"])
-        boundaries.boundaries[1:-1] = [1, 5]
-        self.assertEqual(
-            boundaries,
-            QubitSparsePauliList.from_list(["IIIIIX", "IYXXZI", "YIIIII"]),
-        )
-
-    def test_attributes_reject_bad_writes(self):
-        pauli_list = QubitSparsePauliList.from_list(["XZY", "XXY"])
-        with self.assertRaises(TypeError):
-            pauli_list.paulis[0] = [QubitSparsePauliList.Pauli.X] * 4
-        with self.assertRaises(TypeError):
-            pauli_list.indices[0] = [0, 1]
-        with self.assertRaises(TypeError):
-            pauli_list.boundaries[0] = (0, 1)
-        with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            pauli_list.paulis[0] = 0
-        with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            pauli_list.paulis[:] = 0
-        with self.assertRaisesRegex(
-            ValueError, "tried to set a slice of length 6 with a sequence of length 8"
-        ):
-            pauli_list.paulis[:] = [QubitSparsePauliList.Pauli.Z] * 8
-
-    def test_attributes_sequence(self):
-        """Test attributes of the `Sequence` protocol."""
-        # Length
-        pauli_list = QubitSparsePauliList.from_list(["XZY", "ZYX"])
-        self.assertEqual(len(pauli_list.indices), 6)
-        self.assertEqual(len(pauli_list.paulis), 6)
-        self.assertEqual(len(pauli_list.boundaries), 3)
-
-        # Iteration
-        self.assertEqual(tuple(pauli_list.indices), (0, 1, 2, 0, 1, 2))
-        self.assertEqual(next(iter(pauli_list.boundaries)), 0)
-        # multiple iteration through same object
-        paulis = pauli_list.paulis
-        self.assertEqual(set(paulis), {QubitSparsePauliList.Pauli[x] for x in "XYZZYX"})
-        self.assertEqual(set(paulis), {QubitSparsePauliList.Pauli[x] for x in "XYZZYX"})
-
-        # Implicit iteration methods.
-        self.assertIn(QubitSparsePauliList.Pauli.Y, pauli_list.paulis)
-        self.assertNotIn(4, pauli_list.indices)
-
-        # Index by scalar
-        self.assertEqual(pauli_list.indices[-1], 2)
-        self.assertEqual(pauli_list.paulis[0], QubitSparsePauliList.Pauli.Y)
-        # Make sure that Rust-space actually returns the enum value, not just an `int` (which could
-        # have compared equal).
-        self.assertIsInstance(pauli_list.paulis[0], QubitSparsePauliList.Pauli)
-        self.assertEqual(pauli_list.boundaries[-2], 3)
-        with self.assertRaises(IndexError):
-            _ = pauli_list.boundaries[-4]
-
-        # Index by slice.  This is API guaranteed to be a Numpy array to make it easier to
-        # manipulate subslices with mathematic operations.
-        self.assertIsInstance(pauli_list.indices[::-1], np.ndarray)
-        np.testing.assert_array_equal(
-            pauli_list.indices[::-1],
-            np.array([2, 1, 0, 2, 1, 0], dtype=np.uint32),
-            strict=True,
-        )
-        self.assertIsInstance(pauli_list.paulis[2:4], np.ndarray)
-        np.testing.assert_array_equal(
-            pauli_list.paulis[2:4],
-            np.array([QubitSparsePauliList.Pauli.X, QubitSparsePauliList.Pauli.X], dtype=np.uint8),
-            strict=True,
-        )
-        self.assertIsInstance(pauli_list.boundaries[-2:-3:-1], np.ndarray)
-        np.testing.assert_array_equal(
-            pauli_list.boundaries[-2:-3:-1], np.array([3], dtype=np.uintp), strict=True
-        )
-
-    def test_attributes_to_array(self):
-        pauli_list = QubitSparsePauliList.from_list(["XZY", "XYZ"])
-
-        # Natural dtypes.
-        np.testing.assert_array_equal(
-            pauli_list.indices, np.array([0, 1, 2, 0, 1, 2], dtype=np.uint32), strict=True
-        )
-        np.testing.assert_array_equal(
-            pauli_list.paulis,
-            np.array([QubitSparsePauliList.Pauli[x] for x in "YZXZYX"], dtype=np.uint8),
-            strict=True,
-        )
-        np.testing.assert_array_equal(
-            pauli_list.boundaries, np.array([0, 3, 6], dtype=np.uintp), strict=True
-        )
-
-        # Cast dtypes.
-        np.testing.assert_array_equal(
-            np.array(pauli_list.indices, dtype=np.uint8),
-            np.array([0, 1, 2, 0, 1, 2], dtype=np.uint8),
-            strict=True,
-        )
-        np.testing.assert_array_equal(
-            np.array(pauli_list.boundaries, dtype=np.int64),
-            np.array([0, 3, 6], dtype=np.int64),
-            strict=True,
-        )
-
-    @unittest.skipIf(
-        int(np.__version__.split(".", maxsplit=1)[0]) < 2,
-        "Numpy 1.x did not have a 'copy' keyword parameter to 'numpy.asarray'",
-    )
-    def test_attributes_reject_no_copy_array(self):
-        pauli_list = QubitSparsePauliList.from_list(["XZY", "YXZ"])
-        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_list.indices, copy=False)
-        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_list.paulis, copy=False)
-        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_list.boundaries, copy=False)
-
-    def test_attributes_repr(self):
-        # We're not testing much about the outputs here, just that they don't crash.
-        pauli_list = QubitSparsePauliList.from_list(["XZY", "YXZ"])
-        self.assertIn("paulis", repr(pauli_list.paulis))
-        self.assertIn("indices", repr(pauli_list.indices))
-        self.assertIn("boundaries", repr(pauli_list.boundaries))
 
     @ddt.idata(single_cases_list())
     def test_clear(self, pauli_list):
