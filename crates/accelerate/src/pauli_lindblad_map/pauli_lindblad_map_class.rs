@@ -330,13 +330,13 @@ impl PauliLindbladMap {
     /// If the index is out of bounds.
     pub fn term(&self, index: usize) -> SparseTermView {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
-        let start = self.qubit_sparse_pauli_list.boundaries[index];
-        let end = self.qubit_sparse_pauli_list.boundaries[index + 1];
+        let start = self.qubit_sparse_pauli_list.boundaries()[index];
+        let end = self.qubit_sparse_pauli_list.boundaries()[index + 1];
         SparseTermView {
-            num_qubits: self.qubit_sparse_pauli_list.num_qubits,
+            num_qubits: self.qubit_sparse_pauli_list.num_qubits(),
             rate: self.rates[index],
-            paulis: &self.qubit_sparse_pauli_list.paulis[start..end],
-            indices: &self.qubit_sparse_pauli_list.indices[start..end],
+            paulis: &self.qubit_sparse_pauli_list.paulis()[start..end],
+            indices: &self.qubit_sparse_pauli_list.indices()[start..end],
         }
     }
 }
@@ -432,8 +432,8 @@ impl<'a> From<&'a mut PauliLindbladMap> for IterMut<'a> {
     fn from(value: &mut PauliLindbladMap) -> IterMut {
         IterMut {
             num_qubits: value.qubit_sparse_pauli_list.num_qubits(),
-            rates: value.rates_mut(),
-            paulis: &mut value.qubit_sparse_pauli_list.paulis(),
+            rates: &mut value.rates,
+            paulis: value.qubit_sparse_pauli_list.paulis_mut(),
             indices: value.qubit_sparse_pauli_list.indices(),
             boundaries: value.qubit_sparse_pauli_list.boundaries(),
             i: 0,
