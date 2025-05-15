@@ -308,17 +308,17 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_identity(self):
         identity_5 = PauliLindbladMap.identity(5)
         self.assertEqual(identity_5.num_qubits, 5)
+        self.assertEqual(identity_5.gamma, 1.)
+        self.assertEqual(identity_5.num_terms, 0.)
         np.testing.assert_equal(identity_5.rates, np.array([], dtype=float))
-        np.testing.assert_equal(identity_5.paulis, np.array([], dtype=np.uint8))
-        np.testing.assert_equal(identity_5.indices, np.array([], dtype=np.uint32))
-        np.testing.assert_equal(identity_5.boundaries, np.array([0], dtype=np.uintp))
+        np.testing.assert_equal(identity_5.probabilities, np.array([], dtype=float))
 
         identity_0 = PauliLindbladMap.identity(0)
         self.assertEqual(identity_0.num_qubits, 0)
+        self.assertEqual(identity_0.gamma, 1.)
+        self.assertEqual(identity_0.num_terms, 0.)
         np.testing.assert_equal(identity_0.rates, np.array([], dtype=float))
-        np.testing.assert_equal(identity_0.paulis, np.array([], dtype=np.uint8))
-        np.testing.assert_equal(identity_0.indices, np.array([], dtype=np.uint32))
-        np.testing.assert_equal(identity_0.boundaries, np.array([0], dtype=np.uintp))
+        np.testing.assert_equal(identity_0.probabilities, np.array([], dtype=float))
 
     def test_len(self):
         self.assertEqual(len(PauliLindbladMap.identity(0)), 0)
@@ -532,16 +532,20 @@ class TestPauliLindbladMap(QiskitTestCase):
 
     def test_term_equality(self):
         self.assertEqual(
-            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(5, 1.0, [], [])
+            PauliLindbladMap.GeneratorTerm(1.0, QubitSparsePauli(("", []), 5)), 
+            PauliLindbladMap.GeneratorTerm(1.0, QubitSparsePauli(("", []), 5))
         )
         self.assertNotEqual(
-            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(8, 1.0, [], [])
+            PauliLindbladMap.GeneratorTerm(1.0, QubitSparsePauli(("", []), 5)), 
+            PauliLindbladMap.GeneratorTerm(1.0, QubitSparsePauli(("", []), 8))
         )
         self.assertNotEqual(
-            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(5, 2.0, [], [])
+            PauliLindbladMap.GeneratorTerm(1.0, QubitSparsePauli(("", []), 5)), 
+            PauliLindbladMap.GeneratorTerm(2.0, QubitSparsePauli(("", []), 5))
         )
         self.assertNotEqual(
-            PauliLindbladMap.Term(5, 1.0, [], []), PauliLindbladMap.Term(8, -1, [], [])
+            PauliLindbladMap.GeneratorTerm(1.0, QubitSparsePauli(("", []), 5)), 
+            PauliLindbladMap.GeneratorTerm(-1, QubitSparsePauli(("", []), 8))
         )
 
         pauli_lindblad_map = PauliLindbladMap.from_list(
@@ -608,37 +612,12 @@ class TestPauliLindbladMap(QiskitTestCase):
         expected = PauliLindbladMap([("IIIXXZIII", 1.0)])[0]
 
         self.assertEqual(
-            PauliLindbladMap.Term(
-                9,
+            PauliLindbladMap.GeneratorTerm(
                 1.0,
-                [
-                    PauliLindbladMap.Pauli.Z,
-                    PauliLindbladMap.Pauli.X,
-                    PauliLindbladMap.Pauli.X,
-                ],
-                [3, 4, 5],
+                QubitSparsePauli(("ZXX", [3, 4, 5]), 9)
             ),
             expected,
         )
-
-        # Constructor should allow being given unsorted inputs, and but them in the right order.
-        self.assertEqual(
-            PauliLindbladMap.Term(
-                9,
-                1.0,
-                [
-                    PauliLindbladMap.Pauli.X,
-                    PauliLindbladMap.Pauli.X,
-                    PauliLindbladMap.Pauli.Z,
-                ],
-                [4, 5, 3],
-            ),
-            expected,
-        )
-        self.assertEqual(list(expected.indices), [3, 4, 5])
-
-        with self.assertRaisesRegex(ValueError, "not term-wise increasing"):
-            PauliLindbladMap.Term(2, 2, [PauliLindbladMap.Pauli.X] * 2, [0, 0])
 
     def test_to_sparse_list(self):
         """Test converting to a sparse list."""
@@ -663,13 +642,13 @@ class TestPauliLindbladMap(QiskitTestCase):
                 canonicalize_sparse_list(pauli_lindblad_map.to_sparse_list()),
             )
 
-    def test_sparse_term_bit_labels(self):
+    def test_sparse_term_pauli_labels(self):
         """Test getting the bit labels of a SparseTerm."""
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
         term = pauli_lindblad_map[0]
         indices = term.indices
-        labels = term.bit_labels()
+        labels = term.pauli_labels()
 
         label_dict = dict(zip(indices, labels))
         expected = dict(enumerate("ZYXZYXZYX"))

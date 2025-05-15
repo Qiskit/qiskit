@@ -23,8 +23,7 @@ use std::sync::{Arc, RwLock};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    raw_parts_from_sparse_list, ArithmeticError, CoherenceError,
-    InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList, QubitSparsePauli, QubitSparsePauliView
+    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList, QubitSparsePauliView
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
@@ -406,32 +405,9 @@ impl PyGeneratorTerm {
     }
 
     #[new]
-    #[pyo3(signature = (/, num_qubits, rate, paulis, indices))]
-    fn py_new(num_qubits: u32, rate: f64, paulis: Vec<Pauli>, indices: Vec<u32>) -> PyResult<Self> {
-        if paulis.len() != indices.len() {
-            return Err(CoherenceError::MismatchedItemCount {
-                paulis: paulis.len(),
-                indices: indices.len(),
-            }
-            .into());
-        }
-        let mut order = (0..paulis.len()).collect::<Vec<_>>();
-        order.sort_unstable_by_key(|a| indices[*a]);
-        let paulis = order.iter().map(|i| paulis[*i]).collect();
-        let mut sorted_indices = Vec::<u32>::with_capacity(order.len());
-        for i in order {
-            let index = indices[i];
-            if sorted_indices
-                .last()
-                .map(|prev| *prev >= index)
-                .unwrap_or(false)
-            {
-                return Err(CoherenceError::UnsortedIndices.into());
-            }
-            sorted_indices.push(index)
-        }
-        let qubit_sparse_pauli = QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
-        let inner = GeneratorTerm::new(rate, qubit_sparse_pauli)?;
+    #[pyo3(signature = (/, rate, qubit_sparse_pauli))]
+    fn py_new(rate: f64, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<Self> {
+        let inner = GeneratorTerm::new(rate, qubit_sparse_pauli.inner.clone())?;
         Ok(PyGeneratorTerm { inner })
     }
 
@@ -1292,7 +1268,7 @@ impl PyPauliLindbladMap {
     // `PauliLindbladMap`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn Term(py: Python) -> Bound<PyType> {
+    fn GeneratorTerm(py: Python) -> Bound<PyType> {
         py.get_type::<PyGeneratorTerm>()
     }
 
