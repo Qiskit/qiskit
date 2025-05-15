@@ -156,8 +156,8 @@ jobs:
       - name: Prepare venv
         run: |
           set -e
-          python -m pip install --upgrade pip setuptools wheel virtualenv
-          virtualenv test-job
+          python -m pip install --upgrade pip setuptools wheel
+          python -m venv test-job
       - name: Install Qiskit from sdist
         if: ${{ inputs.install-from-sdist }}
         run: |
@@ -218,8 +218,8 @@ jobs:
       - name: Prepare venv
         run: |
           set -e
-          python -m pip install --upgrade pip setuptools wheel virtualenv
-          virtualenv test-job
+          python -m pip install --upgrade pip setuptools wheel
+          python -m venv test-job
       - name: Install Qiskit directly
         if: ${{ !inputs.install-from-sdist }}
         run: |
@@ -235,7 +235,7 @@ jobs:
       - name: Install Image dependencies
         run: |
           set -e
-          virtualenv image_tests
+          python -m venv image_tests
           image_tests/bin/python -m pip install -U \
             -c constraints.txt \
             -r requirements.txt \
