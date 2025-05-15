@@ -63,6 +63,10 @@ impl<R: Register + PartialEq> BitLocations<R> {
         }
         None
     }
+
+    pub fn index(&self) -> u32 {
+        self.index
+    }
 }
 
 impl<'py, R> IntoPyObject<'py> for BitLocations<R>

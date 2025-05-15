@@ -26,6 +26,10 @@ qiskit-circuit.workspace = true
 qiskit-accelerate.workspace = true
 thiserror.workspace = true
 
+[dependencies.uuid]
+workspace = true
+features = ["v4", "fast-rng"]
+
 [dependencies.smallvec]
 workspace = true
 features = ["union"]
