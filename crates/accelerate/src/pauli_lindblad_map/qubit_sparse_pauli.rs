@@ -355,45 +355,16 @@ impl QubitSparsePauliList {
         &self.indices
     }
 
-    /// Get a mutable slice of the indices.
-    ///
-    /// # Safety
-    ///
-    /// Modifying the indices can cause an incoherent state of the [QubitSparsePauliList].
-    /// It should be ensured that the indices are consistent with the paulis, and boundaries.
-    #[inline]
-    pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
-        &mut self.indices
-    }
-
     /// Get the boundaries of each term.
     #[inline]
     pub fn boundaries(&self) -> &[usize] {
         &self.boundaries
     }
 
-    /// Get a mutable slice of the boundaries.
-    ///
-    /// # Safety
-    ///
-    /// Modifying the boundaries can cause an incoherent state of the [QubitSparsePauliList].
-    /// It should be ensured that the boundaries are sorted and the length/elements are consistent
-    /// with the paulis and indices.
-    #[inline]
-    pub unsafe fn boundaries_mut(&mut self) -> &mut [usize] {
-        &mut self.boundaries
-    }
-
     /// Get the [Pauli]s in the list.
     #[inline]
     pub fn paulis(&self) -> &[Pauli] {
         &self.paulis
-    }
-
-    /// Get a mutable slice of the paulis.
-    #[inline]
-    pub fn paulis_mut(&mut self) -> &mut [Pauli] {
-        &mut self.paulis
     }
 
     /// Create a [QubitSparsePauliList] representing the empty list on ``num_qubits`` qubits.
