@@ -31,12 +31,12 @@ class TestIQPLibrary(QiskitTestCase):
     def test_iqp(self, use_function):
         """Test iqp circuit.
 
-             ┌───┐                             ┌─────────┐┌───┐
-        q_0: ┤ H ├─■───────────────────■───────┤ P(3π/4) ├┤ H ├
-             ├───┤ │P(5π/2)            │       └┬────────┤├───┤
-        q_1: ┤ H ├─■─────────■─────────┼────────┤ P(π/2) ├┤ H ├
-             ├───┤           │P(3π/2)  │P(π/2)  ├────────┤├───┤
-        q_2: ┤ H ├───────────■─────────■────────┤ P(π/4) ├┤ H ├
+             ┌───┐                   ┌─────────┐  ┌───┐
+        q_0: ┤ H ├─■─────────■───────┤ P(3π/2) ├──┤ H ├────────
+             ├───┤ │P(5π/2)  │       └─────────┘ ┌┴───┴─┐ ┌───┐
+        q_1: ┤ H ├─■─────────┼─────────■─────────┤ P(π) ├─┤ H ├
+             ├───┤           │P(π/2)   │P(3π/2) ┌┴──────┴┐├───┤
+        q_2: ┤ H ├───────────■─────────■────────┤ P(π/2) ├┤ H ├
              └───┘                              └────────┘└───┘
         """
 
@@ -52,9 +52,9 @@ class TestIQPLibrary(QiskitTestCase):
         expected.cp(5 * np.pi / 2, 0, 1)
         expected.cp(3 * np.pi / 2, 1, 2)
         expected.cp(1 * np.pi / 2, 0, 2)
-        expected.p(6 * np.pi / 8, 0)
-        expected.p(4 * np.pi / 8, 1)
-        expected.p(2 * np.pi / 8, 2)
+        expected.p(6 * np.pi / 4, 0)
+        expected.p(4 * np.pi / 4, 1)
+        expected.p(2 * np.pi / 4, 2)
         expected.h([0, 1, 2])
         expected = Operator(expected)
         simulated = Operator(circuit)
