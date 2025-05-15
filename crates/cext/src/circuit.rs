@@ -69,11 +69,11 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 }
 
 /// @ingroup QkCircuit
-/// Create a copy of a QkCircuit.
+/// Create a copy of a ``QkCircuit``.
 ///
-/// @param circuit A pointer to the circuit to copy
+/// @param circuit A pointer to the circuit to copy.
 ///
-/// @return A new pointer to a copy of the input `circuit`.
+/// @return A new pointer to a copy of the input ``circuit``.
 ///
 /// # Example
 ///
