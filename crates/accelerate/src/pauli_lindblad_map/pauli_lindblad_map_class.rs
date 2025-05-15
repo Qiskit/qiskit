@@ -544,11 +544,11 @@ impl PyGeneratorTerm {
 /// Mathematics
 /// ===========
 ///
-/// A Pauli-Lindblad map is a linear map acting on density matrices on :math:`n`-qubits of the form
+/// A Pauli-Lindblad map is a linear map acting on density matrices on :math:`n`-qubits of the form:
 ///
 /// .. math::
 ///
-///     \Lamdba = \exp\left(\sum_{P \in K} \lambda_P (P \cdot P - \cdot)\right)
+///     \Lambda = \exp\left(\sum_{P \in K} \lambda_P (P \cdot P - \cdot)\right)
 ///
 /// where :math:`K` is a subset of :math:`n`-qubit Pauli operators, and the rates, or coefficients,
 /// :math:`\lambda_P` are real numbers. When all the rates :math:`\lambda_P` are
@@ -581,7 +581,7 @@ impl PyGeneratorTerm {
 ///
 /// .. math::
 ///
-///     \omega(\lambda_P) \cdot + (1 - \omega(\lambda_P)) P \cdot P = \gamma_P \left(p_P \cdot + (-1)^b_P(1 - p_P) P \cdot P\right).
+///     \omega(\lambda_P) \cdot + (1 - \omega(\lambda_P)) P \cdot P = \gamma_P \left(p_P \cdot + (-1)^{b_P}(1 - p_P) P \cdot P\right).
 ///
 /// If :math:`\lambda_P \geq 0`, :math:`\gamma_P = 1` and the expression reduces to the standard
 /// mixture of the identity map and conjugation by :math:`P`. If :math:`\lambda_P < 0`,
@@ -603,9 +603,9 @@ impl PyGeneratorTerm {
 ///
 /// Internally, :class:`.PauliLindbladMap` stores an array of rates and a
 /// :class:`.QubitSparsePauliList` containing the corresponding sparse Pauli operators.
-/// Additionally, :class:`.PauliLindbladMap` stores the overall channel :math:`gamma` in the
-/// :attr:`gamma` attribute, as well as probabilities corresponding probabilities (or quasi-probabilities)
-/// in the :attr:`probabilities` attribute.
+/// Additionally, :class:`.PauliLindbladMap` stores the overall channel :math:`\gamma` in the
+/// :attr:`gamma` attribute, as well as probabilities corresponding probabilities (or
+/// quasi-probabilities) in the :attr:`probabilities` attribute.
 ///
 /// Indexing
 /// --------
@@ -1033,7 +1033,7 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// The maps's qubit sparse pauli list.
+    /// The map's qubit sparse pauli list.
     #[getter]
     fn get_qubit_sparse_pauli_list(&self) -> PyQubitSparsePauliList {
         let inner = self.inner.read().unwrap();
