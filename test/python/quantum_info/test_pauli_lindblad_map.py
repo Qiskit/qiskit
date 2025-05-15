@@ -196,6 +196,10 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.identity(0),
         )
 
+    def test_from_components_failures(self):
+        with self.assertRaisesRegex(ValueError, r"`rates` \(1\) must be the same length as `qubit_sparse_pauli_list` \(2\)"):
+            PauliLindbladMap.from_components([1.], QubitSparsePauliList(["II", "XX"]))
+
     def test_from_sparse_list(self):
         self.assertEqual(
             PauliLindbladMap.from_sparse_list(

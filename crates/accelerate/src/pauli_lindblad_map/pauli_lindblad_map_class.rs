@@ -54,7 +54,7 @@ impl PauliLindbladMap {
         if rates.len() + 1 != qubit_sparse_pauli_list.boundaries().len() {
             return Err(CoherenceError::MismatchedTermCount {
                 rates: rates.len(),
-                boundaries: qubit_sparse_pauli_list.boundaries().len(),
+                qspl: qubit_sparse_pauli_list.boundaries().len() - 1,
             });
         }
 
@@ -83,7 +83,7 @@ impl PauliLindbladMap {
         if rates.len() + 1 != boundaries.len() {
             return Err(CoherenceError::MismatchedTermCount {
                 rates: rates.len(),
-                boundaries: boundaries.len(),
+                qspl: boundaries.len() - 1,
             });
         }
         let qubit_sparse_pauli_list: QubitSparsePauliList =

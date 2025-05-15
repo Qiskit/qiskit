@@ -170,8 +170,8 @@ impl ::std::convert::TryFrom<u8> for Pauli {
 /// failures on entry to Rust from Python space will automatically raise `TypeError`.
 #[derive(Error, Debug)]
 pub enum CoherenceError {
-    #[error("`boundaries` ({boundaries}) must be one element longer than `rates` ({rates})")]
-    MismatchedTermCount { rates: usize, boundaries: usize },
+    #[error("`rates` ({rates}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
+    MismatchedTermCount { rates: usize, qspl: usize },
     #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
     MismatchedItemCount { paulis: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
