@@ -25,8 +25,8 @@ use thiserror::Error;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    cast_array_type, make_py_pauli, raw_parts_from_sparse_list, ArithmeticError, CoherenceError,
-    InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList, QubitSparsePauli
+    raw_parts_from_sparse_list, ArithmeticError, CoherenceError,
+    InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList, QubitSparsePauli, QSPLIterMut, QubitSparsePauliView, QubitSparsePauliViewMut
 };
 
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
@@ -139,13 +139,9 @@ impl PauliLindbladMap {
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = SparseTermView<'_>> + '_ {
         self.rates.iter().enumerate().map(|(i, rate)| {
-            let start = self.qubit_sparse_pauli_list.boundaries()[i];
-            let end = self.qubit_sparse_pauli_list.boundaries()[i + 1];
             SparseTermView {
-                num_qubits: self.qubit_sparse_pauli_list.num_qubits(),
                 rate: *rate,
-                paulis: &self.qubit_sparse_pauli_list.paulis()[start..end],
-                indices: &self.qubit_sparse_pauli_list.indices()[start..end],
+                qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(i),
             }
         })
     }
@@ -296,10 +292,11 @@ impl PauliLindbladMap {
 
     /// Add a single generator term to this map.
     pub fn add_term(&mut self, term: SparseTermView) -> Result<(), ArithmeticError> {
-        if self.num_qubits() != term.num_qubits {
+        let term = term.to_term();
+        if self.num_qubits() != term.num_qubits() {
             return Err(ArithmeticError::MismatchedQubits {
                 left: self.num_qubits(),
-                right: term.num_qubits,
+                right: term.num_qubits(),
             });
         }
         let (g, p, pr) = derived_values_from_rate(&term.rate);
@@ -311,8 +308,8 @@ impl PauliLindbladMap {
             // at this point we already know the term needs to be valid
             let new_pauli = QubitSparsePauli::new_unchecked(
                 self.num_qubits(), 
-                term.paulis.to_vec().into_boxed_slice(), 
-                term.indices.to_vec().into_boxed_slice()
+                term.qubit_sparse_pauli.paulis().to_vec().into_boxed_slice(), 
+                term.indices().to_vec().into_boxed_slice()
             );
             self.qubit_sparse_pauli_list.add_qubit_sparse_pauli(new_pauli.view());
             Ok(())
@@ -330,13 +327,9 @@ impl PauliLindbladMap {
     /// If the index is out of bounds.
     pub fn term(&self, index: usize) -> SparseTermView {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
-        let start = self.qubit_sparse_pauli_list.boundaries()[index];
-        let end = self.qubit_sparse_pauli_list.boundaries()[index + 1];
         SparseTermView {
-            num_qubits: self.qubit_sparse_pauli_list.num_qubits(),
             rate: self.rates[index],
-            paulis: &self.qubit_sparse_pauli_list.paulis()[start..end],
-            indices: &self.qubit_sparse_pauli_list.indices()[start..end],
+            qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(index),
         }
     }
 }
@@ -373,28 +366,25 @@ fn derived_values_from_rates(rates: &Vec<f64>) -> (f64, Vec<f64>, Vec<bool>) {
 /// (in the case that the term is proportional to the identity).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct SparseTermView<'a> {
-    pub num_qubits: u32,
     pub rate: f64,
-    pub paulis: &'a [Pauli],
-    pub indices: &'a [u32],
+    pub qubit_sparse_pauli: QubitSparsePauliView<'a>,
 }
 impl SparseTermView<'_> {
     /// Convert this `SparseTermView` into an owning [SparseTerm] of the same data.
     pub fn to_term(&self) -> SparseTerm {
         SparseTerm {
-            num_qubits: self.num_qubits,
             rate: self.rate,
-            paulis: self.paulis.into(),
-            indices: self.indices.into(),
+            qubit_sparse_pauli: self.qubit_sparse_pauli.to_term(),
         }
     }
 
     pub fn to_sparse_str(self) -> String {
         let rate = format!("{}", self.rate).replace('i', "j");
         let paulis = self
+            .qubit_sparse_pauli
             .indices
             .iter()
-            .zip(self.paulis)
+            .zip(self.qubit_sparse_pauli.paulis)
             .rev()
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
@@ -410,10 +400,8 @@ impl SparseTermView<'_> {
 /// because this would allow data coherence to be broken.
 #[derive(Debug)]
 pub struct SparseTermViewMut<'a> {
-    pub num_qubits: u32,
     pub rate: &'a mut f64,
-    pub paulis: &'a mut [Pauli],
-    pub indices: &'a [u32],
+    pub qubit_sparse_pauli: QubitSparsePauliViewMut<'a>,
 }
 
 /// Iterator type allowing in-place mutation of the [PauliLindbladMap].
@@ -421,22 +409,14 @@ pub struct SparseTermViewMut<'a> {
 /// Created by [PauliLindbladMap::iter_mut].
 #[derive(Debug)]
 pub struct IterMut<'a> {
-    num_qubits: u32,
     rates: &'a mut [f64],
-    paulis: &'a mut [Pauli],
-    indices: &'a [u32],
-    boundaries: &'a [usize],
-    i: usize,
+    qspl_itermut: QSPLIterMut<'a>,
 }
 impl<'a> From<&'a mut PauliLindbladMap> for IterMut<'a> {
     fn from(value: &mut PauliLindbladMap) -> IterMut {
         IterMut {
-            num_qubits: value.qubit_sparse_pauli_list.num_qubits(),
             rates: &mut value.rates,
-            paulis: value.qubit_sparse_pauli_list.paulis_mut(),
-            indices: value.qubit_sparse_pauli_list.indices(),
-            boundaries: value.qubit_sparse_pauli_list.boundaries(),
-            i: 0,
+            qspl_itermut: value.qubit_sparse_pauli_list.iter_mut()
         }
     }
 }
@@ -454,21 +434,11 @@ impl<'a> Iterator for IterMut<'a> {
         let (rate, other_rates) = rates.split_first_mut()?;
         self.rates = other_rates;
 
-        let len = self.boundaries[self.i + 1] - self.boundaries[self.i];
-        self.i += 1;
-
-        let all_paulis = ::std::mem::take(&mut self.paulis);
-        let all_indices = ::std::mem::take(&mut self.indices);
-        let (paulis, rest_paulis) = all_paulis.split_at_mut(len);
-        let (indices, rest_indices) = all_indices.split_at(len);
-        self.paulis = rest_paulis;
-        self.indices = rest_indices;
+        let qubit_sparse_pauli = self.qspl_itermut.next()?;
 
         Some(SparseTermViewMut {
-            num_qubits: self.num_qubits,
             rate,
-            paulis,
-            indices,
+            qubit_sparse_pauli
         })
     }
 
@@ -484,41 +454,24 @@ impl ::std::iter::FusedIterator for IterMut<'_> {}
 /// These are typically created by indexing into or iterating through a :class:`PauliLindbladMap`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SparseTerm {
-    /// Number of qubits the entire term applies to.
-    num_qubits: u32,
     /// The real rate of the term.
     rate: f64,
-    paulis: Box<[Pauli]>,
-    indices: Box<[u32]>,
+    qubit_sparse_pauli: QubitSparsePauli
 }
 impl SparseTerm {
     pub fn new(
-        num_qubits: u32,
         rate: f64,
-        paulis: Box<[Pauli]>,
-        indices: Box<[u32]>,
+        qubit_sparse_pauli: QubitSparsePauli,
     ) -> Result<Self, CoherenceError> {
-        if paulis.len() != indices.len() {
-            return Err(CoherenceError::MismatchedItemCount {
-                paulis: paulis.len(),
-                indices: indices.len(),
-            });
-        }
-
-        if indices.iter().any(|index| *index >= num_qubits) {
-            return Err(CoherenceError::BitIndexTooHigh);
-        }
 
         Ok(Self {
-            num_qubits,
             rate,
-            paulis,
-            indices,
+            qubit_sparse_pauli,
         })
     }
 
     pub fn num_qubits(&self) -> u32 {
-        self.num_qubits
+        self.qubit_sparse_pauli.num_qubits()
     }
 
     pub fn rate(&self) -> f64 {
@@ -526,19 +479,17 @@ impl SparseTerm {
     }
 
     pub fn indices(&self) -> &[u32] {
-        &self.indices
+        &self.qubit_sparse_pauli.indices()
     }
 
     pub fn paulis(&self) -> &[Pauli] {
-        &self.paulis
+        &self.qubit_sparse_pauli.paulis()
     }
 
     pub fn view(&self) -> SparseTermView {
         SparseTermView {
-            num_qubits: self.num_qubits,
             rate: self.rate,
-            paulis: &self.paulis,
-            indices: &self.indices,
+            qubit_sparse_pauli: self.qubit_sparse_pauli.view(),
         }
     }
 
@@ -546,9 +497,9 @@ impl SparseTerm {
     pub fn to_pauli_lindblad_map(&self) -> Result<PauliLindbladMap, CoherenceError> {
         let qubit_sparse_pauli_list = QubitSparsePauliList::new(
             self.num_qubits(),
-            self.paulis.to_vec(),
-            self.indices.to_vec(),
-            vec![0, self.paulis.len()],
+            self.paulis().to_vec(),
+            self.indices().to_vec(),
+            vec![0, self.paulis().len()],
         )?;
         PauliLindbladMap::new(vec![self.rate], qubit_sparse_pauli_list)
     }
@@ -596,7 +547,8 @@ impl PySparseTerm {
             }
             sorted_indices.push(index)
         }
-        let inner = SparseTerm::new(num_qubits, rate, paulis, sorted_indices.into_boxed_slice())?;
+        let qubit_sparse_pauli = QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
+        let inner = SparseTerm::new(rate, qubit_sparse_pauli)?;
         Ok(PySparseTerm { inner })
     }
 
@@ -1339,13 +1291,13 @@ impl PyPauliLindbladMap {
 
         // turn a SparseView into a Python tuple of (bit terms, indices, rate)
         let to_py_tuple = |view: SparseTermView| {
-            let mut pauli_string = String::with_capacity(view.paulis.len());
+            let mut pauli_string = String::with_capacity(view.qubit_sparse_pauli.paulis.len());
 
-            for bit in view.paulis.iter() {
+            for bit in view.qubit_sparse_pauli.paulis.iter() {
                 pauli_string.push_str(bit.py_label());
             }
             let py_string = PyString::new(py, &pauli_string).unbind();
-            let py_indices = PyList::new(py, view.indices.iter())?.unbind();
+            let py_indices = PyList::new(py, view.qubit_sparse_pauli.indices.iter())?.unbind();
             let py_rate = view.rate.into_py_any(py)?;
 
             PyTuple::new(py, vec![py_string.as_any(), py_indices.as_any(), &py_rate])
