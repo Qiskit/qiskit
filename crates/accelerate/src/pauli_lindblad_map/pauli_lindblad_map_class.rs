@@ -585,7 +585,7 @@ impl PyGeneratorTerm {
 ///
 /// If :math:`\lambda_P \geq 0`, :math:`\gamma_P = 1` and the expression reduces to the standard
 /// mixture of the identity map and conjugation by :math:`P`. If :math:`\lambda_P < 0`,
-/// :math:`\gamma_P > 1`, and the map is a scaled differences of the identity map and conjugation by
+/// :math:`\gamma_P > 1`, and the map is a scaled difference of the identity map and conjugation by
 /// :math:`P`, with probability weights (hence "quasi-probability"). Note that this is a slightly
 /// different presentation than in the literature, but this notation allows us to handle both
 /// non-negative and negative rates simultaneously. The overall :math:`\gamma` of the channel is the
@@ -601,158 +601,11 @@ impl PyGeneratorTerm {
 /// generators such as :math:`\sum_{n\in \text{qubits}} c_n L(Z^{(n)})`; for which
 /// :class:`PauliLindbladMap` requires an amount of memory linear in the total number of qubits.
 ///
-/// Internally, each single-qubit Pauli operator is stored with a numeric value, explicitly:
-///
-/// .. _pauli-lindblad-map-alphabet:
-/// .. table:: Alphabet of single-qubit Pauli operators used in :class:`PauliLindbladMap`
-///
-///   =======  =======================================  ===============  ===========================
-///   Label    Operator                                 Numeric value    :class:`.Pauli` attribute
-///   =======  =======================================  ===============  ===========================
-///   ``"I"``  :math:`I` (identity)                     Not stored.      Not stored.
-///
-///   ``"X"``  :math:`X` (Pauli X)                      ``0b10`` (2)     :attr:`~.Pauli.X`
-///
-///   ``"Y"``  :math:`Y` (Pauli Y)                      ``0b11`` (3)     :attr:`~.Pauli.Y`
-///
-///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b01`` (1)     :attr:`~.Pauli.Z`
-///
-///   =======  =======================================  ===============  ===========================
-///
-/// Each generator term is stored as a compression of the corresponding Pauli operator, similar in
-/// spirit to the compressed sparse row format of sparse matrices.  In this analogy, the terms of
-/// the sum are the "rows", and the qubit terms are the "columns", where an absent entry represents
-/// the identity rather than a zero. More explicitly, the representation is made up of four
-/// contiguous arrays:
-///
-/// .. _pauli-lindblad-map-arrays:
-/// .. table:: Data arrays used to specify a :class:`.PauliLindbladMap`
-///
-///   ==================  ===========  =============================================================
-///   Attribute           Length       Description
-///   ==================  ===========  =============================================================
-///   :attr:`rates`       :math:`t`    The real scalar coefficient for each term.
-///
-///   :attr:`paulis`      :math:`s`    Each of the non-identity single-qubit Pauli operators for all
-///                                    of the generator terms, in order.  These correspond to the
-///                                    non-identity :math:`A^{(n)}_i` in the sum description, where
-///                                    the entries are stored in order of increasing :math:`i`
-///                                    first, and in order of increasing :math:`n` within each term.
-///
-///   :attr:`indices`     :math:`s`    The corresponding qubit (:math:`n`) for each of the operators
-///                                    in :attr:`paulis`.  :class:`PauliLindbladMap` requires
-///                                    that this list is term-wise sorted, and algorithms can rely
-///                                    on this invariant being upheld.
-///
-///   :attr:`boundaries`  :math:`t+1`  The indices that partition :attr:`paulis` and :attr:`indices`
-///                                    into complete terms.  For term number :math:`i`, its real
-///                                    coefficient is ``rates[i]``, and its non-identity
-///                                    single-qubit operators and their corresponding qubits are the
-///                                    slice ``boundaries[i] : boundaries[i+1]`` into :attr:`paulis`
-///                                    and :attr:`indices` respectively. :attr:`boundaries` always
-///                                    has an explicit 0 as its first element.
-///   ==================  ===========  =============================================================
-///
-/// The length parameter :math:`t` is the number of generator terms in the sum, and the parameter
-/// :math:`s` is the total number of non-identity single-qubit terms.
-///
-/// As illustrative examples:
-///
-/// * in the case of the identity map, which contains no generator terms, :attr:`boundaries` is
-///   length 1 (a single 0) and all other vectors are empty.
-/// * for the map :math:`\exp\left(2 Z_2 Z_0 - 3 X_3 Y_1`, :attr:`boundaries` is ``[0, 2, 4]``,
-///   :attr:`rates` is ``[2.0, -3.0]``, :attr:`paulis` is ``[Pauli.Z, Pauli.Z, Pauli.Y,
-///   Pauli.X]`` and :attr:`indices` is ``[0, 2, 1, 3]``.  The map might act on more than
-///   four qubits, depending on the :attr:`num_qubits` parameter.  The :attr:`paulis` are integer
-///   values, whose magic numbers can be accessed via the :class:`Pauli` attribute class.  Note
-///   that the single-bit terms and indices are sorted into termwise sorted order.  This is a
-///   requirement of the class.
-///
-/// These cases are not special, they're fully consistent with the rules and should not need special
-/// handling.
-///
-/// In addition to the above arrays, :class:`.PauliLindbladMap` stores the overall channel
-/// :math:`gamma` in the :attr:`gamma` attribute, as well as the following arrays derived from
-/// :attr:`rates`.
-///
-/// .. _pauli-lindblad-map-derived-arrays:
-/// .. table:: Additional data arrays for :class:`.PauliLindbladMap`
-///
-///   ==========================  ===========  =====================================================
-///   Attribute                   Length       Description
-///   ==========================  ===========  =====================================================
-///   :attr:`probabilities`       :math:`t`    The probabilities in the pseudo-probability
-///                                            decomposition.
-///
-///   :attr:`non_negative_rates`  :math:`t`    A vector of booleans, where each boolean stores the
-///                                            value of the logical statement
-///                                            :math:`\lambda_P \geq 0`.
-///   ==========================  ===========  =====================================================
-///
-/// The scalar item of the :attr:`paulis` array is stored as a numeric byte.  The numeric values
-/// are related to the symplectic Pauli representation that :class:`.SparsePauliOp` uses, and are
-/// accessible with named access by an enumeration:
-///
-/// ..
-///     This is documented manually here because the Python-space `Enum` is generated
-///     programmatically from Rust - it'd be _more_ confusing to try and write a docstring somewhere
-///     else in this source file. The use of `autoattribute` is because it pulls in the numeric
-///     value.
-///
-/// .. py:class:: PauliLindbladMap.Pauli
-///
-///     An :class:`~enum.IntEnum` that provides named access to the numerical values used to
-///     represent each of the single-qubit alphabet terms enumerated in
-///     :ref:`pauli-lindblad-map-alphabet`.
-///
-///     This class is attached to :class:`.PauliLindbladMap`.  Access it as
-///     :class:`.PauliLindbladMap.Pauli`.  If this is too much typing, and you are solely dealing
-///     with :class:¬PauliLindbladMap` objects and the :class:`Pauli` name is not ambiguous, you
-///     might want to shorten it as::
-///
-///         >>> ops = PauliLindbladMap.Pauli
-///         >>> assert ops.X is PauliLindbladMap.Pauli.X
-///
-///     You can access all the values of the enumeration by either their full all-capitals name, or
-///     by their single-letter label.  The single-letter labels are not generally valid Python
-///     identifiers, so you must use indexing notation to access them::
-///
-///         >>> assert PauliLindbladMap.Pauli.X is PauliLindbladMap.Pauli["X"]
-///
-///     The bits representing each single-qubit Pauli are the (phase-less) symplectic representation
-///     of the Pauli operator.
-///
-///     Values
-///     ------
-///
-///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.Pauli.X
-///
-///         The Pauli :math:`X` operator.  Uses the single-letter label ``"X"``.
-///
-///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.Pauli.Y
-///
-///         The Pauli :math:`Y` operator.  Uses the single-letter label ``"Y"``.
-///
-///     .. autoattribute:: qiskit.quantum_info::PauliLindbladMap.Pauli.Z
-///
-///         The Pauli :math:`Z` operator.  Uses the single-letter label ``"Z"``.
-///
-///     Attributes
-///     ----------
-///
-///     .. autoproperty:: qiskit.quantum_info::PauliLindbladMap.Pauli.label
-///
-///
-/// Each of the array-like attributes behaves like a Python sequence.  You can index and slice these
-/// with standard :class:`list`-like semantics.  Slicing an attribute returns a Numpy
-/// :class:`~numpy.ndarray` containing a copy of the relevant data with the natural ``dtype`` of the
-/// field; this lets you easily do mathematics on the results, like bitwise operations on
-/// :attr:`paulis`.  You can assign to indices or slices of each of the attributes, but beware
-/// that you must uphold :ref:`the data coherence rules <pauli-lindblad-map-arrays>` while doing
-/// this.  For example::
-///
-///     >>> pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("YXZ", -0.5)])
-///     >>> assert isinstance(pauli_lindblad_map.rates[:], np.ndarray)
+/// Internally, :class:`.PauliLindbladMap` stores an array of rates and a
+/// :class:`.QubitSparsePauliList` containing the corresponding sparse Pauli operators.
+/// Additionally, :class:`.PauliLindbladMap` stores the overall channel :math:`gamma` in the
+/// :attr:`gamma` attribute, as well as probabilities corresponding probabilities (or quasi-probabilities)
+/// in the :attr:`probabilities` attribute.
 ///
 /// Indexing
 /// --------
@@ -766,7 +619,7 @@ impl PyGeneratorTerm {
 /// copied out of the base map; mutations to them will not affect the original map from which they
 /// are indexed.
 ///
-/// .. autoclass:: qiskit.quantum_info::PauliLindbladMap.Term
+/// .. autoclass:: qiskit.quantum_info::PauliLindbladMap.GeneratorTerm
 ///     :members:
 ///
 /// Construction
@@ -788,10 +641,10 @@ impl PyGeneratorTerm {
 ///   :meth:`from_sparse_list`      Generators given as a list of tuples of sparse string labels,
 ///                                 the qubits they apply to, and their rates.
 ///
-///   :meth:`from_terms`            Sum explicit single :class:`Term` instances.
+///   :meth:`from_terms`            Sum explicit single :class:`GeneratorTerm` instances.
 ///
-///   :meth:`from_raw_parts`        Build the observable from :ref:`the raw data arrays
-///                                 <pauli-lindblad-map-arrays>`.
+///   :meth:`from_components`       Build from an array of rates and a
+///                                 :class:`.QubitSparsePauliList` instance.
 ///   ============================  ================================================================
 ///
 /// .. py:function:: PauliLindbladMap.__new__(data, /, num_qubits=None)
