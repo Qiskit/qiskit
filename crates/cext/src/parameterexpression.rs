@@ -10,14 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashMap;
+use num_complex::Complex64;
 use std::ffi::{c_char, CStr, CString};
 use std::ptr::null;
-use num_complex::Complex64;
-use hashbrown::HashMap;
 
 use crate::pointers::const_ptr_as_ref;
 
-use qiskit_circuit::parameterexpression::ParameterExpression;
+use qiskit_circuit::parameter_expression::ParameterExpression;
 
 /// @ingroup QkParameterExpression
 /// Construct a new Parameter with a name of symbol
@@ -33,7 +33,7 @@ use qiskit_circuit::parameterexpression::ParameterExpression;
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_parameter_symbol(name: *mut c_char) -> *mut ParameterExpression {
-    let name = unsafe {CStr::from_ptr(name).to_str().unwrap()};
+    let name = unsafe { CStr::from_ptr(name).to_str().unwrap() };
     let symbol = ParameterExpression::new(name.to_string(), None);
     Box::into_raw(Box::new(symbol))
 }
@@ -85,7 +85,6 @@ pub extern "C" fn qk_parameter_copy(expr: *const ParameterExpression) -> *mut Pa
     let expr = unsafe { const_ptr_as_ref(expr) };
     Box::into_raw(Box::new(expr.clone()))
 }
-
 
 /// @ingroup QkParameterExpression
 /// get string expression.
@@ -176,7 +175,10 @@ pub extern "C" fn qk_parameter_from_complex(value: Complex64) -> *mut ParameterE
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_add(lhs: *const ParameterExpression, rhs: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_add(
+    lhs: *const ParameterExpression,
+    rhs: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = lhs + rhs;
@@ -199,7 +201,10 @@ pub unsafe extern "C" fn qk_parameter_add(lhs: *const ParameterExpression, rhs: 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_sub(lhs: *const ParameterExpression, rhs: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_sub(
+    lhs: *const ParameterExpression,
+    rhs: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = lhs - rhs;
@@ -222,7 +227,10 @@ pub unsafe extern "C" fn qk_parameter_sub(lhs: *const ParameterExpression, rhs: 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_mul(lhs: *const ParameterExpression, rhs: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_mul(
+    lhs: *const ParameterExpression,
+    rhs: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = lhs * rhs;
@@ -245,7 +253,10 @@ pub unsafe extern "C" fn qk_parameter_mul(lhs: *const ParameterExpression, rhs: 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_div(lhs: *const ParameterExpression, rhs: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_div(
+    lhs: *const ParameterExpression,
+    rhs: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     let out = lhs / rhs;
@@ -268,7 +279,10 @@ pub unsafe extern "C" fn qk_parameter_div(lhs: *const ParameterExpression, rhs: 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_pow(base: *const ParameterExpression, exp: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_pow(
+    base: *const ParameterExpression,
+    exp: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let base = unsafe { const_ptr_as_ref(base) };
     let exp = unsafe { const_ptr_as_ref(exp) };
     let out = base.pow(exp);
@@ -289,7 +303,9 @@ pub unsafe extern "C" fn qk_parameter_pow(base: *const ParameterExpression, exp:
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_sin(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_sin(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.sin();
     Box::into_raw(Box::new(out))
@@ -309,7 +325,9 @@ pub unsafe extern "C" fn qk_parameter_sin(expr: *const ParameterExpression) -> *
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_cos(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_cos(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.cos();
     Box::into_raw(Box::new(out))
@@ -329,7 +347,9 @@ pub unsafe extern "C" fn qk_parameter_cos(expr: *const ParameterExpression) -> *
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_tan(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_tan(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.tan();
     Box::into_raw(Box::new(out))
@@ -349,7 +369,9 @@ pub unsafe extern "C" fn qk_parameter_tan(expr: *const ParameterExpression) -> *
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_asin(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_asin(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.arcsin();
     Box::into_raw(Box::new(out))
@@ -369,7 +391,9 @@ pub unsafe extern "C" fn qk_parameter_asin(expr: *const ParameterExpression) -> 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_acos(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_acos(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.arccos();
     Box::into_raw(Box::new(out))
@@ -389,7 +413,9 @@ pub unsafe extern "C" fn qk_parameter_acos(expr: *const ParameterExpression) -> 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_atan(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_atan(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.arctan();
     Box::into_raw(Box::new(out))
@@ -409,7 +435,9 @@ pub unsafe extern "C" fn qk_parameter_atan(expr: *const ParameterExpression) -> 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_log(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_log(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.log();
     Box::into_raw(Box::new(out))
@@ -429,7 +457,9 @@ pub unsafe extern "C" fn qk_parameter_log(expr: *const ParameterExpression) -> *
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_exp(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_exp(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.exp();
     Box::into_raw(Box::new(out))
@@ -449,7 +479,9 @@ pub unsafe extern "C" fn qk_parameter_exp(expr: *const ParameterExpression) -> *
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_abs(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_abs(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.abs();
     Box::into_raw(Box::new(out))
@@ -469,7 +501,9 @@ pub unsafe extern "C" fn qk_parameter_abs(expr: *const ParameterExpression) -> *
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_sign(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_sign(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.sign();
     Box::into_raw(Box::new(out))
@@ -489,7 +523,9 @@ pub unsafe extern "C" fn qk_parameter_sign(expr: *const ParameterExpression) -> 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_neg(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_neg(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = -expr;
     Box::into_raw(Box::new(out))
@@ -511,7 +547,9 @@ pub unsafe extern "C" fn qk_parameter_neg(expr: *const ParameterExpression) -> *
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_conj(expr: *const ParameterExpression) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_conj(
+    expr: *const ParameterExpression,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let out = expr.conjugate();
     Box::into_raw(Box::new(out))
@@ -536,7 +574,10 @@ pub unsafe extern "C" fn qk_parameter_conj(expr: *const ParameterExpression) -> 
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_compare_eq(lhs: *const ParameterExpression, rhs: *const ParameterExpression) -> bool {
+pub unsafe extern "C" fn qk_parameter_compare_eq(
+    lhs: *const ParameterExpression,
+    rhs: *const ParameterExpression,
+) -> bool {
     let lhs = unsafe { const_ptr_as_ref(lhs) };
     let rhs = unsafe { const_ptr_as_ref(rhs) };
     lhs == rhs
@@ -562,7 +603,12 @@ pub unsafe extern "C" fn qk_parameter_compare_eq(lhs: *const ParameterExpression
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_parameter_subs(expr: *const ParameterExpression, keys: *const ParameterExpression, values: *const ParameterExpression, num: usize) -> *mut ParameterExpression {
+pub unsafe extern "C" fn qk_parameter_subs(
+    expr: *const ParameterExpression,
+    keys: *const ParameterExpression,
+    values: *const ParameterExpression,
+    num: usize,
+) -> *mut ParameterExpression {
     let expr = unsafe { const_ptr_as_ref(expr) };
     let keys = unsafe { std::slice::from_raw_parts(keys, num) };
     let values = unsafe { std::slice::from_raw_parts(values, num) };
@@ -571,7 +617,7 @@ pub unsafe extern "C" fn qk_parameter_subs(expr: *const ParameterExpression, key
     match out {
         Ok(out) => Box::into_raw(Box::new(out)),
         Err(err) => {
-            println!("ERROR : {}",err);
+            println!("ERROR : {}", err);
             null::<ParameterExpression>() as *mut ParameterExpression
         }
     }
@@ -617,6 +663,3 @@ pub unsafe extern "C" fn qk_parameter_is_symbol(expr: *const ParameterExpression
     let expr = unsafe { const_ptr_as_ref(expr) };
     expr.is_symbol()
 }
-
-
-

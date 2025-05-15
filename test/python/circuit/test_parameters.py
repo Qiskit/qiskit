@@ -920,11 +920,9 @@ class TestParameters(QiskitTestCase):
         x1_expr = x1 + 0
         # Smoke test: the test isn't valid if that above expression remains a `Parameter`; we need
         # it to have upcast to `ParameterExpression`.
-        # self.assertNotIsInstance(x1_expr, Parameter)
-        self.assertFalse(x1_expr.is_Parameter())
+        self.assertNotIsInstance(x1_expr, Parameter)
         x2_expr = x2 + 0
-        # self.assertNotIsInstance(x2_expr, Parameter)
-        self.assertFalse(x2_expr.is_Parameter())
+        self.assertNotIsInstance(x2_expr, Parameter)
 
         self.assertEqual(x1, x1_expr)
         self.assertEqual(x2, x2_expr)
