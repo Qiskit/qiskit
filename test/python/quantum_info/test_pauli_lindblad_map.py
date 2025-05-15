@@ -619,6 +619,11 @@ class TestPauliLindbladMap(QiskitTestCase):
         )
         self.assertEqual(list(term.indices), [0, 1, 2])
 
+        self.assertEqual(
+            term.qubit_sparse_pauli,
+            QubitSparsePauli.from_label("IIXYZ")
+        )
+
     def test_term_new(self):
         expected = PauliLindbladMap([("IIIXXZIII", 1.0)])[0]
 
@@ -672,6 +677,13 @@ class TestPauliLindbladMap(QiskitTestCase):
         )
         self.assertEqual(pauli_lindblad_map, reconstructed)
 
+    def test_attributes(self):
+        pauli_lindblad_map = PauliLindbladMap.from_components([1., 2.], QubitSparsePauliList(["II", "XX"]))
+        self.assertEqual(
+            pauli_lindblad_map.qubit_sparse_pauli_list,
+            QubitSparsePauliList.from_list(["II", "XX"])
+        )
+    
     def test_derived_properties(self):
         """Test whether gamma and probabilities are correctly calculated."""
 

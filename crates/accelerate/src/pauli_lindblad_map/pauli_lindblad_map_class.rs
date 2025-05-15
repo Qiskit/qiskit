@@ -528,33 +528,15 @@ impl PyGeneratorTerm {
         PyString::new(py, string.as_str())
     }
 
-    //fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
-    //    let py = slf_.py();
-    //    let borrowed = slf_.borrow();
-    //    (
-    //        borrowed.inner.num_qubits(),
-    //        borrowed.inner.rate(),
-    //        Self::get_paulis(slf_.clone()),
-    //        Self::get_indices(slf_),
-    //    )
-    //        .into_pyobject(py)
-    //}
-
-
-    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        //let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.paulis());
+    fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
+        let py = slf_.py();
+        let borrowed = slf_.borrow();
         (
-            py.get_type::<Self>().getattr("__new__")?,
-            (
-                self.get_rate(),
-                self.get_qubit_sparse_pauli()
-                //PyArray1::from_slice(py, paulis),
-                //PyArray1::from_slice(py, self.inner.indices()),
-            ),
+            borrowed.inner.rate,
+            borrowed.inner.qubit_sparse_pauli.clone()
         )
             .into_pyobject(py)
     }
-    
 }
 
 /// A Pauli Lindblad map stored in a qubit-sparse format.
