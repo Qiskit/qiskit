@@ -628,8 +628,6 @@ pub enum QkDelayUnit {
     NS = 3,
     /// Picoseconds.
     PS = 4,
-    /// Device-native time unit ``dt``.
-    DT = 5,
 }
 
 /// @ingroup QkCircuit
@@ -646,7 +644,7 @@ pub enum QkDelayUnit {
 ///
 ///     QkCircuit *qc = qk_circuit_new(1, 0);
 ///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
-///     
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
@@ -667,7 +665,6 @@ pub unsafe extern "C" fn qk_circuit_delay(
         QkDelayUnit::US => DelayUnit::US,
         QkDelayUnit::NS => DelayUnit::NS,
         QkDelayUnit::PS => DelayUnit::PS,
-        QkDelayUnit::DT => DelayUnit::DT,
     };
 
     let duration_param: Param = duration.into();
