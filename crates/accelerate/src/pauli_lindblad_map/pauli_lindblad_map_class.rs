@@ -1157,6 +1157,38 @@ impl PyPauliLindbladMap {
         Ok(inner.gamma)
     }
 
+    /// The rates for the map.
+    #[getter]
+    fn get_rates(slf_: Bound<Self>) -> Bound<PyArray1<f64>> {
+        let borrowed = &slf_.borrow();
+        let inner = borrowed.inner.read().unwrap();
+        let rates = inner.rates();
+        let arr = ::ndarray::aview1(rates);
+        // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
+        // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
+        // `Box<[u32]>` allocation (including dropping or reallocating it) other than the entire
+        // object getting dropped, which Python will keep safe.
+        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
+        out.readwrite().make_nonwriteable();
+        out
+    }
+
+    /// The probabilities for the map.
+    #[getter]
+    fn get_probabilities(slf_: Bound<Self>) -> Bound<PyArray1<f64>> {
+        let borrowed = &slf_.borrow();
+        let inner = borrowed.inner.read().unwrap();
+        let probabilities = inner.probabilities();
+        let arr = ::ndarray::aview1(probabilities);
+        // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
+        // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
+        // `Box<[u32]>` allocation (including dropping or reallocating it) other than the entire
+        // object getting dropped, which Python will keep safe.
+        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
+        out.readwrite().make_nonwriteable();
+        out
+    }
+
     /// Express the map in terms of a sparse list format.
     ///
     /// This can be seen as counter-operation of :meth:`.PauliLindbladMap.from_sparse_list`, however
