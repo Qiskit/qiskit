@@ -23,7 +23,9 @@ use std::sync::{Arc, RwLock};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList, QubitSparsePauliView, PyQubitSparsePauliList
+    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
+    LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
+    QubitSparsePauliList, QubitSparsePauliView,
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
@@ -124,12 +126,13 @@ impl PauliLindbladMap {
     /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = GeneratorTermView<'_>> + '_ {
-        self.rates.iter().enumerate().map(|(i, rate)| {
-            GeneratorTermView {
+        self.rates
+            .iter()
+            .enumerate()
+            .map(|(i, rate)| GeneratorTermView {
                 rate: *rate,
                 qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(i),
-            }
-        })
+            })
     }
 
     /// Get the number of qubits the map is defined on.
@@ -245,11 +248,12 @@ impl PauliLindbladMap {
         unsafe {
             // at this point we already know the term needs to be valid
             let new_pauli = QubitSparsePauli::new_unchecked(
-                self.num_qubits(), 
-                term.qubit_sparse_pauli.paulis().to_vec().into_boxed_slice(), 
-                term.indices().to_vec().into_boxed_slice()
+                self.num_qubits(),
+                term.qubit_sparse_pauli.paulis().to_vec().into_boxed_slice(),
+                term.indices().to_vec().into_boxed_slice(),
             );
-            self.qubit_sparse_pauli_list.add_qubit_sparse_pauli(new_pauli.view())?;
+            self.qubit_sparse_pauli_list
+                .add_qubit_sparse_pauli(new_pauli.view())?;
             Ok(())
         }
     }
@@ -338,14 +342,10 @@ impl GeneratorTermView<'_> {
 pub struct GeneratorTerm {
     /// The real rate of the term.
     rate: f64,
-    qubit_sparse_pauli: QubitSparsePauli
+    qubit_sparse_pauli: QubitSparsePauli,
 }
 impl GeneratorTerm {
-    pub fn new(
-        rate: f64,
-        qubit_sparse_pauli: QubitSparsePauli,
-    ) -> Result<Self, CoherenceError> {
-
+    pub fn new(rate: f64, qubit_sparse_pauli: QubitSparsePauli) -> Result<Self, CoherenceError> {
         Ok(Self {
             rate,
             qubit_sparse_pauli,
@@ -361,11 +361,11 @@ impl GeneratorTerm {
     }
 
     pub fn indices(&self) -> &[u32] {
-        &self.qubit_sparse_pauli.indices()
+        self.qubit_sparse_pauli.indices()
     }
 
     pub fn paulis(&self) -> &[Pauli] {
-        &self.qubit_sparse_pauli.paulis()
+        self.qubit_sparse_pauli.paulis()
     }
 
     pub fn view(&self) -> GeneratorTermView {
@@ -533,7 +533,7 @@ impl PyGeneratorTerm {
         let borrowed = slf_.borrow();
         (
             borrowed.inner.rate,
-            borrowed.inner.qubit_sparse_pauli.clone()
+            borrowed.inner.qubit_sparse_pauli.clone(),
         )
             .into_pyobject(py)
     }
@@ -745,17 +745,18 @@ impl PyPauliLindbladMap {
     }
 
     #[staticmethod]
-    fn from_components(rates: Vec<f64>, qubit_sparse_pauli_list: &PyQubitSparsePauliList) -> PyResult<Self> {
-        
-        let qubit_sparse_pauli_list = qubit_sparse_pauli_list.inner.read().map_err(|_| InnerReadError)?;
-        let inner = PauliLindbladMap::new(
-            rates.clone(),
-            qubit_sparse_pauli_list.clone()
-        )?;
+    fn from_components(
+        rates: Vec<f64>,
+        qubit_sparse_pauli_list: &PyQubitSparsePauliList,
+    ) -> PyResult<Self> {
+        let qubit_sparse_pauli_list = qubit_sparse_pauli_list
+            .inner
+            .read()
+            .map_err(|_| InnerReadError)?;
+        let inner = PauliLindbladMap::new(rates.clone(), qubit_sparse_pauli_list.clone())?;
 
         Ok(inner.into())
     }
-
 
     /// Construct a Pauli Lindblad map from a list of dense generator labels and rates.
     ///

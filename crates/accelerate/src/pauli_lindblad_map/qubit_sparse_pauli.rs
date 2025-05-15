@@ -449,7 +449,6 @@ impl QubitSparsePauliList {
     }
 }
 
-
 type RawParts = (Vec<Pauli>, Vec<u32>, Vec<usize>);
 
 pub fn raw_parts_from_sparse_list(
