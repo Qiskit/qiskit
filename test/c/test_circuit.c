@@ -566,8 +566,11 @@ int test_unitary_circuit(void) {
   QkCircuit *qc = qk_circuit_new(2, 0);
   uint32_t qubits[2] = {0, 1};
 
-  double matrix[32] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0};
+  QkComplex64 matrix[16] = {
+      1.0 + 0.0 * I, 0.0 + 0.0 * I, 0.0 + 0.0 * I, 0.0 + 0.0 * I,
+      0.0 + 0.0 * I, 1.0 + 0.0 * I, 0.0 + 0.0 * I, 0.0 + 0.0 * I,
+      0.0 + 0.0 * I, 0.0 + 0.0 * I, 1.0 + 0.0 * I, 0.0 + 0.0 * I,
+      0.0 + 0.0 * I, 0.0 + 0.0 * I, 0.0 + 0.0 * I, 1.0 + 0.0 * I};
 
   int ec = qk_circuit_unitary(qc, qubits, 2, matrix);
   if (ec != ExitCode_Success) {
