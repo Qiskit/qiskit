@@ -364,7 +364,8 @@ class QuantumCircuit:
     :meth:`add_var`                :class:`~.expr.Var` nodes with local scope and initializers.
     :meth:`add_stretch`            :class:`~.expr.Stretch` nodes with local scope.
     :meth:`add_input`              :class:`~.expr.Var` nodes that are treated as circuit inputs.
-    :meth:`add_capture`            :class:`~.expr.Var` or :class:`~.expr.Stretch` nodes captured from containing scopes.
+    :meth:`add_capture`            :class:`~.expr.Var` or :class:`~.expr.Stretch` nodes captured
+                                   from containing scopes.
     :meth:`add_uninitialized_var`  :class:`~.expr.Var` nodes with local scope and undefined state.
     =============================  =================================================================
 
