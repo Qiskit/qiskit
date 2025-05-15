@@ -180,7 +180,7 @@ class ObservablesArray(ShapedMixin):
         obs = self.copy() if copy else self
         return obs._array
 
-    IndexType = Union[int, slice, None]
+    IndexType = Union[int, slice, None]  # pylint: disable=used-before-assignment
 
     @overload
     def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]: ...
