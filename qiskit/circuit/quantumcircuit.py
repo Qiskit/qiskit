@@ -1075,7 +1075,7 @@ class QuantumCircuit:
         self._base_name = None
         self.name: str
         """A human-readable name for the circuit.
-        
+
         Example:
 
             .. plot::
@@ -1153,7 +1153,7 @@ class QuantumCircuit:
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata.
-        
+
         Example:
 
             .. plot::
@@ -4807,8 +4807,10 @@ class QuantumCircuit:
                         f" but was assigned to {len(value)} values."
                     )
                 out.update(zip(parameter, value))
-            elif isinstance(parameter, str):
+            elif isinstance(parameter, str) and self.has_parameter(parameter):
                 out[self.get_parameter(parameter)] = value
+            elif isinstance(parameter, str) and not self.has_parameter(parameter):
+                out[Parameter(parameter)] = value
             else:
                 out[parameter] = value
         return out
