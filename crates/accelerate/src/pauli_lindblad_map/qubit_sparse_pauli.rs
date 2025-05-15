@@ -337,14 +337,6 @@ impl QubitSparsePauliList {
         })
     }
 
-    /// Get an iterator over the individual list terms that allows in-place mutation.
-    ///
-    /// The length and indices of these views cannot be mutated, since both would allow breaking
-    /// data coherence.
-    pub fn iter_mut(&mut self) -> QSPLIterMut<'_> {
-        self.into()
-    }
-
     /// Get the number of qubits the paulis are defined on.
     #[inline]
     pub fn num_qubits(&self) -> u32 {

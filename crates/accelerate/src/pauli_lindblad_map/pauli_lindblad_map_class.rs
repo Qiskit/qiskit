@@ -20,13 +20,12 @@ use pyo3::{
     IntoPyObjectExt, PyErr,
 };
 use std::sync::{Arc, RwLock};
-use thiserror::Error;
 
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError,
-    InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList, QubitSparsePauli, QSPLIterMut, QubitSparsePauliView, QubitSparsePauliViewMut
+    InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList, QubitSparsePauli, QubitSparsePauliView
 };
 
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
@@ -124,15 +123,6 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Get an iterator over the individual generator terms of the map that allows in-place
-    /// mutation.
-    ///
-    /// The length and indices of these views cannot be mutated, since both would allow breaking
-    /// data coherence.
-    pub fn iter_mut(&mut self) -> IterMut<'_> {
-        self.into()
-    }
-
     /// Get an iterator over the individual generator terms of the map.
     ///
     /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
@@ -164,22 +154,10 @@ impl PauliLindbladMap {
         &self.rates
     }
 
-    /// Get a mutable slice of the rates.
-    #[inline]
-    pub fn rates_mut(&mut self) -> &mut [f64] {
-        &mut self.rates
-    }
-
     /// Get the probabilities associated with each generator term.
     #[inline]
     pub fn probabilities(&self) -> &[f64] {
         &self.probabilities
-    }
-
-    /// Get a mutable slice of the probabilities.
-    #[inline]
-    pub fn probabilities_mut(&mut self) -> &mut [f64] {
-        &mut self.probabilities
     }
 
     /// Get the list of booleans for which rates are non-negative.
@@ -188,28 +166,10 @@ impl PauliLindbladMap {
         &self.non_negative_rates
     }
 
-    /// Get a mutable slice of non_negative_rates.
-    #[inline]
-    pub fn non_negative_rates_mut(&mut self) -> &mut [bool] {
-        &mut self.non_negative_rates
-    }
-
     /// Get the indices of each [Pauli].
     #[inline]
     pub fn indices(&self) -> &[u32] {
         self.qubit_sparse_pauli_list.indices()
-    }
-
-    /// Get a mutable slice of the indices.
-    ///
-    /// # Safety
-    ///
-    /// Modifying the indices can cause an incoherent state of the [PauliLindbladMap].
-    /// It should be ensured that the indices are consistent with the rates, paulis, and
-    /// boundaries.
-    #[inline]
-    pub unsafe fn indices_mut(&mut self) -> &mut [u32] {
-        unsafe { self.qubit_sparse_pauli_list.indices_mut() }
     }
 
     /// Get the boundaries of each term.
@@ -218,28 +178,10 @@ impl PauliLindbladMap {
         self.qubit_sparse_pauli_list.boundaries()
     }
 
-    /// Get a mutable slice of the boundaries.
-    ///
-    /// # Safety
-    ///
-    /// Modifying the boundaries can cause an incoherent state of the [PauliLindbladMap].
-    /// It should be ensured that the boundaries are sorted and the length/elements are consistent
-    /// with the rates, paulis, and indices.
-    #[inline]
-    pub unsafe fn boundaries_mut(&mut self) -> &mut [usize] {
-        unsafe { self.qubit_sparse_pauli_list.boundaries_mut() }
-    }
-
     /// Get the [Pauli]s in the map.
     #[inline]
     pub fn paulis(&self) -> &[Pauli] {
         self.qubit_sparse_pauli_list.paulis()
-    }
-
-    /// Get a mutable slice of the bit terms.
-    #[inline]
-    pub fn paulis_mut(&mut self) -> &mut [Pauli] {
-        self.qubit_sparse_pauli_list.paulis_mut()
     }
 
     /// Create a [PauliLindbladMap] representing the identity map on ``num_qubits`` qubits.
@@ -311,7 +253,7 @@ impl PauliLindbladMap {
                 term.qubit_sparse_pauli.paulis().to_vec().into_boxed_slice(), 
                 term.indices().to_vec().into_boxed_slice()
             );
-            self.qubit_sparse_pauli_list.add_qubit_sparse_pauli(new_pauli.view());
+            self.qubit_sparse_pauli_list.add_qubit_sparse_pauli(new_pauli.view())?;
             Ok(())
         }
     }
@@ -392,62 +334,6 @@ impl SparseTermView<'_> {
         format!("({})L({})", rate, paulis)
     }
 }
-
-/// A mutable view object onto a single term of a [PauliLindbladMap].
-///
-/// The lengths of [paulis] and [indices] are guaranteed to be created equal, but might be zero
-/// (in the case that the generator term is proportional to the identity).  [indices] is not mutable
-/// because this would allow data coherence to be broken.
-#[derive(Debug)]
-pub struct SparseTermViewMut<'a> {
-    pub rate: &'a mut f64,
-    pub qubit_sparse_pauli: QubitSparsePauliViewMut<'a>,
-}
-
-/// Iterator type allowing in-place mutation of the [PauliLindbladMap].
-///
-/// Created by [PauliLindbladMap::iter_mut].
-#[derive(Debug)]
-pub struct IterMut<'a> {
-    rates: &'a mut [f64],
-    qspl_itermut: QSPLIterMut<'a>,
-}
-impl<'a> From<&'a mut PauliLindbladMap> for IterMut<'a> {
-    fn from(value: &mut PauliLindbladMap) -> IterMut {
-        IterMut {
-            rates: &mut value.rates,
-            qspl_itermut: value.qubit_sparse_pauli_list.iter_mut()
-        }
-    }
-}
-impl<'a> Iterator for IterMut<'a> {
-    type Item = SparseTermViewMut<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // The trick here is that the lifetime of the 'self' borrow is shorter than the lifetime of
-        // the inner borrows.  We can't give out mutable references to our inner borrow, because
-        // after the lifetime on 'self' expired, there'd be nothing preventing somebody using the
-        // 'self' borrow to see _another_ mutable borrow of the inner data, which would be an
-        // aliasing violation.  Instead, we keep splitting the inner views we took out so the
-        // mutable references we return don't overlap with the ones we continue to hold.
-        let rates = ::std::mem::take(&mut self.rates);
-        let (rate, other_rates) = rates.split_first_mut()?;
-        self.rates = other_rates;
-
-        let qubit_sparse_pauli = self.qspl_itermut.next()?;
-
-        Some(SparseTermViewMut {
-            rate,
-            qubit_sparse_pauli
-        })
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.rates.len(), Some(self.rates.len()))
-    }
-}
-impl ExactSizeIterator for IterMut<'_> {}
-impl ::std::iter::FusedIterator for IterMut<'_> {}
 
 /// A single term from a complete :class:`PauliLindbladMap`.
 ///
