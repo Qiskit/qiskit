@@ -15,7 +15,7 @@ jobs:
     if: github.repository_owner == 'Qiskit'
     name: Docs and Lint
     uses: ./.github/workflows/lint_docs.yml
-  preliminary-tests:
+  main-tests-ubuntu-rust-images:
     name: Preliminary Tests
     uses: ./.github/workflows/test-linux.yml
     if: github.repository_owner == 'Qiskit'
