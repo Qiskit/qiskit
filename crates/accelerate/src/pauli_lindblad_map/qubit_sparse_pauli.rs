@@ -337,14 +337,6 @@ impl QubitSparsePauliList {
         })
     }
 
-    /// Get an iterator over the individual list terms that allows in-place mutation.
-    ///
-    /// The length and indices of these views cannot be mutated, since both would allow breaking
-    /// data coherence.
-    pub fn iter_mut(&mut self) -> IterMut<'_> {
-        self.into()
-    }
-
     /// Get the number of qubits the paulis are defined on.
     #[inline]
     pub fn num_qubits(&self) -> u32 {
@@ -518,74 +510,6 @@ impl QubitSparsePauliView<'_> {
         paulis.to_string()
     }
 }
-
-/// A mutable view object onto a single term of a [QubitSparsePauliList].
-///
-/// The lengths of [paulis] and [indices] are guaranteed to be created equal, but might be zero
-/// (in the case that the Pauli is proportional to the identity).  [indices] is not mutable because
-/// this would allow data coherence to be broken.
-#[derive(Debug)]
-pub struct QubitSparsePauliViewMut<'a> {
-    pub num_qubits: u32,
-    pub paulis: &'a mut [Pauli],
-    pub indices: &'a [u32],
-}
-
-/// Iterator type allowing in-place mutation of the [QubitSparsePauliList].
-///
-/// Created by [QubitSparsePauliList::iter_mut].
-#[derive(Debug)]
-pub struct IterMut<'a> {
-    num_qubits: u32,
-    paulis: &'a mut [Pauli],
-    indices: &'a [u32],
-    boundaries: &'a [usize],
-    i: usize,
-}
-impl<'a> From<&'a mut QubitSparsePauliList> for IterMut<'a> {
-    fn from(value: &mut QubitSparsePauliList) -> IterMut {
-        IterMut {
-            num_qubits: value.num_qubits,
-            paulis: &mut value.paulis,
-            indices: &value.indices,
-            boundaries: &value.boundaries,
-            i: 0,
-        }
-    }
-}
-impl<'a> Iterator for IterMut<'a> {
-    type Item = QubitSparsePauliViewMut<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // The trick here is that the lifetime of the 'self' borrow is shorter than the lifetime of
-        // the inner borrows.  We can't give out mutable references to our inner borrow, because
-        // after the lifetime on 'self' expired, there'd be nothing preventing somebody using the
-        // 'self' borrow to see _another_ mutable borrow of the inner data, which would be an
-        // aliasing violation.  Instead, we keep splitting the inner views we took out so the
-        // mutable references we return don't overlap with the ones we continue to hold.
-        let len = self.boundaries[self.i + 1] - self.boundaries[self.i];
-        self.i += 1;
-
-        let all_paulis = ::std::mem::take(&mut self.paulis);
-        let all_indices = ::std::mem::take(&mut self.indices);
-        let (paulis, rest_paulis) = all_paulis.split_at_mut(len);
-        let (indices, rest_indices) = all_indices.split_at(len);
-        self.paulis = rest_paulis;
-        self.indices = rest_indices;
-
-        Some(QubitSparsePauliViewMut {
-            num_qubits: self.num_qubits,
-            paulis,
-            indices,
-        })
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.boundaries.len() - 1, Some(self.boundaries.len() - 1))
-    }
-}
-impl ExactSizeIterator for IterMut<'_> {}
-impl ::std::iter::FusedIterator for IterMut<'_> {}
 
 /// A single qubit-spare Pauli operator.
 #[derive(Clone, Debug, PartialEq)]
