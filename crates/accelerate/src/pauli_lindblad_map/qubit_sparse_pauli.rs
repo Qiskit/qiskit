@@ -489,7 +489,7 @@ impl QubitSparsePauliList {
 /// A view object onto a single term of a `QubitSparsePauliList`.
 ///
 /// The lengths of `paulis` and `indices` are guaranteed to be created equal, but might be zero
-/// (in the case that the term is proportional to the identity).
+/// (in the case that the term is the identity).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct QubitSparsePauliView<'a> {
     pub num_qubits: u32,
