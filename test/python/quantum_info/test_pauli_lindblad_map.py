@@ -19,7 +19,7 @@ import unittest
 import ddt
 import numpy as np
 
-from qiskit.quantum_info import QubitSparsePauliList, PauliLindbladMap
+from qiskit.quantum_info import QubitSparsePauli, QubitSparsePauliList, PauliLindbladMap
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -88,102 +88,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(PauliLindbladMap(list(terms)), expected)
         self.assertEqual(PauliLindbladMap(tuple(terms)), expected)
         self.assertEqual(PauliLindbladMap(term for term in terms), expected)
-
-    def test_from_raw_parts(self):
-        # Happiest path: exactly typed inputs.
-        num_qubits = 100
-        terms = np.full((num_qubits,), PauliLindbladMap.Pauli.Z, dtype=np.uint8)
-        indices = np.arange(num_qubits, dtype=np.uint32)
-        rates = np.ones((num_qubits,), dtype=float)
-        boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
-        pauli_lindblad_map = PauliLindbladMap.from_raw_parts(
-            num_qubits, rates, terms, indices, boundaries
-        )
-        self.assertEqual(pauli_lindblad_map.num_qubits, num_qubits)
-        np.testing.assert_equal(pauli_lindblad_map.paulis, terms)
-        np.testing.assert_equal(pauli_lindblad_map.indices, indices)
-        np.testing.assert_equal(pauli_lindblad_map.rates, rates)
-        np.testing.assert_equal(pauli_lindblad_map.boundaries, boundaries)
-
-        self.assertEqual(
-            pauli_lindblad_map,
-            PauliLindbladMap.from_raw_parts(
-                num_qubits, rates, terms, indices, boundaries, check=False
-            ),
-        )
-
-        # At least the initial implementation of `PauliLindbladMap` requires `from_raw_parts` to be
-        # a copy constructor in order to allow it to be resized by Rust space.  This is checking for
-        # that, but if the implementation changes, it could potentially be relaxed.
-        self.assertFalse(np.may_share_memory(pauli_lindblad_map.rates, rates))
-
-        # Conversion from array-likes, including mis-typed but compatible arrays.
-        pauli_lindblad_map = PauliLindbladMap.from_raw_parts(
-            num_qubits,
-            list(rates),
-            tuple(terms),
-            pauli_lindblad_map.indices,
-            boundaries.astype(np.int16),
-        )
-        self.assertEqual(pauli_lindblad_map.num_qubits, num_qubits)
-        np.testing.assert_equal(pauli_lindblad_map.paulis, terms)
-        np.testing.assert_equal(pauli_lindblad_map.indices, indices)
-        np.testing.assert_equal(pauli_lindblad_map.rates, rates)
-        np.testing.assert_equal(pauli_lindblad_map.boundaries, boundaries)
-
-        # Construction of identity operator.
-        self.assertEqual(
-            PauliLindbladMap.from_raw_parts(10, [], [], [], [0]), PauliLindbladMap.identity(10)
-        )
-
-        # Construction of an operator with an intermediate identity term.  For the initial
-        # constructor tests, it's hard to check anything more than the construction succeeded.
-        self.assertEqual(
-            PauliLindbladMap.from_raw_parts(
-                10, [1.0, 0.5, 2.0], [1, 3, 2], [0, 1, 2], [0, 1, 1, 3]
-            ).num_terms,
-            # The three are [(1.0)*(Z_1), 0.5, 2.0*(X_2 Y_1)]
-            3,
-        )
-
-    def test_from_raw_parts_checks_coherence(self):
-        with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [ord("$")], [0], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"one element longer than `rates`"):
-            PauliLindbladMap.from_raw_parts(
-                2,
-                [1.0],
-                [PauliLindbladMap.Pauli.Z, PauliLindbladMap.Pauli.Z],
-                [0, 1],
-                [0, 1, 2],
-            )
-        with self.assertRaisesRegex(ValueError, r"must match the length of `paulis`"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.Pauli.Z], [0], [0])
-        with self.assertRaisesRegex(ValueError, r"`paulis` \(1\) and `indices` \(0\)"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.Pauli.Z], [], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"`paulis` \(0\) and `indices` \(1\)"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [], [1], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"the first item of `boundaries` \(1\) must be 0"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [PauliLindbladMap.Pauli.Z], [0], [1, 1])
-        with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(2\)"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [1], [0], [0, 2])
-        with self.assertRaisesRegex(ValueError, r"the last item of `boundaries` \(1\)"):
-            PauliLindbladMap.from_raw_parts(2, [1.0], [1, 2], [0, 1], [0, 1])
-        with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
-            PauliLindbladMap.from_raw_parts(4, [1.0], [1, 2], [0, 4], [0, 2])
-        with self.assertRaisesRegex(ValueError, r"all qubit indices must be less than the number"):
-            PauliLindbladMap.from_raw_parts(4, [1.0, -0.5], [1, 2], [0, 4], [0, 1, 2])
-        with self.assertRaisesRegex(ValueError, "the values in `boundaries` include backwards"):
-            PauliLindbladMap.from_raw_parts(
-                5, [1.0, -0.5, 2.0], [1, 2, 3, 2], [0, 1, 2, 3], [0, 2, 1, 4]
-            )
-        with self.assertRaisesRegex(
-            ValueError, "the values in `indices` are not term-wise increasing"
-        ):
-            PauliLindbladMap.from_raw_parts(4, [1.0], [1, 2], [1, 0], [0, 2])
-
-        # There's no test of attempting to pass incoherent data and `check=False` because that
-        # permits undefined behaviour in Rust (it's unsafe), so all bets would be off.
 
     def test_from_list(self):
         label = "IXYIZZY"
@@ -540,283 +444,18 @@ class TestPauliLindbladMap(QiskitTestCase):
             ),
         )
 
-    def test_write_into_attributes_scalar(self):
-        rates = PauliLindbladMap.from_sparse_list(
-            [("XZ", (1, 0), 1.5), ("XX", (3, 2), -1.5)], num_qubits=8
-        )
-        rates.rates[0] = -2.0
-        self.assertEqual(
-            rates,
-            PauliLindbladMap.from_sparse_list(
-                [("XZ", (1, 0), -2.0), ("XX", (3, 2), -1.5)], num_qubits=8
-            ),
-        )
-        rates.rates[1] = 1.5
-        self.assertEqual(
-            rates,
-            PauliLindbladMap.from_sparse_list(
-                [("XZ", (1, 0), -2.0), ("XX", (3, 2), 1.5)], num_qubits=8
-            ),
-        )
-
-        paulis = PauliLindbladMap.from_sparse_list(
-            [("XZ", (0, 1), 1.5), ("XX", (2, 3), -1.5)], num_qubits=8
-        )
-        paulis.paulis[0] = PauliLindbladMap.Pauli.Y
-        paulis.paulis[3] = PauliLindbladMap.Pauli.Z
-        self.assertEqual(
-            paulis,
-            PauliLindbladMap.from_sparse_list(
-                [("YZ", (0, 1), 1.5), ("XZ", (2, 3), -1.5)], num_qubits=8
-            ),
-        )
-
-        indices = PauliLindbladMap.from_sparse_list(
-            [("XZ", (0, 1), 1.5), ("XX", (2, 3), -1.5)], num_qubits=8
-        )
-        # These two sets keep the generator in term-wise increasing order.  We don't test what
-        # happens if somebody violates the Rust-space requirement to be term-wise increasing.
-        indices.indices[1] = 4
-        indices.indices[3] = 7
-        self.assertEqual(
-            indices,
-            PauliLindbladMap.from_sparse_list(
-                [("XZ", (0, 4), 1.5), ("XX", (2, 7), -1.5)], num_qubits=8
-            ),
-        )
-
-        boundaries = PauliLindbladMap.from_sparse_list(
-            [("XZ", (0, 1), 1.5), ("XX", (2, 3), -1.5)], num_qubits=8
-        )
-        # Move a single-qubit term from the second summand into the first (the particular indices
-        # ensure we remain term-wise sorted).
-        boundaries.boundaries[1] += 1
-        self.assertEqual(
-            boundaries,
-            PauliLindbladMap.from_sparse_list(
-                [("XZX", (0, 1, 2), 1.5), ("X", (3,), -1.5)], num_qubits=8
-            ),
-        )
-
-    def test_write_into_attributes_broadcast(self):
-        rates = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIIYZ", -0.25), ("ZIIIY", 0.5)])
-        rates.rates[:] = 1.5
-        np.testing.assert_array_equal(rates.rates, [1.5, 1.5, 1.5])
-        rates.rates[1:] = 1.0
-        np.testing.assert_array_equal(rates.rates, [1.5, 1.0, 1.0])
-        rates.rates[:2] = -0.5
-        np.testing.assert_array_equal(rates.rates, [-0.5, -0.5, 1.0])
-        rates.rates[::2] = 1.5
-        np.testing.assert_array_equal(rates.rates, [1.5, -0.5, 1.5])
-        rates.rates[::-1] = -0.5
-        np.testing.assert_array_equal(rates.rates, [-0.5, -0.5, -0.5])
-
-        # It's hard to broadcast into `indices` without breaking data coherence; the broadcasting is
-        # more meant for fast modifications to `rates` and `paulis`.
-        indices = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIY", 0.5)])
-        indices.indices[::2] = 1
-        self.assertEqual(
-            indices, PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYZI", -0.25), ("ZIIYI", 0.5)])
-        )
-
-        paulis = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIY", 0.5)])
-        paulis.paulis[::2] = PauliLindbladMap.Pauli.Z
-        self.assertEqual(
-            paulis,
-            PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIYIZ", -0.25), ("ZIIIZ", 0.5)]),
-        )
-        paulis.paulis[3:1:-1] = PauliLindbladMap.Pauli.X
-        self.assertEqual(
-            paulis,
-            PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIXIX", -0.25), ("ZIIIZ", 0.5)]),
-        )
-        paulis.paulis[paulis.boundaries[2] : paulis.boundaries[3]] = PauliLindbladMap.Pauli.X
-        self.assertEqual(
-            paulis,
-            PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIXIX", -0.25), ("XIIIX", 0.5)]),
-        )
-
-        boundaries = PauliLindbladMap.from_list([("IIIIZX", 1), ("IIXXII", -0.5), ("YYIIII", 0.5)])
-        boundaries.boundaries[1:3] = 1
-        self.assertEqual(
-            boundaries,
-            PauliLindbladMap.from_list([("IIIIIX", 1), ("IIIIII", -0.5), ("YYXXZI", 0.5)]),
-        )
-
-    def test_write_into_attributes_slice(self):
-        rates = PauliLindbladMap.from_list([("XIIZI", 1.5), ("IIIYZ", -0.25), ("ZIIIY", 0.5)])
-        rates.rates[:] = [2.0, 0.5, -0.25]
-        self.assertEqual(
-            rates, PauliLindbladMap.from_list([("XIIZI", 2.0), ("IIIYZ", 0.5), ("ZIIIY", -0.25)])
-        )
-        # This should assign the rateicients in reverse order - we more usually spell it
-        # `rates[:] = rates{::-1]`, but the idea is to check the set-item slicing order.
-        rates.rates[::-1] = rates.rates[:]
-        self.assertEqual(
-            rates, PauliLindbladMap.from_list([("XIIZI", -0.25), ("IIIYZ", 0.5), ("ZIIIY", 2.0)])
-        )
-
-        indices = PauliLindbladMap.from_list([("IIIIZX", 0.25), ("IIXYII", 1), ("YZIIII", 0.5)])
-        indices.indices[:4] = [4, 5, 1, 2]
-        self.assertEqual(
-            indices, PauliLindbladMap.from_list([("ZXIIII", 0.25), ("IIIXYI", 1), ("YZIIII", 0.5)])
-        )
-
-        paulis = PauliLindbladMap.from_list([("IIIIZX", 0.25), ("IIXXII", 1), ("YYIIII", 0.5)])
-        paulis.paulis[::2] = [
-            PauliLindbladMap.Pauli.Y,
-            PauliLindbladMap.Pauli.Y,
-            PauliLindbladMap.Pauli.Z,
-        ]
-        self.assertEqual(
-            paulis,
-            PauliLindbladMap.from_list([("IIIIZY", 0.25), ("IIXYII", 1), ("YZIIII", 0.5)]),
-        )
-
-        boundaries = PauliLindbladMap.from_list([("IIIIZX", 0.25), ("IIXXII", 1), ("YYIIII", 0.5)])
-        boundaries.boundaries[1:-1] = [1, 5]
-        self.assertEqual(
-            boundaries,
-            PauliLindbladMap.from_list([("IIIIIX", 0.25), ("IYXXZI", 1), ("YIIIII", 0.5)]),
-        )
-
-    def test_attributes_reject_bad_writes(self):
+    def test_attributes_immutable(self):
         pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("XXY", -0.5)])
-        with self.assertRaises(TypeError):
-            pauli_lindblad_map.rates[0] = [0.25j, 0.5j]
-        with self.assertRaises(TypeError):
-            pauli_lindblad_map.rates[0] = 0.25j
-        with self.assertRaises(TypeError):
-            pauli_lindblad_map.paulis[0] = [PauliLindbladMap.Pauli.X] * 4
-        with self.assertRaises(TypeError):
-            pauli_lindblad_map.indices[0] = [0, 1]
-        with self.assertRaises(TypeError):
-            pauli_lindblad_map.boundaries[0] = (0, 1)
-        with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            pauli_lindblad_map.paulis[0] = 0
-        with self.assertRaisesRegex(ValueError, "not a valid letter"):
-            pauli_lindblad_map.paulis[:] = 0
-        with self.assertRaisesRegex(
-            ValueError, "tried to set a slice of length 2 with a sequence of length 1"
-        ):
-            pauli_lindblad_map.rates[:] = [1.0]
-        with self.assertRaisesRegex(
-            ValueError, "tried to set a slice of length 6 with a sequence of length 8"
-        ):
-            pauli_lindblad_map.paulis[:] = [PauliLindbladMap.Pauli.Z] * 8
-
-    def test_attributes_sequence(self):
-        """Test attributes of the `Sequence` protocol."""
-        # Length
-        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("ZYX", -0.5)])
-        self.assertEqual(len(pauli_lindblad_map.rates), 2)
-        self.assertEqual(len(pauli_lindblad_map.indices), 6)
-        self.assertEqual(len(pauli_lindblad_map.paulis), 6)
-        self.assertEqual(len(pauli_lindblad_map.boundaries), 3)
-
-        # Iteration
-        self.assertEqual(list(pauli_lindblad_map.rates), [1.5, -0.5])
-        self.assertEqual(tuple(pauli_lindblad_map.indices), (0, 1, 2, 0, 1, 2))
-        self.assertEqual(next(iter(pauli_lindblad_map.boundaries)), 0)
-        # multiple iteration through same object
-        paulis = pauli_lindblad_map.paulis
-        self.assertEqual(set(paulis), {PauliLindbladMap.Pauli[x] for x in "XYZZYX"})
-        self.assertEqual(set(paulis), {PauliLindbladMap.Pauli[x] for x in "XYZZYX"})
-
-        # Implicit iteration methods.
-        self.assertIn(PauliLindbladMap.Pauli.Y, pauli_lindblad_map.paulis)
-        self.assertNotIn(4, pauli_lindblad_map.indices)
-        self.assertEqual(list(reversed(pauli_lindblad_map.rates)), [-0.5, 1.5])
-
-        # Index by scalar
-        self.assertEqual(pauli_lindblad_map.rates[1], -0.5)
-        self.assertEqual(pauli_lindblad_map.indices[-1], 2)
-        self.assertEqual(pauli_lindblad_map.paulis[0], PauliLindbladMap.Pauli.Y)
-        # Make sure that Rust-space actually returns the enum value, not just an `int` (which could
-        # have compared equal).
-        self.assertIsInstance(pauli_lindblad_map.paulis[0], QubitSparsePauliList.Pauli)
-        self.assertEqual(pauli_lindblad_map.boundaries[-2], 3)
-        with self.assertRaises(IndexError):
-            _ = pauli_lindblad_map.rates[10]
-        with self.assertRaises(IndexError):
-            _ = pauli_lindblad_map.boundaries[-4]
-
-        # Index by slice.  This is API guaranteed to be a Numpy array to make it easier to
-        # manipulate subslices with mathematic operations.
-        self.assertIsInstance(pauli_lindblad_map.rates[:], np.ndarray)
-        np.testing.assert_array_equal(
-            pauli_lindblad_map.rates[:], np.array([1.5, -0.5], dtype=np.float64), strict=True
-        )
-        self.assertIsInstance(pauli_lindblad_map.indices[::-1], np.ndarray)
-        np.testing.assert_array_equal(
-            pauli_lindblad_map.indices[::-1],
-            np.array([2, 1, 0, 2, 1, 0], dtype=np.uint32),
-            strict=True,
-        )
-        self.assertIsInstance(pauli_lindblad_map.paulis[2:4], np.ndarray)
-        np.testing.assert_array_equal(
-            pauli_lindblad_map.paulis[2:4],
-            np.array([PauliLindbladMap.Pauli.X, PauliLindbladMap.Pauli.X], dtype=np.uint8),
-            strict=True,
-        )
-        self.assertIsInstance(pauli_lindblad_map.boundaries[-2:-3:-1], np.ndarray)
-        np.testing.assert_array_equal(
-            pauli_lindblad_map.boundaries[-2:-3:-1], np.array([3], dtype=np.uintp), strict=True
-        )
-
-    def test_attributes_to_array(self):
-        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("XYZ", -0.5)])
-
-        # Natural dtypes.
-        np.testing.assert_array_equal(
-            pauli_lindblad_map.rates, np.array([1.5, -0.5], dtype=np.float64), strict=True
-        )
-        np.testing.assert_array_equal(
-            pauli_lindblad_map.indices, np.array([0, 1, 2, 0, 1, 2], dtype=np.uint32), strict=True
-        )
-        np.testing.assert_array_equal(
-            pauli_lindblad_map.paulis,
-            np.array([PauliLindbladMap.Pauli[x] for x in "YZXZYX"], dtype=np.uint8),
-            strict=True,
-        )
-        np.testing.assert_array_equal(
-            pauli_lindblad_map.boundaries, np.array([0, 3, 6], dtype=np.uintp), strict=True
-        )
-
-        # Cast dtypes.
-        np.testing.assert_array_equal(
-            np.array(pauli_lindblad_map.indices, dtype=np.uint8),
-            np.array([0, 1, 2, 0, 1, 2], dtype=np.uint8),
-            strict=True,
-        )
-        np.testing.assert_array_equal(
-            np.array(pauli_lindblad_map.boundaries, dtype=np.int64),
-            np.array([0, 3, 6], dtype=np.int64),
-            strict=True,
-        )
-
-    @unittest.skipIf(
-        int(np.__version__.split(".", maxsplit=1)[0]) < 2,
-        "Numpy 1.x did not have a 'copy' keyword parameter to 'numpy.asarray'",
-    )
-    def test_attributes_reject_no_copy_array(self):
-        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("YXZ", -0.5)])
-        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_lindblad_map.rates, copy=False)
-        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_lindblad_map.indices, copy=False)
-        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_lindblad_map.paulis, copy=False)
-        with self.assertRaisesRegex(ValueError, "cannot produce a safe view"):
-            np.asarray(pauli_lindblad_map.boundaries, copy=False)
-
-    def test_attributes_repr(self):
-        # We're not testing much about the outputs here, just that they don't crash.
-        pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("YXZ", -0.5)])
-        self.assertIn("rates", repr(pauli_lindblad_map.rates))
-        self.assertIn("paulis", repr(pauli_lindblad_map.paulis))
-        self.assertIn("indices", repr(pauli_lindblad_map.indices))
-        self.assertIn("boundaries", repr(pauli_lindblad_map.boundaries))
+        with self.assertRaisesRegex(AttributeError, "attribute 'rates'"):
+            pauli_lindblad_map.rates = 1.
+        with self.assertRaisesRegex(AttributeError, "attribute 'gamma'"):
+            pauli_lindblad_map.gamma = 1.
+        with self.assertRaisesRegex(AttributeError, "attribute 'probabilities'"):
+            pauli_lindblad_map.probabilities = 1.
+        with self.assertRaisesRegex(ValueError, "assignment destination is read-only"):
+            pauli_lindblad_map.rates[0] = 1.
+        with self.assertRaisesRegex(ValueError, "assignment destination is read-only"):
+            pauli_lindblad_map.probabilities[0] = 1.
 
     @ddt.idata(single_cases())
     def test_clear(self, pauli_lindblad_map):
@@ -838,13 +477,12 @@ class TestPauliLindbladMap(QiskitTestCase):
             ],
             num_qubits=5,
         )
-        pauli = PauliLindbladMap.Pauli
         expected = [
-            PauliLindbladMap.Term(5, 2, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
-            PauliLindbladMap.Term(5, 0.5, [], []),
-            PauliLindbladMap.Term(5, -0.25, [pauli.Z, pauli.Z], [0, 3]),
-            PauliLindbladMap.Term(5, 1.0, [pauli.X, pauli.X], [1, 2]),
-            PauliLindbladMap.Term(5, 1, [pauli.Z, pauli.Y], [1, 4]),
+            PauliLindbladMap.GeneratorTerm(2, QubitSparsePauli(("YYX", [1, 2, 4]), 5)),
+            PauliLindbladMap.GeneratorTerm(0.5, QubitSparsePauli(("", []), 5)),
+            PauliLindbladMap.GeneratorTerm(-0.25, QubitSparsePauli(("ZZ", [0, 3]), 5)),
+            PauliLindbladMap.GeneratorTerm(1.0, QubitSparsePauli(("XX", [1, 2]), 5)),
+            PauliLindbladMap.GeneratorTerm(1, QubitSparsePauli(("ZY", [1, 4]), 5)),
         ]
         self.assertEqual(list(pauli_lindblad_map), expected)
 
@@ -859,13 +497,12 @@ class TestPauliLindbladMap(QiskitTestCase):
             ],
             num_qubits=5,
         )
-        pauli = PauliLindbladMap.Pauli
         expected = [
-            PauliLindbladMap.Term(5, 2, [pauli.Y, pauli.Y, pauli.X], [1, 2, 4]),
-            PauliLindbladMap.Term(5, 0.5, [], []),
-            PauliLindbladMap.Term(5, -0.25, [pauli.Z, pauli.Z], [0, 3]),
-            PauliLindbladMap.Term(5, 1.0, [pauli.X, pauli.X], [1, 2]),
-            PauliLindbladMap.Term(5, 1, [pauli.Z, pauli.Y], [1, 4]),
+            PauliLindbladMap.GeneratorTerm(2, QubitSparsePauli(("YYX", [1, 2, 4]), 5)),
+            PauliLindbladMap.GeneratorTerm(0.5, QubitSparsePauli(("", []), 5)),
+            PauliLindbladMap.GeneratorTerm(-0.25, QubitSparsePauli(("ZZ", [0, 3]), 5)),
+            PauliLindbladMap.GeneratorTerm(1.0, QubitSparsePauli(("XX", [1, 2]), 5)),
+            PauliLindbladMap.GeneratorTerm(1, QubitSparsePauli(("ZY", [1, 4]), 5)),
         ]
         self.assertEqual(pauli_lindblad_map[0], expected[0])
         self.assertEqual(pauli_lindblad_map[-2], expected[-2])
@@ -883,7 +520,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         # that it has any particular form.
         term = pauli_lindblad_map[0]
         self.assertIsInstance(repr(term), str)
-        self.assertIn("PauliLindbladMap.Term", repr(term))
+        self.assertIn("PauliLindbladMap.GeneratorTerm", repr(term))
 
     @ddt.data(
         PauliLindbladMap.from_sparse_list([("YXZ", [2, 3, 5], -0.25)], num_qubits=6),

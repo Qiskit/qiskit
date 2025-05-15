@@ -10,12 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use numpy::{PyArray1, PyArrayLike1, PyArrayMethods};
+use numpy::{PyArray1, PyArrayMethods};
 use pyo3::{
-    exceptions::{PyAttributeError, PyTypeError, PyValueError},
+    exceptions::{PyTypeError, PyValueError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
     types::{PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
@@ -27,8 +26,6 @@ use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError,
     InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList, QubitSparsePauli, QubitSparsePauliView
 };
-
-static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
 /// probabilities, and non_negative_rates is
@@ -127,9 +124,9 @@ impl PauliLindbladMap {
     ///
     /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
-    pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = SparseTermView<'_>> + '_ {
+    pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = GeneratorTermView<'_>> + '_ {
         self.rates.iter().enumerate().map(|(i, rate)| {
-            SparseTermView {
+            GeneratorTermView {
                 rate: *rate,
                 qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(i),
             }
@@ -233,7 +230,7 @@ impl PauliLindbladMap {
     }
 
     /// Add a single generator term to this map.
-    pub fn add_term(&mut self, term: SparseTermView) -> Result<(), ArithmeticError> {
+    pub fn add_term(&mut self, term: GeneratorTermView) -> Result<(), ArithmeticError> {
         let term = term.to_term();
         if self.num_qubits() != term.num_qubits() {
             return Err(ArithmeticError::MismatchedQubits {
@@ -267,9 +264,9 @@ impl PauliLindbladMap {
     /// # Panics
     ///
     /// If the index is out of bounds.
-    pub fn term(&self, index: usize) -> SparseTermView {
+    pub fn term(&self, index: usize) -> GeneratorTermView {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
-        SparseTermView {
+        GeneratorTermView {
             rate: self.rates[index],
             qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(index),
         }
@@ -302,19 +299,19 @@ fn derived_values_from_rates(rates: &Vec<f64>) -> (f64, Vec<f64>, Vec<bool>) {
     (gamma, probabilities, non_negative_rates)
 }
 
-/// A view object onto a single term of a `PauliLindbladMap`.
+/// A view object onto a single generator term of a `PauliLindbladMap`.
 ///
 /// The lengths of `paulis` and `indices` are guaranteed to be created equal, but might be zero
 /// (in the case that the term is proportional to the identity).
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub struct SparseTermView<'a> {
+pub struct GeneratorTermView<'a> {
     pub rate: f64,
     pub qubit_sparse_pauli: QubitSparsePauliView<'a>,
 }
-impl SparseTermView<'_> {
-    /// Convert this `SparseTermView` into an owning [SparseTerm] of the same data.
-    pub fn to_term(&self) -> SparseTerm {
-        SparseTerm {
+impl GeneratorTermView<'_> {
+    /// Convert this `GeneratorTermView` into an owning [GeneratorTerm] of the same data.
+    pub fn to_term(&self) -> GeneratorTerm {
+        GeneratorTerm {
             rate: self.rate,
             qubit_sparse_pauli: self.qubit_sparse_pauli.to_term(),
         }
@@ -339,12 +336,12 @@ impl SparseTermView<'_> {
 ///
 /// These are typically created by indexing into or iterating through a :class:`PauliLindbladMap`.
 #[derive(Clone, Debug, PartialEq)]
-pub struct SparseTerm {
+pub struct GeneratorTerm {
     /// The real rate of the term.
     rate: f64,
     qubit_sparse_pauli: QubitSparsePauli
 }
-impl SparseTerm {
+impl GeneratorTerm {
     pub fn new(
         rate: f64,
         qubit_sparse_pauli: QubitSparsePauli,
@@ -372,8 +369,8 @@ impl SparseTerm {
         &self.qubit_sparse_pauli.paulis()
     }
 
-    pub fn view(&self) -> SparseTermView {
-        SparseTermView {
+    pub fn view(&self) -> GeneratorTermView {
+        GeneratorTermView {
             rate: self.rate,
             qubit_sparse_pauli: self.qubit_sparse_pauli.view(),
         }
@@ -394,18 +391,18 @@ impl SparseTerm {
 /// A single term from a complete :class:`PauliLindbladMap`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`PauliLindbladMap`.
-#[pyclass(name = "Term", frozen, module = "qiskit.quantum_info")]
+#[pyclass(name = "GeneratorTerm", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
-struct PySparseTerm {
-    inner: SparseTerm,
+struct PyGeneratorTerm {
+    inner: GeneratorTerm,
 }
 #[pymethods]
-impl PySparseTerm {
+impl PyGeneratorTerm {
     // Mark the Python class as being defined "within" the `PauliLindbladMap` class namespace.
     #[classattr]
     #[pyo3(name = "__qualname__")]
     fn type_qualname() -> &'static str {
-        "PauliLindbladMap.Term"
+        "PauliLindbladMap.GeneratorTerm"
     }
 
     #[new]
@@ -434,8 +431,8 @@ impl PySparseTerm {
             sorted_indices.push(index)
         }
         let qubit_sparse_pauli = QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
-        let inner = SparseTerm::new(rate, qubit_sparse_pauli)?;
-        Ok(PySparseTerm { inner })
+        let inner = GeneratorTerm::new(rate, qubit_sparse_pauli)?;
+        Ok(PyGeneratorTerm { inner })
     }
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
@@ -544,14 +541,14 @@ impl PySparseTerm {
         out
     }
 
-    /// Return the bit labels of the term as string.
+    /// Return the pauli labels of the term as string.
     ///
-    /// The bit labels will match the order of :attr:`.SparseTerm.indices`, such that the
+    /// The pauli labels will match the order of :attr:`.GeneratorTerm.indices`, such that the
     /// i-th character in the string is applied to the qubit index at ``term.indices[i]``.
     ///
     /// Returns:
     ///     The non-identity bit terms as concatenated string.
-    fn bit_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+    fn pauli_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
         let string: String = self
             .inner
             .paulis()
@@ -559,6 +556,19 @@ impl PySparseTerm {
             .map(|bit| bit.py_label())
             .collect();
         PyString::new(py, string.as_str())
+    }
+
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.paulis());
+        (
+            py.get_type::<Self>().getattr("from_raw_parts")?,
+            (
+                self.inner.num_qubits(),
+                PyArray1::from_slice(py, paulis),
+                PyArray1::from_slice(py, self.inner.indices()),
+            ),
+        )
+            .into_pyobject(py)
     }
 }
 
@@ -860,7 +870,7 @@ impl PySparseTerm {
 #[pyclass(name = "PauliLindbladMap", module = "qiskit.quantum_info", sequence)]
 #[derive(Debug)]
 pub struct PyPauliLindbladMap {
-    // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
+    // This class keeps a pointer to a pure Rust-GeneratorTerm and serves as interface from Python.
     inner: Arc<RwLock<PauliLindbladMap>>,
 }
 
@@ -902,7 +912,7 @@ impl PyPauliLindbladMap {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PySparseTerm>() {
+        if let Ok(term) = data.downcast_exact::<PyGeneratorTerm>() {
             return term.borrow().to_pauli_lindblad_map();
         };
         if let Ok(pauli_lindblad_map) = Self::from_terms(data, num_qubits) {
@@ -1031,12 +1041,12 @@ impl PyPauliLindbladMap {
                         "cannot construct a PauliLindbladMap from an empty list without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PySparseTerm>()?.borrow();
+                let py_term = first?.downcast::<PyGeneratorTerm>()?.borrow();
                 py_term.inner.to_pauli_lindblad_map()?
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PySparseTerm>()?.borrow();
+            let py_term = bound_py_term?.downcast::<PyGeneratorTerm>()?.borrow();
             inner.add_term(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -1208,7 +1218,7 @@ impl PyPauliLindbladMap {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
 
         // turn a SparseView into a Python tuple of (bit terms, indices, rate)
-        let to_py_tuple = |view: SparseTermView| {
+        let to_py_tuple = |view: GeneratorTermView| {
             let mut pauli_string = String::with_capacity(view.qubit_sparse_pauli.paulis.len());
 
             for bit in view.qubit_sparse_pauli.paulis.iter() {
@@ -1234,17 +1244,9 @@ impl PyPauliLindbladMap {
 
     fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let paulis: &[u8] = ::bytemuck::cast_slice(inner.paulis());
         (
-            py.get_type::<Self>().getattr("from_raw_parts")?,
-            (
-                inner.num_qubits(),
-                PyArray1::from_slice(py, inner.rates()),
-                PyArray1::from_slice(py, paulis),
-                PyArray1::from_slice(py, inner.indices()),
-                PyArray1::from_slice(py, inner.boundaries()),
-                false,
-            ),
+            py.get_type::<Self>().getattr("from_sparse_list")?,
+            (self.to_sparse_list(py)?, inner.num_qubits()),
         )
             .into_pyobject(py)
     }
@@ -1257,7 +1259,7 @@ impl PyPauliLindbladMap {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let indices = match index.with_len(inner.num_terms())? {
             SequenceIndex::Int(index) => {
-                return PySparseTerm {
+                return PyGeneratorTerm {
                     inner: inner.term(index).to_term(),
                 }
                 .into_bound_py_any(py)
@@ -1291,7 +1293,7 @@ impl PyPauliLindbladMap {
     #[allow(non_snake_case)]
     #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
-        py.get_type::<PySparseTerm>()
+        py.get_type::<PyGeneratorTerm>()
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -1315,7 +1317,7 @@ impl PyPauliLindbladMap {
         } else {
             inner
                 .iter()
-                .map(SparseTermView::to_sparse_str)
+                .map(GeneratorTermView::to_sparse_str)
                 .collect::<Vec<_>>()
                 .join(" + ")
         };
