@@ -27,7 +27,7 @@ use smallvec::{smallvec, SmallVec};
 use crate::CircuitError;
 
 const PI2: f64 = PI / 2.0;
-const PI8: f64 = PI / 8.0;
+const PI4: f64 = PI / 4.0;
 
 fn iqp(
     interactions: ArrayView2<i64>,
@@ -54,7 +54,11 @@ fn iqp(
             })
     });
 
+<<<<<<< HEAD
     // The layer of T gates. Again we use the PhaseGate, now with powers of Pi/8. The powers
+=======
+    // The layer of T gates. Again we use the Phase gate, now with powers of Pi/4. The powers
+>>>>>>> 6ca3d22bc (Fix construction of IQP circuits (#14363))
     // are given by the diagonal of the ``interactions`` matrix.
     let shifts = (0..num_qubits)
         .map(move |i| interactions[(i, i)])
@@ -62,8 +66,13 @@ fn iqp(
         .filter(|(_, value)| value % 8 != 0)
         .map(|(i, value)| {
             (
+<<<<<<< HEAD
                 StandardGate::PhaseGate,
                 smallvec![Param::Float(PI8 * value as f64)],
+=======
+                StandardGate::Phase,
+                smallvec![Param::Float(PI4 * value as f64)],
+>>>>>>> 6ca3d22bc (Fix construction of IQP circuits (#14363))
                 smallvec![Qubit(i as u32)],
             )
         });
