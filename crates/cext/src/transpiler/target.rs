@@ -110,7 +110,7 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> usize {
 ///
 /// @param target A pointer to the ``Target``.
 ///
-/// @return The dt value of this ``Target``.
+/// @return The dt value of this ``Target`` or `NaN` if not assigned.
 ///
 /// # Example
 ///     const dt = 10e-9;
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> usize {
 pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
-    target.dt.unwrap_or_default()
+    target.dt.unwrap_or(f64::NAN)
 }
 
 /// @ingroup QkTarget

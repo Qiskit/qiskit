@@ -66,8 +66,8 @@ int test_empty_target(void) {
     }
 
     double retrieved_dt = qk_target_dt(target);
-    if (retrieved_dt != 0) {
-        printf("The dt value of this target %f is not %p.", retrieved_dt, NULL);
+    if (!isnan(retrieved_dt)) {
+        printf("The dt value of this target %f is not %f.", retrieved_dt, NAN);
         return EqualityError;
     }
 
