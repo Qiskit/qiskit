@@ -453,18 +453,6 @@ impl PyGeneratorTerm {
         ))
     }
 
-    fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
-        let py = slf_.py();
-        let borrowed = slf_.borrow();
-        (
-            borrowed.inner.num_qubits(),
-            borrowed.inner.rate(),
-            Self::get_paulis(slf_.clone()),
-            Self::get_indices(slf_),
-        )
-            .into_pyobject(py)
-    }
-
     /// Get a copy of this term.
     fn copy(&self) -> Self {
         self.clone()
@@ -498,6 +486,12 @@ impl PyGeneratorTerm {
     #[getter]
     fn get_rate(&self) -> f64 {
         self.inner.rate()
+    }
+
+    /// The term's qubit_sparse_pauli.
+    #[getter]
+    fn get_qubit_sparse_pauli(&self) -> PyQubitSparsePauli {
+        self.inner.qubit_sparse_pauli.clone().into()
     }
 
     /// Read-only view onto the indices of each non-identity single-qubit term.
@@ -534,18 +528,33 @@ impl PyGeneratorTerm {
         PyString::new(py, string.as_str())
     }
 
+    //fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
+    //    let py = slf_.py();
+    //    let borrowed = slf_.borrow();
+    //    (
+    //        borrowed.inner.num_qubits(),
+    //        borrowed.inner.rate(),
+    //        Self::get_paulis(slf_.clone()),
+    //        Self::get_indices(slf_),
+    //    )
+    //        .into_pyobject(py)
+    //}
+
+
     fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.paulis());
+        //let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.paulis());
         (
-            py.get_type::<Self>().getattr("from_raw_parts")?,
+            py.get_type::<Self>().getattr("__new__")?,
             (
-                self.inner.num_qubits(),
-                PyArray1::from_slice(py, paulis),
-                PyArray1::from_slice(py, self.inner.indices()),
+                self.get_rate(),
+                self.get_qubit_sparse_pauli()
+                //PyArray1::from_slice(py, paulis),
+                //PyArray1::from_slice(py, self.inner.indices()),
             ),
         )
             .into_pyobject(py)
     }
+    
 }
 
 /// A Pauli Lindblad map stored in a qubit-sparse format.
@@ -1186,6 +1195,13 @@ impl PyPauliLindbladMap {
         let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
         out.readwrite().make_nonwriteable();
         out
+    }
+
+    /// The maps's qubit sparse pauli list.
+    #[getter]
+    fn get_qubit_sparse_pauli_list(&self) -> PyQubitSparsePauliList {
+        let inner = self.inner.read().unwrap();
+        inner.qubit_sparse_pauli_list.clone().into()
     }
 
     /// Express the map in terms of a sparse list format.
