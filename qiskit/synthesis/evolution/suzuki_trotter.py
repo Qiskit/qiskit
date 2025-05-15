@@ -21,7 +21,8 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.quantum_info import SparsePauliOp
+import qiskit.quantum_info
 
 from .product_formula import ProductFormula, reorder_paulis
 
@@ -65,7 +66,8 @@ class SuzukiTrotter(ProductFormula):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,

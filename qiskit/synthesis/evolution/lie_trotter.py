@@ -17,7 +17,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.quantum_info.operators import SparsePauliOp
+import qiskit.quantum_info
 
 from .suzuki_trotter import SuzukiTrotter
 
@@ -55,7 +56,8 @@ class LieTrotter(SuzukiTrotter):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,

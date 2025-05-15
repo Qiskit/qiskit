@@ -24,8 +24,9 @@ import numpy as np
 import rustworkx as rx
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
-from qiskit.quantum_info import SparsePauliOp, Pauli, SparseObservable
+from qiskit.quantum_info import SparsePauliOp, SparseObservable
 from qiskit._accelerate.circuit_library import pauli_evolution
+import qiskit.quantum_info
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -48,7 +49,8 @@ class ProductFormula(EvolutionSynthesis):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,

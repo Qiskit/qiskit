@@ -20,8 +20,9 @@ from itertools import chain
 from collections.abc import Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.exceptions import QiskitError
+import qiskit.quantum_info
 
 from .product_formula import ProductFormula, reorder_paulis
 
@@ -45,7 +46,8 @@ class QDrift(ProductFormula):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
         ) = None,
         seed: int | None = None,
         wrap: bool = False,

@@ -770,7 +770,42 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///
 /// .. py:class:: QubitSparsePauli.Pauli
 ///
-///     See :class:`QubitSparsePauliList.Pauli` - this is a reference to the same class.
+///
+///     An :class:`~enum.IntEnum` that provides named access to the numerical values used to
+///     represent each of the single-qubit alphabet terms enumerated in
+///     :ref:`qubit-sparse-pauli-alphabet`.
+///
+///     This class is attached to :class:`.QubitSparsePauli`.  Access it as
+///     :class:`.QubitSparsePauli.Pauli`.  If this is too much typing, and you are solely
+///     dealing with :class:`QubitSparsePauliList` objects and the :class:`Pauli` name is not
+///     ambiguous, you might want to shorten it as::
+///
+///         >>> ops = QubitSparsePauli.Pauli
+///         >>> assert ops.X is QubitSparsePauli.Pauli.X
+///
+///     You can access all the values of the enumeration by either their full all-capitals name, or
+///     by their single-letter label.  The single-letter labels are not generally valid Python
+///     identifiers, so you must use indexing notation to access them::
+///
+///         >>> assert QubitSparsePauli.Pauli.X is QubitSparsePauli.Pauli["X"]
+///
+///     The bits representing each single-qubit Pauli are the (phase-less) symplectic representation
+///     of the Pauli operator.
+///
+///     Values
+///     ------
+///
+///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauli.Pauli.X
+///
+///         The Pauli :math:`X` operator.  Uses the single-letter label ``"X"``.
+///
+///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauli.Pauli.Y
+///
+///         The Pauli :math:`Y` operator.  Uses the single-letter label ``"Y"``.
+///
+///     .. autoattribute:: qiskit.quantum_info::QubitSparsePauli.Pauli.Z
+///
+///         The Pauli :math:`Z` operator.  Uses the single-letter label ``"Z"``.
 ///
 ///
 /// Each of the array-like attributes behaves like a Python sequence.  You can index and slice these
