@@ -54,11 +54,7 @@ fn iqp(
             })
     });
 
-<<<<<<< HEAD
-    // The layer of T gates. Again we use the PhaseGate, now with powers of Pi/8. The powers
-=======
-    // The layer of T gates. Again we use the Phase gate, now with powers of Pi/4. The powers
->>>>>>> 6ca3d22bc (Fix construction of IQP circuits (#14363))
+    // The layer of T gates. Again we use the PhaseGate, now with powers of Pi/4. The powers
     // are given by the diagonal of the ``interactions`` matrix.
     let shifts = (0..num_qubits)
         .map(move |i| interactions[(i, i)])
@@ -66,13 +62,8 @@ fn iqp(
         .filter(|(_, value)| value % 8 != 0)
         .map(|(i, value)| {
             (
-<<<<<<< HEAD
                 StandardGate::PhaseGate,
-                smallvec![Param::Float(PI8 * value as f64)],
-=======
-                StandardGate::Phase,
                 smallvec![Param::Float(PI4 * value as f64)],
->>>>>>> 6ca3d22bc (Fix construction of IQP circuits (#14363))
                 smallvec![Qubit(i as u32)],
             )
         });
