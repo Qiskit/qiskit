@@ -23,7 +23,7 @@ jobs:
     uses: ./.github/workflows/test-linux.yml
     strategy:
       matrix:
-        runner: ["ubuntu-latest", "ubuntu-4.04-arm"]
+        runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
     with:
       python-version: "3.9"
       test-rust: true
