@@ -566,8 +566,8 @@ impl SymbolExpr {
                                 .to_string())
                         }
                         UnaryOp::Conj => {
-                            Err("SymbolExpr::derivative does not support conjugate operator"
-                                .to_string())
+                            // we assume real parameters, hence Conj acts as identity
+                            Ok(expr.as_ref().clone())
                         }
                     }
                 }

@@ -62,6 +62,7 @@ operands = [
 ]
 
 bind_values = [math.pi, -math.pi, 5, -5, complex(2, 1), complex(-1, 2), 0, complex(0, 0)]
+real_values = [0.41, 0.9, -0.83, math.pi, -math.pi / 124, -42.42]
 
 
 @ddt.ddt
@@ -419,3 +420,42 @@ class TestParameterExpression(QiskitTestCase):
             res = expression.bind({x: 5 for x in expression.parameters}).numeric()
             self.assertIsInstance(int(res), int)
             self.assertEqual(res, 5)
+
+    def test_derivatives_numeric(self):
+        """Test derivatives with numerical values."""
+        methods_and_references = [
+            ("abs", lambda x: x / abs(x)),
+            ("exp", math.exp),
+            ("log", lambda x: 1 / x),
+            ("sin", math.cos),
+            ("cos", lambda x: -math.sin(x)),
+            ("tan", lambda x: 1 / math.cos(x) ** 2),
+            ("arccos", lambda x: -((1 - x**2) ** (-0.5))),
+            ("arcsin", lambda x: (1 - x**2) ** (-0.5)),
+            ("arctan", lambda x: 1 / (1 + x**2)),
+            ("conjugate", lambda x: x),
+        ]
+
+        x = Parameter("x")
+        for method, reference in methods_and_references:
+            expr = getattr(x, method)()
+            d_expr = expr.gradient(x)
+
+            for value in real_values:
+                if method == "log" and value <= 0:
+                    continue  # log not defined
+                if method in ["arccos", "arcsin", "arctan"] and abs(value) >= 1 - 1e-10:
+                    continue  # arc-funcs not defined
+
+                with self.subTest(method=method, value=value):
+                    ref = reference(value)
+                    val = float(d_expr.bind({x: value}))
+                    self.assertAlmostEqual(ref, val)
+
+    def test_sign_derivative_errors(self):
+        """Test the derivative of sign errors (not supported right now)."""
+        x = Parameter("x")
+        expr = x.sign()
+
+        with self.assertRaises(RuntimeError):
+            _ = expr.gradient(x)

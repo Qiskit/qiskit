@@ -407,7 +407,13 @@ class ParameterExpression:
         return out_expr
 
     def gradient(self, param) -> Union["ParameterExpression", complex]:
-        """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
+        """Get the derivative of a real parameter expression w.r.t. a specified parameter.
+
+        .. note::
+
+            This method assumes that the parameter expression represents a **real expression only**.
+            Calling this method on a parameter expression that contains complex values, or binding
+            complex values to parameters in the expression is undefined behavior.
 
         Args:
             param (Parameter): Parameter w.r.t. which we want to take the derivative
