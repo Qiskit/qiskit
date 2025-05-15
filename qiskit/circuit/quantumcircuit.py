@@ -4841,8 +4841,10 @@ class QuantumCircuit:
                         f" but was assigned to {len(value)} values."
                     )
                 out.update(zip(parameter, value))
-            elif isinstance(parameter, str):
+            elif isinstance(parameter, str) and self.has_parameter(parameter):
                 out[self.get_parameter(parameter)] = value
+            elif isinstance(parameter, str) and not self.has_parameter(parameter):
+                out[Parameter(parameter)] = value
             else:
                 out[parameter] = value
         return out
