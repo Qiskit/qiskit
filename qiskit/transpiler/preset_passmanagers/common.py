@@ -745,10 +745,10 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
     Checks whether the given basis set can be considered as Clifford+T.
 
     For this we require that:
-    1. The set only contains Clifford+T gates
+    1. The set only contains Clifford+T gates,
     2. The set contains H, T and Tdg gates.
 
-    The second ondition guarantees that [H, T, Tdg] gates produced by
+    The second condition guarantees that [H, T, Tdg] gates produced by
     Solovay-Kitaev synthesis are in the basis gates.
 
     In addition, these conditions guarantee that the empty basis set is not
