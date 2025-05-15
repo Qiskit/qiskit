@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-            cargo install grcov@0.8.24
+            cargo install grcov@0.8.20
             sudo apt-get install lcov
 
       # This is needed to support any requirements, particularly in the `optionals` set,
