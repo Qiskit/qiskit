@@ -170,50 +170,55 @@ class QuantumCircuit:
     A small handful of the attributes are intentionally mutable, the rest are data attributes that
     should be considered immutable.
 
-    ========================= ======================================================================
-    Mutable attribute         Summary
-    ========================= ======================================================================
-    :attr:`global_phase`      The global phase of the circuit, measured in radians.
-    :attr:`metadata`          Arbitrary user mapping, which Qiskit will preserve through the
-                              transpiler, but otherwise completely ignore.
-    :attr:`name`              An optional string name for the circuit.
-    ========================= ======================================================================
+    ============================== =================================================================
+    Mutable attribute              Summary
+    ============================== =================================================================
+    :attr:`global_phase`           The global phase of the circuit, measured in radians.
+    :attr:`metadata`               Arbitrary user mapping, which Qiskit will preserve through the
+                                   transpiler, but otherwise completely ignore.
+    :attr:`name`                   An optional string name for the circuit.
+    ============================== =================================================================
 
-    ========================= ======================================================================
-    Immutable data attribute  Summary
-    ========================= ======================================================================
-    :attr:`ancillas`          List of :class:`AncillaQubit`\\ s tracked by the circuit.
-    :attr:`cregs`             List of :class:`ClassicalRegister`\\ s tracked by the circuit.
+    ============================== =================================================================
+    Immutable data attribute       Summary
+    ============================== =================================================================
+    :attr:`ancillas`               List of :class:`AncillaQubit`\\ s tracked by the circuit.
+    :attr:`cregs`                  List of :class:`ClassicalRegister`\\ s tracked by the circuit.
 
-    :attr:`clbits`            List of :class:`Clbit`\\ s tracked by the circuit.
-    :attr:`data`              List of individual :class:`CircuitInstruction`\\ s that make up the
-                              circuit.
-    :attr:`duration`          Total duration of the circuit, added by scheduling transpiler passes.
-                              This attribute is deprecated and :meth:`.estimate_duration` should
-                              be used instead.
+    :attr:`clbits`                 List of :class:`Clbit`\\ s tracked by the circuit.
+    :attr:`data`                   List of individual :class:`CircuitInstruction`\\ s that make up
+                                   the circuit.
+    :attr:`duration`               Total duration of the circuit, added by scheduling transpiler
+                                   passes.
+                                   This attribute is deprecated and :meth:`.estimate_duration`
+                                   should be used instead.
 
-    :attr:`layout`            Hardware layout and routing information added by the transpiler.
-    :attr:`num_ancillas`      The number of ancilla qubits in the circuit.
-    :attr:`num_clbits`        The number of clbits in the circuit.
-    :attr:`num_captured_vars` Number of captured real-time classical variables.
+    :attr:`layout`                 Hardware layout and routing information added by the transpiler.
+    :attr:`num_ancillas`           The number of ancilla qubits in the circuit.
+    :attr:`num_clbits`             The number of clbits in the circuit.
+    :attr:`num_captured_vars`      Number of captured real-time classical variables.
+    :attr:`num_captured_stretches` Number of captured stretches.
+    :attr:`num_declared_vars`      Number of locally declared real-time classical variables in the
+                                   outer circuit scope.
+    :attr:`num_declared_stretches` Number of locally declared stretches in the outer circuit scope.
+    :attr:`num_input_vars`         Number of input real-time classical variables.
+    :attr:`num_parameters`         Number of compile-time :class:`Parameter`\\ s in the circuit.
+    :attr:`num_qubits`             Number of qubits in the circuit.
 
-    :attr:`num_declared_vars` Number of locally declared real-time classical variables in the outer
-                              circuit scope.
-    :attr:`num_input_vars`    Number of input real-time classical variables.
-    :attr:`num_parameters`    Number of compile-time :class:`Parameter`\\ s in the circuit.
-    :attr:`num_qubits`        Number of qubits in the circuit.
+    :attr:`num_vars`               Total number of real-time classical variables in the outer
+                                   circuit scope.
+    :attr:`num_stretches`          Total number of stretches in the outer circuit scope.
+    :attr:`num_identifiers`        Total number of both variables and stretches in the outer
+                                   circuit.
+    :attr:`op_start_times`         Start times of scheduled operations, added by scheduling
+                                   transpiler passes.
+    :attr:`parameters`             Ordered set-like view of the compile-time :class:`Parameter`\\ s
+                                   tracked by the circuit.
+    :attr:`qregs`                  List of :class:`QuantumRegister`\\ s tracked by the circuit.
 
-    :attr:`num_vars`          Total number of real-time classical variables in the outer circuit
-                              scope.
-    :attr:`op_start_times`    Start times of scheduled operations, added by scheduling transpiler
-                              passes.
-    :attr:`parameters`        Ordered set-like view of the compile-time :class:`Parameter`\\ s
-                              tracked by the circuit.
-    :attr:`qregs`             List of :class:`QuantumRegister`\\ s tracked by the circuit.
-
-    :attr:`qubits`            List of :class:`Qubit`\\ s tracked by the circuit.
-    :attr:`unit`              The unit of the :attr:`duration` field.
-    ========================= ======================================================================
+    :attr:`qubits`                 List of :class:`Qubit`\\ s tracked by the circuit.
+    :attr:`unit`                   The unit of the :attr:`duration` field.
+    ============================== =================================================================
 
     The core attribute is :attr:`data`.  This is a sequence-like object that exposes the
     :class:`CircuitInstruction`\\ s contained in an ordered form.  You generally should not mutate
@@ -283,10 +288,14 @@ class QuantumCircuit:
     .. autoattribute:: num_ancillas
     .. autoattribute:: num_clbits
     .. autoattribute:: num_captured_vars
+    .. autoattribute:: num_captured_stretches
     .. autoattribute:: num_declared_vars
+    .. autoattribute:: num_declared_stretches
     .. autoattribute:: num_input_vars
+    .. autoattribute:: num_identifiers
     .. autoattribute:: num_parameters
     .. autoattribute:: num_qubits
+    .. autoattribute:: num_stretches
     .. autoattribute:: num_vars
 
     Creating new circuits
@@ -353,8 +362,10 @@ class QuantumCircuit:
     :meth:`add_bits`               :class:`.Qubit`\\ s and :class:`.Clbit`\\ s.
     :meth:`add_register`           :class:`.QuantumRegister` and :class:`.ClassicalRegister`.
     :meth:`add_var`                :class:`~.expr.Var` nodes with local scope and initializers.
+    :meth:`add_stretch`            :class:`~.expr.Stretch` nodes with local scope.
     :meth:`add_input`              :class:`~.expr.Var` nodes that are treated as circuit inputs.
-    :meth:`add_capture`            :class:`~.expr.Var` nodes captured from containing scopes.
+    :meth:`add_capture`            :class:`~.expr.Var` or :class:`~.expr.Stretch` nodes captured
+                                   from containing scopes.
     :meth:`add_uninitialized_var`  :class:`~.expr.Var` nodes with local scope and undefined state.
     =============================  =================================================================
 
@@ -384,10 +395,12 @@ class QuantumCircuit:
     to instantiate these separately to a circuit (see :meth:`.Var.new`), but it is often more
     convenient to use circuit methods that will automatically manage the types and expression
     initialization for you.  The two most common methods are :meth:`add_var` (locally scoped
-    variables) and :meth:`add_input` (inputs to the circuit).
+    variables) and :meth:`add_input` (inputs to the circuit). Additionally, the method
+    :meth:`add_stretch` can be used to add stretches to the circuit.
 
     .. automethod:: add_var
     .. automethod:: add_input
+    .. automethod:: add_stretch
 
     In addition, there are two lower-level methods that can be useful for programmatic generation of
     circuits.  When working interactively, you will most likely not need these; most uses of
@@ -455,26 +468,37 @@ class QuantumCircuit:
             as a whole.
 
         :ref:`circuit-adding-data-objects`
-            The methods for adding new :class:`~.expr.Var` variables to a circuit after
-            initialization.
+            The methods for adding new :class:`~.expr.Var` or :class:`~.expr.Stretch` identifiers
+            to a circuit after initialization.
 
-    You can retrive a :class:`~.expr.Var` instance attached to a circuit by using its variable name
-    using :meth:`get_var`, or check if a circuit contains a given variable with :meth:`has_var`.
+    You can retrieve identifiers attached to a circuit (e.g. a :class:`~.expr.Var` or
+    :class:`~.expr.Stretch`) by name with methods :meth:`get_var`, :meth:`get_stretch`, or
+    :meth:`get_identifier`. You can also check if a circuit
+    contains a given identifier with :meth:`has_var`, :meth:`has_stretch`, or
+    :meth:`has_identifier`.
 
     .. automethod:: get_var
+    .. automethod:: get_stretch
+    .. automethod:: get_identifier
     .. automethod:: has_var
+    .. automethod:: has_stretch
+    .. automethod:: has_identifier
 
-    There are also several iterator methods that you can use to get the full set of variables
+
+    There are also several iterator methods that you can use to get the full set of identifiers
     tracked by a circuit.  At least one of :meth:`iter_input_vars` and :meth:`iter_captured_vars`
     will be empty, as inputs and captures are mutually exclusive.  All of the iterators have
     corresponding dynamic properties on :class:`QuantumCircuit` that contain their length:
-    :attr:`num_vars`, :attr:`num_input_vars`, :attr:`num_captured_vars` and
-    :attr:`num_declared_vars`.
+    :attr:`num_vars`, :attr:`num_stretches`, :attr:`num_input_vars`, :attr:`num_captured_vars`,
+    :attr:`num_captured_stretches`, :attr:`num_declared_vars`, or :attr:`num_declared_stretches`.
 
     .. automethod:: iter_vars
+    .. automethod:: iter_stretches
     .. automethod:: iter_input_vars
     .. automethod:: iter_captured_vars
+    .. automethod:: iter_captured_stretches
     .. automethod:: iter_declared_vars
+    .. automethod:: iter_declared_stretches
 
 
     .. _circuit-adding-operations:
