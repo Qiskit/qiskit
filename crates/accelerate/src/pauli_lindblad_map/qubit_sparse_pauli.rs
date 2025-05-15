@@ -449,6 +449,50 @@ impl QubitSparsePauliList {
     }
 }
 
+
+type RawParts = (Vec<Pauli>, Vec<u32>, Vec<usize>);
+
+pub fn raw_parts_from_sparse_list(
+    iter: Vec<(String, Vec<u32>)>,
+    num_qubits: u32,
+) -> Result<RawParts, LabelError> {
+    let mut boundaries = Vec::with_capacity(iter.len() + 1);
+    boundaries.push(0);
+    let mut indices = Vec::new();
+    let mut paulis = Vec::new();
+    // Insertions to the `BTreeMap` keep it sorted by keys, so we use this to do the termwise
+    // sorting on-the-fly.
+    let mut sorted = btree_map::BTreeMap::new();
+    for (label, qubits) in iter {
+        sorted.clear();
+        let label: &[u8] = label.as_ref();
+        if label.len() != qubits.len() {
+            return Err(LabelError::WrongLengthIndices {
+                label: label.len(),
+                indices: qubits.len(),
+            });
+        }
+        for (letter, index) in label.iter().zip(qubits) {
+            if index >= num_qubits {
+                return Err(LabelError::BadIndex { index, num_qubits });
+            }
+            let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
+                return Err(LabelError::DuplicateIndex { index });
+            };
+            entry.insert(Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
+        }
+        for (index, term) in sorted.iter() {
+            let Some(term) = term else {
+                continue;
+            };
+            indices.push(*index);
+            paulis.push(*term);
+        }
+        boundaries.push(paulis.len());
+    }
+    Ok((paulis, indices, boundaries))
+}
+
 /// A view object onto a single term of a `QubitSparsePauliList`.
 ///
 /// The lengths of `paulis` and `indices` are guaranteed to be created equal, but might be zero
@@ -516,6 +560,25 @@ impl QubitSparsePauli {
             paulis,
             indices,
         })
+    }
+
+    /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
+    ///
+    /// # Safety
+    ///
+    /// It is up to the caller to ensure that the data-coherence requirements, as enumerated in the
+    /// struct-level documentation, have been upheld.
+    #[inline(always)]
+    pub unsafe fn new_unchecked(
+        num_qubits: u32,
+        paulis: Box<[Pauli]>,
+        indices: Box<[u32]>,
+    ) -> Self {
+        Self {
+            num_qubits,
+            paulis,
+            indices,
+        }
     }
 
     /// Get the number of qubits the paulis are defined on.
@@ -1710,41 +1773,7 @@ impl PyQubitSparsePauliList {
     #[staticmethod]
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(iter: Vec<(String, Vec<u32>)>, num_qubits: u32) -> PyResult<Self> {
-        let mut boundaries = Vec::with_capacity(iter.len() + 1);
-        boundaries.push(0);
-        let mut indices = Vec::new();
-        let mut paulis = Vec::new();
-        // Insertions to the `BTreeMap` keep it sorted by keys, so we use this to do the termwise
-        // sorting on-the-fly.
-        let mut sorted = btree_map::BTreeMap::new();
-        for (label, qubits) in iter {
-            sorted.clear();
-            let label: &[u8] = label.as_ref();
-            if label.len() != qubits.len() {
-                return Err(LabelError::WrongLengthIndices {
-                    label: label.len(),
-                    indices: qubits.len(),
-                }
-                .into());
-            }
-            for (letter, index) in label.iter().zip(qubits) {
-                if index >= num_qubits {
-                    return Err(LabelError::BadIndex { index, num_qubits }.into());
-                }
-                let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
-                    return Err(LabelError::DuplicateIndex { index }.into());
-                };
-                entry.insert(Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
-            }
-            for (index, term) in sorted.iter() {
-                let Some(term) = term else {
-                    continue;
-                };
-                indices.push(*index);
-                paulis.push(*term);
-            }
-            boundaries.push(paulis.len());
-        }
+        let (paulis, indices, boundaries) = raw_parts_from_sparse_list(iter, num_qubits)?;
         let inner = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
         Ok(inner.into())
     }

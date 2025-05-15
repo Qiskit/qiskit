@@ -26,7 +26,7 @@ use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
     cast_array_type, make_py_pauli, raw_parts_from_sparse_list, ArithmeticError, CoherenceError,
-    InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList,
+    InnerReadError, InnerWriteError, LabelError, Pauli, QubitSparsePauliList, QubitSparsePauli
 };
 
 static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
@@ -139,13 +139,13 @@ impl PauliLindbladMap {
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = SparseTermView<'_>> + '_ {
         self.rates.iter().enumerate().map(|(i, rate)| {
-            let start = self.qubit_sparse_pauli_list.boundaries[i];
-            let end = self.qubit_sparse_pauli_list.boundaries[i + 1];
+            let start = self.qubit_sparse_pauli_list.boundaries()[i];
+            let end = self.qubit_sparse_pauli_list.boundaries()[i + 1];
             SparseTermView {
-                num_qubits: self.qubit_sparse_pauli_list.num_qubits,
+                num_qubits: self.qubit_sparse_pauli_list.num_qubits(),
                 rate: *rate,
-                paulis: &self.qubit_sparse_pauli_list.paulis[start..end],
-                indices: &self.qubit_sparse_pauli_list.indices[start..end],
+                paulis: &self.qubit_sparse_pauli_list.paulis()[start..end],
+                indices: &self.qubit_sparse_pauli_list.indices()[start..end],
             }
         })
     }
@@ -307,16 +307,16 @@ impl PauliLindbladMap {
         self.gamma *= g;
         self.probabilities.push(p);
         self.non_negative_rates.push(pr);
-        self.qubit_sparse_pauli_list
-            .paulis
-            .extend_from_slice(term.paulis);
-        self.qubit_sparse_pauli_list
-            .indices
-            .extend_from_slice(term.indices);
-        self.qubit_sparse_pauli_list
-            .boundaries
-            .push(self.qubit_sparse_pauli_list.paulis.len());
-        Ok(())
+        unsafe {
+            // at this point we already know the term needs to be valid
+            let new_pauli = QubitSparsePauli::new_unchecked(
+                self.num_qubits(), 
+                term.paulis.to_vec().into_boxed_slice(), 
+                term.indices.to_vec().into_boxed_slice()
+            );
+            self.qubit_sparse_pauli_list.add_qubit_sparse_pauli(new_pauli.view());
+            Ok(())
+        }
     }
 
     /// Get a view onto a representation of a single sparse term.
@@ -431,11 +431,11 @@ pub struct IterMut<'a> {
 impl<'a> From<&'a mut PauliLindbladMap> for IterMut<'a> {
     fn from(value: &mut PauliLindbladMap) -> IterMut {
         IterMut {
-            num_qubits: value.qubit_sparse_pauli_list.num_qubits,
-            rates: &mut value.rates,
-            paulis: &mut value.qubit_sparse_pauli_list.paulis,
-            indices: &value.qubit_sparse_pauli_list.indices,
-            boundaries: &value.qubit_sparse_pauli_list.boundaries,
+            num_qubits: value.qubit_sparse_pauli_list.num_qubits(),
+            rates: value.rates_mut(),
+            paulis: &mut value.qubit_sparse_pauli_list.paulis(),
+            indices: value.qubit_sparse_pauli_list.indices(),
+            boundaries: value.qubit_sparse_pauli_list.boundaries(),
             i: 0,
         }
     }
@@ -544,12 +544,12 @@ impl SparseTerm {
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
     pub fn to_pauli_lindblad_map(&self) -> Result<PauliLindbladMap, CoherenceError> {
-        let qubit_sparse_pauli_list = QubitSparsePauliList {
-            num_qubits: self.num_qubits(),
-            paulis: self.paulis.to_vec(),
-            indices: self.indices.to_vec(),
-            boundaries: vec![0, self.paulis.len()],
-        };
+        let qubit_sparse_pauli_list = QubitSparsePauliList::new(
+            self.num_qubits(),
+            self.paulis.to_vec(),
+            self.indices.to_vec(),
+            vec![0, self.paulis.len()],
+        )?;
         PauliLindbladMap::new(vec![self.rate], qubit_sparse_pauli_list)
     }
 }
@@ -1278,87 +1278,6 @@ impl PyPauliLindbladMap {
         Ok(inner.into())
     }
 
-    // SAFETY: this cannot invoke undefined behaviour if `check = true`, but if `check = false` then
-    // the `paulis` must all be valid `Pauli` representations.
-    /// Construct a :class:`.PauliLindbladMap` from raw Numpy arrays that match :ref:`the required
-    /// data representation described in the class-level documentation
-    /// <pauli-lindblad-map-arrays>`.
-    ///
-    /// The data from each array is copied into fresh, growable Rust-space allocations.
-    ///
-    /// Args:
-    ///     num_qubits: number of qubits the map acts on.
-    ///     rates: float coefficients of each generator term of the map.  This should be a Numpy
-    ///         array with dtype :attr:`~numpy.float64`.
-    ///     paulis: flattened list of the single-qubit terms comprising all complete terms.  This
-    ///         should be a Numpy array with dtype :attr:`~numpy.uint8` (which is compatible with
-    ///         :class:`.Pauli`).
-    ///     indices: flattened term-wise sorted list of the qubits each single-qubit term corresponds
-    ///         to.  This should be a Numpy array with dtype :attr:`~numpy.uint32`.
-    ///     boundaries: the indices that partition ``paulis`` and ``indices`` into terms.  This
-    ///         should be a Numpy array with dtype :attr:`~numpy.uintp`.
-    ///     check: if ``True`` (the default), validate that the data satisfies all coherence
-    ///         guarantees.  If ``False``, no checks are done.
-    ///
-    ///         .. warning::
-    ///
-    ///             If ``check=False``, the ``paulis`` absolutely *must* be all be valid values
-    ///             of :class:`.PauliLindbladMap.Pauli`.  If they are not, Rust-space undefined
-    ///             behavior may occur, entirely invalidating the program execution.
-    ///
-    /// Examples:
-    ///
-    ///     Construct a sum of :math:`Z` on each individual qubit::
-    ///
-    ///         >>> num_qubits = 100
-    ///         >>> terms = np.full((num_qubits,), PauliLindbladMap.Pauli.Z, dtype=np.uint8)
-    ///         >>> indices = np.arange(num_qubits, dtype=np.uint32)
-    ///         >>> rates = np.ones((num_qubits,), dtype=float)
-    ///         >>> boundaries = np.arange(num_qubits + 1, dtype=np.uintp)
-    ///         >>> PauliLindbladMap.from_raw_parts(num_qubits, rates, terms, indices, boundaries)
-    ///         <PauliLindbladMap with 100 terms on 100 qubits: (1)L(Z_0) + ... + (1)L(Z_99)>
-    #[staticmethod]
-    #[pyo3(
-        signature = (/, num_qubits, rates, paulis, indices, boundaries, check=true),
-    )]
-    unsafe fn from_raw_parts<'py>(
-        num_qubits: u32,
-        rates: PyArrayLike1<'py, f64>,
-        paulis: PyArrayLike1<'py, u8>,
-        indices: PyArrayLike1<'py, u32>,
-        boundaries: PyArrayLike1<'py, usize>,
-        check: bool,
-    ) -> PyResult<Self> {
-        let rates = rates.as_array().to_vec();
-        let paulis = if check {
-            paulis
-                .as_array()
-                .into_iter()
-                .copied()
-                .map(Pauli::try_from)
-                .collect::<Result<_, _>>()?
-        } else {
-            let paulis_as_u8 = paulis.as_array().to_vec();
-            // SAFETY: the caller enforced that each `u8` is a valid `Pauli`, and `Pauli` is be
-            // represented by a `u8`.  We can't use `bytemuck` because we're casting a `Vec`.
-            unsafe { ::std::mem::transmute::<Vec<u8>, Vec<Pauli>>(paulis_as_u8) }
-        };
-        let indices = indices.as_array().to_vec();
-        let boundaries = boundaries.as_array().to_vec();
-
-        let inner = if check {
-            let qubit_sparse_pauli_list: QubitSparsePauliList =
-                QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
-            PauliLindbladMap::new(rates, qubit_sparse_pauli_list).map_err(PyErr::from)
-        } else {
-            // SAFETY: the caller promised they have upheld the coherence guarantees.
-            Ok(unsafe {
-                PauliLindbladMap::new_unchecked(num_qubits, rates, paulis, indices, boundaries)
-            })
-        }?;
-        Ok(inner.into())
-    }
-
     /// Get a copy of this Pauli Lindblad map.
     ///
     /// Examples:
@@ -1392,85 +1311,12 @@ impl PyPauliLindbladMap {
         Ok(inner.num_terms())
     }
 
-    /// The coefficients of each abstract term in the generator sum.  This has as many elements as
-    /// terms in the sum.
-    #[getter]
-    fn get_rates(slf_: &Bound<Self>) -> ArrayView {
-        let borrowed = slf_.borrow();
-        ArrayView {
-            base: borrowed.inner.clone(),
-            slot: ArraySlot::Rates,
-        }
-    }
-
     /// The gamma for the map.
     #[getter]
     #[inline]
     fn get_gamma(&self) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.gamma)
-    }
-
-    /// The probability of application of each generator in the quasi-probability representation.
-    #[getter]
-    fn get_probabilities(slf_: &Bound<Self>) -> ArrayView {
-        let borrowed = slf_.borrow();
-        ArrayView {
-            base: borrowed.inner.clone(),
-            slot: ArraySlot::Probabilities,
-        }
-    }
-
-    /// A pre-computed list of booleans evaluating rate >= 0 for each rate in rates.
-    #[getter]
-    fn get_non_negative_rates(slf_: &Bound<Self>) -> ArrayView {
-        let borrowed = slf_.borrow();
-        ArrayView {
-            base: borrowed.inner.clone(),
-            slot: ArraySlot::NonNegativeRates,
-        }
-    }
-
-    /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
-    /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
-    #[getter]
-    fn get_paulis(slf_: &Bound<Self>) -> ArrayView {
-        let borrowed = slf_.borrow();
-        ArrayView {
-            base: borrowed.inner.clone(),
-            slot: ArraySlot::Paulis,
-        }
-    }
-
-    /// A flat list of the qubit indices that the corresponding entries in :attr:`paulis` act on.
-    /// This list must always be term-wise sorted, where a term is a sublist as denoted by
-    /// :attr:`boundaries`.
-    ///
-    /// .. warning::
-    ///
-    ///     If writing to this attribute from Python space, you *must* ensure that you only write in
-    ///     indices that are term-wise sorted.
-    #[getter]
-    fn get_indices(slf_: &Bound<Self>) -> ArrayView {
-        let borrowed = slf_.borrow();
-        ArrayView {
-            base: borrowed.inner.clone(),
-            slot: ArraySlot::Indices,
-        }
-    }
-
-    /// Indices that partition :attr:`paulis` and :attr:`indices` into sublists for each
-    /// individual term in the sum.  ``boundaries[0] : boundaries[1]`` is the range of indices into
-    /// :attr:`paulis` and :attr:`indices` that correspond to the first term of the sum.  All
-    /// unspecified qubit indices are implicitly the identity.  This is one item longer than
-    /// :attr:`rates`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
-    #[getter]
-    fn get_boundaries(slf_: &Bound<Self>) -> ArrayView {
-        let borrowed = slf_.borrow();
-        ArrayView {
-            base: borrowed.inner.clone(),
-            slot: ArraySlot::Boundaries,
-        }
     }
 
     /// Express the map in terms of a sparse list format.
@@ -1574,16 +1420,6 @@ impl PyPauliLindbladMap {
     // `PauliLindbladMap`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
-        PAULI_PY_ENUM
-            .get_or_try_init(py, || make_py_pauli(py))
-            .map(|obj| obj.clone_ref(py))
-    }
-
-    // The documentation for this is inlined into the class-level documentation of
-    // `PauliLindbladMap`.
-    #[allow(non_snake_case)]
-    #[classattr]
     fn Term(py: Python) -> Bound<PyType> {
         py.get_type::<PySparseTerm>()
     }
@@ -1634,268 +1470,5 @@ impl<'py> IntoPyObject<'py> for PauliLindbladMap {
 
     fn into_pyobject(self, py: Python<'py>) -> PyResult<Self::Output> {
         PyPauliLindbladMap::from(self).into_pyobject(py)
-    }
-}
-
-/// Helper class of `ArrayView` that denotes the slot of the `PauliLindbladMap` we're looking at.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum ArraySlot {
-    Rates,
-    Probabilities,
-    NonNegativeRates,
-    Paulis,
-    Indices,
-    Boundaries,
-}
-
-#[derive(Error, Debug)]
-pub enum DerivedPropertyError {
-    #[error("attribute 'probabilities' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable")]
-    ProbabilitiesIsDerived,
-    #[error("attribute 'non_negative_rates' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable")]
-    NonNegativeRatesIsDerived,
-}
-
-impl From<DerivedPropertyError> for PyErr {
-    fn from(value: DerivedPropertyError) -> PyErr {
-        PyAttributeError::new_err(value.to_string())
-    }
-}
-
-/// Custom wrapper sequence class to get safe views onto the Rust-space data.  We can't directly
-/// expose Python-managed wrapped pointers without introducing some form of runtime exclusion on the
-/// ability of `PauliLindbladMap` to re-allocate in place; we can't leave dangling pointers for
-/// Python space.
-#[pyclass(frozen, sequence)]
-struct ArrayView {
-    base: Arc<RwLock<PauliLindbladMap>>,
-    slot: ArraySlot,
-}
-#[pymethods]
-impl ArrayView {
-    fn __repr__(&self, py: Python) -> PyResult<String> {
-        let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
-        let data = match self.slot {
-            // Simple integers look the same in Rust-space debug as Python.
-            ArraySlot::Indices => format!("{:?}", pauli_lindblad_map.indices()),
-            ArraySlot::Boundaries => format!("{:?}", pauli_lindblad_map.boundaries()),
-            ArraySlot::Rates => PyList::new(py, pauli_lindblad_map.rates())?
-                .repr()?
-                .to_string(),
-            ArraySlot::Probabilities => PyList::new(py, pauli_lindblad_map.probabilities())?
-                .repr()?
-                .to_string(),
-            ArraySlot::NonNegativeRates => {
-                PyList::new(py, pauli_lindblad_map.non_negative_rates())?
-                    .repr()?
-                    .to_string()
-            }
-            ArraySlot::Paulis => format!(
-                "[{}]",
-                pauli_lindblad_map
-                    .paulis()
-                    .iter()
-                    .map(Pauli::py_label)
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
-        };
-        Ok(format!(
-            "<pauli lindblad map {} view: {}>",
-            match self.slot {
-                ArraySlot::Rates => "rates",
-                ArraySlot::Probabilities => "probabilities",
-                ArraySlot::NonNegativeRates => "non_negative_rates",
-                ArraySlot::Paulis => "paulis",
-                ArraySlot::Indices => "indices",
-                ArraySlot::Boundaries => "boundaries",
-            },
-            data,
-        ))
-    }
-
-    fn __getitem__<'py>(
-        &self,
-        py: Python<'py>,
-        index: PySequenceIndex,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        // The slightly verbose generic setup here is to allow the type of a scalar return to be
-        // different to the type that gets put into the Numpy array, since the `Pauli` enum can be
-        // a direct scalar, but for Numpy, we need it to be a raw `u8`.
-        fn get_from_slice<'py, T, S>(
-            py: Python<'py>,
-            slice: &[T],
-            index: PySequenceIndex,
-        ) -> PyResult<Bound<'py, PyAny>>
-        where
-            T: IntoPyObject<'py> + Copy + Into<S>,
-            S: ::numpy::Element,
-        {
-            match index.with_len(slice.len())? {
-                SequenceIndex::Int(index) => slice[index].into_bound_py_any(py),
-                indices => PyArray1::from_iter(py, indices.iter().map(|index| slice[index].into()))
-                    .into_bound_py_any(py),
-            }
-        }
-
-        let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
-        match self.slot {
-            ArraySlot::Rates => get_from_slice::<_, f64>(py, pauli_lindblad_map.rates(), index),
-            ArraySlot::Probabilities => {
-                get_from_slice::<_, f64>(py, pauli_lindblad_map.probabilities(), index)
-            }
-            ArraySlot::NonNegativeRates => {
-                get_from_slice::<_, bool>(py, pauli_lindblad_map.non_negative_rates(), index)
-            }
-            ArraySlot::Paulis => get_from_slice::<_, u8>(py, pauli_lindblad_map.paulis(), index),
-            ArraySlot::Indices => get_from_slice::<_, u32>(py, pauli_lindblad_map.indices(), index),
-            ArraySlot::Boundaries => {
-                get_from_slice::<_, usize>(py, pauli_lindblad_map.boundaries(), index)
-            }
-        }
-    }
-
-    fn __setitem__(&self, index: PySequenceIndex, values: &Bound<PyAny>) -> PyResult<()> {
-        /// Set values of a slice according to the indexer, using `extract` to retrieve the
-        /// Rust-space object from the collection of Python-space values.
-        ///
-        /// This indirects the Python extraction through an intermediate type to marginally improve
-        /// the error messages for things like `Pauli`, where Python-space extraction might fail
-        /// because the user supplied an invalid alphabet letter.
-        ///
-        /// This allows broadcasting a single item into many locations in a slice (like Numpy), but
-        /// otherwise requires that the index and values are the same length (unlike Python's
-        /// `list`) because that would change the length.
-        fn set_in_slice<'py, T, S>(
-            slice: &mut [T],
-            index: PySequenceIndex<'py>,
-            values: &Bound<'py, PyAny>,
-        ) -> PyResult<()>
-        where
-            T: Copy + TryFrom<S>,
-            S: FromPyObject<'py>,
-            PyErr: From<<T as TryFrom<S>>::Error>,
-        {
-            match index.with_len(slice.len())? {
-                SequenceIndex::Int(index) => {
-                    slice[index] = values.extract::<S>()?.try_into()?;
-                    Ok(())
-                }
-                indices => {
-                    if let Ok(value) = values.extract::<S>() {
-                        let value = value.try_into()?;
-                        for index in indices {
-                            slice[index] = value;
-                        }
-                    } else {
-                        let values = values
-                            .try_iter()?
-                            .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
-                            .collect::<PyResult<Vec<_>>>()?;
-                        if indices.len() != values.len() {
-                            return Err(PyValueError::new_err(format!(
-                                "tried to set a slice of length {} with a sequence of length {}",
-                                indices.len(),
-                                values.len(),
-                            )));
-                        }
-                        for (index, value) in indices.into_iter().zip(values) {
-                            slice[index] = value;
-                        }
-                    }
-                    Ok(())
-                }
-            }
-        }
-
-        let mut pauli_lindblad_map = self.base.write().map_err(|_| InnerWriteError)?;
-        match self.slot {
-            ArraySlot::Rates => {
-                let x = set_in_slice::<_, f64>(pauli_lindblad_map.rates_mut(), index, values);
-                // After updating rates, recompute derived properties
-                let (gamma, probabilities, non_negative_rates) =
-                    derived_values_from_rates(&pauli_lindblad_map.rates);
-                pauli_lindblad_map.gamma = gamma;
-                pauli_lindblad_map.probabilities = probabilities;
-                pauli_lindblad_map.non_negative_rates = non_negative_rates;
-                x
-            }
-            ArraySlot::Probabilities => Err(DerivedPropertyError::ProbabilitiesIsDerived.into()),
-            ArraySlot::NonNegativeRates => {
-                Err(DerivedPropertyError::NonNegativeRatesIsDerived.into())
-            }
-            ArraySlot::Paulis => {
-                set_in_slice::<Pauli, u8>(pauli_lindblad_map.paulis_mut(), index, values)
-            }
-            ArraySlot::Indices => unsafe {
-                set_in_slice::<_, u32>(pauli_lindblad_map.indices_mut(), index, values)
-            },
-            ArraySlot::Boundaries => unsafe {
-                set_in_slice::<_, usize>(pauli_lindblad_map.boundaries_mut(), index, values)
-            },
-        }
-    }
-
-    fn __len__(&self, _py: Python) -> PyResult<usize> {
-        let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
-        let len = match self.slot {
-            ArraySlot::Rates => pauli_lindblad_map.rates().len(),
-            ArraySlot::Probabilities => pauli_lindblad_map.probabilities().len(),
-            ArraySlot::NonNegativeRates => pauli_lindblad_map.non_negative_rates().len(),
-            ArraySlot::Paulis => pauli_lindblad_map.paulis().len(),
-            ArraySlot::Indices => pauli_lindblad_map.indices().len(),
-            ArraySlot::Boundaries => pauli_lindblad_map.boundaries().len(),
-        };
-        Ok(len)
-    }
-
-    #[pyo3(signature = (/, dtype=None, copy=None))]
-    fn __array__<'py>(
-        &self,
-        py: Python<'py>,
-        dtype: Option<&Bound<'py, PyAny>>,
-        copy: Option<bool>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        // This method always copies, so we don't leave dangling pointers lying around in Numpy
-        // arrays; it's not enough just to set the `base` of the Numpy array to the
-        // `PauliLindbladMap`, since the `Vec` we're referring to might re-allocate and invalidate
-        // the pointer the Numpy array is wrapping.
-        if !copy.unwrap_or(true) {
-            return Err(PyValueError::new_err(
-                "cannot produce a safe view onto movable memory",
-            ));
-        }
-        let pauli_lindblad_map = self.base.read().map_err(|_| InnerReadError)?;
-        match self.slot {
-            ArraySlot::Rates => cast_array_type(
-                py,
-                PyArray1::from_slice(py, pauli_lindblad_map.rates()),
-                dtype,
-            ),
-            ArraySlot::Probabilities => cast_array_type(
-                py,
-                PyArray1::from_slice(py, pauli_lindblad_map.probabilities()),
-                dtype,
-            ),
-            ArraySlot::NonNegativeRates => cast_array_type(
-                py,
-                PyArray1::from_slice(py, pauli_lindblad_map.non_negative_rates()),
-                dtype,
-            ),
-            ArraySlot::Indices => cast_array_type(
-                py,
-                PyArray1::from_slice(py, pauli_lindblad_map.indices()),
-                dtype,
-            ),
-            ArraySlot::Boundaries => cast_array_type(
-                py,
-                PyArray1::from_slice(py, pauli_lindblad_map.boundaries()),
-                dtype,
-            ),
-            ArraySlot::Paulis => {
-                let paulis: &[u8] = ::bytemuck::cast_slice(pauli_lindblad_map.paulis());
-                cast_array_type(py, PyArray1::from_slice(py, paulis), dtype)
-            }
-        }
     }
 }
