@@ -24,7 +24,7 @@ pyo3 = { workspace = true, optional = true }
 
 [build-dependencies]
 cbindgen = "0.28"
-pyo3-build-config = { version = "0.24", features = ["resolve-config"] }
+pyo3-build-config = { version = "0.25", features = ["resolve-config"] }
 
 [features]
 default = ["cbinding"]
