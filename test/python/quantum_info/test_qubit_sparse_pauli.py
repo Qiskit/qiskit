@@ -394,6 +394,40 @@ class TestQubitSparsePauli(QiskitTestCase):
             strict=True,
         )
 
+    def test_commutes(self):
+        p0 = QubitSparsePauli("XIY")
+        p1 = QubitSparsePauli("IZI")
+        self.assertTrue(p0.commutes(p1))
+        self.assertTrue(p1.commutes(p0))
+
+        p0 = QubitSparsePauli("XXY")
+        p1 = QubitSparsePauli("IZI")
+        self.assertFalse(p0.commutes(p1))
+        self.assertFalse(p1.commutes(p0))
+
+        p0 = QubitSparsePauli("XXY")
+        p1 = QubitSparsePauli("IZX")
+        self.assertTrue(p0.commutes(p1))
+        self.assertTrue(p1.commutes(p0))
+
+        p0 = QubitSparsePauli("XXYY")
+        p1 = QubitSparsePauli("IZXY")
+        self.assertTrue(p0.commutes(p1))
+        self.assertTrue(p1.commutes(p0))
+
+        p0 = QubitSparsePauli("XXYYZ")
+        p1 = QubitSparsePauli("IZXYX")
+        self.assertFalse(p0.commutes(p1))
+        self.assertFalse(p1.commutes(p0))
+
+    def test_commutes_errors(self):
+        p0 = QubitSparsePauli.from_label("XZYI")
+        p1 = QubitSparsePauli.from_label("ZIY")
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 4, 3"):
+            p0.commutes(p1)
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
+            p1.commutes(p0)
+
 
 @ddt.ddt
 class TestQubitSparsePauliList(QiskitTestCase):
