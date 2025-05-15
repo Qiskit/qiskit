@@ -1,0 +1,61 @@
+[package]
+name = "qiskit-transpiler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_transpiler"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+rayon.workspace = true
+numpy.workspace = true
+ahash.workspace = true
+itertools.workspace = true
+nalgebra.workspace = true
+rand.workspace = true
+rand_pcg.workspace = true
+num-complex.workspace = true
+rustworkx-core.workspace = true
+qiskit-circuit.workspace = true
+qiskit-accelerate.workspace = true
+thiserror.workspace = true
+
+[dependencies.uuid]
+workspace = true
+features = ["v4", "fast-rng"]
+
+[dependencies.smallvec]
+workspace = true
+features = ["union"]
+
+[dependencies.pyo3]
+workspace = true
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
+
+[dependencies.ndarray]
+workspace = true
+features = ["rayon", "approx"]
+
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
+
+[dependencies.hashbrown]
+workspace = true
+features = ["rayon"]
+
+[dependencies.indexmap]
+workspace = true
+features = ["rayon"]
+
+[dev-dependencies]
+pyo3 = { workspace = true, features = ["auto-initialize"] }
+
+[features]
+cache_pygates = ["qiskit-circuit/cache_pygates"]

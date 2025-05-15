@@ -13,9 +13,12 @@ after_includes = """
 // Complex number typedefs -- note these are memory aligned but
 // not calling convention compatible.
 #ifdef __cplusplus
+#include <complex>
+
 typedef std::complex<float> QkComplex32;
 typedef std::complex<double> QkComplex64;
 #else  //__cplusplus
+#include "complex.h"
 
 #ifdef _MSC_VER
 typedef _Fcomplex QkComplex32;
