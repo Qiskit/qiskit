@@ -23,7 +23,7 @@ use std::sync::{Arc, RwLock};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList, QubitSparsePauliView
+    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli, PyQubitSparsePauli, QubitSparsePauli, QubitSparsePauliList, QubitSparsePauliView, PyQubitSparsePauliList
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
@@ -899,6 +899,19 @@ impl PyPauliLindbladMap {
             data.get_type().repr()?,
         )))
     }
+
+    #[staticmethod]
+    fn from_components(rates: Vec<f64>, qubit_sparse_pauli_list: &PyQubitSparsePauliList) -> PyResult<Self> {
+        
+        let qubit_sparse_pauli_list = qubit_sparse_pauli_list.inner.read().map_err(|_| InnerReadError)?;
+        let inner = PauliLindbladMap::new(
+            rates.clone(),
+            qubit_sparse_pauli_list.clone()
+        )?;
+
+        Ok(inner.into())
+    }
+
 
     /// Construct a Pauli Lindblad map from a list of dense generator labels and rates.
     ///

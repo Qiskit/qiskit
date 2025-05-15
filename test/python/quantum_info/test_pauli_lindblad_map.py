@@ -71,10 +71,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(base, copied)
         self.assertIsNot(base, copied)
 
-        # Modifications to `copied` don't propagate back.
-        copied.rates[1] = -0.5
-        self.assertNotEqual(base, copied)
-
         with self.assertRaisesRegex(ValueError, "explicitly given 'num_qubits'"):
             PauliLindbladMap(base, num_qubits=base.num_qubits + 1)
 
@@ -93,50 +89,24 @@ class TestPauliLindbladMap(QiskitTestCase):
         label = "IXYIZZY"
         self.assertEqual(
             PauliLindbladMap.from_list([(label, 1.0)]),
-            PauliLindbladMap.from_raw_parts(
-                len(label),
+            PauliLindbladMap.from_components(
                 [1.0],
-                [
-                    PauliLindbladMap.Pauli.Y,
-                    PauliLindbladMap.Pauli.Z,
-                    PauliLindbladMap.Pauli.Z,
-                    PauliLindbladMap.Pauli.Y,
-                    PauliLindbladMap.Pauli.X,
-                ],
-                [0, 1, 2, 4, 5],
-                [0, 5],
+                QubitSparsePauliList.from_label(label)
             ),
         )
         self.assertEqual(
             PauliLindbladMap.from_list([(label, 1.0)], num_qubits=len(label)),
-            PauliLindbladMap.from_raw_parts(
-                len(label),
+            PauliLindbladMap.from_components(
                 [1.0],
-                [
-                    PauliLindbladMap.Pauli.Y,
-                    PauliLindbladMap.Pauli.Z,
-                    PauliLindbladMap.Pauli.Z,
-                    PauliLindbladMap.Pauli.Y,
-                    PauliLindbladMap.Pauli.X,
-                ],
-                [0, 1, 2, 4, 5],
-                [0, 5],
+                QubitSparsePauliList.from_label(label)
             ),
         )
 
         self.assertEqual(
             PauliLindbladMap.from_list([("IIIXZI", 1.0), ("XXIIII", -0.5)]),
-            PauliLindbladMap.from_raw_parts(
-                6,
+            PauliLindbladMap.from_components(
                 [1.0, -0.5],
-                [
-                    PauliLindbladMap.Pauli.Z,
-                    PauliLindbladMap.Pauli.X,
-                    PauliLindbladMap.Pauli.X,
-                    PauliLindbladMap.Pauli.X,
-                ],
-                [1, 2, 4, 5],
-                [0, 2, 4],
+                QubitSparsePauliList.from_list(["IIIXZI", "XXIIII"])
             ),
         )
 
@@ -160,6 +130,71 @@ class TestPauliLindbladMap(QiskitTestCase):
             PauliLindbladMap.from_list([("IIZ", 0.5), ("IXI", 1.0)], num_qubits=4)
         with self.assertRaisesRegex(ValueError, "cannot construct.*without knowing `num_qubits`"):
             PauliLindbladMap.from_list([])
+
+    def test_from_components(self):
+        self.assertEqual(
+            PauliLindbladMap.from_components(
+                [0.5, -0.25, 1.0],
+                QubitSparsePauliList.from_sparse_list(
+                    [
+                        ("XY", (0, 1),),
+                        ("XX", (1, 3),),
+                        ("YYZ", (0, 2, 4)),
+                    ],
+                    num_qubits=5,
+                )
+            ),
+            PauliLindbladMap.from_list([("IIIYX", 0.5), ("IXIXI", -0.25), ("ZIYIY", 1.0)]),
+        )
+
+        # The indices should be allowed to be given in unsorted order, but they should be term-wise
+        # sorted in the output.
+        from_unsorted = PauliLindbladMap.from_components(
+            [1.5, -0.5],
+            QubitSparsePauliList.from_sparse_list(
+                [
+                    ("XYZ", (2, 1, 0)),
+                    ("XYY", (2, 0, 1)),
+                ],
+                num_qubits=3,
+            )
+        )
+        self.assertEqual(from_unsorted, PauliLindbladMap.from_list([("XYZ", 1.5), ("XYY", -0.5)]))
+        np.testing.assert_equal(
+            from_unsorted[0].indices, np.array([0, 1, 2], dtype=np.uint32)
+        )
+        np.testing.assert_equal(
+            from_unsorted[1].indices, np.array([0, 1, 2], dtype=np.uint32)
+        )
+
+        # Explicit identities should still work, just be skipped over.
+        explicit_identity = PauliLindbladMap.from_components(
+            [1.0, -0.5],
+            QubitSparsePauliList.from_sparse_list(
+                [
+                    ("ZXI", (0, 1, 2)),
+                    ("XYIII", (0, 1, 2, 3, 8)),
+                ],
+                num_qubits=10,
+            )
+        )
+        self.assertEqual(
+            explicit_identity,
+            PauliLindbladMap.from_sparse_list(
+                [("XZ", (1, 0), 1.0), ("YX", (1, 0), -0.5)], num_qubits=10
+            ),
+        )
+        np.testing.assert_equal(explicit_identity[0].indices, np.array([0, 1], dtype=np.uint32))
+        np.testing.assert_equal(explicit_identity[1].indices, np.array([0, 1], dtype=np.uint32))
+
+        self.assertEqual(
+            PauliLindbladMap.from_components([], QubitSparsePauliList.empty(1_000_000)),
+            PauliLindbladMap.identity(1_000_000),
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_components([], QubitSparsePauliList.empty(0)),
+            PauliLindbladMap.identity(0),
+        )
 
     def test_from_sparse_list(self):
         self.assertEqual(
@@ -185,7 +220,10 @@ class TestPauliLindbladMap(QiskitTestCase):
         )
         self.assertEqual(from_unsorted, PauliLindbladMap.from_list([("XYZ", 1.5), ("XYY", -0.5)]))
         np.testing.assert_equal(
-            from_unsorted.indices, np.array([0, 1, 2, 0, 1, 2], dtype=np.uint32)
+            from_unsorted[0].indices, np.array([0, 1, 2], dtype=np.uint32)
+        )
+        np.testing.assert_equal(
+            from_unsorted[1].indices, np.array([0, 1, 2], dtype=np.uint32)
         )
 
         # Explicit identities should still work, just be skipped over.
@@ -202,7 +240,8 @@ class TestPauliLindbladMap(QiskitTestCase):
                 [("XZ", (1, 0), 1.0), ("YX", (1, 0), -0.5)], num_qubits=10
             ),
         )
-        np.testing.assert_equal(explicit_identity.indices, np.array([0, 1, 0, 1], dtype=np.uint32))
+        np.testing.assert_equal(explicit_identity[0].indices, np.array([0, 1], dtype=np.uint32))
+        np.testing.assert_equal(explicit_identity[1].indices, np.array([0, 1], dtype=np.uint32))
 
         self.assertEqual(
             PauliLindbladMap.from_sparse_list([], num_qubits=1_000_000),
@@ -324,38 +363,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(len(PauliLindbladMap.identity(0)), 0)
         self.assertEqual(len(PauliLindbladMap.identity(10)), 0)
         self.assertEqual(len(PauliLindbladMap.from_list([("IIIXIZ", 1.0), ("YYXXII", 0.5)])), 2)
-
-    def test_pauli_enum(self):
-        # These are very explicit tests that effectively just duplicate magic numbers, but the point
-        # is that those magic numbers are required to be constant as their values are part of the
-        # public interface.
-
-        self.assertEqual(
-            set(PauliLindbladMap.Pauli),
-            {
-                PauliLindbladMap.Pauli.X,
-                PauliLindbladMap.Pauli.Y,
-                PauliLindbladMap.Pauli.Z,
-            },
-        )
-        # All the enumeration items should also be integers.
-        self.assertIsInstance(PauliLindbladMap.Pauli.X, int)
-        values = {
-            "X": 0b10,
-            "Y": 0b11,
-            "Z": 0b01,
-        }
-        self.assertEqual({name: getattr(PauliLindbladMap.Pauli, name) for name in values}, values)
-
-        # The single-character label aliases can be accessed with index notation.
-        labels = {
-            "X": PauliLindbladMap.Pauli.X,
-            "Y": PauliLindbladMap.Pauli.Y,
-            "Z": PauliLindbladMap.Pauli.Z,
-        }
-        self.assertEqual({label: PauliLindbladMap.Pauli[label] for label in labels}, labels)
-        # The `label` property returns known values.
-        self.assertEqual({pauli.label: pauli for pauli in PauliLindbladMap.Pauli}, labels)
 
     @ddt.idata(single_cases())
     def test_pickle(self, pauli_lindblad_map):
@@ -586,9 +593,9 @@ class TestPauliLindbladMap(QiskitTestCase):
             term.paulis,
             np.array(
                 [
-                    PauliLindbladMap.Pauli.Z,
-                    PauliLindbladMap.Pauli.X,
-                    PauliLindbladMap.Pauli.X,
+                    QubitSparsePauli.Pauli.Z,
+                    QubitSparsePauli.Pauli.X,
+                    QubitSparsePauli.Pauli.X,
                 ],
                 dtype=np.uint8,
             ),
@@ -601,9 +608,9 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(
             list(term.paulis),
             [
-                PauliLindbladMap.Pauli.Z,
-                PauliLindbladMap.Pauli.Y,
-                PauliLindbladMap.Pauli.X,
+                QubitSparsePauli.Pauli.Z,
+                QubitSparsePauli.Pauli.Y,
+                QubitSparsePauli.Pauli.X,
             ],
         )
         self.assertEqual(list(term.indices), [0, 1, 2])
@@ -662,13 +669,12 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(pauli_lindblad_map, reconstructed)
 
     def test_derived_properties(self):
-        """Test whether gamma, probabilities, and non_negative_rates are correctly calculated."""
+        """Test whether gamma and probabilities are correctly calculated."""
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
         w = 0.5 * (1 + np.exp(-2 * 1.0))
         self.assertEqual(w, pauli_lindblad_map.probabilities[0])
         self.assertEqual(1.0, pauli_lindblad_map.gamma)
-        self.assertEqual(True, pauli_lindblad_map.non_negative_rates[0])
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -1.0)])
         w = 0.5 * (1 + np.exp(-2 * -1.0))
@@ -676,7 +682,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         prob = w / gamma
         self.assertEqual(prob, pauli_lindblad_map.probabilities[0])
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
-        self.assertEqual(False, pauli_lindblad_map.non_negative_rates[0])
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
         w = 0.5 * (1 + np.exp(-2 * -0.5))
@@ -684,7 +689,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         prob = w / gamma
         self.assertEqual(prob, pauli_lindblad_map.probabilities[0])
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
-        self.assertEqual(False, pauli_lindblad_map.non_negative_rates[0])
 
         pauli_lindblad_map = PauliLindbladMap(
             [("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)]
@@ -696,31 +700,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         gamma = np.prod(gammas)
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
-        self.assertTrue(all((rates >= 0.0) == pauli_lindblad_map.non_negative_rates))
-
-    def test_set_derived_properties_errors(self):
-        """Test that setting derived properties raises an error."""
-
-        with self.assertRaisesRegex(
-            AttributeError,
-            r"attribute 'gamma' of 'qiskit.quantum_info.PauliLindbladMap' objects is not writable",
-        ):
-            pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
-            pauli_lindblad_map.gamma = 3.0
-
-        with self.assertRaisesRegex(
-            AttributeError,
-            r"attribute 'probabilities' of 'qiskit.quantum_info.PauliLindbladMap' objects",
-        ):
-            pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
-            pauli_lindblad_map.probabilities[0] = 3.0
-
-        with self.assertRaisesRegex(
-            AttributeError,
-            r"attribute 'non_negative_rates' of 'qiskit.quantum_info.PauliLindbladMap' objects",
-        ):
-            pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
-            pauli_lindblad_map.non_negative_rates[0] = True
 
 
 def canonicalize_term(pauli, indices, rate):

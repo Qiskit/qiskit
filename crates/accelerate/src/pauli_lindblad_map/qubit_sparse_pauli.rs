@@ -1413,7 +1413,7 @@ impl PyQubitSparsePauli {
 #[derive(Debug)]
 pub struct PyQubitSparsePauliList {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
-    inner: Arc<RwLock<QubitSparsePauliList>>,
+    pub inner: Arc<RwLock<QubitSparsePauliList>>,
 }
 #[pymethods]
 impl PyQubitSparsePauliList {
