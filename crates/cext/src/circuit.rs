@@ -403,7 +403,7 @@ fn is_unitary(matrix: &ArrayView2<Complex64>, tol: f64) -> bool {
         let col_idx = index % n;
         let row_idx = index / n;
         if col_idx == row_idx {
-            (value - &one).abs() > tol
+            (value - one).abs() > tol
         } else {
             value.abs() > tol
         }
