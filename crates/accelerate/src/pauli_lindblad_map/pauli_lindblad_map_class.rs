@@ -274,7 +274,7 @@ impl PauliLindbladMap {
     /// less than or equal to the tolerance.  The terms are reordered to some canonical ordering.
     ///
     /// This function is idempotent.
-    pub fn simplify(&self, tol: f64) -> Result<PauliLindbladMap, CoherenceError> {
+    pub fn simplify(&self, tol: f64) -> PauliLindbladMap {
         let mut terms = btree_map::BTreeMap::new();
         for term in self.iter() {
             terms
@@ -282,22 +282,32 @@ impl PauliLindbladMap {
                 .and_modify(|r| *r += term.rate)
                 .or_insert(term.rate);
         }
-        let mut out = PauliLindbladMap::identity(self.num_qubits());
+        
+        let mut new_rates = Vec::with_capacity(self.num_terms());
+        let mut new_paulis = Vec::with_capacity(self.num_terms());
+        let mut new_indices = Vec::with_capacity(self.num_terms());
+        let mut new_boundaries = Vec::with_capacity(self.num_terms());
+        new_boundaries.push(0);
         for ((indices, paulis), r) in terms {
             // Don't add terms with zero coefficient or are pure identity
-            if r.abs().sqrt() <= tol * tol || paulis.len() == 0 {
+            if r.abs() <= tol || paulis.len() == 0 {
                 continue;
             }
-            unsafe{
-            out.add_term(
-                GeneratorTerm::new(
-                    r, 
-                    QubitSparsePauli::new_unchecked(self.num_qubits(), paulis.to_vec().into_boxed_slice(), indices.to_vec().into_boxed_slice())
-                )?.view()
-            );
-            }
+            new_rates.push(r);
+            new_paulis.extend_from_slice(paulis);
+            new_indices.extend_from_slice(indices);
+            new_boundaries.push(new_indices.len());
         }
-        Ok(out)
+        unsafe {
+            let qubit_sparse_pauli_list = QubitSparsePauliList::new_unchecked(
+                self.num_qubits(), 
+                new_paulis, 
+                new_indices,
+                new_boundaries
+            );
+
+            PauliLindbladMap::new_unchecked(new_rates, qubit_sparse_pauli_list)
+        }
     }
 }
 
@@ -1149,7 +1159,7 @@ impl PyPauliLindbladMap {
     )]
     fn simplify(&self, tol: f64) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let simplified = inner.simplify(tol)?;
+        let simplified = inner.simplify(tol);
         Ok(simplified.into())
     }
 

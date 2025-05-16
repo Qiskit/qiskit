@@ -708,6 +708,32 @@ class TestPauliLindbladMap(QiskitTestCase):
         duplicate = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", 2.0)])
         self.assertEqual(duplicate.simplify(), PauliLindbladMap([("IXYZXYZXYZ", 3.0)]))
 
+        cancel = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -1.0)])
+        self.assertEqual(cancel.simplify(), PauliLindbladMap.identity(10))
+
+        drop_identities = PauliLindbladMap([("IXY", 1.0), ("III", -1.0)])
+        self.assertEqual(drop_identities.simplify(), PauliLindbladMap([("IXY", 1.0)]))
+
+        # note that ordering is not necessarily preserved
+        threshold = PauliLindbladMap([("X", 1e-9), ("Z", -2), ("Y", 1.)])
+        simplified = threshold.simplify()
+        expected = PauliLindbladMap([("Y", 1.), ("Z", -2)])
+        self.assertTrue(len(simplified) == len(expected))
+        for x in expected:
+            self.assertTrue(x in simplified)
+        
+        simplified = threshold.simplify(1e-10)
+        expected = threshold
+        self.assertTrue(len(simplified) == len(expected))
+        for x in expected:
+            self.assertTrue(x in simplified)
+
+        simplified = threshold.simplify(1.1)
+        expected = PauliLindbladMap([("Z", -2)])
+        self.assertTrue(len(simplified) == len(expected))
+        for x in expected:
+            self.assertTrue(x in simplified)
+
 
 def canonicalize_term(pauli, indices, rate):
     # canonicalize a sparse list term by sorting by indices (which is unique as
