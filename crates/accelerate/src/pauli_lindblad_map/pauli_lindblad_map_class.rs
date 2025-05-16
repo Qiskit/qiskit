@@ -266,7 +266,7 @@ impl PauliLindbladMap {
     }
 
     /// Scale the rates by a set factor.
-    /// 
+    ///
     /// # Safety
     ///
     /// The coherence of the result is equivalent to the coherence fo Self, and as such there is no
@@ -276,8 +276,8 @@ impl PauliLindbladMap {
         unsafe { PauliLindbladMap::new_unchecked(new_rates, self.qubit_sparse_pauli_list.clone()) }
     }
 
-    /// Invert the map. Labelled unsafe but coherence is assured if self is coherent
-    /// 
+    /// Invert the map.
+    ///
     /// # Safety
     ///
     /// The coherence of the result is equivalent to the coherence fo Self, and as such there is no
