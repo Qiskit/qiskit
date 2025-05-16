@@ -264,6 +264,16 @@ impl PauliLindbladMap {
             qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(index),
         }
     }
+
+    pub fn scale_rates(self, scale_factor: f64) -> Self {
+        let new_rates = self.rates.iter().map(|r| scale_factor * r).collect();
+        PauliLindbladMap::new_unchecked(
+            new_rates, 
+            self.qubit_sparse_pauli_list.clone()
+        )
+    }
+
+    pub fn inverse(self) -> 
 }
 
 /// Given a rate, return the corresponding gamma, probability, and boolean for whether the rate is
