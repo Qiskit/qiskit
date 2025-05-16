@@ -393,6 +393,42 @@ class TestQubitSparsePauli(QiskitTestCase):
             np.array([0, 1, 2], dtype=np.uint8),
             strict=True,
         )
+    
+    def test_compose(self):
+        p0 = QubitSparsePauli.from_label("XZY")
+        p1 = QubitSparsePauli.from_label("ZIY")
+
+        self.assertEqual(p0.compose(p1), QubitSparsePauli.from_label("YZI"))
+        self.assertEqual(p1.compose(p0), QubitSparsePauli.from_label("YZI"))
+
+        p0 = QubitSparsePauli.from_label("III")
+        p1 = QubitSparsePauli.from_label("ZIY")
+
+        self.assertEqual(p0 @ p1, QubitSparsePauli.from_label("ZIY"))
+        self.assertEqual(p1 @ p0, QubitSparsePauli.from_label("ZIY"))
+
+        p0 = QubitSparsePauli.from_label("IIIXXY")
+        p1 = QubitSparsePauli.from_label("ZIYIII")
+
+        self.assertEqual(p0 @ p1, QubitSparsePauli.from_label("ZIYXXY"))
+        self.assertEqual(p1 @ p0, QubitSparsePauli.from_label("ZIYXXY"))
+
+        p0 = QubitSparsePauli.from_label("IIIXXYZIXIZIZ")
+        p1 = QubitSparsePauli.from_label("ZIYIIIXYZIYIX")
+
+        self.assertEqual(p0 @ p1, QubitSparsePauli.from_label("ZIYXXYYYYIXIY"))
+        self.assertEqual(p1 @ p0, QubitSparsePauli.from_label("ZIYXXYYYYIXIY"))
+
+        self.assertEqual(p0 @ p0, QubitSparsePauli.from_label("I" * 13))
+        self.assertEqual(p1 @ p1, QubitSparsePauli.from_label("I" * 13))
+
+    def test_compose_errors(self):
+        p0 = QubitSparsePauli.from_label("XZYI")
+        p1 = QubitSparsePauli.from_label("ZIY")
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 4, 3"):
+            p0.compose(p1)
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
+            p1.compose(p0)
 
 
 @ddt.ddt
