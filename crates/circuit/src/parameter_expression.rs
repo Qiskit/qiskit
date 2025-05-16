@@ -278,7 +278,7 @@ impl ParameterExpression {
                 symbol_expr::Value::Real(r) => {
                     if r.is_infinite() {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                            "zero division occurs while binding parameter",
+                            "attempted to bind infinite value to parameter",
                         ))
                     } else if r.is_nan() {
                         Err(pyo3::exceptions::PyRuntimeError::new_err(
