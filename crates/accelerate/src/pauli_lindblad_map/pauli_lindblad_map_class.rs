@@ -72,9 +72,6 @@ impl PauliLindbladMap {
     }
 
     /// Create a new Pauli Lindblad map from the raw components that make it up.
-    ///
-    /// This checks the input values for data coherence on entry.  If you are certain you have the
-    /// correct values, you can call `new_unchecked` instead.
     pub fn new_from_raw_parts(
         num_qubits: u32,
         rates: Vec<f64>,
