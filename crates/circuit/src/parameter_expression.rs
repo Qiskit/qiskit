@@ -1210,37 +1210,42 @@ impl ParameterExpression {
     /// ParameterExpression::__init__
     /// initialize ParameterExpression from the equation stored in string
     #[new]
-    #[pyo3(signature = (symbol_map, expr, _qpy_replay = None))]
+    #[pyo3(signature = (symbol_map = None, expr = None, _qpy_replay = None))]
     pub fn __new__(
-        symbol_map: HashMap<ParameterExpression, PyObject>,
-        expr: String,
+        symbol_map: Option<HashMap<ParameterExpression, PyObject>>,
+        expr: Option<String>,
         _qpy_replay: Option<Vec<OPReplay>>,
     ) -> PyResult<Self> {
-        // check if expr contains replacements for sympy
-        let expr = expr
-            .replace("__begin_sympy_replace__", "$\\")
-            .replace("__end_sympy_replace__", "$");
-        // substitute 'I' to imaginary number i before returning expression
-        let expr = parse_expression(&expr).bind(&HashMap::from([(
-            "I".to_string(),
-            symbol_expr::Value::from(Complex64::i()),
-        )]));
-        let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
-        let mut uuid: u128 = 0;
-        for (param, _) in symbol_map {
-            uuid = param.uuid;
-            parameter_symbols.insert(Arc::new(param.to_owned()));
+        if let (Some(symbol_map), Some(expr)) = (symbol_map, expr) {
+            // check if expr contains replacements for sympy
+            let expr = expr
+                .replace("__begin_sympy_replace__", "$\\")
+                .replace("__end_sympy_replace__", "$");
+            // substitute 'I' to imaginary number i before returning expression
+            let expr = parse_expression(&expr).bind(&HashMap::from([(
+                "I".to_string(),
+                symbol_expr::Value::from(Complex64::i()),
+            )]));
+            let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
+            let mut uuid: u128 = 0;
+            for (param, _) in symbol_map {
+                uuid = param.uuid;
+                parameter_symbols.insert(Arc::new(param.to_owned()));
+            }
+            if parameter_symbols.len() > 1 {
+                uuid = 0;
+            }
+            Ok(ParameterExpression {
+                expr: expr,
+                uuid: uuid,
+                qpy_replay: _qpy_replay,
+                parameter_symbols: Some(parameter_symbols),
+                parameter_vector: None,
+            })
+        } else {
+            // return 0 if there are no input parameter is given
+            Ok(ParameterExpression::default())
         }
-        if parameter_symbols.len() > 1 {
-            uuid = 0;
-        }
-        Ok(ParameterExpression {
-            expr: expr,
-            uuid: uuid,
-            qpy_replay: _qpy_replay,
-            parameter_symbols: Some(parameter_symbols),
-            parameter_vector: None,
-        })
     }
 
     /// create new expression as a value
