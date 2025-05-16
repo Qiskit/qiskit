@@ -437,7 +437,7 @@ impl ParameterExpression {
                 expr: &lhs.expr / &self.expr,
             }),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
-                "Unsupported data type for __truediv__",
+                "Unsupported data type for __rtruediv__",
             )),
         }
     }
