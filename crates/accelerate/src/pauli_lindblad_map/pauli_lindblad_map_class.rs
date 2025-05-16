@@ -265,15 +265,16 @@ impl PauliLindbladMap {
         }
     }
 
-    pub fn scale_rates(self, scale_factor: f64) -> Self {
+    // Scale the rates by a set factor. Labelled unsafe but coherence is assured if self is coherent
+    pub unsafe fn scale_rates(self, scale_factor: f64) -> Self {
         let new_rates = self.rates.iter().map(|r| scale_factor * r).collect();
-        PauliLindbladMap::new_unchecked(
-            new_rates, 
-            self.qubit_sparse_pauli_list.clone()
-        )
+        unsafe { PauliLindbladMap::new_unchecked(new_rates, self.qubit_sparse_pauli_list.clone()) }
     }
 
-    pub fn inverse(self) -> 
+    // Invert the map. Labelled unsafe but coherence is assured if self is coherent
+    pub unsafe fn inverse(self) -> Self {
+        unsafe { self.scale_rates(-1.) }
+    }
 }
 
 /// Given a rate, return the corresponding gamma, probability, and boolean for whether the rate is
@@ -1077,6 +1078,25 @@ impl PyPauliLindbladMap {
             out.append(to_py_tuple(view)?)?;
         }
         Ok(out.unbind())
+    }
+
+    /// Return a new :class:`PauliLindbladMap` with rates scaled by `scale_factor`.
+    ///
+    /// Args:
+    ///     scale_factor (float): the scaling coefficient.
+    #[pyo3(signature = (scale_factor))]
+    fn scale_rates<'py>(&self, py: Python<'py>, scale_factor: f64) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        unsafe { 
+            let scaled = inner.clone().scale_rates(scale_factor); 
+            scaled.into_pyobject(py)
+        }
+    }
+
+    /// Return a new :class:`PauliLindbladMap` that is the mathematical inverse of `self`.
+    #[pyo3(signature = ())]
+    fn inverse<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
+        self.scale_rates(py, -1.)
     }
 
     fn __len__(&self) -> PyResult<usize> {

@@ -704,6 +704,52 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
 
+    def test_scale_rates(self):
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
+        self.assertEqual(
+            pauli_lindblad_map.scale_rates(12.32), 
+            PauliLindbladMap([("IXYZXYZXYZ", 12.32)])
+        )
+
+        pauli_lindblad_map = PauliLindbladMap(
+            [("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)]
+        )
+        self.assertEqual(
+            pauli_lindblad_map.scale_rates(3.2), 
+            PauliLindbladMap(
+                [("IXYZXYZXYZ", -3.2), ("IXYZXYZXYZ", 3.2), ("IXYZXYZXYZ", -1.6)]
+            )
+        )
+
+        self.assertEqual(
+            PauliLindbladMap.identity(5).scale_rates(5.),
+            PauliLindbladMap.identity(5)
+        )
+
+    
+    def test_inverse(self):
+
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
+        self.assertEqual(
+            pauli_lindblad_map.inverse(), 
+            PauliLindbladMap([("IXYZXYZXYZ", -1.0)])
+        )
+
+        pauli_lindblad_map = PauliLindbladMap(
+            [("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)]
+        )
+        self.assertEqual(
+            pauli_lindblad_map.inverse(), 
+            PauliLindbladMap(
+                [("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 0.5)]
+            )
+        )
+
+        self.assertEqual(
+            PauliLindbladMap.identity(5).inverse(),
+            PauliLindbladMap.identity(5)
+        )
+
 
 def canonicalize_term(pauli, indices, rate):
     # canonicalize a sparse list term by sorting by indices (which is unique as
