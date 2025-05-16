@@ -93,6 +93,7 @@ class StarPreRouting(TransformationPass):
     For example:
 
       .. plot::
+         :alt: Circuit diagram output by the previous code.
          :include-source:
 
          from qiskit.circuit import QuantumCircuit
