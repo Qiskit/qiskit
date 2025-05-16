@@ -48,6 +48,7 @@ from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
+from qiskit.transpiler.passes import WrapAngles
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.utils import deprecate_func
@@ -563,6 +564,8 @@ def generate_translation_passmanager(
                 condition=_direction_condition,
             )
         )
+    if target.has_angle_bounds():
+        unroll.append(WrapAngles(target))
     return PassManager(unroll)
 
 

@@ -166,6 +166,7 @@ Additional Passes
    GatesInBasis
    UnrollForLoops
    FilterOpNodes
+   WrapAngles
 """
 
 # layout selection (placement)
@@ -272,3 +273,4 @@ from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import UnrollForLoops
 from .utils import FilterOpNodes
+from .utils import WrapAngles

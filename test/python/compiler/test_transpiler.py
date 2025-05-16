@@ -21,6 +21,7 @@ import sys
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
 import numpy as np
+from numpy import pi
 import rustworkx as rx
 from ddt import data, idata, ddt, unpack
 
@@ -72,10 +73,11 @@ from qiskit.circuit.library import (
     UGate,
     XGate,
     ZGate,
+    XXPlusYYGate,
 )
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
-from qiskit.dagcircuit import DAGOpNode, DAGOutNode
+from qiskit.dagcircuit import DAGOpNode, DAGOutNode, DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -3035,6 +3037,129 @@ class TestTranspileParallel(QiskitTestCase):
                 initial_layout=(0, 1, 2),
                 seed_transpiler=42,
             )
+
+    @data(0, 1, 2, 3)
+    def test_angle_bounds_respected(self, opt_level):
+        qc = QuantumCircuit(2)
+        qc.append(XXPlusYYGate(np.pi, -np.pi / 2), qc.qubits)
+        rzz_outside_bounds = QuantumCircuit(2)
+        rzz_outside_bounds.h(0)
+        rzz_outside_bounds.h(1)
+        rzz_outside_bounds.rzz(pi, 0, 1)
+        rzz_outside_bounds.z(0)
+        rzz_outside_bounds.z(1)
+        rzz_outside_bounds.rzz(2 * pi, 0, 1)
+        rzz_outside_bounds.y(0)
+        rzz_outside_bounds.y(1)
+        rzz_outside_bounds.rzz(3 * pi / 2, 0, 1)
+        rzz_outside_bounds.h(0)
+        rzz_outside_bounds.h(1)
+        circs = [qc, rzz_outside_bounds]
+
+        target = Target.from_configuration(
+            ["sx", "x", "rz", "rx", "rzz", "cz"], 2, coupling_map=CouplingMap.from_line(2)
+        )
+
+        def fold_rzz(angles: float) -> DAGCircuit:
+            wrap_angle = np.angle(np.exp(1j * angle))
+            qubits = [Qubit(), Qubit()]
+            new_dag = DAGCircuit()
+            new_dag.add_qubits([Qubit(), Qubit()])
+            if 0 <= wrap_angle <= pi / 2:
+                new_dag.apply_operation_back(
+                    RZZGate(angle),
+                    qargs=qubits,
+                    check=False,
+                )
+            elif pi / 2 < wrap_angle <= pi:
+                new_dag.global_phase = pi / 2
+                new_dag.apply_operation_back(
+                    RZGate(pi),
+                    qargs=(qubits[0],),
+                    cargs=(),
+                    check=False,
+                )
+                new_dag.apply_operation_back(
+                    RZGate(pi),
+                    qargs=(qubits[1],),
+                    check=False,
+                )
+                if not np.isclose(new_angle := (pi - angle), 0.0):
+                    new_dag.apply_operation_back(
+                        XGate(),
+                        qargs=(qubits[0],),
+                        check=False,
+                    )
+                    new_dag.apply_operation_back(
+                        RZZGate(new_angle),
+                        qargs=qubits,
+                        check=False,
+                    )
+                    new_dag.apply_operation_back(
+                        XGate(),
+                        qargs=(qubits[0],),
+                        check=False,
+                    )
+            elif -pi <= wrap_angle <= -pi / 2:
+                new_dag.global_phase = -pi / 2
+                new_dag.apply_operation_back(
+                    RZGate(pi),
+                    qargs=(qubits[0],),
+                    check=False,
+                )
+                new_dag.apply_operation_back(
+                    RZGate(pi),
+                    qargs=(qubits[1],),
+                    check=False,
+                )
+                if not np.isclose(new_angle := (pi - np.abs(angle)), 0.0):
+                    new_dag.apply_operation_back(
+                        RZZGate(new_angle),
+                        qargs=qubits,
+                        check=False,
+                    )
+            elif -pi / 2 < wrap_angle < 0:
+                new_dag.apply_operation_back(
+                    XGate(),
+                    qargs=(qubits[0],),
+                    check=False,
+                )
+                new_dag.apply_operation_back(
+                    RZZGate(abs(angle)),
+                    qargs=qubits,
+                    check=False,
+                )
+                new_dag.apply_operation_back(
+                    XGate(),
+                    qargs=(qubits[0],),
+                    check=False,
+                )
+            else:
+                raise RuntimeError()
+
+            if pi < angle % (4 * pi) < 3 * pi:
+                new_dag.global_phase += pi
+
+            return new_dag
+
+        target.add_angle_bound("rzz", [(0, pi / 2)], fold_rzz)
+
+        transpiled = transpile(
+            circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890
+        )
+        self.assertEqual(Operator.from_circuit(transpiled[0]), Operator.from_circuit(circs[0]))
+        self.assertEqual(Operator.from_circuit(transpiled[1]), Operator.from_circuit(circs[1]))
+        for circ in transpiled:
+            for inst in circ.data:
+                print(inst)
+                self.assertTrue(
+                    target.instruction_supported(
+                        inst.name,
+                        tuple(circ.find_bit(x).index for x in inst.qubits),
+                        parameters=inst.operation.params,
+                        check_angle_bounds=True,
+                    )
+                )
 
 
 @ddt
