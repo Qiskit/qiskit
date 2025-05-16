@@ -335,11 +335,11 @@ pub struct GeneratorTerm {
     qubit_sparse_pauli: QubitSparsePauli,
 }
 impl GeneratorTerm {
-    pub fn new(rate: f64, qubit_sparse_pauli: QubitSparsePauli) -> Result<Self, CoherenceError> {
-        Ok(Self {
+    pub fn new(rate: f64, qubit_sparse_pauli: QubitSparsePauli) -> Self {
+        Self {
             rate,
             qubit_sparse_pauli,
-        })
+        }
     }
 
     pub fn num_qubits(&self) -> u32 {
@@ -397,7 +397,7 @@ impl PyGeneratorTerm {
     #[new]
     #[pyo3(signature = (/, rate, qubit_sparse_pauli))]
     fn py_new(rate: f64, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<Self> {
-        let inner = GeneratorTerm::new(rate, qubit_sparse_pauli.inner.clone())?;
+        let inner = GeneratorTerm::new(rate, qubit_sparse_pauli.inner.clone());
         Ok(PyGeneratorTerm { inner })
     }
 
