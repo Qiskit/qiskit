@@ -19,8 +19,8 @@ use pyo3::{
     IntoPyObjectExt, PyErr,
 };
 use std::{
-    sync::{Arc, RwLock},
     collections::btree_map,
+    sync::{Arc, RwLock},
 };
 
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
@@ -278,11 +278,14 @@ impl PauliLindbladMap {
         let mut terms = btree_map::BTreeMap::new();
         for term in self.iter() {
             terms
-                .entry((term.qubit_sparse_pauli.indices, term.qubit_sparse_pauli.paulis))
+                .entry((
+                    term.qubit_sparse_pauli.indices,
+                    term.qubit_sparse_pauli.paulis,
+                ))
                 .and_modify(|r| *r += term.rate)
                 .or_insert(term.rate);
         }
-        
+
         let mut new_rates = Vec::with_capacity(self.num_terms());
         let mut new_paulis = Vec::with_capacity(self.num_terms());
         let mut new_indices = Vec::with_capacity(self.num_terms());
@@ -290,7 +293,7 @@ impl PauliLindbladMap {
         new_boundaries.push(0);
         for ((indices, paulis), r) in terms {
             // Don't add terms with zero coefficient or are pure identity
-            if r.abs() <= tol || paulis.len() == 0 {
+            if r.abs() <= tol || paulis.is_empty() {
                 continue;
             }
             new_rates.push(r);
@@ -300,10 +303,10 @@ impl PauliLindbladMap {
         }
         unsafe {
             let qubit_sparse_pauli_list = QubitSparsePauliList::new_unchecked(
-                self.num_qubits(), 
-                new_paulis, 
+                self.num_qubits(),
+                new_paulis,
                 new_indices,
-                new_boundaries
+                new_boundaries,
             );
 
             PauliLindbladMap::new_unchecked(new_rates, qubit_sparse_pauli_list)

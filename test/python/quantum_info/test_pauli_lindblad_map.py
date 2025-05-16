@@ -703,7 +703,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         gamma = np.prod(gammas)
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
-    
+
     def test_simplify(self):
         duplicate = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", 2.0)])
         self.assertEqual(duplicate.simplify(), PauliLindbladMap([("IXYZXYZXYZ", 3.0)]))
@@ -715,13 +715,13 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertEqual(drop_identities.simplify(), PauliLindbladMap([("IXY", 1.0)]))
 
         # note that ordering is not necessarily preserved
-        threshold = PauliLindbladMap([("X", 1e-9), ("Z", -2), ("Y", 1.)])
+        threshold = PauliLindbladMap([("X", 1e-9), ("Z", -2), ("Y", 1.0)])
         simplified = threshold.simplify()
-        expected = PauliLindbladMap([("Y", 1.), ("Z", -2)])
+        expected = PauliLindbladMap([("Y", 1.0), ("Z", -2)])
         self.assertTrue(len(simplified) == len(expected))
         for x in expected:
             self.assertTrue(x in simplified)
-        
+
         simplified = threshold.simplify(1e-10)
         expected = threshold
         self.assertTrue(len(simplified) == len(expected))
