@@ -181,6 +181,22 @@ class TestOperator(OperatorTestCase):
         target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
+        
+        # Test when boxes present
+        circuit = QuantumCircuit(3)
+        with circuit.box():
+            circuit.h(0)
+        circuit.id(0)
+        with circuit.box():
+            with circuit.box():
+                circuit.x(1)
+            circuit.ry(np.pi / 2, 2)
+        op = Operator(circuit)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
 
     def test_instruction_init(self):
         """Test initialization from a circuit."""
