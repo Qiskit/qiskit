@@ -252,9 +252,11 @@ pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
 }
 
 /// @ingroup QkCircuit
-/// Get the number of params for a ``QkGate```
+/// Get the number of parameters for a ``QkGate``.
 ///
-/// @param gate The standard gate to get the number of qubits for
+/// @param gate The standard gate to get the number of qubits for.
+///
+/// @return The number of parameters the gate has.
 ///
 /// # Example
 ///
