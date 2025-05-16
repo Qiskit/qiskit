@@ -626,13 +626,7 @@ impl QubitSparsePauli {
             });
         }
 
-        // if either are the identity, return true
-        if self.indices.len() == 0 || other.indices.len() == 0 {
-            return Ok(true);
-        }
-
         let mut commutes = true;
-
         let mut self_idx = 0;
         let mut other_idx = 0;
 
@@ -1238,7 +1232,7 @@ impl PyQubitSparsePauli {
         Ok(self.inner.view().to_sparse_str())
     }
 
-    /// Check if self commutes with another :class:`QubitSparsePauli`.
+    /// Check if `self`` commutes with another qubit sparse pauli.
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to check for commutation with.
