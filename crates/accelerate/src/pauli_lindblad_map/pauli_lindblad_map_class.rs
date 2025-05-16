@@ -93,7 +93,7 @@ impl PauliLindbladMap {
         Self::new(rates, qubit_sparse_pauli_list)
     }
 
-    /// Create a new [PauliLindbladMap] from the raw components without checking data coherence.
+    /// Create a new [PauliLindbladMap] without checking data coherence.
     ///
     /// # Safety
     ///
@@ -101,23 +101,16 @@ impl PauliLindbladMap {
     /// struct-level documentation, have been upheld.
     #[inline(always)]
     pub unsafe fn new_unchecked(
-        num_qubits: u32,
         rates: Vec<f64>,
-        paulis: Vec<Pauli>,
-        indices: Vec<u32>,
-        boundaries: Vec<usize>,
+        qubit_sparse_pauli_list: QubitSparsePauliList,
     ) -> Self {
         let (gamma, probabilities, non_negative_rates) = derived_values_from_rates(&rates);
-        unsafe {
-            let qubit_sparse_pauli_list: QubitSparsePauliList =
-                QubitSparsePauliList::new_unchecked(num_qubits, paulis, indices, boundaries);
-            Self {
-                rates,
-                qubit_sparse_pauli_list,
-                gamma,
-                probabilities,
-                non_negative_rates,
-            }
+        Self {
+            rates,
+            qubit_sparse_pauli_list,
+            gamma,
+            probabilities,
+            non_negative_rates,
         }
     }
 
