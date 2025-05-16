@@ -16,7 +16,7 @@ use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 
 pub mod lnn;
-mod pmh;
+pub mod pmh;
 pub mod utils;
 
 #[pyfunction]
