@@ -51,8 +51,8 @@ define a computation unit of work for the estimator to complete:
   define as :math:`\psi(\theta)`,
 
 * one or more observables (specified as any :class:`~.ObservablesArrayLike`, including
-  :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation values to
-  estimate, denoted :math:`H_j`, and
+  :class:`~.quantum_info.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation
+  values to estimate, denoted :math:`H_j`, and
 
 * a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
 
