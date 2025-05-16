@@ -38,7 +38,7 @@ int test_empty(void) {
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %lu is not 0", num_instructions);
+        printf("The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -565,13 +565,12 @@ int test_unitary_gate(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     uint32_t qubits[2] = {0, 1};
 
-    const uint32_t dim = 4;
     QkComplex64 c0 = make_complex_double(0, 0);
     QkComplex64 c1 = make_complex_double(1, 0);
-    QkComplex64 matrix[dim * dim] = {c1, c1, c0, c0,  // this
-                                     c1, c1, c0, c0,  // is
-                                     c0, c0, c1, c0,  // for
-                                     c0, c0, c0, c1}; // formatting
+    QkComplex64 matrix[16] = {c1, c1, c0, c0,  // this
+                              c1, c1, c0, c0,  // is
+                              c0, c0, c1, c0,  // for
+                              c0, c0, c0, c1}; // formatting
 
     int ec = qk_circuit_unitary(qc, matrix, qubits, 2);
     if (ec != QkExitCode_Success) {
@@ -615,13 +614,12 @@ int test_not_unitary_gate(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     uint32_t qubits[2] = {0, 1};
 
-    const uint32_t dim = 4;
     QkComplex64 c0 = make_complex_double(0, 0);
     QkComplex64 c1 = make_complex_double(1, 0);
-    QkComplex64 matrix[dim * dim] = {c1, c1, c0, c0,  // this
-                                     c1, c1, c0, c0,  // is
-                                     c0, c0, c1, c0,  // for
-                                     c0, c0, c0, c1}; // formatting
+    QkComplex64 matrix[16] = {c1, c1, c0, c0,  // this
+                              c1, c1, c0, c0,  // is
+                              c0, c0, c1, c0,  // for
+                              c0, c0, c0, c1}; // formatting
 
     int exit_code = qk_circuit_unitary(qc, matrix, qubits, 2);
 
