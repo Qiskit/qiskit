@@ -78,6 +78,7 @@ def dump(
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
+    use_rust: bool = True,
 ):
     """Write QPY binary data to a file
 
@@ -136,6 +137,7 @@ def dump(
             to generate an older QPY format version.  You can access the current QPY version and
             minimum compatible version with :attr:`.qpy.QPY_VERSION` and
             :attr:`.qpy.QPY_COMPATIBILITY_VERSION` respectively.
+        use_rust: whether to use the rust based serialization engine. On by default.
 
             .. note::
 
@@ -201,6 +203,7 @@ def dump(
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
+            use_rust=use_rust,
         )
 
 
