@@ -18,7 +18,10 @@ use pyo3::{
     types::{PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
-use std::sync::{Arc, RwLock};
+use std::{
+    sync::{Arc, RwLock},
+    collections::btree_map,
+};
 
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
@@ -263,6 +266,38 @@ impl PauliLindbladMap {
             rate: self.rates[index],
             qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(index),
         }
+    }
+
+    /// Reduce the observable to its canonical form.
+    ///
+    /// This sums like terms, removing them if the final complex coefficient's absolute value is
+    /// less than or equal to the tolerance.  The terms are reordered to some canonical ordering.
+    ///
+    /// This function is idempotent.
+    pub fn simplify(&self, tol: f64) -> Result<PauliLindbladMap, CoherenceError> {
+        let mut terms = btree_map::BTreeMap::new();
+        for term in self.iter() {
+            terms
+                .entry((term.qubit_sparse_pauli.indices, term.qubit_sparse_pauli.paulis))
+                .and_modify(|r| *r += term.rate)
+                .or_insert(term.rate);
+        }
+        let mut out = PauliLindbladMap::identity(self.num_qubits());
+        for ((indices, paulis), r) in terms {
+            // Don't add terms with zero coefficient or are pure identity
+            if r.abs().sqrt() <= tol * tol || paulis.len() == 0 {
+                continue;
+            }
+            unsafe{
+            out.add_term(
+                GeneratorTerm::new(
+                    r, 
+                    QubitSparsePauli::new_unchecked(self.num_qubits(), paulis.to_vec().into_boxed_slice(), indices.to_vec().into_boxed_slice())
+                )?.view()
+            );
+            }
+        }
+        Ok(out)
     }
 }
 
@@ -1067,6 +1102,55 @@ impl PyPauliLindbladMap {
             out.append(to_py_tuple(view)?)?;
         }
         Ok(out.unbind())
+    }
+
+    /// Sum any like terms in this operator, removing them if the resulting complex coefficient has
+    /// an absolute value within tolerance of zero.
+    ///
+    /// As a side effect, this sorts the operator into :ref:`canonical order
+    /// <sparse-observable-canonical-order>`.
+    ///
+    /// .. note::
+    ///
+    ///     When using this for equality comparisons, note that floating-point rounding and the
+    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
+    ///     compare the canonicalized difference of the two observables to zero.
+    ///
+    /// Args:
+    ///     tol (float): after summing like terms, any coefficients whose absolute value is less
+    ///         than the given absolute tolerance will be suppressed from the output.
+    ///
+    /// Examples:
+    ///
+    ///     Using :meth:`simplify` to compare two operators that represent the same observable, but
+    ///     would compare unequal due to the structural tests by default::
+    ///
+    ///         >>> base = SparseObservable.from_sparse_list([
+    ///         ...     ("XZ", (2, 1), 1e-10),  # value too small
+    ///         ...     ("+-", (3, 1), 2j),
+    ///         ...     ("+-", (3, 1), 2j),     # can be combined with the above
+    ///         ...     ("01", (3, 1), 0.5),    # out of order compared to `expected`
+    ///         ... ], num_qubits=5)
+    ///         >>> expected = SparseObservable.from_list([("I0I1I", 0.5), ("I+I-I", 4j)])
+    ///         >>> assert base != expected  # non-canonical comparison
+    ///         >>> assert base.simplify() == expected.simplify()
+    ///
+    ///     Note that in the above example, the coefficients are chosen such that all floating-point
+    ///     calculations are exact, and there are no intermediate rounding or associativity
+    ///     concerns.  If this cannot be guaranteed to be the case, the safer form is::
+    ///
+    ///         >>> left = SparseObservable.from_list([("XYZ", 1.0/3.0)] * 3)   # sums to 1.0
+    ///         >>> right = SparseObservable.from_list([("XYZ", 1.0/7.0)] * 7)  # doesn't sum to 1.0
+    ///         >>> assert left.simplify() != right.simplify()
+    ///         >>> assert (left - right).simplify() == SparseObservable.zero(left.num_qubits)
+    #[pyo3(
+        signature = (/, tol=1e-8),
+    )]
+    fn simplify(&self, tol: f64) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let simplified = inner.simplify(tol)?;
+        Ok(simplified.into())
     }
 
     fn __len__(&self) -> PyResult<usize> {

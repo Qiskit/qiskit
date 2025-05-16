@@ -703,6 +703,10 @@ class TestPauliLindbladMap(QiskitTestCase):
         gamma = np.prod(gammas)
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
+    
+    def test_simplify(self):
+        duplicate = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", 2.0)])
+        self.assertEqual(duplicate.simplify(), PauliLindbladMap([("IXYZXYZXYZ", 3.0)]))
 
 
 def canonicalize_term(pauli, indices, rate):
