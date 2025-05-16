@@ -52,10 +52,8 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
         } else {
             None
         }
-    } else if let Ok(e) = value.extract::<ParameterExpression>() {
-        Some(e)
     } else {
-        None
+        value.extract::<ParameterExpression>().ok()
     }
 }
 
