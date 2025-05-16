@@ -19,6 +19,7 @@ from warnings import warn
 import numpy as np
 
 from qiskit.circuit import (
+    BoxOp,
     ClassicalRegister,
     Clbit,
     ControlFlowOp,
@@ -501,7 +502,7 @@ def _get_gate_span(qubits, node):
 
     # Because of wrapping boxes for mpl control flow ops, this
     # type of op must be the only op in the layer
-    if isinstance(node.op, ControlFlowOp):
+    if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
         span = qubits
     elif node.cargs or getattr(node, "condition", None):
         span = qubits[min_index : len(qubits)]
