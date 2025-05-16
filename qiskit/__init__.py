@@ -74,6 +74,7 @@ sys.modules["qiskit._accelerate.optimize_1q_gates_decomposition"] = (
 sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
+sys.modules["qiskit._accelerate.pauli_lindblad_map"] = _accelerate.pauli_lindblad_map
 sys.modules["qiskit._accelerate.qasm2"] = _accelerate.qasm2
 sys.modules["qiskit._accelerate.qasm3"] = _accelerate.qasm3
 sys.modules["qiskit._accelerate.remove_diagonal_gates_before_measure"] = (
