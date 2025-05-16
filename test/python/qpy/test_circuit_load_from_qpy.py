@@ -66,7 +66,7 @@ class TestVersions(QpyCircuitTestCase):
             buf.seek(0)
             with self.assertRaisesRegex(QiskitError, str(QPY_VERSION + 4)):
                 load(buf)
-    
+
     def test_get_qpy_version(self):
         """Test the get_qpy_version function."""
 
