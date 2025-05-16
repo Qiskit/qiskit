@@ -278,7 +278,7 @@ impl ParameterExpression {
                 symbol_expr::Value::Real(r) => {
                     if r.is_infinite() {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                            "zero division occurs while binding parameter",
+                            "attempted to bind infinite value to parameter",
                         ))
                     } else if r.is_nan() {
                         Err(pyo3::exceptions::PyRuntimeError::new_err(
@@ -437,7 +437,7 @@ impl ParameterExpression {
                 expr: &lhs.expr / &self.expr,
             }),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
-                "Unsupported data type for __truediv__",
+                "Unsupported data type for __rtruediv__",
             )),
         }
     }
