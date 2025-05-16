@@ -1283,6 +1283,10 @@ impl PyQubitSparsePauli {
         })
     }
 
+    fn __matmul__(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+        self.compose(other)
+    }
+
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
         if slf.is(&other) {
             return Ok(true);
