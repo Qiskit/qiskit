@@ -265,13 +265,23 @@ impl PauliLindbladMap {
         }
     }
 
-    // Scale the rates by a set factor. Labelled unsafe but coherence is assured if self is coherent
+    /// Scale the rates by a set factor.
+    /// 
+    /// # Safety
+    ///
+    /// The coherence of the result is equivalent to the coherence fo Self, and as such there is no
+    /// need to construct the map with the safe PauliLindbladMap::new.
     pub unsafe fn scale_rates(self, scale_factor: f64) -> Self {
         let new_rates = self.rates.iter().map(|r| scale_factor * r).collect();
         unsafe { PauliLindbladMap::new_unchecked(new_rates, self.qubit_sparse_pauli_list.clone()) }
     }
 
-    // Invert the map. Labelled unsafe but coherence is assured if self is coherent
+    /// Invert the map. Labelled unsafe but coherence is assured if self is coherent
+    /// 
+    /// # Safety
+    ///
+    /// The coherence of the result is equivalent to the coherence fo Self, and as such there is no
+    /// need to construct the map with the safe PauliLindbladMap::new.
     pub unsafe fn inverse(self) -> Self {
         unsafe { self.scale_rates(-1.) }
     }
@@ -1085,10 +1095,14 @@ impl PyPauliLindbladMap {
     /// Args:
     ///     scale_factor (float): the scaling coefficient.
     #[pyo3(signature = (scale_factor))]
-    fn scale_rates<'py>(&self, py: Python<'py>, scale_factor: f64) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
+    fn scale_rates<'py>(
+        &self,
+        py: Python<'py>,
+        scale_factor: f64,
+    ) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        unsafe { 
-            let scaled = inner.clone().scale_rates(scale_factor); 
+        unsafe {
+            let scaled = inner.clone().scale_rates(scale_factor);
             scaled.into_pyobject(py)
         }
     }
