@@ -461,15 +461,13 @@ def _read_parameter_vec(file_obj, vectors):
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
     if name not in vectors:
         vectors[name] = (
-            ParameterVector(name, data.vector_size, int(param_uuid) - data.index),
+            ParameterVector(name, data.vector_size),
             set(),
         )
     vector = vectors[name][0]
     if vector[data.index].uuid != int(param_uuid):
         vectors[name][1].add(data.index)
-        vector.params[data.index] = ParameterVectorElement(
-            name, uuid=int(param_uuid), vec=vector, vec_idx=data.index
-        )
+        vector[data.index] = ParameterVectorElement(vector, data.index, int(param_uuid))
     return vector[data.index]
 
 

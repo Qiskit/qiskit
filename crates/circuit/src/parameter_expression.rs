@@ -199,30 +199,36 @@ pub struct Parameter {}
 #[pymethods]
 impl Parameter {
     #[new]
-    #[pyo3(signature = (name, uuid = None))]
-    pub fn new(name: String, uuid: Option<u128>) -> PyClassInitializer<Self> {
-        // check if expr contains replacements for sympy
-        let name = name
-            .replace("__begin_sympy_replace__", "$\\")
-            .replace("__end_sympy_replace__", "$");
+    #[pyo3(signature = (name = None, uuid = None))]
+    pub fn new(name: Option<String>, uuid: Option<u128>) -> PyClassInitializer<Self> {
+        match name {
+            Some(name) => {
+                // check if expr contains replacements for sympy
+                let name = name
+                    .replace("__begin_sympy_replace__", "$\\")
+                    .replace("__end_sympy_replace__", "$");
 
-        let uuid = match uuid {
-            Some(u) => u,
-            None => Uuid::new_v4().as_u128(),
-        };
-        let ret = PyClassInitializer::from(ParameterExpression {
-            expr: SymbolExpr::Symbol {
-                name: Box::new(name.clone()),
-                index: None,
+                let uuid = match uuid {
+                    Some(u) => u,
+                    None => Uuid::new_v4().as_u128(),
+                };
+                let ret = PyClassInitializer::from(ParameterExpression {
+                    expr: SymbolExpr::Symbol {
+                        name: Box::new(name.clone()),
+                        index: None,
+                    },
+                    uuid: uuid.clone(),
+                    qpy_replay: None,
+                    parameter_symbols: None,
+                    parameter_vector: None,
+                })
+                .add_subclass(Self {});
+                ret
             },
-            uuid: uuid.clone(),
-            qpy_replay: None,
-            parameter_symbols: None,
-            parameter_vector: None,
-        })
-        .add_subclass(Self {});
-
-        ret
+            None => {
+                PyClassInitializer::from(ParameterExpression::default()).add_subclass(Self {})
+            }
+        }
     }
 }
 
@@ -327,7 +333,7 @@ impl ParameterExpression {
         let my_symbols: &HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
             Some(s) => s,
             None => match self.expr {
-                SymbolExpr::Symbol { name: _, index: _ } => {
+                SymbolExpr::Symbol {..} => {
                     &HashSet::from([Arc::new(self.to_owned())])
                 }
                 _ => &HashSet::new(),
@@ -336,7 +342,7 @@ impl ParameterExpression {
         let other_symbols: &HashSet<Arc<ParameterExpression>> = match &other.parameter_symbols {
             Some(s) => s,
             None => match other.expr {
-                SymbolExpr::Symbol { name: _, index: _ } => {
+                SymbolExpr::Symbol {..} => {
                     &HashSet::from([Arc::new(other.to_owned())])
                 }
                 _ => &HashSet::new(),
@@ -889,35 +895,50 @@ impl ParameterExpression {
             Ok(ret)
         }
     }
-}
 
-impl PartialEq for ParameterExpression {
-    fn eq(&self, rhs: &Self) -> bool {
-        match (&self.expr, &rhs.expr) {
+    // compare 2 expression
+    // check_uuid = true also compares uuid for equality
+    pub fn compare_eq(&self, other: &ParameterExpression, check_uuid: bool) -> bool {
+        match (&self.expr, &other.expr) {
             (
-                SymbolExpr::Symbol { name: _, index: _ },
-                SymbolExpr::Symbol { name: _, index: _ },
+                SymbolExpr::Symbol {..}, SymbolExpr::Symbol {..},
             ) => {
-                if self.expr.to_string() == rhs.expr.to_string() {
-                    if self.uuid == rhs.uuid {
-                        true
+                if self.expr.to_string() == other.expr.to_string() {
+                    if check_uuid {
+                        if self.uuid == other.uuid {
+                            true
+                        } else {
+                            false
+                        }
                     } else {
-                        false
+                        true
                     }
                 } else {
                     false
                 }
             }
             (_, _) => {
-                if self.expr == rhs.expr {
-                    // if there are some conflicts, the equation is not equal
-                    let conflicts = self.get_conflict_parameters(&rhs);
-                    conflicts.len() == 0
+                if self.expr == other.expr {
+                    if check_uuid {
+                        // if there are some conflicts, the equation is not equal
+                        let conflicts = self.get_conflict_parameters(&other);
+                        conflicts.len() == 0
+                    } else {
+                        true
+                    }
                 } else {
                     false
                 }
             }
         }
+
+    }
+
+}
+
+impl PartialEq for ParameterExpression {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.compare_eq(rhs, false)
     }
 }
 
@@ -1852,31 +1873,7 @@ impl ParameterExpression {
     // ====================================
     pub fn __eq__(&self, rhs: &Bound<PyAny>) -> bool {
         match _extract_value(rhs) {
-            Some(rhs) => match (&self.expr, &rhs.expr) {
-                (
-                    SymbolExpr::Symbol { name: _, index: _ },
-                    SymbolExpr::Symbol { name: _, index: _ },
-                ) => {
-                    if self.expr.to_string() == rhs.expr.to_string() {
-                        if self.uuid == rhs.uuid {
-                            true
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-                }
-                (_, _) => {
-                    if self.expr == rhs.expr {
-                        // if there are some conflicts, the equation is not equal
-                        let conflicts = self.get_conflict_parameters(&rhs);
-                        conflicts.len() == 0
-                    } else {
-                        false
-                    }
-                }
-            },
+            Some(rhs) => self.compare_eq(&rhs, true),
             None => false,
         }
     }
@@ -2338,6 +2335,33 @@ impl ParameterVector {
                     out.append(pve)?;
                 }
                 out.into_py_any(py)
+            }
+        }
+    }
+
+    pub fn __setitem__(&mut self, index: PySequenceIndex, value: &Bound<PyAny>) -> PyResult<()> {
+        match index.with_len(self.params.len())? {
+            SequenceIndex::Int(index) => {
+                if let Ok(e) = value.extract::<ParameterExpression>() {
+                    self.params[index] = e;
+                    Ok(())
+                } else{
+                    Err(pyo3::exceptions::PyRuntimeError::new_err(
+                        "unsupported data type is passed to ParameterVector.__setitem__",
+                    ))
+                }
+            }
+            indices => {
+                if let Ok(v) = value.extract::<Vec<ParameterExpression>>() {
+                    for (i, index) in indices.iter().enumerate() {
+                        self.params[index] = v[i].clone();
+                    }
+                    Ok(())
+                } else{
+                    Err(pyo3::exceptions::PyRuntimeError::new_err(
+                        "unsupported data type is passed to ParameterVector.__setitem__",
+                    ))
+                }
             }
         }
     }
