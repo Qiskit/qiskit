@@ -211,6 +211,8 @@ pub enum LabelError {
 pub enum ArithmeticError {
     #[error("mismatched numbers of qubits: {left}, {right}")]
     MismatchedQubits { left: u32, right: u32 },
+    #[error("multiplying single qubit paulis resulted in bit value: {b}")]
+    PauliMultiplication { b: u8 },
 }
 
 /// A list of Pauli operators stored in a qubit-sparse format.
