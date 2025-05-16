@@ -69,13 +69,17 @@ class TestVersions(QpyCircuitTestCase):
     
     def test_get_qpy_version(self):
         """Test the get_qpy_version function."""
-        qpy_file = io.BytesIO()
-        qpy_file.write(b"QISKIT")
-        qpy_file.write(bytes([QPY_VERSION]))
-        qpy_file.seek(0)
 
-        version = get_qpy_version(qpy_file)
-        self.assertEqual(version, QPY_VERSION)
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        for version in range(QPY_COMPATIBILITY_VERSION, QPY_VERSION + 1):
+            qpy_file = io.BytesIO()
+            dump(qc, qpy_file, version=version)
+            qpy_file.seek(0)
+            file_version = get_qpy_version(qpy_file)
+            self.assertEqual(version, file_version)
 
 
 @ddt

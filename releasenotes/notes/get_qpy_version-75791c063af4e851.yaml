@@ -1,5 +1,5 @@
 ---
-upgrade_qpy:
+features_qpy:
   - |
     Added a new function `get_qpy_version()` to the `qpy` module. This function retrieves the version of the QPy package currently in use. 
     The version is returned as an integer, which can be used for logging or debugging purposes.
