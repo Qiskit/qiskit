@@ -1,0 +1,37 @@
+---
+features_transpiler:
+  - |
+    The default plugins for generating init, translation and optimization pass manager
+    stages have been extended to detect whether the basis set consists of Clifford+T
+    gates only. When this is the case, dedicated plugins for transpiling into Clifford+T 
+    basis set are used instead. In particular, for a Clifford+T basis,
+    the function :func:`~.generate_clifford_t_pass_manager` provides a more efficient
+    translation into Clifford+T gates.
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+
+      basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
+      pm = generate_preset_pass_manager(basis_gates=basis_gates)
+
+      qc1 = QuantumCircuit(1)
+      qc1.rx(0.8, 0)
+      qct1 = pm.run(qc1)
+      print(qct1.count_ops())
+
+      qc2 = QuantumCircuit(3)
+      qc2.ccx(0, 1, 2)
+      qct2 = pm.run(qc2)
+      print(qct2.count_ops())
+
+    For ``qc1``, the pass manager will internally call the Solovay-Kitaev decomposition to
+    approximate the single-qubit rotation gate using ``H``, ``T`` and ``Tdg`` gates.
+    For ``qc2``, the pass manager will produce the efficient decomposition of the Toffoli gate
+    into Clifford+T gates.
+  - |
+    The Solovay-Kitaev unitary synthesis plugin (called with the "sk" method on the
+    :class:`~.UnitarySynthesis` transpiler pass) has been extended to detect whether the
+    given 1-qubit unitary gate happens to be Clifford, and if so produces the decomposition
+    only consisting of simple Clifford gates.

@@ -86,6 +86,13 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+
+        # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if common.is_clifford_t_basis(
+            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
+        ):
+            return CliffordTInitPassManager().pass_manager(pass_manager_config, optimization_level)
+
         if optimization_level == 0:
             init = None
             if (
@@ -215,6 +222,15 @@ class DefaultTranslationPassManager(PassManagerStagePlugin):
         # future if we want to change the default method to do more context-aware switching, or to
         # start transitioning the default method without breaking the semantics of the default
         # string referring to the `BasisTranslator`.
+
+        # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if common.is_clifford_t_basis(
+            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
+        ):
+            return CliffordTTranslatorPassManager().pass_manager(
+                pass_manager_config, optimization_level
+            )
+
         return BasisTranslatorPassManager().pass_manager(pass_manager_config, optimization_level)
 
 
@@ -496,6 +512,15 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
+
+        # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if common.is_clifford_t_basis(
+            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
+        ):
+            return CliffordTOptimizationPassManager().pass_manager(
+                pass_manager_config, optimization_level
+            )
+
         # Obtain the translation method required for this pass to work
         translation_method = pass_manager_config.translation_method or "default"
         optimization = PassManager()
@@ -991,3 +1016,206 @@ def _get_trial_count(default_trials=5):
     if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
         return max(default_num_processes(), default_trials)
     return default_trials
+
+
+# In the following, we adapt/simplify different transpiler stage plugins for transpilation into
+# Clifford+T basis.
+#
+# The plan is to have something working and to imporve on that later.
+#
+# As a rule of thumb, if the original circuit already consists only of Clifford or only of
+# Clifford+T gates, then we don't want the transpilation to make it significantly worse.
+# In particular, we avoid collecting and resynthesizing 2-qubit blocks.
+class CliffordTInitPassManager(PassManagerStagePlugin):
+    """Plugin class for Clifford+T init stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        if optimization_level == 0:
+            init = None
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init = common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
+                )
+        elif optimization_level == 1:
+            init = PassManager()
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init += common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
+                )
+            init.append(
+                [
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
+            )
+        elif optimization_level in {2, 3}:
+            init = common.generate_unroll_3q(
+                pass_manager_config.target,
+                pass_manager_config.basis_gates,
+                pass_manager_config.approximation_degree,
+                pass_manager_config.unitary_synthesis_method,
+                pass_manager_config.unitary_synthesis_plugin_config,
+                pass_manager_config.hls_config,
+                pass_manager_config.qubits_initially_zero,
+            )
+            if pass_manager_config.routing_method != "none":
+                init.append(ElidePermutations())
+            init.append(
+                [
+                    RemoveDiagonalGatesBeforeMeasure(),
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
+            )
+            init.append(CommutativeCancellation())
+
+            split_2q_unitaries_swap = False
+            if pass_manager_config.routing_method != "none":
+                split_2q_unitaries_swap = True
+            if pass_manager_config.approximation_degree is not None:
+                init.append(
+                    Split2QUnitaries(
+                        pass_manager_config.approximation_degree, split_swap=split_2q_unitaries_swap
+                    )
+                )
+            else:
+                init.append(Split2QUnitaries(split_swap=split_2q_unitaries_swap))
+        else:
+            raise TranspilerError(f"Invalid optimization level {optimization_level}")
+        return init
+
+
+class CliffordTTranslatorPassManager(PassManagerStagePlugin):
+    """Plugin class for translation stage with :class:`~.BasisTranslator`"""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        return common.generate_translation_passmanager(
+            pass_manager_config.target,
+            basis_gates=pass_manager_config.basis_gates,
+            method="clifford_t",
+            approximation_degree=pass_manager_config.approximation_degree,
+            coupling_map=pass_manager_config.coupling_map,
+            unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
+            unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+            hls_config=pass_manager_config.hls_config,
+            qubits_initially_zero=pass_manager_config.qubits_initially_zero,
+        )
+
+
+class CliffordTOptimizationPassManager(PassManagerStagePlugin):
+    """Plugin class for optimization stage"""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        """Build pass manager for optimization stage."""
+
+        # Obtain the translation method required for this pass to work
+        optimization = PassManager()
+        if optimization_level != 0:
+            _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+            _size_check = [Size(recurse=True), FixedPoint("size")]
+
+            def _opt_control(property_set):
+                return (not property_set["depth_fixed_point"]) or (
+                    not property_set["size_fixed_point"]
+                )
+
+            if optimization_level == 1:
+                _opt = [
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
+            elif optimization_level in [2, 3]:
+                _opt = [
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    ),
+                    CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
+                ]
+
+            else:
+                raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
+
+            # Build nested flow controllers
+            optimization.append(_depth_check + _size_check)
+
+            opt_loop = _opt + _depth_check + _size_check
+            optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
+            return optimization
+        else:
+            return None
