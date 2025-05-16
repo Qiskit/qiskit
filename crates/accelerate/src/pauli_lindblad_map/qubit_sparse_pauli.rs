@@ -617,7 +617,7 @@ impl QubitSparsePauli {
         }
     }
 
-    // Check if self commutes with other
+    // Check if `self` commutes with `other`
     pub fn commutes(&self, other: &QubitSparsePauli) -> Result<bool, ArithmeticError> {
         if self.num_qubits != other.num_qubits {
             return Err(ArithmeticError::MismatchedQubits {
