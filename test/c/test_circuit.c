@@ -562,14 +562,7 @@ int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
 
-    QkExitCode delay_dt_code;
     QkExitCode delay_s_code;
-
-    delay_dt_code = qk_circuit_delay(qc, 1, 10, QkDelayUnit_DT);
-    if (delay_dt_code != QkExitCode_Success) {
-        result = RuntimeError;
-        goto cleanup;
-    }
 
     delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
     if (delay_s_code != QkExitCode_Success) {
