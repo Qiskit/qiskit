@@ -714,25 +714,11 @@ class TestPauliLindbladMap(QiskitTestCase):
         drop_identities = PauliLindbladMap([("IXY", 1.0), ("III", -1.0)])
         self.assertEqual(drop_identities.simplify(), PauliLindbladMap([("IXY", 1.0)]))
 
-        # note that ordering is not necessarily preserved
-        threshold = PauliLindbladMap([("X", 1e-9), ("Z", -2), ("Y", 1.0)])
-        simplified = threshold.simplify()
-        expected = PauliLindbladMap([("Y", 1.0), ("Z", -2)])
-        self.assertTrue(len(simplified) == len(expected))
-        for x in expected:
-            self.assertTrue(x in simplified)
-
-        simplified = threshold.simplify(1e-10)
-        expected = threshold
-        self.assertTrue(len(simplified) == len(expected))
-        for x in expected:
-            self.assertTrue(x in simplified)
-
-        simplified = threshold.simplify(1.1)
-        expected = PauliLindbladMap([("Z", -2)])
-        self.assertTrue(len(simplified) == len(expected))
-        for x in expected:
-            self.assertTrue(x in simplified)
+        # note: some calls to simplify() are to enforce canonical ordering
+        threshold = PauliLindbladMap([("X", 1e-9), ("Z", -2), ("Y", 1.0)]).simplify(1e-10)
+        self.assertEqual(threshold.simplify(), PauliLindbladMap([("Y", 1.0), ("Z", -2)]).simplify())
+        self.assertEqual(threshold.simplify(1e-10), threshold)
+        self.assertEqual(threshold.simplify(1.1), PauliLindbladMap([("Z", -2)]))
 
 
 def canonicalize_term(pauli, indices, rate):

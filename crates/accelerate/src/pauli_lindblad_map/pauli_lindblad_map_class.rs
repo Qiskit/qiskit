@@ -268,10 +268,10 @@ impl PauliLindbladMap {
         }
     }
 
-    /// Reduce the observable to its canonical form.
+    /// Reduce the map to its canonical form.
     ///
-    /// This sums like terms, removing them if the final complex coefficient's absolute value is
-    /// less than or equal to the tolerance.  The terms are reordered to some canonical ordering.
+    /// This sums like terms, removing them if the final rate's absolute value is less than or equal
+    /// to the tolerance.  The terms are reordered to some canonical ordering.
     ///
     /// This function is idempotent.
     pub fn simplify(&self, tol: f64) -> PauliLindbladMap {
@@ -1117,11 +1117,11 @@ impl PyPauliLindbladMap {
         Ok(out.unbind())
     }
 
-    /// Sum any like terms in this operator, removing them if the resulting complex coefficient has
-    /// an absolute value within tolerance of zero.
+    /// Sum any like terms in the generator, removing them if the resulting rate has
+    /// an absolute value within tolerance of zero. This also removes terms whose Pauli operator
+    /// is proportional to the identity, as the correponding generator is actually the zero map.
     ///
-    /// As a side effect, this sorts the operator into :ref:`canonical order
-    /// <sparse-observable-canonical-order>`.
+    /// As a side effect, this sorts the generators into a fixed canonical order.
     ///
     /// .. note::
     ///
@@ -1131,19 +1131,19 @@ impl PyPauliLindbladMap {
     ///     compare the canonicalized difference of the two observables to zero.
     ///
     /// Args:
-    ///     tol (float): after summing like terms, any coefficients whose absolute value is less
+    ///     tol (float): after summing like terms, any rates whose absolute value is less
     ///         than the given absolute tolerance will be suppressed from the output.
     ///
     /// Examples:
     ///
-    ///     Using :meth:`simplify` to compare two operators that represent the same observable, but
+    ///     Using :meth:`simplify` to compare two operators that represent the same map, but
     ///     would compare unequal due to the structural tests by default::
     ///
-    ///         >>> base = SparseObservable.from_sparse_list([
+    ///         >>> base = PauliLindbladMap.from_sparse_list([
     ///         ...     ("XZ", (2, 1), 1e-10),  # value too small
-    ///         ...     ("+-", (3, 1), 2j),
-    ///         ...     ("+-", (3, 1), 2j),     # can be combined with the above
-    ///         ...     ("01", (3, 1), 0.5),    # out of order compared to `expected`
+    ///         ...     ("XX", (3, 1), 2),
+    ///         ...     ("XX", (3, 1), 2),      # can be combined with the above
+    ///         ...     ("ZZ", (3, 1), 0.5),    # out of order compared to `expected`
     ///         ... ], num_qubits=5)
     ///         >>> expected = SparseObservable.from_list([("I0I1I", 0.5), ("I+I-I", 4j)])
     ///         >>> assert base != expected  # non-canonical comparison
@@ -1153,10 +1153,10 @@ impl PyPauliLindbladMap {
     ///     calculations are exact, and there are no intermediate rounding or associativity
     ///     concerns.  If this cannot be guaranteed to be the case, the safer form is::
     ///
-    ///         >>> left = SparseObservable.from_list([("XYZ", 1.0/3.0)] * 3)   # sums to 1.0
-    ///         >>> right = SparseObservable.from_list([("XYZ", 1.0/7.0)] * 7)  # doesn't sum to 1.0
+    ///         >>> left = PauliLindbladMap.from_list([("XYZ", 1.0/3.0)] * 3)   # sums to 1.0
+    ///         >>> right = PauliLindbladMap.from_list([("XYZ", 1.0/7.0)] * 7)  # doesn't sum to 1.0
     ///         >>> assert left.simplify() != right.simplify()
-    ///         >>> assert (left - right).simplify() == SparseObservable.zero(left.num_qubits)
+    ///         >>> assert left.compose(right.inverse()).simplify() == PauliLindbladMap.identity(left.num_qubits)
     #[pyo3(
         signature = (/, tol=1e-8),
     )]
