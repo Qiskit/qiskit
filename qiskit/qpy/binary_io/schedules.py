@@ -23,7 +23,6 @@ import zlib
 from io import BytesIO
 
 import numpy as np
-import symengine as sym
 
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, type_keys
@@ -95,6 +94,7 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
         return common.load_symengine_payload(expr_bytes)
     else:
         from sympy import parse_expr
+        import symengine as sym
 
         expr_txt = expr_bytes.decode(common.ENCODE)
         expr = parse_expr(expr_txt)
