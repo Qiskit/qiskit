@@ -442,12 +442,14 @@ pub unsafe extern "C" fn qk_obs_coeffs(obs: *mut SparseObservable) -> *mut Compl
 ///     QkObsTerm term = {&coeff, 3, bit_terms, indices, num_qubits};
 ///     qk_obs_add_term(obs, &term);
 ///
-///     size_T len = qk_obs_len(obs);
+///     size_t len = qk_obs_len(obs);
 ///     uint32_t *indices = qk_obs_indices(obs);
 ///
 ///     for (size_t i = 0; i < len; i++) {
 ///         printf("index %i: %i\n", i, indices[i]);
 ///     }
+///
+///     qk_obs_free(obs);
 ///
 /// # Safety
 ///
@@ -531,6 +533,8 @@ pub unsafe extern "C" fn qk_obs_boundaries(obs: *mut SparseObservable) -> *mut u
 ///     for (size_t i = 0; i < len; i++) {
 ///         printf("bit term %i: %i\n", i, bits[i]);
 ///     }
+///
+///     qk_obs_free(obs);
 ///
 /// # Safety
 ///
