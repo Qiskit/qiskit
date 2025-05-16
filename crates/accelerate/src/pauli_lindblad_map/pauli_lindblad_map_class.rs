@@ -296,12 +296,12 @@ impl PauliLindbladMap {
         );
 
         unsafe {
+            let qubit_sparse_pauli_list =
+                QubitSparsePauliList::new_unchecked(self.num_qubits(), paulis, indices, boundaries);
+
             Ok(PauliLindbladMap::new_unchecked(
-                self.num_qubits(),
                 rates,
-                paulis,
-                indices,
-                boundaries,
+                qubit_sparse_pauli_list,
             ))
         }
     }
@@ -1124,7 +1124,7 @@ impl PyPauliLindbladMap {
     }
 
     /// Compose with another :class:`PauliLindbladMap`.
-    /// 
+    ///
     /// This appends the internal arrays of self and other, and therefore results in a map with
     /// whose enumerated terms are those of self followed by those of other.
     ///
