@@ -1,8 +1,8 @@
 ---
 features_circuits:
   - |
-    Added a Qiskit native symbolic expression implementation to replace
-    the previous use of ``symengine``. This removes the dependency on an
-    external library for using :class:`.ParameterExpression`. This simplifies
-    the installation experience and also enables future extended usage of
-    the object.
+    Qiskit now uses its own, Rust-based symbolic expression library to implement
+    the internals of :class:`.ParameterExpression` and :class:`.Parameter`. This removes the 
+    dependencies on ``symengine`` or ``sympy`` for dealing with parameters in circuits. 
+    Note that Qiskit still depends on ``symengine`` and ``sympy`` for loading legacy QPY 
+    formats, or specific functionalities in template matching or visualization.

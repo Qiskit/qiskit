@@ -157,7 +157,7 @@ class Parameter(ParameterExpression):
         # its hash as part of the equality comparison but has its own more complete symbolic
         # expression, so its full hash key is split into `(parameter_keys, symbolic_expression)`.
         # This method lets containing expressions get only the bits they need for equality checks in
-        # the first value, without wasting time re-hashing individual Sympy/Symengine symbols.
+        # the first value, without wasting time re-hashing individual symbols.
         return (self._symbol_expr, self._uuid)
 
     def __hash__(self):

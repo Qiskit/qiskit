@@ -433,7 +433,7 @@ class TestParameterExpression(QiskitTestCase):
             ("arccos", lambda x: -((1 - x**2) ** (-0.5))),
             ("arcsin", lambda x: (1 - x**2) ** (-0.5)),
             ("arctan", lambda x: 1 / (1 + x**2)),
-            ("conjugate", lambda x: x),
+            ("conjugate", lambda x: 1),
         ]
 
         x = Parameter("x")
@@ -449,7 +449,11 @@ class TestParameterExpression(QiskitTestCase):
 
                 with self.subTest(method=method, value=value):
                     ref = reference(value)
-                    val = float(d_expr.bind({x: value}))
+                    if isinstance(d_expr, ParameterExpression):
+                        val = d_expr.bind({x: value}).numeric()
+                    else:
+                        val = d_expr  # d/dx conj(x) == 1
+
                     self.assertAlmostEqual(ref, val)
 
     def test_sign_derivative_errors(self):

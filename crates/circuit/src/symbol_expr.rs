@@ -567,7 +567,7 @@ impl SymbolExpr {
                         }
                         UnaryOp::Conj => {
                             // we assume real parameters, hence Conj acts as identity
-                            Ok(expr.as_ref().clone())
+                            Ok(SymbolExpr::Value(Value::Real(1.0)))
                         }
                     }
                 }
