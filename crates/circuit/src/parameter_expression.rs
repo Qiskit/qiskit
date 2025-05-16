@@ -224,10 +224,8 @@ impl Parameter {
                 })
                 .add_subclass(Self {});
                 ret
-            },
-            None => {
-                PyClassInitializer::from(ParameterExpression::default()).add_subclass(Self {})
             }
+            None => PyClassInitializer::from(ParameterExpression::default()).add_subclass(Self {}),
         }
     }
 }
@@ -271,6 +269,8 @@ impl ParameterVectorElement {
 
 // ParameterExpression implementation for both Rust and Python
 impl ParameterExpression {
+    /// new for ParameterExpression
+    /// make new symbol with its name and uuid
     pub fn new(name: String, uuid: Option<u128>) -> ParameterExpression {
         let uuid = match uuid {
             Some(u) => u,
@@ -288,6 +288,40 @@ impl ParameterExpression {
         }
     }
 
+    /// get uuid for this symbol
+    pub fn uuid(&self) -> u128 {
+        self.uuid
+    }
+
+    /// check if this is symbol
+    pub fn is_symbol(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index: _ } = self.expr {
+            true
+        } else {
+            false
+        }
+    }
+
+    /// check if this is numeric
+    pub fn is_numeric(&self) -> bool {
+        if let SymbolExpr::Value(_) = self.expr {
+            true
+        } else {
+            false
+        }
+    }
+
+    /// check if ParameterVectorElement
+    pub fn is_vector_element(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
+            return match index {
+                Some(_) => true,
+                None => false,
+            };
+        }
+        false
+    }
+
     /// return number of symbols in this expression
     pub fn num_symbols(&self) -> usize {
         self.expr.symbols().len()
@@ -296,6 +330,14 @@ impl ParameterExpression {
     /// check if the symbol is used in this expression
     pub fn has_symbol(&self, symbol: String) -> bool {
         self.expr.symbols_in_string().contains(&symbol)
+    }
+
+    /// return true if this is not complex number
+    pub fn is_real(&self) -> Option<bool> {
+        match self.expr.is_complex() {
+            Some(b) => Some(!b),
+            None => None,
+        }
     }
 
     // return merged set of parameter symbils in 2 parameters
@@ -333,18 +375,14 @@ impl ParameterExpression {
         let my_symbols: &HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
             Some(s) => s,
             None => match self.expr {
-                SymbolExpr::Symbol {..} => {
-                    &HashSet::from([Arc::new(self.to_owned())])
-                }
+                SymbolExpr::Symbol { .. } => &HashSet::from([Arc::new(self.to_owned())]),
                 _ => &HashSet::new(),
             },
         };
         let other_symbols: &HashSet<Arc<ParameterExpression>> = match &other.parameter_symbols {
             Some(s) => s,
             None => match other.expr {
-                SymbolExpr::Symbol {..} => {
-                    &HashSet::from([Arc::new(other.to_owned())])
-                }
+                SymbolExpr::Symbol { .. } => &HashSet::from([Arc::new(other.to_owned())]),
                 _ => &HashSet::new(),
             },
         };
@@ -557,7 +595,9 @@ impl ParameterExpression {
             parameter_vector: None,
         }
     }
-    fn _conjugate(&self) -> ParameterExpression {
+
+    /// return conjugate of expression
+    pub fn conjugate(&self) -> ParameterExpression {
         let replay = OPReplay::_INSTRUCTION {
             op: _OPCode::CONJ,
             lhs: Some(ParameterValueType::clone_expr_for_replay(self)),
@@ -900,9 +940,7 @@ impl ParameterExpression {
     // check_uuid = true also compares uuid for equality
     pub fn compare_eq(&self, other: &ParameterExpression, check_uuid: bool) -> bool {
         match (&self.expr, &other.expr) {
-            (
-                SymbolExpr::Symbol {..}, SymbolExpr::Symbol {..},
-            ) => {
+            (SymbolExpr::Symbol { .. }, SymbolExpr::Symbol { .. }) => {
                 if self.expr.to_string() == other.expr.to_string() {
                     if check_uuid {
                         if self.uuid == other.uuid {
@@ -931,9 +969,21 @@ impl ParameterExpression {
                 }
             }
         }
-
     }
 
+    /// expand expression
+    pub fn expand(&self) -> Self {
+        match self.expr {
+            SymbolExpr::Value(_) | SymbolExpr::Symbol { name: _, index: _ } => self.clone(),
+            _ => Self {
+                expr: self.expr.expand(),
+                uuid: self.uuid.clone(),
+                qpy_replay: self.qpy_replay.clone(),
+                parameter_symbols: self.parameter_symbols.clone(),
+                parameter_vector: None,
+            },
+        }
+    }
 }
 
 impl PartialEq for ParameterExpression {
@@ -1152,55 +1202,49 @@ macro_rules! div_impl_expr {
 }
 div_impl_expr! {f64 i32 u32}
 
+// =================================================================
+//   Python interface to ParameterExpression/Parameter/ParameterVectorElement
+// =================================================================
 #[pymethods]
 impl ParameterExpression {
+    /// ParameterExpression::__init__
+    /// initialize ParameterExpression from the equation stored in string
     #[new]
-    #[pyo3(signature = (name=None, uuid = None, vec = None, vec_idx = None))]
+    #[pyo3(signature = (symbol_map, expr, _qpy_replay = None))]
     pub fn __new__(
-        name: Option<String>,
-        uuid: Option<u128>,
-        vec: Option<ParameterVector>,
-        vec_idx: Option<usize>,
+        symbol_map: HashMap<ParameterExpression, PyObject>,
+        expr: String,
+        _qpy_replay: Option<Vec<OPReplay>>,
     ) -> PyResult<Self> {
-        match name {
-            Some(name) => {
-                // check if expr contains replacements for sympy
-                let name = name
-                    .replace("__begin_sympy_replace__", "$\\")
-                    .replace("__end_sympy_replace__", "$");
-
-                let uuid = match uuid {
-                    Some(u) => u,
-                    None => Uuid::new_v4().as_u128(),
-                };
-                let ret = ParameterExpression {
-                    expr: SymbolExpr::Symbol {
-                        name: Box::new(name.clone()),
-                        index: vec_idx,
-                    },
-                    uuid: uuid,
-                    qpy_replay: None,
-                    parameter_symbols: None,
-                    parameter_vector: match vec {
-                        Some(vec) => Some(Arc::new(vec)),
-                        None => None,
-                    },
-                };
-                Ok(ret)
-            }
-            None => Ok(ParameterExpression::default()),
+        // check if expr contains replacements for sympy
+        let expr = expr
+            .replace("__begin_sympy_replace__", "$\\")
+            .replace("__end_sympy_replace__", "$");
+        // substitute 'I' to imaginary number i before returning expression
+        let expr = parse_expression(&expr).bind(&HashMap::from([(
+            "I".to_string(),
+            symbol_expr::Value::from(Complex64::i()),
+        )]));
+        let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
+        let mut uuid: u128 = 0;
+        for (param, _) in symbol_map {
+            uuid = param.uuid;
+            parameter_symbols.insert(Arc::new(param.to_owned()));
         }
-    }
-
-    /// create new expression as a symbol
-    #[allow(non_snake_case)]
-    #[staticmethod]
-    #[pyo3(signature = (name, uuid = None))]
-    pub fn Symbol(name: String, uuid: Option<u128>) -> PyResult<Self> {
-        ParameterExpression::__new__(Some(name), uuid, None, None)
+        if parameter_symbols.len() > 1 {
+            uuid = 0;
+        }
+        Ok(ParameterExpression {
+            expr: expr,
+            uuid: uuid,
+            qpy_replay: _qpy_replay,
+            parameter_symbols: Some(parameter_symbols),
+            parameter_vector: None,
+        })
     }
 
     /// create new expression as a value
+    /// input value should be one of int/real/complex data types
     #[allow(non_snake_case)]
     #[staticmethod]
     pub fn Value(value: &Bound<PyAny>) -> PyResult<Self> {
@@ -1212,95 +1256,24 @@ impl ParameterExpression {
         }
     }
 
-    /// create new expression from string
-    /// This method is used to initialize like ParameterExpression.__init__
-    /// as implemented in Python
-    #[allow(non_snake_case)]
-    #[staticmethod]
-    pub fn Expression(
-        str_expr: String,
-        map: Option<HashMap<ParameterExpression, PyObject>>,
-    ) -> Self {
-        // check if expr contains replacements for sympy
-        let str_expr = str_expr
-            .replace("__begin_sympy_replace__", "$\\")
-            .replace("__end_sympy_replace__", "$");
-        // substitute 'I' to imaginary number i before returning expression
-        let expr = parse_expression(&str_expr).bind(&HashMap::from([(
-            "I".to_string(),
-            symbol_expr::Value::from(Complex64::i()),
-        )]));
-        if let Some(map) = map {
-            let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
-            let mut uuid: u128 = 0;
-            for (param, _) in map {
-                uuid = param.uuid;
-                parameter_symbols.insert(Arc::new(param.to_owned()));
-            }
-            if parameter_symbols.len() > 1 {
-                uuid = 0;
-            }
-            ParameterExpression {
-                expr: expr,
-                uuid: uuid,
-                qpy_replay: None,
-                parameter_symbols: Some(parameter_symbols),
-                parameter_vector: None,
-            }
-        } else {
-            let symbols = expr.symbols();
-            if symbols.len() > 0 {
-                let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
-                let mut uuid: u128 = 0;
-                for s in symbols {
-                    uuid = Uuid::new_v4().as_u128();
-                    let p = ParameterExpression {
-                        expr: s.clone(),
-                        uuid: uuid.clone(),
-                        qpy_replay: None,
-                        parameter_symbols: None,
-                        parameter_vector: None,
-                    };
-                    parameter_symbols.insert(Arc::<ParameterExpression>::new(p.to_owned()));
-                }
-                if parameter_symbols.len() > 1 {
-                    uuid = 0;
-                }
-                ParameterExpression {
-                    expr: expr,
-                    uuid: uuid,
-                    qpy_replay: None,
-                    parameter_symbols: Some(parameter_symbols),
-                    parameter_vector: None,
-                }
-            } else {
-                ParameterExpression {
-                    expr: expr,
-                    uuid: 0,
-                    qpy_replay: None,
-                    parameter_symbols: None,
-                    parameter_vector: None,
-                }
-            }
-        }
-    }
-
     // return string to pass to sympify
-    pub fn sympify(&self) -> String {
+    #[pyo3(name = "sympify")]
+    pub fn py_sympify(&self) -> String {
         let ret = self.expr.optimize().sympify().to_string();
         ret.replace("$\\", "__begin_sympy_replace__")
             .replace('$', "__end_sympy_replace__")
     }
 
     // for backward compatibility
-    // just return myself
-    #[getter]
-    pub fn _symbol_expr(&self) -> ParameterExpression {
+    // just return clone of myself
+    #[getter("_symbol_expr")]
+    pub fn py_get_symbol_expr(&self) -> ParameterExpression {
         self.clone()
     }
 
-    /// return value if expression does not contain any symbols
-    pub fn value(&self, py: Python) -> PyResult<PyObject> {
+    /// return numeric value if expression does not contain any symbols
+    #[pyo3(name = "numeric")]
+    pub fn py_get_numeric_value(&self, py: Python) -> PyResult<PyObject> {
         match self.expr.eval(true) {
             Some(v) => match v {
                 symbol_expr::Value::Real(r) => r.into_py_any(py),
@@ -1321,50 +1294,33 @@ impl ParameterExpression {
         }
     }
 
-    pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
-        self.value(py)
-    }
-
     /// check if this is symbol
-    #[getter]
-    pub fn is_symbol(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index: _ } = self.expr {
-            true
-        } else {
-            false
-        }
+    #[getter("is_symbol")]
+    pub fn py_is_symbol(&self) -> bool {
+        self.is_symbol()
     }
 
     /// check if this is numeric
-    #[getter]
-    pub fn is_numeric(&self) -> bool {
-        if let SymbolExpr::Value(_) = self.expr {
-            true
-        } else {
-            false
-        }
+    #[getter("is_numeric")]
+    pub fn py_is_numeric(&self) -> bool {
+        self.is_numeric()
     }
 
     /// check if ParameterVectorElement
-    #[getter]
-    pub fn is_vector_element(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
-            return match index {
-                Some(_) => true,
-                None => false,
-            };
-        }
-        false
+    #[getter("is_vector_element")]
+    pub fn py_is_vector_element(&self) -> bool {
+        self.is_vector_element()
     }
 
     /// get uuid for this symbol
-    #[getter]
-    pub fn uuid(&self) -> u128 {
+    #[getter("uuid")]
+    pub fn py_get_uuid(&self) -> u128 {
         self.uuid
     }
 
-    #[getter]
-    pub fn vector(&self) -> PyResult<ParameterVector> {
+    /// get ParameterVector if this is ParameterVectorElement
+    #[getter("vector")]
+    pub fn py_get_vector(&self) -> PyResult<ParameterVector> {
         match &self.parameter_vector {
             Some(vec) => Ok(Arc::unwrap_or_clone(vec.clone())),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1372,13 +1328,15 @@ impl ParameterExpression {
             )),
         }
     }
-    #[getter]
-    pub fn _vector(&self) -> PyResult<ParameterVector> {
-        self.vector()
+    // backward compatibility, some code accesses _vector member directly
+    #[getter("_vector")]
+    pub fn py_vector(&self) -> PyResult<ParameterVector> {
+        self.py_get_vector()
     }
 
-    #[getter]
-    pub fn index(&self) -> usize {
+    /// get index in ParameterVector if this is ParameterVectorElement
+    #[getter("index")]
+    pub fn py_get_index(&self) -> usize {
         match self.expr {
             SymbolExpr::Symbol { name: _, index } => match index {
                 Some(index) => index,
@@ -1387,18 +1345,13 @@ impl ParameterExpression {
             _ => 0,
         }
     }
-    #[getter]
-    pub fn _index(&self) -> usize {
-        self.index()
+    // backward compatibility, some code accesses _index member directly
+    #[getter("_index")]
+    pub fn py_index(&self) -> usize {
+        self.py_get_index()
     }
 
-    pub fn is_real(&self) -> Option<bool> {
-        match self.expr.is_complex() {
-            Some(b) => Some(!b),
-            None => None,
-        }
-    }
-
+    /// return this as complex if this is numeric
     pub fn __complex__(&self) -> PyResult<Complex64> {
         match self.expr.eval(true) {
             Some(v) => match v {
@@ -1413,6 +1366,7 @@ impl ParameterExpression {
         }
     }
 
+    /// return this as real if this is numeric
     pub fn __float__(&self) -> PyResult<f64> {
         match self.expr.eval(true) {
             Some(v) => match v {
@@ -1436,6 +1390,7 @@ impl ParameterExpression {
         }
     }
 
+    /// return this as int if this is numeric
     pub fn __int__(&self) -> PyResult<i64> {
         match self.expr.eval(true) {
             Some(v) => match v {
@@ -1479,17 +1434,19 @@ impl ParameterExpression {
         }
     }
 
-    /// return conjugate of expression
-    pub fn conjugate(&self) -> ParameterExpression {
-        self._conjugate()
-    }
-
     /// return derivative of this expression for param
-    pub fn derivative(&self, param: &ParameterExpression) -> PyResult<ParameterExpression> {
+    #[pyo3(name = "derivative")]
+    pub fn py_derivative(&self, param: &ParameterExpression) -> PyResult<ParameterExpression> {
         match self._derivative(param) {
             Ok(expr) => Ok(expr),
             Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
         }
+    }
+
+    /// return conjugate of expression
+    #[pyo3(name = "conjugate")]
+    pub fn py_conjugate(&self) -> ParameterExpression {
+        self.conjugate()
     }
 
     /// Get the derivative of a parameter expression w.r.t. a specified parameter expression.
@@ -1498,7 +1455,8 @@ impl ParameterExpression {
     /// Returns:
     ///     ParameterExpression representing the gradient of param_expr w.r.t. param
     ///     or complex or float number
-    pub fn gradient(&self, param: &Self, py: Python) -> PyResult<PyObject> {
+    #[pyo3(name = "gradient")]
+    pub fn py_gradient(&self, param: &Self, py: Python) -> PyResult<PyObject> {
         if let Some(s) = &self.parameter_symbols {
             if s.len() == 0 {
                 return 0.into_py_any(py);
@@ -1552,23 +1510,9 @@ impl ParameterExpression {
         }
     }
 
-    /// expand expression
-    pub fn expand(&self) -> Self {
-        match self.expr {
-            SymbolExpr::Value(_) | SymbolExpr::Symbol { name: _, index: _ } => self.clone(),
-            _ => Self {
-                expr: self.expr.expand(),
-                uuid: self.uuid.clone(),
-                qpy_replay: self.qpy_replay.clone(),
-                parameter_symbols: self.parameter_symbols.clone(),
-                parameter_vector: None,
-            },
-        }
-    }
-
     /// get hashset of all the symbols used in this expression
-    #[getter]
-    pub fn parameters(&self, py: Python) -> PyResult<Py<PySet>> {
+    #[getter("parameters")]
+    pub fn py_get_parameters(&self, py: Python) -> PyResult<Py<PySet>> {
         let out = PySet::empty(py)?;
         match &self.parameter_symbols {
             Some(symbols) => {
@@ -1626,13 +1570,14 @@ impl ParameterExpression {
             },
         }
     }
-    #[getter]
-    pub fn _parameter_symbols(&self, py: Python) -> PyResult<Py<PySet>> {
-        self.parameters(py)
+    #[getter("_parameter_symbols")]
+    pub fn py_parameter_symbols(&self, py: Python) -> PyResult<Py<PySet>> {
+        self.py_get_parameters(py)
     }
 
     /// return all values in this equation
-    pub fn values(&self, py: Python) -> PyResult<Vec<PyObject>> {
+    #[pyo3(name = "values")]
+    pub fn py_values(&self, py: Python) -> PyResult<Vec<PyObject>> {
         self.expr
             .values()
             .iter()
@@ -1645,12 +1590,13 @@ impl ParameterExpression {
     }
 
     /// return expression as a string
-    #[getter]
-    pub fn name(&self) -> String {
+    #[getter("name")]
+    pub fn py_name(&self) -> String {
         self.__str__()
     }
 
-    pub fn assign(&self, param: &ParameterExpression, value: &Bound<PyAny>) -> PyResult<Self> {
+    #[pyo3(name = "assign")]
+    pub fn py_assign(&self, param: &ParameterExpression, value: &Bound<PyAny>) -> PyResult<Self> {
         if let Some(e) = _extract_value(value) {
             let eval = match e.expr {
                 SymbolExpr::Value(_) => true,
@@ -1821,8 +1767,8 @@ impl ParameterExpression {
     }
 
     /// bind values to symbols given by input hashmap
-    #[pyo3(signature = (in_map, allow_unknown_parameters = None))]
-    pub fn bind(
+    #[pyo3(name="bind", signature = (in_map, allow_unknown_parameters = None))]
+    pub fn py_bind(
         &self,
         in_map: HashMap<ParameterExpression, Bound<PyAny>>,
         allow_unknown_parameters: Option<bool>,
@@ -1842,8 +1788,8 @@ impl ParameterExpression {
     }
 
     /// substitute symbols to expressions (or values) given by hash map
-    #[pyo3(signature = (map, allow_unknown_parameters = None))]
-    pub fn subs(
+    #[pyo3(name="subs", signature = (map, allow_unknown_parameters = None))]
+    pub fn py_subs(
         &self,
         map: HashMap<ParameterExpression, Self>,
         allow_unknown_parameters: Option<bool>,
@@ -2109,9 +2055,9 @@ impl ParameterExpression {
         if let Some(symbols) = state.2 {
             let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
             for (name, uuid) in symbols {
-                if let Ok(p) = ParameterExpression::Symbol(name, Some(uuid)) {
-                    parameter_symbols.insert(Arc::<ParameterExpression>::new(p.to_owned()));
-                }
+                parameter_symbols.insert(Arc::<ParameterExpression>::new(
+                    ParameterExpression::new(name, Some(uuid)),
+                ));
             }
             self.parameter_symbols = Some(parameter_symbols);
         } else {
@@ -2130,55 +2076,13 @@ impl ParameterExpression {
         format!("ParameterExpression({})", self.expr.optimize().to_string())
     }
 
-    /// check if this is Parameter
-    #[allow(non_snake_case)]
-    pub fn is_Parameter(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
-            if let Some(_) = self.qpy_replay {
-                // return false because it has expression replay
-                return false;
-            }
-            return match index {
-                Some(_) => false,
-                None => true,
-            };
-        }
-        false
-    }
-    /// check if this is ParameterExpression
-    #[allow(non_snake_case)]
-    pub fn is_ParameterExpression(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index: _ } = &self.expr {
-            if let Some(_) = self.qpy_replay {
-                // return true because it has expression replay
-                return true;
-            }
-            return false;
-        }
-        true
-    }
-    /// check if this is Parameter
-    #[allow(non_snake_case)]
-    pub fn is_ParameterVectorElement(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
-            if let Some(_) = self.qpy_replay {
-                // return false because it has expression replay
-                return false;
-            }
-            return match index {
-                Some(_) => true,
-                None => false,
-            };
-        }
-        false
-    }
-
     /// return QPY replay
-    pub fn replay(&self) -> Option<Vec<OPReplay>> {
+    #[pyo3(name = "replay")]
+    pub fn py_get_replay(&self) -> Option<Vec<OPReplay>> {
         self.qpy_replay.clone()
     }
-    #[getter]
-    pub fn _qpy_replay(&self) -> Option<Vec<OPReplay>> {
+    #[getter("_qpy_replay")]
+    pub fn py_qpy_replay(&self) -> Option<Vec<OPReplay>> {
         self.qpy_replay.clone()
     }
 }
@@ -2269,25 +2173,25 @@ impl ParameterVector {
     }
 
     /// """The name of the :class:`ParameterVector`."""
-    #[getter]
-    pub fn name(&self) -> String {
+    #[getter("name")]
+    pub fn py_get_name(&self) -> String {
         self.name.clone()
     }
-    #[getter]
-    pub fn _name(&self) -> String {
+    #[getter("_name")]
+    pub fn py_name(&self) -> String {
         self.name.clone()
     }
 
-    #[getter]
-    pub fn _root_uuid(&self) -> u128 {
+    #[getter("_root_uuid")]
+    pub fn py_root_uuid(&self) -> u128 {
         self.root_uuid
     }
 
     /// """A list of the contained :class:`ParameterVectorElement` instances.
     ///
     /// It is not safe to mutate this list."""
-    #[getter]
-    pub fn params(&self, py: Python) -> PyResult<Py<PyList>> {
+    #[getter("params")]
+    pub fn py_get_params(&self, py: Python) -> PyResult<Py<PyList>> {
         let out = PyList::empty(py);
         for s in &self.params {
             // initialize new ParameterVectorElement object from ParameterExpression
@@ -2302,7 +2206,8 @@ impl ParameterVector {
         Ok(out.unbind())
     }
 
-    pub fn index(&self, param: &ParameterExpression) -> Option<usize> {
+    #[pyo3(name = "index")]
+    pub fn py_index(&self, param: &ParameterExpression) -> Option<usize> {
         for (i, p) in self.params.iter().enumerate() {
             if param == p {
                 return Some(i);
@@ -2345,7 +2250,7 @@ impl ParameterVector {
                 if let Ok(e) = value.extract::<ParameterExpression>() {
                     self.params[index] = e;
                     Ok(())
-                } else{
+                } else {
                     Err(pyo3::exceptions::PyRuntimeError::new_err(
                         "unsupported data type is passed to ParameterVector.__setitem__",
                     ))
@@ -2357,7 +2262,7 @@ impl ParameterVector {
                         self.params[index] = v[i].clone();
                     }
                     Ok(())
-                } else{
+                } else {
                     Err(pyo3::exceptions::PyRuntimeError::new_err(
                         "unsupported data type is passed to ParameterVector.__setitem__",
                     ))
@@ -2417,7 +2322,8 @@ impl ParameterVector {
     /// >>> pv[19] == elt_19
     /// True
     /// """
-    pub fn resize(&mut self, length: usize) {
+    #[pyo3(name = "resize")]
+    pub fn py_resize(&mut self, length: usize) {
         if length > self.params.len() {
             let root_uuid = self.root_uuid;
             for i in self.params.len()..length {

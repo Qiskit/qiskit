@@ -596,7 +596,7 @@ class TemplateSubstitution:
             return None
         # If there's multiple solutions, arbitrarily pick the first one.
         sol = {
-            param.name: ParameterExpression.Expression(str(to_native_symbolic(expr)), circ_dict)
+            param.name: ParameterExpression(circ_dict, str(to_native_symbolic(expr)))
             for param, expr in sym_sol[0].items()
         }
         fake_bind = {key: sol[key.name] for key in temp_symbols}

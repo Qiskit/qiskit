@@ -504,7 +504,7 @@ def _read_parameter_expression(file_obj):
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         symbol_map[symbol] = value
 
-    return ParameterExpression.Expression(str(expr_), symbol_map)
+    return ParameterExpression(symbol_map, str(expr_))
 
 
 def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
@@ -557,7 +557,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         symbol_map[symbol] = value
 
-    return ParameterExpression.Expression(str(expr_), symbol_map)
+    return ParameterExpression(symbol_map, str(expr_))
 
 
 def _read_parameter_expression_v13(file_obj, vectors, version):
