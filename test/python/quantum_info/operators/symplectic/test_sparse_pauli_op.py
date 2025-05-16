@@ -832,6 +832,20 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(simplified_op, target_op)
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
+    def test_simplify_complex_parameters(self):
+        """Test calling simplify when a parameter has a complex coefficient."""
+        a = Parameter("a")
+        b = Parameter("b")
+        coeffs = np.array([a, 1j * a, 1j * b, -1j * b])
+        labels = ["X", "X", "Z", "Z"]
+        spp_op = SparsePauliOp(labels, coeffs)
+        simplified_op = spp_op.simplify()
+        target_coeffs = np.array([(1 + 1j) * a])
+        target_labels = ["X"]
+        target_op = SparsePauliOp(target_labels, target_coeffs)
+        self.assertEqual(simplified_op, target_op)
+        np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
+
     def test_sort(self):
         """Test sort method."""
         with self.assertRaises(QiskitError):
