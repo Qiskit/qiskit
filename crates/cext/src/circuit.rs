@@ -519,7 +519,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     std::mem::forget(params_vec);
 
     CInstruction {
-        name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
+        name: CString::new(packed_inst.op().name()).unwrap().into_raw(),
         num_qubits: qargs.len() as u32,
         qubits: out_qargs,
         num_clbits: cargs.len() as u32,

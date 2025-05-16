@@ -45,20 +45,20 @@ pub fn run_elide_permutations(
     let mut new_dag = dag.copy_empty_like("alike")?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
-            match inst.op.name() {
+            match inst.op().name() {
                 "swap" => {
-                    let qargs = dag.get_qargs(inst.qubits);
+                    let qargs = dag.get_qargs(inst.qubits());
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
                 }
                 "permutation" => {
-                    if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                    if let Param::Obj(ref pyobj) = inst.params_raw().as_ref().unwrap()[0] {
                         let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                         let pattern = pyarray.as_array();
 
                         let qindices: Vec<usize> = dag
-                            .get_qargs(inst.qubits)
+                            .get_qargs(inst.qubits())
                             .iter()
                             .map(|q| q.index())
                             .collect();
@@ -80,21 +80,21 @@ pub fn run_elide_permutations(
                 }
                 _ => {
                     // General instruction
-                    let qargs = dag.get_qargs(inst.qubits);
-                    let cargs = dag.get_cargs(inst.clbits);
+                    let qargs = dag.get_qargs(inst.qubits());
+                    let cargs = dag.get_cargs(inst.clbits());
                     let mapped_qargs: Vec<Qubit> = qargs
                         .iter()
                         .map(|q| Qubit::new(mapping[q.index()]))
                         .collect();
 
                     new_dag.apply_operation_back(
-                        inst.op.clone(),
+                        inst.op().clone(),
                         &mapped_qargs,
                         cargs,
-                        inst.params.as_deref().cloned(),
+                        inst.params_raw().as_deref().cloned(),
                         inst.label.as_ref().map(|x| x.as_ref().clone()),
                         #[cfg(feature = "cache_pygates")]
-                        inst.py_op.get().map(|x| x.clone_ref(py)),
+                        inst.py_op().get().map(|x| x.clone_ref(py)),
                     )?;
                 }
             }
