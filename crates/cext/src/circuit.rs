@@ -14,13 +14,11 @@ use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use std::ffi::{c_char, CStr, CString};
 
-use ndarray::Array2;
-use num_complex::Complex64;
+use ndarray::{Array2, ArrayView2};
+use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{
-    ArrayType, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
-};
+use qiskit_circuit::operations::{DelayUnit, Operation, Param, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -132,7 +130,7 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not either null or a valid pointer to a
-/// [CircuitData].
+/// ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
@@ -162,7 +160,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_gate(qc, QkGate_H, *[0], *[]);
 ///
 /// # Safety
 ///
@@ -268,8 +266,8 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 /// Append a measurement to the circuit
 ///
 /// @param circuit A pointer to the circuit to add the measurement to
-/// @param qubits The ``uint32_t`` for the qubit to measure
-/// @param clbits The ``uint32_t`` for the clbit to store the measurement outcome in
+/// @param qubit The ``uint32_t`` for the qubit to measure
+/// @param clbit The ``uint32_t`` for the clbit to store the measurement outcome in
 ///
 /// # Example
 ///
@@ -301,7 +299,7 @@ pub unsafe extern "C" fn qk_circuit_measure(
 /// Append a reset to the circuit
 ///
 /// @param circuit A pointer to the circuit to add the reset to
-/// @param qubits The ``uint32_t`` for the qubit to reset
+/// @param qubit The ``uint32_t`` for the qubit to reset
 ///
 /// # Example
 ///
@@ -369,16 +367,47 @@ pub unsafe extern "C" fn qk_circuit_barrier(
     ExitCode::Success
 }
 
+/// An individual operation count represented by the operation name
+/// and the number of instances in the circuit.
 #[repr(C)]
 pub struct OpCount {
+    /// A nul terminated string representing the operation name
     name: *const c_char,
+    /// The number of instances of this operation in the circuit
     count: usize,
 }
 
+/// An array of ``OpCount`` objects representing the total counts of all
+/// the operation types in a circuit.
 #[repr(C)]
 pub struct OpCounts {
+    /// A array of size ``len`` containing ``OpCount`` objects for each
+    /// type of operation in the circuit
     data: *mut OpCount,
+    /// The number of elements in ``data``
     len: usize,
+}
+
+#[inline]
+fn conjugate(matrix: &ArrayView2<Complex64>) -> Array2<Complex64> {
+    Array2::from_shape_fn((matrix.nrows(), matrix.ncols()), |(i, j)| {
+        matrix[(j, i)].conj()
+    })
+}
+
+fn is_unitary(matrix: &ArrayView2<Complex64>, tol: f64) -> bool {
+    let product = matrix.dot(&conjugate(matrix));
+    let n = matrix.nrows();
+    let one = Complex64::new(1.0, 0.0);
+    product.iter().enumerate().any(|(index, value)| {
+        let col_idx = index % n;
+        let row_idx = index / n;
+        if col_idx == row_idx {
+            (value - &one).abs() > tol
+        } else {
+            value.abs() > tol
+        }
+    })
 }
 
 /// @ingroup QkCircuit
@@ -386,50 +415,71 @@ pub struct OpCounts {
 /// The user passes a row-major array of interleaved real-imaginary pairs #[
 /// representing the unitary matrix.
 ///
-/// @param circuit      A pointer to the circuit to add the unitary to.
-/// @param num_qubits   The width of unitary gate.
-/// @param qubits       The pointer to array of quibit indices.
-/// The array length must be equal to num_qubits.
-/// @param matrix       The pointer to the row-major `(re, im)` double array
+/// @param circuit A pointer to the circuit to append the unitary to.
+/// @param matrix A pointer to the ``QkComplex64`` array representing the unitary matrix.
+///     This must be a row-major, unitary matrix of dimension ``2 ^ num_qubits x 2 ^ num_qubits``.
+///     More explicitly: the ``(i, j)``-th element is given by ``matrix[i * 2^n + j]``.
+/// @param qubits A pointer to array of qubit indices, of length ``num_qubits``.
+/// @param num_qubits The number of qubits the unitary acts on.
+///
 /// # Example
 ///
+///     QkComplex64 c0 = qk_complex64_from_native(0);  // 0+0i
+///     QkComplex64 c1 = qk_complex64_from_native(1);  // 1+0i
 ///
+///     const uint32_t num_qubits = 1;
+///     const uint32_t dim = 2;
+///     QkComplex64[dim * dim] unitary = {c0, c1,  // row 0
+///                                       c1, c0}; // row 1
+///     
+///     QkCircuit *circuit = qk_circuit_new(1, 0);  // 1 qubit circuit
+///     uint32_t qubit = {0};  // qubit to apply the unitary on
+///     qk_circuit_unitary(circuit, unitary, qubit, num_qubits);
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+///
+///   * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+///   * ``matrix`` is a pointer to a nested array of ``QkComplex64`` of dimension
+///     ``2 ^ num_qubits x 2 ^ num_qubits``
+///   * ``qubits`` is a pointer to ``num_qubits`` readable element of type ``uint32_t``
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_unitary(
     circuit: *mut CircuitData,
-    num_qubits: u32,
+    matrix: *const Complex64,
     qubits: *const u32,
-    matrix: *const f64,
+    num_qubits: u32,
 ) -> ExitCode {
     // SAFETY: Caller quarantees pointer validation, alignment
+
+    use qiskit_circuit::operations::{ArrayType, UnitaryGate};
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
     // Dimension of the unitart: 2^n
     let dim = 1 << num_qubits;
 
-    // Copy (re, im) pairs to Complex64
-    let raw = unsafe { std::slice::from_raw_parts(matrix, dim * dim * 2) };
-    let data: Vec<Complex64> = raw
-        .chunks_exact(2)
-        .map(|x| Complex64::new(x[0], x[1]))
-        .collect();
-
     // Build ndarray::Array2
-    let mat = Array2::from_shape_vec((dim, dim), data).expect("Invalid shape for unitary matrix");
+    let raw = unsafe { std::slice::from_raw_parts(matrix, dim * dim * 2) };
+    let mat = Array2::from_shape_fn((dim, dim), |(i, j)| raw[i * dim + j]);
+
+    // verify the matrix is unitary
+    if !is_unitary(&mat.view(), 1e-12) {
+        return ExitCode::ExpectedUnitary;
+    }
 
     // Build qubit slice
-    let qargs: &[Qubit] = unsafe {
-        std::slice::from_raw_parts(qubits as *const, num_qubits as usize)
-    };
+    let qargs: &[Qubit] =
+        unsafe { std::slice::from_raw_parts(qubits as *const Qubit, num_qubits as usize) };
 
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate {
         array: ArrayType::NDArray(mat),
     });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit.push_packed_operation(op, &[], &qargs, &[]);
+    circuit.push_packed_operation(op, &[], qargs, &[]);
     // Return success
     ExitCode::Success
 }
@@ -489,8 +539,6 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
     circuit.__len__()
 }
 
-/// @ingroup QkCircuit
-///
 /// A circuit instruction representation.
 ///
 /// This struct represents the data contained in an individual instruction in a ``QkCircuit``.
@@ -518,7 +566,7 @@ pub struct CInstruction {
 /// Return the instruction details for an instruction in the circuit
 ///
 /// This function is used to get the instruction details for a given instruction in
-/// the circuit. It returns
+/// the circuit.
 ///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
@@ -660,4 +708,74 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
             .expect("Unabled to create a Python circuit")
             .into_ptr()
     }
+}
+
+/// @ingroup QkCircuit
+///
+/// Units for circuit delays.
+#[repr(u8)]
+pub enum QkDelayUnit {
+    /// Seconds.
+    S = 0,
+    /// Milliseconds.
+    MS = 1,
+    /// Microseconds.
+    US = 2,
+    /// Nanoseconds.
+    NS = 3,
+    /// Picoseconds.
+    PS = 4,
+    /// Device-native time unit ``dt``.
+    DT = 5,
+}
+
+/// @ingroup QkCircuit
+/// Append a delay instruction to the circuit.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
+/// @param duration The duration of the delay.
+/// @param unit An enum representing the unit of the duration.
+///
+/// @return An exit code.
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(1, 0);
+///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
+///     
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_delay(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration: f64,
+    unit: QkDelayUnit,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    let delay_unit_variant = match unit {
+        QkDelayUnit::S => DelayUnit::S,
+        QkDelayUnit::MS => DelayUnit::MS,
+        QkDelayUnit::US => DelayUnit::US,
+        QkDelayUnit::NS => DelayUnit::NS,
+        QkDelayUnit::PS => DelayUnit::PS,
+        QkDelayUnit::DT => DelayUnit::DT,
+    };
+
+    let duration_param: Param = duration.into();
+    let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(delay_instruction),
+        &[duration_param],
+        &[Qubit(qubit)],
+        &[],
+    );
+
+    ExitCode::Success
 }

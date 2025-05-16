@@ -25,7 +25,6 @@ ndarray.workspace = true
 
 [build-dependencies]
 cbindgen = "0.28"
-pyo3-build-config = { version = "0.24", features = ["resolve-config"] }
 
 [features]
 default = ["cbinding"]

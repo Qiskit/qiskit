@@ -1448,7 +1448,6 @@ dependencies = [
  "ndarray",
  "num-complex",
  "pyo3",
- "pyo3-build-config",
  "qiskit-accelerate",
  "qiskit-circuit",
  "thiserror 2.0.12",
@@ -1533,6 +1532,7 @@ dependencies = [
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.12",
+ "uuid",
 ]
 
 [[package]]
