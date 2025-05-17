@@ -72,9 +72,6 @@ impl PauliLindbladMap {
     }
 
     /// Create a new Pauli Lindblad map from the raw components that make it up.
-    ///
-    /// This checks the input values for data coherence on entry.  If you are certain you have the
-    /// correct values, you can call `new_unchecked` instead.
     pub fn new_from_raw_parts(
         num_qubits: u32,
         rates: Vec<f64>,
@@ -93,7 +90,7 @@ impl PauliLindbladMap {
         Self::new(rates, qubit_sparse_pauli_list)
     }
 
-    /// Create a new [PauliLindbladMap] from the raw components without checking data coherence.
+    /// Create a new [PauliLindbladMap] without checking data coherence.
     ///
     /// # Safety
     ///
@@ -101,23 +98,16 @@ impl PauliLindbladMap {
     /// struct-level documentation, have been upheld.
     #[inline(always)]
     pub unsafe fn new_unchecked(
-        num_qubits: u32,
         rates: Vec<f64>,
-        paulis: Vec<Pauli>,
-        indices: Vec<u32>,
-        boundaries: Vec<usize>,
+        qubit_sparse_pauli_list: QubitSparsePauliList,
     ) -> Self {
         let (gamma, probabilities, non_negative_rates) = derived_values_from_rates(&rates);
-        unsafe {
-            let qubit_sparse_pauli_list: QubitSparsePauliList =
-                QubitSparsePauliList::new_unchecked(num_qubits, paulis, indices, boundaries);
-            Self {
-                rates,
-                qubit_sparse_pauli_list,
-                gamma,
-                probabilities,
-                non_negative_rates,
-            }
+        Self {
+            rates,
+            qubit_sparse_pauli_list,
+            gamma,
+            probabilities,
+            non_negative_rates,
         }
     }
 
@@ -345,11 +335,11 @@ pub struct GeneratorTerm {
     qubit_sparse_pauli: QubitSparsePauli,
 }
 impl GeneratorTerm {
-    pub fn new(rate: f64, qubit_sparse_pauli: QubitSparsePauli) -> Result<Self, CoherenceError> {
-        Ok(Self {
+    pub fn new(rate: f64, qubit_sparse_pauli: QubitSparsePauli) -> Self {
+        Self {
             rate,
             qubit_sparse_pauli,
-        })
+        }
     }
 
     pub fn num_qubits(&self) -> u32 {
@@ -407,7 +397,7 @@ impl PyGeneratorTerm {
     #[new]
     #[pyo3(signature = (/, rate, qubit_sparse_pauli))]
     fn py_new(rate: f64, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<Self> {
-        let inner = GeneratorTerm::new(rate, qubit_sparse_pauli.inner.clone())?;
+        let inner = GeneratorTerm::new(rate, qubit_sparse_pauli.inner.clone());
         Ok(PyGeneratorTerm { inner })
     }
 
