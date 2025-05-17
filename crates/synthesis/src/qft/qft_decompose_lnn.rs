@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear_phase::cz_depth_lnn::LnnGatesVec;
-use crate::synthesis::permutation::_append_reverse_permutation_lnn_kms;
+use crate::linear_phase::cz_depth_lnn::LnnGatesVec;
+use crate::permutation::_append_reverse_permutation_lnn_kms;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};

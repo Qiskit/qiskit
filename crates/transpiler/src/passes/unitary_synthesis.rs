@@ -39,15 +39,15 @@ use qiskit_circuit::Qubit;
 
 use crate::target::{NormalOperation, Target, TargetOperation};
 use crate::target::{Qargs, QargsRef};
-use qiskit_accelerate::euler_one_qubit_decomposer::{
+use crate::QiskitError;
+use qiskit_circuit::PhysicalQubit;
+use qiskit_synthesis::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
 };
-use qiskit_accelerate::two_qubit_decompose::{
+use qiskit_synthesis::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
     TwoQubitWeylDecomposition,
 };
-use qiskit_accelerate::QiskitError;
-use qiskit_circuit::PhysicalQubit;
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;

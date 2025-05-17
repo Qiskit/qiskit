@@ -11,14 +11,20 @@
 // that they have been altered from the originals.
 
 pub mod clifford;
+pub mod euler_one_qubit_decomposer;
 mod evolution;
+pub mod linalg;
 pub mod linear;
 pub mod linear_phase;
 mod multi_controlled;
 mod permutation;
 mod qft;
+pub mod two_qubit_decompose;
 
+use pyo3::import_exception;
 use pyo3::prelude::*;
+
+import_exception!(qiskit.exceptions, QiskitError);
 
 pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let linear_mod = PyModule::new(m.py(), "linear")?;

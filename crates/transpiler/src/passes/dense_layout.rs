@@ -23,7 +23,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
-use qiskit_accelerate::getenv_use_multiple_threads;
+use qiskit_circuit::getenv_use_multiple_threads;
 
 struct SubsetResult {
     pub count: usize,

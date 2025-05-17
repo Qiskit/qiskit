@@ -16,14 +16,14 @@ use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use num_complex::Complex64;
 
-use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
+use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
 
 #[cfg(feature = "python_binding")]
 use pyo3::ffi::PyObject;
 #[cfg(feature = "python_binding")]
 use pyo3::{Py, Python};
 #[cfg(feature = "python_binding")]
-use qiskit_accelerate::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 /// A term in a ``QkObs``.
 ///

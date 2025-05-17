@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::clifford::greedy_synthesis::resynthesize_clifford_circuit;
+use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
 
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
