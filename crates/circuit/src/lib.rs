@@ -30,9 +30,12 @@ pub mod nlayout;
 pub mod object_registry;
 pub mod operations;
 pub mod packed_instruction;
+pub mod parameter_expression;
 pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
+pub mod symbol_expr;
+pub mod symbol_parser;
 pub mod util;
 
 pub mod rustworkx_core_vnext;
@@ -208,11 +211,10 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_circuit::PyBitLocations>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
-
+    m.add_class::<parameter_expression::ParameterExpression>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;
     classical::register_python(&classical_mod)?;
     m.add_submodule(&classical_mod)?;
-
     Ok(())
 }
 

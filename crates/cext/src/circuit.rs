@@ -17,7 +17,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
+use qiskit_circuit::operations::{DelayUnit, Operation, Param, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not either null or a valid pointer to a
-/// [CircuitData].
+/// ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 /// # Example
 ///
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_gate(qc, HGate, *[0], *[]);
+///     qk_circuit_gate(qc, QkGate_H, *[0], *[]);
 ///
 /// # Safety
 ///
@@ -265,8 +265,8 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 /// Append a measurement to the circuit
 ///
 /// @param circuit A pointer to the circuit to add the measurement to
-/// @param qubits The ``uint32_t`` for the qubit to measure
-/// @param clbits The ``uint32_t`` for the clbit to store the measurement outcome in
+/// @param qubit The ``uint32_t`` for the qubit to measure
+/// @param clbit The ``uint32_t`` for the clbit to store the measurement outcome in
 ///
 /// # Example
 ///
@@ -298,7 +298,7 @@ pub unsafe extern "C" fn qk_circuit_measure(
 /// Append a reset to the circuit
 ///
 /// @param circuit A pointer to the circuit to add the reset to
-/// @param qubits The ``uint32_t`` for the qubit to reset
+/// @param qubit The ``uint32_t`` for the qubit to reset
 ///
 /// # Example
 ///
@@ -366,15 +366,24 @@ pub unsafe extern "C" fn qk_circuit_barrier(
     ExitCode::Success
 }
 
+/// An individual operation count represented by the operation name
+/// and the number of instances in the circuit.
 #[repr(C)]
 pub struct OpCount {
+    /// A nul terminated string representing the operation name
     name: *const c_char,
+    /// The number of instances of this operation in the circuit
     count: usize,
 }
 
+/// An array of ``OpCount`` objects representing the total counts of all
+/// the operation types in a circuit.
 #[repr(C)]
 pub struct OpCounts {
+    /// A array of size ``len`` containing ``OpCount`` objects for each
+    /// type of operation in the circuit
     data: *mut OpCount,
+    /// The number of elements in ``data``
     len: usize,
 }
 
@@ -433,8 +442,6 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
     circuit.__len__()
 }
 
-/// @ingroup QkCircuit
-///
 /// A circuit instruction representation.
 ///
 /// This struct represents the data contained in an individual instruction in a ``QkCircuit``.
@@ -462,7 +469,7 @@ pub struct CInstruction {
 /// Return the instruction details for an instruction in the circuit
 ///
 /// This function is used to get the instruction details for a given instruction in
-/// the circuit. It returns
+/// the circuit.
 ///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
@@ -604,4 +611,74 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
             .expect("Unabled to create a Python circuit")
             .into_ptr()
     }
+}
+
+/// @ingroup QkCircuit
+///
+/// Units for circuit delays.
+#[repr(u8)]
+pub enum QkDelayUnit {
+    /// Seconds.
+    S = 0,
+    /// Milliseconds.
+    MS = 1,
+    /// Microseconds.
+    US = 2,
+    /// Nanoseconds.
+    NS = 3,
+    /// Picoseconds.
+    PS = 4,
+    /// Device-native time unit ``dt``.
+    DT = 5,
+}
+
+/// @ingroup QkCircuit
+/// Append a delay instruction to the circuit.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
+/// @param duration The duration of the delay.
+/// @param unit An enum representing the unit of the duration.
+///
+/// @return An exit code.
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(1, 0);
+///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
+///     
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_delay(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration: f64,
+    unit: QkDelayUnit,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    let delay_unit_variant = match unit {
+        QkDelayUnit::S => DelayUnit::S,
+        QkDelayUnit::MS => DelayUnit::MS,
+        QkDelayUnit::US => DelayUnit::US,
+        QkDelayUnit::NS => DelayUnit::NS,
+        QkDelayUnit::PS => DelayUnit::PS,
+        QkDelayUnit::DT => DelayUnit::DT,
+    };
+
+    let duration_param: Param = duration.into();
+    let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(delay_instruction),
+        &[duration_param],
+        &[Qubit(qubit)],
+        &[],
+    );
+
+    ExitCode::Success
 }

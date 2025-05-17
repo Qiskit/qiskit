@@ -2996,10 +2996,11 @@ class TestTranspileParallel(QiskitTestCase):
         qc.cz(0, 3)
         qc.cz(0, 4)
         qc.measure_all()
-        cmap = CouplingMap.from_line(5, bidirectional=False)
+        num_qubits = 5
+        cmap = CouplingMap.from_line(num_qubits, bidirectional=False)
         tqc = transpile(
             qc,
-            backend=GenericBackendV2(num_qubits=6),
+            backend=GenericBackendV2(num_qubits=num_qubits),
             coupling_map=cmap,
             optimization_level=opt_level,
             seed_transpiler=12345678942,

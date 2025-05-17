@@ -44,6 +44,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::error_map_mod, "error_map")?;
     add_submodule(m, ::qiskit_transpiler::passes::elide_permutations_mod, "elide_permutations")?;
     add_submodule(m, ::qiskit_synthesis::euler_one_qubit_decomposer::euler_one_qubit_decomposer, "euler_one_qubit_decomposer")?;
+    add_submodule(m, ::qiskit_transpiler::passes::disjoint_utils_mod, "disjoint_utils")?;
     add_submodule(m, ::qiskit_transpiler::passes::filter_op_nodes_mod, "filter_op_nodes")?;
     add_submodule(m, ::qiskit_transpiler::passes::gate_direction_mod, "gate_direction")?;
     add_submodule(m, ::qiskit_transpiler::passes::gates_in_basis_mod, "gates_in_basis")?;
@@ -62,7 +63,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_quantum_info::sparse_observable::sparse_observable, "sparse_observable")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_pauli_op::sparse_pauli_op, "sparse_pauli_op")?;
     add_submodule(m, ::qiskit_transpiler::passes::split_2q_unitaries_mod, "split_2q_unitaries")?;
-    add_submodule(m, ::qiskit_transpiler::passes::star_prerouting_mod, "star_prerouting")?;
     add_submodule(m, ::qiskit_synthesis::synthesis, "synthesis")?;
     add_submodule(m, ::qiskit_transpiler::target::target, "target")?;
     add_submodule(m, ::qiskit_accelerate::twirling::twirling, "twirling")?;
