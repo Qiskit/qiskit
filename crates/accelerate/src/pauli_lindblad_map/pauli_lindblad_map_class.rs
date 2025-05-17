@@ -274,19 +274,19 @@ impl PauliLindbladMap {
             });
         }
 
-        let mut rates: Vec<f64> = Vec::new();
+        let mut rates: Vec<f64> = Vec::with_capacity(self.num_terms() + other.num_terms());
         rates.extend_from_slice(&self.rates);
         rates.extend_from_slice(&other.rates);
 
-        let mut paulis = Vec::new();
+        let mut paulis = Vec::with_capacity(self.num_terms() + other.num_terms());
         paulis.extend_from_slice(self.paulis());
         paulis.extend_from_slice(other.paulis());
 
-        let mut indices: Vec<u32> = Vec::new();
+        let mut indices: Vec<u32> = Vec::with_capacity(self.num_terms() + other.num_terms());
         indices.extend_from_slice(self.indices());
         indices.extend_from_slice(other.indices());
 
-        let mut boundaries: Vec<usize> = Vec::new();
+        let mut boundaries: Vec<usize> = Vec::with_capacity(self.num_terms() + other.num_terms());
         boundaries.extend_from_slice(self.boundaries());
         let offset = self.boundaries()[self.boundaries().len() - 1];
         boundaries.extend(
