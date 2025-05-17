@@ -69,21 +69,18 @@ class RZGate(Gate):
         super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
-        """
-        gate rz(phi) a { u1(phi) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u1 import U1Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
-        rules = [(U1Gate(theta), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # global phase: -0.5*φ
+        #    ┌──────┐
+        # q: ┤ P(φ) ├
+        #    └──────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RZ._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,
@@ -242,32 +239,18 @@ class CRZGate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate crz(lambda) a,b
-        { rz(lambda/2) b; cx a,b;
-          rz(-lambda/2) b; cx a,b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──
         #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
-        # q_1: ┤ Rz(λ/2) ├┤ X ├┤ Rz(-λ/2) ├┤ X ├
+        # q_1: ┤ Rz(θ/2) ├┤ X ├┤ Rz(-θ/2) ├┤ X ├
         #      └─────────┘└───┘└──────────┘└───┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RZGate(self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CRZ._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse CRZ gate (i.e. with the negative rotation angle).
