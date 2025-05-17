@@ -211,6 +211,8 @@ pub enum LabelError {
 pub enum ArithmeticError {
     #[error("mismatched numbers of qubits: {left}, {right}")]
     MismatchedQubits { left: u32, right: u32 },
+    #[error("multiplying single qubit paulis resulted in bit value: {b}")]
+    PauliMultiplication { b: u8 },
 }
 
 /// A list of Pauli operators stored in a qubit-sparse format.
@@ -596,6 +598,76 @@ impl QubitSparsePauli {
     #[inline]
     pub fn paulis(&self) -> &[Pauli] {
         &self.paulis
+    }
+
+    // Phaseless composition of two pauli operators.
+    pub fn compose(&self, other: &QubitSparsePauli) -> Result<QubitSparsePauli, ArithmeticError> {
+        if self.num_qubits != other.num_qubits {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits,
+                right: other.num_qubits,
+            });
+        }
+
+        // if either are the identity, return a clone of the other
+        if self.indices.len() == 0 {
+            return Ok(other.clone());
+        }
+
+        if other.indices.len() == 0 {
+            return Ok(self.clone());
+        }
+
+        let mut paulis = Vec::new();
+        let mut indices = Vec::new();
+
+        let mut self_idx = 0;
+        let mut other_idx = 0;
+
+        // iterate through each entry of self and other one time, incrementing based on the ordering
+        // or equality of self_idx and other_idx, until one of them runs out of entries
+        while self_idx < self.indices.len() && other_idx < other.indices.len() {
+            if self.indices[self_idx] < other.indices[other_idx] {
+                // if the current qubit index of self is strictly less than other, append the pauli
+                paulis.push(self.paulis[self_idx]);
+                indices.push(self.indices[self_idx]);
+                self_idx += 1;
+            } else if self.indices[self_idx] == other.indices[other_idx] {
+                // if the indices are the same, perform multiplication and append if non-identity
+                let new_pauli = (self.paulis[self_idx] as u8) ^ (other.paulis[other_idx] as u8);
+                if new_pauli != 0 {
+                    paulis.push(match new_pauli {
+                        0b01 => Ok(Pauli::Z),
+                        0b10 => Ok(Pauli::X),
+                        0b11 => Ok(Pauli::Y),
+                        _ => Err(ArithmeticError::PauliMultiplication { b: new_pauli }),
+                    }?);
+                    indices.push(self.indices[self_idx])
+                }
+                self_idx += 1;
+                other_idx += 1;
+            } else {
+                // same as the first if block but with roles of self and other reversed
+                paulis.push(other.paulis[other_idx]);
+                indices.push(other.indices[other_idx]);
+                other_idx += 1;
+            }
+        }
+
+        // if any entries remain in either pauli, append them
+        if other_idx != other.indices.len() {
+            paulis.append(&mut other.paulis[other_idx..].to_vec());
+            indices.append(&mut other.indices[other_idx..].to_vec());
+        } else if self_idx != self.indices.len() {
+            paulis.append(&mut self.paulis[self_idx..].to_vec());
+            indices.append(&mut self.indices[self_idx..].to_vec());
+        }
+
+        Ok(QubitSparsePauli {
+            num_qubits: self.num_qubits,
+            paulis: paulis.into_boxed_slice(),
+            indices: indices.into_boxed_slice(),
+        })
     }
 
     /// Get a view version of this object.
@@ -1232,7 +1304,21 @@ impl PyQubitSparsePauli {
         Ok(self.inner.view().to_sparse_str())
     }
 
-    /// Check if `self`` commutes with another qubit sparse pauli.
+    /// Phaseless composition with another qubit sparse pauli.
+    ///
+    /// Args:
+    ///     other (QubitSparsePauli): the qubit sparse Pauli to compose with.
+    fn compose(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+        Ok(PyQubitSparsePauli {
+            inner: self.inner.compose(&other.inner)?,
+        })
+    }
+
+    fn __matmul__(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+        self.compose(other)
+    }
+
+    /// Check if `self` commutes with another qubit sparse pauli.
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to check for commutation with.
