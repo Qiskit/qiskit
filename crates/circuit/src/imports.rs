@@ -108,6 +108,8 @@ pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barr
 pub static DELAY: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Delay");
 pub static MEASURE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Measure");
 pub static RESET: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Reset");
+pub static MCPHASE_GATE: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
 pub static UNARY_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_UnaryOp");
 pub static BINARY_OP: ImportOnceCell =
