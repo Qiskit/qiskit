@@ -737,6 +737,52 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         self.assertEqual(PauliLindbladMap.identity(5).inverse(), PauliLindbladMap.identity(5))
 
+    def test_compose(self):
+        """Test compose method."""
+        p0 = PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1)], 4)
+        expected = PauliLindbladMap.from_sparse_list(
+            [("XYZ", [3, 2, 1], 2.1), ("XYZ", [3, 2, 1], 2.1)], 4
+        )
+        self.assertEqual(p0.compose(p0), expected)
+
+        # validate original object unchanged
+        self.assertEqual(p0, PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1)], 4))
+
+        p0 = PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1), ("Y", [0], 0.1)], 4)
+        p1 = PauliLindbladMap.from_sparse_list([("X", [3], 0.2), ("Z", [1], 0.1)], 4)
+        expected = PauliLindbladMap.from_sparse_list(
+            [("XYZ", [3, 2, 1], 2.1), ("Y", [0], 0.1), ("X", [3], 0.2), ("Z", [1], 0.1)], 4
+        )
+        self.assertEqual(p0 @ p1, expected)
+
+        # validate original objects unchanged
+        self.assertEqual(
+            p0, PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1), ("Y", [0], 0.1)], 4)
+        )
+        self.assertEqual(
+            p1, PauliLindbladMap.from_sparse_list([("X", [3], 0.2), ("Z", [1], 0.1)], 4)
+        )
+
+        # test composition with identity map
+        p0 = PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1)], 4)
+        p1 = PauliLindbladMap.identity(4)
+        self.assertEqual(p0 @ p1, p0)
+        self.assertEqual(p1 @ p0, p0)
+
+        p0 = PauliLindbladMap.identity(20)
+        self.assertEqual(p0 @ p0, p0)
+
+    def test_compose_errors(self):
+
+        p0 = PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1)], 4)
+        p1 = PauliLindbladMap.identity(3)
+
+        with self.assertRaisesRegex(ValueError, r"mismatched numbers of qubits: 4, 3"):
+            p0.compose(p1)
+
+        with self.assertRaisesRegex(TypeError, r"unknown type for compose"):
+            p0.compose(1.0)
+
 
 def canonicalize_term(pauli, indices, rate):
     # canonicalize a sparse list term by sorting by indices (which is unique as
