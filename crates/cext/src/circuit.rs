@@ -431,7 +431,7 @@ fn is_unitary(matrix: &ArrayView2<Complex64>, tol: f64) -> bool {
 ///     const uint32_t dim = 2;
 ///     QkComplex64[dim * dim] unitary = {c0, c1,  // row 0
 ///                                       c1, c0}; // row 1
-///     
+///
 ///     QkCircuit *circuit = qk_circuit_new(1, 0);  // 1 qubit circuit
 ///     uint32_t qubit = {0};  // qubit to apply the unitary on
 ///     qk_circuit_unitary(circuit, unitary, qubit, num_qubits);
@@ -452,6 +452,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     matrix: *const Complex64,
     qubits: *const u32,
     num_qubits: u32,
+    check_input: bool,
 ) -> ExitCode {
     // SAFETY: Caller quarantees pointer validation, alignment
 
@@ -466,7 +467,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     let mat = Array2::from_shape_fn((dim, dim), |(i, j)| raw[i * dim + j]);
 
     // verify the matrix is unitary
-    if !is_unitary(&mat.view(), 1e-12) {
+    if check_input && !is_unitary(&mat.view(), 1e-12) {
         return ExitCode::ExpectedUnitary;
     }
 
@@ -743,7 +744,7 @@ pub enum QkDelayUnit {
 ///
 ///     QkCircuit *qc = qk_circuit_new(1, 0);
 ///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
-///     
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
