@@ -27,8 +27,11 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.library.standard_gates.u import UGate
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+
+from .isometry import Isometry
 
 if typing.TYPE_CHECKING:
     from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -159,6 +162,10 @@ class UnitaryGate(Gate):
             )
 
             self.definition = qs_decomposition(self.to_matrix())
+            if not (
+                matrix_equal(Operator(self.definition).to_matrix(), self.to_matrix(), atol=1e-7)
+            ):
+                self.definition = Isometry(self.matrix, 0, 0).definition
 
     def control(
         self,
@@ -186,6 +193,9 @@ class UnitaryGate(Gate):
             from qiskit.synthesis.unitary.qsd import qs_decomposition
 
             cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
+            if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):
+                self.definition = Isometry(cmat, 0, 0).definition
+
             gate = ControlledGate(
                 "c-unitary",
                 num_qubits=self.num_qubits + num_ctrl_qubits,
