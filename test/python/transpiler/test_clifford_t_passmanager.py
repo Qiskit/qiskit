@@ -21,6 +21,7 @@ from qiskit.circuit.library import QFTGate, iqp, GraphStateGate
 from qiskit.transpiler.passes.utils import CheckGateDirection
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler import CouplingMap
+from qiskit.providers.fake_provider import GenericBackendV2
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -188,5 +189,15 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.rz(0.8, 0)
         pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
         transpiled = pm.run(qc)
-        print(transpiled.count_ops())
-        # self.assertLessEqual(set(transpiled.count_ops()), set(self.basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+    def test_target(self):
+        """Clifford+T transpilation given Target."""
+        qc = QuantumCircuit(2)
+        qc.rz(0.8, 0)
+
+        basis_gates = ["cx", "t", "tdg", "h"]
+        backend = GenericBackendV2(5, basis_gates=basis_gates)
+        pm = generate_preset_pass_manager(target=backend.target, optimization_level=0)
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))

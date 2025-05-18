@@ -490,7 +490,7 @@ def generate_translation_passmanager(
         # The list of extended basis gates consists of the specified Clifford+T basis gates and
         # additionally the 1q-gate "u".
         # We set target=None to make sure extended_basis_gates is not overwritten by the target.
-        extended_basis_gates = basis_gates + ["u"]
+        extended_basis_gates = list(basis_gates) + ["u"]
 
         unroll = [
             # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
