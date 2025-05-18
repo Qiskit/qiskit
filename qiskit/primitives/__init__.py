@@ -443,7 +443,13 @@ Sampler V2
    StatevectorSampler
    BackendSamplerV2
    SamplerPub
-   SamplerPubLike
+
+.. list-table:: bla
+   :widths: auto
+   :header-rows: 0
+
+   * - SamplerPubLike
+     - Union[SamplerPub, QuantumCircuit, Tuple[QuantumCircuit], Tuple[QuantumCircuit, BindingsArrayLike], Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],]
 
 Results V2
 ----------
