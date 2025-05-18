@@ -543,6 +543,9 @@ def generate_translation_passmanager(
                 min_qubits=1,
                 target=None,
             ),
+            # Finally, we use BasisTranslator to translate ["h", "t", "tdg"] to the actually
+            # specified set of basis gates.
+            BasisTranslator(sel, basis_gates, target),
         ]
         # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection
         # into basis_gates.

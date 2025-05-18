@@ -13,6 +13,7 @@
 """Test Clifford+T transpilation pipeline"""
 
 import numpy as np
+from ddt import ddt, data, unpack
 
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit
@@ -24,6 +25,7 @@ from qiskit.transpiler import CouplingMap
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
+@ddt
 class TestCliffordTPassManager(QiskitTestCase):
     """Test Clifford+T transpilation pipeline."""
 
@@ -131,8 +133,13 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         self.assertLessEqual(set(transpiled_ops), set(self.basis_gates))
 
-        # The transpiled circuit should be fairly efficient in terms of gates.
-        self.assertLessEqual(transpiled.size(), 33)
+        # The transpiled circuit should be fairly efficient in terms of T/Tdg gates:
+        # the circuit contains 3 powers of CZ-gates, each leading to at most 9 T/Tdg gates,
+        # and 3 powers of T-gate, each leading to at most 4 T/Tdg gate.
+        max_t_size = 3 * 9 + 3 * 4
+        transpiled_ops = transpiled.count_ops()
+        t_size = transpiled_ops.get("t", 0) + transpiled_ops.get("tdg", 0)
+        self.assertLessEqual(t_size, max_t_size)
 
     def test_graph_state(self):
         """Clifford+T transpilation of graph-state circuits."""
@@ -173,3 +180,13 @@ class TestCliffordTPassManager(QiskitTestCase):
         pass_ = CheckGateDirection(coupling_map=coupling_map)
         pass_.run(circuit_to_dag(transpiled))
         self.assertTrue(pass_.property_set["is_direction_mapped"])
+
+    @data(["t", "h"], ["tdg", "h"], ["t", "sx"], ["t", "sxdg"], ["tdg", "sx"], ["tdg", "sxdg"])
+    def test_clifford_t_bases(self, basis_gates):
+        """Test transpiling into various Clifford+T basis sets."""
+        qc = QuantumCircuit(2)
+        qc.rz(0.8, 0)
+        pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        transpiled = pm.run(qc)
+        print(transpiled.count_ops())
+        # self.assertLessEqual(set(transpiled.count_ops()), set(self.basis_gates))
