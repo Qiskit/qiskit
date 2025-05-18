@@ -64,6 +64,7 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     two_qubit_cnot_decompose,
     TwoQubitBasisDecomposer,
     TwoQubitControlledUDecomposer,
+    TwoQubitDiscreteDecomposer,
     decompose_two_qubit_product_gate,
 )
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
@@ -1579,6 +1580,34 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
             decomp.rxx_equivalent_gate.name, decomp_cpy.rxx_equivalent_gate.name, msg=msg_base
         )
         self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
+
+    def test_discrete(self):
+        """Test TwoQubitDiscreteDecomposer """
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.s(1)
+        qc.t(0)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.h(1)
+        qc.cx(1, 0)
+        qc.h(0)
+        qc.s(1)
+        qc.t(0)
+
+        unitary = Operator(qc).to_matrix()
+        decomposer = TwoQubitDiscreteDecomposer()
+        circ = decomposer(unitary)
+        # print(circ)
+        self.assertAlmostEqual(Operator(unitary), Operator(circ))
+
+        for seed in range(10):
+            unitary = random_unitary(4, seed=seed)
+            circ = decomposer(unitary)
+            # print(circ.count_ops())
+            np.testing.assert_allclose(
+                Operator(unitary).to_matrix(), Operator(circ).to_matrix(), atol=1e-1
+            )
 
 
 class TestDecomposeProductRaises(QiskitTestCase):
