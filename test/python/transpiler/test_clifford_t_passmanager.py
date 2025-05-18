@@ -13,7 +13,7 @@
 """Test Clifford+T transpilation pipeline"""
 
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit

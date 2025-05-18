@@ -88,9 +88,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
-        if common.is_clifford_t_basis(
-            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
-        ):
+        if pass_manager_config._is_clifford_t:
             return CliffordTInitPassManager().pass_manager(pass_manager_config, optimization_level)
 
         if optimization_level == 0:
@@ -224,9 +222,7 @@ class DefaultTranslationPassManager(PassManagerStagePlugin):
         # string referring to the `BasisTranslator`.
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
-        if common.is_clifford_t_basis(
-            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
-        ):
+        if pass_manager_config._is_clifford_t:
             return CliffordTTranslatorPassManager().pass_manager(
                 pass_manager_config, optimization_level
             )
@@ -514,9 +510,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
         """Build pass manager for optimization stage."""
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
-        if common.is_clifford_t_basis(
-            basis_gates=pass_manager_config.basis_gates, target=pass_manager_config.target
-        ):
+        if pass_manager_config._is_clifford_t:
             return CliffordTOptimizationPassManager().pass_manager(
                 pass_manager_config, optimization_level
             )
