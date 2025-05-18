@@ -449,7 +449,19 @@ Sampler V2
    :header-rows: 0
 
    * - SamplerPubLike
-     - A Pub (Primitive Unified Bloc) for a Sampler.
+     - Alias of
+
+       .. code-block:: python
+
+           Union[
+               SamplerPub,
+               QuantumCircuit,
+               Tuple[QuantumCircuit],
+               Tuple[QuantumCircuit, BindingsArrayLike],
+               Tuple[QuantumCircuit, BindingsArrayLike,Union[Integral, None]]
+           ]
+     
+       A Pub (Primitive Unified Bloc) for a Sampler.
 
        A fully specified sample Pub is a tuple ``(circuit, parameter_values, shots)``.
 
@@ -464,7 +476,6 @@ Sampler V2
            * ``circuit``
            * ``(circuit,)``
            * ``(circuit, parameter_values)``
-
 
 Results V2
 ----------
