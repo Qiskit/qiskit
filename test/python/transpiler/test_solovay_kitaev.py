@@ -320,6 +320,24 @@ class TestSolovayKitaev(QiskitTestCase):
         diff = _trace_distance(circuit, transpiled)
         self.assertLess(diff, 1e-6)
 
+    @data(["unitary"], ["rz"])
+    def test_sk_synth_gates_to_basis(self, synth_gates):
+        """Verify two qubit unitaries are synthesized to match basis gates."""
+        unitary = QuantumCircuit(1)
+        unitary.h(0)
+        unitary_op = Operator(unitary)
+
+        qc = QuantumCircuit(1)
+        qc.unitary(unitary_op, 0)
+        qc.rz(0.1, 0)
+        dag = circuit_to_dag(qc)
+
+        basis_gates = ["h", "t", "tdg"]
+        out = UnitarySynthesis(basis_gates=basis_gates, synth_gates=synth_gates, method="sk").run(
+            dag
+        )
+        self.assertTrue(set(out.count_ops()).isdisjoint(synth_gates))
+
 
 @ddt
 class TestGateSequence(QiskitTestCase):

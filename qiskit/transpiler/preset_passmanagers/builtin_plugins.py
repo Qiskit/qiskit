@@ -761,13 +761,18 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
         layout = PassManager()
         layout.append(_given_layout)
         if optimization_level == 0:
-            layout.append(
-                ConditionalController(
-                    TrivialLayout(coupling_map), condition=_choose_layout_condition
+            if coupling_map is not None:
+                layout.append(
+                    ConditionalController(
+                        TrivialLayout(coupling_map), condition=_choose_layout_condition
+                    )
                 )
-            )
             layout += common.generate_embed_passmanager(coupling_map)
             return layout
+
+        if coupling_map is None:
+            # There's nothing to lay out onto.  We only need to embed the initial layout, if given.
+            pass
         elif optimization_level == 1:
             layout.append(
                 ConditionalController(
@@ -895,9 +900,12 @@ class TrivialLayoutPassManager(PassManagerStagePlugin):
 
         layout = PassManager()
         layout.append(_given_layout)
-        layout.append(
-            ConditionalController(TrivialLayout(coupling_map), condition=_choose_layout_condition)
-        )
+        if coupling_map is not None:
+            layout.append(
+                ConditionalController(
+                    TrivialLayout(coupling_map), condition=_choose_layout_condition
+                )
+            )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
 
@@ -918,15 +926,16 @@ class DenseLayoutPassManager(PassManagerStagePlugin):
 
         layout = PassManager()
         layout.append(_given_layout)
-        layout.append(
-            ConditionalController(
-                DenseLayout(
-                    coupling_map=pass_manager_config.coupling_map,
-                    target=pass_manager_config.target,
-                ),
-                condition=_choose_layout_condition,
+        if coupling_map is not None:
+            layout.append(
+                ConditionalController(
+                    DenseLayout(
+                        coupling_map=pass_manager_config.coupling_map,
+                        target=pass_manager_config.target,
+                    ),
+                    condition=_choose_layout_condition,
+                )
             )
-        )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
 
@@ -950,7 +959,9 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
 
         layout = PassManager()
         layout.append(_given_layout)
-        if optimization_level == 0:
+        if coupling_map is None:
+            layout_pass = None
+        elif optimization_level == 0:
             trial_count = _get_trial_count(5)
 
             layout_pass = SabreLayout(
@@ -996,17 +1007,18 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
             )
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
-        layout.append(
-            ConditionalController(
-                [
-                    BarrierBeforeFinalMeasurements(
-                        "qiskit.transpiler.internal.routing.protection.barrier"
-                    ),
-                    layout_pass,
-                ],
-                condition=_choose_layout_condition,
+        if layout_pass is not None:
+            layout.append(
+                ConditionalController(
+                    [
+                        BarrierBeforeFinalMeasurements(
+                            "qiskit.transpiler.internal.routing.protection.barrier"
+                        ),
+                        layout_pass,
+                    ],
+                    condition=_choose_layout_condition,
+                )
             )
-        )
         embed = common.generate_embed_passmanager(coupling_map)
         layout.append(ConditionalController(embed.to_flow_controller(), condition=_swap_mapped))
         return layout
