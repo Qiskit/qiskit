@@ -17,7 +17,7 @@ import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import QFTGate, iqp, GraphStateGate
-from qiskit.transpiler.passes.utils import CheckGateDirection, GateDirection
+from qiskit.transpiler.passes.utils import CheckGateDirection
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler import CouplingMap
 

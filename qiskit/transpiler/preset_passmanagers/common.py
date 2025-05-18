@@ -532,7 +532,8 @@ def generate_translation_passmanager(
                 approximation_degree=approximation_degree,
                 force_consolidate=True,
             ),
-            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk" UnitarySynthesisPlugin.
+            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
+            # UnitarySynthesisPlugin.
             UnitarySynthesis(
                 basis_gates=["h", "t", "tdg"],
                 approximation_degree=approximation_degree,
@@ -543,7 +544,8 @@ def generate_translation_passmanager(
                 target=None,
             ),
         ]
-        # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection into basis_gates.
+        # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection
+        # into basis_gates.
         translator = BasisTranslator(sel, basis_gates, target)
         fix_1q = [translator]
     elif method == "synthesis":
@@ -746,13 +748,10 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
 
     For this we require that:
     1. The set only contains Clifford+T gates,
-    2. The set contains H, T and Tdg gates.
+    2. The set contains either T or Tdg gate or both.
 
-    The second condition guarantees that [H, T, Tdg] gates produced by
-    Solovay-Kitaev synthesis are in the basis gates.
-
-    In addition, these conditions guarantee that the empty basis set is not
-    considered as Clifford+T.
+    In particular, these conditions guarantee that the empty basis set
+    is not considered as Clifford+T.
     """
 
     if target is not None:
@@ -762,12 +761,7 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
     else:
         basis = set()
 
-    if (
-        (basis_gates is None)
-        or ("h" not in basis_gates)
-        or ("t" not in basis_gates)
-        or ("tdg" not in basis_gates)
-    ):
+    if (basis_gates is None) or (("t" not in basis_gates) and ("tdg" not in basis_gates)):
         return False
 
     return basis.issubset(_CLIFFORD_T_BASIS)
