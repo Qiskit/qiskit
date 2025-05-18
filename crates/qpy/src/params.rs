@@ -21,8 +21,8 @@ use qiskit_circuit::operations::Param;
 use std::io::{Cursor, Write};
 
 use crate::formats;
+use crate::bytes::Bytes;
 use crate::value::{dumps_register, dumps_value, get_type_key, serialize, tags, QPYData};
-use crate::Bytes;
 
 fn serialize_parameter_replay_entry(
     py: Python,
@@ -104,7 +104,7 @@ fn serialize_parameter_replay_entry(
                 }
             };
             entry.write(&mut buffer).unwrap();
-            extra_data = buffer.into_inner();
+            extra_data = buffer.into();
             [0u8; 16] // return empty
         }
         _ => {
@@ -141,7 +141,7 @@ fn serialize_replay_subs(
                 let name = key
                     .getattr(py, intern!(py, "name"))?
                     .extract::<String>(py)?;
-                let key_bytes = name.into_bytes();
+                let key_bytes: Bytes = name.into();
                 let (item_type, item_bytes) = dumps_value(value.bind(py), qpy_data)?;
                 let item_header = formats::MappingItemHeader {
                     key_size: key_bytes.len() as u16,
@@ -174,7 +174,7 @@ fn serialize_replay_subs(
     };
     entry.write(&mut buffer).unwrap();
     buffer.write_all(&mapping_data)?;
-    Ok(buffer.into_inner())
+    Ok(buffer.into())
 }
 
 fn getattr_or_none<'py>(py_object: &'py Bound<PyAny>, name: &str) -> PyResult<Bound<'py, PyAny>> {
@@ -222,7 +222,7 @@ fn serialize_parameter_expression_element(
     buffer.write_all(&extra_lhs_data).unwrap();
     buffer.write_all(&extra_rhs_data).unwrap();
     packed_element.write(&mut buffer).unwrap();
-    Ok(buffer.into_inner())
+    Ok(buffer.into())
 }
 fn serialize_parameter_expression_elements(
     py_object: &Bound<PyAny>,
@@ -266,7 +266,7 @@ fn pack_symbol(
         .rich_compare(symbol.getattr("_symbol_expr")?, CompareOp::Eq)?
         .is_truthy()?
     {
-        true => (symbol_key, Vec::new()),
+        true => (symbol_key, Bytes::new()),
         false => dumps_value(value, qpy_data)?,
     };
 
@@ -292,7 +292,7 @@ fn serialize_symbol_table(
             let packed_symbol_data = pack_symbol(py, &symbol, &value, qpy_data)?;
             let mut buffer = Cursor::new(Vec::new());
             packed_symbol_data.write(&mut buffer).unwrap();
-            Ok(buffer.into_inner())
+            Ok(buffer.into())
         })
         .collect::<PyResult<Vec<Bytes>>>()?
         .into_iter()
@@ -322,7 +322,7 @@ fn serialize_extra_symbol_table(
     let extra_symbol_table = formats::ExtraSymbolsTablePack { keys, values };
     let mut buffer = Cursor::new(Vec::new());
     extra_symbol_table.write(&mut buffer).unwrap(); // TODO: don't unwrap, propagate the error
-    Ok(buffer.into_inner())
+    Ok(buffer.into())
 }
 
 pub fn serialize_parameter_expression(
@@ -347,27 +347,25 @@ pub fn serialize_parameter_expression(
     };
     let mut buffer = Cursor::new(Vec::new());
     packed_expression.write(&mut buffer).unwrap();
-    Ok(buffer.into_inner())
+    Ok(buffer.into())
 }
 
 pub fn serialize_parameter(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
     let py = py_object.py();
     let name = py_object
         .getattr(intern!(py, "name"))?
-        .extract::<String>()?
-        .into_bytes();
+        .extract::<String>()?;
     let uuid = py_object
         .getattr(intern!(py, "uuid"))?
         .getattr(intern!(py, "bytes"))?
         .extract::<[u8; 16]>()?;
     let packed_parameter = formats::ParameterPack {
-        name_length: name.len() as u16,
         uuid,
         name,
     };
     let mut parameter_buffer = Cursor::new(Vec::new());
     packed_parameter.write(&mut parameter_buffer).unwrap();
-    Ok(parameter_buffer.into_inner())
+    Ok(parameter_buffer.into())
 }
 
 // sadly, we currently need this code duplication to handle the special le encoding for parameters
@@ -378,7 +376,6 @@ pub fn pack_generic_instruction_param_data(
     let (type_key, data) = dumps_instruction_param_value(py_data, qpy_data)?;
     Ok(formats::GenericDataPack {
         type_key,
-        data_len: data.len() as u64,
         data,
     })
 }
@@ -409,8 +406,8 @@ pub fn dumps_instruction_param_value(
     // TODO This should be fixed in next QPY version.
     let type_key: u8 = get_type_key(py_object)?;
     let value: Bytes = match type_key {
-        tags::INTEGER => py_object.extract::<i64>()?.to_le_bytes().to_vec(),
-        tags::FLOAT => py_object.extract::<f64>()?.to_le_bytes().to_vec(),
+        tags::INTEGER => py_object.extract::<i64>()?.to_le_bytes().into(),
+        tags::FLOAT => py_object.extract::<f64>()?.to_le_bytes().into(),
         tags::TUPLE => serialize(&pack_generic_instruction_param_sequence(
             py_object, qpy_data,
         )?)?,
@@ -425,13 +422,12 @@ pub fn dumps_instruction_param_value(
 
 pub fn pack_param(py: Python, param: &Param, qpy_data: &QPYData) -> PyResult<formats::PackedParam> {
     let (type_key, data) = match param {
-        Param::Float(val) => (tags::FLOAT, val.to_le_bytes().to_vec()), // using le instead of be for this QPY version
+        Param::Float(val) => (tags::FLOAT, val.to_le_bytes().into()), // using le instead of be for this QPY version
         Param::ParameterExpression(py_object) => dumps_value(py_object.bind(py), qpy_data)?,
         Param::Obj(py_object) => dumps_instruction_param_value(py_object.bind(py), qpy_data)?,
     };
     Ok(formats::PackedParam {
         type_key,
-        data_len: data.len() as u64,
         data,
     })
 }
@@ -439,7 +435,6 @@ pub fn pack_param(py: Python, param: &Param, qpy_data: &QPYData) -> PyResult<for
 pub fn serialize_parameter_vector(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
     let vector = py_object.getattr("_vector")?;
     let name = vector.getattr("_name")?.extract::<String>()?;
-    let name_bytes = name.as_bytes().to_vec();
     let vector_size = vector.call_method0("__len__")?.extract()?;
     let uuid = py_object
         .getattr("uuid")?
@@ -447,13 +442,12 @@ pub fn serialize_parameter_vector(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
         .extract::<[u8; 16]>()?;
     let index = py_object.getattr("_index")?.extract::<u64>()?;
     let packed_parameter_vector = formats::ParameterVectorPack {
-        vector_name_size: name_bytes.len() as u16,
         vector_size,
         uuid,
         index,
-        name_bytes,
+        name,
     };
     let mut buffer = Cursor::new(Vec::new());
     packed_parameter_vector.write(&mut buffer).unwrap();
-    Ok(buffer.into_inner())
+    Ok(buffer.into())
 }

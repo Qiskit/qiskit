@@ -15,12 +15,12 @@ use pyo3::prelude::*;
 use pyo3::types::PyModule;
 use pyo3::{wrap_pyfunction, Bound, PyResult};
 
-pub type Bytes = Vec<u8>;
-
 mod circuits;
 mod formats;
 mod params;
 mod value;
+mod bytes;
+mod consts;
 
 /// Internal module supplying the QPY capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.

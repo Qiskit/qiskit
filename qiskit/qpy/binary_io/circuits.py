@@ -1313,7 +1313,7 @@ def write_circuit(
     _write_layout(file_obj, circuit)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=False):
+def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=False, use_rust=False):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -1331,12 +1331,17 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             supported in all platforms. Please check that your target platform is supported by
             the symengine library before setting this option, as it will be required by qpy to
             deserialize the payload.
+        use_rust: whether to use the rust based deserialization engine. On by default.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
     Raises:
         QpyError: Invalid register.
     """
+
+    if use_rust:
+        return _qpy.py_read_circuit(file_obj, version, metadata_deserializer, use_symengine)
+    
     vectors = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)
