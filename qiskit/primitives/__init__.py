@@ -449,7 +449,22 @@ Sampler V2
    :header-rows: 0
 
    * - SamplerPubLike
-     - Union[SamplerPub, QuantumCircuit, Tuple[QuantumCircuit], Tuple[QuantumCircuit, BindingsArrayLike], Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],]
+     - A Pub (Primitive Unified Bloc) for a Sampler.
+
+       A fully specified sample Pub is a tuple ``(circuit, parameter_values, shots)``.
+
+       If shots are provided this number of shots will be run with the sampler,
+       if ``shots=None`` the number of run shots is determined by the sampler.
+
+       .. note::
+
+           A Sampler Pub can also be initialized in the following formats which
+           will be converted to the full Pub tuple:
+
+           * ``circuit``
+           * ``(circuit,)``
+           * ``(circuit, parameter_values)``
+
 
 Results V2
 ----------
