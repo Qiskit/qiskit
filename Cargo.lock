@@ -1470,6 +1470,7 @@ name = "qiskit-cext"
 version = "2.1.0"
 dependencies = [
  "cbindgen",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "pyo3",

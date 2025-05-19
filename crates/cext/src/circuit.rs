@@ -14,11 +14,14 @@ use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use std::ffi::{c_char, CStr, CString};
 
+use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2};
 use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{DelayUnit, Operation, Param, StandardGate, StandardInstruction};
+use qiskit_circuit::operations::{
+    ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -395,19 +398,33 @@ fn conjugate(matrix: &ArrayView2<Complex64>) -> Array2<Complex64> {
     })
 }
 
-fn is_unitary(matrix: &ArrayView2<Complex64>, tol: f64) -> bool {
-    let product = matrix.dot(&conjugate(matrix));
-    let n = matrix.nrows();
-    let one = Complex64::new(1.0, 0.0);
-    product.iter().enumerate().any(|(index, value)| {
-        let col_idx = index % n;
-        let row_idx = index / n;
-        if col_idx == row_idx {
-            (value - one).abs() > tol
-        } else {
-            value.abs() > tol
+/// Check an [ArrayType] represents a unitary matrix. Uses an element-wise check; if
+/// any element in ``conjugate(matrix) * matrix`` differs from the identity by more than ``tol``
+/// (in magnitude), the matrix is not considered unitary.
+fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
+    let not_unitary = match matrix {
+        ArrayType::OneQ(mat) => (mat.adjoint() * mat - Matrix2::identity())
+            .iter()
+            .any(|val| val.abs() > tol),
+        ArrayType::TwoQ(mat) => (mat.adjoint() * mat - Matrix4::identity())
+            .iter()
+            .any(|val| val.abs() > tol),
+        ArrayType::NDArray(mat) => {
+            let product = mat.dot(&conjugate(&mat.view()));
+            let n = mat.nrows();
+            let one = Complex64::new(1.0, 0.0);
+            product.iter().enumerate().any(|(index, value)| {
+                let col_idx = index % n;
+                let row_idx = index / n;
+                if col_idx == row_idx {
+                    (value - one).abs() > tol
+                } else {
+                    value.abs() > tol
+                }
+            })
         }
-    })
+    };
+    !not_unitary // using double negation to use ``any`` (faster) instead of ``all``
 }
 
 /// @ingroup QkCircuit
@@ -455,8 +472,6 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     check_input: bool,
 ) -> ExitCode {
     // SAFETY: Caller quarantees pointer validation, alignment
-
-    use qiskit_circuit::operations::{ArrayType, UnitaryGate};
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
     // Dimension of the unitart: 2^n
@@ -464,10 +479,14 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 
     // Build ndarray::Array2
     let raw = unsafe { std::slice::from_raw_parts(matrix, dim * dim * 2) };
-    let mat = Array2::from_shape_fn((dim, dim), |(i, j)| raw[i * dim + j]);
+    let mat = match num_qubits {
+        1 => ArrayType::OneQ(Matrix2::from_fn(|i, j| raw[i * dim + j])),
+        2 => ArrayType::TwoQ(Matrix4::from_fn(|i, j| raw[i * dim + j])),
+        _ => ArrayType::NDArray(Array2::from_shape_fn((dim, dim), |(i, j)| raw[i * dim + j])),
+    };
 
     // verify the matrix is unitary
-    if check_input && !is_unitary(&mat.view(), 1e-12) {
+    if check_input && !is_unitary(&mat, 1e-12) {
         return ExitCode::ExpectedUnitary;
     }
 
@@ -476,9 +495,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
         unsafe { std::slice::from_raw_parts(qubits as *const Qubit, num_qubits as usize) };
 
     // Create PackedOperation -> push to circuit_data
-    let u_gate = Box::new(UnitaryGate {
-        array: ArrayType::NDArray(mat),
-    });
+    let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
     circuit.push_packed_operation(op, &[], qargs, &[]);
     // Return success
