@@ -554,7 +554,33 @@ _BASIS_2Q = {
     "ecr": _append_ecr,
     "dcx": _append_dcx,
 }
+
 # Clifford gate names
-_CLIFFORD_GATE_NAMES = set(_BASIS_1Q.keys()).union(set(_BASIS_2Q.keys()))
+_CLIFFORD_GATE_NAMES = [
+    "id",
+    "x",
+    "y",
+    "z",
+    "h",
+    "s",
+    "sdg",
+    "sx",
+    "sxdg",
+    "cx",
+    "cz",
+    "cy",
+    "swap",
+    "iswap",
+    "ecr",
+    "dcx",
+    "t",
+    "tdg",
+]
+
 # Non-clifford gates
 _NON_CLIFFORD = {"t", "tdg", "ccx", "ccz"}
+
+
+def get_clifford_gate_names() -> list:
+    """Returns the list of Clifford gate names."""
+    return _CLIFFORD_GATE_NAMES

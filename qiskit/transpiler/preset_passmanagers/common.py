@@ -740,7 +740,7 @@ def get_vf2_limits(
 
 # Clifford+T basis, consisting of Clifford+T gate names + additional instruction names
 # that are a part of every basis
-_CLIFFORD_T_BASIS = _CLIFFORD_GATE_NAMES.union(
+_CLIFFORD_T_BASIS = set(_CLIFFORD_GATE_NAMES).union(
     {"t", "tdg", "delay", "barrier", "reset", "measure"}.union(CONTROL_FLOW_OP_NAMES)
 )
 

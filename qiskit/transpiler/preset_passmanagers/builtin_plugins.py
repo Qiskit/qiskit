@@ -1027,7 +1027,7 @@ def _get_trial_count(default_trials=5):
 # In the following, we adapt/simplify different transpiler stage plugins for transpilation into
 # Clifford+T basis.
 #
-# The plan is to have something working and to imporve on that later.
+# The plan is to have something working and to improve on that later.
 #
 # As a rule of thumb, if the original circuit already consists only of Clifford or only of
 # Clifford+T gates, then we don't want the transpilation to make it significantly worse.
