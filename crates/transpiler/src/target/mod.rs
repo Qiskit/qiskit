@@ -861,6 +861,19 @@ impl Target {
             "non_global_strict_basis",
             self.non_global_strict_basis.clone(),
         )?;
+        let bounds_dict = PyDict::new(py);
+        for (gate, bounds) in self.angle_bounds.iter() {
+            let callback = match bounds.callback() {
+                bounds::CallbackType::Python(obj) => obj.clone_ref(py),
+                bounds::CallbackType::Native(_) => {
+                    return Err(TranspilerError::new_err(
+                        "Target contains native code bounds callbacks which can't be serialized",
+                    ));
+                }
+            };
+            bounds_dict.set_item(gate, (bounds.bounds().to_vec(), callback))?;
+        }
+        result_list.set_item("angle_bounds", bounds_dict)?;
         Ok(result_list.unbind())
     }
 
@@ -915,6 +928,13 @@ impl Target {
             .get_item("non_global_strict_basis")?
             .unwrap()
             .extract::<Option<Vec<String>>>()?;
+        let angle_bounds_raw = state.get_item("angle_bounds")?.unwrap();
+        let angle_bounds_dict = angle_bounds_raw.downcast::<PyDict>()?;
+        type AngleBoundIterList = Vec<(String, (SmallVec<[Option<[f64; 2]>; 3]>, PyObject))>;
+        let angle_bounds_list: AngleBoundIterList = angle_bounds_dict.items().extract()?;
+        for (gate, bound_tuple) in angle_bounds_list {
+            self.py_add_angle_bound(gate, bound_tuple.0, bound_tuple.1)?;
+        }
         Ok(())
     }
 

@@ -3063,7 +3063,7 @@ class TestTranspileParallel(QiskitTestCase):
             wrap_angle = np.angle(np.exp(1j * angle))
             qubits = [Qubit(), Qubit()]
             new_dag = DAGCircuit()
-            new_dag.add_qubits([Qubit(), Qubit()])
+            new_dag.add_qubits(qubits)
             if 0 <= wrap_angle <= pi / 2:
                 new_dag.apply_operation_back(
                     RZZGate(angle),

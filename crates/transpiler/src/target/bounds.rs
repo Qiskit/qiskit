@@ -20,7 +20,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use smallvec::SmallVec;
 
 #[derive(Clone)]
-enum CallbackType {
+pub(crate) enum CallbackType {
     Python(PyObject),
     Native(fn(&[f64]) -> DAGCircuit),
 }
@@ -51,6 +51,14 @@ impl fmt::Debug for AngleBound {
 }
 
 impl AngleBound {
+    pub fn bounds(&self) -> &[Option<[f64; 2]>] {
+        &self.bounds
+    }
+
+    pub fn callback(&self) -> &CallbackType {
+        &self.callback
+    }
+
     pub fn new_native(
         bounds: SmallVec<[Option<[f64; 2]>; 3]>,
         callback: fn(&[f64]) -> DAGCircuit,
