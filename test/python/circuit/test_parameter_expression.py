@@ -14,6 +14,7 @@
 
 import cmath
 import math
+import unittest
 
 from test import combine
 from test import QiskitTestCase
@@ -21,6 +22,7 @@ from test import QiskitTestCase
 import ddt
 
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+from qiskit.utils.optionals import HAS_SYMPY
 
 
 param_x = Parameter("x")
@@ -463,3 +465,43 @@ class TestParameterExpression(QiskitTestCase):
 
         with self.assertRaises(RuntimeError):
             _ = expr.gradient(x)
+
+    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
+    def test_sympify_all_ops(self):
+        """Test the sympify function works for all the supported operations."""
+
+        import sympy
+
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+        d = Parameter("d")
+
+        expression = (a + b.sin() / 4) * c**2
+        final_expr = (
+            (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
+            + expression.gradient(a)
+            + expression.log()
+            - a.sin()
+            - b.conjugate()
+        )
+        final_expr = final_expr.abs()
+        final_expr = final_expr.subs({c: a})
+        result = final_expr.sympify()
+
+        a = sympy.Symbol("a")
+        b = sympy.Symbol("b")
+        c = sympy.Symbol("c")
+        d = sympy.Symbol("d")
+        expression = (a + sympy.sin(b) / 4) * c**2
+        expected = (
+            (sympy.cos(expression) + sympy.acos(d) - sympy.asin(d) + sympy.atan(d) + sympy.tan(d))
+            / sympy.exp(d)
+            + expression.diff(a)
+            + sympy.log(expression)
+            - sympy.sin(a)
+            - sympy.conjugate(b)
+        )
+        expected = sympy.Abs(expected)
+        expected = expected.subs({c: a})
+        self.assertEqual(result, expected)

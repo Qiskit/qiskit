@@ -714,10 +714,21 @@ class ParameterExpression:
                     elif inst.op == 2:
                         method_str = "__rmul__"
                     output = getattr(rhs, method_str)(lhs)
+                elif inst.op == _OPCode.GRAD:
+                    output = getattr(lhs, "diff")(rhs)
                 else:
                     output = getattr(lhs, method_str)(rhs)
             else:
-                output = getattr(lhs, method_str)()
+                if inst.op == _OPCode.ACOS:
+                    output = getattr(sympy, "acos")(lhs)
+                elif inst.op == _OPCode.ASIN:
+                    output = getattr(sympy, "asin")(lhs)
+                elif inst.op == _OPCode.ATAN:
+                    output = getattr(sympy, "atan")(lhs)
+                elif inst.op == _OPCode.ABS:
+                    output = getattr(sympy, "Abs")(lhs)
+                else:
+                    output = getattr(sympy, method_str)(lhs)
         return output
 
 
