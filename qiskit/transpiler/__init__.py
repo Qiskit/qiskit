@@ -673,6 +673,9 @@ At a high level, this starts from the set of gates requested by the circuit, and
 given :class:`.EquivalenceLibrary` (typically the :data:`.SessionEquivalenceLibrary`) to move
 towards the ISA.
 
+For a Clifford+T basis set, the single-qubit rotation gates are approximated using the
+Solovay-Kitaev algorithm.
+
 This is the default translation method.
 
 The optimization level has no effect on this plugin.
@@ -724,7 +727,8 @@ This varies significantly depending on the optimization level and whether the ba
 form Clifford+T.
 
 The specifics of this pipeline are subject to change between Qiskit versions. The broad principles
-are described below.
+are described below. First, consider the more common case that the basis set is not of the form
+Clifford+T.
 
 At optimization level 0, the stage is empty.
 
@@ -734,14 +738,14 @@ runs in a loop until the size and depth of the circuit are fixed.
 
 At optimization level 2, in addition the optimizations of level 1, the loop contains commutation
 analysis of sets of gates to widen the range of gates that can be considered for cancellation.
-When the basis set is not of the form Clifford+T, before the loop, runs of both one- and two-qubit
-gates undergo a single matrix-based resynthesis.
+Before the loop, runs of both one- and two-qubit gates undergo a single matrix-based resynthesis.
 
-At optimization level 3, when the basis set is not of the form Clifford+T, the two-qubit matrix-based
-resynthesis runs inside the optimization loop.
+At optimization level 3, the two-qubit matrix-based resynthesis runs inside the optimization loop.
 The optimization loop condition also tries multiple runs and chooses the minimum point in the case
 of fluctuating output; this is necessary because matrix-based resynthesis is relatively unstable in
 terms of concrete gates.
+
+For a Clifford+T basis set, two-qubit matrix based resynthesis is not applied.
 
 Optimization level 3 is typically very expensive for large circuits.
 
