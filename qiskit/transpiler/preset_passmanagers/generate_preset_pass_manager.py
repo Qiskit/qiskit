@@ -399,14 +399,12 @@ def _parse_instruction_durations(backend, dt):
     final_durations.update(backend_durations, dt or backend_durations.dt)
     return final_durations
 
-
 def _parse_timing_constraints(backend):
+    # If backend is None, we get timing constraints from Target later
     if backend is None:
-        timing_constraints = TimingConstraints()
+        return None
     else:
-        timing_constraints = backend.target.timing_constraints()
-    return timing_constraints
-
+        return backend.target.timing_constraints()
 
 def _parse_initial_layout(initial_layout):
     # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
