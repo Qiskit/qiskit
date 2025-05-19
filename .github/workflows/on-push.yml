@@ -28,4 +28,3 @@ jobs:
       python-version: "3.9"
       install-optionals: false
       runner: ubuntu-latest
-    
