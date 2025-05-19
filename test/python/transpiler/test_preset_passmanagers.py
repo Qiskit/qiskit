@@ -44,7 +44,9 @@ from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
 from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis
+from qiskit.transpiler.passes.scheduling.alignments.check_durations import InstructionDurationCheck
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, LAGOS_CMAP, TOKYO_CMAP, BOGOTA_CMAP
@@ -1499,6 +1501,19 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         self.assertEqual(res.metadata, metadata)
         self.assertEqual(res.name, name)
 
+    def test_timing_constraints_from_target_no_backend(self):
+        """Test that timing constrains are obtained from target when no backend is provided"""
+        target = Target.from_configuration(basis_gates=["sx", "rz", "cz", "measure", "delay"], coupling_map=CouplingMap.from_line(4), timing_constraints=TimingConstraints(acquire_alignment=2))
+        pm = generate_preset_pass_manager(optimization_level=2, target=target)
+
+        has_InstructionDurationsCheck = False
+
+        # Check to ensure that one of the tasks is of the type 'InstructionDurationsCheck'
+        for task in pm.scheduling.__dict__['_tasks']:
+            if type(task[0]) == InstructionDurationCheck:
+                has_InstructionDurationsCheck = True
+
+        self.assertIs(has_InstructionDurationsCheck, True)
 
 @ddt
 class TestIntegrationControlFlow(QiskitTestCase):
