@@ -283,7 +283,7 @@ impl GateSequence {
 
         let mut circuit = CircuitData::with_capacity(1, 0, gates.len(), global_phase).unwrap();
         for gate in gates {
-            circuit.push_standard_gate(*gate, &[], &[Qubit(0)]).unwrap();
+            circuit.push_standard_gate(*gate, &[], &[Qubit(0)]);
         }
         Ok(circuit)
     }

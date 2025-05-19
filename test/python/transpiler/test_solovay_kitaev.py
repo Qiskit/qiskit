@@ -130,6 +130,8 @@ class TestSolovayKitaev(QiskitTestCase):
         reference.s(0)
         reference.h(0)
 
+        self.assertEqual(reference, out)
+
     def test_multiple_plugins(self):
         """Test calling the plugins directly but with different instances of basis set."""
         circuit = QuantumCircuit(1)
