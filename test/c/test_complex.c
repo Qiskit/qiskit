@@ -23,7 +23,7 @@
 typedef _Dcomplex ComplexDouble;
 ComplexDouble make_complex(double real, double imag) { return (ComplexDouble){real, imag}; }
 #else
-typedef complex double ComplexDouble;
+typedef double complex ComplexDouble;
 ComplexDouble make_complex(double real, double imag) { return real + I * imag; }
 #endif
 
@@ -43,7 +43,7 @@ int test_from_native(void) {
 }
 
 /**
- * Test converting a native number to QkComplex64.
+ * Test converting QkComplex64 to native number.
  */
 int test_to_native(void) {
     const double real = 1.65;

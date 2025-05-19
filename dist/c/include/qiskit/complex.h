@@ -36,7 +36,7 @@ static QkComplex64 qk_complex64_from_native(_Dcomplex *value) {
 static _Complex double qk_complex64_to_native(QkComplex64 *value) {
     return value->re + I * value->im;
 }
-static QkComplex64 qk_complex64_from_native(_Complex double *value) {
+static QkComplex64 qk_complex64_from_native(double _Complex *value) {
     return (QkComplex64){creal(*value), cimag(*value)};
 }
 #endif // _MSC_VER
