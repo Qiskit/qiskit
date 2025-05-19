@@ -27,10 +27,12 @@ use crate::classical::expr;
 use crate::converters::QuantumCircuitData;
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
+use crate::duration::Duration;
 use crate::error::DAGCircuitError;
+use crate::parameter_expression::ParameterExpression;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
+use crate::operations::{ArrayType, Condition, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef, Param, PyInstruction, StandardGate, StandardGateRef, StandardInstruction, StandardInstructionRef, Target, UnitaryGateRef};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
@@ -79,6 +81,143 @@ use std::sync::OnceLock;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", "switch_case"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
+
+
+#[derive(Clone, Debug)]
+enum Parameters {
+    Params(SmallVec<[Param; 3]>),
+    Box {
+        duration: Duration,
+        body: DAGCircuit
+    },
+    ForLoop {
+        indexset: Vec<usize>,
+        loop_param: ParameterExpression,
+        body: DAGCircuit,
+    },
+    IfElse {
+        condition: Condition,
+        true_body: DAGCircuit,
+        false_body: DAGCircuit,
+    },
+    Switch {
+        target: Target,
+        cases: Vec<DAGCircuit>,
+    },
+    While {
+        condition: Condition,
+        body: DAGCircuit,
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DAGInstruction {
+    pub op: PackedOperation,
+    /// The index under which the interner has stored `qubits`.
+    pub qubits: Interned<[Qubit]>,
+    /// The index under which the interner has stored `clbits`.
+    pub clbits: Interned<[Clbit]>,
+    pub params: Option<Box<Parameters>>,
+    pub label: Option<Box<String>>,
+
+    #[cfg(feature = "cache_pygates")]
+    /// This is hidden in a `OnceLock` because it's just an on-demand cache; we don't create this
+    /// unless asked for it.  A `OnceLock` of a non-null pointer type (like `Py<T>`) is the same
+    /// size as a pointer and there are no runtime checks on access beyond the initialisation check,
+    /// which is a simple null-pointer check.
+    ///
+    /// WARNING: remember that `OnceLock`'s `get_or_init` method is no-reentrant, so the initialiser
+    /// must not yield the GIL to Python space.  We avoid using `GILOnceCell` here because it
+    /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
+    /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
+    /// feature.
+    pub py_op: OnceLock<Py<PyAny>>,
+}
+
+impl DAGInstruction {
+    #[inline]
+    fn view(&self) -> InstructionRef<'_, DAGCircuit> {
+        match self.op {
+            OperationRef::ControlFlow(c) => {
+                InstructionRef::ControlFlow(match c {
+                    ControlFlow::Box { duration, .. } => {
+                        let
+                        let Param::Circuit(body) = &self.params_view()[0] else {
+                            panic!("invalid");
+                        };
+                        ControlFlowRef::Box(duration, body)
+                    }
+                    ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
+                    ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
+                    ControlFlow::ForLoop { indexset, loop_param, .. } => {
+                        let Param::Circuit(body) = &self.params_view()[0] else {
+                            panic!("invalid");
+                        };
+                        ControlFlowRef::ForLoop {
+                            indexset,
+                            loop_param,
+                            body,
+                        }
+                    }
+                    ControlFlow::IfElse { condition, .. } => {
+                        let [Param::Circuit(true_body), Param::Circuit(false_body)] = &self.params_view() else {
+                            panic!("invalid");
+                        };
+                        ControlFlowRef::IfElse {
+                            condition,
+                            true_body,
+                            false_body,
+                        }
+                    }
+                    ControlFlow::Switch { target, .. } => {
+                        let xs = self.params_view().iter().map(|p| match p {
+                            Param::Circuit(c) => c,
+                            _ => panic!("invalid")
+                        }).collect();
+                        ControlFlowRef::Switch {
+                            target,
+                            cases: xs,
+                        }
+                    }
+                    ControlFlow::While { condition, .. } => {
+                        let Param::Circuit(body) = &self.params_view()[0] else {
+                            panic!("invalid");
+                        };
+                        ControlFlowRef::While {
+                            condition,
+                            body,
+                        }
+                    }
+                })
+            }
+            OperationRef::StandardGate(g) => {
+                InstructionRef::StandardGate(StandardGateRef(g, self.params_view()))
+            }
+            OperationRef::StandardInstruction(i) => {
+                InstructionRef::StandardInstruction(match i {
+                    StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
+                    StandardInstruction::Delay(u) => todo!(),
+                    // StandardInstructionRef::Delay(
+                    // match u {
+                    // DelayUnit::NS => Duration::ns()
+                    // DelayUnit::PS => {}
+                    // DelayUnit::US => {}
+                    // DelayUnit::MS => {}
+                    // DelayUnit::S => {}
+                    // DelayUnit::DT => {}
+                    // DelayUnit::EXPR => {}
+                    // })
+                    StandardInstruction::Measure => StandardInstructionRef::Measure,
+                    StandardInstruction::Reset => StandardInstructionRef::Reset,
+                })
+            }
+            OperationRef::Gate(g) => InstructionRef::Gate(g),
+            OperationRef::Instruction(i) => InstructionRef::Instruction(i),
+            OperationRef::Operation(o) => InstructionRef::Operation(o),
+            OperationRef::Unitary(u) => InstructionRef::Unitary(UnitaryGateRef(u)),
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum NodeType {
@@ -1043,7 +1182,7 @@ impl DAGCircuit {
             Param::ParameterExpression(angle) => {
                 self.global_phase = Param::ParameterExpression(angle);
             }
-            Param::Obj(_) => return Err(PyTypeError::new_err("Invalid type for global phase")),
+            _ => return Err(PyTypeError::new_err("Invalid type for global phase")),
         }
         Ok(())
     }

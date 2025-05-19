@@ -80,7 +80,10 @@ pub static IF_ELSE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "I
 pub static FOR_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "ForLoopOp");
 pub static SWITCH_CASE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "SwitchCaseOp");
 pub static WHILE_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "WhileLoopOp");
+pub static BREAK_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "BreakLoopOp");
+pub static CONTINUE_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "ContinueLoopOp");
 pub static STORE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Store");
+pub static BOX_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Box");
 pub static DAG_NODE: ImportOnceCell = ImportOnceCell::new("qiskit.dagcircuit", "DAGNode");
 pub static CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ControlledGate");

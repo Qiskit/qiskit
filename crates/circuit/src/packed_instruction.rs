@@ -21,14 +21,13 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
+use crate::circuit_instruction::Instruction;
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DEEPCOPY, DELAY, MEASURE, RESET, UNITARY_GATE};
+use crate::imports::{get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY, FOR_LOOP_OP, IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP};
 use crate::interner::Interned;
-use crate::operations::{
-    Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, UnitaryGate,
-};
+use crate::operations::{ControlFlow, ControlFlowRef, DelayUnit, InstructionRef, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate, StandardGateRef, StandardInstruction, StandardInstructionRef, UnitaryGate, UnitaryGateRef};
 use crate::{Clbit, Qubit};
+use crate::duration::Duration;
 
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,13 +42,14 @@ enum PackedOperationType {
     PyInstruction = 3,
     PyOperation = 4,
     UnitaryGate = 5,
+    ControlFlow = 6,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 6
+        *bits < 7
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
@@ -66,6 +66,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     Instruction(Box<PyInstruction>),
 ///     Operation(Box<PyOperation>),
 ///     UnitaryGate(Box<UnitaryGate>),
+///     ControlFlow(Box<ControlFlow>),
 /// }
 /// ```
 ///
@@ -252,7 +253,7 @@ mod standard_instruction {
 
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
-    use crate::operations::{PyGate, PyInstruction, PyOperation, UnitaryGate};
+    use crate::operations::{PyGate, PyInstruction, PyOperation, UnitaryGate, ControlFlow};
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
 
@@ -335,6 +336,7 @@ mod pointer {
     impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
     impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
+    impl_packable_pointer!(ControlFlow, PackedOperationType::ControlFlow);
 }
 
 impl PackedOperation {
@@ -381,6 +383,7 @@ impl PackedOperation {
     #[inline]
     pub fn view(&self) -> OperationRef {
         match self.discriminant() {
+            PackedOperationType::ControlFlow => OperationRef::ControlFlow(self.try_into().unwrap()),
             PackedOperationType::StandardGate => OperationRef::StandardGate(self.standard_gate()),
             PackedOperationType::StandardInstruction => {
                 OperationRef::StandardInstruction(self.standard_instruction())
@@ -424,13 +427,22 @@ impl PackedOperation {
         operation.into()
     }
 
+    /// Construct a new `PackedOperation` from an owned heap-allocated `UnitaryGate`.
     pub fn from_unitary(unitary: Box<UnitaryGate>) -> Self {
         unitary.into()
+    }
+
+    /// Construct a new `PackedOperation` from an owned heap-allocated `ControlFlow`.
+    pub fn from_control_flow(control_flow: Box<ControlFlow>) -> Self {
+        control_flow.into()
     }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
     pub fn py_eq(&self, py: Python, other: &PackedOperation) -> PyResult<bool> {
         match (self.view(), other.view()) {
+            (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
+                Ok(left == right)
+            }
             (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
                 Ok(left == right)
             }
@@ -459,6 +471,7 @@ impl PackedOperation {
     ) -> PyResult<Self> {
         let deepcopy = DEEPCOPY.get_bound(py);
         match self.view() {
+            OperationRef::ControlFlow(control_flow) => Ok(control_flow.clone().into()),
             OperationRef::StandardGate(standard) => Ok(standard.into()),
             OperationRef::StandardInstruction(instruction) => {
                 Ok(Self::from_standard_instruction(instruction))
@@ -497,6 +510,7 @@ impl PackedOperation {
     pub fn py_copy(&self, py: Python) -> PyResult<Self> {
         let copy_attr = intern!(py, "copy");
         match self.view() {
+            OperationRef::ControlFlow(control_flow) => Ok(control_flow.clone().into()),
             OperationRef::StandardGate(standard) => Ok(standard.into()),
             OperationRef::StandardInstruction(instruction) => {
                 Ok(Self::from_standard_instruction(instruction))
@@ -536,6 +550,17 @@ impl PackedOperation {
     pub fn py_op_is_instance(&self, py_type: &Bound<PyType>) -> PyResult<bool> {
         let py = py_type.py();
         let py_op = match self.view() {
+            OperationRef::ControlFlow(control_flow) => {
+                return match control_flow {
+                    ControlFlow::Box { .. } => BOX_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
+                    ControlFlow::BreakLoop { .. } => BREAK_LOOP_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
+                    ControlFlow::ContinueLoop { .. } => CONTINUE_LOOP_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
+                    ControlFlow::ForLoop { .. } => FOR_LOOP_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
+                    ControlFlow::IfElse { .. } => IF_ELSE_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
+                    ControlFlow::Switch { .. } => SWITCH_CASE_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
+                    ControlFlow::While { .. } => WHILE_LOOP_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
+                }
+            }
             OperationRef::StandardGate(standard) => {
                 return get_std_gate_class(py, standard)?
                     .bind(py)
@@ -580,6 +605,7 @@ impl Operation for PackedOperation {
     fn name(&self) -> &str {
         let view = self.view();
         let name = match view {
+            OperationRef::ControlFlow(control_flow) => control_flow.name(),
             OperationRef::StandardGate(ref standard) => standard.name(),
             OperationRef::StandardInstruction(ref instruction) => instruction.name(),
             OperationRef::Gate(gate) => gate.name(),
@@ -614,18 +640,6 @@ impl Operation for PackedOperation {
         self.view().control_flow()
     }
     #[inline]
-    fn blocks(&self) -> Vec<CircuitData> {
-        self.view().blocks()
-    }
-    #[inline]
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-        self.view().matrix(params)
-    }
-    #[inline]
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-        self.view().definition(params)
-    }
-    #[inline]
     fn standard_gate(&self) -> Option<StandardGate> {
         self.view().standard_gate()
     }
@@ -638,6 +652,7 @@ impl Operation for PackedOperation {
 impl Clone for PackedOperation {
     fn clone(&self) -> Self {
         match self.view() {
+            OperationRef::ControlFlow(control_flow) => Self::from_control_flow(Box::new(control_flow.clone())),
             OperationRef::StandardGate(standard) => Self::from_standard_gate(standard),
             OperationRef::StandardInstruction(instruction) => {
                 Self::from_standard_instruction(instruction)
@@ -663,6 +678,7 @@ impl Drop for PackedOperation {
             PackedOperationType::PyInstruction => PyInstruction::drop_packed(self),
             PackedOperationType::PyOperation => PyOperation::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
+            PackedOperationType::ControlFlow => ControlFlow::drop_packed(self),
         }
     }
 }
@@ -701,30 +717,39 @@ pub struct PackedInstruction {
     pub py_op: OnceLock<Py<PyAny>>,
 }
 
-impl PackedInstruction {
-    /// Access the standard gate in this `PackedInstruction`, if it is one.  If the instruction
-    /// refers to a Python-space object, `None` is returned.
-    #[inline]
-    pub fn standard_gate(&self) -> Option<StandardGate> {
-        self.op.try_standard_gate()
+impl Instruction for PackedInstruction {
+    fn op(&self) -> OperationRef<'_> {
+        self.op.view()
     }
 
-    /// Get a slice view onto the contained parameters.
     #[inline]
-    pub fn params_view(&self) -> &[Param] {
+    fn params_view(&self) -> &[Param] {
         self.params
             .as_deref()
             .map(SmallVec::as_slice)
             .unwrap_or(&[])
     }
 
-    /// Get a mutable slice view onto the contained parameters.
     #[inline]
-    pub fn params_mut(&mut self) -> &mut [Param] {
+    fn params_mut(&mut self) -> &mut [Param] {
         self.params
             .as_deref_mut()
             .map(SmallVec::as_mut_slice)
             .unwrap_or(&mut [])
+    }
+
+    #[inline]
+    fn label(&self) -> Option<&str> {
+        self.label.as_ref().map(|label| label.as_str())
+    }
+}
+
+impl PackedInstruction {
+    /// Access the standard gate in this `DataInstruction`, if it is one.  If the instruction
+    /// refers to a Python-space object, `None` is returned.
+    #[inline]
+    pub fn standard_gate(&self) -> Option<StandardGate> {
+        self.op.try_standard_gate()
     }
 
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
@@ -734,40 +759,14 @@ impl PackedInstruction {
             .any(|x| matches!(x, Param::ParameterExpression(_)))
     }
 
-    #[inline]
-    pub fn label(&self) -> Option<&str> {
-        self.label.as_ref().map(|label| label.as_str())
-    }
-
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
-    /// instruction.  This may construct the reference if the `PackedInstruction` is a standard
+    /// instruction.  This may construct the reference if the `DataInstruction` is a standard
     /// gate or instruction with no already stored operation.
     ///
     /// A standard-gate or standard-instruction operation object returned by this function is
     /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
     /// and condition will not be propagated back.
     pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        let unpack = || -> PyResult<Py<PyAny>> {
-            match self.op.view() {
-                OperationRef::StandardGate(standard) => standard.create_py_op(
-                    py,
-                    self.params.as_deref().map(SmallVec::as_slice),
-                    self.label.as_ref().map(|x| x.as_str()),
-                ),
-                OperationRef::StandardInstruction(instruction) => instruction.create_py_op(
-                    py,
-                    self.params.as_deref().map(SmallVec::as_slice),
-                    self.label.as_ref().map(|x| x.as_str()),
-                ),
-                OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
-                OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
-                OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
-                OperationRef::Unitary(unitary) => {
-                    unitary.create_py_op(py, self.label.as_ref().map(|x| x.as_str()))
-                }
-            }
-        };
-
         // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
@@ -778,7 +777,7 @@ impl PackedInstruction {
                 return Ok(ob.clone_ref(py));
             }
         }
-        let out = unpack()?;
+        let out = self.create_py_op(py)?;
         #[cfg(feature = "cache_pygates")]
         {
             // The unpacking operation can cause a thread pause and concurrency, since it can call
@@ -787,43 +786,5 @@ impl PackedInstruction {
             let _ = self.py_op.set(out.clone_ref(py));
         }
         Ok(out)
-    }
-
-    /// Check equality of the operation, including Python-space checks, if appropriate.
-    pub fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
-        match (self.op.view(), other.op.view()) {
-            (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
-                Ok(left == right)
-            }
-            (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
-                Ok(left == right)
-            }
-            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                left.gate.bind(py).eq(&right.gate)
-            }
-            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
-                left.instruction.bind(py).eq(&right.instruction)
-            }
-            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                left.operation.bind(py).eq(&right.operation)
-            }
-            // Handle the case we end up with a pygate for a standard gate
-            // this typically only happens if it's a ControlledGate in python
-            // and we have mutable state set.
-            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
-                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
-            }
-            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
-                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
-            }
-            // Handle the case we end up with a pyinstruction for a standard instruction
-            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
-                self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
-            }
-            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => {
-                other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
-            }
-            _ => Ok(false),
-        }
     }
 }

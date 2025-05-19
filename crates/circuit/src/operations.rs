@@ -13,7 +13,9 @@
 use approx::relative_eq;
 use std::f64::consts::PI;
 use std::{fmt, vec};
-
+use std::fmt::Debug;
+use std::marker::PhantomData;
+use std::ops::Deref;
 use crate::circuit_data::CircuitData;
 use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
@@ -32,11 +34,16 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
+use crate::bit::{ClassicalRegister, ShareableClbit};
+use crate::classical::expr;
+use crate::duration::Duration;
+use crate::parameter_expression::ParameterExpression;
 
 #[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
 pub enum Param {
     ParameterExpression(PyObject),
     Float(f64),
+    Circuit(CircuitData),
     Obj(PyObject),
 }
 
@@ -154,9 +161,6 @@ pub trait Operation {
     fn num_clbits(&self) -> u32;
     fn num_params(&self) -> u32;
     fn control_flow(&self) -> bool;
-    fn blocks(&self) -> Vec<CircuitData>;
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
-    fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
 }
@@ -167,6 +171,7 @@ pub trait Operation {
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
 #[derive(Debug)]
 pub enum OperationRef<'a> {
+    ControlFlow(&'a ControlFlow),
     StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
     Gate(&'a PyGate),
@@ -179,6 +184,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
+            Self::ControlFlow(op) => op.name(),
             Self::StandardGate(standard) => standard.name(),
             Self::StandardInstruction(instruction) => instruction.name(),
             Self::Gate(gate) => gate.name(),
@@ -190,6 +196,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_qubits(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_qubits(),
             Self::StandardGate(standard) => standard.num_qubits(),
             Self::StandardInstruction(instruction) => instruction.num_qubits(),
             Self::Gate(gate) => gate.num_qubits(),
@@ -201,6 +208,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_clbits(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_clbits(),
             Self::StandardGate(standard) => standard.num_clbits(),
             Self::StandardInstruction(instruction) => instruction.num_clbits(),
             Self::Gate(gate) => gate.num_clbits(),
@@ -212,6 +220,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn num_params(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_params(),
             Self::StandardGate(standard) => standard.num_params(),
             Self::StandardInstruction(instruction) => instruction.num_params(),
             Self::Gate(gate) => gate.num_params(),
@@ -223,6 +232,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn control_flow(&self) -> bool {
         match self {
+            Self::ControlFlow(op) => op.control_flow(),
             Self::StandardGate(standard) => standard.control_flow(),
             Self::StandardInstruction(instruction) => instruction.control_flow(),
             Self::Gate(gate) => gate.control_flow(),
@@ -231,42 +241,43 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.control_flow(),
         }
     }
-    #[inline]
-    fn blocks(&self) -> Vec<CircuitData> {
-        match self {
-            OperationRef::StandardGate(standard) => standard.blocks(),
-            OperationRef::StandardInstruction(instruction) => instruction.blocks(),
-            OperationRef::Gate(gate) => gate.blocks(),
-            OperationRef::Instruction(instruction) => instruction.blocks(),
-            OperationRef::Operation(operation) => operation.blocks(),
-            Self::Unitary(unitary) => unitary.blocks(),
-        }
-    }
-    #[inline]
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-        match self {
-            Self::StandardGate(standard) => standard.matrix(params),
-            Self::StandardInstruction(instruction) => instruction.matrix(params),
-            Self::Gate(gate) => gate.matrix(params),
-            Self::Instruction(instruction) => instruction.matrix(params),
-            Self::Operation(operation) => operation.matrix(params),
-            Self::Unitary(unitary) => unitary.matrix(params),
-        }
-    }
-    #[inline]
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-        match self {
-            Self::StandardGate(standard) => standard.definition(params),
-            Self::StandardInstruction(instruction) => instruction.definition(params),
-            Self::Gate(gate) => gate.definition(params),
-            Self::Instruction(instruction) => instruction.definition(params),
-            Self::Operation(operation) => operation.definition(params),
-            Self::Unitary(unitary) => unitary.definition(params),
-        }
-    }
+    // #[inline]
+    // fn blocks(&self) -> Vec<CircuitData> {
+    //     match self {
+    //         OperationRef::StandardGate(standard) => standard.blocks(),
+    //         OperationRef::StandardInstruction(instruction) => instruction.blocks(),
+    //         OperationRef::Gate(gate) => gate.blocks(),
+    //         OperationRef::Instruction(instruction) => instruction.blocks(),
+    //         OperationRef::Operation(operation) => operation.blocks(),
+    //         Self::Unitary(unitary) => unitary.blocks(),
+    //     }
+    // }
+    // #[inline]
+    // fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+    //     match self {
+    //         Self::StandardGate(standard) => standard.matrix(params),
+    //         Self::StandardInstruction(instruction) => instruction.matrix(params),
+    //         Self::Gate(gate) => gate.matrix(params),
+    //         Self::Instruction(instruction) => instruction.matrix(params),
+    //         Self::Operation(operation) => operation.matrix(params),
+    //         Self::Unitary(unitary) => unitary.matrix(params),
+    //     }
+    // }
+    // #[inline]
+    // fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+    //     match self {
+    //         Self::StandardGate(standard) => standard.definition(params),
+    //         Self::StandardInstruction(instruction) => instruction.definition(params),
+    //         Self::Gate(gate) => gate.definition(params),
+    //         Self::Instruction(instruction) => instruction.definition(params),
+    //         Self::Operation(operation) => operation.definition(params),
+    //         Self::Unitary(unitary) => unitary.definition(params),
+    //     }
+    // }
     #[inline]
     fn standard_gate(&self) -> Option<StandardGate> {
         match self {
+            Self::ControlFlow(op) => op.standard_gate(),
             Self::StandardGate(standard) => standard.standard_gate(),
             Self::StandardInstruction(instruction) => instruction.standard_gate(),
             Self::Gate(gate) => gate.standard_gate(),
@@ -278,6 +289,7 @@ impl Operation for OperationRef<'_> {
     #[inline]
     fn directive(&self) -> bool {
         match self {
+            Self::ControlFlow(op) => op.directive(),
             Self::StandardGate(standard) => standard.directive(),
             Self::StandardInstruction(instruction) => instruction.directive(),
             Self::Gate(gate) => gate.directive(),
@@ -286,6 +298,205 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.directive(),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum InstructionRef<'a, T> {
+    ControlFlow(ControlFlowRef<'a, T>),
+    StandardGate(StandardGateRef<'a>),
+    StandardInstruction(StandardInstructionRef),
+    Gate(&'a PyGate),
+    Instruction(&'a PyInstruction),
+    Operation(&'a PyOperation),
+    Unitary(UnitaryGateRef<'a>),
+}
+
+impl<'a, T> InstructionRef<'a, T> {
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
+        match self {
+            InstructionRef::StandardGate(g) => g.matrix(),
+            InstructionRef::Gate(g) => g.matrix(),
+            InstructionRef::Unitary(u) => u.matrix(),
+            _ => None
+        }
+    }
+
+    pub fn definition(&self) -> Option<CircuitData> {
+        match self {
+            InstructionRef::StandardGate(g) => g.definition(),
+            InstructionRef::Gate(g) => g.definition(),
+            InstructionRef::Instruction(i) => i.definition(),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Hash)]
+#[repr(align(8))]
+pub enum ControlFlow {
+    // TODO: add specific data that would normally be in Params
+    Box {
+        duration: Duration,
+        qubits: u32,
+        clbits: u32,
+    },
+    BreakLoop {
+        qubits: u32,
+        clbits: u32,
+    },
+    ContinueLoop {
+        qubits: u32,
+        clbits: u32,
+    },
+    ForLoop {
+        indexset: Vec<usize>,
+        loop_param: ParameterExpression,
+        qubits: u32,
+        clbits: u32,
+    },
+    IfElse {
+        condition: Condition,
+        qubits: u32,
+        clbits: u32,
+    },
+    Switch {
+        target: Target,
+        qubits: u32,
+        clbits: u32,
+        cases: u32,
+    },
+    While {
+        condition: Condition,
+        qubits: u32,
+        clbits: u32,
+    },
+}
+
+impl Operation for ControlFlow {
+    fn name(&self) -> &str {
+        match self {
+            ControlFlow::Box { .. } => "box",
+            ControlFlow::BreakLoop { .. } => "break_loop",
+            ControlFlow::ContinueLoop { .. } => "continue_loop",
+            ControlFlow::ForLoop { .. } => "for_loop",
+            ControlFlow::IfElse { .. } => "if_else",
+            ControlFlow::Switch { .. } => "switch_case",
+            ControlFlow::While { .. } => "while_loop",
+        }
+    }
+
+    fn num_qubits(&self) -> u32 {
+        match self {
+            ControlFlow::Box { qubits, .. } |
+            ControlFlow::BreakLoop { qubits, .. } |
+            ControlFlow::ContinueLoop { qubits, .. } |
+            ControlFlow::ForLoop { qubits, .. } |
+            ControlFlow::IfElse { qubits, .. } |
+            ControlFlow::Switch { qubits, .. } |
+            ControlFlow::While { qubits, .. } => *qubits
+        }
+    }
+
+    fn num_clbits(&self) -> u32 {
+        match self {
+            ControlFlow::Box { clbits, .. } |
+            ControlFlow::BreakLoop { clbits, .. } |
+            ControlFlow::ContinueLoop { clbits, .. } |
+            ControlFlow::ForLoop { clbits, .. } |
+            ControlFlow::IfElse { clbits, .. } |
+            ControlFlow::Switch { clbits, .. } |
+            ControlFlow::While { clbits, .. } => *clbits
+        }
+    }
+
+    fn num_params(&self) -> u32 {
+        match self {
+            ControlFlow::Box { .. } => 1,
+            ControlFlow::BreakLoop { .. } => 0,
+            ControlFlow::ContinueLoop { .. } => 0,
+            ControlFlow::ForLoop { .. } => 3,
+            ControlFlow::IfElse { .. } => 2,
+            ControlFlow::Switch { cases, .. } => *cases,
+            ControlFlow::While { .. } => 1,
+        }
+    }
+
+    fn control_flow(&self) -> bool {
+        true
+    }
+
+    fn standard_gate(&self) -> Option<StandardGate> {
+        None
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+/// A control flow operation's condition.
+#[derive(Clone, Debug, PartialEq, IntoPyObject)]
+pub(crate) enum Condition {
+    Bit(ShareableClbit, usize),
+    Register(ClassicalRegister, usize),
+    Expr(expr::Expr),
+}
+
+impl<'py> FromPyObject<'py> for Condition {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
+            Ok(Condition::Bit(bit, value))
+        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, usize)>() {
+            Ok(Condition::Register(register, value))
+        } else {
+            Ok(Condition::Expr(ob.extract()?))
+        }
+    }
+}
+
+/// A control flow operation's target.
+#[derive(Clone, Debug, IntoPyObject)]
+pub(crate) enum Target {
+    Bit(ShareableClbit),
+    Register(ClassicalRegister),
+    Expr(expr::Expr),
+}
+
+impl<'py> FromPyObject<'py> for Target {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(bit) = ob.extract::<ShareableClbit>() {
+            Ok(Target::Bit(bit))
+        } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
+            Ok(Target::Register(register))
+        } else {
+            Ok(Target::Expr(ob.extract()?))
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ControlFlowRef<'a, T> {
+    Box(&'a Duration, &'a T),
+    BreakLoop,
+    ContinueLoop,
+    ForLoop {
+        indexset: &'a [usize],
+        loop_param: &'a ParameterExpression,
+        body: &'a T,
+    },
+    IfElse {
+        condition: &'a Condition,
+        true_body: &'a T,
+        false_body: &'a T,
+    },
+    Switch {
+        target: &'a Target,
+        cases: Vec<&'a T>,
+    },
+    While {
+        condition: &'a Condition,
+        body: &'a T,
+    },
 }
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
@@ -423,18 +634,6 @@ impl Operation for StandardInstruction {
         false
     }
 
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
-
     fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
@@ -449,32 +648,12 @@ impl Operation for StandardInstruction {
     }
 }
 
-impl StandardInstruction {
-    pub fn create_py_op(
-        &self,
-        py: Python,
-        params: Option<&[Param]>,
-        label: Option<&str>,
-    ) -> PyResult<Py<PyAny>> {
-        let kwargs = label
-            .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
-            .transpose()?;
-        let out = match self {
-            StandardInstruction::Barrier(num_qubits) => {
-                BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
-            }
-            StandardInstruction::Delay(unit) => {
-                let duration = &params.unwrap()[0];
-                DELAY
-                    .get_bound(py)
-                    .call1((duration.into_py_any(py)?, unit.to_string()))?
-            }
-            StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
-            StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
-        };
-
-        Ok(out.unbind())
-    }
+#[derive(Debug)]
+pub enum StandardInstructionRef {
+    Barrier(u32),
+    Delay(Duration),
+    Measure,
+    Reset,
 }
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
@@ -635,29 +814,11 @@ pub fn get_standard_gate_names() -> &'static [&'static str] {
 }
 
 impl StandardGate {
-    pub fn create_py_op(
-        &self,
-        py: Python,
-        params: Option<&[Param]>,
-        label: Option<&str>,
-    ) -> PyResult<Py<PyAny>> {
-        let gate_class = get_std_gate_class(py, *self)?;
-        let args = match params.unwrap_or(&[]) {
-            &[] => PyTuple::empty(py),
-            params => PyTuple::new(py, params.iter().map(|x| x.into_pyobject(py).unwrap()))?,
-        };
-        if let Some(label) = label {
-            let kwargs = [("label", label.into_pyobject(py)?)].into_py_dict(py)?;
-            gate_class.call(py, args, Some(&kwargs))
-        } else {
-            gate_class.call(py, args, None)
-        }
-    }
-
     pub fn num_ctrl_qubits(&self) -> u32 {
         STANDARD_GATE_NUM_CTRL_QUBITS[*self as usize]
     }
 
+    // TODO: move this to impl of StandardGateRef
     pub fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
         match self {
             Self::GlobalPhase => Some(Python::with_gil(|py| -> (Self, SmallVec<[Param; 3]>) {
@@ -824,7 +985,8 @@ impl StandardGate {
         py: Python<'py>,
         params: Vec<Param>,
     ) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        self.matrix(&params).map(|x| x.into_pyarray(py))
+        let instruction = StandardGateRef(self.clone(), params.as_slice());
+        instruction.matrix().map(|x| x.into_pyarray(py))
     }
 
     pub fn _num_params(&self) -> u32 {
@@ -832,10 +994,12 @@ impl StandardGate {
     }
 
     pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
-        self.definition(&params)
+        let instruction = StandardGateRef(self.clone(), params.as_slice());
+        instruction.definition()
     }
 
     pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        // TODO: move inverse to StandardGateRef
         self.inverse(&params)
     }
 
@@ -898,304 +1062,307 @@ impl Operation for StandardGate {
     fn name(&self) -> &str {
         STANDARD_GATE_NAME[*self as usize]
     }
-
     fn num_qubits(&self) -> u32 {
         STANDARD_GATE_NUM_QUBITS[*self as usize]
     }
-
     fn num_clbits(&self) -> u32 {
         0
     }
-
     fn num_params(&self) -> u32 {
         STANDARD_GATE_NUM_PARAMS[*self as usize]
     }
-
     fn control_flow(&self) -> bool {
         false
     }
-
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
+    fn standard_gate(&self) -> Option<StandardGate> {
+        Some(*self)
     }
+    fn directive(&self) -> bool {
+        false
+    }
+}
 
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-        match self {
-            Self::GlobalPhase => match params {
+#[derive(Debug)]
+pub struct StandardGateRef<'a>(StandardGate, &'a [Param]);
+
+impl<'a> StandardGateRef<'a> {
+    fn matrix(&self) -> Option<Array2<Complex64>> {
+        match self.0 {
+            StandardGate::GlobalPhase => match self.1 {
                 [Param::Float(theta)] => {
                     Some(aview2(&gate_matrix::global_phase_gate(*theta)).to_owned())
                 }
                 _ => None,
             },
-            Self::H => match params {
+            StandardGate::H => match self.1 {
                 [] => Some(aview2(&gate_matrix::H_GATE).to_owned()),
                 _ => None,
             },
-            Self::I => match params {
+            StandardGate::I => match self.1 {
                 [] => Some(aview2(&gate_matrix::ONE_QUBIT_IDENTITY).to_owned()),
                 _ => None,
             },
-            Self::X => match params {
+            StandardGate::X => match self.1 {
                 [] => Some(aview2(&gate_matrix::X_GATE).to_owned()),
                 _ => None,
             },
-            Self::Y => match params {
+            StandardGate::Y => match self.1 {
                 [] => Some(aview2(&gate_matrix::Y_GATE).to_owned()),
                 _ => None,
             },
-            Self::Z => match params {
+            StandardGate::Z => match self.1 {
                 [] => Some(aview2(&gate_matrix::Z_GATE).to_owned()),
                 _ => None,
             },
-            Self::Phase => match params {
+            StandardGate::Phase => match self.1 {
                 [Param::Float(theta)] => Some(aview2(&gate_matrix::phase_gate(*theta)).to_owned()),
                 _ => None,
             },
-            Self::R => match params {
+            StandardGate::R => match self.1 {
                 [Param::Float(theta), Param::Float(phi)] => {
                     Some(aview2(&gate_matrix::r_gate(*theta, *phi)).to_owned())
                 }
                 _ => None,
             },
-            Self::RX => match params {
+            StandardGate::RX => match self.1 {
                 [Param::Float(theta)] => Some(aview2(&gate_matrix::rx_gate(*theta)).to_owned()),
                 _ => None,
             },
-            Self::RY => match params {
+            StandardGate::RY => match self.1 {
                 [Param::Float(theta)] => Some(aview2(&gate_matrix::ry_gate(*theta)).to_owned()),
                 _ => None,
             },
-            Self::RZ => match params {
+            StandardGate::RZ => match self.1 {
                 [Param::Float(theta)] => Some(aview2(&gate_matrix::rz_gate(*theta)).to_owned()),
                 _ => None,
             },
-            Self::S => match params {
+            StandardGate::S => match self.1 {
                 [] => Some(aview2(&gate_matrix::S_GATE).to_owned()),
                 _ => None,
             },
-            Self::Sdg => match params {
+            StandardGate::Sdg => match self.1 {
                 [] => Some(aview2(&gate_matrix::SDG_GATE).to_owned()),
                 _ => None,
             },
-            Self::SX => match params {
+            StandardGate::SX => match self.1 {
                 [] => Some(aview2(&gate_matrix::SX_GATE).to_owned()),
                 _ => None,
             },
-            Self::SXdg => match params {
+            StandardGate::SXdg => match self.1 {
                 [] => Some(aview2(&gate_matrix::SXDG_GATE).to_owned()),
                 _ => None,
             },
-            Self::T => match params {
+            StandardGate::T => match self.1 {
                 [] => Some(aview2(&gate_matrix::T_GATE).to_owned()),
                 _ => None,
             },
-            Self::Tdg => match params {
+            StandardGate::Tdg => match self.1 {
                 [] => Some(aview2(&gate_matrix::TDG_GATE).to_owned()),
                 _ => None,
             },
-            Self::U => match params {
+            StandardGate::U => match self.1 {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
                     Some(aview2(&gate_matrix::u_gate(*theta, *phi, *lam)).to_owned())
                 }
                 _ => None,
             },
-            Self::U1 => match params[0] {
+            StandardGate::U1 => match self.1[0] {
                 Param::Float(val) => Some(aview2(&gate_matrix::u1_gate(val)).to_owned()),
                 _ => None,
             },
-            Self::U2 => match params {
+            StandardGate::U2 => match self.1 {
                 [Param::Float(phi), Param::Float(lam)] => {
                     Some(aview2(&gate_matrix::u2_gate(*phi, *lam)).to_owned())
                 }
                 _ => None,
             },
-            Self::U3 => match params {
+            StandardGate::U3 => match self.1 {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
                     Some(aview2(&gate_matrix::u3_gate(*theta, *phi, *lam)).to_owned())
                 }
                 _ => None,
             },
-            Self::CH => match params {
+            StandardGate::CH => match self.1 {
                 [] => Some(aview2(&gate_matrix::CH_GATE).to_owned()),
                 _ => None,
             },
-            Self::CX => match params {
+            StandardGate::CX => match self.1 {
                 [] => Some(aview2(&gate_matrix::CX_GATE).to_owned()),
                 _ => None,
             },
-            Self::CY => match params {
+            StandardGate::CY => match self.1 {
                 [] => Some(aview2(&gate_matrix::CY_GATE).to_owned()),
                 _ => None,
             },
-            Self::CZ => match params {
+            StandardGate::CZ => match self.1 {
                 [] => Some(aview2(&gate_matrix::CZ_GATE).to_owned()),
                 _ => None,
             },
-            Self::DCX => match params {
+            StandardGate::DCX => match self.1 {
                 [] => Some(aview2(&gate_matrix::DCX_GATE).to_owned()),
                 _ => None,
             },
-            Self::ECR => match params {
+            StandardGate::ECR => match self.1 {
                 [] => Some(aview2(&gate_matrix::ECR_GATE).to_owned()),
                 _ => None,
             },
-            Self::Swap => match params {
+            StandardGate::Swap => match self.1 {
                 [] => Some(aview2(&gate_matrix::SWAP_GATE).to_owned()),
                 _ => None,
             },
-            Self::ISwap => match params {
+            StandardGate::ISwap => match self.1 {
                 [] => Some(aview2(&gate_matrix::ISWAP_GATE).to_owned()),
                 _ => None,
             },
-            Self::CPhase => match params {
+            StandardGate::CPhase => match self.1 {
                 [Param::Float(lam)] => Some(aview2(&gate_matrix::cp_gate(*lam)).to_owned()),
                 _ => None,
             },
-            Self::CRX => match params {
+            StandardGate::CRX => match self.1 {
                 [Param::Float(theta)] => Some(aview2(&gate_matrix::crx_gate(*theta)).to_owned()),
                 _ => None,
             },
-            Self::CRY => match params {
+            StandardGate::CRY => match self.1 {
                 [Param::Float(theta)] => Some(aview2(&gate_matrix::cry_gate(*theta)).to_owned()),
                 _ => None,
             },
-            Self::CRZ => match params {
+            StandardGate::CRZ => match self.1 {
                 [Param::Float(theta)] => Some(aview2(&gate_matrix::crz_gate(*theta)).to_owned()),
                 _ => None,
             },
-            Self::CS => match params {
+            StandardGate::CS => match self.1 {
                 [] => Some(aview2(&gate_matrix::CS_GATE).to_owned()),
                 _ => None,
             },
-            Self::CSdg => match params {
+            StandardGate::CSdg => match self.1 {
                 [] => Some(aview2(&gate_matrix::CSDG_GATE).to_owned()),
                 _ => None,
             },
-            Self::CSX => match params {
+            StandardGate::CSX => match self.1 {
                 [] => Some(aview2(&gate_matrix::CSX_GATE).to_owned()),
                 _ => None,
             },
-            Self::CU => match params {
+            StandardGate::CU => match self.1 {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam), Param::Float(gamma)] => {
                     Some(aview2(&gate_matrix::cu_gate(*theta, *phi, *lam, *gamma)).to_owned())
                 }
                 _ => None,
             },
-            Self::CU1 => match params[0] {
+            StandardGate::CU1 => match self.1[0] {
                 Param::Float(lam) => Some(aview2(&gate_matrix::cu1_gate(lam)).to_owned()),
                 _ => None,
             },
-            Self::CU3 => match params {
+            StandardGate::CU3 => match self.1 {
                 [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
                     Some(aview2(&gate_matrix::cu3_gate(*theta, *phi, *lam)).to_owned())
                 }
                 _ => None,
             },
-            Self::RXX => match params[0] {
+            StandardGate::RXX => match self.1[0] {
                 Param::Float(theta) => Some(aview2(&gate_matrix::rxx_gate(theta)).to_owned()),
                 _ => None,
             },
-            Self::RYY => match params[0] {
+            StandardGate::RYY => match self.1[0] {
                 Param::Float(theta) => Some(aview2(&gate_matrix::ryy_gate(theta)).to_owned()),
                 _ => None,
             },
-            Self::RZZ => match params[0] {
+            StandardGate::RZZ => match self.1[0] {
                 Param::Float(theta) => Some(aview2(&gate_matrix::rzz_gate(theta)).to_owned()),
                 _ => None,
             },
-            Self::RZX => match params[0] {
+            StandardGate::RZX => match self.1[0] {
                 Param::Float(theta) => Some(aview2(&gate_matrix::rzx_gate(theta)).to_owned()),
                 _ => None,
             },
-            Self::XXMinusYY => match params {
+            StandardGate::XXMinusYY => match self.1 {
                 [Param::Float(theta), Param::Float(beta)] => {
                     Some(aview2(&gate_matrix::xx_minus_yy_gate(*theta, *beta)).to_owned())
                 }
                 _ => None,
             },
-            Self::XXPlusYY => match params {
+            StandardGate::XXPlusYY => match self.1 {
                 [Param::Float(theta), Param::Float(beta)] => {
                     Some(aview2(&gate_matrix::xx_plus_yy_gate(*theta, *beta)).to_owned())
                 }
                 _ => None,
             },
-            Self::CCX => match params {
+            StandardGate::CCX => match self.1 {
                 [] => Some(aview2(&gate_matrix::CCX_GATE).to_owned()),
                 _ => None,
             },
-            Self::CCZ => match params {
+            StandardGate::CCZ => match self.1 {
                 [] => Some(aview2(&gate_matrix::CCZ_GATE).to_owned()),
                 _ => None,
             },
-            Self::CSwap => match params {
+            StandardGate::CSwap => match self.1 {
                 [] => Some(aview2(&gate_matrix::CSWAP_GATE).to_owned()),
                 _ => None,
             },
-            Self::RCCX => match params {
+            StandardGate::RCCX => match self.1 {
                 [] => Some(aview2(&gate_matrix::RCCX_GATE).to_owned()),
                 _ => None,
             },
-            Self::C3X => match params {
+            StandardGate::C3X => match self.1 {
                 [] => Some(aview2(&gate_matrix::C3X_GATE).to_owned()),
                 _ => None,
             },
-            Self::C3SX => match params {
+            StandardGate::C3SX => match self.1 {
                 [] => Some(aview2(&gate_matrix::C3SX_GATE).to_owned()),
                 _ => None,
             },
-            Self::RC3X => match params {
+            StandardGate::RC3X => match self.1 {
                 [] => Some(aview2(&gate_matrix::RC3X_GATE).to_owned()),
                 _ => None,
             },
         }
     }
 
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-        match self {
-            Self::GlobalPhase => Python::with_gil(|py| -> Option<CircuitData> {
+    fn definition(&self) -> Option<CircuitData> {
+        match self.0 {
+            StandardGate::GlobalPhase => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::from_standard_gates(py, 0, [], params[0].clone())
+                    CircuitData::from_standard_gates(py, 0, [], self.1[0].clone())
                         .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::H => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::H => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::U,
+                            StandardGate::U,
                             smallvec![Param::Float(PI / 2.), FLOAT_ZERO, Param::Float(PI)],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::I => None,
-            Self::X => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::I => None,
+            StandardGate::X => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::U,
+                            StandardGate::U,
                             smallvec![Param::Float(PI), FLOAT_ZERO, Param::Float(PI)],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::Y => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::Y => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::U,
+                            StandardGate::U,
                             smallvec![
                                 Param::Float(PI),
                                 Param::Float(PI / 2.),
@@ -1205,236 +1372,236 @@ impl Operation for StandardGate {
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
 
-            Self::Z => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::Z => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::Phase,
+                            StandardGate::Phase,
                             smallvec![Param::Float(PI)],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::Phase => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::Phase => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::U,
-                            smallvec![FLOAT_ZERO, FLOAT_ZERO, params[0].clone()],
+                            StandardGate::U,
+                            smallvec![FLOAT_ZERO, FLOAT_ZERO, self.1[0].clone()],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::R => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta_expr = clone_param(&params[0], py);
-                let phi_expr1 = add_param(&params[1], -PI / 2., py);
+            StandardGate::R => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta_expr = clone_param(&self.1[0], py);
+                let phi_expr1 = add_param(&self.1[1], -PI / 2., py);
                 let phi_expr2 = multiply_param(&phi_expr1, -1.0, py);
                 let defparams = smallvec![theta_expr, phi_expr1, phi_expr2];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
-                        [(Self::U, defparams, smallvec![Qubit(0)])],
+                        [(StandardGate::U, defparams, smallvec![Qubit(0)])],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RX => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta = &params[0];
+            StandardGate::RX => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::R,
+                            StandardGate::R,
                             smallvec![theta.clone(), FLOAT_ZERO],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RY => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta = &params[0];
+            StandardGate::RY => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::R,
+                            StandardGate::R,
                             smallvec![theta.clone(), Param::Float(PI / 2.)],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RZ => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta = &params[0];
+            StandardGate::RZ => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
-                        [(Self::Phase, smallvec![theta.clone()], smallvec![Qubit(0)])],
+                        [(StandardGate::Phase, smallvec![theta.clone()], smallvec![Qubit(0)])],
                         multiply_param(theta, -0.5, py),
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::S => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::S => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::Phase,
+                            StandardGate::Phase,
                             smallvec![Param::Float(PI / 2.)],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::Sdg => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::Sdg => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::Phase,
+                            StandardGate::Phase,
                             smallvec![Param::Float(-PI / 2.)],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::SX => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::SX => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [
-                            (Self::Sdg, smallvec![], smallvec![Qubit(0)]),
-                            (Self::H, smallvec![], smallvec![Qubit(0)]),
-                            (Self::Sdg, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::Sdg, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::Sdg, smallvec![], smallvec![Qubit(0)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::SXdg => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::SXdg => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [
-                            (Self::S, smallvec![], smallvec![Qubit(0)]),
-                            (Self::H, smallvec![], smallvec![Qubit(0)]),
-                            (Self::S, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::S, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::S, smallvec![], smallvec![Qubit(0)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::T => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::T => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::Phase,
+                            StandardGate::Phase,
                             smallvec![Param::Float(PI / 4.)],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::Tdg => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::Tdg => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::Phase,
+                            StandardGate::Phase,
                             smallvec![Param::Float(-PI / 4.)],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::U => None,
-            Self::U1 => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::U => None,
+            StandardGate::U1 => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::Phase,
-                            params.iter().cloned().collect(),
+                            StandardGate::Phase,
+                            self.1.iter().cloned().collect(),
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::U2 => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::U2 => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::U,
-                            smallvec![Param::Float(PI / 2.), params[0].clone(), params[1].clone()],
+                            StandardGate::U,
+                            smallvec![Param::Float(PI / 2.), self.1[0].clone(), self.1[1].clone()],
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::U3 => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::U3 => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         1,
                         [(
-                            Self::U,
-                            params.iter().cloned().collect(),
+                            StandardGate::U,
+                            self.1.iter().cloned().collect(),
                             smallvec![Qubit(0)],
                         )],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CH => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CH => Python::with_gil(|py| -> Option<CircuitData> {
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
                 Some(
@@ -1442,22 +1609,22 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::S, smallvec![], q1.clone()),
-                            (Self::H, smallvec![], q1.clone()),
-                            (Self::T, smallvec![], q1.clone()),
-                            (Self::CX, smallvec![], q0_1),
-                            (Self::Tdg, smallvec![], q1.clone()),
-                            (Self::H, smallvec![], q1.clone()),
-                            (Self::Sdg, smallvec![], q1),
+                            (StandardGate::S, smallvec![], q1.clone()),
+                            (StandardGate::H, smallvec![], q1.clone()),
+                            (StandardGate::T, smallvec![], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_1),
+                            (StandardGate::Tdg, smallvec![], q1.clone()),
+                            (StandardGate::H, smallvec![], q1.clone()),
+                            (StandardGate::Sdg, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
 
-            Self::CX => None,
-            Self::CY => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CX => None,
+            StandardGate::CY => Python::with_gil(|py| -> Option<CircuitData> {
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
                 Some(
@@ -1465,16 +1632,16 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::Sdg, smallvec![], q1.clone()),
-                            (Self::CX, smallvec![], q0_1),
-                            (Self::S, smallvec![], q1),
+                            (StandardGate::Sdg, smallvec![], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_1),
+                            (StandardGate::S, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CZ => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CZ => Python::with_gil(|py| -> Option<CircuitData> {
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
                 Some(
@@ -1482,86 +1649,86 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::H, smallvec![], q1.clone()),
-                            (Self::CX, smallvec![], q0_1),
-                            (Self::H, smallvec![], q1),
+                            (StandardGate::H, smallvec![], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_1),
+                            (StandardGate::H, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::DCX => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::DCX => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(0)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(0)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::ECR => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::ECR => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
                             (
-                                Self::RZX,
+                                StandardGate::RZX,
                                 smallvec![Param::Float(PI / 4.)],
                                 smallvec![Qubit(0), Qubit(1)],
                             ),
-                            (Self::X, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::X, smallvec![], smallvec![Qubit(0)]),
                             (
-                                Self::RZX,
+                                StandardGate::RZX,
                                 smallvec![Param::Float(-PI / 4.)],
                                 smallvec![Qubit(0), Qubit(1)],
                             ),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::Swap => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::Swap => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(0)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(0)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::ISwap => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::ISwap => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
-                            (Self::S, smallvec![], smallvec![Qubit(0)]),
-                            (Self::S, smallvec![], smallvec![Qubit(1)]),
-                            (Self::H, smallvec![], smallvec![Qubit(0)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(0)]),
-                            (Self::H, smallvec![], smallvec![Qubit(1)]),
+                            (StandardGate::S, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::S, smallvec![], smallvec![Qubit(1)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(0)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(1)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CPhase => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CPhase => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
@@ -1571,43 +1738,43 @@ impl Operation for StandardGate {
                         2,
                         [
                             (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], 0.5, py)],
+                                StandardGate::Phase,
+                                smallvec![multiply_param(&self.1[0], 0.5, py)],
                                 q0,
                             ),
-                            (Self::CX, smallvec![], q0_1.clone()),
+                            (StandardGate::CX, smallvec![], q0_1.clone()),
                             (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], -0.5, py)],
+                                StandardGate::Phase,
+                                smallvec![multiply_param(&self.1[0], -0.5, py)],
                                 q1.clone(),
                             ),
-                            (Self::CX, smallvec![], q0_1),
+                            (StandardGate::CX, smallvec![], q0_1),
                             (
-                                Self::Phase,
-                                smallvec![multiply_param(&params[0], 0.5, py)],
+                                StandardGate::Phase,
+                                smallvec![multiply_param(&self.1[0], 0.5, py)],
                                 q1,
                             ),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CRX => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta = &params[0];
+            StandardGate::CRX => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 2.)],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U,
+                                StandardGate::U,
                                 smallvec![
                                     multiply_param(theta, -0.5, py),
                                     Param::Float(0.0),
@@ -1615,9 +1782,9 @@ impl Operation for StandardGate {
                                 ],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U,
+                                StandardGate::U,
                                 smallvec![
                                     multiply_param(theta, 0.5, py),
                                     Param::Float(-PI / 2.),
@@ -1628,60 +1795,60 @@ impl Operation for StandardGate {
                         ],
                         Param::Float(0.0),
                     )
-                    .expect("Unexpected Qiskit Python bug!"),
+                        .expect("Unexpected Qiskit Python bug!"),
                 )
             }),
-            Self::CRY => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta = &params[0];
+            StandardGate::CRY => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
                             (
-                                Self::RY,
+                                StandardGate::RY,
                                 smallvec![multiply_param(theta, 0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::RY,
+                                StandardGate::RY,
                                 smallvec![multiply_param(theta, -0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                         ],
                         Param::Float(0.0),
                     )
-                    .expect("Unexpected Qiskit Python bug!"),
+                        .expect("Unexpected Qiskit Python bug!"),
                 )
             }),
-            Self::CRZ => Python::with_gil(|py| -> Option<CircuitData> {
-                let theta = &params[0];
+            StandardGate::CRZ => Python::with_gil(|py| -> Option<CircuitData> {
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
                             (
-                                Self::RZ,
+                                StandardGate::RZ,
                                 smallvec![multiply_param(theta, 0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::RZ,
+                                StandardGate::RZ,
                                 smallvec![multiply_param(theta, -0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                         ],
                         Param::Float(0.0),
                     )
-                    .expect("Unexpected Qiskit Python bug!"),
+                        .expect("Unexpected Qiskit Python bug!"),
                 )
             }),
-            Self::CS => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CS => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
@@ -1690,18 +1857,18 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::Phase, smallvec![Param::Float(PI / 4.)], q0),
-                            (Self::CX, smallvec![], q0_1.clone()),
-                            (Self::Phase, smallvec![Param::Float(-PI / 4.)], q1.clone()),
-                            (Self::CX, smallvec![], q0_1),
-                            (Self::Phase, smallvec![Param::Float(PI / 4.)], q1),
+                            (StandardGate::Phase, smallvec![Param::Float(PI / 4.)], q0),
+                            (StandardGate::CX, smallvec![], q0_1.clone()),
+                            (StandardGate::Phase, smallvec![Param::Float(-PI / 4.)], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_1),
+                            (StandardGate::Phase, smallvec![Param::Float(PI / 4.)], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CSdg => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CSdg => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
@@ -1710,18 +1877,18 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::Phase, smallvec![Param::Float(-PI / 4.)], q0),
-                            (Self::CX, smallvec![], q0_1.clone()),
-                            (Self::Phase, smallvec![Param::Float(PI / 4.)], q1.clone()),
-                            (Self::CX, smallvec![], q0_1),
-                            (Self::Phase, smallvec![Param::Float(-PI / 4.)], q1),
+                            (StandardGate::Phase, smallvec![Param::Float(-PI / 4.)], q0),
+                            (StandardGate::CX, smallvec![], q0_1.clone()),
+                            (StandardGate::Phase, smallvec![Param::Float(PI / 4.)], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_1),
+                            (StandardGate::Phase, smallvec![Param::Float(-PI / 4.)], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CSX => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CSX => Python::with_gil(|py| -> Option<CircuitData> {
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
                 Some(
@@ -1729,29 +1896,29 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::H, smallvec![], q1.clone()),
-                            (Self::CPhase, smallvec![Param::Float(PI / 2.)], q0_1),
-                            (Self::H, smallvec![], q1),
+                            (StandardGate::H, smallvec![], q1.clone()),
+                            (StandardGate::CPhase, smallvec![Param::Float(PI / 2.)], q0_1),
+                            (StandardGate::H, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CU => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CU => Python::with_gil(|py| -> Option<CircuitData> {
                 let param_second_p = radd_param(
-                    multiply_param(&params[2], 0.5, py),
-                    multiply_param(&params[1], 0.5, py),
+                    multiply_param(&self.1[2], 0.5, py),
+                    multiply_param(&self.1[1], 0.5, py),
                     py,
                 );
                 let param_third_p = radd_param(
-                    multiply_param(&params[2], 0.5, py),
-                    multiply_param(&params[1], -0.5, py),
+                    multiply_param(&self.1[2], 0.5, py),
+                    multiply_param(&self.1[1], -0.5, py),
                     py,
                 );
                 let param_first_u = radd_param(
-                    multiply_param(&params[1], -0.5, py),
-                    multiply_param(&params[2], -0.5, py),
+                    multiply_param(&self.1[1], -0.5, py),
+                    multiply_param(&self.1[2], -0.5, py),
                     py,
                 );
                 Some(
@@ -1760,28 +1927,28 @@ impl Operation for StandardGate {
                         2,
                         [
                             (
-                                Self::Phase,
-                                smallvec![params[3].clone()],
+                                StandardGate::Phase,
+                                smallvec![self.1[3].clone()],
                                 smallvec![Qubit(0)],
                             ),
-                            (Self::Phase, smallvec![param_second_p], smallvec![Qubit(0)]),
-                            (Self::Phase, smallvec![param_third_p], smallvec![Qubit(1)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::Phase, smallvec![param_second_p], smallvec![Qubit(0)]),
+                            (StandardGate::Phase, smallvec![param_third_p], smallvec![Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U,
+                                StandardGate::U,
                                 smallvec![
-                                    multiply_param(&params[0], -0.5, py),
+                                    multiply_param(&self.1[0], -0.5, py),
                                     FLOAT_ZERO,
                                     param_first_u
                                 ],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U,
+                                StandardGate::U,
                                 smallvec![
-                                    multiply_param(&params[0], 0.5, py),
-                                    params[1].clone(),
+                                    multiply_param(&self.1[0], 0.5, py),
+                                    self.1[1].clone(),
                                     FLOAT_ZERO
                                 ],
                                 smallvec![Qubit(1)],
@@ -1789,52 +1956,52 @@ impl Operation for StandardGate {
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CU1 => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CU1 => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
                             (
-                                Self::U1,
-                                smallvec![multiply_param(&params[0], 0.5, py)],
+                                StandardGate::U1,
+                                smallvec![multiply_param(&self.1[0], 0.5, py)],
                                 smallvec![Qubit(0)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U1,
-                                smallvec![multiply_param(&params[0], -0.5, py)],
+                                StandardGate::U1,
+                                smallvec![multiply_param(&self.1[0], -0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U1,
-                                smallvec![multiply_param(&params[0], 0.5, py)],
+                                StandardGate::U1,
+                                smallvec![multiply_param(&self.1[0], 0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CU3 => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CU3 => Python::with_gil(|py| -> Option<CircuitData> {
                 let param_first_u1 = radd_param(
-                    multiply_param(&params[2], 0.5, py),
-                    multiply_param(&params[1], 0.5, py),
+                    multiply_param(&self.1[2], 0.5, py),
+                    multiply_param(&self.1[1], 0.5, py),
                     py,
                 );
                 let param_second_u1 = radd_param(
-                    multiply_param(&params[2], 0.5, py),
-                    multiply_param(&params[1], -0.5, py),
+                    multiply_param(&self.1[2], 0.5, py),
+                    multiply_param(&self.1[1], -0.5, py),
                     py,
                 );
                 let param_first_u3 = radd_param(
-                    multiply_param(&params[1], -0.5, py),
-                    multiply_param(&params[2], -0.5, py),
+                    multiply_param(&self.1[1], -0.5, py),
+                    multiply_param(&self.1[2], -0.5, py),
                     py,
                 );
                 Some(
@@ -1842,24 +2009,24 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::U1, smallvec![param_first_u1], smallvec![Qubit(0)]),
-                            (Self::U1, smallvec![param_second_u1], smallvec![Qubit(1)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::U1, smallvec![param_first_u1], smallvec![Qubit(0)]),
+                            (StandardGate::U1, smallvec![param_second_u1], smallvec![Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U3,
+                                StandardGate::U3,
                                 smallvec![
-                                    multiply_param(&params[0], -0.5, py),
+                                    multiply_param(&self.1[0], -0.5, py),
                                     FLOAT_ZERO,
                                     param_first_u3
                                 ],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U3,
+                                StandardGate::U3,
                                 smallvec![
-                                    multiply_param(&params[0], 0.5, py),
-                                    params[1].clone(),
+                                    multiply_param(&self.1[0], 0.5, py),
+                                    self.1[1].clone(),
                                     FLOAT_ZERO
                                 ],
                                 smallvec![Qubit(1)],
@@ -1867,176 +2034,176 @@ impl Operation for StandardGate {
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RXX => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::RXX => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q0_q1 = smallvec![Qubit(0), Qubit(1)];
-                let theta = &params[0];
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
-                            (Self::H, smallvec![], q0.clone()),
-                            (Self::H, smallvec![], q1.clone()),
-                            (Self::CX, smallvec![], q0_q1.clone()),
-                            (Self::RZ, smallvec![theta.clone()], q1.clone()),
-                            (Self::CX, smallvec![], q0_q1),
-                            (Self::H, smallvec![], q1),
-                            (Self::H, smallvec![], q0),
+                            (StandardGate::H, smallvec![], q0.clone()),
+                            (StandardGate::H, smallvec![], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_q1.clone()),
+                            (StandardGate::RZ, smallvec![theta.clone()], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_q1),
+                            (StandardGate::H, smallvec![], q1),
+                            (StandardGate::H, smallvec![], q0),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RYY => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::RYY => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q0_q1 = smallvec![Qubit(0), Qubit(1)];
-                let theta = &params[0];
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
-                            (Self::RX, smallvec![Param::Float(PI / 2.)], q0.clone()),
-                            (Self::RX, smallvec![Param::Float(PI / 2.)], q1.clone()),
-                            (Self::CX, smallvec![], q0_q1.clone()),
-                            (Self::RZ, smallvec![theta.clone()], q1.clone()),
-                            (Self::CX, smallvec![], q0_q1),
-                            (Self::RX, smallvec![Param::Float(-PI / 2.)], q0),
-                            (Self::RX, smallvec![Param::Float(-PI / 2.)], q1),
+                            (StandardGate::RX, smallvec![Param::Float(PI / 2.)], q0.clone()),
+                            (StandardGate::RX, smallvec![Param::Float(PI / 2.)], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_q1.clone()),
+                            (StandardGate::RZ, smallvec![theta.clone()], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_q1),
+                            (StandardGate::RX, smallvec![Param::Float(-PI / 2.)], q0),
+                            (StandardGate::RX, smallvec![Param::Float(-PI / 2.)], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RZZ => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::RZZ => Python::with_gil(|py| -> Option<CircuitData> {
                 let q1 = smallvec![Qubit(1)];
                 let q0_q1 = smallvec![Qubit(0), Qubit(1)];
-                let theta = &params[0];
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
-                            (Self::CX, smallvec![], q0_q1.clone()),
-                            (Self::RZ, smallvec![theta.clone()], q1),
-                            (Self::CX, smallvec![], q0_q1),
+                            (StandardGate::CX, smallvec![], q0_q1.clone()),
+                            (StandardGate::RZ, smallvec![theta.clone()], q1),
+                            (StandardGate::CX, smallvec![], q0_q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RZX => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::RZX => Python::with_gil(|py| -> Option<CircuitData> {
                 let q1 = smallvec![Qubit(1)];
                 let q0_q1 = smallvec![Qubit(0), Qubit(1)];
-                let theta = &params[0];
+                let theta = &self.1[0];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
-                            (Self::H, smallvec![], q1.clone()),
-                            (Self::CX, smallvec![], q0_q1.clone()),
-                            (Self::RZ, smallvec![theta.clone()], q1.clone()),
-                            (Self::CX, smallvec![], q0_q1),
-                            (Self::H, smallvec![], q1),
+                            (StandardGate::H, smallvec![], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_q1.clone()),
+                            (StandardGate::RZ, smallvec![theta.clone()], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_q1),
+                            (StandardGate::H, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::XXMinusYY => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::XXMinusYY => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q0_1 = smallvec![Qubit(0), Qubit(1)];
-                let theta = &params[0];
-                let beta = &params[1];
+                let theta = &self.1[0];
+                let beta = &self.1[1];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
                             (
-                                Self::RZ,
+                                StandardGate::RZ,
                                 smallvec![multiply_param(beta, -1.0, py)],
                                 q1.clone(),
                             ),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q0.clone()),
-                            (Self::SX, smallvec![], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q0.clone()),
-                            (Self::S, smallvec![], q1.clone()),
-                            (Self::CX, smallvec![], q0_1.clone()),
+                            (StandardGate::RZ, smallvec![Param::Float(-PI / 2.)], q0.clone()),
+                            (StandardGate::SX, smallvec![], q0.clone()),
+                            (StandardGate::RZ, smallvec![Param::Float(PI / 2.)], q0.clone()),
+                            (StandardGate::S, smallvec![], q1.clone()),
+                            (StandardGate::CX, smallvec![], q0_1.clone()),
                             (
-                                Self::RY,
+                                StandardGate::RY,
                                 smallvec![multiply_param(theta, 0.5, py)],
                                 q0.clone(),
                             ),
                             (
-                                Self::RY,
+                                StandardGate::RY,
                                 smallvec![multiply_param(theta, -0.5, py)],
                                 q1.clone(),
                             ),
-                            (Self::CX, smallvec![], q0_1),
-                            (Self::Sdg, smallvec![], q1.clone()),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q0.clone()),
-                            (Self::SXdg, smallvec![], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q0),
-                            (Self::RZ, smallvec![beta.clone()], q1),
+                            (StandardGate::CX, smallvec![], q0_1),
+                            (StandardGate::Sdg, smallvec![], q1.clone()),
+                            (StandardGate::RZ, smallvec![Param::Float(-PI / 2.)], q0.clone()),
+                            (StandardGate::SXdg, smallvec![], q0.clone()),
+                            (StandardGate::RZ, smallvec![Param::Float(PI / 2.)], q0),
+                            (StandardGate::RZ, smallvec![beta.clone()], q1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::XXPlusYY => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::XXPlusYY => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q1_0 = smallvec![Qubit(1), Qubit(0)];
-                let theta = &params[0];
-                let beta = &params[1];
+                let theta = &self.1[0];
+                let beta = &self.1[1];
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         2,
                         [
-                            (Self::RZ, smallvec![beta.clone()], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q1.clone()),
-                            (Self::SX, smallvec![], q1.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q1.clone()),
-                            (Self::S, smallvec![], q0.clone()),
-                            (Self::CX, smallvec![], q1_0.clone()),
+                            (StandardGate::RZ, smallvec![beta.clone()], q0.clone()),
+                            (StandardGate::RZ, smallvec![Param::Float(-PI / 2.)], q1.clone()),
+                            (StandardGate::SX, smallvec![], q1.clone()),
+                            (StandardGate::RZ, smallvec![Param::Float(PI / 2.)], q1.clone()),
+                            (StandardGate::S, smallvec![], q0.clone()),
+                            (StandardGate::CX, smallvec![], q1_0.clone()),
                             (
-                                Self::RY,
+                                StandardGate::RY,
                                 smallvec![multiply_param(theta, -0.5, py)],
                                 q1.clone(),
                             ),
                             (
-                                Self::RY,
+                                StandardGate::RY,
                                 smallvec![multiply_param(theta, -0.5, py)],
                                 q0.clone(),
                             ),
-                            (Self::CX, smallvec![], q1_0),
-                            (Self::Sdg, smallvec![], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q1.clone()),
-                            (Self::SXdg, smallvec![], q1.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q1),
-                            (Self::RZ, smallvec![multiply_param(beta, -1.0, py)], q0),
+                            (StandardGate::CX, smallvec![], q1_0),
+                            (StandardGate::Sdg, smallvec![], q0.clone()),
+                            (StandardGate::RZ, smallvec![Param::Float(-PI / 2.)], q1.clone()),
+                            (StandardGate::SXdg, smallvec![], q1.clone()),
+                            (StandardGate::RZ, smallvec![Param::Float(PI / 2.)], q1),
+                            (StandardGate::RZ, smallvec![multiply_param(beta, -1.0, py)], q0),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CCX => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CCX => Python::with_gil(|py| -> Option<CircuitData> {
                 let q0 = smallvec![Qubit(0)];
                 let q1 = smallvec![Qubit(1)];
                 let q2 = smallvec![Qubit(2)];
@@ -2048,68 +2215,68 @@ impl Operation for StandardGate {
                         py,
                         3,
                         [
-                            (Self::H, smallvec![], q2.clone()),
-                            (Self::CX, smallvec![], q1_2.clone()),
-                            (Self::Tdg, smallvec![], q2.clone()),
-                            (Self::CX, smallvec![], q0_2.clone()),
-                            (Self::T, smallvec![], q2.clone()),
-                            (Self::CX, smallvec![], q1_2),
-                            (Self::Tdg, smallvec![], q2.clone()),
-                            (Self::CX, smallvec![], q0_2),
-                            (Self::T, smallvec![], q1.clone()),
-                            (Self::T, smallvec![], q2.clone()),
-                            (Self::H, smallvec![], q2),
-                            (Self::CX, smallvec![], q0_1.clone()),
-                            (Self::T, smallvec![], q0),
-                            (Self::Tdg, smallvec![], q1),
-                            (Self::CX, smallvec![], q0_1),
+                            (StandardGate::H, smallvec![], q2.clone()),
+                            (StandardGate::CX, smallvec![], q1_2.clone()),
+                            (StandardGate::Tdg, smallvec![], q2.clone()),
+                            (StandardGate::CX, smallvec![], q0_2.clone()),
+                            (StandardGate::T, smallvec![], q2.clone()),
+                            (StandardGate::CX, smallvec![], q1_2),
+                            (StandardGate::Tdg, smallvec![], q2.clone()),
+                            (StandardGate::CX, smallvec![], q0_2),
+                            (StandardGate::T, smallvec![], q1.clone()),
+                            (StandardGate::T, smallvec![], q2.clone()),
+                            (StandardGate::H, smallvec![], q2),
+                            (StandardGate::CX, smallvec![], q0_1.clone()),
+                            (StandardGate::T, smallvec![], q0),
+                            (StandardGate::Tdg, smallvec![], q1),
+                            (StandardGate::CX, smallvec![], q0_1),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
 
-            Self::CCZ => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CCZ => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         3,
                         [
-                            (Self::H, smallvec![], smallvec![Qubit(2)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(2)]),
                             (
-                                Self::CCX,
+                                StandardGate::CCX,
                                 smallvec![],
                                 smallvec![Qubit(0), Qubit(1), Qubit(2)],
                             ),
-                            (Self::H, smallvec![], smallvec![Qubit(2)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(2)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::CSwap => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::CSwap => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         3,
                         [
-                            (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(1)]),
                             (
-                                Self::CCX,
+                                StandardGate::CCX,
                                 smallvec![],
                                 smallvec![Qubit(0), Qubit(1), Qubit(2)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(1)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
 
-            Self::RCCX => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::RCCX => Python::with_gil(|py| -> Option<CircuitData> {
                 let q2 = smallvec![Qubit(2)];
                 let q0_2 = smallvec![Qubit(0), Qubit(2)];
                 let q1_2 = smallvec![Qubit(1), Qubit(2)];
@@ -2119,282 +2286,274 @@ impl Operation for StandardGate {
                         3,
                         [
                             (
-                                Self::U2,
+                                StandardGate::U2,
                                 smallvec![FLOAT_ZERO, Param::Float(PI)],
                                 q2.clone(),
                             ),
-                            (Self::U1, smallvec![Param::Float(PI / 4.)], q2.clone()),
-                            (Self::CX, smallvec![], q1_2.clone()),
-                            (Self::U1, smallvec![Param::Float(-PI / 4.)], q2.clone()),
-                            (Self::CX, smallvec![], q0_2),
-                            (Self::U1, smallvec![Param::Float(PI / 4.)], q2.clone()),
-                            (Self::CX, smallvec![], q1_2),
-                            (Self::U1, smallvec![Param::Float(-PI / 4.)], q2.clone()),
-                            (Self::U2, smallvec![FLOAT_ZERO, Param::Float(PI)], q2),
+                            (StandardGate::U1, smallvec![Param::Float(PI / 4.)], q2.clone()),
+                            (StandardGate::CX, smallvec![], q1_2.clone()),
+                            (StandardGate::U1, smallvec![Param::Float(-PI / 4.)], q2.clone()),
+                            (StandardGate::CX, smallvec![], q0_2),
+                            (StandardGate::U1, smallvec![Param::Float(PI / 4.)], q2.clone()),
+                            (StandardGate::CX, smallvec![], q1_2),
+                            (StandardGate::U1, smallvec![Param::Float(-PI / 4.)], q2.clone()),
+                            (StandardGate::U2, smallvec![FLOAT_ZERO, Param::Float(PI)], q2),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::C3X => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::C3X => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         4,
                         [
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(0)],
                             ),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(1)],
                             ),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(2)],
                             ),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(2)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(2)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(2)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
                             (
-                                Self::Phase,
+                                StandardGate::Phase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
 
-            Self::C3SX => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::C3SX => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         4,
                         [
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                StandardGate::CU1,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(0), Qubit(3)],
                             ),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                StandardGate::CU1,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(1), Qubit(3)],
                             ),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                StandardGate::CU1,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(1), Qubit(3)],
                             ),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                StandardGate::CU1,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                StandardGate::CU1,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                StandardGate::CU1,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                StandardGate::CU1,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
-                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (StandardGate::H, smallvec![], smallvec![Qubit(3)]),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
-            Self::RC3X => Python::with_gil(|py| -> Option<CircuitData> {
+            StandardGate::RC3X => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
                     CircuitData::from_standard_gates(
                         py,
                         4,
                         [
                             (
-                                Self::U2,
+                                StandardGate::U2,
                                 smallvec![FLOAT_ZERO, Param::Float(PI)],
                                 smallvec![Qubit(3)],
                             ),
                             (
-                                Self::U1,
+                                StandardGate::U1,
                                 smallvec![Param::Float(PI / 4.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
                             (
-                                Self::U1,
+                                StandardGate::U1,
                                 smallvec![Param::Float(-PI / 4.)],
                                 smallvec![Qubit(3)],
                             ),
                             (
-                                Self::U2,
+                                StandardGate::U2,
                                 smallvec![FLOAT_ZERO, Param::Float(PI)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
                             (
-                                Self::U1,
+                                StandardGate::U1,
                                 smallvec![Param::Float(PI / 4.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
                             (
-                                Self::U1,
+                                StandardGate::U1,
                                 smallvec![Param::Float(-PI / 4.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
                             (
-                                Self::U1,
+                                StandardGate::U1,
                                 smallvec![Param::Float(PI / 4.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
                             (
-                                Self::U1,
+                                StandardGate::U1,
                                 smallvec![Param::Float(-PI / 4.)],
                                 smallvec![Qubit(3)],
                             ),
                             (
-                                Self::U2,
+                                StandardGate::U2,
                                 smallvec![FLOAT_ZERO, Param::Float(PI)],
                                 smallvec![Qubit(3)],
                             ),
                             (
-                                Self::U1,
+                                StandardGate::U1,
                                 smallvec![Param::Float(PI / 4.)],
                                 smallvec![Qubit(3)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
+                            (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
                             (
-                                Self::U1,
+                                StandardGate::U1,
                                 smallvec![Param::Float(-PI / 4.)],
                                 smallvec![Qubit(3)],
                             ),
                             (
-                                Self::U2,
+                                StandardGate::U2,
                                 smallvec![FLOAT_ZERO, Param::Float(PI)],
                                 smallvec![Qubit(3)],
                             ),
                         ],
                         FLOAT_ZERO,
                     )
-                    .expect("Unexpected Qiskit python bug"),
+                        .expect("Unexpected Qiskit python bug"),
                 )
             }),
         }
-    }
-
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Some(*self)
-    }
-
-    fn directive(&self) -> bool {
-        false
     }
 }
 
@@ -2504,45 +2663,9 @@ impl Operation for PyInstruction {
     fn control_flow(&self) -> bool {
         self.control_flow
     }
-    fn blocks(&self) -> Vec<CircuitData> {
-        if !self.control_flow {
-            return vec![];
-        }
-        Python::with_gil(|py| -> Vec<CircuitData> {
-            // We expect that if PyInstruction::control_flow is true then the operation WILL
-            // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
-            let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
-            let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
-            blocks
-                .iter()
-                .map(|b| {
-                    b.getattr(intern!(py, "_data"))
-                        .unwrap()
-                        .extract::<CircuitData>()
-                        .unwrap()
-                })
-                .collect()
-        })
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        Python::with_gil(|py| -> Option<CircuitData> {
-            match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
-                    .ok()?
-                    .extract::<CircuitData>(py)
-                    .ok(),
-                Err(_) => None,
-            }
-        })
-    }
     fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
-
     fn directive(&self) -> bool {
         Python::with_gil(|py| -> bool {
             match self.instruction.getattr(py, intern!(py, "_directive")) {
@@ -2551,6 +2674,21 @@ impl Operation for PyInstruction {
                     res
                 }
                 Err(_) => false,
+            }
+        })
+    }
+}
+
+impl PyInstruction {
+    fn definition(&self) -> Option<CircuitData> {
+        Python::with_gil(|py| -> Option<CircuitData> {
+            match self.instruction.getattr(py, intern!(py, "definition")) {
+                Ok(definition) => definition
+                    .getattr(py, intern!(py, "_data"))
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
+                Err(_) => None,
             }
         })
     }
@@ -2584,10 +2722,21 @@ impl Operation for PyGate {
     fn control_flow(&self) -> bool {
         false
     }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
+    fn standard_gate(&self) -> Option<StandardGate> {
+        Python::with_gil(|py| -> Option<StandardGate> {
+            match self.gate.getattr(py, intern!(py, "_standard_gate")) {
+                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
+                Err(_) => None,
+            }
+        })
     }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl PyGate {
+    fn matrix(&self) -> Option<Array2<Complex64>> {
         Python::with_gil(|py| -> Option<Array2<Complex64>> {
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
@@ -2604,7 +2753,8 @@ impl Operation for PyGate {
             }
         })
     }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+
+    fn definition(&self) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
@@ -2615,17 +2765,6 @@ impl Operation for PyGate {
                 Err(_) => None,
             }
         })
-    }
-    fn standard_gate(&self) -> Option<StandardGate> {
-        Python::with_gil(|py| -> Option<StandardGate> {
-            match self.gate.getattr(py, intern!(py, "_standard_gate")) {
-                Ok(stdgate) => stdgate.extract(py).unwrap_or_default(),
-                Err(_) => None,
-            }
-        })
-    }
-    fn directive(&self) -> bool {
-        false
     }
 }
 
@@ -2657,19 +2796,9 @@ impl Operation for PyOperation {
     fn control_flow(&self) -> bool {
         false
     }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
     fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
-
     fn directive(&self) -> bool {
         Python::with_gil(|py| -> bool {
             match self.operation.getattr(py, intern!(py, "_directive")) {
@@ -2705,7 +2834,7 @@ impl PartialEq for UnitaryGate {
             (ArrayType::TwoQ(mat1), ArrayType::TwoQ(mat2)) => mat1 == mat2,
             // we could also slightly optimize comparisons between NDArray and OneQ/TwoQ if
             // this becomes performance critical
-            _ => self.matrix(&[]) == other.matrix(&[]),
+            _ => self.matrix() == other.matrix(),
         }
     }
 }
@@ -2730,10 +2859,16 @@ impl Operation for UnitaryGate {
     fn control_flow(&self) -> bool {
         false
     }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
+    fn standard_gate(&self) -> Option<StandardGate> {
+        None
     }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl UnitaryGate {
+    fn matrix(&self) -> Option<Array2<Complex64>> {
         match &self.array {
             ArrayType::NDArray(arr) => Some(arr.clone()),
             ArrayType::OneQ(mat) => Some(array!(
@@ -2748,35 +2883,24 @@ impl Operation for UnitaryGate {
             )),
         }
     }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
+}
 
-    fn standard_gate(&self) -> Option<StandardGate> {
-        None
-    }
+#[derive(Debug)]
+pub struct UnitaryGateRef<'a>(pub &'a UnitaryGate);
 
-    fn directive(&self) -> bool {
-        false
+impl Deref for UnitaryGateRef<'_> {
+    type Target = UnitaryGate;
+    fn deref(&self) -> &Self::Target {
+        self.op
     }
 }
 
-impl UnitaryGate {
-    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
-        let kwargs = PyDict::new(py);
-        if let Some(label) = label {
-            kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
-        }
-        let out_array = match &self.array {
-            ArrayType::NDArray(arr) => arr.to_pyarray(py),
-            ArrayType::OneQ(arr) => arr.to_pyarray(py),
-            ArrayType::TwoQ(arr) => arr.to_pyarray(py),
-        };
-        kwargs.set_item(intern!(py, "check_input"), false)?;
-        kwargs.set_item(intern!(py, "num_qubits"), self.num_qubits())?;
-        let gate = UNITARY_GATE
-            .get_bound(py)
-            .call((out_array,), Some(&kwargs))?;
-        Ok(gate.unbind())
+impl<'a> UnitaryGateRef<'a> {
+    fn matrix(&self) -> Option<Array2<Complex64>> {
+        self.op.matrix()
+    }
+
+    fn definition(&self) -> Option<CircuitData> {
+        None
     }
 }

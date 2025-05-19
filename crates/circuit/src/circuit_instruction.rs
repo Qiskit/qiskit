@@ -13,26 +13,21 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
 
-use pyo3::types::{PyBool, PyList, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyBool, PyDict, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
 use nalgebra::{MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
-
-use crate::imports::{
-    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
-};
-use crate::operations::{
-    ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, StandardInstructionType, UnitaryGate,
-};
+use crate::circuit_data::CircuitData;
+use crate::imports::{get_std_gate_class, BARRIER, CONTROLLED_GATE, CONTROL_FLOW_OP, DELAY, GATE, INSTRUCTION, MEASURE, OPERATION, RESET, UNITARY_GATE, WARNINGS_WARN};
+use crate::operations::{ArrayType, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate, StandardGateRef, StandardInstruction, StandardInstructionRef, StandardInstructionType, UnitaryGate, UnitaryGateRef};
 use crate::packed_instruction::PackedOperation;
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
@@ -102,6 +97,247 @@ impl CircuitInstruction {
     }
 }
 
+pub trait AsInstructionRef {
+    type Block;
+
+    fn standard_gate(&self) -> Option<StandardGateRef<'_>>;
+    fn standard_instruction(&self) -> Option<StandardInstructionRef>;
+    fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>>;
+
+    #[inline]
+    fn view(&self) -> InstructionRef<'_, CircuitData> {
+        match self.op() {
+            OperationRef::ControlFlow(c) => {
+                InstructionRef::ControlFlow(match c {
+                    ControlFlow::Box { duration, .. } => {
+                        let Param::Circuit(body) = &self.params_view()[0] else {
+                            panic!("invalid");
+                        };
+                        ControlFlowRef::Box(duration, body)
+                    }
+                    ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
+                    ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
+                    ControlFlow::ForLoop { indexset, loop_param, .. } => {
+                        let Param::Circuit(body) = &self.params_view()[0] else {
+                            panic!("invalid");
+                        };
+                        ControlFlowRef::ForLoop {
+                            indexset,
+                            loop_param,
+                            body,
+                        }
+                    }
+                    ControlFlow::IfElse { condition, .. } => {
+                        let [Param::Circuit(true_body), Param::Circuit(false_body)] = &self.params_view() else {
+                            panic!("invalid");
+                        };
+                        ControlFlowRef::IfElse {
+                            condition,
+                            true_body,
+                            false_body,
+                        }
+                    }
+                    ControlFlow::Switch { target, .. } => {
+                        let xs = self.params_view().iter().map(|p| match p {
+                            Param::Circuit(c) => c,
+                            _ => panic!("invalid")
+                        }).collect();
+                        ControlFlowRef::Switch {
+                            target,
+                            cases: xs,
+                        }
+                    }
+                    ControlFlow::While { condition, .. } => {
+                        let Param::Circuit(body) = &self.params_view()[0] else {
+                            panic!("invalid");
+                        };
+                        ControlFlowRef::While {
+                            condition,
+                            body,
+                        }
+                    }
+                })
+            }
+            OperationRef::StandardGate(g) => {
+                InstructionRef::StandardGate(StandardGateRef(g, self.params_view()))
+            }
+            OperationRef::StandardInstruction(i) => {
+                InstructionRef::StandardInstruction(match i {
+                    StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
+                    StandardInstruction::Delay(u) => todo!(),
+                    // StandardInstructionRef::Delay(
+                    // match u {
+                    // DelayUnit::NS => Duration::ns()
+                    // DelayUnit::PS => {}
+                    // DelayUnit::US => {}
+                    // DelayUnit::MS => {}
+                    // DelayUnit::S => {}
+                    // DelayUnit::DT => {}
+                    // DelayUnit::EXPR => {}
+                    // })
+                    StandardInstruction::Measure => StandardInstructionRef::Measure,
+                    StandardInstruction::Reset => StandardInstructionRef::Reset,
+                })
+            }
+            OperationRef::Gate(g) => InstructionRef::Gate(g),
+            OperationRef::Instruction(i) => InstructionRef::Instruction(i),
+            OperationRef::Operation(o) => InstructionRef::Operation(o),
+            OperationRef::Unitary(u) => InstructionRef::Unitary(UnitaryGateRef(u)),
+        }
+    }
+}
+
+/// Represents an instruction that is directly convertible to our Python API
+/// instruction type.
+pub trait Instruction: AsInstructionRef {
+    fn op(&self) -> OperationRef<'_>;
+
+    /// Get a slice view onto the contained parameters.
+    fn params_view(&self) -> &[Param];
+
+    /// Get a mutable slice view onto the contained parameters.
+    fn params_mut(&mut self) -> &mut [Param];
+
+    /// Get the label for this instruction.
+    fn label(&self) -> Option<&str>;
+
+    /// Check equality of the operation, including Python-space checks, if appropriate.
+    fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self.op.view(), other.op.view()) {
+            (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
+                Ok(left == right)
+            }
+            (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
+                Ok(left == right)
+            }
+            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
+                left.gate.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
+                left.instruction.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
+                left.operation.bind(py).eq(&right.operation)
+            }
+            // Handle the case we end up with a pygate for a standard gate
+            // this typically only happens if it's a ControlledGate in python
+            // and we have mutable state set.
+            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
+                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
+                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
+            }
+            // Handle the case we end up with a pyinstruction for a standard instruction
+            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
+                self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => {
+                other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
+            }
+            _ => Ok(false),
+        }
+    }
+
+    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        match self.op() {
+            OperationRef::ControlFlow(control) => {
+                todo!()
+            }
+            OperationRef::StandardGate(standard) => {
+                let gate_class = get_std_gate_class(py, standard)?;
+                let args = match self.params_view() {
+                    &[] => PyTuple::empty(py),
+                    params => PyTuple::new(py, params.iter().map(|x| x.into_pyobject(py).unwrap()))?,
+                };
+                if let Some(label) = self.label() {
+                    let kwargs = [("label", label.into_pyobject(py)?)].into_py_dict(py)?;
+                    gate_class.call(py, args, Some(&kwargs))
+                } else {
+                    gate_class.call(py, args, None)
+                }
+            }
+            OperationRef::StandardInstruction(instruction) => {
+                let kwargs = self.label()
+                    .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+                    .transpose()?;
+                let out = match &instruction {
+                    StandardInstruction::Barrier(num_qubits) => {
+                        BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
+                    }
+                    StandardInstruction::Delay(unit) => {
+                        let StandardInstructionParameters::Delay(duration) = &self.1 else {
+                            panic!();
+                        };
+                        DELAY
+                            .get_bound(py)
+                            .call1((duration.into_py_any(py)?, unit.to_string()))?
+                    }
+                    StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
+                    StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
+                };
+
+                Ok(out.unbind())
+            },
+            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
+            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+            OperationRef::Unitary(unitary) => {
+                let kwargs = PyDict::new(py);
+                if let (label) = self.label() {
+                    kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
+                }
+                let out_array = match &unitary.array {
+                    ArrayType::NDArray(arr) => arr.to_pyarray(py),
+                    ArrayType::OneQ(arr) => arr.to_pyarray(py),
+                    ArrayType::TwoQ(arr) => arr.to_pyarray(py),
+                };
+                kwargs.set_item(intern!(py, "check_input"), false)?;
+                kwargs.set_item(intern!(py, "num_qubits"), self.num_qubits())?;
+                let gate = UNITARY_GATE
+                    .get_bound(py)
+                    .call((out_array,), Some(&kwargs))?;
+                Ok(gate.unbind())
+            },
+        }
+    }
+}
+
+impl AsInstructionRef for CircuitInstruction {
+    type Block = CircuitData;
+
+    fn standard_gate(&self) -> Option<StandardGateRef<'_>> {
+        todo!()
+    }
+
+    fn standard_instruction(&self) -> Option<StandardInstructionRef> {
+        todo!()
+    }
+
+    fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>> {
+        todo!()
+    }
+}
+
+impl Instruction for CircuitInstruction {
+
+    fn op(&self) -> OperationRef<'_> {
+        self.operation.view()
+    }
+
+    fn params_view(&self) -> &[Param] {
+        self.params.as_slice()
+    }
+
+    fn params_mut(&mut self) -> &mut [Param] {
+        self.params.as_mut_slice()
+    }
+
+    fn label(&self) -> Option<&str> {
+        self.label()
+    }
+}
+
 #[pymethods]
 impl CircuitInstruction {
     #[new]
@@ -168,28 +404,7 @@ impl CircuitInstruction {
             }
         }
 
-        let out = match self.operation.view() {
-            OperationRef::StandardGate(standard) => standard
-                .create_py_op(
-                    py,
-                    Some(&self.params),
-                    self.label.as_ref().map(|x| x.as_str()),
-                )?
-                .into_any(),
-            OperationRef::StandardInstruction(instruction) => instruction
-                .create_py_op(
-                    py,
-                    Some(&self.params),
-                    self.label.as_ref().map(|x| x.as_str()),
-                )?
-                .into_any(),
-            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-            OperationRef::Unitary(unitary) => unitary
-                .create_py_op(py, self.label.as_ref().map(|x| x.as_str()))?
-                .into_any(),
-        };
+        let out = self.create_py_op(py)?;
 
         #[cfg(feature = "cache_pygates")]
         {
