@@ -163,6 +163,7 @@ class UnitaryGate(Gate):
             self.definition = qs_decomposition(self.to_matrix())
             # Since iterative cosine-sine decomposition may provide imprecise matrices,
             # we use the Isometry decomposition in this case
+            # pylint: disable=cyclic-import
             from qiskit.quantum_info.operators import Operator
 
             if not (
@@ -198,6 +199,7 @@ class UnitaryGate(Gate):
             cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
             # Since iterative cosine-sine decomposition may provide imprecise matrices,
             # we use the Isometry decomposition in this case
+            # pylint: disable=cyclic-import
             from qiskit.quantum_info.operators import Operator
 
             if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):
