@@ -23,6 +23,7 @@ jobs:
       python-version: "3.9"
       install-optionals: true
       runner: ubuntu-latest
+      use-msrv: true
   main-tests-rust:
     name: Extra Tests
     uses: ./.github/workflows/rust-tests.yml
@@ -30,6 +31,7 @@ jobs:
     with:
       python-version: "3.9"
       runner: ubuntu-latest
+      rust-version: "1.79"
   main-tests-images:
     name: Extra Tests
     uses: ./.github/workflows/image-tests.yml
@@ -48,6 +50,7 @@ jobs:
       install-from-sdist: true
       install-optionals: false
       runner: "ubuntu-24.04-arm"
+      use-msrv: true
   main-tests-ubuntu-3-13:
     if: github.repository_owner == 'Qiskit'
     name: Main Tests

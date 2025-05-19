@@ -20,6 +20,13 @@ on:
           Describes the system this workflow should run on.
         type: string
         required: true
+      
+      use-msrv:
+        description: >
+          Decides whether we use MSRV or stable for rust toolchain.
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   tests-mac:
@@ -35,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.79
-        if: inputs.python-version == '3.9'
+        if: ${{ inputs.use-msrv }}
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v5
         with:
