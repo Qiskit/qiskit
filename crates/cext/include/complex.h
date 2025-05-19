@@ -1,5 +1,6 @@
 #ifndef QISKIT__COMPLEX_H
 #define QISKIT__COMPLEX_H
+
 /**
  * A complex double.
  *
@@ -33,7 +34,7 @@ static QkComplex64 qk_complex64_from_native(_Dcomplex *value) {
     return (QkComplex64){creal(*value), cimag(*value)};
 }
 #else
-static _Complex double qk_complex64_to_native(QkComplex64 *value) {
+static double _Complex qk_complex64_to_native(QkComplex64 *value) {
     return value->re + I * value->im;
 }
 static QkComplex64 qk_complex64_from_native(double _Complex *value) {
