@@ -591,8 +591,8 @@ impl SymbolExpr {
                                 .to_string())
                         }
                         UnaryOp::Conj => {
-                            Err("SymbolExpr::derivative does not support conjugate operator"
-                                .to_string())
+                            // we assume real parameters, hence Conj acts as identity
+                            Ok(SymbolExpr::Value(Value::Real(1.0)))
                         }
                     }
                 }
@@ -827,7 +827,7 @@ impl SymbolExpr {
             },
             SymbolExpr::Value(e) => match e {
                 Value::Complex(c) => SymbolExpr::Value(Value::Complex(c.conj())),
-                _ => SymbolExpr::Value(e.clone()),
+                _ => SymbolExpr::Value(*e),
             },
             SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
                 op: op.clone(),
@@ -1012,7 +1012,7 @@ impl SymbolExpr {
                 SymbolExpr::Value(r) => SymbolExpr::Value(l.pow(r)),
                 _ => SymbolExpr::Binary {
                     op: BinaryOp::Pow,
-                    lhs: Box::new(SymbolExpr::Value(l.clone())),
+                    lhs: Box::new(SymbolExpr::Value(*l)),
                     rhs: Box::new(rhs.clone()),
                 },
             },

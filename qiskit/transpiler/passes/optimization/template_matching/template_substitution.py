@@ -497,14 +497,8 @@ class TemplateSubstitution:
         """
         import sympy as sym
 
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            # Converts Sympy expressions to Symengine ones.
-            to_native_symbolic = symengine.sympify
-        else:
-            # Our native form is sympy, so we don't need to do anything.
-            to_native_symbolic = lambda x: x
+        # Our native form is sympy, so we don't need to do anything.
+        to_native_symbolic = lambda x: x
 
         circuit_params, template_params = [], []
         # Set of all parameter names that are present in the circuits to be optimized.

@@ -477,7 +477,6 @@ def _read_parameter_expression(file_obj):
     )
     sympy_str = file_obj.read(data.expr_size).decode(common.ENCODE)
     expr_ = parse_sympy_repr(sympy_str)
-
     symbol_map = {}
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM(

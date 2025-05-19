@@ -15,6 +15,7 @@ use nom::branch::{alt, permutation};
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1, multispace0};
 use nom::combinator::{all_consuming, map_res, opt, recognize};
+use nom::error::{convert_error, VerboseError};
 use nom::multi::{many0, many0_count};
 use nom::number::complete::double;
 use nom::sequence::{delimited, pair, tuple};
@@ -26,29 +27,29 @@ use num_complex::c64;
 use crate::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
 
 // parsing value as real
-fn parse_value(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(double, |v| -> Result<SymbolExpr, &str> {
         Ok(SymbolExpr::Value(Value::Real(v)))
     })(s)
 }
 
 // parsing imaginary part of complex number as real
-fn parse_imaginary_value(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_imaginary_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         tuple((double, char('i'))),
         |(v, _)| -> Result<SymbolExpr, &str> { Ok(SymbolExpr::Value(Value::Complex(c64(0.0, v)))) },
     )(s)
 }
 
-fn alpha1(i: &str) -> IResult<&str, &str> {
+fn alpha1(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
     nom_unicode::complete::alpha1(i)
 }
 
-fn alphanumeric1(i: &str) -> IResult<&str, &str> {
+fn alphanumeric1(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
     nom_unicode::complete::alphanumeric1(i)
 }
 
-fn parse_symbol_string(s: &str) -> IResult<&str, &str> {
+fn parse_symbol_string(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
     recognize(pair(
         alt((alpha1, tag("_"))),
         many0_count(alt((alphanumeric1, tag("_")))),
@@ -56,13 +57,13 @@ fn parse_symbol_string(s: &str) -> IResult<&str, &str> {
     .parse(s)
 }
 
-fn parse_mpl_special_char(s: &str) -> IResult<&str, &str> {
+fn parse_mpl_special_char(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
     recognize(tuple((tag("$\\"), alpha1, tag("$")))).parse(s)
 }
 
 // parse string as symbol
 // symbol starting with alphabet and can contain numbers and '_', '[', ']'
-fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         tuple((
             alt((parse_mpl_special_char, parse_symbol_string)),
@@ -90,7 +91,7 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr> {
 }
 
 // parse unary operations
-fn parse_unary(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         tuple((
             delimited(multispace0, alphanumeric1, multispace0),
@@ -122,7 +123,7 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr> {
 }
 
 // sign is separetely parsed in this function
-fn parse_sign(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_sign(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         tuple((
             delimited(multispace0, alt((char('-'), char('+'))), multispace0),
@@ -151,7 +152,7 @@ fn parse_sign(s: &str) -> IResult<&str, SymbolExpr> {
     )(s)
 }
 
-fn parse_expr(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_expr(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     alt((
         parse_imaginary_value,
         parse_value,
@@ -167,7 +168,7 @@ fn parse_expr(s: &str) -> IResult<&str, SymbolExpr> {
 }
 
 // parse pow
-fn parse_pow(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_pow(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         permutation((
             parse_expr,
@@ -184,7 +185,7 @@ fn parse_pow(s: &str) -> IResult<&str, SymbolExpr> {
 }
 
 // parse mul and div
-fn parse_muldiv(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_muldiv(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         permutation((
             parse_pow,
@@ -216,7 +217,7 @@ fn parse_muldiv(s: &str) -> IResult<&str, SymbolExpr> {
 }
 
 // parse add and sub
-fn parse_addsub(s: &str) -> IResult<&str, SymbolExpr> {
+fn parse_addsub(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         permutation((
             parse_muldiv,
@@ -247,7 +248,13 @@ fn parse_addsub(s: &str) -> IResult<&str, SymbolExpr> {
     )(s)
 }
 
-pub fn parse_expression(s: &str) -> SymbolExpr {
+pub fn parse_expression(s: &str) -> Result<SymbolExpr, String> {
     let mut parser = all_consuming(parse_addsub);
-    parser(s).unwrap().1
+    match parser(s) {
+        Ok(o) => Ok(o.1),
+        Err(e) => match e {
+            nom::Err::Error(e) => Err(convert_error(s, e)),
+            _ => Err(format!(" Error occurs while parsing expression {}.", s)),
+        },
+    }
 }

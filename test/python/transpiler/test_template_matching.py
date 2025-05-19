@@ -374,7 +374,7 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertEqual(out, expected)
 
         def symbolic_library(expr):
-            """Get the symbolic library of the expression - 'sympy' or 'symengine'."""
+            """Get the symbolic library of the expression - 'sympy' or 'qiskit'."""
             return type(expr._symbol_expr).__module__.split(".")[0]
 
         out_exprs = [expr for instruction in out.data for expr in instruction.operation.params]
