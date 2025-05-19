@@ -288,58 +288,6 @@ impl ParameterExpression {
         }
     }
 
-    /// get uuid for this symbol
-    pub fn uuid(&self) -> u128 {
-        self.uuid
-    }
-
-    /// check if this is symbol
-    pub fn is_symbol(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index: _ } = self.expr {
-            true
-        } else {
-            false
-        }
-    }
-
-    /// check if this is numeric
-    pub fn is_numeric(&self) -> bool {
-        if let SymbolExpr::Value(_) = self.expr {
-            true
-        } else {
-            false
-        }
-    }
-
-    /// check if ParameterVectorElement
-    pub fn is_vector_element(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
-            return match index {
-                Some(_) => true,
-                None => false,
-            };
-        }
-        false
-    }
-
-    /// return number of symbols in this expression
-    pub fn num_symbols(&self) -> usize {
-        self.expr.symbols().len()
-    }
-
-    /// check if the symbol is used in this expression
-    pub fn has_symbol(&self, symbol: String) -> bool {
-        self.expr.symbols_in_string().contains(&symbol)
-    }
-
-    /// return true if this is not complex number
-    pub fn is_real(&self) -> Option<bool> {
-        match self.expr.is_complex() {
-            Some(b) => Some(!b),
-            None => None,
-        }
-    }
-
     // return merged set of parameter symbils in 2 parameters
     fn merge_parameter_symbols(
         &self,
@@ -1222,26 +1170,30 @@ impl ParameterExpression {
                 .replace("__begin_sympy_replace__", "$\\")
                 .replace("__end_sympy_replace__", "$");
             // substitute 'I' to imaginary number i before returning expression
-            let expr = parse_expression(&expr).bind(&HashMap::from([(
-                "I".to_string(),
-                symbol_expr::Value::from(Complex64::i()),
-            )]));
-            let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
-            let mut uuid: u128 = 0;
-            for (param, _) in symbol_map {
-                uuid = param.uuid;
-                parameter_symbols.insert(Arc::new(param.to_owned()));
+            match parse_expression(&expr) {
+                Ok(expr) => {
+                    let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
+                    let mut uuid: u128 = 0;
+                    for (param, _) in symbol_map {
+                        uuid = param.uuid;
+                        parameter_symbols.insert(Arc::new(param.to_owned()));
+                    }
+                    if parameter_symbols.len() > 1 {
+                        uuid = 0;
+                    }
+                    Ok(ParameterExpression {
+                        expr: expr.bind(&HashMap::from([(
+                            "I".to_string(),
+                            symbol_expr::Value::from(Complex64::i()),
+                        )])),
+                        uuid: uuid,
+                        qpy_replay: _qpy_replay,
+                        parameter_symbols: Some(parameter_symbols),
+                        parameter_vector: None,
+                    })
+                }
+                Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
             }
-            if parameter_symbols.len() > 1 {
-                uuid = 0;
-            }
-            Ok(ParameterExpression {
-                expr: expr,
-                uuid: uuid,
-                qpy_replay: _qpy_replay,
-                parameter_symbols: Some(parameter_symbols),
-                parameter_vector: None,
-            })
         } else {
             // return 0 if there are no input parameter is given
             Ok(ParameterExpression::default())
@@ -1299,28 +1251,56 @@ impl ParameterExpression {
         }
     }
 
+    /// get uuid for this symbol
+    pub fn uuid(&self) -> u128 {
+        self.uuid
+    }
+
     /// check if this is symbol
-    #[getter("is_symbol")]
-    pub fn py_is_symbol(&self) -> bool {
-        self.is_symbol()
+    pub fn is_symbol(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index: _ } = self.expr {
+            true
+        } else {
+            false
+        }
     }
 
     /// check if this is numeric
-    #[getter("is_numeric")]
-    pub fn py_is_numeric(&self) -> bool {
-        self.is_numeric()
+    pub fn is_numeric(&self) -> bool {
+        if let SymbolExpr::Value(_) = self.expr {
+            true
+        } else {
+            false
+        }
+    }
+
+    /// return true if this is not complex number
+    pub fn is_real(&self) -> Option<bool> {
+        match self.expr.is_complex() {
+            Some(b) => Some(!b),
+            None => None,
+        }
     }
 
     /// check if ParameterVectorElement
-    #[getter("is_vector_element")]
-    pub fn py_is_vector_element(&self) -> bool {
-        self.is_vector_element()
+    pub fn is_vector_element(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
+            return match index {
+                Some(_) => true,
+                None => false,
+            };
+        }
+        false
     }
 
-    /// get uuid for this symbol
-    #[getter("uuid")]
-    pub fn py_get_uuid(&self) -> u128 {
-        self.uuid
+    /// return number of symbols in this expression
+    pub fn num_symbols(&self) -> usize {
+        self.expr.symbols().len()
+    }
+
+    /// check if the symbol is used in this expression
+    pub fn has_symbol(&self, symbol: String) -> bool {
+        self.expr.symbols_in_string().contains(&symbol)
     }
 
     /// get ParameterVector if this is ParameterVectorElement
@@ -2055,20 +2035,25 @@ impl ParameterExpression {
         &mut self,
         state: (String, u128, Option<HashMap<String, u128>>),
     ) -> PyResult<()> {
-        self.expr = parse_expression(&state.0);
-        self.uuid = state.1;
-        if let Some(symbols) = state.2 {
-            let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
-            for (name, uuid) in symbols {
-                parameter_symbols.insert(Arc::<ParameterExpression>::new(
-                    ParameterExpression::new(name, Some(uuid)),
-                ));
+        match parse_expression(&state.0) {
+            Ok(expr) => {
+                self.expr = expr;
+                self.uuid = state.1;
+                if let Some(symbols) = state.2 {
+                    let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
+                    for (name, uuid) in symbols {
+                        parameter_symbols.insert(Arc::<ParameterExpression>::new(
+                            ParameterExpression::new(name, Some(uuid)),
+                        ));
+                    }
+                    self.parameter_symbols = Some(parameter_symbols);
+                } else {
+                    self.parameter_symbols = None;
+                }
+                Ok(())
             }
-            self.parameter_symbols = Some(parameter_symbols);
-        } else {
-            self.parameter_symbols = None;
+            Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
         }
-        Ok(())
     }
 
     pub fn __repr__(&self) -> String {
