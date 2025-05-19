@@ -12,7 +12,20 @@ jobs:
     uses: ./.github/workflows/test-linux.yml
     with:
       python-version: "3.9"
-      test-rust: true
-      test-images: true
       install-optionals: false
       runner: ubuntu-latest
+  test-rust:
+    if: github.repository_owner == 'Qiskit'
+    uses: ./.github/workflows/rust-tests.yml
+    with:
+      python-version: "3.9"
+      install-optionals: false
+      runner: ubuntu-latest
+  test-images:
+    if: github.repository_owner == 'Qiskit'
+    uses: ./.github/workflows/image-tests.yml
+    with:
+      python-version: "3.9"
+      install-optionals: false
+      runner: ubuntu-latest
+    

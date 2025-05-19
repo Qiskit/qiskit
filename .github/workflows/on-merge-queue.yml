@@ -30,9 +30,21 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
       install-optionals: ${{ matrix.python-version == '3.9' }}
-      test-rust: ${{ matrix.python-version == '3.9' }}
-      test-images: ${{ matrix.python-version == '3.9' }}
       runner: ${{ matrix.runner }}
+  test-rust:
+    if: github.repository_owner == 'Qiskit'
+    uses: ./.github/workflows/rust-tests.yml
+    with:
+      python-version: "3.9"
+      runner: "ubuntu-latest"
+      install-optionals: true
+  test-images:
+    if: github.repository_owner == 'Qiskit'
+    uses: ./.github/workflows/image-tests.yml
+    with:
+      python-version: "3.9"
+      runner: "ubuntu-latest"
+      install-optionals: true
   test-mac:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-mac.yml

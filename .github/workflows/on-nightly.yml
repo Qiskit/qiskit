@@ -16,8 +16,6 @@ jobs:
         runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
     with:
       python-version: ${{ matrix.python-version }}
-      test-images: false
-      test-rust: false
       install-optionals: true
       runner: ${{ matrix.runner }}
   nightly-mac:
