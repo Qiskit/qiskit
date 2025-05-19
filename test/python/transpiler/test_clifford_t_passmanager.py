@@ -147,6 +147,21 @@ class TestCliffordTPassManager(QiskitTestCase):
         t_size = transpiled_ops.get("t", 0) + transpiled_ops.get("tdg", 0)
         self.assertEqual(t_size, 0)
 
+    @data(0, 1, 2, 3)
+    def test_ccx(self, optimization_level):
+        """Clifford+T transpilation of the Toffoli circuit."""
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+
+        basis_gates = ["cx", "h", "t", "tdg"]
+        pm = generate_preset_pass_manager(
+            basis_gates=basis_gates, optimization_level=optimization_level
+        )
+        transpiled = pm.run(qc)
+
+        # Should get the efficient decomposition of the Toffoli gates into Clifford+T.
+        self.assertEqual(transpiled.count_ops(), {"cx": 6, "t": 4, "tdg": 3, "h": 2})
+
     def test_t_gates(self):
         """Clifford+T transpilation of a circuit with T/Tdg-gates."""
         qc = QuantumCircuit(3)
