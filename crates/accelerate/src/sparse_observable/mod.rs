@@ -1398,9 +1398,11 @@ mod compose {
         /// [load_from] changes it).  If a 0 multiplier is encountered during the load, the
         /// iterator is empty.
         pub fn num_terms(&self) -> usize {
-            self.exhausted
-                .then_some(0)
-                .unwrap_or_else(|| self.multiples.iter().map(|item| item.slice.len()).product())
+            if self.exhausted {
+                0
+            } else {
+                self.multiples.iter().map(|item| item.slice.len()).product()
+            }
         }
         /// The length of each individual term in the iteration.
         pub fn term_len(&self) -> usize {
@@ -3442,7 +3444,7 @@ impl PySparseObservable {
             let order = order
                 .try_iter()?
                 .map(|obj| obj.and_then(|obj| obj.extract::<u32>()))
-                .collect::<PyResult<IndexSet<u32>>>()?;
+                .collect::<PyResult<IndexSet<u32, ::ahash::RandomState>>>()?;
             if order.len() != in_length {
                 return Err(PyValueError::new_err("duplicate indices in qargs"));
             }

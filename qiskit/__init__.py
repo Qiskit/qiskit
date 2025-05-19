@@ -59,6 +59,7 @@ sys.modules["qiskit._accelerate.circuit_library"] = _accelerate.circuit_library
 sys.modules["qiskit._accelerate.basis_translator"] = _accelerate.basis_translator
 sys.modules["qiskit._accelerate.converters"] = _accelerate.converters
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout
+sys.modules["qiskit._accelerate.disjoint_utils"] = _accelerate.disjoint_utils
 sys.modules["qiskit._accelerate.equivalence"] = _accelerate.equivalence
 sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map
 sys.modules["qiskit._accelerate.gates_in_basis"] = _accelerate.gates_in_basis
@@ -66,6 +67,9 @@ sys.modules["qiskit._accelerate.isometry"] = _accelerate.isometry
 sys.modules["qiskit._accelerate.uc_gate"] = _accelerate.uc_gate
 sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
     _accelerate.euler_one_qubit_decomposer
+)
+sys.modules["qiskit._accelerate.optimize_1q_gates_decomposition"] = (
+    _accelerate.optimize_1q_gates_decomposition
 )
 sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
@@ -80,7 +84,6 @@ sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.sparse_observable"] = _accelerate.sparse_observable
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
-sys.modules["qiskit._accelerate.star_prerouting"] = _accelerate.star_prerouting
 sys.modules["qiskit._accelerate.elide_permutations"] = _accelerate.elide_permutations
 sys.modules["qiskit._accelerate.target"] = _accelerate.target
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = _accelerate.two_qubit_decompose
@@ -101,6 +104,7 @@ sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.ev
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
+sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
@@ -110,6 +114,7 @@ sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
 sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_synthesis
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
+sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

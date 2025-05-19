@@ -15,3 +15,4 @@
 from .cdkm_ripple_carry_adder import adder_ripple_c04
 from .vbe_ripple_carry_adder import adder_ripple_v95
 from .draper_qft_adder import adder_qft_d00
+from .rv_ripple_carry_adder import adder_ripple_r25
