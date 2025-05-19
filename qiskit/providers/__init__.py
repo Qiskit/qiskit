@@ -488,10 +488,10 @@ is used to actually submit circuits to a device or simulator. The run method
 handles submitting the circuits to the backend to be executed and returning a
 :class:`~qiskit.providers.Job` object. Depending on the type of backend this
 typically involves serializing the circuit object into the API format used by a
-backend. For example, on IBM backends from the ``qiskit-ibm-provider``
-package this involves converting from a quantum circuit and options into a
-:mod:`.qpy` payload embedded in JSON and submitting that to the IBM Quantum
-API. Since every backend interface is different (and in the case of the local
+backend. For example, a provider service might need to convert from a quantum
+circuit and options into a
+:mod:`.qpy` payload embedded in JSON before submitting it to a REST API.
+Since every backend interface is different (and in the case of the local
 simulators serialization may not be needed) it is expected that the backend's
 :obj:`~qiskit.providers.BackendV2.run` method will handle this conversion.
 
