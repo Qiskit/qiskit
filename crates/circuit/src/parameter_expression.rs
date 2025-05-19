@@ -1316,7 +1316,6 @@ impl ParameterExpression {
     }
 
     /// check if this is not complex
-    #[getter("is_real")]
     pub fn py_is_real(&self) -> Option<bool> {
         self.is_real()
     }
