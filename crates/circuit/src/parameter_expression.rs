@@ -1316,6 +1316,7 @@ impl ParameterExpression {
     }
 
     /// check if this is not complex
+    #[pyo3(name = "is_real")]
     pub fn py_is_real(&self) -> Option<bool> {
         self.is_real()
     }
