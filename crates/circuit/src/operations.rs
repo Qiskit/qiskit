@@ -43,7 +43,10 @@ use crate::parameter_expression::ParameterExpression;
 pub enum Param {
     ParameterExpression(PyObject),
     Float(f64),
-    Circuit(CircuitData),
+    Circuit(Py<CircuitData>),
+    Condition(Condition),
+    Duration(Duration),
+    Target(Target),
     Obj(PyObject),
 }
 
@@ -59,6 +62,7 @@ impl Param {
             [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
             [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
             [Self::ParameterExpression(a), Self::Obj(b)] => a.bind(py).eq(b),
+            _ => todo!()
         }
     }
 
@@ -77,6 +81,7 @@ impl<'py> FromPyObject<'py> for Param {
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
+            // TODO: write the rest of the extraction logic needed
             Param::Obj(b.clone().unbind())
         })
     }
@@ -101,6 +106,8 @@ impl Param {
                     Ok(ParamParameterIter(None))
                 }
             }
+            Param::Circuit(circuit) => todo!(),
+            _ => Ok(ParamParameterIter(None)),
         }
     }
 
@@ -123,6 +130,7 @@ impl Param {
             Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
+            _ => todo!()
         }
     }
 }
@@ -241,39 +249,6 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.control_flow(),
         }
     }
-    // #[inline]
-    // fn blocks(&self) -> Vec<CircuitData> {
-    //     match self {
-    //         OperationRef::StandardGate(standard) => standard.blocks(),
-    //         OperationRef::StandardInstruction(instruction) => instruction.blocks(),
-    //         OperationRef::Gate(gate) => gate.blocks(),
-    //         OperationRef::Instruction(instruction) => instruction.blocks(),
-    //         OperationRef::Operation(operation) => operation.blocks(),
-    //         Self::Unitary(unitary) => unitary.blocks(),
-    //     }
-    // }
-    // #[inline]
-    // fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-    //     match self {
-    //         Self::StandardGate(standard) => standard.matrix(params),
-    //         Self::StandardInstruction(instruction) => instruction.matrix(params),
-    //         Self::Gate(gate) => gate.matrix(params),
-    //         Self::Instruction(instruction) => instruction.matrix(params),
-    //         Self::Operation(operation) => operation.matrix(params),
-    //         Self::Unitary(unitary) => unitary.matrix(params),
-    //     }
-    // }
-    // #[inline]
-    // fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-    //     match self {
-    //         Self::StandardGate(standard) => standard.definition(params),
-    //         Self::StandardInstruction(instruction) => instruction.definition(params),
-    //         Self::Gate(gate) => gate.definition(params),
-    //         Self::Instruction(instruction) => instruction.definition(params),
-    //         Self::Operation(operation) => operation.definition(params),
-    //         Self::Unitary(unitary) => unitary.definition(params),
-    //     }
-    // }
     #[inline]
     fn standard_gate(&self) -> Option<StandardGate> {
         match self {
@@ -334,9 +309,7 @@ impl<'a, T> InstructionRef<'a, T> {
 #[derive(Clone, Debug, PartialEq, Hash)]
 #[repr(align(8))]
 pub enum ControlFlow {
-    // TODO: add specific data that would normally be in Params
     Box {
-        duration: Duration,
         qubits: u32,
         clbits: u32,
     },
@@ -349,24 +322,19 @@ pub enum ControlFlow {
         clbits: u32,
     },
     ForLoop {
-        indexset: Vec<usize>,
-        loop_param: ParameterExpression,
         qubits: u32,
         clbits: u32,
     },
     IfElse {
-        condition: Condition,
         qubits: u32,
         clbits: u32,
     },
     Switch {
-        target: Target,
         qubits: u32,
         clbits: u32,
         cases: u32,
     },
     While {
-        condition: Condition,
         qubits: u32,
         clbits: u32,
     },
@@ -435,7 +403,7 @@ impl Operation for ControlFlow {
 }
 
 /// A control flow operation's condition.
-#[derive(Clone, Debug, PartialEq, IntoPyObject)]
+#[derive(Clone, Debug, PartialEq, IntoPyObject, IntoPyObjectRef)]
 pub(crate) enum Condition {
     Bit(ShareableClbit, usize),
     Register(ClassicalRegister, usize),
@@ -455,7 +423,7 @@ impl<'py> FromPyObject<'py> for Condition {
 }
 
 /// A control flow operation's target.
-#[derive(Clone, Debug, IntoPyObject)]
+#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
 pub(crate) enum Target {
     Bit(ShareableClbit),
     Register(ClassicalRegister),
@@ -2565,7 +2533,7 @@ fn clone_param(param: &Param, py: Python) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta),
         Param::ParameterExpression(theta) => Param::ParameterExpression(theta.clone_ref(py)),
-        Param::Obj(_) => unreachable!(),
+        _ => unreachable!(),
     }
 }
 
@@ -2579,7 +2547,7 @@ pub fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
                 .call_method1(py, intern!(py, "__rmul__"), (mult,))
                 .expect("Multiplication of Parameter expression by float failed."),
         ),
-        Param::Obj(_) => unreachable!("Unsupported multiplication of a Param::Obj."),
+        _ => unreachable!("Unsupported multiplication."),
     }
 }
 
@@ -2609,7 +2577,7 @@ pub fn add_param(param: &Param, summand: f64, py: Python) -> Param {
                 .call_method1(py, intern!(py, "__add__"), (summand,))
                 .expect("Sum of Parameter expression and float failed."),
         ),
-        Param::Obj(_) => unreachable!(),
+        _ => unreachable!(),
     }
 }
 
@@ -2891,13 +2859,13 @@ pub struct UnitaryGateRef<'a>(pub &'a UnitaryGate);
 impl Deref for UnitaryGateRef<'_> {
     type Target = UnitaryGate;
     fn deref(&self) -> &Self::Target {
-        self.op
+        self.0
     }
 }
 
 impl<'a> UnitaryGateRef<'a> {
     fn matrix(&self) -> Option<Array2<Complex64>> {
-        self.op.matrix()
+        self.0.matrix()
     }
 
     fn definition(&self) -> Option<CircuitData> {

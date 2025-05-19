@@ -30,154 +30,25 @@ use crate::imports::{get_std_gate_class, BARRIER, CONTROLLED_GATE, CONTROL_FLOW_
 use crate::operations::{ArrayType, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate, StandardGateRef, StandardInstruction, StandardInstructionRef, StandardInstructionType, UnitaryGate, UnitaryGateRef};
 use crate::packed_instruction::PackedOperation;
 
-/// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
-/// various operands.
-///
-/// .. note::
-///
-///     There is some possible confusion in the names of this class, :class:`~.circuit.Instruction`,
-///     and :class:`~.circuit.Operation`, and this class's attribute :attr:`operation`.  Our
-///     preferred terminology is by analogy to assembly languages, where an "instruction" is made up
-///     of an "operation" and its "operands".
-///
-///     Historically, :class:`~.circuit.Instruction` came first, and originally contained the qubits
-///     it operated on and any parameters, so it was a true "instruction".  Over time,
-///     :class:`.QuantumCircuit` became responsible for tracking qubits and clbits, and the class
-///     became better described as an "operation".  Changing the name of such a core object would be
-///     a very unpleasant API break for users, and so we have stuck with it.
-///
-///     This class was created to provide a formal "instruction" context object in
-///     :class:`.QuantumCircuit.data`, which had long been made of ad-hoc tuples.  With this, and
-///     the advent of the :class:`~.circuit.Operation` interface for adding more complex objects to
-///     circuits, we took the opportunity to correct the historical naming.  For the time being,
-///     this leads to an awkward case where :attr:`.CircuitInstruction.operation` is often an
-///     :class:`~.circuit.Instruction` instance (:class:`~.circuit.Instruction` implements the
-///     :class:`.Operation` interface), but as the :class:`.Operation` interface gains more use,
-///     this confusion will hopefully abate.
-///
-/// .. warning::
-///
-///     This is a lightweight internal class and there is minimal error checking; you must respect
-///     the type hints when using it.  It is the user's responsibility to ensure that direct
-///     mutations of the object do not invalidate the types, nor the restrictions placed on it by
-///     its context.  Typically this will mean, for example, that :attr:`qubits` must be a sequence
-///     of distinct items, with no duplicates.
-#[pyclass(freelist = 20, sequence, module = "qiskit._accelerate.circuit")]
-#[derive(Clone, Debug)]
-pub struct CircuitInstruction {
-    pub operation: PackedOperation,
-    /// A sequence of the qubits that the operation is applied to.
-    #[pyo3(get)]
-    pub qubits: Py<PyTuple>,
-    /// A sequence of the classical bits that this operation reads from or writes to.
-    #[pyo3(get)]
-    pub clbits: Py<PyTuple>,
-    pub params: SmallVec<[Param; 3]>,
-    pub label: Option<Box<String>>,
-    #[cfg(feature = "cache_pygates")]
-    pub py_op: OnceLock<Py<PyAny>>,
-}
-
-impl CircuitInstruction {
-    /// Get the Python-space operation, ensuring that it is mutable from Python space (singleton
-    /// gates might not necessarily satisfy this otherwise).
-    ///
-    /// This returns the cached instruction if valid, but does not replace the cache if it created a
-    /// new mutable object; the expectation is that any mutations to the Python object need
-    /// assigning back to the `CircuitInstruction` completely to ensure data coherence between Rust
-    /// and Python spaces.  We can't protect entirely against that, but we can make it a bit harder
-    /// for standard-gate getters to accidentally do the wrong thing.
-    pub fn get_operation_mut<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let out = self.get_operation(py)?.into_bound(py);
-        if out.getattr(intern!(py, "mutable"))?.is_truthy()? {
-            Ok(out)
-        } else {
-            out.call_method0(intern!(py, "to_mutable"))
-        }
-    }
-}
-
 pub trait AsInstructionRef {
     type Block;
 
+    fn op(&self) -> OperationRef<'_>;
     fn standard_gate(&self) -> Option<StandardGateRef<'_>>;
     fn standard_instruction(&self) -> Option<StandardInstructionRef>;
     fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>>;
 
     #[inline]
-    fn view(&self) -> InstructionRef<'_, CircuitData> {
+    fn view(&self) -> InstructionRef<'_, Self::Block> {
         match self.op() {
             OperationRef::ControlFlow(c) => {
-                InstructionRef::ControlFlow(match c {
-                    ControlFlow::Box { duration, .. } => {
-                        let Param::Circuit(body) = &self.params_view()[0] else {
-                            panic!("invalid");
-                        };
-                        ControlFlowRef::Box(duration, body)
-                    }
-                    ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
-                    ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
-                    ControlFlow::ForLoop { indexset, loop_param, .. } => {
-                        let Param::Circuit(body) = &self.params_view()[0] else {
-                            panic!("invalid");
-                        };
-                        ControlFlowRef::ForLoop {
-                            indexset,
-                            loop_param,
-                            body,
-                        }
-                    }
-                    ControlFlow::IfElse { condition, .. } => {
-                        let [Param::Circuit(true_body), Param::Circuit(false_body)] = &self.params_view() else {
-                            panic!("invalid");
-                        };
-                        ControlFlowRef::IfElse {
-                            condition,
-                            true_body,
-                            false_body,
-                        }
-                    }
-                    ControlFlow::Switch { target, .. } => {
-                        let xs = self.params_view().iter().map(|p| match p {
-                            Param::Circuit(c) => c,
-                            _ => panic!("invalid")
-                        }).collect();
-                        ControlFlowRef::Switch {
-                            target,
-                            cases: xs,
-                        }
-                    }
-                    ControlFlow::While { condition, .. } => {
-                        let Param::Circuit(body) = &self.params_view()[0] else {
-                            panic!("invalid");
-                        };
-                        ControlFlowRef::While {
-                            condition,
-                            body,
-                        }
-                    }
-                })
+                InstructionRef::ControlFlow(self.control_flow().unwrap())
             }
             OperationRef::StandardGate(g) => {
-                InstructionRef::StandardGate(StandardGateRef(g, self.params_view()))
+                InstructionRef::StandardGate(self.standard_gate().unwrap())
             }
             OperationRef::StandardInstruction(i) => {
-                InstructionRef::StandardInstruction(match i {
-                    StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
-                    StandardInstruction::Delay(u) => todo!(),
-                    // StandardInstructionRef::Delay(
-                    // match u {
-                    // DelayUnit::NS => Duration::ns()
-                    // DelayUnit::PS => {}
-                    // DelayUnit::US => {}
-                    // DelayUnit::MS => {}
-                    // DelayUnit::S => {}
-                    // DelayUnit::DT => {}
-                    // DelayUnit::EXPR => {}
-                    // })
-                    StandardInstruction::Measure => StandardInstructionRef::Measure,
-                    StandardInstruction::Reset => StandardInstructionRef::Reset,
-                })
+                InstructionRef::StandardInstruction(self.standard_instruction().unwrap())
             }
             OperationRef::Gate(g) => InstructionRef::Gate(g),
             OperationRef::Instruction(i) => InstructionRef::Instruction(i),
@@ -189,7 +60,7 @@ pub trait AsInstructionRef {
 
 /// Represents an instruction that is directly convertible to our Python API
 /// instruction type.
-pub trait Instruction: AsInstructionRef {
+pub trait Instruction {
     fn op(&self) -> OperationRef<'_>;
 
     /// Get a slice view onto the contained parameters.
@@ -203,7 +74,7 @@ pub trait Instruction: AsInstructionRef {
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
     fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
-        match (self.op.view(), other.op.view()) {
+        match (self.op(), other.op()) {
             (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
                 Ok(left == right)
             }
@@ -284,7 +155,7 @@ pub trait Instruction: AsInstructionRef {
             OperationRef::Operation(operation) => operation.operation.clone_ref(py),
             OperationRef::Unitary(unitary) => {
                 let kwargs = PyDict::new(py);
-                if let (label) = self.label() {
+                if let Some(label) = self.label() {
                     kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
                 }
                 let out_array = match &unitary.array {
@@ -303,24 +174,75 @@ pub trait Instruction: AsInstructionRef {
     }
 }
 
-impl AsInstructionRef for CircuitInstruction {
-    type Block = CircuitData;
 
-    fn standard_gate(&self) -> Option<StandardGateRef<'_>> {
-        todo!()
-    }
+/// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
+/// various operands.
+///
+/// .. note::
+///
+///     There is some possible confusion in the names of this class, :class:`~.circuit.Instruction`,
+///     and :class:`~.circuit.Operation`, and this class's attribute :attr:`operation`.  Our
+///     preferred terminology is by analogy to assembly languages, where an "instruction" is made up
+///     of an "operation" and its "operands".
+///
+///     Historically, :class:`~.circuit.Instruction` came first, and originally contained the qubits
+///     it operated on and any parameters, so it was a true "instruction".  Over time,
+///     :class:`.QuantumCircuit` became responsible for tracking qubits and clbits, and the class
+///     became better described as an "operation".  Changing the name of such a core object would be
+///     a very unpleasant API break for users, and so we have stuck with it.
+///
+///     This class was created to provide a formal "instruction" context object in
+///     :class:`.QuantumCircuit.data`, which had long been made of ad-hoc tuples.  With this, and
+///     the advent of the :class:`~.circuit.Operation` interface for adding more complex objects to
+///     circuits, we took the opportunity to correct the historical naming.  For the time being,
+///     this leads to an awkward case where :attr:`.CircuitInstruction.operation` is often an
+///     :class:`~.circuit.Instruction` instance (:class:`~.circuit.Instruction` implements the
+///     :class:`.Operation` interface), but as the :class:`.Operation` interface gains more use,
+///     this confusion will hopefully abate.
+///
+/// .. warning::
+///
+///     This is a lightweight internal class and there is minimal error checking; you must respect
+///     the type hints when using it.  It is the user's responsibility to ensure that direct
+///     mutations of the object do not invalidate the types, nor the restrictions placed on it by
+///     its context.  Typically this will mean, for example, that :attr:`qubits` must be a sequence
+///     of distinct items, with no duplicates.
+#[pyclass(freelist = 20, sequence, module = "qiskit._accelerate.circuit")]
+#[derive(Clone, Debug)]
+pub struct CircuitInstruction {
+    pub operation: PackedOperation,
+    /// A sequence of the qubits that the operation is applied to.
+    #[pyo3(get)]
+    pub qubits: Py<PyTuple>,
+    /// A sequence of the classical bits that this operation reads from or writes to.
+    #[pyo3(get)]
+    pub clbits: Py<PyTuple>,
+    pub params: SmallVec<[Param; 3]>,
+    pub label: Option<Box<String>>,
+    #[cfg(feature = "cache_pygates")]
+    pub py_op: OnceLock<Py<PyAny>>,
+}
 
-    fn standard_instruction(&self) -> Option<StandardInstructionRef> {
-        todo!()
-    }
-
-    fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>> {
-        todo!()
+impl CircuitInstruction {
+    /// Get the Python-space operation, ensuring that it is mutable from Python space (singleton
+    /// gates might not necessarily satisfy this otherwise).
+    ///
+    /// This returns the cached instruction if valid, but does not replace the cache if it created a
+    /// new mutable object; the expectation is that any mutations to the Python object need
+    /// assigning back to the `CircuitInstruction` completely to ensure data coherence between Rust
+    /// and Python spaces.  We can't protect entirely against that, but we can make it a bit harder
+    /// for standard-gate getters to accidentally do the wrong thing.
+    pub fn get_operation_mut<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let out = self.get_operation(py)?.into_bound(py);
+        if out.getattr(intern!(py, "mutable"))?.is_truthy()? {
+            Ok(out)
+        } else {
+            out.call_method0(intern!(py, "to_mutable"))
+        }
     }
 }
 
 impl Instruction for CircuitInstruction {
-
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
@@ -335,6 +257,99 @@ impl Instruction for CircuitInstruction {
 
     fn label(&self) -> Option<&str> {
         self.label()
+    }
+}
+
+impl<T: Instruction> AsInstructionRef for T {
+    type Block = CircuitData;
+
+    fn op(&self) -> OperationRef<'_> {
+        Instruction::op(self)
+    }
+
+    fn standard_gate(&self) -> Option<StandardGateRef<'_>> {
+        let OperationRef::StandardGate(gate) = self.op() else {
+            return None
+        };
+        Some(StandardGateRef(gate, self.params_view()))
+    }
+
+    fn standard_instruction(&self) -> Option<StandardInstructionRef> {
+        let OperationRef::StandardInstruction(instruction) = self.op() else {
+            return None
+        };
+        Some(match instruction {
+            StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
+            StandardInstruction::Delay(u) => todo!(),
+            // StandardInstructionRef::Delay(
+            // match u {
+            // DelayUnit::NS => Duration::ns()
+            // DelayUnit::PS => {}
+            // DelayUnit::US => {}
+            // DelayUnit::MS => {}
+            // DelayUnit::S => {}
+            // DelayUnit::DT => {}
+            // DelayUnit::EXPR => {}
+            // })
+            StandardInstruction::Measure => StandardInstructionRef::Measure,
+            StandardInstruction::Reset => StandardInstructionRef::Reset,
+        })
+    }
+
+    fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>> {
+        let OperationRef::ControlFlow(control) = self.op() else {
+            return None;
+        };
+
+        Some(match control {
+            ControlFlow::Box { duration, .. } => {
+                let Param::Circuit(body) = &self.params_view()[0] else {
+                    panic!("invalid");
+                };
+                ControlFlowRef::Box(duration, body)
+            }
+            ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
+            ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
+            ControlFlow::ForLoop { indexset, loop_param, .. } => {
+                let Param::Circuit(body) = &self.params_view()[0] else {
+                    panic!("invalid");
+                };
+                ControlFlowRef::ForLoop {
+                    indexset,
+                    loop_param,
+                    body,
+                }
+            }
+            ControlFlow::IfElse { condition, .. } => {
+                let [Param::Circuit(true_body), Param::Circuit(false_body)] = &self.params_view() else {
+                    panic!("invalid");
+                };
+                ControlFlowRef::IfElse {
+                    condition,
+                    true_body,
+                    false_body,
+                }
+            }
+            ControlFlow::Switch { target, .. } => {
+                let xs = self.params_view().iter().map(|p| match p {
+                    Param::Circuit(c) => c,
+                    _ => panic!("invalid")
+                }).collect();
+                ControlFlowRef::Switch {
+                    target,
+                    cases: xs,
+                }
+            }
+            ControlFlow::While { condition, .. } => {
+                let Param::Circuit(body) = &self.params_view()[0] else {
+                    panic!("invalid");
+                };
+                ControlFlowRef::While {
+                    condition,
+                    body,
+                }
+            }
+        })
     }
 }
 

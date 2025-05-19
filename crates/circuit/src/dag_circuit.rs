@@ -22,7 +22,7 @@ use crate::bit::{
 };
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{AsInstructionRef, CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::converters::QuantumCircuitData;
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
@@ -135,87 +135,96 @@ pub struct DAGInstruction {
 }
 
 impl DAGInstruction {
-    #[inline]
-    fn view(&self) -> InstructionRef<'_, DAGCircuit> {
-        match self.op {
-            OperationRef::ControlFlow(c) => {
-                InstructionRef::ControlFlow(match c {
-                    ControlFlow::Box { duration, .. } => {
-                        let
-                        let Param::Circuit(body) = &self.params_view()[0] else {
-                            panic!("invalid");
-                        };
-                        ControlFlowRef::Box(duration, body)
-                    }
-                    ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
-                    ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
-                    ControlFlow::ForLoop { indexset, loop_param, .. } => {
-                        let Param::Circuit(body) = &self.params_view()[0] else {
-                            panic!("invalid");
-                        };
-                        ControlFlowRef::ForLoop {
-                            indexset,
-                            loop_param,
-                            body,
-                        }
-                    }
-                    ControlFlow::IfElse { condition, .. } => {
-                        let [Param::Circuit(true_body), Param::Circuit(false_body)] = &self.params_view() else {
-                            panic!("invalid");
-                        };
-                        ControlFlowRef::IfElse {
-                            condition,
-                            true_body,
-                            false_body,
-                        }
-                    }
-                    ControlFlow::Switch { target, .. } => {
-                        let xs = self.params_view().iter().map(|p| match p {
-                            Param::Circuit(c) => c,
-                            _ => panic!("invalid")
-                        }).collect();
-                        ControlFlowRef::Switch {
-                            target,
-                            cases: xs,
-                        }
-                    }
-                    ControlFlow::While { condition, .. } => {
-                        let Param::Circuit(body) = &self.params_view()[0] else {
-                            panic!("invalid");
-                        };
-                        ControlFlowRef::While {
-                            condition,
-                            body,
-                        }
-                    }
-                })
-            }
-            OperationRef::StandardGate(g) => {
-                InstructionRef::StandardGate(StandardGateRef(g, self.params_view()))
-            }
-            OperationRef::StandardInstruction(i) => {
-                InstructionRef::StandardInstruction(match i {
-                    StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
-                    StandardInstruction::Delay(u) => todo!(),
-                    // StandardInstructionRef::Delay(
-                    // match u {
-                    // DelayUnit::NS => Duration::ns()
-                    // DelayUnit::PS => {}
-                    // DelayUnit::US => {}
-                    // DelayUnit::MS => {}
-                    // DelayUnit::S => {}
-                    // DelayUnit::DT => {}
-                    // DelayUnit::EXPR => {}
-                    // })
-                    StandardInstruction::Measure => StandardInstructionRef::Measure,
-                    StandardInstruction::Reset => StandardInstructionRef::Reset,
-                })
-            }
-            OperationRef::Gate(g) => InstructionRef::Gate(g),
-            OperationRef::Instruction(i) => InstructionRef::Instruction(i),
-            OperationRef::Operation(o) => InstructionRef::Operation(o),
-            OperationRef::Unitary(u) => InstructionRef::Unitary(UnitaryGateRef(u)),
+    fn extract_params(params: SmallVec<[Param; 3]>) -> Parameters {
+        todo!()
+    }
+
+    pub fn from_packed(instr: PackedInstruction) -> Self {
+        Self {
+            op: instr.op,
+            qubits: instr.qubits,
+            clbits: instr.clbits,
+            params: instr.params.map(|p| Box::new(DAGInstruction::extract_params(*p))),
+            label: instr.label,
+            py_op: instr.py_op,
         }
+    }
+}
+
+impl AsInstructionRef for DAGInstruction {
+    type Block = DAGCircuit;
+
+    fn op(&self) -> OperationRef<'_> {
+        self.op.view()
+    }
+
+    fn standard_gate(&self) -> Option<StandardGateRef<'_>> {
+        let OperationRef::StandardGate(gate) = self.op() else {
+            return None
+        };
+        Some(StandardGateRef(gate, self.params_view()))
+    }
+
+    fn standard_instruction(&self) -> Option<StandardInstructionRef> {
+        let OperationRef::StandardInstruction(instruction) = self.op() else {
+            return None
+        };
+        Some(match instruction {
+            StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
+            StandardInstruction::Delay(u) => todo!(),
+            // StandardInstructionRef::Delay(
+            // match u {
+            // DelayUnit::NS => Duration::ns()
+            // DelayUnit::PS => {}
+            // DelayUnit::US => {}
+            // DelayUnit::MS => {}
+            // DelayUnit::S => {}
+            // DelayUnit::DT => {}
+            // DelayUnit::EXPR => {}
+            // })
+            StandardInstruction::Measure => StandardInstructionRef::Measure,
+            StandardInstruction::Reset => StandardInstructionRef::Reset,
+        })
+    }
+
+    fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>> {
+        let OperationRef::ControlFlow(control) = self.op.view() else {
+            return None;
+        };
+        Some(match (control, self.params.as_deref()) {
+            (ControlFlow::Box { .. }, Some(Parameters::Box { duration, body })) => {
+                ControlFlowRef::Box(duration, body)
+            }
+            (ControlFlow::BreakLoop { .. }, _) => ControlFlowRef::BreakLoop,
+            (ControlFlow::ContinueLoop { .. }, _) => ControlFlowRef::ContinueLoop,
+            (ControlFlow::ForLoop { .. }, Some(Parameters::ForLoop { indexset, loop_param, body})) => {
+                ControlFlowRef::ForLoop {
+                    indexset,
+                    loop_param,
+                    body,
+                }
+            }
+            (ControlFlow::IfElse { .. }, Some(Parameters::IfElse { condition, true_body, false_body })) => {
+                ControlFlowRef::IfElse {
+                    condition,
+                    true_body,
+                    false_body,
+                }
+            }
+            (ControlFlow::Switch { .. }, Some(Parameters::Switch { target, cases })) => {
+                ControlFlowRef::Switch {
+                    target,
+                    cases: cases.iter().collect(),
+                }
+            }
+            (ControlFlow::While { .. }, Some(Parameters::While { condition, body })) => {
+                ControlFlowRef::While {
+                    condition,
+                    body,
+                }
+            },
+            _ => panic!("invalid control-flow instruction parameters"),
+        })
     }
 }
 
@@ -227,15 +236,15 @@ pub enum NodeType {
     ClbitOut(Clbit),
     VarIn(Var),
     VarOut(Var),
-    Operation(PackedInstruction),
+    Operation(DAGInstruction),
 }
 
 impl NodeType {
     /// Unwraps this node as an operation and returns a reference to
-    /// the contained [PackedInstruction].
+    /// the contained [DAGInstruction].
     ///
     /// Panics if this is not an operation node.
-    pub fn unwrap_operation(&self) -> &PackedInstruction {
+    pub fn unwrap_operation(&self) -> &DAGInstruction {
         match self {
             NodeType::Operation(instr) => instr,
             _ => panic!("Node is not an operation!"),
@@ -3778,7 +3787,7 @@ impl DAGCircuit {
             // Drawing tools rely on _node_id to infer order of node creation
             // so we need this to be preserved by layers()
             // Get the op nodes from the layer, removing any input and output nodes.
-            let mut op_nodes: Vec<(&PackedInstruction, &NodeIndex)> = graph_layer
+            let mut op_nodes: Vec<(&DAGInstruction, &NodeIndex)> = graph_layer
                 .iter()
                 .filter_map(|node| self.dag.node_weight(*node).map(|dag_node| (dag_node, node)))
                 .filter_map(|(node, index)| match node {
@@ -3824,7 +3833,7 @@ impl DAGCircuit {
     fn serial_layers(&self, py: Python, vars_mode: &str) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty(py);
         for next_node in self.topological_op_nodes()? {
-            let retrieved_node: &PackedInstruction = match self.dag.node_weight(next_node) {
+            let retrieved_node: &DAGInstruction = match self.dag.node_weight(next_node) {
                 Some(NodeType::Operation(node)) => node,
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
@@ -5031,7 +5040,7 @@ impl DAGCircuit {
 
     /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.
     ///
-    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// This is useful for simplifying the direct mapping of [DAGInstruction]s from one DAG to
     /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
     /// See [Interner::merge_map_slice] for more information on the mapping function.
     ///
@@ -5051,7 +5060,7 @@ impl DAGCircuit {
 
     /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.
     ///
-    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// This is useful for simplifying the direct mapping of [DAGInstruction]s from one DAG to
     /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
     /// See [Interner::merge_map_slice] for more information on the mapping function.
     pub fn merge_qargs(
@@ -5066,7 +5075,7 @@ impl DAGCircuit {
 
     /// Merge the `cargs` in a different [Interner] into this DAG, remapping the clbits.
     ///
-    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// This is useful for simplifying the direct mapping of [DAGInstruction]s from one DAG to
     /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
     /// See [Interner::merge_map_slice] for more information on the mapping function.
     ///
@@ -5086,7 +5095,7 @@ impl DAGCircuit {
 
     /// Merge the `cargs` in a different [Interner] into this DAG, remapping the clbits.
     ///
-    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// This is useful for simplifying the direct mapping of [DAGInstruction]s from one DAG to
     /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
     /// See [Interner::merge_map_slice] for more information on the mapping function.
     pub fn merge_cargs(
@@ -5208,7 +5217,7 @@ impl DAGCircuit {
             .unique()
     }
 
-    /// Apply a [PackedInstruction] to the back of the circuit.
+    /// Apply a [DAGInstruction] to the back of the circuit.
     ///
     /// The provided `instr` MUST be valid for this DAG, e.g. its
     /// bits, registers, vars, and interner IDs must be valid in
@@ -5217,7 +5226,7 @@ impl DAGCircuit {
     /// This is mostly used to apply operations from one DAG to
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
-    pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
+    pub fn push_back(&mut self, instr: DAGInstruction) -> PyResult<NodeIndex> {
         let (all_cbits, vars) = self.get_classical_resources(&instr)?;
 
         // Increment the operation count
@@ -5263,7 +5272,7 @@ impl DAGCircuit {
 
     fn get_classical_resources(
         &self,
-        instr: &PackedInstruction,
+        instr: &DAGInstruction,
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(instr) {
@@ -5282,7 +5291,7 @@ impl DAGCircuit {
         Ok((all_clbits, vars))
     }
 
-    /// Apply a [PackedInstruction] to the front of the circuit.
+    /// Apply a [DAGInstruction] to the front of the circuit.
     ///
     /// The provided `instr` MUST be valid for this DAG, e.g. its
     /// bits, registers, vars, and interner IDs must be valid in
@@ -5291,7 +5300,7 @@ impl DAGCircuit {
     /// This is mostly used to apply operations from one DAG to
     /// another that was created from the first via
     /// [DAGCircuit::copy_empty_like].
-    fn push_front(&mut self, inst: PackedInstruction) -> PyResult<NodeIndex> {
+    fn push_front(&mut self, inst: DAGInstruction) -> PyResult<NodeIndex> {
         let op_name = inst.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(&inst) {
@@ -5545,7 +5554,7 @@ impl DAGCircuit {
         Ok(child == output_node)
     }
 
-    fn may_have_additional_wires(&self, instr: &PackedInstruction) -> bool {
+    fn may_have_additional_wires(&self, instr: &DAGInstruction) -> bool {
         let OperationRef::Instruction(inst) = instr.op.view() else {
             return false;
         };
@@ -5752,8 +5761,8 @@ impl DAGCircuit {
     ///
     /// # Returns
     ///
-    /// The removed [PackedInstruction] is returned
-    pub fn remove_op_node(&mut self, index: NodeIndex) -> PackedInstruction {
+    /// The removed [DAGInstruction] is returned
+    pub fn remove_op_node(&mut self, index: NodeIndex) -> DAGInstruction {
         let mut edge_list: Vec<(NodeIndex, NodeIndex, Wire)> = Vec::new();
         for (source, in_weight) in self
             .dag
@@ -5861,7 +5870,9 @@ impl DAGCircuit {
             );
             let params = (!op_node.instruction.params.is_empty())
                 .then(|| Box::new(op_node.instruction.params.clone()));
-            let inst = PackedInstruction {
+
+            // TODO: convert params to DAGCircuit
+            let inst = DAGInstruction {
                 op: op_node.instruction.operation.clone(),
                 qubits,
                 clbits,
@@ -5934,14 +5945,14 @@ impl DAGCircuit {
         Ok(dag_node)
     }
 
-    /// An iterator of the DAG indices and corresponding `PackedInstruction` references for
+    /// An iterator of the DAG indices and corresponding `DAGInstruction` references for
     /// the `NodeType::Operation` variants stored in the DAG.
     ///
     /// See also [op_node_indices], which provides only the indices.
     pub fn op_nodes(
         &self,
         include_directives: bool,
-    ) -> impl Iterator<Item = (NodeIndex, &PackedInstruction)> + '_ {
+    ) -> impl Iterator<Item = (NodeIndex, &DAGInstruction)> + '_ {
         self.dag
             .node_references()
             .filter_map(move |(node_index, node_type)| match node_type {
@@ -5954,7 +5965,7 @@ impl DAGCircuit {
 
     /// An iterator of the DAG indices corresponding to `NodeType::Operation` variants.
     ///
-    /// See also [op_nodes], which also provides a reference to the contained `PackedInstruction`.
+    /// See also [op_nodes], which also provides a reference to the contained `DAGInstruction`.
     pub fn op_node_indices(
         &self,
         include_directives: bool,
@@ -5963,7 +5974,7 @@ impl DAGCircuit {
     }
 
     /// Return an iterator of 2 qubit operations. Ignore directives like snapshot and barrier.
-    pub fn two_qubit_ops(&self) -> impl Iterator<Item = (NodeIndex, &PackedInstruction)> + '_ {
+    pub fn two_qubit_ops(&self) -> impl Iterator<Item = (NodeIndex, &DAGInstruction)> + '_ {
         self.op_nodes(false)
             .filter(|(_, instruction)| self.qargs_interner.get(instruction.qubits).len() == 2)
     }
@@ -5971,7 +5982,7 @@ impl DAGCircuit {
     // Filter any nodes that don't match a given predicate function
     pub fn filter_op_nodes<F>(&mut self, mut predicate: F)
     where
-        F: FnMut(&PackedInstruction) -> bool,
+        F: FnMut(&DAGInstruction) -> bool,
     {
         let remove_indices = self
             .op_nodes(true)
@@ -6444,12 +6455,12 @@ impl DAGCircuit {
         self.increment_op(new_gate.0.name());
         let old_node = &self.dag[old_index];
         let inst = if let NodeType::Operation(old_node) = old_node {
-            PackedInstruction {
+            DAGInstruction {
                 op: new_gate.0.into(),
                 qubits: old_node.qubits,
                 clbits: old_node.clbits,
                 params: (!new_gate.1.is_empty())
-                    .then(|| Box::new(new_gate.1.iter().map(|x| Param::Float(*x)).collect())),
+                    .then(|| Box::new(Parameters::Params(new_gate.1.iter().map(|x| Param::Float(*x)).collect()))),
                 label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
@@ -6544,11 +6555,11 @@ impl DAGCircuit {
                 }
                 OperationRef::Operation(op) => OnceLock::from(op.operation.clone_ref(py)),
             };
-            let inst = PackedInstruction {
+            let inst = DAGInstruction {
                 op: new_op,
                 qubits: self.qargs_interner.insert_owned(qubits),
                 clbits: self.cargs_interner.get_default(),
-                params: (!params.is_empty()).then(|| Box::new(params)),
+                params: (!params.is_empty()).then(|| Box::new(Parameters::Params(params))),
                 label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op,
@@ -6640,22 +6651,22 @@ impl DAGCircuit {
         &self.op_names
     }
 
-    /// Extends the DAG with valid instances of [PackedInstruction].
+    /// Extends the DAG with valid instances of [DAGInstruction].
     pub fn extend<I>(&mut self, iter: I) -> PyResult<Vec<NodeIndex>>
     where
-        I: IntoIterator<Item = PackedInstruction>,
+        I: IntoIterator<Item = DAGInstruction>,
     {
         self.try_extend(
             iter.into_iter()
-                .map(|inst| -> Result<PackedInstruction, Infallible> { Ok(inst) }),
+                .map(|inst| -> Result<DAGInstruction, Infallible> { Ok(inst) }),
         )
     }
 
-    /// Extends the DAG with valid instances of [PackedInstruction], where the iterator produces the
+    /// Extends the DAG with valid instances of [DAGInstruction], where the iterator produces the
     /// results in a fallible manner.
     pub fn try_extend<I, E>(&mut self, iter: I) -> PyResult<Vec<NodeIndex>>
     where
-        I: IntoIterator<Item = Result<PackedInstruction, E>>,
+        I: IntoIterator<Item = Result<DAGInstruction, E>>,
         PyErr: From<E>,
     {
         let mut new_nodes = Vec::new();
@@ -6809,8 +6820,9 @@ impl DAGCircuit {
         new_dag.qubit_locations = qc_data.qubit_indices().clone();
         new_dag.clbit_locations = qc_data.clbit_indices().clone();
 
-        new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
-            Ok(PackedInstruction {
+        // TODO: convert to DAGInstruction params
+        new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<DAGInstruction> {
+            Ok(DAGInstruction {
                 op: if copy_op {
                     instr.op.py_deepcopy(py, None)?
                 } else {
@@ -6851,6 +6863,7 @@ impl DAGCircuit {
     pub fn replace_block(
         &mut self,
         block_ids: &[NodeIndex],
+        // TODO: just take instr: I where I: Instruction.  need to figure out move semantics
         op: PackedOperation,
         params: SmallVec<[Param; 3]>,
         label: Option<&str>,
@@ -6930,7 +6943,7 @@ impl DAGCircuit {
         let op_name = op.name().to_string();
         let qubits = self.qargs_interner.insert_owned(block_qargs);
         let clbits = self.cargs_interner.insert_owned(block_cargs);
-        let weight = NodeType::Operation(PackedInstruction {
+        let weight = NodeType::Operation(DAGInstruction::from_packed(PackedInstruction {
             op,
             qubits,
             clbits,
@@ -6938,7 +6951,7 @@ impl DAGCircuit {
             label: label.map(|label| Box::new(label.to_string())),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
-        });
+        }));
 
         let new_node = self
             .dag
@@ -7159,7 +7172,7 @@ impl DAGCircuit {
                         let OperationRef::Instruction(op) = inst.op.view() else {
                             unreachable!("All control_flow ops should be PyInstruction");
                         };
-                        Python::with_gil(|py| -> PyResult<PackedInstruction> {
+                        Python::with_gil(|py| -> PyResult<DAGInstruction> {
                             let py_op = op.instruction.bind(py);
                             let py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
                             if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
@@ -7203,7 +7216,7 @@ impl DAGCircuit {
                                     }
                                 }
                             }
-                            Ok(PackedInstruction {
+                            Ok(DAGInstruction {
                                 op: PackedOperation::from_instruction(
                                     PyInstruction {
                                         qubits: op.qubits,
@@ -7224,7 +7237,7 @@ impl DAGCircuit {
                             })
                         })?
                     } else {
-                        PackedInstruction {
+                        DAGInstruction {
                             op: inst.op.clone(),
                             qubits: self.qargs_interner.insert_owned(mapped_qargs),
                             clbits: self.cargs_interner.insert_owned(mapped_cargs),
@@ -7268,7 +7281,7 @@ impl DAGCircuit {
                 )));
         }
         let new_op_name = new_op.name().to_string();
-        let new_weight = NodeType::Operation(PackedInstruction {
+        let new_weight = NodeType::Operation(DAGInstruction::from_packed(PackedInstruction {
             op: new_op,
             qubits: old_packed.qubits,
             clbits: old_packed.clbits,
@@ -7276,7 +7289,7 @@ impl DAGCircuit {
             label: label.map(|label| Box::new(label.to_string())),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
-        });
+        }));
         if let Some(weight) = self.dag.node_weight_mut(node_index) {
             *weight = new_weight;
         }
@@ -7339,7 +7352,7 @@ impl DAGCircuit {
             )));
         }
         let new_op_name = new_op.operation.name().to_string();
-        let new_weight = NodeType::Operation(PackedInstruction {
+        let new_weight = NodeType::Operation(DAGInstruction::from_packed(PackedInstruction {
             op: new_op.operation,
             qubits: old_packed.qubits,
             clbits: old_packed.clbits,
@@ -7347,7 +7360,7 @@ impl DAGCircuit {
             label,
             #[cfg(feature = "cache_pygates")]
             py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
-        });
+        }));
         if let Some(weight) = self.dag.node_weight_mut(node_index) {
             *weight = new_weight;
         }
@@ -7451,11 +7464,11 @@ impl DAGCircuitBuilder {
             #[cfg(feature = "cache_pygates")]
             py_op,
         );
-        self.push_back(instruction)
+        self.push_back(DAGInstruction::from_packed(instruction))
     }
 
-    /// Pushes a valid [PackedInstruction] to the back ot the circuit.
-    pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
+    /// Pushes a valid [DAGInstruction] to the back ot the circuit.
+    pub fn push_back(&mut self, instr: DAGInstruction) -> PyResult<NodeIndex> {
         let (all_cbits, vars) = self.dag.get_classical_resources(&instr)?;
 
         // Increment the operation count
