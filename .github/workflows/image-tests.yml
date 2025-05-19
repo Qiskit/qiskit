@@ -14,57 +14,22 @@ on:
           Describes the system this workflow should run on.
         type: string
         required: true
-
-      install-optionals:
-        description: >
-          Decides whether we install optyional dependencies
-        type: boolean
-        default: false
-
-      install-from-sdist:
-        description: >
-          Decides whether we perform rust tests
-        type: boolean
-        default: false
 jobs:
   image-tests:
     name: Test-images-${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
-    env:
-      QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-      PIP_CACHE_DIR: ${{ github.workspace }}/.pip
-      QISKIT_TEST_CAPTURE_STREAMS: 1
-      HAVE_VISUAL_TESTS_RUN: false
     strategy:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@1.79
-        if: inputs.python-version == '3.9'
+        uses: dtolnay/rust-toolchain@stable
       - name: Set up Python ${{ inputs.python-version }}
         id: python-outputs
         uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
-      - name: Prepare venv
-        run: |
-          set -e
-          python -m pip install --upgrade pip setuptools wheel
-          python -m venv test-job
-      - name: Install Qiskit directly
-        if: ${{ !inputs.install-from-sdist }}
-        run: |
-          set -e
-          source test-job/bin/activate
-          python -m pip install -U \
-            -c constraints.txt \
-            -r requirements.txt \
-            -r requirements-dev.txt \
-            -e .
-          # Build and install both qiskit and qiskit-terra so that any optionals
-          # depending on `qiskit` will resolve correctly.
       - name: Install Image dependencies
         run: |
           set -e
@@ -80,7 +45,6 @@ jobs:
           image_tests/bin/pip check
       - name: Run image tests
         run: |
-          echo "##vso[task.setvariable variable=HAVE_VISUAL_TESTS_RUN;]true"
           image_tests/bin/python -m unittest discover -v test/visual
         env:
           # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to

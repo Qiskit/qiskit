@@ -29,7 +29,6 @@ jobs:
     if: github.repository_owner == 'Qiskit'
     with:
       python-version: "3.9"
-      install-optionals: true
       runner: ubuntu-latest
   main-tests-images:
     name: Extra Tests
@@ -37,7 +36,6 @@ jobs:
     if: github.repository_owner == 'Qiskit'
     with:
       python-version: "3.9"
-      install-optionals: true
       runner: ubuntu-latest
   # The rest of the PR pipeline is to test the oldest and newest supported
   # versions of Python.

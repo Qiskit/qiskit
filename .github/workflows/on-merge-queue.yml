@@ -37,14 +37,12 @@ jobs:
     with:
       python-version: "3.9"
       runner: "ubuntu-latest"
-      install-optionals: true
   test-images:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/image-tests.yml
     with:
       python-version: "3.9"
       runner: "ubuntu-latest"
-      install-optionals: true
   test-mac:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-mac.yml

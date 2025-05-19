@@ -28,7 +28,6 @@ jobs:
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
     env:
-      QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
       QISKIT_TEST_CAPTURE_STREAMS: 1
     strategy:
       fail-fast: false
