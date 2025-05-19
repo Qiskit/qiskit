@@ -1819,7 +1819,6 @@ class TestAngleBounds(QiskitTestCase):
         """Test adding angle bounds method on fixed value."""
         target = Target("bounds", 1)
         theta = Parameter("theta")
-        phi = Parameter("phi")
         lam = Parameter("Lambda")
         target.add_instruction(UGate(theta, 3.14, lam))
         with self.assertRaisesRegex(TranspilerError, "Angle bound set on a fixed value"):

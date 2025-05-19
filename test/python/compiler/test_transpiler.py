@@ -74,6 +74,7 @@ from qiskit.circuit.library import (
     XGate,
     ZGate,
     XXPlusYYGate,
+    RZZGate,
 )
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
@@ -3040,6 +3041,7 @@ class TestTranspileParallel(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_angle_bounds_respected(self, opt_level):
+        """Test that angle bounds in the target are respected."""
         qc = QuantumCircuit(2)
         qc.append(XXPlusYYGate(np.pi, -np.pi / 2), qc.qubits)
         rzz_outside_bounds = QuantumCircuit(2)
@@ -3056,11 +3058,8 @@ class TestTranspileParallel(QiskitTestCase):
         rzz_outside_bounds.h(1)
         circs = [qc, rzz_outside_bounds]
 
-        target = Target.from_configuration(
-            ["sx", "x", "rz", "rx", "rzz", "cz"], 2, coupling_map=CouplingMap.from_line(2)
-        )
-
-        def fold_rzz(angles: float) -> DAGCircuit:
+        def fold_rzz(angles):
+            angle = angles[0]
             wrap_angle = np.angle(np.exp(1j * angle))
             qubits = [Qubit(), Qubit()]
             new_dag = DAGCircuit()
@@ -3142,6 +3141,32 @@ class TestTranspileParallel(QiskitTestCase):
 
             return new_dag
 
+        theta = Parameter("theta")
+        target = Target(num_qubits=2)
+        target.add_instruction(
+            SXGate(),
+            {(0,): InstructionProperties(error=1e-5), (1,): InstructionProperties(error=3e-6)},
+        )
+        target.add_instruction(
+            XGate(),
+            {(0,): InstructionProperties(error=2e-5), (1,): InstructionProperties(error=6e-6)},
+        )
+        target.add_instruction(
+            RZGate(theta),
+            {(0,): InstructionProperties(error=0), (1,): InstructionProperties(error=0)},
+        )
+        target.add_instruction(
+            RXGate(theta),
+            {(0,): InstructionProperties(error=2e-5), (1,): InstructionProperties(error=6e-6)},
+        )
+        target.add_instruction(
+            RZZGate(theta),
+            {(0, 1): InstructionProperties(error=5e-3), (1, 0): InstructionProperties(error=5e-3)},
+        )
+        target.add_instruction(
+            CZGate(),
+            {(0, 1): InstructionProperties(error=5e-3), (1, 0): InstructionProperties(error=5e-3)},
+        )
         target.add_angle_bound("rzz", [(0, pi / 2)], fold_rzz)
 
         transpiled = transpile(
@@ -3151,7 +3176,6 @@ class TestTranspileParallel(QiskitTestCase):
         self.assertEqual(Operator.from_circuit(transpiled[1]), Operator.from_circuit(circs[1]))
         for circ in transpiled:
             for inst in circ.data:
-                print(inst)
                 self.assertTrue(
                     target.instruction_supported(
                         inst.name,

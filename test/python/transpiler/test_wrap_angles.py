@@ -12,7 +12,7 @@
 
 """Wrap angles pass testing"""
 
-import unittest
+from test import QiskitTestCase
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Gate, Parameter, Qubit
@@ -20,8 +20,6 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import WrapAngles
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.target import Target
-
-from test import QiskitTestCase
 
 
 class TestWrapAngles(QiskitTestCase):
@@ -33,18 +31,19 @@ class TestWrapAngles(QiskitTestCase):
         target = Target.from_configuration(["u", "rzx"], 2, CouplingMap([[0, 1]]))
 
         def callback(_):
-            raise PythonFinalizationError("test_works")
+            raise NotADirectoryError("test_works")
 
         target.add_angle_bound("rzx", [(0, 3.14)], callback)
         wrap_pass = WrapAngles(target)
         circuit.rzx(6.28, 0, 1)
-        with self.assertRaises(PythonFinalizationError):
+        with self.assertRaisesRegex(NotADirectoryError, "test_works"):
             wrap_pass(circuit)
 
     def test_combine_custom_gates(self):
         """Test custom gates are combined as presscribed."""
 
         class MyCustomGate(Gate):
+            """A custom gate definition."""
 
             def __init__(self, angle):
                 super().__init__("my_custom", 1, [angle])
