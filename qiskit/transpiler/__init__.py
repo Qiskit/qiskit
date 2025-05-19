@@ -720,7 +720,8 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
 Built-in ``default`` plugin
 ...........................
 
-This varies significantly between optimization levels.
+This varies significantly depending on the optimization level and whether the basis set is of the
+form Clifford+T.
 
 The specifics of this pipeline are subject to change between Qiskit versions. The broad principles
 are described below.
@@ -733,9 +734,11 @@ runs in a loop until the size and depth of the circuit are fixed.
 
 At optimization level 2, in addition the optimizations of level 1, the loop contains commutation
 analysis of sets of gates to widen the range of gates that can be considered for cancellation.
-Before the loop, runs of both one- and two-qubit gates undergo a single matrix-based resynthesis.
+When the basis set is not of the form Clifford+T, before the loop, runs of both one- and two-qubit
+gates undergo a single matrix-based resynthesis.
 
-At optimization level 3, the two-qubit matrix-based resynthesis runs inside the optimization loop.
+At optimization level 3, when the basis set is not of the form Clifford+T, the two-qubit matrix-based
+resynthesis runs inside the optimization loop.
 The optimization loop condition also tries multiple runs and chooses the minimum point in the case
 of fluctuating output; this is necessary because matrix-based resynthesis is relatively unstable in
 terms of concrete gates.
