@@ -1,0 +1,8 @@
+---
+features_circuits:
+  - |
+    Qiskit now uses its own, Rust-based symbolic expression library to implement
+    the internals of :class:`.ParameterExpression` and :class:`.Parameter`. This removes the 
+    dependencies on ``symengine`` or ``sympy`` for dealing with parameters in circuits. 
+    Note that Qiskit still depends on ``symengine`` and ``sympy`` for loading legacy QPY 
+    formats, or specific functionalities in template matching or visualization.

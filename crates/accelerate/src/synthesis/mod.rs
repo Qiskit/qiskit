@@ -17,6 +17,7 @@ pub mod linear;
 pub mod linear_phase;
 mod multi_controlled;
 mod permutation;
+mod qft;
 
 use pyo3::prelude::*;
 
@@ -48,6 +49,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let discrete_basis_mod = PyModule::new(m.py(), "discrete_basis")?;
     discrete_basis::discrete_basis(&discrete_basis_mod)?;
     m.add_submodule(&discrete_basis_mod)?;
+
+    let qft_mod = PyModule::new(m.py(), "qft")?;
+    qft::qft(&qft_mod)?;
+    m.add_submodule(&qft_mod)?;
 
     Ok(())
 }
