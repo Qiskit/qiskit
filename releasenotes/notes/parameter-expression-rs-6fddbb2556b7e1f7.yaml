@@ -1,4 +1,13 @@
 ---
+other:
+  - |
+    A new optional extra dependency variant ``qpy-compat`` was added. This
+    target should be installed if you plan to load qpy files as it installs
+    extra requirements used for loading QPY files using format versions < 13.
+    If you are only using newer qpy format you do no need to install this.
+    By default :func:`.qpy.dump` only generates QPY >=13.
+    You can install this new optional variant with ``pip install qiskit[qpy-compat]```
+
 upgrade_circuits:
   - |
     Qiskit now uses its own, Rust-based symbolic expression library to implement
