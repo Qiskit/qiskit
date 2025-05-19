@@ -87,10 +87,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
 
-        # Use the dedicated plugin for the Clifford+T basis when appropriate.
-        if pass_manager_config._is_clifford_t:
-            return CliffordTInitPassManager().pass_manager(pass_manager_config, optimization_level)
-
         if optimization_level == 0:
             init = None
             if (
@@ -191,7 +187,12 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 ]
             )
             init.append(CommutativeCancellation())
-            init.append(ConsolidateBlocks())
+
+            # We do not want to consolidate blocks for a Clifford+T basis set,
+            # since this involves resynthesizing 2-qubit unitaries.
+            if not pass_manager_config._is_clifford_t:
+                init.append(ConsolidateBlocks())
+
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
@@ -1032,122 +1033,6 @@ def _get_trial_count(default_trials=5):
 # As a rule of thumb, if the original circuit already consists only of Clifford or only of
 # Clifford+T gates, then we don't want the transpilation to make it significantly worse.
 # In particular, we avoid collecting and resynthesizing 2-qubit blocks.
-class CliffordTInitPassManager(PassManagerStagePlugin):
-    """Plugin class for Clifford+T init stage."""
-
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        if optimization_level == 0:
-            init = None
-            if (
-                pass_manager_config.initial_layout
-                or pass_manager_config.coupling_map
-                or (
-                    pass_manager_config.target is not None
-                    and pass_manager_config.target.build_coupling_map() is not None
-                )
-            ):
-                init = common.generate_unroll_3q(
-                    pass_manager_config.target,
-                    pass_manager_config.basis_gates,
-                    pass_manager_config.approximation_degree,
-                    pass_manager_config.unitary_synthesis_method,
-                    pass_manager_config.unitary_synthesis_plugin_config,
-                    pass_manager_config.hls_config,
-                    pass_manager_config.qubits_initially_zero,
-                )
-        elif optimization_level == 1:
-            init = PassManager()
-            if (
-                pass_manager_config.initial_layout
-                or pass_manager_config.coupling_map
-                or (
-                    pass_manager_config.target is not None
-                    and pass_manager_config.target.build_coupling_map() is not None
-                )
-            ):
-                init += common.generate_unroll_3q(
-                    pass_manager_config.target,
-                    pass_manager_config.basis_gates,
-                    pass_manager_config.approximation_degree,
-                    pass_manager_config.unitary_synthesis_method,
-                    pass_manager_config.unitary_synthesis_plugin_config,
-                    pass_manager_config.hls_config,
-                    pass_manager_config.qubits_initially_zero,
-                )
-            init.append(
-                [
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
-                    ContractIdleWiresInControlFlow(),
-                ]
-            )
-        elif optimization_level in {2, 3}:
-            init = common.generate_unroll_3q(
-                pass_manager_config.target,
-                pass_manager_config.basis_gates,
-                pass_manager_config.approximation_degree,
-                pass_manager_config.unitary_synthesis_method,
-                pass_manager_config.unitary_synthesis_plugin_config,
-                pass_manager_config.hls_config,
-                pass_manager_config.qubits_initially_zero,
-            )
-            if pass_manager_config.routing_method != "none":
-                init.append(ElidePermutations())
-            init.append(
-                [
-                    RemoveDiagonalGatesBeforeMeasure(),
-                    RemoveIdentityEquivalent(
-                        approximation_degree=pass_manager_config.approximation_degree
-                    ),
-                    InverseCancellation(
-                        [
-                            CXGate(),
-                            ECRGate(),
-                            CZGate(),
-                            CYGate(),
-                            XGate(),
-                            YGate(),
-                            ZGate(),
-                            HGate(),
-                            SwapGate(),
-                            (TGate(), TdgGate()),
-                            (SGate(), SdgGate()),
-                            (SXGate(), SXdgGate()),
-                        ]
-                    ),
-                    ContractIdleWiresInControlFlow(),
-                ]
-            )
-            init.append(CommutativeCancellation())
-
-            split_2q_unitaries_swap = False
-            if pass_manager_config.routing_method != "none":
-                split_2q_unitaries_swap = True
-            if pass_manager_config.approximation_degree is not None:
-                init.append(
-                    Split2QUnitaries(
-                        pass_manager_config.approximation_degree, split_swap=split_2q_unitaries_swap
-                    )
-                )
-            else:
-                init.append(Split2QUnitaries(split_swap=split_2q_unitaries_swap))
-        else:
-            raise TranspilerError(f"Invalid optimization level {optimization_level}")
-        return init
 
 
 class CliffordTTranslatorPassManager(PassManagerStagePlugin):

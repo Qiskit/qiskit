@@ -700,7 +700,7 @@ as a fix-up pipeline.
 
 Qiskit's built-in optimization plugins are general, and apply well to most real-world ISAs for
 non-error-corrected devices.  The built-in plugins are less well-suited to ISAs that have no
-continuously parametrized single-qubit gate, such as a Clifford+T basis set.
+continuously parametrized single-qubit gate.
 
 When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry point for
 ``optimization`` is ``qiskit.transpiler.optimization``.  The built-in plugins are:
