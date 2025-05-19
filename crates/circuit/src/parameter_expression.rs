@@ -288,6 +288,58 @@ impl ParameterExpression {
         }
     }
 
+    /// get uuid for this symbol
+    pub fn uuid(&self) -> u128 {
+        self.uuid
+    }
+
+    /// check if this is symbol
+    pub fn is_symbol(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index: _ } = self.expr {
+            true
+        } else {
+            false
+        }
+    }
+
+    /// check if this is numeric
+    pub fn is_numeric(&self) -> bool {
+        if let SymbolExpr::Value(_) = self.expr {
+            true
+        } else {
+            false
+        }
+    }
+
+    /// check if ParameterVectorElement
+    pub fn is_vector_element(&self) -> bool {
+        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
+            return match index {
+                Some(_) => true,
+                None => false,
+            };
+        }
+        false
+    }
+
+    /// return number of symbols in this expression
+    pub fn num_symbols(&self) -> usize {
+        self.expr.symbols().len()
+    }
+
+    /// check if the symbol is used in this expression
+    pub fn has_symbol(&self, symbol: String) -> bool {
+        self.expr.symbols_in_string().contains(&symbol)
+    }
+
+    /// return true if this is not complex number
+    pub fn is_real(&self) -> Option<bool> {
+        match self.expr.is_complex() {
+            Some(b) => Some(!b),
+            None => None,
+        }
+    }
+
     // return merged set of parameter symbils in 2 parameters
     fn merge_parameter_symbols(
         &self,
@@ -1159,7 +1211,7 @@ impl ParameterExpression {
     /// initialize ParameterExpression from the equation stored in string
     #[new]
     #[pyo3(signature = (symbol_map = None, expr = None, _qpy_replay = None))]
-    pub fn __new__(
+   pub fn __new__(
         symbol_map: Option<HashMap<ParameterExpression, PyObject>>,
         expr: Option<String>,
         _qpy_replay: Option<Vec<OPReplay>>,
@@ -1251,56 +1303,34 @@ impl ParameterExpression {
         }
     }
 
-    /// get uuid for this symbol
-    pub fn uuid(&self) -> u128 {
-        self.uuid
-    }
-
     /// check if this is symbol
-    pub fn is_symbol(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index: _ } = self.expr {
-            true
-        } else {
-            false
-        }
+    #[getter("is_symbol")]
+    pub fn py_is_symbol(&self) -> bool {
+        self.is_symbol()
     }
 
     /// check if this is numeric
-    pub fn is_numeric(&self) -> bool {
-        if let SymbolExpr::Value(_) = self.expr {
-            true
-        } else {
-            false
-        }
+    #[getter("is_numeric")]
+    pub fn py_is_numeric(&self) -> bool {
+        self.is_numeric()
     }
 
-    /// return true if this is not complex number
-    pub fn is_real(&self) -> Option<bool> {
-        match self.expr.is_complex() {
-            Some(b) => Some(!b),
-            None => None,
-        }
+    /// check if this is not complex
+    #[getter("is_real")]
+    pub fn py_is_real(&self) -> Option<bool> {
+        self.is_real()
     }
 
     /// check if ParameterVectorElement
-    pub fn is_vector_element(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index } = &self.expr {
-            return match index {
-                Some(_) => true,
-                None => false,
-            };
-        }
-        false
+    #[getter("is_vector_element")]
+    pub fn py_is_vector_element(&self) -> bool {
+        self.is_vector_element()
     }
 
-    /// return number of symbols in this expression
-    pub fn num_symbols(&self) -> usize {
-        self.expr.symbols().len()
-    }
-
-    /// check if the symbol is used in this expression
-    pub fn has_symbol(&self, symbol: String) -> bool {
-        self.expr.symbols_in_string().contains(&symbol)
+    /// get uuid for this symbol
+    #[getter("uuid")]
+    pub fn py_get_uuid(&self) -> u128 {
+        self.uuid
     }
 
     /// get ParameterVector if this is ParameterVectorElement
@@ -2051,7 +2081,7 @@ impl ParameterExpression {
                     self.parameter_symbols = None;
                 }
                 Ok(())
-            }
+            },
             Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
         }
     }

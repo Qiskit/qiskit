@@ -1099,7 +1099,7 @@ class QuantumCircuit:
         self._base_name = None
         self.name: str
         """A human-readable name for the circuit.
-        
+
         Example:
 
             .. plot::
@@ -1177,7 +1177,7 @@ class QuantumCircuit:
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata.
-        
+
         Example:
 
             .. plot::
