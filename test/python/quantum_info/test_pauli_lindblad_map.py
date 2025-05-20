@@ -856,14 +856,30 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_pauli_fidelity(self):
 
         pauli_lindblad_map = PauliLindbladMap(
-            [("XY", [0, 1], 1.23), ("Z", [1], 0.23), ("X", [2], 0.3)],
+            [("XY", [0, 1], 1.23), ("Z", [1], -0.23), ("X", [2], 0.3)],
+            num_qubits=4
+        )
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 4)), 1.)
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Y", [0]), 4)), np.exp(-2 * 1.23))
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [1]), 4)), np.exp(-2 * 1.))
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Z", [3]), 4)), 1.)
+        # np.allclose needed for machine precision
+        self.assertTrue(np.allclose(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("ZXY", [0, 1, 2]), 4)), np.exp(-2 * 0.07), atol=1e-12, rtol=1e-12))
+
+        self.assertEqual(PauliLindbladMap.identity(5).pauli_fidelity(QubitSparsePauli("IXXYZ")), 1.)
+
+    
+    def test_pauli_fidelity_errors(self):
+
+        pauli_lindblad_map = PauliLindbladMap(
+            [("XY", [0, 1], 1.23), ("Z", [1], -0.23), ("X", [2], 0.3)],
             num_qubits=4
         )
 
-        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 4)), 1.)
-        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Y", [0]), 4)), np.exp(-2 * 1.23))
-        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [1]), 4)), np.exp(-2 * 1.46))
-        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Z", [3]), 4)), 1.)
+        with self.assertRaisesRegex(ValueError, r"mismatched numbers of qubits: 5, 4"):
+            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 5))
+
+        
 
 
 def canonicalize_term(pauli, indices, rate):

@@ -21,7 +21,7 @@ use pyo3::{
 };
 use std::sync::{Arc, RwLock};
 
-use qiskit_circuit::{slice::{PySequenceIndex, SequenceIndex}};
+use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
@@ -368,8 +368,10 @@ impl PauliLindbladMap {
     }
     
     /// Compute the fidelity of the map for a single pauli
-    pub fn pauli_fidelity(&self, qubit_sparse_pauli: QubitSparsePauli) -> Result<f64, ArithmeticError> {
-
+    pub fn pauli_fidelity(
+        &self,
+        qubit_sparse_pauli: QubitSparsePauli,
+    ) -> Result<f64, ArithmeticError> {
         let mut fid = 1.0;
 
         for generator_term in self.iter() {
@@ -1320,13 +1322,23 @@ impl PyPauliLindbladMap {
         composed.into_pyobject(py)
     }
 
-    /// Compose with another :class:`PauliLindbladMap`.
+    /// Compute the fidelity of a qubit sparse Pauli.
     ///
-    /// This appends the internal arrays of self and other, and therefore results in a map with
-    /// whose enumerated terms are those of self followed by those of other.
+    /// For a Pauli :math:`Q`, the the fidelity is with respect to the Pauli Lindblad map
+    /// :math:`\Lambda` is the real number :math:`f(Q)` for which :math:`\Lambda(Q) = f(Q) Q`. I.e.
+    /// every Pauli is an eigenvector of the linear map :math:`\Lambda`, and the fidelity is the
+    /// corresponding eigenvalue. For the set of Paulis :math:`K` in the definition of the map in
+    /// the class documentation, the fidelity mathematically is
     ///
-    /// Args:
-    ///     other (PauliLindbladMap): the Pauli Lindblad map to compose with.
+    /// .. math::
+    ///     
+    ///     f(Q) = \exp\left(-2 \sum_{P \in K} \lambda(P) \langle P, Q\rangle_{sp}),
+    ///
+    /// where :math:`\langle P, Q\rangle_{sp}` is :math:`0` if :math:`P` and :math:`Q` commute, and
+    /// :math:`1` if they anti-commute.
+    ///
+    /// Args: qubit_sparse_pauli (QubitSparsePauli): the qubit sparse Pauli to compute the fidelity
+    ///     of.
     fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let result = inner.pauli_fidelity(qubit_sparse_pauli.inner)?;
