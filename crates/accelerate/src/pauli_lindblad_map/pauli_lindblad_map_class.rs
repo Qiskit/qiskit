@@ -21,7 +21,7 @@ use pyo3::{
 };
 use std::sync::{Arc, RwLock};
 
-use qiskit_circuit::{slice::{PySequenceIndex, SequenceIndex}, Qubit};
+use qiskit_circuit::{slice::{PySequenceIndex, SequenceIndex}};
 
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
