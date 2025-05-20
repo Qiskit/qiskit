@@ -84,7 +84,7 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "rustworkx": ("https://www.rustworkx.org/", None),
-    "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
+    "qiskit-ibm-runtime": ("https://quantum.cloud.ibm.com/docs/api/qiskit-ibm-runtime/", None),
     "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
