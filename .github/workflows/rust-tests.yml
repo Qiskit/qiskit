@@ -48,7 +48,6 @@ jobs:
       - name: Install Qiskit directly
         run: |
           set -e
-          source test-job/bin/activate
           python -m pip install
               -c constraints.txt -e .
           # Build and install both qiskit and qiskit-terra so that any optionals
@@ -57,6 +56,5 @@ jobs:
         # Note that we use the virtual env with Qiskit installed to run the Rust
         # tests since some of them still depend on Qiskit's Python API via PyO3.
         run: |
-          source test-job/bin/activate
           python tools/report_numpy_state.py
           python tools/run_cargo_test.py
