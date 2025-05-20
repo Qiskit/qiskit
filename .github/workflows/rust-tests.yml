@@ -36,10 +36,10 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ inputs.rust-version }}
+      # - name: Install Rust toolchain
+      #   uses: dtolnay/rust-toolchain@master
+      #   with:
+      #     toolchain: ${{ inputs.rust-version }}
       - name: Set up Python ${{ inputs.python-version }}
         id: python-outputs
         uses: actions/setup-python@v5
