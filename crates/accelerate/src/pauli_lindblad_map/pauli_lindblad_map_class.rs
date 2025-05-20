@@ -1265,7 +1265,7 @@ impl PyPauliLindbladMap {
         Ok(inner
             .drop_paulis(
                 (0..self.num_qubits()?)
-                    .filter(|index| !indices.contains(&index))
+                    .filter(|index| !indices.contains(index))
                     .collect(),
             )?
             .into())
