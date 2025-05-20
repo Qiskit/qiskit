@@ -2587,6 +2587,40 @@ unitary q[0];
         test = dumps(qc)
         self.assertEqual(test, expected)
 
+    def test_global_barrier_all_qubits(self):
+        """Simple test that the global barrir is created"""
+        qc = QuantumCircuit(3)
+        qc.x(0)
+        qc.barrier()
+        qc.x(1)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[3] q;
+x q[0];
+barrier;
+x q[1];
+"""
+        test = dumps(qc, experimental=ExperimentalFeatures.GLOBAL_BARRIER)
+        self.assertEqual(test, expected)
+
+    def test_global_barrier_partial_qubits(self):
+        """Simple test that the global barrir is created"""
+        qc = QuantumCircuit(3)
+        qc.x(0)
+        qc.barrier(0, 1)
+        qc.x(1)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+qubit[3] q;
+x q[0];
+barrier q[0], q[1];
+x q[1];
+"""
+        test = dumps(qc, experimental=ExperimentalFeatures.GLOBAL_BARRIER)
+        self.assertEqual(test, expected)
+
 
 @ddt
 class TestQASM3ExporterFailurePaths(QiskitTestCase):
