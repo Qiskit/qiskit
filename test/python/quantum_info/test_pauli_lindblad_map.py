@@ -876,6 +876,16 @@ class TestPauliLindbladMap(QiskitTestCase):
             )
         )
 
+        # test __call__
+        self.assertTrue(
+            np.allclose(
+                pauli_lindblad_map(QubitSparsePauli(("ZXY", [0, 1, 2]), 4)),
+                np.exp(-2 * 0.07),
+                atol=1e-12,
+                rtol=1e-12,
+            )
+        )
+
         self.assertEqual(
             PauliLindbladMap.identity(5).pauli_fidelity(QubitSparsePauli("IXXYZ")), 1.0
         )

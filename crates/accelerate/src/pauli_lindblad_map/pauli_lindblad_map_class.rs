@@ -1352,6 +1352,10 @@ impl PyPauliLindbladMap {
         self.compose(other)
     }
 
+    fn __call__(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
+        self.pauli_fidelity(qubit_sparse_pauli)
+    }
+
     fn __getitem__<'py>(
         &self,
         py: Python<'py>,
