@@ -4521,6 +4521,36 @@ impl DAGCircuit {
         Ok(target_dag)
     }
 
+    /// Create an empty DAG with the canonical "physical" register of the correct length, with all
+    /// classical data and metadata retained.
+    ///
+    /// This is similar to [copy_empty_like_with_capacity] with `vars_mode="alike"`, and copies the
+    /// same things over (global phase, metadata, etc) it does, except for replacing the qubits.
+    ///
+    /// This method is intended for use by passes that are converting a virtual DAG to a physical
+    /// one.
+    pub fn physical_empty_like_with_capacity(
+        &self,
+        num_qubits: usize,
+        num_ops: usize,
+        num_edges: usize,
+    ) -> PyResult<Self> {
+        // This current implementation is not particularly efficient - it's not hard to speed it up
+        // if it becomes a problem.
+        let extra_qubits = num_qubits.saturating_sub(self.num_qubits());
+        let mut out = self.copy_empty_like_with_capacity(
+            // Account for the in- and out-nodes of any qubits that we'll be adding in, which
+            // `copy_empty_like` doesn't know about.
+            num_ops + 2 * extra_qubits,
+            num_edges + extra_qubits,
+            "alike",
+        )?;
+        out.remove_qubits((0..out.num_qubits()).map(Qubit::new))?;
+        out.qargs_interner = Interner::new();
+        out.add_qreg(QuantumRegister::new_owning("q", num_qubits as u32))?;
+        Ok(out)
+    }
+
     /// Returns an immutable view of the [QuantumRegister] instances in the circuit.
     #[inline(always)]
     pub fn qregs(&self) -> &[QuantumRegister] {
