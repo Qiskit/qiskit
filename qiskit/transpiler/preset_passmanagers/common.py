@@ -564,7 +564,7 @@ def generate_translation_passmanager(
                 condition=_direction_condition,
             )
         )
-    if target.has_angle_bounds():
+    if target is not None and target.has_angle_bounds():
         unroll.append(WrapAngles(target))
     return PassManager(unroll)
 
