@@ -21,7 +21,7 @@ use pyo3::{
 };
 use std::sync::{Arc, RwLock};
 
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_circuit::{slice::{PySequenceIndex, SequenceIndex}, Qubit};
 
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
@@ -365,6 +365,20 @@ impl PauliLindbladMap {
             new_indices,
             new_boundaries,
         )
+    }
+    
+    /// Compute the fidelity of the map for a single pauli
+    pub fn pauli_fidelity(&self, qubit_sparse_pauli: QubitSparsePauli) -> Result<f64, ArithmeticError> {
+
+        let mut fid = 1.0;
+
+        for generator_term in self.iter() {
+            if !qubit_sparse_pauli.commutes(&generator_term.qubit_sparse_pauli.to_term())? {
+                fid *= (-2.0 * generator_term.rate).exp();
+            }
+        }
+
+        Ok(fid)
     }
 }
 
@@ -1304,6 +1318,19 @@ impl PyPauliLindbladMap {
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         let composed = inner.compose(&other_inner)?;
         composed.into_pyobject(py)
+    }
+
+    /// Compose with another :class:`PauliLindbladMap`.
+    ///
+    /// This appends the internal arrays of self and other, and therefore results in a map with
+    /// whose enumerated terms are those of self followed by those of other.
+    ///
+    /// Args:
+    ///     other (PauliLindbladMap): the Pauli Lindblad map to compose with.
+    fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let result = inner.pauli_fidelity(qubit_sparse_pauli.inner)?;
+        Ok(result)
     }
 
     fn __matmul__<'py>(

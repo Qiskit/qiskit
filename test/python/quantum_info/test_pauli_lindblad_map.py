@@ -852,6 +852,18 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         with self.assertRaisesRegex(TypeError, r"unknown type for compose"):
             p0.compose(1.0)
+    
+    def test_pauli_fidelity(self):
+
+        pauli_lindblad_map = PauliLindbladMap(
+            [("XY", [0, 1], 1.23), ("Z", [1], 0.23), ("X", [2], 0.3)],
+            num_qubits=4
+        )
+
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 4)), 1.)
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Y", [0]), 4)), np.exp(-2 * 1.23))
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [1]), 4)), np.exp(-2 * 1.46))
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Z", [3]), 4)), 1.)
 
 
 def canonicalize_term(pauli, indices, rate):
