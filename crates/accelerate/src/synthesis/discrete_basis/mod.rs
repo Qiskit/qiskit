@@ -18,5 +18,6 @@ use pyo3::prelude::*;
 
 pub fn discrete_basis(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<solovay_kitaev::SolovayKitaevSynthesis>()?;
+    m.add_class::<basic_approximations::GateSequence>()?;
     Ok(())
 }

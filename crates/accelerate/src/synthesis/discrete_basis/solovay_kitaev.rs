@@ -12,7 +12,8 @@
 
 use nalgebra::Matrix2;
 use numpy::{Complex64, PyReadonlyArray2};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::types::PyString;
 use pyo3::{prelude::*, types::PyList};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -139,6 +140,18 @@ impl SolovayKitaevSynthesis {
             .dot(&w_n1.adjoint())
             .dot(&u_n1)
     }
+
+    fn save(&self, filename: &str) -> ::std::io::Result<()> {
+        self.basic_approximations.save(filename)
+    }
+
+    fn from_basic_approximations(filename: &str, do_checks: bool) -> ::std::io::Result<Self> {
+        let basic_approximations = BasicApproximations::load(filename)?;
+        Ok(Self {
+            basic_approximations,
+            do_checks,
+        })
+    }
 }
 
 #[pymethods]
@@ -230,14 +243,26 @@ impl SolovayKitaevSynthesis {
             .map_err(|err| err.into())
     }
 
+    /// Query the basic approximation for a [GateSequence].
+    ///
+    /// Legacy compat.
+    fn find_basic_approximation(&self, sequence: GateSequence) -> GateSequence {
+        let approximation = self
+            .basic_approximations
+            .query(&sequence)
+            .expect("No basic approximation found");
+
+        approximation.clone()
+    }
+
     /// Query the basic approximation for a :class:`.Gate`.
     ///
     /// Args:
-    ///     sequence (Gate): The gate sequence to find the approximation of.
+    ///     gate (Gate): The gate sequence to find the approximation of.
     ///
     /// Returns:
     ///     CircuitData: The sequence in the set of basic approximations closest to the input.
-    fn find_basic_approximation(&self, gate: OperationFromPython) -> PyResult<CircuitData> {
+    fn query_basic_approximation(&self, gate: OperationFromPython) -> PyResult<CircuitData> {
         let params = gate.params;
         let sequence = match gate.operation.view() {
             OperationRef::StandardGate(std_gate) => {
@@ -272,5 +297,74 @@ impl SolovayKitaevSynthesis {
         approximation
             .to_circuit(Some(&sequence))
             .map_err(|e| e.into())
+    }
+
+    /// Query the basic approximation for an U(2) matrix.
+    ///
+    /// Args:
+    ///     matrix (np.ndarray): The gate sequence to find the approximation of.
+    ///
+    /// Returns:
+    ///     CircuitData: The sequence in the set of basic approximations closest to the input.
+    fn query_basic_approximation_matrix(
+        &self,
+        matrix: PyReadonlyArray2<Complex64>,
+    ) -> PyResult<CircuitData> {
+        let matrix = Matrix2::new(
+            *matrix.get((0, 0)).unwrap(),
+            *matrix.get((0, 1)).unwrap(),
+            *matrix.get((1, 0)).unwrap(),
+            *matrix.get((1, 1)).unwrap(),
+        );
+        let sequence = GateSequence::from_u2(&matrix, true);
+
+        let approximation = self
+            .basic_approximations
+            .query(&sequence)
+            .expect("No basic approximation found");
+
+        approximation
+            .to_circuit(Some(&sequence))
+            .map_err(|e| e.into())
+    }
+
+    /// Store the basic approximations.
+    fn save_basic_approximations<'py>(&self, filename: &Bound<'py, PyString>) -> PyResult<()> {
+        let filename = filename.extract::<String>()?;
+        self.save(filename.as_str())
+            .map_err(|e| PyRuntimeError::new_err(e))
+    }
+
+    /// Load from basic approximations.
+    #[staticmethod]
+    #[pyo3(name = "from_basic_approximations")]
+    fn py_from_basic_approximations<'py>(
+        filename: &Bound<'py, PyString>,
+        do_checks: bool,
+    ) -> PyResult<Self> {
+        let filename = filename.extract::<String>()?;
+        Self::from_basic_approximations(filename.as_str(), do_checks)
+            .map_err(|e| PyRuntimeError::new_err(e))
+    }
+
+    /// Load from a list of [GateSequence]s.
+    #[staticmethod]
+    fn from_sequences(sequences: Vec<GateSequence>, do_checks: bool) -> Self {
+        let basic_approximations = BasicApproximations::load_from_sequences(&sequences);
+        Self {
+            basic_approximations,
+            do_checks,
+        }
+    }
+
+    /// Get a list of all [GateSequence]s in the basic approximations.
+    ///
+    /// Legacy compatibility.
+    fn get_gate_sequences(&self) -> Vec<GateSequence> {
+        self.basic_approximations
+            .approximations
+            .values()
+            .map(|seq| seq.clone())
+            .collect()
     }
 }

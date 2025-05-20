@@ -28,11 +28,7 @@ import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.gate import Gate
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.synthesis.discrete_basis.solovay_kitaev import (
-    SolovayKitaevDecomposition,
-    SolovayKitaevCompiler,
-    generate_basic_approximations,
-)
+from qiskit.synthesis.discrete_basis.solovay_kitaev import SolovayKitaevDecomposition
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
@@ -142,7 +138,7 @@ class SolovayKitaev(TransformationPass):
         basic_approximations: str | dict[str, np.ndarray] | None = None,
         *,
         basis_gates: list[str | Gate] | None = None,
-        depth: int | None = None,
+        depth: int = 16,
     ) -> None:
         r"""
         Args:
@@ -169,21 +165,7 @@ class SolovayKitaev(TransformationPass):
         """
         super().__init__()
         self.recursion_degree = recursion_degree
-        if basic_approximations is None:
-            if depth is None:
-                depth = 16
-            self._sk = SolovayKitaevCompiler(basis_gates, depth)
-            self._legacy_sk = False
-
-        else:
-            if basis_gates is not None or depth is not None:
-                raise ValueError(
-                    "Pass either basis_gates and depth (strongly encouraged), or the "
-                    "basis_approximations."
-                )
-
-            self._sk = SolovayKitaevDecomposition(basic_approximations)
-            self._legacy_sk = True
+        self._sk = SolovayKitaevDecomposition(basic_approximations, basis_gates, depth)
 
     @trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -207,27 +189,17 @@ class SolovayKitaev(TransformationPass):
             ):
                 continue
 
-            if self._legacy_sk:
-                # we do not check the input matrix as we know it comes from a Qiskit gate, as this
-                # we know it will generate a valid SU(2) matrix
-                check_input = not isinstance(node.op, Gate)
+            # we do not check the input matrix as we know it comes from a Qiskit gate, as this
+            # we know it will generate a valid SU(2) matrix
+            check_input = not isinstance(node.op, Gate)
 
-                matrix = node.op.to_matrix()
+            # possible improvement: pass the Gate directly, instead of converting to matrix
+            matrix = node.op.to_matrix()
 
-                # call solovay kitaev
-                approximation = self._sk.run(
-                    matrix, self.recursion_degree, return_dag=True, check_input=check_input
-                )
-            else:
-                if isinstance(node.op, Gate) and hasattr(node.op, "_standard_gate"):
-                    # accurate path!
-                    approximation = self._sk.synthesize(node.op, self.recursion_degree)
-                else:
-                    # less accurate path :(
-                    matrix = node.op.to_matrix()
-                    approximation = self._sk.synthesize_matrix(matrix, self.recursion_degree)
-
-                approximation = circuit_to_dag(approximation)
+            # call solovay kitaev
+            approximation = self._sk.run(
+                matrix, self.recursion_degree, return_dag=True, check_input=check_input
+            )
 
             # convert to a dag and replace the gate by the approximation
             dag.substitute_node_with_dag(node, approximation)
@@ -343,11 +315,10 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
             (basis_gates != SolovayKitaevSynthesis._basis_gates)
             or (depth != SolovayKitaevSynthesis._depth)
         ):
-            if basic_approximations is None:
-                basic_approximations = generate_basic_approximations(basis_gates, depth)
-
             SolovayKitaevSynthesis._basis_gates = basis_gates
             SolovayKitaevSynthesis._depth = depth
-            SolovayKitaevSynthesis._sk = SolovayKitaevDecomposition(basic_approximations)
+            SolovayKitaevSynthesis._sk = SolovayKitaevDecomposition(
+                basic_approximations, basis_gates, depth
+            )
         approximate_circuit = SolovayKitaevSynthesis._sk.run(unitary, recursion_degree)
         return circuit_to_dag(approximate_circuit)
