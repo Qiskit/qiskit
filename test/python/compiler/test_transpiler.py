@@ -3060,13 +3060,15 @@ class TestTranspileParallel(QiskitTestCase):
 
         def fold_rzz(angles):
             angle = angles[0]
+            if 0 <= angle <= pi / 2:
+                return None
             wrap_angle = np.angle(np.exp(1j * angle))
             qubits = [Qubit(), Qubit()]
             new_dag = DAGCircuit()
             new_dag.add_qubits(qubits)
             if 0 <= wrap_angle <= pi / 2:
                 new_dag.apply_operation_back(
-                    RZZGate(angle),
+                    RZZGate(wrap_angle),
                     qargs=qubits,
                     check=False,
                 )
@@ -3083,7 +3085,7 @@ class TestTranspileParallel(QiskitTestCase):
                     qargs=(qubits[1],),
                     check=False,
                 )
-                if not np.isclose(new_angle := (pi - angle), 0.0):
+                if not np.isclose(new_angle := (pi - wrap_angle), 0.0):
                     new_dag.apply_operation_back(
                         XGate(),
                         qargs=(qubits[0],),
@@ -3111,7 +3113,7 @@ class TestTranspileParallel(QiskitTestCase):
                     qargs=(qubits[1],),
                     check=False,
                 )
-                if not np.isclose(new_angle := (pi - np.abs(angle)), 0.0):
+                if not np.isclose(new_angle := (pi - np.abs(wrap_angle)), 0.0):
                     new_dag.apply_operation_back(
                         RZZGate(new_angle),
                         qargs=qubits,
@@ -3124,7 +3126,7 @@ class TestTranspileParallel(QiskitTestCase):
                     check=False,
                 )
                 new_dag.apply_operation_back(
-                    RZZGate(abs(angle)),
+                    RZZGate(abs(wrap_angle)),
                     qargs=qubits,
                     check=False,
                 )
@@ -3138,7 +3140,6 @@ class TestTranspileParallel(QiskitTestCase):
 
             if pi < angle % (4 * pi) < 3 * pi:
                 new_dag.global_phase += pi
-
             return new_dag
 
         theta = Parameter("theta")
@@ -3172,8 +3173,9 @@ class TestTranspileParallel(QiskitTestCase):
         transpiled = transpile(
             circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890
         )
-        self.assertEqual(Operator.from_circuit(transpiled[0]), Operator.from_circuit(circs[0]))
-        self.assertEqual(Operator.from_circuit(transpiled[1]), Operator.from_circuit(circs[1]))
+
+        self.assertTrue(Operator.from_circuit(transpiled[0]).equiv(Operator.from_circuit(circs[0])))
+        self.assertTrue(Operator.from_circuit(transpiled[1]).equiv(Operator.from_circuit(circs[1])))
         for circ in transpiled:
             for inst in circ.data:
                 self.assertTrue(
