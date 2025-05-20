@@ -366,7 +366,7 @@ impl PauliLindbladMap {
             new_boundaries,
         )
     }
-    
+
     /// Compute the fidelity of the map for a single pauli
     pub fn pauli_fidelity(
         &self,

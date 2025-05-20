@@ -703,7 +703,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         gamma = np.prod(gammas)
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
         self.assertEqual(gamma, pauli_lindblad_map.gamma)
-        
+
     def test_drop_paulis(self):
         """Test the `drop_paulis` method."""
         pauli_map_in = PauliLindbladMap.from_list(
