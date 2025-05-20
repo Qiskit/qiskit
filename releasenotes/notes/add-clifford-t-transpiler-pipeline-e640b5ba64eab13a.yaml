@@ -39,3 +39,21 @@ features_transpiler:
     S-gate might trigger decomposing S-gates into pairs of T-gates (that is,
     decomposing Clifford gates into non-Clifford gates, which might not be the
     desired behavior).
+
+    Here is an additional slightly larger example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.library import QFTGate
+      from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+
+      qc = QuantumCircuit(4)
+      qc.append(QFTGate(4), [0, 1, 2, 3])
+
+      basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
+      pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=2)
+
+      qc = QuantumCircuit(4)
+      qc.append(QFTGate(4), [0, 1, 2, 3])
+
+      qct = pm.run(qc)
+      print(qct.count_ops())
