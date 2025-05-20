@@ -1340,75 +1340,7 @@ impl DAGCircuit {
     ///     DAGCircuit: An empty copy of self.
     #[pyo3(signature = (*, vars_mode="alike"))]
     pub fn copy_empty_like(&self, vars_mode: &str) -> PyResult<Self> {
-        let mut target_dag = DAGCircuit::with_capacity(
-            self.num_qubits(),
-            self.num_clbits(),
-            Some(self.num_vars()),
-            None,
-            None,
-            Some(self.num_stretches()),
-        )?;
-        target_dag.name.clone_from(&self.name);
-        target_dag.global_phase = self.global_phase.clone();
-        target_dag.duration.clone_from(&self.duration);
-        target_dag.unit.clone_from(&self.unit);
-        target_dag.metadata.clone_from(&self.metadata);
-        target_dag.qargs_interner = self.qargs_interner.clone();
-        target_dag.cargs_interner = self.cargs_interner.clone();
-
-        for bit in self.qubits.objects() {
-            target_dag.add_qubit_unchecked(bit.clone())?;
-        }
-        for bit in self.clbits.objects() {
-            target_dag.add_clbit_unchecked(bit.clone())?;
-        }
-        for reg in self.qregs.registers() {
-            target_dag.add_qreg(reg.clone())?;
-        }
-        for reg in self.cregs.registers() {
-            target_dag.add_creg(reg.clone())?;
-        }
-        if vars_mode == "alike" {
-            for info in self.identifier_info.values() {
-                match info {
-                    DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, type_ }) => {
-                        let stretch = self.stretches.get(*stretch).unwrap().clone();
-                        match type_ {
-                            DAGStretchType::Capture => {
-                                target_dag.add_captured_stretch(stretch)?;
-                            }
-                            DAGStretchType::Declare => {
-                                target_dag.add_declared_stretch(stretch)?;
-                            }
-                        }
-                    }
-                    DAGIdentifierInfo::Var(DAGVarInfo { var, type_, .. }) => {
-                        let var = self.vars.get(*var).unwrap().clone();
-                        target_dag.add_var(var, *type_)?;
-                    }
-                }
-            }
-        } else if vars_mode == "captures" {
-            for info in self.identifier_info.values() {
-                match info {
-                    DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, .. }) => {
-                        let stretch = self.stretches.get(*stretch).unwrap().clone();
-                        target_dag.add_captured_stretch(stretch)?;
-                    }
-                    DAGIdentifierInfo::Var(DAGVarInfo { var, .. }) => {
-                        let var = self.vars.get(*var).unwrap().clone();
-                        target_dag.add_var(var, DAGVarType::Capture)?;
-                    }
-                }
-            }
-        } else if vars_mode != "drop" {
-            return Err(PyValueError::new_err(format!(
-                "unknown vars_mode: '{}'",
-                vars_mode
-            )));
-        }
-
-        Ok(target_dag)
+        self.copy_empty_like_with_capacity(0, 0, vars_mode)
     }
 
     #[pyo3(signature=(node, check=false))]
@@ -4502,6 +4434,91 @@ impl DAGCircuit {
             stretches_capture: HashSet::new(),
             stretches_declare: Vec::new(),
         })
+    }
+
+    pub fn copy_empty_like_with_same_capacity(&self, vars_mode: &str) -> PyResult<Self> {
+        self.copy_empty_like_with_capacity(
+            self.dag.node_count().saturating_sub(2 * self.width()),
+            self.dag.edge_count(),
+            vars_mode,
+        )
+    }
+
+    pub fn copy_empty_like_with_capacity(
+        &self,
+        num_ops: usize,
+        num_edges: usize,
+        vars_mode: &str,
+    ) -> PyResult<Self> {
+        let mut target_dag = Self::with_capacity(
+            self.num_qubits(),
+            self.num_clbits(),
+            (vars_mode != "drop").then_some(self.num_vars()),
+            Some(num_ops),
+            Some(num_edges),
+            (vars_mode != "drop").then_some(self.num_stretches()),
+        )?;
+        target_dag.name.clone_from(&self.name);
+        target_dag.global_phase = self.global_phase.clone();
+        target_dag.duration.clone_from(&self.duration);
+        target_dag.unit.clone_from(&self.unit);
+        target_dag.metadata.clone_from(&self.metadata);
+        target_dag.qargs_interner = self.qargs_interner.clone();
+        target_dag.cargs_interner = self.cargs_interner.clone();
+
+        for bit in self.qubits.objects() {
+            target_dag.add_qubit_unchecked(bit.clone())?;
+        }
+        for bit in self.clbits.objects() {
+            target_dag.add_clbit_unchecked(bit.clone())?;
+        }
+        for reg in self.qregs.registers() {
+            target_dag.add_qreg(reg.clone())?;
+        }
+        for reg in self.cregs.registers() {
+            target_dag.add_creg(reg.clone())?;
+        }
+        if vars_mode == "alike" {
+            for info in self.identifier_info.values() {
+                match info {
+                    DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, type_ }) => {
+                        let stretch = self.stretches.get(*stretch).unwrap().clone();
+                        match type_ {
+                            DAGStretchType::Capture => {
+                                target_dag.add_captured_stretch(stretch)?;
+                            }
+                            DAGStretchType::Declare => {
+                                target_dag.add_declared_stretch(stretch)?;
+                            }
+                        }
+                    }
+                    DAGIdentifierInfo::Var(DAGVarInfo { var, type_, .. }) => {
+                        let var = self.vars.get(*var).unwrap().clone();
+                        target_dag.add_var(var, *type_)?;
+                    }
+                }
+            }
+        } else if vars_mode == "captures" {
+            for info in self.identifier_info.values() {
+                match info {
+                    DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, .. }) => {
+                        let stretch = self.stretches.get(*stretch).unwrap().clone();
+                        target_dag.add_captured_stretch(stretch)?;
+                    }
+                    DAGIdentifierInfo::Var(DAGVarInfo { var, .. }) => {
+                        let var = self.vars.get(*var).unwrap().clone();
+                        target_dag.add_var(var, DAGVarType::Capture)?;
+                    }
+                }
+            }
+        } else if vars_mode != "drop" {
+            return Err(PyValueError::new_err(format!(
+                "unknown vars_mode: '{}'",
+                vars_mode
+            )));
+        }
+
+        Ok(target_dag)
     }
 
     /// Returns an immutable view of the [QuantumRegister] instances in the circuit.
