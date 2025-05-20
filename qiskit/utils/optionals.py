@@ -173,16 +173,17 @@ External Python Libraries
 .. py:data:: HAS_SYMENGINE
 
     `Symengine <https://github.com/symengine/symengine>`__ is a fast C++ backend for the
-    symbolic-manipulation library `Sympy <https://www.sympy.org/en/index.html>`__.  Qiskit uses
-    special methods from Symengine to accelerate its handling of
-    :class:`~.circuit.Parameter`\\ s if available.
+    symbolic-manipulation library `Sympy <https://www.sympy.org/en/index.html>`__.  This
+    dependency is used to load legacy QPY formats, where this package was used to handle
+    :class:`~.circuit.Parameter`\\ s.
 
 .. py:data:: HAS_SYMPY
 
     `SymPy <https://www.sympy.org/en/index.html>`__ is Python library for symbolic mathematics.
-    Sympy was historically used for the implementation of the :class:`.ParameterExpression`
+    ``SymPy`` was historically used for the implementation of the :class:`.ParameterExpression`
     class but isn't any longer. However it is needed for some legacy functionality that uses
-    :meth:`.ParameterExpression.sympify`. It is also used in some visualization functions.
+    :meth:`.ParameterExpression.sympify`. It is also used in some visualization functions
+    and template matching.
 
 .. py:data:: HAS_TESTTOOLS
 

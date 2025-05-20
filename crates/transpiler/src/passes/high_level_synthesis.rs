@@ -546,7 +546,7 @@ fn run_on_circuitdata(
                     // get copied correctly.
                     let new_block_py: Bound<'_, PyAny> = quantum_circuit_cls
                         .call_method1(intern!(py, "copy_empty_like"), (block_py,))?;
-                    new_block_py.setattr(intern!(py, "_data"), new_block.as_ref())?;
+                    new_block_py.setattr(intern!(py, "_data"), &new_block)?;
                     new_blocks_py.push(new_block_py);
                 }
 
