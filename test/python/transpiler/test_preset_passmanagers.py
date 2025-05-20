@@ -1502,7 +1502,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         self.assertEqual(res.name, name)
 
     def test_timing_constraints_from_target_no_backend(self):
-        """Test that timing constrains are obtained from target when no backend is provided"""
+        """Test that timing constrains are obtained from target when no backend is provided."""
         target = Target.from_configuration(
             basis_gates=["sx", "rz", "cz", "measure", "delay"],
             coupling_map=CouplingMap.from_line(4),
@@ -1510,14 +1510,14 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         )
         pm = generate_preset_pass_manager(optimization_level=2, target=target)
 
-        has_InstructionDurationsCheck = False
+        timing_constraint_from_target = False
 
         # Check to ensure that one of the tasks is of the type 'InstructionDurationsCheck'
         for task in pm.scheduling.__dict__["_tasks"]:
-            if type(task[0]) == InstructionDurationCheck:
-                has_InstructionDurationsCheck = True
+            if isinstance(task[0], InstructionDurationCheck):
+                timing_constraint_from_target = True
 
-        self.assertIs(has_InstructionDurationsCheck, True)
+        self.assertIs(timing_constraint_from_target, True)
 
 
 @ddt

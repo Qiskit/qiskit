@@ -26,7 +26,6 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import Target, _FakeTarget
-from qiskit.transpiler.timing_constraints import TimingConstraints
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
