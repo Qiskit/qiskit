@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 # Public API classes
 __all__ = ["ObservableLike", "ObservablesArrayLike"]
 
+IndexType = Union[int, slice, None]  # pylint: disable=used-before-assignment
+
 ObservableLike = Union[
     str,
     Pauli,
@@ -179,8 +181,6 @@ class ObservablesArray(ShapedMixin):
         """
         obs = self.copy() if copy else self
         return obs._array
-
-    IndexType = Union[int, slice, None]  # pylint: disable=used-before-assignment
 
     @overload
     def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]: ...
