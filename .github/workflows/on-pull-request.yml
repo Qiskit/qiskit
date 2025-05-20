@@ -31,7 +31,6 @@ jobs:
     with:
       python-version: "3.9"
       runner: ubuntu-latest
-      rust-version: "1.79"
   main-tests-images:
     name: Extra Tests
     uses: ./.github/workflows/image-tests.yml
