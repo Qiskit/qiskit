@@ -16,10 +16,8 @@ ND-Array container class for Estimator observables.
 """
 from __future__ import annotations
 
-import re
 from copy import deepcopy
 from collections.abc import Iterable, Mapping as _Mapping
-from functools import lru_cache
 from typing import Union, Mapping, overload, TYPE_CHECKING
 
 import numpy as np
@@ -37,6 +35,8 @@ if TYPE_CHECKING:
 
 # Public API classes
 __all__ = ["ObservableLike", "ObservablesArrayLike"]
+
+IndexType = Union[int, slice, None]  # pylint: disable=used-before-assignment
 
 ObservableLike = Union[
     str,
@@ -82,7 +82,6 @@ class ObservablesArray(ShapedMixin):
         super().__init__()
         if isinstance(observables, ObservablesArray):
             observables = observables._array
-
         self._array = object_array(observables, copy=copy, list_types=(PauliList,))
         self._shape = self._array.shape
         self._num_qubits = num_qubits
@@ -107,7 +106,7 @@ class ObservablesArray(ShapedMixin):
 
     @staticmethod
     def _obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
-        """Convert a sparse observable to a mapping from Pauli strings to coefficients"""
+        """Convert a sparse observable to a mapping from Pauli strings to coefficients."""
         result = {}
         for sparse_pauli_str, pauli_qubits, coeff in obs.to_sparse_list():
 
@@ -158,7 +157,7 @@ class ObservablesArray(ShapedMixin):
         return self.__array__().tolist()
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:  # pylint: disable=unused-argument
-        """Convert to a Numpy.ndarray"""
+        """Convert to a Numpy.ndarray with elements of type dict."""
         if dtype is None or dtype == object:
             tmp_result = self.__getitem__(tuple(slice(None) for _ in self._array.shape))
             if len(self._array.shape) == 0:
@@ -171,16 +170,51 @@ class ObservablesArray(ShapedMixin):
             return result
         raise ValueError("Type must be 'None' or 'object'")
 
+    def sparse_observables_array(self, copy: bool = False) -> np.ndarray:
+        """Convert to a :class:`numpy.ndarray` with elements of type :class:`~.SparseObservable`.
+
+        Args:
+            copy: Whether to make a new array instance with new sparse observables as elements.
+
+        Returns:
+            A :class:`numpy.ndarray` with elements of type :class:`~.SparseObservable`.
+        """
+        obs = self.copy() if copy else self
+        return obs._array
+
     @overload
     def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]: ...
 
     @overload
-    def __getitem__(self, args: slice | tuple[slice, ...]) -> ObservablesArray: ...
+    def __getitem__(self, args: IndexType | tuple[IndexType, ...]) -> ObservablesArray: ...
 
     def __getitem__(self, args):
         item = self._array[args]
         if not isinstance(item, np.ndarray):
             return self._obs_to_dict(item)
+
+        return ObservablesArray(item, copy=False, validate=False)
+
+    @overload
+    def slice(self, args: int | tuple[int, ...]) -> SparseObservable: ...
+
+    @overload
+    def slice(self, args: IndexType | tuple[IndexType, ...]) -> ObservablesArray: ...
+
+    def slice(self, args):
+        """Take a slice of the observables in this array.
+
+        .. note::
+           This method does not copy observables; modifying the returned observables will affect this
+           instance.
+
+        Returns:
+            A single :class:`~.SparseObservable` if an integer is given for every array axis, otherwise,
+            a new :class:`~.ObservablesArray`.
+        """
+        item = self._array[args]
+        if not isinstance(item, np.ndarray):
+            return item
 
         return ObservablesArray(item, copy=False, validate=False)
 
@@ -211,7 +245,7 @@ class ObservablesArray(ShapedMixin):
 
     @property
     def num_qubits(self) -> int:
-        """Return the observable array's number of qubits"""
+        """The number of qubits each observable acts on."""
         return self._num_qubits
 
     @classmethod
@@ -344,15 +378,3 @@ class ObservablesArray(ShapedMixin):
                     "An observable was detected, whose number of qubits"
                     " does not match the array's number of qubits"
                 )
-
-
-@lru_cache(1)
-def _regex_match(allowed_chars: str) -> re.Pattern:
-    """Return pattern for matching if a string contains only the allowed characters."""
-    return re.compile(f"^[{re.escape(allowed_chars)}]*$")
-
-
-@lru_cache(1)
-def _regex_invalid(allowed_chars: str) -> re.Pattern:
-    """Return pattern for selecting invalid strings"""
-    return re.compile(f"[^{re.escape(allowed_chars)}]")
