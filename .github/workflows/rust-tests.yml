@@ -48,8 +48,7 @@ jobs:
       - name: Install Qiskit directly
         run: |
           set -e
-          python -m pip install
-              -c constraints.txt -e .
+          python -m pip install -c constraints.txt -e .
           # Build and install both qiskit and qiskit-terra so that any optionals
           # depending on `qiskit` will resolve correctly.
       - name: Run Rust Tests
