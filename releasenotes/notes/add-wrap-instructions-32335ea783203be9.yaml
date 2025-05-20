@@ -59,6 +59,10 @@ features_transpiler:
     .. plot::
        :include-source:
 
+       from qiskit.circuit import Gate, Parameter, QuantumCircuit
+       from qiskit.transpiler import Target
+       from qiskit.transpiler.passes import WrapAngles
+
        class MyCustomGate(Gate):
 
            def __init__(self, angle):
