@@ -21,6 +21,10 @@ use pyo3::{
 };
 use std::sync::{Arc, RwLock};
 
+use rand::prelude::*;
+use rand_distr::Bernoulli;
+use rand_pcg::Pcg64Mcg;
+
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
@@ -379,6 +383,7 @@ impl PauliLindbladMap {
         )
     }
 
+<<<<<<< HEAD
     /// Compute the fidelity of the map for a single pauli
     pub fn pauli_fidelity(
         &self,
@@ -393,6 +398,55 @@ impl PauliLindbladMap {
         }
 
         Ok(fid)
+=======
+    /// Sample sign and Pauli operator pairs from the map.
+    pub fn sample(
+        &self,
+        n_samples: u64,
+        seed: Option<u64>,
+    ) -> Result<(Vec<bool>, QubitSparsePauliList), CoherenceError> {
+        let mut rng = match seed {
+            Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+            None => Pcg64Mcg::from_os_rng(),
+        };
+
+        let mut random_signs = Vec::with_capacity(n_samples as usize);
+        let mut random_paulis = Vec::with_capacity(n_samples as usize);
+
+        for _ in 0..n_samples {
+            let mut random_sign = true;
+            let mut random_pauli =
+                QubitSparsePauli::new(self.num_qubits(), Box::new([]), Box::new([]))?;
+
+            for ((p, generator), nnr) in self
+                .probabilities
+                .iter()
+                .zip(self.qubit_sparse_pauli_list.iter())
+                .zip(self.non_negative_rates.iter())
+            {
+                let dist = Bernoulli::new(*p).unwrap();
+                let apply_pauli = !dist.sample(&mut rng);
+                if apply_pauli {
+                    random_pauli = random_pauli.compose(&generator.to_term()).unwrap();
+                    // If the Pauli is applied and the rate is negative, flip the sign
+                    if !nnr {
+                        random_sign = !random_sign;
+                    }
+                }
+            }
+
+            random_signs.push(random_sign);
+            random_paulis.push(random_pauli);
+        }
+
+        let mut pauli_list = QubitSparsePauliList::empty(self.num_qubits());
+
+        for pauli in random_paulis.iter() {
+            pauli_list.add_qubit_sparse_pauli(pauli.view()).unwrap();
+        }
+
+        Ok((random_signs, pauli_list))
+>>>>>>> a78702d25 (formatting)
     }
 }
 
@@ -710,6 +764,8 @@ impl PyGeneratorTerm {
 /// different presentation than in the literature, but this notation allows us to handle both
 /// non-negative and negative rates simultaneously. The overall :math:`\gamma` of the channel is the
 /// product :math:`\gamma = \prod_{P \in K} \gamma_P`.
+///
+/// See the :meth:`.PauliLindbladMap.sample` method for the sampling procedure for this map.
 ///
 /// Representation
 /// ==============
@@ -1360,6 +1416,44 @@ impl PyPauliLindbladMap {
                     .collect(),
             )?
             .into())
+    }
+
+    /// Sample sign and Pauli operator pairs from the map. Each sign is represented by a boolean,
+    /// with True representing +1, and False representing -1.
+    ///
+    /// Given the quasi-probability representation given in the class level documentation, each
+    /// sample is drawn via the following process:
+    ///     * Initialize the sign boolean, and a :class`~.QubitSparsePauli` instance to the identity
+    ///     operator.
+    ///     * Iterate through each Pauli in the map. Using the pseudo-probability associated with
+    ///     each operator, randomly choose between applying the operator or not.
+    ///     * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
+    ///     the Pauli. If the rate associated with the Pauli is negative, flip the sign boolean.
+    ///
+    /// The results are returned as a 1d array of booleans, and the corresponding sampled qubit
+    /// sparse paulis in the form of a :class:`~.QubitSparsePauliList`.
+    ///
+    /// Args:
+    ///     n_samples (int): Number of samples to draw.
+    ///     seed (int): Random seed.
+    /// Returns:
+    ///     signs, qubit_sparse_pauli_list: The boolean array of signs and the list of qubit sparse
+    ///     paulis.
+    #[pyo3(signature = (n_samples, seed))]
+    pub fn sample<'py>(
+        &self,
+        py: Python<'py>,
+        n_samples: u64,
+        seed: Option<u64>,
+    ) -> PyResult<Bound<'py, PyTuple>> {
+        //PyResult<Bound<'py,(PyArray1<bool>, PyQubitSparsePauliList)>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let (signs, paulis) = inner.sample(n_samples, seed)?;
+
+        let signs = PyArray1::from_vec(py, signs);
+        let paulis = paulis.into_pyobject(py).unwrap();
+
+        (signs, paulis).into_pyobject(py)
     }
 
     fn __len__(&self) -> PyResult<usize> {
