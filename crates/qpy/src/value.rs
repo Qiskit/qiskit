@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use binrw::meta::{ReadEndian, WriteEndian};
-use binrw::{binrw, binread, binwrite, BinRead, BinResult, BinWrite, Endian};
+use binrw::meta::WriteEndian;
+use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use pyo3::exceptions::PyValueError;
 
 use pyo3::prelude::*;
@@ -22,16 +22,15 @@ use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Param, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
 
-use crate::circuits::serialize_circuit;
+use crate::circuits::{serialize_circuit, deserialize_circuit};
 use crate::formats;
 use crate::params::{
     serialize_parameter, serialize_parameter_expression, serialize_parameter_vector,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 use core::fmt;
-use std::fmt::{Debug, Error};
+use std::fmt::Debug;
 use std::io::{Cursor, Write, Read, Seek};
-use std::ops::{Deref, DerefMut};
 use crate::bytes::Bytes;
 
 const QPY_VERSION: u32 = 14;
@@ -60,13 +59,6 @@ pub mod tags {
     pub const EXPRESSION: u8 = b'x';
     pub const MODIFIER: u8 = b'm';
     pub const CIRCUIT: u8 = b'q';
-}
-
-pub mod expression_types {
-    pub const BOOL: u8 = b'b';
-    pub const UINT: u8 = b'u';
-    pub const FLOAT: u8 = b'f';
-    pub const DURATION: u8 = b'd';
 }
 
 #[binrw]
@@ -414,45 +406,6 @@ fn pack_expression_type(exp_type: &Bound<PyAny>, version: u32) -> PyResult<Expre
         ),)));
     }
 }
-// fn serialize_expression_type(exp_type: &Bound<PyAny>, version: u32) -> PyResult<Bytes> {
-//     let kind = exp_type.getattr("kind")?;
-//     let py = exp_type.py();
-//     let types_module = py.import("qiskit.circuit.classical.types")?;
-//     if kind.is(&types_module.getattr("Bool")?) {
-//         Ok(expression_types::BOOL.to_be_bytes().to_vec())
-//     } else if kind.is(&types_module.getattr("Uint")?) {
-//         let mut result = expression_types::UINT.to_be_bytes().to_vec();
-//         let width = exp_type.getattr("width")?.extract::<u32>()?.to_be_bytes();
-//         result.extend_from_slice(&width);
-//         Ok(result)
-//     } else if kind.is(&types_module.getattr("Float")?) {
-//         if version < 14 {
-//             return Err(UnsupportedFeatureForVersion::new_err((
-//                 "float-typed expressions",
-//                 14,
-//                 version,
-//             )));
-//             //return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!("float-typed expressions require version>=14"))) // TODO: better exception handling
-//         }
-//         Ok(expression_types::FLOAT.to_be_bytes().to_vec())
-//     } else if kind.is(&types_module.getattr("Duration")?) {
-//         if version < 14 {
-//             return Err(UnsupportedFeatureForVersion::new_err((
-//                 "duration-typed expressions",
-//                 14,
-//                 version,
-//             )));
-//             //return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!("duration-typed expressions require version>=14"))) // TODO: better exception handling
-//         }
-//         Ok(expression_types::DURATION.to_be_bytes().to_vec())
-//     } else {
-//         return Err(QpyError::new_err((format!(
-//             "unhandled Type object {:?}",
-//             exp_type
-//         ),)));
-//     }
-// }
-
 pub struct DumpedValue {
     pub data_type: u8,
     pub data: Bytes,
@@ -466,15 +419,15 @@ impl DumpedValue {
     pub fn write<W: Write>(
         value: &DumpedValue,
         writer: &mut W,
-        endian: Endian,
-        args: (),
+        _endian: Endian,
+        _args: (),
     ) -> binrw::BinResult<()> {
         Ok(writer.write_all(&value.data)?)
     }
     
     pub fn read<R: Read + Seek> (
         reader: &mut R,
-        endian: Endian,
+        _endian: Endian,
         (len, data_type,): (usize, u8,),
     ) -> BinResult<DumpedValue> {
         let mut buf = Bytes(vec![0u8; len]);
@@ -482,7 +435,7 @@ impl DumpedValue {
         Ok(DumpedValue{data_type, data: buf})
     }
 
-    pub fn to_python<'py>(&self, py:Python<'py>) -> PyResult<PyObject>{
+    pub fn to_python<'py>(&self, py:Python<'py>, qpy_data: &QPYData) -> PyResult<PyObject>{
         Ok(match self.data_type {
             tags::INTEGER => {
                 let value: i64 = (&self.data).try_into()?;
@@ -508,23 +461,26 @@ impl DumpedValue {
             //     buffer.call_method0("getvalue")?.extract::<Bytes>()?
             // }
             // tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
-            // tags::STRING => py_object.extract::<String>()?.into_bytes(),
+            tags::STRING => {
+                let data_string: &str = (&self.data).try_into()?;
+                PyString::new(py, data_string).into_any().unbind()
+            },
             // tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
-            // tags::NULL | tags::CASE_DEFAULT => Vec::new(),
-            // tags::CIRCUIT => serialize_circuit(py, py_object, py.None().bind(py), false, QPY_VERSION)?,
+            tags::NULL | tags::CASE_DEFAULT => py.None(),
+            tags::CIRCUIT => deserialize_circuit(py, &self.data, qpy_data.version, py.None().bind(py), qpy_data._use_symengine)?.unbind(),
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
-                    "dumps_value: Unhandled type_key: {}",
+                    "Dumped Value to python: Unhandled type_key: {}",
                     self.data_type
                 )))
             }
         })
     }
-    pub fn to_param(&self, py: Python) -> PyResult<Param> {
+    pub fn to_param(&self, py: Python, qpy_data: &QPYData) -> PyResult<Param> {
         match self.data_type {
             tags::FLOAT => Ok(Param::Float((&self.data).try_into()?)),
-            tags::PARAMETER_EXPRESSION => Ok(Param::ParameterExpression(self.to_python(py)?)),
-            _ => Ok(Param::Obj(self.to_python(py)?)),
+            tags::PARAMETER_EXPRESSION => Ok(Param::ParameterExpression(self.to_python(py, qpy_data)?)),
+            _ => Ok(Param::Obj(self.to_python(py, qpy_data)?)),
         }
     }
     

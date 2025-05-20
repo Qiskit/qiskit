@@ -11,9 +11,7 @@
 // that they have been altered from the originals.
 
 use binrw::{binrw, binread, binwrite, BinRead, BinResult, BinWrite, Endian};
-use binrw::meta::{ReadEndian, EndianKind};
 use std::io::{Read, Write, Seek};
-use core::fmt;
 use crate::bytes::Bytes;
 use crate::value::{DumpedValue, ExpressionType};
 
@@ -320,10 +318,10 @@ pub struct LayoutV2Pack {
 #[derive(Debug)]
 pub struct InitialLayoutItemV2Pack {
     pub index_value: i32,
-    pub reg_name_length: i32, // in this special case, reg_name_length can be -1 indicating "no name"
-    #[br(parse_with = read_string, args(reg_name_length.max(0) as usize))]
+    pub register_name_length: i32, // in this special case, reg_name_length can be -1 indicating "no name"
+    #[br(parse_with = read_string, args(register_name_length.max(0) as usize))]
     #[bw(write_with = write_string)]
-    pub name: String,
+    pub register_name: String,
 }
 
 #[binread]
@@ -568,15 +566,15 @@ impl BinRead for QPYFormatV13 {
 fn write_string<W: Write>(
     value: &String,
     writer: &mut W,
-    endian: Endian,
-    args: (),
+    _endian: Endian,
+    _args: (),
 ) -> binrw::BinResult<()> {
     Ok(writer.write_all(value.as_bytes())?)
 }
 
 fn read_string<R: Read + Seek> (
     reader: &mut R,
-    endian: Endian,
+    _endian: Endian,
     (len, ): (usize,),
 ) -> BinResult<String> {
     let mut buf = vec![0u8; len];

@@ -11,26 +11,14 @@
 // that they have been altered from the originals.
 
 
-use binrw::meta::{ReadEndian, WriteEndian};
-use binrw::{binrw, binread, binwrite, BinRead, BinResult, BinWrite, Endian, VecArgs};
+
+use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
 use pyo3::exceptions::PyValueError;
 
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple};
+use pyo3::types::PyAny;
 
-use qiskit_circuit::classical::expr::Expr;
-use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Param, OperationRef};
-use qiskit_circuit::packed_instruction::PackedOperation;
-
-use crate::circuits::serialize_circuit;
-use crate::formats;
-use crate::params::{
-    serialize_parameter, serialize_parameter_expression, serialize_parameter_vector,
-};
-use crate::{QpyError, UnsupportedFeatureForVersion};
-use core::fmt;
-use std::fmt::{Debug, Error};
+use std::fmt::Debug;
 use std::io::{Cursor, Write, Read, Seek};
 use std::ops::{Deref, DerefMut};
 
@@ -41,11 +29,18 @@ use std::ops::{Deref, DerefMut};
 pub struct Bytes(pub Vec<u8>);
 
 impl Bytes {
+    /// This method is used for debugging; it displays the data as a string of hexdecimal digits
     pub fn to_hex_string(&self) -> String {
         self.0
         .iter()
         .map(|b| format!("{:02x}", b))
         .collect::<String>()
+    }
+    pub fn try_to_le_f64(&self) -> PyResult<f64>{
+        let byte_array: [u8; 8] = self.0.as_slice()
+        .try_into()
+        .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+        Ok(f64::from_le_bytes(byte_array))
     }
     pub fn new() -> Self {
         Bytes(Vec::new())

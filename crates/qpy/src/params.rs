@@ -22,6 +22,8 @@ use std::io::{Cursor, Write};
 
 use crate::formats;
 use crate::bytes::Bytes;
+use crate::formats::PackedParam;
+use crate::value::DumpedValue;
 use crate::value::{dumps_register, dumps_value, get_type_key, serialize, tags, QPYData};
 
 fn serialize_parameter_replay_entry(
@@ -430,6 +432,19 @@ pub fn pack_param(py: Python, param: &Param, qpy_data: &QPYData) -> PyResult<for
         type_key,
         data,
     })
+}
+
+pub fn unpack_param(py: Python, packed_param: &PackedParam, qpy_data: &QPYData) -> PyResult<Param>{
+    match packed_param.type_key {
+        tags::FLOAT => Ok(Param::Float(packed_param.data.try_to_le_f64()?)),
+        //TODO parameter expression
+        _ => {
+            // TODO cloning the data in order to leverage DumpedValue's converter is far from optimal, we should find
+            // as way to use some common interface for both DumpedValue and PackedParam conversions
+            let dumped_value = DumpedValue {data_type: packed_param.type_key, data: Bytes(packed_param.data.clone())};
+            Ok(Param::Obj(dumped_value.to_python(py, qpy_data)?))
+        }
+    }   
 }
 
 pub fn serialize_parameter_vector(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
