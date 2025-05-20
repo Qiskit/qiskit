@@ -1191,13 +1191,8 @@ _sel.add_equivalence(TGate(), def_t)
 #    └─────┘└─────┘└─────┘└─────┘└─────┘└─────┘└─────┘
 q = QuantumRegister(1, "q")
 def_t = QuantumCircuit(q)
-def_t.append(TdgGate(), [q[0]], [])
-def_t.append(TdgGate(), [q[0]], [])
-def_t.append(TdgGate(), [q[0]], [])
-def_t.append(TdgGate(), [q[0]], [])
-def_t.append(TdgGate(), [q[0]], [])
-def_t.append(TdgGate(), [q[0]], [])
-def_t.append(TdgGate(), [q[0]], [])
+for _ in range(7):
+    def_t.append(TdgGate(), [q[0]], [])
 _sel.add_equivalence(TGate(), def_t)
 
 # TdgGate
@@ -1217,13 +1212,8 @@ _sel.add_equivalence(TdgGate(), def_tdg)
 #    └───┘└───┘└───┘└───┘└───┘└───┘└───┘
 q = QuantumRegister(1, "q")
 def_tdg = QuantumCircuit(q)
-def_tdg.append(TGate(), [q[0]], [])
-def_tdg.append(TGate(), [q[0]], [])
-def_tdg.append(TGate(), [q[0]], [])
-def_tdg.append(TGate(), [q[0]], [])
-def_tdg.append(TGate(), [q[0]], [])
-def_tdg.append(TGate(), [q[0]], [])
-def_tdg.append(TGate(), [q[0]], [])
+for _ in range(7):
+    def_tdg.append(TGate(), [q[0]], [])
 _sel.add_equivalence(TdgGate(), def_tdg)
 
 # UGate

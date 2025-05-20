@@ -84,6 +84,22 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
     @data(0, 1, 2, 3)
+    def test_rx_pi4(self, optimization_level):
+        """Clifford+T transpilation of a circuit with a single-qubit rotation gate
+        with a "nice" angle.
+        """
+        qc = QuantumCircuit(1)
+        qc.rx(np.pi / 4, 0)
+
+        basis_gates = ["cx", "h", "t", "tdg"]
+        pm = generate_preset_pass_manager(
+            basis_gates=basis_gates, optimization_level=optimization_level
+        )
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertEqual(transpiled.count_ops(), {"h": 2, "t": 1})
+
+    @data(0, 1, 2, 3)
     def test_qft(self, optimization_level):
         """Clifford+T transpilation of a more complex circuit, requiring the usage of the
         Solovay-Kitaev decomposition.

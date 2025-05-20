@@ -32,7 +32,7 @@ features_transpiler:
     translation into Clifford+T gates.
 
     It is important to note that the specified Clifford+T basis gate set should be
-    universal, or else transpilation might not suceed. While the gate set 
+    universal, or else transpilation might not succeed. While the gate set 
     ``["h", "t", "tdg"]``or even ``["h", "t"]`` is sufficient for universality,
     it is recommended to add more Clifford gates to the set if possible, as
     otherwise the translation might be less efficient. For example, not including

@@ -674,7 +674,7 @@ given :class:`.EquivalenceLibrary` (typically the :data:`.SessionEquivalenceLibr
 towards the ISA.
 
 For a Clifford+T basis set, the single-qubit rotation gates are approximated using the
-Solovay-Kitaev algorithm.
+:class:`.SolovayKitaevDecomposition` algorithm.
 
 This is the default translation method.
 

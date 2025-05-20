@@ -573,8 +573,6 @@ _CLIFFORD_GATE_NAMES = [
     "iswap",
     "ecr",
     "dcx",
-    "t",
-    "tdg",
 ]
 
 # Non-clifford gates
