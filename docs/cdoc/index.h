@@ -15,9 +15,9 @@
  */
 
 /**
- * @defgroup QkCircuit QkQuantumRegister
+ * @defgroup QkQuantumRegister QkQuantumRegister
  */
 
 /**
- * @defgroup QkCircuit QkClassicalRegister
+ * @defgroup QkClassicalRegister QkClassicalRegister
  */
