@@ -18,6 +18,11 @@ features_transpiler:
     :class:`.DAGCircuit` that represents an equivalent circuit for the gate with that angle but
     respecting the angle bounds. For example::
 
+        import math
+
+        from qiskit.dagcircuit import DAGCircuit
+        from qiskit.transpiler import target
+
         target = Target(num_qubits=1)
         target.add_instruction(RZGate(Parameter("theta")))
 
@@ -60,6 +65,7 @@ features_transpiler:
        :include-source:
 
        from qiskit.circuit import Gate, Parameter, QuantumCircuit
+       from qiskit.dagcircuit import DAGCircuit
        from qiskit.transpiler import Target
        from qiskit.transpiler.passes import WrapAngles
 
