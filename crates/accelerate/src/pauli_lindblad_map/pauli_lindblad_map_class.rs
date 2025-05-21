@@ -378,6 +378,22 @@ impl PauliLindbladMap {
             new_boundaries,
         )
     }
+
+    /// Compute the fidelity of the map for a single pauli
+    pub fn pauli_fidelity(
+        &self,
+        qubit_sparse_pauli: QubitSparsePauli,
+    ) -> Result<f64, ArithmeticError> {
+        let mut fid = 1.0;
+
+        for generator_term in self.iter() {
+            if !qubit_sparse_pauli.commutes(&generator_term.qubit_sparse_pauli.to_term())? {
+                fid *= (-2.0 * generator_term.rate).exp();
+            }
+        }
+
+        Ok(fid)
+    }
 }
 
 /// Given a rate, return the corresponding gamma, probability, and boolean for whether the rate is
@@ -1379,6 +1395,29 @@ impl PyPauliLindbladMap {
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
         let composed = inner.compose(&other_inner)?;
         composed.into_pyobject(py)
+    }
+
+    /// Compute the Pauli fidelity of this map for a qubit sparse Pauli.
+    ///
+    /// For a Pauli :math:`Q`, the fidelity with respect to the Pauli Lindblad map
+    /// :math:`\Lambda` is the real number :math:`f(Q)` for which :math:`\Lambda(Q) = f(Q) Q`. I.e.
+    /// every Pauli is an eigenvector of the linear map :math:`\Lambda`, and the fidelity is the
+    /// corresponding eigenvalue. For a Pauli Lindblad map with generator set :math:`K` and rate
+    /// function :math:`\lambda : K \rightarrow \mathbb{R}`, the pauli fidelity mathematically is
+    ///
+    /// .. math::
+    ///     
+    ///     f(Q) = \exp\left(-2 \sum_{P \in K} \lambda(P) \langle P, Q\rangle_{sp}),
+    ///
+    /// where :math:`\langle P, Q\rangle_{sp}` is :math:`0` if :math:`P` and :math:`Q` commute, and
+    /// :math:`1` if they anti-commute.
+    ///
+    /// Args: qubit_sparse_pauli (QubitSparsePauli): the qubit sparse Pauli to compute the Pauli
+    ///     fidelity of.
+    fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let result = inner.pauli_fidelity(qubit_sparse_pauli.inner)?;
+        Ok(result)
     }
 
     fn __matmul__<'py>(
