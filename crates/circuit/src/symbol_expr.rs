@@ -182,10 +182,10 @@ impl fmt::Display for SymbolExpr {
                         UnaryOp::Abs => format!("abs({})", s),
                         UnaryOp::Neg => match expr.as_ref() {
                             SymbolExpr::Value(e) => (-e).to_string(),
-                            SymbolExpr::Binary { op: eop, .. } => match eop {
-                                BinaryOp::Add | BinaryOp::Sub => format!("-({})", s),
-                                _ => format!("-{}", s),
-                            },
+                            SymbolExpr::Binary {
+                                op: BinaryOp::Add | BinaryOp::Sub,
+                                ..
+                            } => format!("-({})", s),
                             _ => format!("-{}", s),
                         },
                         UnaryOp::Sin => format!("sin({})", s),
@@ -880,13 +880,10 @@ impl SymbolExpr {
     pub fn abs(&self) -> SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.abs()),
-            SymbolExpr::Unary { op, expr } => match op {
-                UnaryOp::Abs | UnaryOp::Neg => expr.abs(),
-                _ => SymbolExpr::Unary {
-                    op: UnaryOp::Abs,
-                    expr: Box::new(self.clone()),
-                },
-            },
+            SymbolExpr::Unary {
+                op: UnaryOp::Abs | UnaryOp::Neg,
+                expr,
+            } => expr.abs(),
             _ => SymbolExpr::Unary {
                 op: UnaryOp::Abs,
                 expr: Box::new(self.clone()),
