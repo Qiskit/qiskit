@@ -722,12 +722,12 @@ pub unsafe extern "C" fn qk_circuit_compose(
     let num_clbits = other.num_clbits();
     let qubits: Vec<u32> = unsafe {
         (0..num_qubits)
-            .map(|idx| *qubits.wrapping_add(idx as usize))
+            .map(|idx| *qubits.wrapping_add(idx))
             .collect()
     };
     let clbits: Vec<u32> = unsafe {
         (0..num_clbits)
-            .map(|idx| *clbits.wrapping_add(idx as usize))
+            .map(|idx| *clbits.wrapping_add(idx))
             .collect()
     };
 
@@ -750,25 +750,45 @@ pub unsafe extern "C" fn qk_circuit_compose(
             map_instructions(target, other);
             null_mut() //return null for inplace composition
         }
-    } else {
-        if front {
-            let mut dest =
-                CircuitData::clone_empty_like(target, Some(target.__len__() + other.__len__()))
-                    .unwrap();
-            map_instructions(&mut dest, other);
-            for op in target.data() {
-                dest.push_packed_operation(
-                    op.op.clone(),
-                    op.params_view(),
-                    target.get_qargs(op.qubits),
-                    target.get_cargs(op.clbits),
-                );
-            }
-            Box::into_raw(Box::new(dest))
-        } else {
-            let mut dest = target.clone();
-            map_instructions(&mut dest, other);
-            Box::into_raw(Box::new(dest))
+    } else if front {
+        let mut dest =
+            CircuitData::clone_empty_like(target, Some(target.__len__() + other.__len__()))
+                .unwrap();
+        map_instructions(&mut dest, other);
+        for op in target.data() {
+            dest.push_packed_operation(
+                op.op.clone(),
+                op.params_view(),
+                target.get_qargs(op.qubits),
+                target.get_cargs(op.clbits),
+            );
         }
+        Box::into_raw(Box::new(dest))
+    } else {
+        let mut dest = target.clone();
+        map_instructions(&mut dest, other);
+        Box::into_raw(Box::new(dest))
     }
+}
+
+/// @ingroup QkCircuit
+/// Copy circuit
+///
+/// @param circuit A pointer to the circuit to be copied
+///
+/// @return A pointer to the copied circuit.
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100);
+///     QkCircuit *copied = qk_circuit_copy(qc);
+///
+/// # Safety
+///
+/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut CircuitData {
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    Box::into_raw(Box::new(circuit.clone()))
 }
