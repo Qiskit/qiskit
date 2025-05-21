@@ -672,6 +672,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_gate_num_qubits);
     num_failed += RUN_TEST(test_gate_num_params);
     num_failed += RUN_TEST(test_delay_instruction);
+    num_failed += RUN_TEST(test_compose);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
