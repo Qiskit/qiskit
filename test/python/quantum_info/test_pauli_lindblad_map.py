@@ -942,6 +942,22 @@ class TestPauliLindbladMap(QiskitTestCase):
         ):
             pauli_map_in.keep_paulis([0, 8])
 
+    def test_simplify(self):
+        duplicate = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", 2.0)])
+        self.assertEqual(duplicate.simplify(), PauliLindbladMap([("IXYZXYZXYZ", 3.0)]))
+
+        cancel = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -1.0)])
+        self.assertEqual(cancel.simplify(), PauliLindbladMap.identity(10))
+
+        drop_identities = PauliLindbladMap([("IXY", 1.0), ("III", -1.0)])
+        self.assertEqual(drop_identities.simplify(), PauliLindbladMap([("IXY", 1.0)]))
+
+        # note: some calls to simplify() are to enforce canonical ordering
+        threshold = PauliLindbladMap([("X", 1e-9), ("Z", -2), ("Y", 1.0)]).simplify(1e-10)
+        self.assertEqual(threshold.simplify(), PauliLindbladMap([("Y", 1.0), ("Z", -2)]).simplify())
+        self.assertEqual(threshold.simplify(1e-10), threshold)
+        self.assertEqual(threshold.simplify(1.1), PauliLindbladMap([("Z", -2)]))
+
     def test_scale_rates(self):
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
         self.assertEqual(
