@@ -69,7 +69,7 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
     Box::into_raw(Box::new(circuit))
 }
 
-/// @ingroup QkCircuit
+/// @ingroup QkQuantumRegister
 /// Construct a new owning quantum register with a given number of qubits and name
 ///
 /// @param num_qubits The number of qubits to create the register for
@@ -104,7 +104,7 @@ pub unsafe extern "C" fn qk_quantum_register_new(
     Box::into_raw(Box::new(reg))
 }
 
-/// @ingroup QkCircuit
+/// @ingroup QkQuantumRegister
 /// Free a quantum register.
 ///
 /// @param register A pointer to the register to free.
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
     }
 }
 
-/// @ingroup QkCircuit
+/// @ingroup QkClassicalRegister
 /// Free a classical register.
 ///
 /// @param register A pointer to the register to free.
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
     }
 }
 
-/// @ingroup QkCircuit
+/// @ingroup QkClassicalRegister
 /// Construct a new owning classical register with a given number of clbits and name
 ///
 /// @param num_clbits The number of clbits to create the register for
