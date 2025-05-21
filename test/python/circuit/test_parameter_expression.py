@@ -481,7 +481,7 @@ class TestParameterExpression(QiskitTestCase):
         final_expr = (
             (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
             + expression.gradient(a)
-            + expression.log()
+            + expression.log().sign()
             - a.sin()
             - b.conjugate()
         )
@@ -498,7 +498,7 @@ class TestParameterExpression(QiskitTestCase):
             (sympy.cos(expression) + sympy.acos(d) - sympy.asin(d) + sympy.atan(d) + sympy.tan(d))
             / sympy.exp(d)
             + expression.diff(a)
-            + sympy.log(expression)
+            + sympy.sign(sympy.log(expression))
             - sympy.sin(a)
             - sympy.conjugate(b)
         )
