@@ -2016,7 +2016,7 @@ impl PyQubitSparsePauliList {
 
     /// Apply a transpiler layout to this qubit sparse Pauli list.
     ///
-    /// This enables remapping of qubit indices, e.g. if the map is defined in terms of virtual
+    /// This enables remapping of qubit indices, e.g. if the list is defined in terms of virtual
     /// qubit labels.
     ///
     /// Args:
@@ -2024,13 +2024,13 @@ impl PyQubitSparsePauliList {
     ///         function should pass the :attr:`.QuantumCircuit.layout` field from a circuit that
     ///         was transpiled for hardware.  In addition, you can pass a list of new qubit indices.
     ///         If given as explicitly ``None``, no remapping is applied (but you can still use
-    ///         ``num_qubits`` to expand the map).
-    ///     num_qubits (int | None): The number of qubits to expand the map to.  If not
+    ///         ``num_qubits`` to expand the qubits in the list).
+    ///     num_qubits (int | None): The number of qubits to expand the list elements to.  If not
     ///         supplied, the output will be as wide as the given :class:`.TranspileLayout`, or the
     ///         same width as the input if the ``layout`` is given in another form.
     ///
     /// Returns:
-    ///     A new :class:`PauliLindbladMap` with the provided layout applied.
+    ///     A new :class:`QubitSparsePauli` with the provided layout applied.
     #[pyo3(signature = (/, layout, num_qubits=None))]
     fn apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
         let py = layout.py();
