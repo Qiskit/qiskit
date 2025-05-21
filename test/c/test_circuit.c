@@ -582,6 +582,85 @@ cleanup:
     return result;
 }
 
+int test_compose(void) {
+    QkCircuit *qc = qk_circuit_new(4, 4);
+    QkCircuit *sub = qk_circuit_new(2, 2);
+    QkCircuit *composed;
+    int result = Ok;
+    uint32_t single_qubit;
+    uint32_t two_qubits[2];
+
+    single_qubit = 0;
+    qk_circuit_gate(qc, QkGate_H, &single_qubit, NULL);
+    single_qubit = 1;
+    qk_circuit_gate(qc, QkGate_X, &single_qubit, NULL);
+
+    single_qubit = 0;
+    double theta = 0.5;
+    qk_circuit_gate(sub, QkGate_RZ, &single_qubit, &theta);
+    two_qubits[0] = 0;
+    two_qubits[1] = 1;
+    qk_circuit_gate(sub, QkGate_CX, &two_qubits, NULL);
+
+    two_qubits[0] = 3;
+    two_qubits[1] = 2;
+    composed = qk_circuit_compose(qc, sub, two_qubits, two_qubits, false, false);
+
+    // check composed circuit
+    {
+        int i, j, nops;
+        char* out_ops[4] = {"h", "x", "rz", "cx"};
+        uint32_t out_qubits[4][2] = {{0,0}, {1,0}, {3,0}, {3,2}};
+        nops = qk_circuit_num_instructions(composed);
+        for (i = 0; i < nops; i++) {
+            QkCircuitInstruction op = qk_circuit_get_instruction(composed, i);
+            result = strcmp(op.name, out_ops[i]);
+            for (j = 0; j < op.num_qubits; j++) {
+                if (op.qubits[j] != out_qubits[i][j]) {
+                    result = 1;
+                    break;
+                }
+            }
+            if (result != 0) {
+                break;
+            }
+        }
+    }
+    qk_circuit_free(composed);
+
+    // another test for front case
+    two_qubits[0] = 3;
+    two_qubits[1] = 1;
+    composed = qk_circuit_compose(qc, sub, two_qubits, two_qubits, true, false);
+
+    // check composed circuit
+    {
+        int i, j, nops;
+        char* out_ops[4] = {"rz", "cx", "h", "x"};
+        uint32_t out_qubits[4][2] = {{3,0}, {3,1}, {0,0}, {1,0}};
+        nops = qk_circuit_num_instructions(composed);
+        for (i = 0; i < nops; i++) {
+            QkCircuitInstruction op = qk_circuit_get_instruction(composed, i);
+            result = strcmp(op.name, out_ops[i]);
+            for (j = 0; j < op.num_qubits; j++) {
+                if (op.qubits[j] != out_qubits[i][j]) {
+                    result = 1;
+                    break;
+                }
+            }
+            if (result != 0) {
+                break;
+            }
+        }
+    }
+    qk_circuit_free(composed);
+
+    qk_circuit_free(qc);
+    qk_circuit_free(sub);
+    return result;
+}
+
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);

@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use std::ffi::{c_char, CStr, CString};
+use std::ptr::null_mut;
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -646,7 +647,7 @@ pub enum QkDelayUnit {
 ///
 ///     QkCircuit *qc = qk_circuit_new(1, 0);
 ///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
-///     
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
@@ -681,4 +682,93 @@ pub unsafe extern "C" fn qk_circuit_delay(
     );
 
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Compose a circuit into other circuit
+///
+/// @param target A pointer to the circuit to compose a circuit
+/// @param other A pointer to the circuit to be composed into
+/// @param qubits A pointer to array of qubits used to map other circuit to target
+/// @param clbits A pointer to array of clbits used to map other circuit to target
+/// @param front insert other circuit onto the top of target circuit
+/// @param inplace insert other circuit into target itself, returns null pointer
+///        both inplace and front can not be set to true at the same time
+///
+/// @return a new composed circuit, if inplace = true returns null pointer
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100);
+///     QkCircuit *qc_sub = qk_circuit_new(2);
+///     qk_circuit_compose(qc, qc_sub, *[3, 2], *[3, 2], false, false);
+///
+/// # Safety
+///
+/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_compose(
+    target: *mut CircuitData,
+    other: *const CircuitData,
+    qubits: *const u32,
+    clbits: *const u32,
+    front: bool,
+    inplace: bool,
+) -> *mut CircuitData {
+    let target = unsafe { mut_ptr_as_ref(target) };
+    let other = unsafe { const_ptr_as_ref(other) };
+    let num_qubits = other.num_qubits();
+    let num_clbits = other.num_clbits();
+    let qubits: Vec<u32> = unsafe {
+        (0..num_qubits)
+            .map(|idx| *qubits.wrapping_add(idx as usize))
+            .collect()
+    };
+    let clbits: Vec<u32> = unsafe {
+        (0..num_clbits)
+            .map(|idx| *clbits.wrapping_add(idx as usize))
+            .collect()
+    };
+
+    // append instructions with map
+    let map_instructions = |dest: &mut CircuitData, src: &CircuitData| {
+        for op in src.data() {
+            let qargs = src.get_qargs(op.qubits);
+            let qargs_vec: Vec<Qubit> = qargs.iter().map(|x| Qubit(qubits[x.0 as usize])).collect();
+            let cargs = src.get_cargs(op.clbits);
+            let cargs_vec: Vec<Clbit> = cargs.iter().map(|x| Clbit(clbits[x.0 as usize])).collect();
+
+            dest.push_packed_operation(op.op.clone(), op.params_view(), &qargs_vec, &cargs_vec);
+        }
+    };
+
+    if inplace {
+        if front {
+            panic!("other circuit can not be composed into target inplace.")
+        } else {
+            map_instructions(target, other);
+            null_mut() //return null for inplace composition
+        }
+    } else {
+        if front {
+            let mut dest =
+                CircuitData::clone_empty_like(target, Some(target.__len__() + other.__len__()))
+                    .unwrap();
+            map_instructions(&mut dest, other);
+            for op in target.data() {
+                dest.push_packed_operation(
+                    op.op.clone(),
+                    op.params_view(),
+                    target.get_qargs(op.qubits),
+                    target.get_cargs(op.clbits),
+                );
+            }
+            Box::into_raw(Box::new(dest))
+        } else {
+            let mut dest = target.clone();
+            map_instructions(&mut dest, other);
+            Box::into_raw(Box::new(dest))
+        }
+    }
 }
