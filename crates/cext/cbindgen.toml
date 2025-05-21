@@ -10,6 +10,9 @@ after_includes = """
     #include <Python.h>
 #endif
 
+// Qiskit version information
+#include "version.h"
+
 // Complex number typedefs -- note these are memory aligned but
 // not calling convention compatible.
 #ifdef __cplusplus
