@@ -291,8 +291,10 @@ Layout stage
 ------------
 
 .. seealso::
-    `Layout stage explanation <https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#layout-stage>`__
+    `Layout stage explanation`__
         Higher-level user-facing explanation of the layout stage in the IBM Quantum guide.
+
+__ https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#layout-stage
 
 The layout stage is responsible for making an initial mapping between the virtual qubits of the
 input circuit, and the hardware qubits of the target.  This includes expanding the input circuit
@@ -452,8 +454,10 @@ Routing stage
 -------------
 
 .. seealso::
-    `Routing stage explanation <https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#routing-stage>`__
+    `Routing stage explanation`__
         Higher-level user-facing explanation of the routing stage in the IBM Quantum guide.
+
+__ https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#routing-stage
 
 The routing stage ensures that the virtual connectivity graph of the circuit is compatible with the
 hardware connectivity graph of the target.  In simpler terms, the routing stage makes sure that all
