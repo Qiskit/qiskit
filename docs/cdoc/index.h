@@ -13,3 +13,11 @@
 /**
  * @defgroup QkCircuit QkCircuit
  */
+
+/**
+ * @defgroup QkCircuit QkQuantumRegister
+ */
+
+/**
+ * @defgroup QkCircuit QkClassicalRegister
+ */
