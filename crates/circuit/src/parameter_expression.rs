@@ -295,11 +295,7 @@ impl ParameterExpression {
 
     /// check if this is symbol
     pub fn is_symbol(&self) -> bool {
-        if let SymbolExpr::Symbol { name: _, index: _ } = self.expr {
-            true
-        } else {
-            false
-        }
+        matches!(self.expr, SymbolExpr::Symbol { name: _, index: _ })
     }
 
     /// check if this is numeric
