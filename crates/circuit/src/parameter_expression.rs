@@ -1206,7 +1206,7 @@ impl ParameterExpression {
     /// ParameterExpression::__init__
     /// initialize ParameterExpression from the equation stored in string
     #[new]
-    #[pyo3(signature = (symbol_map = None, expr = None, _qpy_replay = None))]
+    #[pyo3(signature = (symbol_map = None, expr = None, *, _qpy_replay = None))]
    pub fn __new__(
         symbol_map: Option<HashMap<ParameterExpression, PyObject>>,
         expr: Option<String>,
