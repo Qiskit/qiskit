@@ -660,7 +660,6 @@ int test_circuit_compose(void) {
     return result;
 }
 
-
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
