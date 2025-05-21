@@ -333,7 +333,7 @@ fn all_instructions_supported(
     data: &Bound<HighLevelSynthesisData>,
     dag: &DAGCircuit,
 ) -> PyResult<bool> {
-    let ops = dag.count_ops(py, false)?;
+    let ops = dag.count_ops(py, true)?;
     let mut op_keys = ops.keys();
 
     let borrowed_data = data.borrow();
@@ -546,7 +546,7 @@ fn run_on_circuitdata(
                     // get copied correctly.
                     let new_block_py: Bound<'_, PyAny> = quantum_circuit_cls
                         .call_method1(intern!(py, "copy_empty_like"), (block_py,))?;
-                    new_block_py.setattr(intern!(py, "_data"), new_block.as_ref())?;
+                    new_block_py.setattr(intern!(py, "_data"), &new_block)?;
                     new_blocks_py.push(new_block_py);
                 }
 
@@ -980,7 +980,7 @@ pub fn run_high_level_synthesis(
         let (output_circuit, _) =
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
-        let new_dag = convert_circuit_to_dag_with_data(py, dag, &output_circuit)?;
+        let new_dag = convert_circuit_to_dag_with_data(dag, &output_circuit)?;
 
         Ok(Some(new_dag))
     }
@@ -988,32 +988,28 @@ pub fn run_high_level_synthesis(
 
 /// Converts circuit to DAGCircuit, while taking the missing python data from dag.
 fn convert_circuit_to_dag_with_data(
-    py: Python,
     dag: &DAGCircuit,
     circuit: &CircuitData,
 ) -> PyResult<DAGCircuit> {
     // Calling copy_empty_like makes sure that all the python-space information (qregs, cregs, input variables)
     // get copied correctly.
-    let mut new_dag = dag.copy_empty_like(py, "alike")?;
+    let mut new_dag = dag.copy_empty_like("alike")?;
     new_dag.set_global_phase(circuit.global_phase().clone())?;
     let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
     let carg_map = new_dag.merge_cargs(circuit.cargs_interner(), |bit: &Clbit| Some(*bit));
 
-    new_dag.try_extend(
-        py,
-        circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
-            Ok(PackedInstruction {
-                // SHould this be: op: instr.op.py_deepcopy(py, None)?,
-                op: instr.op.clone(),
-                qubits: qarg_map[instr.qubits],
-                clbits: carg_map[instr.clbits],
-                params: instr.params.clone(),
-                label: instr.label.clone(),
-                #[cfg(feature = "cache_pygates")]
-                py_op: OnceLock::new(),
-            })
-        }),
-    )?;
+    new_dag.try_extend(circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
+        Ok(PackedInstruction {
+            // SHould this be: op: instr.op.py_deepcopy(py, None)?,
+            op: instr.op.clone(),
+            qubits: qarg_map[instr.qubits],
+            clbits: carg_map[instr.clbits],
+            params: instr.params.clone(),
+            label: instr.label.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        })
+    }))?;
     Ok(new_dag)
 }
 
