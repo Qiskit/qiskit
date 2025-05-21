@@ -594,10 +594,18 @@ class TestPauliLindbladMap(QiskitTestCase):
         )
 
     def test_apply_layout_none(self):
-        self.assertEqual(PauliLindbladMap.identity(0).apply_layout(None), PauliLindbladMap.identity(0))
-        self.assertEqual(PauliLindbladMap.identity(0).apply_layout(None, 3), PauliLindbladMap.identity(3))
-        self.assertEqual(PauliLindbladMap.identity(5).apply_layout(None), PauliLindbladMap.identity(5))
-        self.assertEqual(PauliLindbladMap.identity(3).apply_layout(None, 8), PauliLindbladMap.identity(8))
+        self.assertEqual(
+            PauliLindbladMap.identity(0).apply_layout(None), PauliLindbladMap.identity(0)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(0).apply_layout(None, 3), PauliLindbladMap.identity(3)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(5).apply_layout(None), PauliLindbladMap.identity(5)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(3).apply_layout(None, 8), PauliLindbladMap.identity(8)
+        )
         self.assertEqual(
             PauliLindbladMap.identity(0).apply_layout(None), PauliLindbladMap.identity(0)
         )
@@ -648,7 +656,6 @@ class TestPauliLindbladMap(QiskitTestCase):
         layout = transpile(qc, target=lnn_target(3), seed_transpiler=2024_10_25).layout
         with self.assertRaisesRegex(ValueError, "cannot shrink"):
             obs.apply_layout(layout, num_qubits=2)
-
 
     def test_indexing(self):
         pauli_lindblad_map = PauliLindbladMap.from_sparse_list(

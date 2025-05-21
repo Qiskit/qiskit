@@ -201,7 +201,9 @@ impl PauliLindbladMap {
         layout: Option<&[u32]>,
         num_qubits: u32,
     ) -> Result<Self, CoherenceError> {
-        let qubit_sparse_pauli_list = self.qubit_sparse_pauli_list.apply_layout(layout, num_qubits)?;
+        let qubit_sparse_pauli_list = self
+            .qubit_sparse_pauli_list
+            .apply_layout(layout, num_qubits)?;
         PauliLindbladMap::new(self.rates.clone(), qubit_sparse_pauli_list)
     }
 
