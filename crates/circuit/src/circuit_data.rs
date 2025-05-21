@@ -25,7 +25,9 @@ use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{Operation, OperationRef, Param, StandardGate};
+use crate::operations::{
+    multiply_param, Operation, OperationRef, Param, PyGate, StandardGate, StandardInstruction,
+};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -1443,6 +1445,52 @@ impl CircuitData {
         });
     }
 
+    /// Append a standard gate to this CircuitData
+    pub fn push_standard_instruction(
+        &mut self,
+        operation: StandardInstruction,
+        params: &[Param],
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+    ) -> PyResult<()> {
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let qubits = self.qargs_interner.insert(qargs);
+        let clbits = self.cargs_interner.insert(cargs);
+        self.data.push(PackedInstruction {
+            op: operation.into(),
+            qubits,
+            clbits,
+            params,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        });
+        Ok(())
+    }
+
+    /// Append a py gate to this CircuitData
+    pub fn push_py_gate(
+        &mut self,
+        operation: PyGate,
+        params: &[Param],
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+    ) -> PyResult<()> {
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let qubits = self.qargs_interner.insert(qargs);
+        let clbits = self.cargs_interner.insert(cargs);
+        self.data.push(PackedInstruction {
+            op: operation.into(),
+            qubits,
+            clbits,
+            params,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        });
+        Ok(())
+    }
+
     /// Append a packed operation to this CircuitData
     pub fn push_packed_operation(
         &mut self,
@@ -1957,6 +2005,144 @@ impl CircuitData {
             )),
             _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
         }
+    }
+
+    /// Compose ``other`` into ``self``, while optionally remapping the
+    /// qubits over which ``other`` is defined.
+    pub fn compose(&mut self, other: &Self, qubit_map: Option<&[Qubit]>) -> PyResult<()> {
+        for inst in &other.data {
+            let remapped_qubits: Vec<Qubit> = match qubit_map {
+                Some(qubit_map) => other
+                    .get_qargs(inst.qubits)
+                    .iter()
+                    .map(|q| qubit_map[q.index()])
+                    .collect(),
+                None => other.get_qargs(inst.qubits).to_vec(),
+            };
+            let remapped_clbits: Vec<Clbit> = other.get_cargs(inst.clbits).to_vec();
+
+            let qubits = self.qargs_interner.insert(&remapped_qubits);
+            let clbits = self.cargs_interner.insert(&remapped_clbits);
+
+            self.data.push(PackedInstruction {
+                op: inst.op.clone(),
+                qubits,
+                clbits,
+                params: inst.params.clone(),
+                label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
+            });
+        }
+
+        self.add_global_phase(other.global_phase())?;
+        Ok(())
+    }
+
+    /// Construct the inverse circuit
+    pub fn inverse(&self) -> PyResult<CircuitData> {
+        let inverse_global_phase =
+            Python::with_gil(|py| -> Param { multiply_param(self.global_phase(), -1.0, py) });
+
+        let mut inverse_circuit = CircuitData::clone_empty_like(self, None)?;
+        inverse_circuit.set_global_phase(inverse_global_phase)?;
+
+        for inst in self.data.iter().rev() {
+            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op.view() {
+                OperationRef::StandardGate(gate) => gate.inverse(inst.params_view()),
+                _ => None,
+            };
+
+            if inverse_inst.is_none() {
+                return Err(CircuitError::new_err(format!(
+                    "The circuit cannot be inverted: {} is not a standard gate.",
+                    inst.op.name()
+                )));
+            }
+
+            let (inverse_op, inverse_op_params) = inverse_inst.unwrap();
+            let inverse_params = (!inverse_op_params.is_empty())
+                .then(|| Box::new(inverse_op_params.iter().cloned().collect()));
+
+            inverse_circuit.data.push(PackedInstruction {
+                op: inverse_op.into(),
+                qubits: inst.qubits,
+                clbits: inst.clbits,
+                params: inverse_params,
+                label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
+            });
+        }
+        Ok(inverse_circuit)
+    }
+
+    /// Constructs from the definition of a standard gate
+    pub fn from_standard_gate_definition(
+        standard_gate: StandardGate,
+        params: &[Param],
+    ) -> PyResult<Self> {
+        standard_gate
+            .definition(params)
+            .ok_or(CircuitError::new_err(format!(
+                "Error extracting the definition of a standard gate {:?}",
+                standard_gate
+            )))
+    }
+
+    // Convenience functions
+
+    /// Appends XGate to the circuit.
+    #[inline]
+    pub fn x(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::X, &[], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends HGate to the circuit.
+    #[inline]
+    pub fn h(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::H, &[], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends TGate to the circuit.
+    #[inline]
+    pub fn t(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::T, &[], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends TdgGate to the circuit.
+    #[inline]
+    pub fn tdg(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::Tdg, &[], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends PhaseGate to the circuit.
+    #[inline]
+    pub fn p(&mut self, theta: f64, q: u32) {
+        self.push_standard_gate(StandardGate::Phase, &[Param::Float(theta)], &[Qubit(q)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends CXGate to the circuit.
+    #[inline]
+    pub fn cx(&mut self, q1: u32, q2: u32) {
+        self.push_standard_gate(StandardGate::CX, &[], &[Qubit(q1), Qubit(q2)])
+            .expect("Error addding a standard gate to the circuit data");
+    }
+
+    /// Appends CPhase to the circuit.
+    #[inline]
+    pub fn cp(&mut self, theta: f64, q1: u32, q2: u32) {
+        self.push_standard_gate(
+            StandardGate::CU1,
+            &[Param::Float(theta)],
+            &[Qubit(q1), Qubit(q2)],
+        )
+        .expect("Error addding a standard gate to the circuit data");
     }
 }
 
