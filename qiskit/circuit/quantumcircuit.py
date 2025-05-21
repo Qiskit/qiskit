@@ -1100,7 +1100,7 @@ class QuantumCircuit:
         self._base_name = None
         self.name: str
         """A human-readable name for the circuit.
-        
+
         Example:
 
             .. plot::
@@ -1178,7 +1178,7 @@ class QuantumCircuit:
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata.
-        
+
         Example:
 
             .. plot::
@@ -6123,7 +6123,8 @@ class QuantumCircuit:
         if mode is None or not hasattr(gate, "num_ancilla_qubits"):
             ancilla_qubits = []
         else:
-            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                 required = gate.num_ancilla_qubits
 
             if required > 0:
