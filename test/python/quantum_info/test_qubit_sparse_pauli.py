@@ -977,7 +977,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
 
     def test_apply_layout_list(self):
         self.assertEqual(
-            QubitSparsePauliList.empty(5).apply_layout([4, 3, 2, 1, 0]), QubitSparsePauliList.empty(5)
+            QubitSparsePauliList.empty(5).apply_layout([4, 3, 2, 1, 0]),
+            QubitSparsePauliList.empty(5),
         )
         self.assertEqual(
             QubitSparsePauliList.empty(3).apply_layout([0, 2, 1], 8), QubitSparsePauliList.empty(8)
@@ -997,9 +998,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
         ]
 
         def map_indices(terms, layout):
-            return [
-                (terms, tuple(layout[bit] for bit in bits)) for terms, bits in terms
-            ]
+            return [(terms, tuple(layout[bit] for bit in bits)) for terms, bits in terms]
 
         identity = list(range(12))
         self.assertEqual(
@@ -1075,10 +1074,18 @@ class TestQubitSparsePauliList(QiskitTestCase):
         )
 
     def test_apply_layout_none(self):
-        self.assertEqual(QubitSparsePauliList.empty(0).apply_layout(None), QubitSparsePauliList.empty(0))
-        self.assertEqual(QubitSparsePauliList.empty(0).apply_layout(None, 3), QubitSparsePauliList.empty(3))
-        self.assertEqual(QubitSparsePauliList.empty(5).apply_layout(None), QubitSparsePauliList.empty(5))
-        self.assertEqual(QubitSparsePauliList.empty(3).apply_layout(None, 8), QubitSparsePauliList.empty(8))
+        self.assertEqual(
+            QubitSparsePauliList.empty(0).apply_layout(None), QubitSparsePauliList.empty(0)
+        )
+        self.assertEqual(
+            QubitSparsePauliList.empty(0).apply_layout(None, 3), QubitSparsePauliList.empty(3)
+        )
+        self.assertEqual(
+            QubitSparsePauliList.empty(5).apply_layout(None), QubitSparsePauliList.empty(5)
+        )
+        self.assertEqual(
+            QubitSparsePauliList.empty(3).apply_layout(None, 8), QubitSparsePauliList.empty(8)
+        )
         self.assertEqual(
             QubitSparsePauliList.empty(0).apply_layout(None), QubitSparsePauliList.empty(0)
         )
@@ -1217,6 +1224,7 @@ def canonicalize_sparse_list(sparse_list):
     # Python's built-in sort
     canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
     return sorted(canonicalized_terms)
+
 
 def lnn_target(num_qubits):
     """Create a simple `Target` object with an arbitrary basis-gate set, and open-path

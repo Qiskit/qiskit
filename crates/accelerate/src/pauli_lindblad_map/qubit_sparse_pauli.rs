@@ -452,15 +452,15 @@ impl QubitSparsePauliList {
         Ok(())
     }
 
-    /// Relabel the `indices` in the operator to new values.
+    /// Relabel the `indices` in the map to new values.
     ///
     /// This fails if any of the new indices are too large, or if any mapping would cause a term to
     /// contain duplicates of the same index.  It may not detect if multiple qubits are mapped to
     /// the same index, if those qubits never appear together in the same term.  Such a mapping
-    /// would not cause data-coherence problems (the output observable will be valid), but is
+    /// would not cause data-coherence problems (the output map will be valid), but is
     /// unlikely to be what you intended.
     ///
-    /// *Panics* if `new_qubits` is not long enough to map every index used in the operator.
+    /// *Panics* if `new_qubits` is not long enough to map every index used in the map.
     pub fn relabel_qubits_from_slice(&mut self, new_qubits: &[u32]) -> Result<(), CoherenceError> {
         for qubit in new_qubits {
             if *qubit >= self.num_qubits {
@@ -498,7 +498,6 @@ impl QubitSparsePauliList {
             None => {
                 let mut out = self.clone();
                 if num_qubits < self.num_qubits {
-                    // return Err(CoherenceError::BitIndexTooHigh);
                     return Err(CoherenceError::NotEnoughQubits {
                         current: self.num_qubits as usize,
                         target: num_qubits as usize,
@@ -2015,33 +2014,29 @@ impl PyQubitSparsePauliList {
         Ok(out.unbind())
     }
 
-    /// Apply a transpiler layout to this :class:`SparseObservable`.
+    /// Apply a transpiler layout to this Pauli Lindblad map.
     ///
-    /// Typically you will have defined your observable in terms of the virtual qubits of the
-    /// circuits you will use to prepare states.  After transpilation, the virtual qubits are mapped
-    /// to particular physical qubits on a device, which may be wider than your circuit.  That
-    /// mapping can also change over the course of the circuit.  This method transforms the input
-    /// observable on virtual qubits to an observable that is suitable to apply immediately after
-    /// the fully transpiled *physical* circuit.
+    /// This enables remapping of qubit indices, e.g. if the map is defined in terms of virtual
+    /// qubit labels.
     ///
     /// Args:
     ///     layout (TranspileLayout | list[int] | None): The layout to apply.  Most uses of this
     ///         function should pass the :attr:`.QuantumCircuit.layout` field from a circuit that
     ///         was transpiled for hardware.  In addition, you can pass a list of new qubit indices.
     ///         If given as explicitly ``None``, no remapping is applied (but you can still use
-    ///         ``num_qubits`` to expand the observable).
-    ///     num_qubits (int | None): The number of qubits to expand the observable to.  If not
+    ///         ``num_qubits`` to expand the map).
+    ///     num_qubits (int | None): The number of qubits to expand the map to.  If not
     ///         supplied, the output will be as wide as the given :class:`.TranspileLayout`, or the
     ///         same width as the input if the ``layout`` is given in another form.
     ///
     /// Returns:
-    ///     A new :class:`SparseObservable` with the provided layout applied.
+    ///     A new :class:`PauliLindbladMap` with the provided layout applied.
     #[pyo3(signature = (/, layout, num_qubits=None))]
     fn apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
         let py = layout.py();
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
 
-        // A utility to check the number of qubits is compatible with the observable.
+        // A utility to check the number of qubits is compatible with the map.
         let check_inferred_qubits = |inferred: u32| -> PyResult<u32> {
             if inferred < inner.num_qubits() {
                 return Err(CoherenceError::NotEnoughQubits {
@@ -2054,7 +2049,7 @@ impl PyQubitSparsePauliList {
         };
 
         // Normalize the number of qubits in the layout and the layout itself, depending on the
-        // input types, before calling SparseObservable.apply_layout to do the actual work.
+        // input types, before calling PauliLindbladMap.apply_layout to do the actual work.
         let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
             (num_qubits.unwrap_or(inner.num_qubits()), None)
         } else if layout.is_instance(
