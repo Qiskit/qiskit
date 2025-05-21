@@ -192,6 +192,19 @@ impl SolovayKitaevSynthesis {
         Self::new(&basis_gates, depth, tol, do_checks).map_err(|err| err.into())
     }
 
+    /// Getter for whether to perform runtime checks on the inputs.
+    #[getter]
+    fn get_do_checks(&self) -> PyResult<bool> {
+        Ok(self.do_checks)
+    }
+
+    /// Setter for whether to perform runtime checks on the inputs.
+    #[setter]
+    fn set_do_checks(&mut self, value: bool) -> PyResult<()> {
+        self.do_checks = value;
+        Ok(())
+    }
+
     /// Run the Solovay-Kitaev algorithm on a :math:`U(2)` input matrix.
     ///
     /// For better accuracy, it is suggested to use :meth:`synthesize`, which provides the
@@ -329,22 +342,22 @@ impl SolovayKitaevSynthesis {
     }
 
     /// Store the basic approximations.
-    fn save_basic_approximations<'py>(&self, filename: &Bound<'py, PyString>) -> PyResult<()> {
+    fn save_basic_approximations(&self, filename: &Bound<'_, PyString>) -> PyResult<()> {
         let filename = filename.extract::<String>()?;
         self.save(filename.as_str())
-            .map_err(|e| PyRuntimeError::new_err(e))
+            .map_err(PyRuntimeError::new_err)
     }
 
     /// Load from basic approximations.
     #[staticmethod]
     #[pyo3(name = "from_basic_approximations")]
-    fn py_from_basic_approximations<'py>(
-        filename: &Bound<'py, PyString>,
+    fn py_from_basic_approximations(
+        filename: &Bound<'_, PyString>,
         do_checks: bool,
     ) -> PyResult<Self> {
         let filename = filename.extract::<String>()?;
         Self::from_basic_approximations(filename.as_str(), do_checks)
-            .map_err(|e| PyRuntimeError::new_err(e))
+            .map_err(PyRuntimeError::new_err)
     }
 
     /// Load from a list of [GateSequence]s.
@@ -364,7 +377,7 @@ impl SolovayKitaevSynthesis {
         self.basic_approximations
             .approximations
             .values()
-            .map(|seq| seq.clone())
+            .cloned()
             .collect()
     }
 }

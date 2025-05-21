@@ -14,24 +14,11 @@
 
 from __future__ import annotations
 
-import qiskit.circuit.library.standard_gates as gates
 from qiskit.circuit import Gate
 from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate.synthesis.discrete_basis import GateSequence
 
-_1q_gates = {
-    "i": gates.IGate(),
-    "x": gates.XGate(),
-    "y": gates.YGate(),
-    "z": gates.ZGate(),
-    "h": gates.HGate(),
-    "t": gates.TGate(),
-    "tdg": gates.TdgGate(),
-    "s": gates.SGate(),
-    "sdg": gates.SdgGate(),
-    "sx": gates.SXGate(),
-    "sxdg": gates.SXdgGate(),
-}
+from .solovay_kitaev import SolovayKitaevDecomposition
 
 
 @deprecate_func(
@@ -58,18 +45,7 @@ def generate_basic_approximations(
     Raises:
         ValueError: If ``basis_gates`` contains an invalid gate identifier.
     """
-    from .solovay_kitaev import SolovayKitaevDecomposition
-
-    basis = []
-    for gate in basis_gates:
-        if isinstance(gate, str):
-            if gate not in _1q_gates:
-                raise ValueError(f"Invalid gate identifier: {gate}")
-            basis.append(gate)
-        else:  # gate is a qiskit.circuit.Gate
-            basis.append(gate.name)
-
-    sk = SolovayKitaevDecomposition(basis_gates=basis, depth=depth)
+    sk = SolovayKitaevDecomposition(basis_gates=basis_gates, depth=depth)
 
     if filename is not None:
         sk.save_basic_approximations(filename)

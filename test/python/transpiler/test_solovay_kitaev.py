@@ -30,7 +30,6 @@ from qiskit.circuit.library import (
     HGate,
     SGate,
     SdgGate,
-    IGate,
     QFT,
     RXGate,
     RYGate,
@@ -172,9 +171,10 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit.rx(0.8, 0)
 
         basic_approx = generate_basic_approximations(["h", "t", "s"], 3)
+        sk = SolovayKitaev(3, basic_approx)
 
         dag = circuit_to_dag(circuit)
-        discretized = dag_to_circuit(self.default_sk.run(dag))
+        discretized = dag_to_circuit(sk.run(dag))
 
         reference = QuantumCircuit(1, global_phase=15 * np.pi / 8)
         reference.h(0)
@@ -236,7 +236,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         Regression test of Qiskit/qiskit#12576.
         """
-        filename = "approximations.npy"
+        filename = "approximations.bin"
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             fullpath = os.path.join(tmp_dir, filename)
@@ -252,6 +252,45 @@ class TestSolovayKitaev(QiskitTestCase):
 
             # Run SK pass using gate_approx_library
             reference = SolovayKitaev(basic_approximations=gate_approx_library)(circuit)
+
+            # Run SK pass using stored basis_approximations
+            discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
+
+        # Check that both flows produce the same result
+        self.assertEqual(discretized, reference)
+
+    def test_load_legacy_format(self):
+        """Test loading basic approximations from a legacy npy format."""
+        filename = "approximations.npy"
+
+        # build a minimal set of basic approximations, which is stored in the format
+        # {gate_labels: (matrix_so3, phase)}
+        approximations = {}
+        gates = {gate.name: gate.to_matrix() for gate in [HGate(), TGate()]}
+        for label1, matrix1 in gates.items():
+            # single gates
+            su2, phase = _convert_u2_to_su2(matrix1)
+            so3 = _convert_su2_to_so3(su2)
+            approximations[label1] = (so3, phase)
+
+            for label2, matrix2 in gates.items():
+                # gate products
+                su2, phase = _convert_u2_to_su2(matrix2.dot(matrix1))
+                so3 = _convert_su2_to_so3(su2)
+                approximations[f"{label1}  {label2}"] = so3
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fullpath = os.path.join(tmp_dir, filename)
+
+            # store in the legacy NPY format
+            np.save(fullpath, approximations)
+
+            # circuit to decompose and reference decomp
+            circuit = QuantumCircuit(1)
+            circuit.rx(0.8, 0)
+
+            # Run SK pass using gate_approx_library
+            reference = SolovayKitaev(basic_approximations=approximations)(circuit)
 
             # Run SK pass using stored basis_approximations
             discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
@@ -399,9 +438,9 @@ class TestSolovayKitaevDecomposition(QiskitTestCase):
         else:
             basis_gates = [HGate(), SGate(), SdgGate()]
 
-        sk = SolovayKitaev(basis_gates, 3)
+        sk = SolovayKitaevDecomposition(basis_gates=basis_gates, depth=3)
 
-        synth = sk.synthesize(RXGate(np.pi / 2), 3)
+        synth = sk.run(RXGate(np.pi / 2), 3)
 
         expected = QuantumCircuit(1, global_phase=7 * np.pi / 4)
         expected.h(0)
@@ -409,6 +448,43 @@ class TestSolovayKitaevDecomposition(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(synth, expected)
+
+
+def _convert_u2_to_su2(u2_matrix: np.ndarray) -> tuple[np.ndarray, float]:
+    """Convert a U(2) matrix to SU(2) by adding a global phase."""
+    z = 1 / np.sqrt(np.linalg.det(u2_matrix))
+    su2_matrix = z * u2_matrix
+    phase = np.arctan2(np.imag(z), np.real(z))
+
+    return su2_matrix, phase
+
+
+def _convert_su2_to_so3(matrix: np.ndarray) -> np.ndarray:
+    """Computes SO(3)-matrix from input SU(2)-matrix.
+
+    Args:
+        matrix: The SU(2)-matrix for which a corresponding SO(3)-matrix needs to be computed.
+
+    Returns:
+        The SO(3)-matrix corresponding to ``matrix``.
+
+    Raises:
+        ValueError: if ``matrix`` is not an SU(2)-matrix.
+    """
+    matrix = matrix.astype(complex)
+    a = np.real(matrix[0][0])
+    b = np.imag(matrix[0][0])
+    c = -np.real(matrix[0][1])
+    d = -np.imag(matrix[0][1])
+    rotation = np.array(
+        [
+            [a**2 - b**2 - c**2 + d**2, 2 * a * b + 2 * c * d, -2 * a * c + 2 * b * d],
+            [-2 * a * b + 2 * c * d, a**2 - b**2 + c**2 - d**2, 2 * a * d + 2 * b * c],
+            [2 * a * c + 2 * b * d, 2 * b * c - 2 * a * d, a**2 + b**2 - c**2 - d**2],
+        ],
+        dtype=float,
+    )
+    return rotation
 
 
 if __name__ == "__main__":

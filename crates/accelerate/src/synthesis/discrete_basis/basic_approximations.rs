@@ -20,7 +20,8 @@ use numpy::{Complex64, PyReadonlyArray2};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use qiskit_circuit::{
     circuit_data::CircuitData,
-    operations::{Operation, Param, StandardGate},
+    circuit_instruction::OperationFromPython,
+    operations::{Operation, OperationRef, Param, StandardGate},
     Qubit,
 };
 use rstar::{Point, RTree};
@@ -84,7 +85,7 @@ impl From<&GateSequence> for SerializableGateSequence {
             .map(|gates| gates.iter().map(|gate| *gate as u8).collect::<Vec<u8>>());
 
         // store the SO(3) matrix as flattened vector
-        let matrix_so3 = value.matrix_so3.iter().map(|el| *el).collect::<Vec<f64>>();
+        let matrix_so3 = value.matrix_so3.iter().copied().collect::<Vec<f64>>();
 
         Self {
             gates,
@@ -105,7 +106,7 @@ impl From<&SerializableGateSequence> for GateSequence {
         });
 
         // map serialized matrix back into Matrix3
-        let matrix_so3 = Matrix3::from_iterator(value.matrix_so3.clone().into_iter());
+        let matrix_so3 = Matrix3::from_iterator(value.matrix_so3.clone());
 
         Self {
             gates,
@@ -152,7 +153,7 @@ impl GateSequence {
             gates: None,
             matrix_so3,
             phase: (phase),
-            matrix_u2: Some(matrix_u2.clone()),
+            matrix_u2: Some(*matrix_u2),
         }
     }
 
@@ -375,10 +376,21 @@ impl GateSequence {
     /// Legacy method for backward compatibility with Python SK.
     #[staticmethod]
     fn from_gates_and_matrix(
-        gates: Vec<StandardGate>,
+        gates: Vec<OperationFromPython>,
         matrix_so3: PyReadonlyArray2<f64>,
         phase: f64,
-    ) -> Self {
+    ) -> PyResult<Self> {
+        // extract the StandardGate from the input
+        let gates = gates
+            .iter()
+            .map(|op| match op.operation.view() {
+                OperationRef::StandardGate(gate) => Ok(gate),
+                _ => Err(PyValueError::new_err(
+                    "Only standard gates are allowed in GateSequence.from_gates_and_matrix",
+                )),
+            })
+            .collect::<PyResult<_>>()?;
+
         let matrix_so3 = Matrix3::new(
             *matrix_so3.get((0, 0)).unwrap(),
             *matrix_so3.get((0, 1)).unwrap(),
@@ -390,12 +402,12 @@ impl GateSequence {
             *matrix_so3.get((2, 1)).unwrap(),
             *matrix_so3.get((2, 2)).unwrap(),
         );
-        Self {
+        Ok(Self {
             gates: Some(gates),
             matrix_so3,
             phase,
             matrix_u2: None,
-        }
+        })
     }
 
     /// Initialize from an SO(3) matrix.

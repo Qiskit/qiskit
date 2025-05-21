@@ -165,7 +165,9 @@ class SolovayKitaev(TransformationPass):
         """
         super().__init__()
         self.recursion_degree = recursion_degree
-        self._sk = SolovayKitaevDecomposition(basic_approximations, basis_gates, depth)
+        self._sk = SolovayKitaevDecomposition(
+            basic_approximations, basis_gates=basis_gates, depth=depth
+        )
 
     @trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -304,7 +306,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         """Run the SolovayKitaevSynthesis synthesis plugin on the given unitary."""
 
         config = options.get("config") or {}
-        basis_gates = options.get("basis_gates", ["h", "t", "tdg"])
+        basis_gates = options.get("basis_gates", None)
         depth = config.get("depth", 16)
         basic_approximations = config.get("basic_approximations", None)
         recursion_degree = config.get("recursion_degree", 5)
@@ -318,7 +320,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
             SolovayKitaevSynthesis._basis_gates = basis_gates
             SolovayKitaevSynthesis._depth = depth
             SolovayKitaevSynthesis._sk = SolovayKitaevDecomposition(
-                basic_approximations, basis_gates, depth
+                basic_approximations, basis_gates=basis_gates, depth=depth
             )
         approximate_circuit = SolovayKitaevSynthesis._sk.run(unitary, recursion_degree)
         return circuit_to_dag(approximate_circuit)
