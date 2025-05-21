@@ -41,6 +41,7 @@ use thiserror::Error;
 use qiskit_circuit::{
     imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED},
     slice::{PySequenceIndex, SequenceIndex},
+    util::{c64, C_M_ONE, C_ONE},
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
@@ -285,31 +286,31 @@ pub enum ArithmeticError {
 /// The struct iterates over two sorted lists, and returns values from the left iterator, the right
 /// iterator, or both simultaneously, depending on some "ordering" key attached to each.  This
 /// `enum` is to pass on the information on which iterator is being returned from.
-enum Paired<T> {
-    Left(T),
-    Right(T),
-    Both(T, T),
+enum Paired<T1, T2> {
+    Left(T1),
+    Right(T2),
+    Both(T1, T2),
 }
 
 /// An iterator combinator that zip-merges two sorted iterators.
 ///
 /// This is created by [pairwise_ordered]; see that method for the description.
-struct PairwiseOrdered<C, T, I1, I2>
+struct PairwiseOrdered<C, T1, T2, I1, I2>
 where
     C: Ord,
-    I1: Iterator<Item = (C, T)>,
-    I2: Iterator<Item = (C, T)>,
+    I1: Iterator<Item = (C, T1)>,
+    I2: Iterator<Item = (C, T2)>,
 {
     left: ::std::iter::Peekable<I1>,
     right: ::std::iter::Peekable<I2>,
 }
-impl<C, T, I1, I2> Iterator for PairwiseOrdered<C, T, I1, I2>
+impl<C, T1, T2, I1, I2> Iterator for PairwiseOrdered<C, T1, T2, I1, I2>
 where
     C: Ord,
-    I1: Iterator<Item = (C, T)>,
-    I2: Iterator<Item = (C, T)>,
+    I1: Iterator<Item = (C, T1)>,
+    I2: Iterator<Item = (C, T2)>,
 {
-    type Item = (C, Paired<T>);
+    type Item = (C, Paired<T1, T2>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let order = match (self.left.peek(), self.right.peek()) {
@@ -346,14 +347,14 @@ where
 /// index, and an associated value.  Both input iterators must be sorted in terms of the index.  The
 /// output iteration is over 2-tuples, also in sorted order, of the seen ordered index values, and a
 /// [Paired] object indicating which iterator (or both) the values were drawn from.
-fn pairwise_ordered<C, T, I1, I2>(
+fn pairwise_ordered<C, T1, T2, I1, I2>(
     left: I1,
     right: I2,
-) -> PairwiseOrdered<C, T, <I1 as IntoIterator>::IntoIter, <I2 as IntoIterator>::IntoIter>
+) -> PairwiseOrdered<C, T1, T2, <I1 as IntoIterator>::IntoIter, <I2 as IntoIterator>::IntoIter>
 where
     C: Ord,
-    I1: IntoIterator<Item = (C, T)>,
-    I2: IntoIterator<Item = (C, T)>,
+    I1: IntoIterator<Item = (C, T1)>,
+    I2: IntoIterator<Item = (C, T2)>,
 {
     PairwiseOrdered {
         left: left.into_iter().peekable(),
@@ -631,6 +632,244 @@ impl SparseObservable {
             out.boundaries.push(out.indices.len());
         }
         out
+    }
+
+    /// Greedily combine the terms in the observable.
+    ///
+    /// For example, a term ``1.5 * "X+IZ"`` can be combined with the term ``-1.5 * "X+ZZ"``,
+    /// producing the term ``3.0 * "X+1Z"``.
+    ///
+    /// Keeps the original ordering of terms as much as possible.
+    pub fn compress(&self, tol: f64) -> SparseObservable {
+        // convenience constants
+        const BIT_I: Option<BitTerm> = None;
+        const BIT_X: Option<BitTerm> = Some(BitTerm::X);
+        const BIT_Y: Option<BitTerm> = Some(BitTerm::Y);
+        const BIT_Z: Option<BitTerm> = Some(BitTerm::Z);
+        const BIT_0: Option<BitTerm> = Some(BitTerm::Zero);
+        const BIT_1: Option<BitTerm> = Some(BitTerm::One);
+        const BIT_R: Option<BitTerm> = Some(BitTerm::Right);
+        const BIT_L: Option<BitTerm> = Some(BitTerm::Left);
+        const BIT_P: Option<BitTerm> = Some(BitTerm::Plus);
+        const BIT_M: Option<BitTerm> = Some(BitTerm::Minus);
+
+        const C_TWO: Complex64 = c64(2.0, 0.0);
+        const C_M_TWO: Complex64 = c64(-2.0, 0.0);
+
+        /// Creates an iterator over the differences of two (index, BitTerm)-lists.
+        fn differences<'a>(
+            term1_indices: &'a [u32],
+            term1_bits: &'a [BitTerm],
+            term2_indices: &'a [u32],
+            term2_bits: &'a [BitTerm],
+        ) -> impl Iterator<Item = (u32, Option<BitTerm>, Option<BitTerm>)> + 'a {
+            // the difference is represented as a triple (index, complete-bit-term, complete-bit-term),
+            // with complete-bit-term also supporting I via None (and other bits via Some)
+            let term1_iter = term1_indices.iter().zip(term1_bits.iter());
+            let term2_iter = term2_indices.iter().zip(term2_bits.iter());
+
+            pairwise_ordered(term1_iter, term2_iter)
+                .filter(|(_index, values)| match values {
+                    Paired::Left(_t) => true,
+                    Paired::Right(_t) => true,
+                    Paired::Both(t1, t2) => t1 != t2,
+                })
+                .map(|(index, values)| match values {
+                    Paired::Left(t) => (*index, Some(*t), None),
+                    Paired::Right(t) => (*index, None, Some(*t)),
+                    Paired::Both(t1, t2) => (*index, Some(*t1), Some(*t2)),
+                })
+        }
+
+        /// The following reductions are currently supported:
+        /// * 'I' + 'X' = 2 * '+'
+        /// * 'I' - 'X' = 2 * '-'
+        /// * 'I' + 'Z' = 2 * '0'
+        /// * 'I' - 'Z' = 2 * '1'
+        /// * 'I' + 'Y' = 2 * 'r'
+        /// * 'I' - 'Y' = 2 * 'l'
+        ///
+        /// * '+' + '-' = 1 * 'I'
+        /// * '+' - '-' = 1 * 'X'
+        /// * '0' + '1' = 1 * 'I'
+        /// * '0' - '1' = 1 * 'Z'
+        /// * 'r' + 'l' = 1 * 'I'
+        /// * 'r' - 'l' = 1 * 'Y'
+        fn apply_reduction(
+            bit1: Option<BitTerm>,
+            bit2: Option<BitTerm>,
+            factor: Complex64,
+        ) -> Option<(Option<BitTerm>, Complex64)> {
+            match (bit1, bit2, factor) {
+                (BIT_I, BIT_X, C_ONE) => Some((BIT_P, C_TWO)),
+                (BIT_X, BIT_I, C_ONE) => Some((BIT_P, C_TWO)),
+
+                (BIT_I, BIT_X, C_M_ONE) => Some((BIT_M, C_TWO)),
+                (BIT_X, BIT_I, C_M_ONE) => Some((BIT_M, C_M_TWO)),
+
+                (BIT_I, BIT_Z, C_ONE) => Some((BIT_0, C_TWO)),
+                (BIT_Z, BIT_I, C_ONE) => Some((BIT_0, C_TWO)),
+
+                (BIT_I, BIT_Z, C_M_ONE) => Some((BIT_1, C_TWO)),
+                (BIT_Z, BIT_I, C_M_ONE) => Some((BIT_1, C_M_TWO)),
+
+                (BIT_I, BIT_Y, C_ONE) => Some((BIT_R, C_TWO)),
+                (BIT_Y, BIT_I, C_ONE) => Some((BIT_R, C_M_TWO)),
+
+                (BIT_I, BIT_Y, C_M_ONE) => Some((BIT_L, C_TWO)),
+                (BIT_Y, BIT_I, C_M_ONE) => Some((BIT_L, C_M_TWO)),
+
+                (BIT_P, BIT_M, C_ONE) => Some((BIT_I, C_ONE)),
+                (BIT_M, BIT_P, C_ONE) => Some((BIT_I, C_ONE)),
+
+                (BIT_P, BIT_M, C_M_ONE) => Some((BIT_X, C_ONE)),
+                (BIT_M, BIT_P, C_M_ONE) => Some((BIT_X, C_M_ONE)),
+
+                (BIT_0, BIT_1, C_ONE) => Some((BIT_I, C_ONE)),
+                (BIT_1, BIT_Z, C_ONE) => Some((BIT_I, C_ONE)),
+
+                (BIT_0, BIT_1, C_M_ONE) => Some((BIT_Z, C_ONE)),
+                (BIT_1, BIT_Z, C_M_ONE) => Some((BIT_Z, C_M_ONE)),
+
+                (BIT_R, BIT_L, C_ONE) => Some((BIT_I, C_ONE)),
+                (BIT_L, BIT_R, C_ONE) => Some((BIT_I, C_ONE)),
+
+                (BIT_R, BIT_L, C_M_ONE) => Some((BIT_Y, C_ONE)),
+                (BIT_L, BIT_R, C_M_ONE) => Some((BIT_Y, C_M_ONE)),
+
+                _ => None,
+            }
+        }
+
+        /// Given two (index, BitTerm)-lists, combine them, using the values from the second list
+        /// in case of a common index.
+        fn apply_changes(
+            term_indices: &[u32],
+            term_bits: &[BitTerm],
+            change_indices: &[u32],
+            change_bits: &[Option<BitTerm>],
+        ) -> (Vec<u32>, Vec<BitTerm>) {
+            let term1_iter = term_indices.iter().zip(term_bits.iter());
+            let term2_iter = change_indices.iter().zip(change_bits.iter());
+            pairwise_ordered(term1_iter, term2_iter)
+                .filter(|(_index, values)| match values {
+                    Paired::Left(_t) => true,
+                    Paired::Right(t) => t.is_some(),
+                    Paired::Both(_t1, t2) => t2.is_some(),
+                })
+                .map(|(index, values)| match values {
+                    Paired::Left(t) => (index, *t),
+                    Paired::Right(t) => (index, t.unwrap()),
+                    Paired::Both(_t1, t2) => (index, t2.unwrap()),
+                })
+                .unzip()
+        }
+
+        /// Attempt to combine two sparse terms, returning the combined term when successful.
+        fn try_combine_terms(
+            term1: &SparseTermView,
+            term2: &SparseTermView,
+            tol: f64,
+        ) -> Option<SparseTerm> {
+            // compute factor = term2.coeff / term1.coeff
+            let factor: Complex64 = if (term1.coeff - term2.coeff).norm_sqr() <= tol * tol {
+                C_ONE
+            } else if (term1.coeff + term2.coeff).norm_sqr() <= tol * tol {
+                C_M_ONE
+            } else {
+                return None;
+            };
+
+            // fast-exit conditions
+            if ![C_ONE, C_M_ONE].contains(&factor) {
+                return None;
+            }
+            if term1.bit_terms.len().abs_diff(term2.bit_terms.len()) > 1 {
+                return None;
+            }
+
+            // we should have exactly one difference
+            let mut iter = differences(
+                term1.indices,
+                term1.bit_terms,
+                term2.indices,
+                term2.bit_terms,
+            );
+            match iter.next() {
+                Some((index, bit1, bit2)) => {
+                    match iter.next() {
+                        Some(_) => None,
+                        None => {
+                            // exactly one difference
+                            apply_reduction(bit1, bit2, factor).map(|(new_bit, factor)| {
+                                let (new_indices, new_bits) = apply_changes(
+                                    term1.indices,
+                                    term1.bit_terms,
+                                    &[index],
+                                    &[new_bit],
+                                );
+                                SparseTerm::new(
+                                    term1.num_qubits,
+                                    term1.coeff * factor,
+                                    new_bits.into(),
+                                    new_indices.into(),
+                                )
+                                .unwrap()
+                            })
+                        }
+                    }
+                }
+                None => None,
+            }
+        }
+
+        /// Compresses a sparse observable by greedily combining terms.
+        fn do_one_iteration(obs: &SparseObservable, tol: f64) -> SparseObservable {
+            let terms: Vec<SparseTermView> = obs.iter().collect();
+            let mut removed = vec![false; terms.len()]; // keeps removed elements
+
+            let mut out = SparseObservable::zero(obs.num_qubits);
+
+            for i in 0..terms.len() {
+                if removed[i] || (terms[i].coeff.norm_sqr() <= tol * tol) {
+                    continue;
+                }
+
+                for j in i + 1..terms.len() {
+                    if removed[j] || (terms[j].coeff.norm_sqr() <= tol * tol) {
+                        continue;
+                    }
+
+                    // try to combine terms[i] and terms[j]
+                    if let Some(combined) = try_combine_terms(&terms[i], &terms[j], tol) {
+                        // succeeded to combine
+                        removed[i] = true;
+                        removed[j] = true;
+                        out.add_term(combined.view())
+                            .expect("qubit counts were checked during initialisation");
+                        break;
+                    }
+                }
+
+                if !removed[i] {
+                    // did not combine term[i] with anything
+                    out.add_term(terms[i])
+                        .expect("qubit counts were checked during initialisation");
+                }
+            }
+
+            out
+        }
+
+        // the main code
+        let mut num_terms = self.num_terms();
+        let mut new_obs = do_one_iteration(self, tol);
+        while new_obs.num_terms() < num_terms {
+            num_terms = new_obs.num_terms();
+            new_obs = do_one_iteration(&new_obs, tol);
+        }
+
+        new_obs
     }
 
     /// Tensor product of `self` with `other`.
@@ -3212,6 +3451,38 @@ impl PySparseObservable {
     fn simplify(&self, tol: f64) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let simplified = inner.canonicalize(tol);
+        Ok(simplified.into())
+    }
+
+    /// Greedily combine the terms in the observable.
+    ///
+    /// The terms are iteratively compressed until no more progress can be made. The time complexity of
+    /// each iteration is :math:`O(terms^2 * qubits)` and the total time complexity is
+    /// :math:`O(terms^3 * qubits)`, however in practice the worst-time complexity is not observed.
+    ///
+    /// Keeps the original ordering of terms as much as possible.
+    ///
+    /// Args:
+    ///     tol (float): the coefficients that differ no more than the given tolerance are considered
+    ///         equal.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> obs = SparseObservable.from_list([("X+IZ", 1.5), ("X+ZZ", -1.5)])
+    ///         >>> compressed = obs.compress()
+    ///         >>> assert compressed == SparseObservable.from_list([("X+1Z", 3.0)])
+    ///
+    ///         >>> obs = SparseObservable.from_list([("X+IZ", 1.5), ("X-IZ", -1.5)])
+    ///         >>> compressed = obs.compress()
+    ///         >>> assert compressed == SparseObservable.from_list([("XXIZ", 1.5)])
+    #[pyo3(
+        signature = (/, tol=1e-8),
+    )]
+    fn compress(&self, tol: f64) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let simplified = inner.compress(tol);
         Ok(simplified.into())
     }
 

@@ -1,0 +1,41 @@
+---
+features:
+  - |
+    Added a :meth:`~.SparseObservable.compress` method to the :class:`.SparseObservable`
+    class that greedily combines the terms in the observable.
+
+    For example::
+
+        from qiskit.quantum_info import SparseObservable
+
+        obs = SparseObservable.from_list(
+            [("IIZ", 1.0), ("IXZ", 1.0), ("XIZ", 1.0), ("XXZ", 1.0)]
+        )
+        compressed = obs.compress()
+        assert compressed == SparseObservable.from_list([("++Z", 4.0)])
+
+        obs = SparseObservable.from_list([("X+IZ", 1.5), ("X-IZ", -1.5)])
+        compressed = obs.compress()
+        assert compressed == SparseObservable.from_list([("XXIZ", 1.5)])
+
+    In certain cases this method may reduce the number of gates in the synthesized
+    Pauli evolution circuit. For example::
+
+      from qiskit.circuit.library import PauliEvolutionGate
+      from qiskit.quantum_info import SparseObservable
+      from qiskit.compiler import transpile
+
+      obs = SparseObservable.from_list(
+          [("IIZ", 1.0), ("IXZ", 1.0), ("XIZ", 1.0), ("XXZ", 1.0)]
+      )
+      obs = obs.compress()
+      evo = PauliEvolutionGate(obs, time=1)
+      transpiled = transpile(evo.definition, basis_gates=["cx", "u"])
+
+    In the above example, the transpiled circuit contains 4 CX-gates (and the
+    transpiled circuit would have 8 CX-gates if the ``compress`` method was not
+    called).
+
+    However, in certain cases the ``compress`` method may also make the synthesized
+    circuit worse, and might be potentially expensive, so it is not applied by
+    default.
