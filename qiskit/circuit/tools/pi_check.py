@@ -48,15 +48,13 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
-        values = inpt._symbol_expr.values()
+        values = inpt.values()
         for val in values:
             pi = pi_check(abs(float(val)), eps=eps, output=output, ndigits=ndigits)
             try:
                 _ = float(pi)
             except (ValueError, TypeError):
-                import qiskit._accelerate.circuit
-
-                sym_str = str(qiskit._accelerate.circuit.ParameterExpression.Value(abs(val)))
+                sym_str = str(ParameterExpression.Value(abs(val)))
                 param_str = param_str.replace(sym_str, pi)
         return param_str
     elif isinstance(inpt, str):

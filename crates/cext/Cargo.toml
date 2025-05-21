@@ -21,6 +21,7 @@ num-complex.workspace = true
 qiskit-accelerate.workspace = true
 qiskit-circuit.workspace = true
 pyo3 = { workspace = true, optional = true }
+hashbrown.workspace = true
 
 [build-dependencies]
 cbindgen = "0.29"
@@ -29,3 +30,4 @@ cbindgen = "0.29"
 default = ["cbinding"]
 python_binding = ["dep:pyo3"]
 cbinding = []
+

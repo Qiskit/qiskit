@@ -57,3 +57,4 @@ prefix_with_name = true
 "OpCount" = "QkOpCount"
 "CInstruction" = "QkCircuitInstruction"
 "ExitCode" = "QkExitCode"
+"ParameterExpression" = "QkParameterExpression"
