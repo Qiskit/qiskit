@@ -1958,68 +1958,6 @@ impl CircuitData {
             _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
         }
     }
-
-    pub fn add_qreg_ref(&mut self, register: &QuantumRegister, strict: bool) -> PyResult<()> {
-        self.qregs.add_register(register.clone(), strict)?;
-
-        for (index, bit) in register.bits().enumerate() {
-            if let Some(entry) = self.qubit_indices.get_mut(&bit) {
-                entry.add_register(register.clone(), index);
-            } else if let Some(bit_idx) = self.qubits.find(&bit) {
-                self.qubit_indices.insert(
-                    bit,
-                    BitLocations::new(bit_idx.0, [(register.clone(), index)]),
-                );
-            } else {
-                let bit_idx = self.qubits.len();
-                self.add_qubit(bit.clone(), true)?;
-                self.qubit_indices.insert(
-                    bit,
-                    BitLocations::new(
-                        bit_idx.try_into().map_err(|_| {
-                            CircuitError::new_err(format!(
-                                "Qubit at index {} exceeds circuit capacity.",
-                                bit_idx
-                            ))
-                        })?,
-                        [(register.clone(), index)],
-                    ),
-                );
-            }
-        }
-        Ok(())
-    }
-
-    pub fn add_creg_ref(&mut self, register: &ClassicalRegister, strict: bool) -> PyResult<()> {
-        self.cregs.add_register(register.clone(), strict)?;
-
-        for (index, bit) in register.bits().enumerate() {
-            if let Some(entry) = self.clbit_indices.get_mut(&bit) {
-                entry.add_register(register.clone(), index);
-            } else if let Some(bit_idx) = self.clbits.find(&bit) {
-                self.clbit_indices.insert(
-                    bit,
-                    BitLocations::new(bit_idx.0, [(register.clone(), index)]),
-                );
-            } else {
-                let bit_idx = self.clbits.len();
-                self.add_clbit(bit.clone(), true)?;
-                self.clbit_indices.insert(
-                    bit,
-                    BitLocations::new(
-                        bit_idx.try_into().map_err(|_| {
-                            CircuitError::new_err(format!(
-                                "Clbit at index {} exceeds circuit capacity.",
-                                bit_idx
-                            ))
-                        })?,
-                        [(register.clone(), index)],
-                    ),
-                );
-            }
-        }
-        Ok(())
-    }
 }
 
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in

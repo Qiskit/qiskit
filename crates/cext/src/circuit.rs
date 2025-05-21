@@ -228,7 +228,7 @@ pub unsafe extern "C" fn qk_circuit_add_quantum_register(
     let qreg = unsafe { const_ptr_as_ref(reg) };
 
     circuit
-        .add_qreg_ref(qreg, true)
+        .add_qreg(qreg.clone(), true)
         .expect("Invalid register unable to be added to circuit");
 }
 
@@ -261,7 +261,7 @@ pub unsafe extern "C" fn qk_circuit_add_classical_register(
     let creg = unsafe { const_ptr_as_ref(reg) };
 
     circuit
-        .add_creg_ref(creg, true)
+        .add_creg(creg.clone(), true)
         .expect("Invalid register unable to be added to circuit");
 }
 
