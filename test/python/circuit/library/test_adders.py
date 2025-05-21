@@ -165,8 +165,8 @@ class TestAdder(QiskitTestCase):
                 else:
                     if adder == "rv":  # no adder circuit for this
                         continue
-                    with self.assertWarns(DeprecationWarning):            
-                      circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
+                    with self.assertWarns(DeprecationWarning):
+                        circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
 
         self.assertAdditionIsCorrect(num_state_qubits, circuit, True, kind)
 
