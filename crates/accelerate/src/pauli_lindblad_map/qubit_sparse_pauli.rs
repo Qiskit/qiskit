@@ -2014,7 +2014,7 @@ impl PyQubitSparsePauliList {
         Ok(out.unbind())
     }
 
-    /// Apply a transpiler layout to this Pauli Lindblad map.
+    /// Apply a transpiler layout to this qubit sparse Pauli list.
     ///
     /// This enables remapping of qubit indices, e.g. if the map is defined in terms of virtual
     /// qubit labels.
