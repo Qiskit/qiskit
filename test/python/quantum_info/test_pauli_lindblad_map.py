@@ -14,11 +14,16 @@
 
 import copy
 import pickle
+import itertools
+import random
 
 import ddt
 import numpy as np
 
+from qiskit import transpile
+from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
 from qiskit.quantum_info import QubitSparsePauli, QubitSparsePauliList, PauliLindbladMap
+from qiskit.transpiler import Target
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -489,6 +494,162 @@ class TestPauliLindbladMap(QiskitTestCase):
         ]
         self.assertEqual(list(pauli_lindblad_map), expected)
 
+    def test_apply_layout_list(self):
+        self.assertEqual(
+            PauliLindbladMap.identity(5).apply_layout([4, 3, 2, 1, 0]), PauliLindbladMap.identity(5)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(3).apply_layout([0, 2, 1], 8), PauliLindbladMap.identity(8)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(2).apply_layout([1, 0]), PauliLindbladMap.identity(2)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(3).apply_layout([100, 10_000, 3], 100_000_000),
+            PauliLindbladMap.identity(100_000_000),
+        )
+
+        terms = [
+            ("ZYX", (4, 2, 1), 1),
+            ("", (), -0.5),
+            ("XXYYZZ", (10, 8, 6, 4, 2, 0), 2.0),
+        ]
+
+        def map_indices(terms, layout):
+            return [
+                (terms, tuple(layout[bit] for bit in bits), coeff) for terms, bits, coeff in terms
+            ]
+
+        identity = list(range(12))
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(identity),
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12),
+        )
+        # We've already tested elsewhere that `PauliLindbladMap.from_sparse_list` produces termwise
+        # sorted indices, so these tests also ensure `apply_layout` is maintaining that invariant.
+        backwards = list(range(12))[::-1]
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(backwards),
+            PauliLindbladMap.from_sparse_list(map_indices(terms, backwards), num_qubits=12),
+        )
+        shuffled = [4, 7, 1, 10, 0, 11, 3, 2, 8, 5, 6, 9]
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled),
+            PauliLindbladMap.from_sparse_list(map_indices(terms, shuffled), num_qubits=12),
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled, 100),
+            PauliLindbladMap.from_sparse_list(map_indices(terms, shuffled), num_qubits=100),
+        )
+        expanded = [78, 69, 82, 68, 32, 97, 108, 101, 114, 116, 33]
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=11).apply_layout(expanded, 120),
+            PauliLindbladMap.from_sparse_list(map_indices(terms, expanded), num_qubits=120),
+        )
+
+    def test_apply_layout_transpiled(self):
+        base = PauliLindbladMap.from_sparse_list(
+            [
+                ("ZYX", (4, 2, 1), 1),
+                ("", (), -0.5),
+                ("XXY", (3, 2, 0), 2.0),
+            ],
+            num_qubits=5,
+        )
+
+        qc = QuantumCircuit(5)
+        initial_list = [3, 4, 0, 2, 1]
+        no_routing = transpile(
+            qc, target=lnn_target(5), initial_layout=initial_list, seed_transpiler=2024_10_25_0
+        ).layout
+        # It's easiest here to test against the `list` form, which we verify separately and
+        # explicitly.
+        self.assertEqual(base.apply_layout(no_routing), base.apply_layout(initial_list))
+
+        expanded = transpile(
+            qc, target=lnn_target(100), initial_layout=initial_list, seed_transpiler=2024_10_25_1
+        ).layout
+        self.assertEqual(
+            base.apply_layout(expanded), base.apply_layout(initial_list, num_qubits=100)
+        )
+
+        qc = QuantumCircuit(5)
+        qargs = list(itertools.permutations(range(5), 2))
+        random.Random(2024_10_25_2).shuffle(qargs)
+        for pair in qargs:
+            qc.cx(*pair)
+
+        routed = transpile(qc, target=lnn_target(5), seed_transpiler=2024_10_25_3).layout
+        self.assertEqual(
+            base.apply_layout(routed),
+            base.apply_layout(routed.final_index_layout(filter_ancillas=True)),
+        )
+
+        routed_expanded = transpile(qc, target=lnn_target(20), seed_transpiler=2024_10_25_3).layout
+        self.assertEqual(
+            base.apply_layout(routed_expanded),
+            base.apply_layout(
+                routed_expanded.final_index_layout(filter_ancillas=True), num_qubits=20
+            ),
+        )
+
+    def test_apply_layout_none(self):
+        self.assertEqual(PauliLindbladMap.identity(0).apply_layout(None), PauliLindbladMap.identity(0))
+        self.assertEqual(PauliLindbladMap.identity(0).apply_layout(None, 3), PauliLindbladMap.identity(3))
+        self.assertEqual(PauliLindbladMap.identity(5).apply_layout(None), PauliLindbladMap.identity(5))
+        self.assertEqual(PauliLindbladMap.identity(3).apply_layout(None, 8), PauliLindbladMap.identity(8))
+        self.assertEqual(
+            PauliLindbladMap.identity(0).apply_layout(None), PauliLindbladMap.identity(0)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(0).apply_layout(None, 8), PauliLindbladMap.identity(8)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(2).apply_layout(None), PauliLindbladMap.identity(2)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(3).apply_layout(None, 100_000_000),
+            PauliLindbladMap.identity(100_000_000),
+        )
+
+        terms = [
+            ("ZYX", (2, 1, 0), 1),
+            ("", (), -0.5),
+            ("XXYYZZ", (10, 8, 6, 4, 2, 0), 2.0),
+        ]
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(None),
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12),
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(
+                None, num_qubits=200
+            ),
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=200),
+        )
+
+    def test_apply_layout_failures(self):
+        obs = PauliLindbladMap.from_list([("IIYI", 2.0), ("IIIX", -1)])
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            obs.apply_layout([0, 0, 1, 2])
+        with self.assertRaisesRegex(ValueError, "does not account for all contained qubits"):
+            obs.apply_layout([0, 1])
+        with self.assertRaisesRegex(ValueError, "less than the number of qubits"):
+            obs.apply_layout([0, 2, 4, 6])
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout([0, 1], num_qubits=2)
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout(None, num_qubits=2)
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+        layout = transpile(qc, target=lnn_target(3), seed_transpiler=2024_10_25).layout
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout(layout, num_qubits=2)
+
+
     def test_indexing(self):
         pauli_lindblad_map = PauliLindbladMap.from_sparse_list(
             [
@@ -867,3 +1028,21 @@ def canonicalize_sparse_list(sparse_list):
     # Python's built-in sort
     canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
     return sorted(canonicalized_terms)
+
+
+def lnn_target(num_qubits):
+    """Create a simple `Target` object with an arbitrary basis-gate set, and open-path
+    connectivity."""
+    out = Target()
+    out.add_instruction(library.RZGate(Parameter("a")), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(library.SXGate(), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(Measure(), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(
+        library.CXGate(),
+        {
+            pair: None
+            for lower in range(num_qubits - 1)
+            for pair in [(lower, lower + 1), (lower + 1, lower)]
+        },
+    )
+    return out
