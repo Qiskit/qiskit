@@ -609,8 +609,8 @@ int test_circuit_compose(void) {
     // check composed circuit
     {
         int i, j, nops;
-        char* out_ops[4] = {"h", "x", "rz", "cx"};
-        uint32_t out_qubits[4][2] = {{0,0}, {1,0}, {3,0}, {3,2}};
+        char *out_ops[4] = {"h", "x", "rz", "cx"};
+        uint32_t out_qubits[4][2] = {{0, 0}, {1, 0}, {3, 0}, {3, 2}};
         nops = qk_circuit_num_instructions(composed);
         for (i = 0; i < nops; i++) {
             QkCircuitInstruction op = qk_circuit_get_instruction(composed, i);
@@ -636,8 +636,8 @@ int test_circuit_compose(void) {
     // check composed circuit
     {
         int i, j, nops;
-        char* out_ops[4] = {"rz", "cx", "h", "x"};
-        uint32_t out_qubits[4][2] = {{3,0}, {3,1}, {0,0}, {1,0}};
+        char *out_ops[4] = {"rz", "cx", "h", "x"};
+        uint32_t out_qubits[4][2] = {{3, 0}, {3, 1}, {0, 0}, {1, 0}};
         nops = qk_circuit_num_instructions(composed);
         for (i = 0; i < nops; i++) {
             QkCircuitInstruction op = qk_circuit_get_instruction(composed, i);
