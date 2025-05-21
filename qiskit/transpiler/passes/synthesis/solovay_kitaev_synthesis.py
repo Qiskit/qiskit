@@ -146,17 +146,10 @@ class SolovayKitaev(TransformationPass):
                 A larger recursion depth increases the accuracy and length of the
                 decomposition.
             basic_approximations: The basic approximations for the finding the best discrete
-                decomposition at the root of the recursion. If a string, it specifies the ``.npy``
+                decomposition at the root of the recursion. If a string, it specifies the
                 file to load the approximations from. If a dictionary, it contains
                 ``{label: SO(3)-matrix}`` pairs. If ``None``, a default based on the :math:`H`,
                  :math:`T` and :math:`T^\dagger` gates up to depth 16 is generated.
-
-                 .. note::
-
-                    For better performance, it is suggested to specify the ``basis_gates``
-                    and ``depth``, which allows Qiskit to use a fast and high-accuracy matrix
-                    representation implemented in Rust.
-
             basis_gates: The basis gates used to build the net of basic approximations.
                 Defaults to ``["h", "t", "tdg"]``. This argument is incompatible with
                 ``basic_approximations``.
