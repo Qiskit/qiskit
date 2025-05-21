@@ -19,7 +19,10 @@ use pyo3::{
     types::{PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::btree_map,
+    sync::{Arc, RwLock},
+};
 
 use rand::prelude::*;
 use rand_distr::Bernoulli;
@@ -439,6 +442,49 @@ impl PauliLindbladMap {
         }
 
         Ok((random_signs, random_paulis))
+    }
+
+    /// Reduce the map to its canonical form.
+    ///
+    /// This sums like terms, removing them if the final rate's absolute value is less than or equal
+    /// to the tolerance.  The terms are reordered to some canonical ordering.
+    ///
+    /// This function is idempotent.
+    pub fn simplify(&self, tol: f64) -> PauliLindbladMap {
+        let mut terms = btree_map::BTreeMap::new();
+        for term in self.iter() {
+            terms
+                .entry((
+                    term.qubit_sparse_pauli.indices,
+                    term.qubit_sparse_pauli.paulis,
+                ))
+                .and_modify(|r| *r += term.rate)
+                .or_insert(term.rate);
+        }
+
+        let mut new_rates = Vec::with_capacity(self.num_terms());
+        let mut new_paulis = Vec::with_capacity(self.num_terms());
+        let mut new_indices = Vec::with_capacity(self.num_terms());
+        let mut new_boundaries = Vec::with_capacity(self.num_terms());
+        new_boundaries.push(0);
+        for ((indices, paulis), r) in terms {
+            // Don't add terms with zero coefficient or are pure identity
+            if r.abs() <= tol || paulis.is_empty() {
+                continue;
+            }
+            new_rates.push(r);
+            new_paulis.extend_from_slice(paulis);
+            new_indices.extend_from_slice(indices);
+            new_boundaries.push(new_indices.len());
+        }
+        Self::new_from_raw_parts(
+            self.num_qubits(),
+            new_rates,
+            new_paulis,
+            new_indices,
+            new_boundaries,
+        )
+        .unwrap()
     }
 }
 
@@ -1446,6 +1492,55 @@ impl PyPauliLindbladMap {
         let paulis = paulis.into_pyobject(py).unwrap();
 
         (signs, paulis).into_pyobject(py)
+    }
+
+    /// Sum any like terms in the generator, removing them if the resulting rate has an absolute
+    /// value within tolerance of zero. This also removes terms whose Pauli operator is proportional
+    /// to the identity, as the correponding generator is actually the zero map.
+    ///
+    /// As a side effect, this sorts the generators into a fixed canonical order.
+    ///
+    /// .. note::
+    ///
+    ///     When using this for equality comparisons, note that floating-point rounding and the
+    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
+    ///     compare the canonicalized difference of the two observables to zero.
+    ///
+    /// Args:
+    ///     tol (float): after summing like terms, any rates whose absolute value is less
+    ///         than the given absolute tolerance will be suppressed from the output.
+    ///
+    /// Examples:
+    ///
+    ///     Using :meth:`simplify` to compare two operators that represent the same map, but
+    ///     would compare unequal due to the structural tests by default::
+    ///
+    ///         >>> base = PauliLindbladMap.from_sparse_list([
+    ///         ...     ("XZ", (2, 1), 1e-10),  # value too small
+    ///         ...     ("XX", (3, 1), 2),
+    ///         ...     ("XX", (3, 1), 2),      # can be combined with the above
+    ///         ...     ("ZZ", (3, 1), 0.5),    # out of order compared to `expected`
+    ///         ... ], num_qubits=5)
+    ///         >>> expected = PauliLindbladMap.from_list([("IZIZI", 0.5), ("IXIXI", 4)])
+    ///         >>> assert base != expected  # non-canonical comparison
+    ///         >>> assert base.simplify() == expected.simplify()
+    ///
+    ///     Note that in the above example, the coefficients are chosen such that all floating-point
+    ///     calculations are exact, and there are no intermediate rounding or associativity
+    ///     concerns.  If this cannot be guaranteed to be the case, the safer form is::
+    ///
+    ///         >>> left = PauliLindbladMap.from_list([("XYZ", 1.0/3.0)] * 3)   # sums to 1.0
+    ///         >>> right = PauliLindbladMap.from_list([("XYZ", 1.0/7.0)] * 7)  # doesn't sum to 1.0
+    ///         >>> assert left.simplify() != right.simplify()
+    ///         >>> assert left.compose(right.inverse()).simplify() == PauliLindbladMap.identity(left.num_qubits)
+    #[pyo3(
+        signature = (/, tol=1e-8),
+    )]
+    fn simplify(&self, tol: f64) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let simplified = inner.simplify(tol);
+        Ok(simplified.into())
     }
 
     fn __len__(&self) -> PyResult<usize> {
