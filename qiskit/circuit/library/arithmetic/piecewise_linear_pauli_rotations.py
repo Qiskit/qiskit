@@ -246,7 +246,8 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         for i, point in enumerate(self.breakpoints):
             if i == 0 and self.contains_zero_breakpoint:
                 # deprecation warning is already triggered upon init, filter the rest
-                with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                     # apply rotation
                     lin_r = LinearPauliRotations(
                         num_state_qubits=self.num_state_qubits,
@@ -260,7 +261,8 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 qr_compare = [qr_ancilla[0]]
                 qr_helper = qr_ancilla[1:]
 
-                with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                     # apply Comparator
                     comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
                 qr = qr_state[:] + qr_compare[:]  # add ancilla as compare qubit
@@ -268,7 +270,8 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 circuit.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
 
                 # apply controlled rotation
-                with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                     lin_r = LinearPauliRotations(
                         num_state_qubits=self.num_state_qubits,
                         slope=self.mapped_slopes[i],

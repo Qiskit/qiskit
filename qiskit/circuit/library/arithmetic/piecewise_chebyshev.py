@@ -347,7 +347,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
         super()._build()
 
         # the class itself is deprecated, no need to raise additional warnings during runtime
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             poly_r = PiecewisePolynomialPauliRotations(
                 self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
             )

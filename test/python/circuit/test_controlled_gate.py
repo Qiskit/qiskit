@@ -27,12 +27,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
-from qiskit.transpiler.passes import (
-    UnrollCustomDefinitions,
-    BasisTranslator,
-    HLSConfig,
-    Unroll3qOrMore,
-)
+from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit

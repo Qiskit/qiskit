@@ -273,7 +273,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         for i, point in enumerate(self.breakpoints[:-1]):
             if i == 0 and self.contains_zero_breakpoint:
                 # the class itself is deprecated, no need to raise additional warnings during runtime
-                with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                     poly_r = PolynomialPauliRotations(
                         num_state_qubits=self.num_state_qubits,
                         coeffs=self.mapped_coeffs[i],
@@ -283,7 +284,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
             else:
                 # the class itself is deprecated, no need to raise additional warnings during runtime
-                with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                     comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
 
                 qr_state_full = qr_state[:] + [qr_ancilla[0]]  # add compare qubit
@@ -294,7 +296,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 )
 
                 # the class itself is deprecated, no need to raise additional warnings during runtime
-                with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                     poly_r = PolynomialPauliRotations(
                         num_state_qubits=self.num_state_qubits,
                         coeffs=self.mapped_coeffs[i],

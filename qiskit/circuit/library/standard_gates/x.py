@@ -1269,7 +1269,8 @@ class MCXGate(ControlledGate):
 
     def __deepcopy__(self, memo=None):
         if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
-            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
                 return super().__deepcopy__(memo=memo)
         return super().__deepcopy__(memo=memo)
 
@@ -1338,7 +1339,8 @@ class MCXGrayCode(MCXGate):
         Returns:
             MCXGrayCode: inverse gate (self-inverse).
         """
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             inverse = MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
         return inverse
 
@@ -1418,7 +1420,8 @@ class MCXRecursive(MCXGate):
         Returns:
             MCXRecursive: inverse gate (self-inverse).
         """
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
             inverse = MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
         return inverse
 
