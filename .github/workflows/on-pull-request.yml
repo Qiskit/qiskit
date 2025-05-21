@@ -16,7 +16,7 @@ jobs:
     name: Docs and Lint
     uses: ./.github/workflows/lint_docs.yml
   main-tests-ubuntu-3-9:
-    name: Main Tests
+    name: Python Unit Tests
     uses: ./.github/workflows/test-linux.yml
     if: github.repository_owner == 'Qiskit'
     with:
@@ -24,14 +24,14 @@ jobs:
       install-optionals: true
       runner: ubuntu-latest
   main-tests-rust:
-    name: Extra Tests
+    name: Rust Unit Tests
     uses: ./.github/workflows/rust-tests.yml
     if: github.repository_owner == 'Qiskit'
     with:
       python-version: "3.9"
       runner: ubuntu-latest
   main-tests-images:
-    name: Extra Tests
+    name: Image Comparison Tests
     uses: ./.github/workflows/image-tests.yml
     if: github.repository_owner == 'Qiskit'
     with:
@@ -41,7 +41,7 @@ jobs:
   # versions of Python.
   main-tests-ubuntu-3-9-arm:
     if: github.repository_owner == 'Qiskit'
-    name: Main Tests
+    name: Python Unit Tests
     uses: ./.github/workflows/test-linux.yml
     with:
       python-version: "3.9"
@@ -50,7 +50,7 @@ jobs:
       runner: "ubuntu-24.04-arm"
   main-tests-ubuntu-3-13:
     if: github.repository_owner == 'Qiskit'
-    name: Main Tests
+    name: Python Unit Tests
     strategy:
       matrix:
         runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
@@ -63,7 +63,7 @@ jobs:
 
   main-tests-mac:
     if: github.repository_owner == 'Qiskit'
-    name: Main Tests
+    name: Python Unit Tests
     strategy:
       matrix:
         python_version: ["3.9", "3.13"]
@@ -76,7 +76,7 @@ jobs:
 
   main-tests-windows:
     if: github.repository_owner == 'Qiskit'
-    name: Main Tests
+    name: Python Unit Tests
     strategy:
       matrix:
         python_version: ["3.9", "3.13"]
