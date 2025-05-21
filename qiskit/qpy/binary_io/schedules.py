@@ -128,8 +128,7 @@ def _read_symbolic_pulse(file_obj, version) -> None:
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
-# pylint: disable=unused-argument
-def _read_symbolic_pulse_v6(file_obj, version, use_symengine) -> None:
+def _read_symbolic_pulse_v6(file_obj, version) -> None:
     make = formats.SYMBOLIC_PULSE_V2._make
     pack = formats.SYMBOLIC_PULSE_PACK_V2
     size = formats.SYMBOLIC_PULSE_SIZE_V2
@@ -172,16 +171,14 @@ def _read_alignment_context(file_obj, version) -> None:
 
 
 # pylint: disable=too-many-return-statements
-def _loads_operand(type_key, data_bytes, version, use_symengine):
+def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
         if version < 6:
             return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
         else:
-            return common.data_from_binary(
-                data_bytes, _read_symbolic_pulse_v6, version=version, use_symengine=use_symengine
-            )
+            return common.data_from_binary(data_bytes, _read_symbolic_pulse_v6, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
     if type_key == type_keys.ScheduleOperand.OPERAND_STR:
@@ -210,7 +207,9 @@ def _read_element(file_obj, version, metadata_deserializer, use_symengine) -> No
 
     # read operands
     common.read_sequence(
-        file_obj, deserializer=_loads_operand, version=version, use_symengine=use_symengine
+        file_obj,
+        deserializer=_loads_operand,
+        version=version,
     )
     # read name
     value.read_value(file_obj, version, {})
