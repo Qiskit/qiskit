@@ -83,9 +83,11 @@ pub trait Instruction {
     fn py_op(&self) -> &OnceLock<Py<PyAny>>;
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
-    /// TODO: compare parameters too?
     fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
         match (self.op(), other.op()) {
+            (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
+                Ok(left == right)
+            }
             (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
                 Ok(left == right)
             }
@@ -359,7 +361,7 @@ impl<T: Instruction> AsInstructionRef for T {
             ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
             ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
             ControlFlow::ForLoop { .. } => {
-                let [Param::Indexset(indexset), Param::ParameterExpression(expr), Param::Circuit(body)] =
+                let [Param::Indexset(indexset), Param::ParameterExpression(loop_param), Param::Circuit(body)] =
                     &self.params_view()[0..3]
                 else {
                     panic!("invalid");
@@ -664,7 +666,8 @@ impl CircuitInstruction {
                         Param::Circuit(_)
                         | Param::Condition(_)
                         | Param::Duration(_)
-                        | Param::Target(_) => false,
+                        | Param::Target(_)
+                        | Param::Indexset(_) => false,
                     },
                     Param::ParameterExpression(left) | Param::Obj(left) => match right {
                         Param::Float(right) => left.bind(py).eq(right)?,
@@ -674,7 +677,8 @@ impl CircuitInstruction {
                         Param::Circuit(_)
                         | Param::Condition(_)
                         | Param::Duration(_)
-                        | Param::Target(_) => false,
+                        | Param::Target(_)
+                        | Param::Indexset(_) => false,
                     },
                     Param::Circuit(left) => match right {
                         Param::Circuit(right) => left.bind(py).eq(right)?,
@@ -690,6 +694,10 @@ impl CircuitInstruction {
                     },
                     Param::Target(left) => match right {
                         Param::Target(right) => left == right,
+                        _ => false,
+                    },
+                    Param::Indexset(left) => match right {
+                        Param::Indexset(right) => left == right,
                         _ => false,
                     },
                 };

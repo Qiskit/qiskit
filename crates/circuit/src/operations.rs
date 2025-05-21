@@ -303,7 +303,7 @@ impl Operation for OperationRef<'_> {
 pub enum InstructionRef<'a, T> {
     ControlFlow(ControlFlowRef<'a, T>),
     StandardGate(StandardGateRef<'a>),
-    StandardInstruction(StandardInstructionRef),
+    StandardInstruction(StandardInstructionRef<'a>),
     Gate(&'a PyGate),
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
@@ -339,6 +339,25 @@ impl<'a, T> InstructionRef<'a, T> {
         // self.params_view()
         //     .iter()
         //     .any(|x| matches!(x, Param::ParameterExpression(_)))
+    }
+}
+
+impl<T: PyEq> PyEq for InstructionRef<'_, T> {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self, other) {
+            (InstructionRef::ControlFlow(c1), InstructionRef::ControlFlow(c2)) => c1.py_eq(py, c2),
+            (InstructionRef::StandardGate(g1), InstructionRef::StandardGate(g2)) => {
+                g1.py_eq(py, g2)
+            }
+            (InstructionRef::StandardInstruction(i1), InstructionRef::StandardInstruction(i2)) => {
+                i1.py_eq(py, i2)
+            }
+            (InstructionRef::Gate(g1), InstructionRef::Gate(g2)) => g1.py_eq(py, g2),
+            (InstructionRef::Instruction(i1), InstructionRef::Instruction(i2)) => i1.py_eq(py, i2),
+            (InstructionRef::Operation(o1), InstructionRef::Operation(o2)) => o1.py_eq(py, o2),
+            (InstructionRef::Unitary(u1), InstructionRef::Unitary(u2)) => u1.py_eq(py, u2),
+            _ => Ok(false),
+        }
     }
 }
 
@@ -507,6 +526,16 @@ pub enum ControlFlowRef<'a, T> {
     },
 }
 
+pub trait PyEq {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool>;
+}
+
+impl PyEq for Py<PyAny> {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.bind(py).eq(other)
+    }
+}
+
 impl<'a, T> ControlFlowRef<'a, T> {
     pub fn blocks(&self) -> impl ExactSizeIterator<Item = &'a T> {
         match self {
@@ -523,6 +552,77 @@ impl<'a, T> ControlFlowRef<'a, T> {
             ControlFlowRef::While { body, .. } => vec![*body],
         }
         .into_iter()
+    }
+}
+
+impl<T: PyEq> PyEq for ControlFlowRef<'_, T> {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self, other) {
+            (ControlFlowRef::Box(duration_a, body_a), ControlFlowRef::Box(duration_b, body_b)) => {
+                Ok(duration_a == duration_b && body_a.py_eq(py, body_b)?)
+            }
+            (ControlFlowRef::BreakLoop, ControlFlowRef::BreakLoop) => Ok(true),
+            (ControlFlowRef::ContinueLoop, ControlFlowRef::ContinueLoop) => Ok(true),
+            (
+                ControlFlowRef::ForLoop {
+                    indexset: indexset_a,
+                    loop_param: loop_param_a,
+                    body: body_a,
+                },
+                ControlFlowRef::ForLoop {
+                    indexset: indexset_b,
+                    loop_param: loop_param_b,
+                    body: body_b,
+                },
+            ) => Ok(indexset_a == indexset_b
+                && loop_param_a.bind(py).eq(loop_param_b)?
+                && body_a.py_eq(py, body_b)?),
+            (
+                ControlFlowRef::IfElse {
+                    condition: condition_a,
+                    true_body: true_body_a,
+                    false_body: false_body_a,
+                },
+                ControlFlowRef::IfElse {
+                    condition: condition_b,
+                    true_body: true_body_b,
+                    false_body: false_body_b,
+                },
+            ) => Ok(condition_a == condition_b
+                && true_body_a.py_eq(py, true_body_b)?
+                && false_body_a.py_eq(py, false_body_b)?),
+            (
+                ControlFlowRef::Switch {
+                    target: target_a,
+                    cases: cases_a,
+                },
+                ControlFlowRef::Switch {
+                    target: target_b,
+                    cases: cases_b,
+                },
+            ) => {
+                if target_a != target_b || cases_a.len() != cases_b.len() {
+                    return Ok(false);
+                }
+                for (a, b) in cases_a.iter().zip(cases_b.iter()) {
+                    if !a.py_eq(py, b)? {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            }
+            (
+                ControlFlowRef::While {
+                    condition: condition_a,
+                    body: body_a,
+                },
+                ControlFlowRef::While {
+                    condition: condition_b,
+                    body: body_b,
+                },
+            ) => Ok(condition_a == condition_b && body_a.py_eq(py, body_b)?),
+            _ => Ok(false),
+        }
     }
 }
 
@@ -676,11 +776,35 @@ impl Operation for StandardInstruction {
 }
 
 #[derive(Debug)]
-pub enum StandardInstructionRef {
+pub enum StandardInstructionRef<'a> {
     Barrier(u32),
-    Delay(Duration),
+    Delay {
+        duration: &'a PyObject,
+        unit: DelayUnit,
+    },
     Measure,
     Reset,
+}
+
+impl<'a> PyEq for StandardInstructionRef<'a> {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self, other) {
+            (StandardInstructionRef::Barrier(a), StandardInstructionRef::Barrier(b)) => Ok(a == b),
+            (
+                StandardInstructionRef::Delay {
+                    duration: duration_a,
+                    unit: unit_a,
+                },
+                StandardInstructionRef::Delay {
+                    duration: duration_b,
+                    unit: unit_b,
+                },
+            ) => Ok(unit_a == unit_b && duration_a.bind(py).eq(duration_b)?),
+            (StandardInstructionRef::Measure, StandardInstructionRef::Measure) => Ok(true),
+            (StandardInstructionRef::Reset, StandardInstructionRef::Reset) => Ok(true),
+            _ => Ok(false),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
@@ -2668,6 +2792,20 @@ impl<'a> StandardGateRef<'a> {
     }
 }
 
+impl<'a> PyEq for StandardGateRef<'a> {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        if self.0 != other.0 || self.1.len() != other.1.len() {
+            return Ok(false);
+        }
+        for (a, b) in self.1.iter().zip(other.1.iter()) {
+            if !a.is_close(py, b, 1e-10)? {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+}
+
 const FLOAT_ZERO: Param = Param::Float(0.0);
 
 // Return explicitly requested copy of `param`, handling
@@ -2758,6 +2896,12 @@ pub struct PyInstruction {
     pub instruction: PyObject,
 }
 
+impl PyEq for PyInstruction {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.instruction.bind(py).eq(&other.instruction)
+    }
+}
+
 impl Operation for PyInstruction {
     fn name(&self) -> &str {
         self.op_name.as_str()
@@ -2815,6 +2959,12 @@ pub struct PyGate {
     pub params: u32,
     pub op_name: String,
     pub gate: PyObject,
+}
+
+impl PyEq for PyGate {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.gate.bind(py).eq(&other.gate)
+    }
 }
 
 impl Operation for PyGate {
@@ -2889,6 +3039,12 @@ pub struct PyOperation {
     pub params: u32,
     pub op_name: String,
     pub operation: PyObject,
+}
+
+impl PyEq for PyOperation {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.operation.bind(py).eq(&other.operation)
+    }
 }
 
 impl Operation for PyOperation {
@@ -3013,5 +3169,62 @@ impl<'a> UnitaryGateRef<'a> {
 
     fn definition(&self) -> Option<CircuitData> {
         None
+    }
+}
+
+impl<'a> PyEq for UnitaryGateRef<'a> {
+    fn py_eq(&self, _py: Python, other: &Self) -> PyResult<bool> {
+        match [&self.array, &other.array] {
+            [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
+                Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+            }
+            [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+            | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                if b.shape()[0] == 2 {
+                    for i in 0..2 {
+                        for j in 0..2 {
+                            if !relative_eq!(
+                                b[[i, j]],
+                                a[(i, j)],
+                                max_relative = 1e-5,
+                                epsilon = 1e-8
+                            ) {
+                                return Ok(false);
+                            }
+                        }
+                    }
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            }
+            [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+            | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                if b.shape()[0] == 4 {
+                    for i in 0..4 {
+                        for j in 0..4 {
+                            if !relative_eq!(
+                                b[[i, j]],
+                                a[(i, j)],
+                                max_relative = 1e-5,
+                                epsilon = 1e-8
+                            ) {
+                                return Ok(false);
+                            }
+                        }
+                    }
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            }
+            [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
+                Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+            }
+            [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
+                Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+            }
+            _ => Ok(false),
+        }
     }
 }

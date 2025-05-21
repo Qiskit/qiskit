@@ -35,7 +35,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, Condition, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef,
-    Param, PyInstruction, StandardGate, StandardGateRef, StandardInstruction,
+    Param, PyEq, PyInstruction, StandardGate, StandardGateRef, StandardInstruction,
     StandardInstructionRef, Target, UnitaryGateRef,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -97,7 +97,7 @@ enum Parameters {
     },
     ForLoop {
         indexset: Vec<usize>,
-        loop_param: ParameterExpression,
+        loop_param: PyObject,
         body: DAGCircuit,
     },
     IfElse {
@@ -177,10 +177,6 @@ impl DAGInstruction {
         }
     }
 
-    fn py_eq(&self, other: &Self) -> PyResult<bool> {
-        todo!()
-    }
-
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
     pub fn is_parameterized(&self) -> bool {
         let Some(params) = self.params.as_deref() else {
@@ -194,6 +190,75 @@ impl DAGInstruction {
             Parameters::Switch { .. } => false,
             Parameters::While { .. } => false,
         }
+    }
+
+    /// Check equality of the operation, including Python-space checks, if appropriate.
+    fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        match (self.op(), other.op()) {
+            (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
+                Ok(left == right)
+            }
+            (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
+                Ok(left == right)
+            }
+            (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
+                Ok(left == right)
+            }
+            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
+                left.gate.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
+                left.instruction.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
+                left.operation.bind(py).eq(&right.operation)
+            }
+            // Handle the case we end up with a pygate for a standard gate
+            // this typically only happens if it's a ControlledGate in python
+            // and we have mutable state set.
+            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
+                self.clone()
+                    .into_packed()
+                    .unpack_py_op(py)?
+                    .bind(py)
+                    .eq(&right.gate)
+                // self.unpack_py_op(py)?.bind(py).eq(&right.gate)
+            }
+            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
+                other
+                    .clone()
+                    .into_packed()
+                    .unpack_py_op(py)?
+                    .bind(py)
+                    .eq(&left.gate)
+                // other.unpack_py_op(py)?.bind(py).eq(&left.gate)
+            }
+            // Handle the case we end up with a pyinstruction for a standard instruction
+            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
+                self.clone()
+                    .into_packed()
+                    .unpack_py_op(py)?
+                    .bind(py)
+                    .eq(&right.instruction)
+                // self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
+            }
+            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => {
+                other
+                    .clone()
+                    .into_packed()
+                    .unpack_py_op(py)?
+                    .bind(py)
+                    .eq(&left.instruction)
+                // other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
+            }
+            _ => Ok(false),
+        }
+    }
+}
+
+impl PyEq for DAGCircuit {
+    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.__eq__(py, other)
     }
 }
 
@@ -2308,56 +2373,11 @@ impl DAGCircuit {
                         }
                         true
                     };
+                    if !inst1.view().py_eq(py, &inst2.view())? {
+                        return Ok(false);
+                    }
+                    // TODO: do this in InstructionRef.py_eq by converting python to Rust type
                     match [inst1.op.view(), inst2.op.view()] {
-                        [OperationRef::StandardGate(_), OperationRef::StandardGate(_)]
-                        | [OperationRef::StandardInstruction(_), OperationRef::StandardInstruction(_)] =>
-                        {
-                            // TODO: need to compare dag-wise
-                            Ok(inst1.py_op_eq(py, inst2)?
-                                && check_args()
-                                && inst1
-                                    .params_view()
-                                    .iter()
-                                    .zip(inst2.params_view().iter())
-                                    .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
-                        }
-                        [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
-                            if op1.control_flow() && op2.control_flow() {
-                                let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
-                                let n2 = other.unpack_into(py, NodeIndex::new(0), n2)?;
-                                let name = op1.name();
-                                if name == "if_else" || name == "while_loop" {
-                                    condition_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract()
-                                } else if name == "switch_case" {
-                                    switch_case_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract()
-                                } else if name == "for_loop" {
-                                    for_loop_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract()
-                                } else if name == "box" {
-                                    box_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract()
-                                } else {
-                                    Err(PyRuntimeError::new_err(format!(
-                                        "unhandled control-flow operation: {}",
-                                        name
-                                    )))
-                                }
-                            } else {
-                                Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                            }
-                        }
-                        [OperationRef::Gate(_op1), OperationRef::Gate(_op2)] => {
-                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                        }
-                        [OperationRef::Operation(_op1), OperationRef::Operation(_op2)] => {
-                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                        }
                         // Handle the edge case where we end up with a Python object and a standard
                         // gate/instruction.
                         // This typically only happens if we have a ControlledGate in Python
@@ -2368,61 +2388,7 @@ impl DAGCircuit {
                         | [OperationRef::Instruction(_), OperationRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
-                        [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
-                            match [&op_a.array, &op_b.array] {
-                                [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
-                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
-                                }
-                                [ArrayType::OneQ(a), ArrayType::NDArray(b)]
-                                | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
-                                    if b.shape()[0] == 2 {
-                                        for i in 0..2 {
-                                            for j in 0..2 {
-                                                if !relative_eq!(
-                                                    b[[i, j]],
-                                                    a[(i, j)],
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ) {
-                                                    return Ok(false);
-                                                }
-                                            }
-                                        }
-                                        Ok(true)
-                                    } else {
-                                        Ok(false)
-                                    }
-                                }
-                                [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
-                                | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
-                                    if b.shape()[0] == 4 {
-                                        for i in 0..4 {
-                                            for j in 0..4 {
-                                                if !relative_eq!(
-                                                    b[[i, j]],
-                                                    a[(i, j)],
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ) {
-                                                    return Ok(false);
-                                                }
-                                            }
-                                        }
-                                        Ok(true)
-                                    } else {
-                                        Ok(false)
-                                    }
-                                }
-                                [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
-                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
-                                }
-                                [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
-                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
-                                }
-                                _ => Ok(false),
-                            }
-                        }
-                        _ => Ok(false),
+                        _ => Ok(check_args()),
                     }
                 }
                 [NodeType::QubitIn(bit1), NodeType::QubitIn(bit2)] => Ok(bit1 == bit2),
