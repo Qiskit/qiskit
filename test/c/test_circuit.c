@@ -582,7 +582,7 @@ cleanup:
     return result;
 }
 
-int test_compose(void) {
+int test_circuit_compose(void) {
     QkCircuit *qc = qk_circuit_new(4, 4);
     QkCircuit *sub = qk_circuit_new(2, 2);
     QkCircuit *composed;
@@ -672,7 +672,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_gate_num_qubits);
     num_failed += RUN_TEST(test_gate_num_params);
     num_failed += RUN_TEST(test_delay_instruction);
-    num_failed += RUN_TEST(test_compose);
+    num_failed += RUN_TEST(test_circuit_compose);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
