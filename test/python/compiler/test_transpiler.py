@@ -89,10 +89,8 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirecti
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
-from qiskit.transpiler.target import (
-    InstructionProperties,
-    Target,
-)
+from qiskit.transpiler.target import InstructionProperties, Target
+from qiskit.transpiler.timing_constraints import TimingConstraints
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
@@ -108,6 +106,40 @@ class CustomCX(Gate):
     def _define(self):
         self._definition = QuantumCircuit(2)
         self._definition.cx(0, 1)
+
+
+class AlignmentBackend(BackendV2):
+    """A backend with arbitrary alignment constraints."""
+
+    def __init__(self, num_qubits, control_flow=False):
+        super().__init__()
+        self._target = Target.from_configuration(
+            basis_gates=["rz", "sx", "cx", "delay", "measure"],
+            coupling_map=CouplingMap.from_line(num_qubits),
+            timing_constraints=TimingConstraints(
+                granularity=2, min_length=4, pulse_alignment=4, acquire_alignment=4
+            ),
+        )
+        if control_flow:
+            self._target.add_instruction(IfElseOp, name="if_else")
+            self._target.add_instruction(ForLoopOp, name="for_loop")
+            self._target.add_instruction(WhileLoopOp, name="while_loop")
+            self._target.add_instruction(SwitchCaseOp, name="switch_case")
+
+    @property
+    def target(self):
+        return self._target
+
+    @property
+    def max_circuits(self):
+        return 1
+
+    @classmethod
+    def _default_options(cls):
+        return Options()
+
+    def run(self, run_input, **_options):
+        pass
 
 
 def connected_qubits(physical: int, coupling_map: CouplingMap) -> set:
@@ -1318,8 +1350,9 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        self.assertEqual(out.unit, "dt")
-        self.assertEqual(out.duration, 1200)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.unit, "dt")
+            self.assertEqual(out.duration, 1200)
 
     @data(0, 1, 2, 3)
     def test_circuit_with_delay_expr_duration(self, optimization_level):
@@ -1355,8 +1388,9 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        self.assertEqual(out.unit, "dt")
-        self.assertEqual(out.duration, 1200)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(out.unit, "dt")
+            self.assertEqual(out.duration, 1200)
 
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
@@ -1371,6 +1405,28 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(qc, dt=1e-9, seed_transpiler=42)
         self.assertEqual(out.data[0].operation.unit, "dt")
+
+    def test_delay_converts_to_seconds(self):
+        """Test that a delay instruction is converted to units of seconds when there is no dt."""
+        qc = QuantumCircuit(2)
+        qc.delay(1000, [0], unit="us")
+        qc.x(0)
+
+        # No backend
+        out = transpile([qc, qc], seed_transpiler=42)
+        self.assertEqual(out[0].data[0].operation.unit, "s")
+        self.assertEqual(out[1].data[0].operation.unit, "s")
+        self.assertEqual(out[0].data[0].operation.params[0], 1e-3)
+        self.assertEqual(out[1].data[0].operation.params[0], 1e-3)
+
+        # Backend without dt
+        backend = GenericBackendV2(num_qubits=4)
+        backend.target.dt = None
+        out = transpile([qc, qc], backend, seed_transpiler=42)
+        self.assertEqual(out[0].data[0].operation.unit, "s")
+        self.assertEqual(out[1].data[0].operation.unit, "s")
+        self.assertEqual(out[0].data[0].operation.params[0], 1e-3)
+        self.assertEqual(out[1].data[0].operation.params[0], 1e-3)
 
     def test_delay_converts_expr_to_dt(self):
         """Test that a delay instruction with a duration expression of type Duration
@@ -1513,6 +1569,21 @@ class TestTranspile(QiskitTestCase):
                 seed_transpiler=42,
             )
 
+    def test_rejects_mixed_units_delay_without_target_dt(self):
+        """Test that delay instructions with SI and dt units are rejected without dt."""
+        qc = QuantumCircuit(2)
+        qc.delay(10, 1, unit="dt")
+        qc.delay(10, 1, unit="ns")
+
+        backend = GenericBackendV2(num_qubits=2)
+        backend.target.dt = None
+        with self.assertRaisesRegex(TranspilerError, ".*SI units and dt unit must not be mixed"):
+            transpile(
+                qc,
+                backend=backend,
+                seed_transpiler=42,
+            )
+
     def test_rejects_mixed_units_delay_expr_without_target_dt(self):
         """Test that a delay instruction with wall time and cycles without target DT
         is rejected."""
@@ -1542,7 +1613,7 @@ class TestTranspile(QiskitTestCase):
 
         out = transpile(
             qc,
-            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"]),
+            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"], seed=0),
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
@@ -1610,7 +1681,8 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_instruction_constraints(self):
         """Test that scheduling-related loose transpile constraints work with target."""
@@ -1634,22 +1706,26 @@ class TestTranspile(QiskitTestCase):
             scheduling_method="alap",
             layout_method="trivial",
         )
-        self.assertEqual(scheduled.duration, 9010)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, 9010)
 
     def test_scheduling_dt_constraints(self):
         """Test that scheduling-related loose transpile constraints
         work with BackendV2."""
 
-        backend_v2 = GenericBackendV2(num_qubits=2, seed=1)
+        original_dt = 2.2222222222222221e-10
+        backend_v2 = GenericBackendV2(num_qubits=2, dt=original_dt, seed=3)
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
-        original_dt = 2.2222222222222221e-10
-        original_duration = 5059
+        scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap")
+        with self.assertWarns(DeprecationWarning):
+            original_duration = scheduled.duration
 
         # halve dt in sec = double duration in dt
         scheduled = transpile(qc, backend=backend_v2, scheduling_method="asap", dt=original_dt / 2)
-        self.assertEqual(scheduled.duration, original_duration * 2)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(scheduled.duration, original_duration * 2)
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
@@ -2234,6 +2310,57 @@ class TestTranspile(QiskitTestCase):
         # to prevent contraction of the wires.
         active_indices = {qubit_map[bit] for instruction in body for bit in instruction.qubits}
         self.assertNotIn(8, active_indices)
+
+    def test_custom_dt_preserves_properties(self):
+        """Test that setting the `dt` parameter with a `backend` doesn't affect the target properties
+        and vf2 runs as expected.
+        """
+
+        coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["id", "sx", "x", "cx", "rz"],
+            coupling_map=coupling_map,
+            seed=0,
+        )
+        qubits = 3
+        qc = QuantumCircuit(qubits)
+        for i in range(5):
+            qc.cx(i % qubits, int(i + qubits / 2) % qubits)
+
+        # transpile with no gate errors
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        # transpile with gate errors
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
+        # confirm that the output layouts are different
+        self.assertNotEqual(
+            tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
+        )
+        # now modify dt with gate errors
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout
+        self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
+
+    @combine(optimization_level=[0, 1, 2, 3], control_flow=[False, True])
+    def test_stretch_integration_with_alignment(self, optimization_level, control_flow):
+        """Test that `stretch`es can pass all the way through default transpilation, even when the
+        backend has alignment constraints.  We treat the presence of a `stretch` as meaning
+        "something else will schedule this", so we don't need to reschedule in this case."""
+        backend = AlignmentBackend(4, control_flow=control_flow)
+        qc = QuantumCircuit(3, 3)
+        a = qc.add_stretch("a")
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(1, 2)
+        qc.delay(a, 0)
+        qc.delay(expr.mul(2, a), 1)
+        qc.measure([0, 1, 2], [0, 1, 2])
+        if control_flow:
+            with qc.if_test((qc.clbits[0], False)):
+                qc.delay(a, 2)
+        _ = transpile(qc, backend, optimization_level=optimization_level)
+        # No meaningful assertions; this is a simple regression test for "stretches don't explode
+        # backends with alignments" more than anything.
 
 
 @ddt
@@ -2869,10 +2996,11 @@ class TestTranspileParallel(QiskitTestCase):
         qc.cz(0, 3)
         qc.cz(0, 4)
         qc.measure_all()
-        cmap = CouplingMap.from_line(5, bidirectional=False)
+        num_qubits = 5
+        cmap = CouplingMap.from_line(num_qubits, bidirectional=False)
         tqc = transpile(
             qc,
-            backend=GenericBackendV2(num_qubits=6),
+            backend=GenericBackendV2(num_qubits=num_qubits),
             coupling_map=cmap,
             optimization_level=opt_level,
             seed_transpiler=12345678942,

@@ -788,6 +788,10 @@ tox -e docs
 The documentation output will be located at `docs/_build/html`.
 Open the `index.html` file there in your browser to find the main page.
 
+To build the documentation you will need to have Doxygen installed and in
+your PATH environment variable as tox will run `doxygen` to build the API
+documentation for the C API. You can download doxygen from [here](https://www.doxygen.nl/download.html).
+
 ### Troubleshooting docs builds
 
 When you build documentation, you might get errors that look like

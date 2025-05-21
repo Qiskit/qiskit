@@ -81,9 +81,6 @@ pub static FOR_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "
 pub static SWITCH_CASE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "SwitchCaseOp");
 pub static WHILE_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "WhileLoopOp");
 pub static STORE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Store");
-pub static EXPR: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classical.expr", "Expr");
-pub static ITER_VARS: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.classical.expr", "iter_vars");
 pub static DAG_NODE: ImportOnceCell = ImportOnceCell::new("qiskit.dagcircuit", "DAGNode");
 pub static CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ControlledGate");
@@ -111,6 +108,10 @@ pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barr
 pub static DELAY: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Delay");
 pub static MEASURE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Measure");
 pub static RESET: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Reset");
+pub static UNARY_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_UnaryOp");
+pub static BINARY_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.classical.expr.expr", "_BinaryOp");
 pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
@@ -127,6 +128,10 @@ pub static HLS_SYNTHESIZE_OP_USING_PLUGINS: ImportOnceCell = ImportOnceCell::new
     "qiskit.transpiler.passes.synthesis.high_level_synthesis",
     "_synthesize_op_using_plugins",
 );
+pub static CONTROL_FLOW_CONDITION_RESOURCES: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "condition_resources");
+pub static CONTROL_FLOW_NODE_RESOURCES: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.controlflow", "node_resources");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

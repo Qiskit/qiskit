@@ -15,11 +15,11 @@ workspace = true
 [dependencies]
 rayon.workspace = true
 numpy.workspace = true
-rand = "0.9"
-rand_pcg = "0.9"
-rand_distr = "0.5"
+rand.workspace = true
+rand_pcg.workspace = true
+rand_distr.workspace = true
 ahash.workspace = true
-num-traits = "0.2"
+num-traits.workspace = true
 num-complex.workspace = true
 rustworkx-core.workspace = true
 num-bigint.workspace = true
@@ -28,7 +28,7 @@ itertools.workspace = true
 qiskit-circuit.workspace = true
 thiserror.workspace = true
 ndarray-einsum = "0.8.0"
-rustiq-core = "0.0.10"
+rustiq-core = "0.0.11"
 bytemuck.workspace = true
 nalgebra.workspace = true
 
@@ -61,7 +61,7 @@ version = "0.3.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
-version = "0.21.4"
+version = "0.21.5"
 features = ["macro"]
 
 [dev-dependencies]

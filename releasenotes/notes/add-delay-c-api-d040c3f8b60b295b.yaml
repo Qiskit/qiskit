@@ -1,0 +1,9 @@
+---
+features_circuits:
+  - |
+    There is a now a C API function, ``qk_circuit_delay`` for adding a delay to a circuit.
+
+    .. code-block:: c
+
+      QkCircuit *qc = qk_circuit_new(1, 0);
+      qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);

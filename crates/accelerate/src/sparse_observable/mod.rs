@@ -1398,9 +1398,11 @@ mod compose {
         /// [load_from] changes it).  If a 0 multiplier is encountered during the load, the
         /// iterator is empty.
         pub fn num_terms(&self) -> usize {
-            self.exhausted
-                .then_some(0)
-                .unwrap_or_else(|| self.multiples.iter().map(|item| item.slice.len()).product())
+            if self.exhausted {
+                0
+            } else {
+                self.multiples.iter().map(|item| item.slice.len()).product()
+            }
         }
         /// The length of each individual term in the iteration.
         pub fn term_len(&self) -> usize {
@@ -2931,14 +2933,11 @@ impl PySparseObservable {
         let to_py_tuple = |view: SparseTermView| {
             let mut pauli_string = String::with_capacity(view.bit_terms.len());
 
-            // we reverse the order of bits and indices so the Pauli string comes out in
-            // "reading order", consistent with how one would write the label in
-            // SparseObservable.from_list or .from_label
-            for bit in view.bit_terms.iter().rev() {
+            for bit in view.bit_terms.iter() {
                 pauli_string.push_str(bit.py_label());
             }
             let py_string = PyString::new(py, &pauli_string).unbind();
-            let py_indices = PyList::new(py, view.indices.iter().rev())?.unbind();
+            let py_indices = PyList::new(py, view.indices.iter())?.unbind();
             let py_coeff = view.coeff.into_py_any(py)?;
 
             PyTuple::new(py, vec![py_string.as_any(), py_indices.as_any(), &py_coeff])
@@ -3445,7 +3444,7 @@ impl PySparseObservable {
             let order = order
                 .try_iter()?
                 .map(|obj| obj.and_then(|obj| obj.extract::<u32>()))
-                .collect::<PyResult<IndexSet<u32>>>()?;
+                .collect::<PyResult<IndexSet<u32, ::ahash::RandomState>>>()?;
             if order.len() != in_length {
                 return Err(PyValueError::new_err("duplicate indices in qargs"));
             }
@@ -4133,7 +4132,7 @@ fn cast_array_type<'py, T>(
 ///
 /// * `Ok(Some(obs))` if the coercion was completely successful.
 /// * `Ok(None)` if the input value was just completely the wrong type and no coercion could be
-///    attempted.
+///   attempted.
 /// * `Err` if the input was a valid type for coercion, but the coercion failed with a Python
 ///   exception.
 ///

@@ -36,6 +36,10 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
     ``ValueError`` will be raised instead.  The given ``add_register`` callable may choose to raise
     its own exception."""
 
+    # We don't want docstrings for the inherited visitor methods, which are self-explanatory and
+    # would just be noise.
+    # pylint: disable=missing-function-docstring
+
     __slots__ = ("target_cregs", "register_map", "bit_map", "var_map", "add_register")
 
     def __init__(

@@ -30,6 +30,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
     XGate,
+    ZGate,
     CXGate,
     RYGate,
     QFT,
@@ -42,6 +43,7 @@ from qiskit.circuit.library import (
     MCXGrayCode,
     MCXRecursive,
     MCXVChain,
+    MCMTGate,
     UCRXGate,
     UCRYGate,
     UCRZGate,
@@ -1280,11 +1282,13 @@ class TestLoadFromQPY(QiskitTestCase):
             mcx_recursive_gate = MCXRecursive(4)
         with self.assertWarns(DeprecationWarning):
             mcx_vchain_gate = MCXVChain(3)
+        mcmt_gate = MCMTGate(ZGate(), 2, 1)
         qc.append(mcu1_gate, [0, 2, 1])
         qc.append(mcx_gate, list(range(0, 6)))
         qc.append(mcx_gray_gate, list(range(0, 6)))
         qc.append(mcx_recursive_gate, list(range(0, 5)))
         qc.append(mcx_vchain_gate, list(range(0, 5)))
+        qc.append(mcmt_gate, list(range(0, 3)))
         qc.mcp(np.pi, [0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()
