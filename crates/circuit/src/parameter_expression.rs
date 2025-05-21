@@ -1212,7 +1212,10 @@ impl ParameterExpression {
         expr: Option<String>,
         _qpy_replay: Option<Vec<OPReplay>>,
     ) -> PyResult<Self> {
-        if let (Some(symbol_map), Some(expr)) = (symbol_map, expr) {
+        let (Some(symbol_map), Some(expr)) = (symbol_map, expr) else {
+            return Ok(ParameterExpression::default());
+        };
+        
             // check if expr contains replacements for sympy
             let expr = expr
                 .replace("__begin_sympy_replace__", "$\\")
