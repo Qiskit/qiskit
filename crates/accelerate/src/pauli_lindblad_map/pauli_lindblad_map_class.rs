@@ -398,7 +398,7 @@ impl PauliLindbladMap {
 
         Ok(fid)
     }
-    
+
     /// Sample sign and Pauli operator pairs from the map.
     pub fn sample(
         &self,
@@ -433,7 +433,9 @@ impl PauliLindbladMap {
             }
 
             random_signs.push(random_sign);
-            random_paulis.add_qubit_sparse_pauli(random_pauli.view()).unwrap();
+            random_paulis
+                .add_qubit_sparse_pauli(random_pauli.view())
+                .unwrap();
         }
 
         Ok((random_signs, random_paulis))
