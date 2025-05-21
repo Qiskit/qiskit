@@ -383,7 +383,6 @@ impl PauliLindbladMap {
         )
     }
 
-<<<<<<< HEAD
     /// Compute the fidelity of the map for a single pauli
     pub fn pauli_fidelity(
         &self,
@@ -398,7 +397,8 @@ impl PauliLindbladMap {
         }
 
         Ok(fid)
-=======
+    }
+    
     /// Sample sign and Pauli operator pairs from the map.
     pub fn sample(
         &self,
@@ -411,7 +411,7 @@ impl PauliLindbladMap {
         };
 
         let mut random_signs = Vec::with_capacity(n_samples as usize);
-        let mut random_paulis = Vec::with_capacity(n_samples as usize);
+        let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
 
         for _ in 0..n_samples {
             let mut random_sign = true;
@@ -436,17 +436,10 @@ impl PauliLindbladMap {
             }
 
             random_signs.push(random_sign);
-            random_paulis.push(random_pauli);
+            random_paulis.add_qubit_sparse_pauli(random_pauli.view()).unwrap();
         }
 
-        let mut pauli_list = QubitSparsePauliList::empty(self.num_qubits());
-
-        for pauli in random_paulis.iter() {
-            pauli_list.add_qubit_sparse_pauli(pauli.view()).unwrap();
-        }
-
-        Ok((random_signs, pauli_list))
->>>>>>> a78702d25 (formatting)
+        Ok((random_signs, random_paulis))
     }
 }
 
