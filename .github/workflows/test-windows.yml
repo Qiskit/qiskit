@@ -20,14 +20,6 @@ on:
           Decides whether we install optyional dependencies
         type: boolean
         default: false
-
-      use-msrv:
-        description: >
-          Decides whether we use MSRV or stable for rust toolchain.
-        required: false
-        type: boolean
-        default: false
-
 jobs:
   test-windows:
     if: github.repository_owner == 'Qiskit'
@@ -40,9 +32,6 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@1.79
-        if: ${{ inputs.use-msrv }}
       - name: Set up Python ${{ inputs.python-version }}
         id: python-outputs
         uses: actions/setup-python@v5
