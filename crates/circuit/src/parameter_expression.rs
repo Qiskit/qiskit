@@ -337,10 +337,10 @@ impl ParameterExpression {
     }
 
     // return merged set of parameter symbils in 2 parameters
-    fn merge_parameter_symbols<'a>(
-        &'a self,
-        other: &'a ParameterExpression,
-    ) -> Option<HashSet<&'a ParameterExpression>> {
+    fn merge_parameter_symbols(
+        &self,
+        other: &ParameterExpression,
+    ) -> Option<HashSet<Arc<ParameterExpression>>> {
         let mut ret: HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
             Some(s) => s.clone(),
             None => match self.expr {
@@ -1207,7 +1207,7 @@ impl ParameterExpression {
     /// initialize ParameterExpression from the equation stored in string
     #[new]
     #[pyo3(signature = (symbol_map = None, expr = None, *, _qpy_replay = None))]
-   pub fn __new__(
+    pub fn __new__(
         symbol_map: Option<HashMap<ParameterExpression, PyObject>>,
         expr: Option<String>,
         _qpy_replay: Option<Vec<OPReplay>>,
@@ -1215,39 +1215,35 @@ impl ParameterExpression {
         let (Some(symbol_map), Some(expr)) = (symbol_map, expr) else {
             return Ok(ParameterExpression::default());
         };
-        
-            // check if expr contains replacements for sympy
-            let expr = expr
-                .replace("__begin_sympy_replace__", "$\\")
-                .replace("__end_sympy_replace__", "$");
-            // substitute 'I' to imaginary number i before returning expression
-            match parse_expression(&expr) {
-                Ok(expr) => {
-                    let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
-                    let mut uuid: u128 = 0;
-                    for (param, _) in symbol_map {
-                        uuid = param.uuid;
-                        parameter_symbols.insert(Arc::new(param.to_owned()));
-                    }
-                    if parameter_symbols.len() > 1 {
-                        uuid = 0;
-                    }
-                    Ok(ParameterExpression {
-                        expr: expr.bind(&HashMap::from([(
-                            "I".to_string(),
-                            symbol_expr::Value::from(Complex64::i()),
-                        )])),
-                        uuid: uuid,
-                        qpy_replay: _qpy_replay,
-                        parameter_symbols: Some(parameter_symbols),
-                        parameter_vector: None,
-                    })
+
+        // check if expr contains replacements for sympy
+        let expr = expr
+            .replace("__begin_sympy_replace__", "$\\")
+            .replace("__end_sympy_replace__", "$");
+        // substitute 'I' to imaginary number i before returning expression
+        match parse_expression(&expr) {
+            Ok(expr) => {
+                let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
+                let mut uuid: u128 = 0;
+                for (param, _) in symbol_map {
+                    uuid = param.uuid;
+                    parameter_symbols.insert(Arc::new(param.to_owned()));
                 }
-                Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
+                if parameter_symbols.len() > 1 {
+                    uuid = 0;
+                }
+                Ok(ParameterExpression {
+                    expr: expr.bind(&HashMap::from([(
+                        "I".to_string(),
+                        symbol_expr::Value::from(Complex64::i()),
+                    )])),
+                    uuid: uuid,
+                    qpy_replay: _qpy_replay,
+                    parameter_symbols: Some(parameter_symbols),
+                    parameter_vector: None,
+                })
             }
-        } else {
-            // return 0 if there are no input parameter is given
-            Ok(ParameterExpression::default())
+            Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
         }
     }
 
@@ -2080,7 +2076,7 @@ impl ParameterExpression {
                     self.parameter_symbols = None;
                 }
                 Ok(())
-            },
+            }
             Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
         }
     }
