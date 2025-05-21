@@ -37,8 +37,6 @@ jobs:
         run: |
           set -e
           python -m pip install -c constraints.txt -e .
-          # Build and install both qiskit and qiskit-terra so that any optionals
-          # depending on `qiskit` will resolve correctly.
       - name: Run Rust Tests
         # Note that we use the virtual env with Qiskit installed to run the Rust
         # tests since some of them still depend on Qiskit's Python API via PyO3.

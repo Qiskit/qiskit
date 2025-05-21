@@ -67,8 +67,6 @@ jobs:
             -r requirements.txt \
             -r requirements-dev.txt \
             dist/qiskit-*.tar.gz
-          # Build and install both qiskit and qiskit-terra so that any optionals
-          # depending on `qiskit` will resolve correctly.
       - name: Install Qiskit directly
         if: ${{ !inputs.install-from-sdist }}
         run: |
@@ -79,8 +77,6 @@ jobs:
             -r requirements.txt \
             -r requirements-dev.txt \
             -e .
-          # Build and install both qiskit and qiskit-terra so that any optionals
-          # depending on `qiskit` will resolve correctly.
       - name: Install Optional packages
         run: |
           set -e

@@ -57,8 +57,6 @@ jobs:
             -r requirements.txt `
             -r requirements-dev.txt `
             -e .
-          # Build and install both qiskit and qiskit-terra so that any optionals
-          # depending on `qiskit` will resolve correctly.
           pip check
       - name: Install Optional packages
         run: |
