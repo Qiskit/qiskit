@@ -69,6 +69,29 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 }
 
 /// @ingroup QkCircuit
+/// Create a copy of a ``QkCircuit``.
+///
+/// @param circuit A pointer to the circuit to copy.
+///
+/// @return A new pointer to a copy of the input ``circuit``.
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100, 100);
+///     QkCircuit *copy = qk_circuit_copy(qc);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut CircuitData {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    Box::into_raw(Box::new(circuit.clone()))
+}
+
+/// @ingroup QkCircuit
 /// Get the number of qubits the circuit contains.
 ///
 /// @param circuit A pointer to the circuit.
@@ -77,7 +100,7 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 ///
 /// # Example
 ///
-///     QkCircuit *qc = qk_circuit_new(100, 0);
+///     QkCircuit *qc = qk_circuit_new(100, 100);
 ///     uint32_t num_qubits = qk_circuit_num_qubits(qc);  // num_qubits==100
 ///
 /// # Safety
@@ -160,7 +183,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 ///
 /// # Example
 ///
-///     QkCircuit *qc = qk_circuit_new(100);
+///     QkCircuit *qc = qk_circuit_new(100, 0);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
 ///
@@ -316,7 +339,6 @@ pub unsafe extern "C" fn qk_circuit_measure(
 ///     QkCircuit *qc = qk_circuit_new(100, 0);
 ///     qk_circuit_reset(qc, 0);
 ///
-///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
@@ -345,7 +367,7 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
 ///
 /// # Example
 ///
-///     QkCircuit *qc = qk_circuit_new(100, 0);
+///     QkCircuit *qc = qk_circuit_new(100, 1);
 ///     uint32_t qubits[5] = {0, 1, 2, 3, 4};
 ///     qk_circuit_barrier(qc, qubits, 5);
 ///
@@ -409,7 +431,7 @@ pub struct OpCounts {
 ///
 /// # Example
 ///
-///     QkCircuit *qc = qk_circuit_new(100);
+///     QkCircuit *qc = qk_circuit_new(100, 0);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
 ///     QkOpCounts counts = qk_circuit_count_ops(qc);
@@ -445,7 +467,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 ///
 /// # Example
 ///
-///     QkCircuit *qc = qk_circuit_new(100);
+///     QkCircuit *qc = qk_circuit_new(100, 0);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
 ///     size_t num = qk_circuit_num_instructions(qc); // 1
@@ -667,7 +689,7 @@ pub enum QkDelayUnit {
 ///
 ///     QkCircuit *qc = qk_circuit_new(1, 0);
 ///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
-///     
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
