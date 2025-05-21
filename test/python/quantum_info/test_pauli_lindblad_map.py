@@ -1057,6 +1057,79 @@ class TestPauliLindbladMap(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, r"mismatched numbers of qubits: 5, 4"):
             pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 5))
 
+    def test_sample(self):
+
+        # test all negative rates
+        pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -1.0)])
+        probs = pauli_lindblad_map.probabilities
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": True, "X": False, "Y": False, "Z": True}
+
+        n_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.sample(n_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / n_samples - probs_dict[symbol]) < 1e-2)
+
+        # test all positive rates
+        pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -1.0)])
+        probs = pauli_lindblad_map.probabilities
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": True, "X": False, "Y": False, "Z": True}
+
+        n_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.sample(n_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / n_samples - probs_dict[symbol]) < 1e-2)
+
+        # test mix of positive and negative rates
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
+        probs = pauli_lindblad_map.probabilities
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": True, "X": True, "Y": False, "Z": False}
+
+        n_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.sample(n_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / n_samples - probs_dict[symbol]) < 1e-2)
+
 
 def canonicalize_term(pauli, indices, rate):
     # canonicalize a sparse list term by sorting by indices (which is unique as
