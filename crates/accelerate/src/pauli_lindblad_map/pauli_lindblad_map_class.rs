@@ -1324,7 +1324,7 @@ impl PyPauliLindbladMap {
 
     /// Compute the fidelity of a qubit sparse Pauli.
     ///
-    /// For a Pauli :math:`Q`, the the fidelity is with respect to the Pauli Lindblad map
+    /// For a Pauli :math:`Q`, the fidelity with respect to the Pauli Lindblad map
     /// :math:`\Lambda` is the real number :math:`f(Q)` for which :math:`\Lambda(Q) = f(Q) Q`. I.e.
     /// every Pauli is an eigenvector of the linear map :math:`\Lambda`, and the fidelity is the
     /// corresponding eigenvalue. For the set of Paulis :math:`K` in the definition of the map in
