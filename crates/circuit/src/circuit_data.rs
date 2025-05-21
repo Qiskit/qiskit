@@ -138,7 +138,7 @@ pub struct CircuitData {
 
     vars_input: HashSet<Var>,
     vars_captured: HashSet<Var>,
-    vars_declared: HashSet<Var>,
+    vars_declared: HashSet<Var>, // TODO: I would call this vars_local instead. Also in DAGCircuit
 
     param_table: ParameterTable,
     #[pyo3(get)]
@@ -1277,11 +1277,11 @@ impl CircuitData {
     ///     var: the variable to add.
     #[pyo3(name = "add_input_var")]
     fn py_add_input_var(&mut self, var: expr::Var) -> PyResult<()> {
-        if !self.vars_captured.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
-            return Err(CircuitError::new_err(
-                "cannot add inputs to a circuit with captures",
-            ));
-        }
+        // if !self.vars_captured.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+        //     return Err(CircuitError::new_err(
+        //         "cannot add inputs to a circuit with captures",
+        //     ));
+        // }
         self.add_var(var, CircuitVarType::Input)?;
         Ok(())
     }
@@ -1292,12 +1292,27 @@ impl CircuitData {
     ///     var: the variable to add.
     #[pyo3(name = "add_captured_var")]
     fn py_add_captured_var(&mut self, var: expr::Var) -> PyResult<()> {
-        if !self.vars_captured.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
-            return Err(CircuitError::new_err(
-                "cannot add inputs to a circuit with captures",
-            ));
-        }
+        // if !self.vars_input.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+        //     return Err(CircuitError::new_err(
+        //         "cannot add inputs to a circuit with captures",
+        //     ));
+        // }
         self.add_var(var, CircuitVarType::Capture)?;
+        Ok(())
+    }
+
+    /// Add an input variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
+    #[pyo3(name = "add_declared_var")]
+    fn py_add_declared_var(&mut self, var: expr::Var) -> PyResult<()> {
+        // if !self.vars_input.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+        //     return Err(CircuitError::new_err(
+        //         "cannot add inputs to a circuit with captures",
+        //     ));
+        // }
+        self.add_var(var, CircuitVarType::Declare)?;
         Ok(())
     }
 
@@ -1340,6 +1355,16 @@ impl CircuitData {
         Ok(PyList::new(py, self.get_vars(CircuitVarType::Input).map(|var| var.clone().into_pyobject(py).unwrap()))?.unbind())
     }
 
+    #[pyo3(name = "get_captured_vars")]
+    fn py_get_captured_vars(&self, py: Python) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.get_vars(CircuitVarType::Capture).map(|var| var.clone().into_pyobject(py).unwrap()))?.unbind())
+    }
+
+    #[pyo3(name = "get_declared_vars")]
+    fn py_get_declared_vars(&self, py: Python) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.get_vars(CircuitVarType::Declare).map(|var| var.clone().into_pyobject(py).unwrap()))?.unbind())
+    }
+
     /// Number of input classical variables tracked by the circuit.
     #[getter]
     fn num_input_vars(&self) -> usize {
@@ -1349,6 +1374,12 @@ impl CircuitData {
     #[getter]
     fn num_captured_vars(&self) -> usize {
         self.vars_captured.len()
+    }
+
+    #[getter]
+    fn num_declared_vars(&self) -> usize {
+        self.vars_declared.len()
+
     }
 }
 
