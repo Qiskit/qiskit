@@ -1099,7 +1099,7 @@ class QuantumCircuit:
         self._base_name = None
         self.name: str
         """A human-readable name for the circuit.
-        
+
         Example:
 
             .. plot::
@@ -1156,7 +1156,7 @@ class QuantumCircuit:
 
         # Add classical variables.  Resolve inputs and captures first because they can't depend on
         # anything, but declarations might depend on them.
-        self._vars_input: dict[str, expr.Var] = {}
+        # self._vars_input: dict[str, expr.Var] = {}
         self._vars_capture: dict[str, expr.Var] = {}
         self._vars_local: dict[str, expr.Var] = {}
         self._stretches_capture: dict[str, expr.Stretch] = {}
@@ -1177,7 +1177,7 @@ class QuantumCircuit:
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata.
-        
+
         Example:
 
             .. plot::
@@ -2189,7 +2189,7 @@ class QuantumCircuit:
                 # doesn't really work in the current data model, and we hope to replace it with
                 # `Expr`-based control-flow everywhere.
                 new_block = block.copy_empty_like()
-                new_block._vars_input = {}
+                # new_block._vars_input = {}
                 new_block._vars_capture = {}
                 new_block._vars_local = {}
                 new_block._stretches_capture = {}
@@ -2443,7 +2443,7 @@ class QuantumCircuit:
 
         This is the length of the :meth:`iter_input_vars` iterable.  If this is non-zero,
         :attr:`num_captured_vars` must be zero."""
-        return len(self._vars_input)
+        return self._data.num_input_vars
 
     @property
     def num_captured_vars(self) -> int:
@@ -2452,7 +2452,7 @@ class QuantumCircuit:
 
         This is the length of the :meth:`iter_captured_vars` iterable.  If this is non-zero,
         :attr:`num_input_vars` must be zero."""
-        return len(self._vars_capture)
+        return self._data.num_capture_vars
 
     @property
     def num_captured_stretches(self) -> int:
@@ -2488,7 +2488,7 @@ class QuantumCircuit:
             builder = self._control_flow_scopes[-1]
             return itertools.chain(builder.iter_captured_vars(), builder.iter_local_vars())
         return itertools.chain(
-            self._vars_input.values(), self._vars_capture.values(), self._vars_local.values()
+            self._data.get_input_vars(), self._vars_capture.values(), self._vars_local.values()
         )
 
     def iter_stretches(self) -> typing.Iterable[expr.Stretch]:
@@ -2524,7 +2524,7 @@ class QuantumCircuit:
         :meth:`iter_declared_vars`) and captured variables (see :meth:`iter_captured_vars`)."""
         if self._control_flow_scopes:
             return ()
-        return self._vars_input.values()
+        return self._data.get_input_vars()
 
     def iter_captures(self) -> typing.Iterable[typing.Union[expr.Var, expr.Stretch]]:
         """Get an iterable over all identifiers are captured by this circuit scope from a
@@ -2986,9 +2986,7 @@ class QuantumCircuit:
                 A similar method to this, but for compile-time :class:`.Parameter`\\ s instead of
                 run-time :class:`.expr.Var` variables.
         """
-        if isinstance(name_or_var, str):
-            return self.get_var(name_or_var, None) is not None
-        return self.get_var(name_or_var.name, None) == name_or_var
+        return self._data.has_var(name_or_var)
 
     @typing.overload
     def get_stretch(self, name: str, default: T) -> Union[expr.Stretch, T]: ...
@@ -3128,6 +3126,7 @@ class QuantumCircuit:
             return self.get_identifier(name_or_ident, None) is not None
         return self.get_identifier(name_or_ident.name, None) == name_or_ident
 
+    #TODO: move to Rust, i.e. support creating new vars based on name + type or explicit var
     def _prepare_new_var(
         self, name_or_var: str | expr.Var, type_: types.Type | None, /
     ) -> expr.Var:
@@ -3375,7 +3374,7 @@ class QuantumCircuit:
             else:
                 self._control_flow_scopes[-1].use_var(var)
             return
-        if self._vars_input:
+        if self._data.num_inputs_vars():
             raise CircuitError(
                 "circuits with input variables cannot be enclosed, so cannot be closures"
             )
@@ -3410,12 +3409,15 @@ class QuantumCircuit:
         """
         if self._control_flow_scopes:
             raise CircuitError("cannot add an input variable in a control-flow scope")
+
+        # TODO: this logic should be implemented in Rust
         if self._vars_capture or self._stretches_capture:
             raise CircuitError("circuits to be enclosed with captures cannot have input variables")
         if isinstance(name_or_var, expr.Var) and type_ is not None:
             raise ValueError("cannot give an explicit type with an existing Var")
         var = self._prepare_new_var(name_or_var, type_)
-        self._vars_input[var.name] = var
+        # self._vars_input[var.name] = var
+        self._data.add_input_var(var)
         return var
 
     def add_register(self, *regs: Register | int | Sequence[Bit]) -> None:
@@ -7467,11 +7469,12 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
         self.circuit._stretches_local.pop(stretch.name)
 
     def get_var(self, name):
-        if (out := self.circuit._vars_local.get(name)) is not None:
-            return out
-        if (out := self.circuit._vars_capture.get(name)) is not None:
-            return out
-        return self.circuit._vars_input.get(name)
+        return self.circuit._data.get_var(name)
+        # if (out := self.circuit._vars_local.get(name)) is not None:
+        #     return out
+        # if (out := self.circuit._vars_capture.get(name)) is not None:
+        #     return out
+        # return self.circuit._vars_input.get(name)
 
     def get_stretch(self, name):
         if (out := self.circuit._stretches_local.get(name)) is not None:
@@ -7518,19 +7521,19 @@ def _copy_metadata(original, cpy, vars_mode):
         # not copied.  This can leave the circuit in a potentially dangerous state for users if
         # they don't re-add initializer stores.
         cpy._vars_local = original._vars_local.copy()
-        cpy._vars_input = original._vars_input.copy()
+        # cpy._vars_input = original._vars_input.copy() # TODO: how should this be handled with CircuitData?
         cpy._vars_capture = original._vars_capture.copy()
         cpy._stretches_local = original._stretches_local.copy()
         cpy._stretches_capture = original._stretches_capture.copy()
     elif vars_mode == "captures":
         cpy._vars_local = {}
-        cpy._vars_input = {}
+        # cpy._vars_input = {} # TODO: how should this be handled with CircuitData?
         cpy._vars_capture = {var.name: var for var in original.iter_vars()}
         cpy._stretches_local = {}
         cpy._stretches_capture = {stretch.name: stretch for stretch in original.iter_stretches()}
     elif vars_mode == "drop":
         cpy._vars_local = {}
-        cpy._vars_input = {}
+        # cpy._vars_input = {} # TODO: how should this be handled with CircuitData?
         cpy._vars_capture = {}
         cpy._stretches_local = {}
         cpy._stretches_capture = {}

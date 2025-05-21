@@ -12,6 +12,7 @@
 
 use std::fmt::Debug;
 use std::hash::Hash;
+use ahash::RandomState;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -30,7 +31,8 @@ use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
-use crate::{Clbit, Qubit};
+use crate::{Clbit, Qubit, Var};
+use crate::classical::expr;
 
 use numpy::PyReadonlyArray1;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
@@ -129,10 +131,80 @@ pub struct CircuitData {
     /// Mapping between [ShareableClbit] and its locations in
     /// the circuit
     clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
+    /// Variables registered in the circuit
+    vars: ObjectRegistry<Var, expr::Var>,
+    /// Identifiers, in order of their addition to the circuit
+    identifier_info: IndexMap<String, CircuitIdentifierInfo, RandomState>,
+
+    vars_input: HashSet<Var>,
+    vars_captured: HashSet<Var>,
+    vars_declared: HashSet<Var>,
+
     param_table: ParameterTable,
     #[pyo3(get)]
     global_phase: Param,
 }
+
+#[derive(Copy, Clone, Debug)]
+enum CircuitVarType {
+    Input = 0,
+    Capture = 1,
+    Declare = 2,
+}
+
+#[derive(Clone, Debug)]
+struct CircuitVarInfo {
+    var: Var,
+    type_: CircuitVarType,
+}
+
+impl CircuitVarInfo {
+    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+        (
+            self.var.0,
+            self.type_ as u8,
+        )
+            .into_py_any(py)
+    }
+
+    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
+        let val_tuple = ob.downcast::<PyTuple>()?;
+        Ok(CircuitVarInfo {
+            var: Var(val_tuple.get_item(0)?.extract()?),
+            type_: match val_tuple.get_item(1)?.extract::<u8>()? {
+                0 => CircuitVarType::Input,
+                1 => CircuitVarType::Capture,
+                2 => CircuitVarType::Declare,
+                _ => return Err(PyValueError::new_err("Invalid var type")),
+            },
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+enum CircuitIdentifierInfo { // This is stored in identifier_info
+    Var(CircuitVarInfo),
+}
+
+impl CircuitIdentifierInfo {
+    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+        match self {
+            CircuitIdentifierInfo::Var(info) => (1, info.to_pickle(py)?).into_py_any(py),
+        }
+    }
+
+    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
+        let val_tuple = ob.downcast::<PyTuple>()?;
+        match val_tuple.get_item(0)?.extract::<u8>()? {
+            0 => Ok(CircuitIdentifierInfo::Var(CircuitVarInfo::from_pickle(
+                &val_tuple.get_item(1)?,
+            )?)),
+            _ => Err(PyValueError::new_err("Invalid identifier info type")),
+        }
+    }
+}
+
+
 
 #[pymethods]
 impl CircuitData {
@@ -157,6 +229,11 @@ impl CircuitData {
             cregs: RegisterData::new(),
             qubit_indices: BitLocator::new(),
             clbit_indices: BitLocator::new(),
+            vars: ObjectRegistry::new(),
+            identifier_info: IndexMap::default(),
+            vars_input: HashSet::new(),
+            vars_captured: HashSet::new(),
+            vars_declared: HashSet::new(),
         };
         self_.set_global_phase(global_phase)?;
         if let Some(qubits) = qubits {
@@ -1193,6 +1270,86 @@ impl CircuitData {
         }
         Ok(())
     }
+
+    /// Add an input variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
+    #[pyo3(name = "add_input_var")]
+    fn py_add_input_var(&mut self, var: expr::Var) -> PyResult<()> {
+        if !self.vars_captured.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+            return Err(CircuitError::new_err(
+                "cannot add inputs to a circuit with captures",
+            ));
+        }
+        self.add_var(var, CircuitVarType::Input)?;
+        Ok(())
+    }
+
+    /// Add an input variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
+    #[pyo3(name = "add_captured_var")]
+    fn py_add_captured_var(&mut self, var: expr::Var) -> PyResult<()> {
+        if !self.vars_captured.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+            return Err(CircuitError::new_err(
+                "cannot add inputs to a circuit with captures",
+            ));
+        }
+        self.add_var(var, CircuitVarType::Capture)?;
+        Ok(())
+    }
+
+    /// Is this realtime variable in the circuit?
+    ///
+    /// Args:
+    ///     var: the variable or name to check.
+    #[pyo3(name = "has_var")]
+    fn py_has_var(&self, var: &Bound<PyAny>) -> PyResult<bool> {
+        if let Ok(name) = var.extract::<String>() {
+            Ok(matches!(
+                self.identifier_info.get(&name),
+                Some(CircuitIdentifierInfo::Var(_))
+            ))
+        } else {
+            let var = var.extract::<expr::Var>()?;
+            let expr::Var::Standalone { name, .. } = &var else {
+                return Ok(false);
+            };
+            if let Some(CircuitIdentifierInfo::Var(info)) = self.identifier_info.get(name) {
+                return Ok(&var == self.vars.get(info.var).unwrap());
+            }
+            Ok(false)
+        }
+    }
+
+
+    #[pyo3(name="get_var")]
+    pub fn py_get_var(&self, py: Python, name: &str) -> PyResult<PyObject> {
+        if let Some(CircuitIdentifierInfo::Var(var_info)) = self.identifier_info.get(name) {
+            let var = self.vars.get(var_info.var).unwrap().clone();
+            return var.into_py_any(py);
+        }
+
+        Ok(py.None().into())
+    }
+
+    #[pyo3(name = "get_input_vars")]
+    fn py_get_input_vars(&self, py: Python) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.get_vars(CircuitVarType::Input).map(|var| var.clone().into_pyobject(py).unwrap()))?.unbind())
+    }
+
+    /// Number of input classical variables tracked by the circuit.
+    #[getter]
+    fn num_input_vars(&self) -> usize {
+        self.vars_input.len()
+    }
+
+    #[getter]
+    fn num_captured_vars(&self) -> usize {
+        self.vars_captured.len()
+    }
 }
 
 impl CircuitData {
@@ -1260,7 +1417,7 @@ impl CircuitData {
 
     /// A constructor for CircuitData from an iterator of PackedInstruction objects
     ///
-    /// This is tpically useful when iterating over a CircuitData or DAGCircuit
+    /// This is typically useful when iterating over a CircuitData or DAGCircuit
     /// to construct a new CircuitData from the iterator of PackedInstructions. As
     /// such it requires that you have `BitData` and `Interner` objects to run. If
     /// you just wish to build a circuit data from an iterator of instructions
@@ -1285,7 +1442,7 @@ impl CircuitData {
     /// * clbit_indices: The Mapping between clbit instances and their locations within
     ///   registers in the circuit.
     /// * Instructions: An iterator with items of type: `PyResult<PackedInstruction>`
-    ///   that contais the instructions to insert in iterator order to the new
+    ///   that contains the instructions to insert in iterator order to the new
     ///   CircuitData. This returns a `PyResult` to facilitate the case where
     ///   you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
     ///   of the operation while iterating for constructing the new `CircuitData`. An
@@ -1321,6 +1478,11 @@ impl CircuitData {
             cregs,
             qubit_indices,
             clbit_indices,
+            vars: ObjectRegistry::new(), // TODO: the following are just stopgaps for now. Should callers pass var info?
+            identifier_info: IndexMap::default(),
+            vars_input: HashSet::new(),
+            vars_captured: HashSet::new(),
+            vars_declared: HashSet::new(),
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -1401,6 +1563,11 @@ impl CircuitData {
             cregs: RegisterData::new(),
             qubit_indices: BitLocator::with_capacity(num_qubits as usize),
             clbit_indices: BitLocator::with_capacity(num_clbits as usize),
+            vars: ObjectRegistry::new(),
+            identifier_info: IndexMap::default(),
+            vars_input: HashSet::new(),
+            vars_captured: HashSet::new(),
+            vars_declared: HashSet::new(),
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -1931,6 +2098,11 @@ impl CircuitData {
             cregs: other.cregs.clone(),
             qubit_indices: other.qubit_indices.clone(),
             clbit_indices: other.clbit_indices.clone(),
+            vars: ObjectRegistry::new(), // TODO: the following are just stopgaps for now: should use vars? probably not, since new data might just ignore those altogether.
+            identifier_info: IndexMap::default(),
+            vars_input: HashSet::new(),
+            vars_captured: HashSet::new(),
+            vars_declared: HashSet::new(),
         };
         empty.set_global_phase(other.global_phase.clone())?;
         Ok(empty)
@@ -1957,6 +2129,62 @@ impl CircuitData {
             )),
             _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
         }
+    }
+
+    fn add_var(&mut self, var: expr::Var, type_: CircuitVarType) -> PyResult<Var> {
+        // TODO: implement logic for checking var shadowing rules in this function
+        let name = {
+            let expr::Var::Standalone { name, .. } = &var else {
+                return Err(CircuitError::new_err(
+                    "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances",
+                ));
+            };
+            name.clone()
+        };
+
+        match self.identifier_info.get(&name) {
+            Some(CircuitIdentifierInfo::Var(info)) if Some(&var) == self.vars.get(info.var) => {
+                return Err(CircuitError::new_err("already present in the circuit"));
+            }
+            Some(_) => {
+                return Err(CircuitError::new_err(
+                    "cannot add var as its name shadows an existing identifier",
+                ));
+            }
+            _ => {}
+        }
+
+        let var_idx = self.vars.add(var, true)?;
+        match type_ {
+            CircuitVarType::Input => &mut self.vars_input,
+            CircuitVarType::Capture => &mut self.vars_captured,
+            CircuitVarType::Declare => &mut self.vars_declared,
+        }
+        .insert(var_idx);
+
+        self.identifier_info.insert(
+            name,
+            CircuitIdentifierInfo::Var(CircuitVarInfo {
+                var: var_idx,
+                type_,
+            }),
+        );
+        Ok(var_idx)
+    }
+
+    fn get_vars(&self, type_: CircuitVarType) -> impl ExactSizeIterator<Item = &expr::Var> {
+        match type_ {
+            CircuitVarType::Input => &self.vars_input,
+            CircuitVarType::Capture => &self.vars_captured,
+            CircuitVarType::Declare => &self.vars_declared
+        }.iter().map(|var| self.vars.get(*var).unwrap())
+    }
+
+    /// Retrieve a variable given its unique [Var] key within the circuit.
+    ///
+    /// The provided [Var] must be from this [CircuitData]. TODO: how does it look in the docs??
+    pub fn get_var(&self, var: Var) -> Option<&expr::Var> {
+        self.vars.get(var)
     }
 }
 
