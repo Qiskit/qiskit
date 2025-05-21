@@ -599,7 +599,7 @@ pub unsafe extern "C" fn qk_parameter_compare_eq(
 ///     QkParameterExpression *b = qk_parameter_symbol("b");
 ///     QkParameterExpression *c = qk_parameter_add(a, b);
 ///     QkParameterExpression *v = qk_parameter_from_real(1.5);
-///     QkParameterExpression *t = qk_parameter_subs({b}, {v}, 1);
+///     QkParameterExpression *t = qk_parameter_subs(c, {b}, {v}, 1);
 ///
 #[no_mangle]
 #[cfg(feature = "cbinding")]
