@@ -675,9 +675,61 @@ class ParameterExpression:
             Symegine expressions in its parameters, because they do not contain the tracking
             information used in circuit-parameter binding and assignment.
         """
-        import sympy as sym
+        import sympy
 
-        return sym.sympify(self._symbol_expr.expr_for_sympy())
+        output = None
+        for inst in self._qpy_replay:
+            if isinstance(inst, _SUBS):
+                sympy_binds = {}
+                for old, new in inst.binds.items():
+                    if isinstance(new, ParameterExpression):
+                        new = new.name
+                    sympy_binds[old.name] = new
+                output = output.subs(sympy_binds, simultaneous=True)
+                continue
+
+            if isinstance(inst.lhs, ParameterExpression):
+                lhs = inst.lhs.sympify()
+            elif inst.lhs is None:
+                lhs = output
+            else:
+                lhs = inst.lhs
+
+            method_str = _OP_CODE_MAP[inst.op]
+            if inst.op in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
+                if inst.rhs is None:
+                    rhs = output
+                elif isinstance(inst.rhs, ParameterExpression):
+                    rhs = inst.rhs.sympify()
+                else:
+                    rhs = inst.rhs
+
+                if (
+                    not isinstance(lhs, sympy.Basic)
+                    and isinstance(rhs, sympy.Basic)
+                    and inst.op in [0, 2]
+                ):
+                    if inst.op == 0:
+                        method_str = "__radd__"
+                    elif inst.op == 2:
+                        method_str = "__rmul__"
+                    output = getattr(rhs, method_str)(lhs)
+                elif inst.op == _OPCode.GRAD:
+                    output = getattr(lhs, "diff")(rhs)
+                else:
+                    output = getattr(lhs, method_str)(rhs)
+            else:
+                if inst.op == _OPCode.ACOS:
+                    output = getattr(sympy, "acos")(lhs)
+                elif inst.op == _OPCode.ASIN:
+                    output = getattr(sympy, "asin")(lhs)
+                elif inst.op == _OPCode.ATAN:
+                    output = getattr(sympy, "atan")(lhs)
+                elif inst.op == _OPCode.ABS:
+                    output = getattr(sympy, "Abs")(lhs)
+                else:
+                    output = getattr(sympy, method_str)(lhs)
+        return output
 
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
