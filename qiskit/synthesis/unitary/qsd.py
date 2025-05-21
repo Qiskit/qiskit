@@ -126,6 +126,7 @@ def qs_decomposition(
         if opt_a2 is False:
             for ctrl_index in range(nqubits):
                 um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
+                # the ctrl_index is reversed here
                 if _off_diagonals_are_zero(um01, um10):
                     decirc = _demultiplex(
                         um00,
@@ -133,7 +134,7 @@ def qs_decomposition(
                         opt_a1=opt_a1,
                         opt_a2=opt_a2,
                         _depth=_depth,
-                        _ctrl_index=ctrl_index,
+                        _ctrl_index=nqubits - 1 - ctrl_index,
                     )
                     return decirc
         qr = QuantumRegister(nqubits)
@@ -164,7 +165,7 @@ def qs_decomposition(
     return circ
 
 
-def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=0):
+def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=None):
     """Decompose a generic multiplexer.
 
           ────□────
@@ -204,10 +205,9 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
     """
     dim = um0.shape[0] + um1.shape[0]  # these should be same dimension
     nqubits = dim.bit_length() - 1
-    layout = list(range(nqubits))
-    if _ctrl_index:
-        rindex = nqubits - 1 - _ctrl_index
-        layout = list(range(0, rindex)) + list(range(rindex + 1, nqubits)) + [rindex]
+    if _ctrl_index is None:
+        _ctrl_index = nqubits - 1
+    layout = list(range(0, _ctrl_index)) + list(range(_ctrl_index + 1, nqubits)) + [_ctrl_index]
 
     um0um1 = um0 @ um1.T.conjugate()
     if is_hermitian_matrix(um0um1):
