@@ -66,7 +66,7 @@ class QuadraticForm(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="2.0",
+        since="2.1",
         additional_msg="Use the QuadraticFormGate instead.",
         removal_timeline="Qiskit 3.0",
     )

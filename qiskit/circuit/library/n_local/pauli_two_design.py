@@ -170,8 +170,9 @@ class PauliTwoDesign(TwoLocal):
     """
 
     @deprecate_func(
-        since="1.4",
+        since="2.1",
         additional_msg="Use the function qiskit.circuit.library.pauli_two_design instead.",
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,

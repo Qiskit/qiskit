@@ -194,7 +194,7 @@ class EfficientSU2(TwoLocal):
     """
 
     @deprecate_func(
-        since="1.4",
+        since="2.1",
         additional_msg="Use the function qiskit.circuit.library.efficient_su2 instead.",
         removal_timeline="in Qiskit 3.0",
     )

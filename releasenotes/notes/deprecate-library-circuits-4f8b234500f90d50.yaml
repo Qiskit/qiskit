@@ -24,3 +24,6 @@ deprecations_circuits:
       * :class:`.ZZFeatureMap` ``-->`` :func:`.zz_feature_map`
       * :class:`.QuantumVolume` ``-->`` :func:`.quantum_volume`
       * :class:`.EvolvedOperatorAnsatz` ``-->`` :func:`.evolved_operator_ansatz`
+      * :class:`.MCXGrayCode` ``-->``  :func:`.synth_mcx_gray_code`
+      * :class:`.MCXRecursive` ``-->``  :func:`.synth_mcx_n_dirty_i15`
+      * :class:`.MCXVChain` ``-->`` :func:`.synth_mcx_n_clean_m15`

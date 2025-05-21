@@ -35,7 +35,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     """
 
     @deprecate_func(
-        since="2.0",
+        since="2.1",
         additional_msg="There is no direct replacement other than the QuantumCircuit class.",
         removal_timeline="in Qiskit 3.0",
     )

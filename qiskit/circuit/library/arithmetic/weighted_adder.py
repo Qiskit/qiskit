@@ -343,8 +343,7 @@ class WeightedAdder(BlueprintCircuit):
                             )
                         circuit.x(qr_sum[j])
 
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
-            self.append(circuit.to_gate(), self.qubits)
+        self.append(circuit.to_gate(), self.qubits)
 
 
 class WeightedSumGate(Gate):

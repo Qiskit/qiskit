@@ -309,7 +309,7 @@ class NLocal(BlueprintCircuit):
     """
 
     @deprecate_func(
-        since="1.4",
+        since="2.1",
         additional_msg="This applies to NLocal subclasses too. Use the corresponding function "
         "from the module qiskit.circuit.library.n_local instead.",
         removal_timeline="in Qiskit 3.0",
