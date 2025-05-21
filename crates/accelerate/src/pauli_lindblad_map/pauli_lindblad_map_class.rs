@@ -1322,13 +1322,13 @@ impl PyPauliLindbladMap {
         composed.into_pyobject(py)
     }
 
-    /// Compute the fidelity of a qubit sparse Pauli.
+    /// Compute the Pauli fidelity of this map for a qubit sparse Pauli.
     ///
     /// For a Pauli :math:`Q`, the fidelity with respect to the Pauli Lindblad map
     /// :math:`\Lambda` is the real number :math:`f(Q)` for which :math:`\Lambda(Q) = f(Q) Q`. I.e.
     /// every Pauli is an eigenvector of the linear map :math:`\Lambda`, and the fidelity is the
-    /// corresponding eigenvalue. For the set of Paulis :math:`K` in the definition of the map in
-    /// the class documentation, the fidelity mathematically is
+    /// corresponding eigenvalue. For a Pauli Lindblad map with generator set :math:`K` and rate
+    /// function :math:`\lambda : K \rightarrow \mathbb{R}`, the pauli fidelity mathematically is
     ///
     /// .. math::
     ///     
@@ -1337,8 +1337,8 @@ impl PyPauliLindbladMap {
     /// where :math:`\langle P, Q\rangle_{sp}` is :math:`0` if :math:`P` and :math:`Q` commute, and
     /// :math:`1` if they anti-commute.
     ///
-    /// Args: qubit_sparse_pauli (QubitSparsePauli): the qubit sparse Pauli to compute the fidelity
-    ///     of.
+    /// Args: qubit_sparse_pauli (QubitSparsePauli): the qubit sparse Pauli to compute the Pauli 
+    ///     fidelity of.
     fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let result = inner.pauli_fidelity(qubit_sparse_pauli.inner)?;
