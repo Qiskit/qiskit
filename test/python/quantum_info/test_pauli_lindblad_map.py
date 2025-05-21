@@ -676,22 +676,22 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
         w = 0.5 * (1 + np.exp(-2 * 1.0))
-        self.assertEqual(w, pauli_lindblad_map.probabilities[0])
-        self.assertEqual(1.0, pauli_lindblad_map.gamma)
+        self.assertTrue(np.allclose(w, pauli_lindblad_map.probabilities[0]))
+        self.assertTrue(np.allclose(1.0, pauli_lindblad_map.gamma))
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -1.0)])
         w = 0.5 * (1 + np.exp(-2 * -1.0))
         gamma = w + np.abs(1 - w)
         prob = w / gamma
-        self.assertEqual(prob, pauli_lindblad_map.probabilities[0])
-        self.assertEqual(gamma, pauli_lindblad_map.gamma)
+        self.assertTrue(np.allclose(prob, pauli_lindblad_map.probabilities[0]))
+        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.gamma))
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
         w = 0.5 * (1 + np.exp(-2 * -0.5))
         gamma = w + np.abs(1 - w)
         prob = w / gamma
-        self.assertEqual(prob, pauli_lindblad_map.probabilities[0])
-        self.assertEqual(gamma, pauli_lindblad_map.gamma)
+        self.assertTrue(np.allclose(prob, pauli_lindblad_map.probabilities[0]))
+        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.gamma))
 
         pauli_lindblad_map = PauliLindbladMap(
             [("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)]
@@ -702,7 +702,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         probs = w / gammas
         gamma = np.prod(gammas)
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
-        self.assertEqual(gamma, pauli_lindblad_map.gamma)
+        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.gamma))
 
 
 def canonicalize_term(pauli, indices, rate):
