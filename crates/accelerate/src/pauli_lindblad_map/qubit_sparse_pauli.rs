@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashSet;
+
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
@@ -448,6 +450,78 @@ impl QubitSparsePauliList {
         self.indices.extend_from_slice(term.indices);
         self.boundaries.push(self.paulis.len());
         Ok(())
+    }
+
+    /// Relabel the `indices` in the map to new values.
+    ///
+    /// This fails if any of the new indices are too large, or if any mapping would cause a term to
+    /// contain duplicates of the same index.  It may not detect if multiple qubits are mapped to
+    /// the same index, if those qubits never appear together in the same term.  Such a mapping
+    /// would not cause data-coherence problems (the output map will be valid), but is
+    /// unlikely to be what you intended.
+    ///
+    /// *Panics* if `new_qubits` is not long enough to map every index used in the map.
+    pub fn relabel_qubits_from_slice(&mut self, new_qubits: &[u32]) -> Result<(), CoherenceError> {
+        for qubit in new_qubits {
+            if *qubit >= self.num_qubits {
+                return Err(CoherenceError::BitIndexTooHigh);
+            }
+        }
+        let mut order = btree_map::BTreeMap::new();
+        for i in 0..self.num_terms() {
+            let start = self.boundaries[i];
+            let end = self.boundaries[i + 1];
+            for j in start..end {
+                order.insert(new_qubits[self.indices[j] as usize], self.paulis[j]);
+            }
+            if order.len() != end - start {
+                return Err(CoherenceError::DuplicateIndices);
+            }
+            for (index, dest) in order.keys().zip(&mut self.indices[start..end]) {
+                *dest = *index;
+            }
+            for (pauli, dest) in order.values().zip(&mut self.paulis[start..end]) {
+                *dest = *pauli;
+            }
+            order.clear();
+        }
+        Ok(())
+    }
+
+    /// Apply a transpiler layout.
+    pub fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        match layout {
+            None => {
+                let mut out = self.clone();
+                if num_qubits < self.num_qubits {
+                    return Err(CoherenceError::NotEnoughQubits {
+                        current: self.num_qubits as usize,
+                        target: num_qubits as usize,
+                    });
+                }
+                out.num_qubits = num_qubits;
+                Ok(out)
+            }
+            Some(layout) => {
+                if layout.len() < self.num_qubits as usize {
+                    return Err(CoherenceError::IndexMapTooSmall);
+                }
+                if layout.iter().any(|qubit| *qubit >= num_qubits) {
+                    return Err(CoherenceError::BitIndexTooHigh);
+                }
+                if layout.iter().collect::<HashSet<_>>().len() != layout.len() {
+                    return Err(CoherenceError::DuplicateIndices);
+                }
+                let mut out = self.clone();
+                out.num_qubits = num_qubits;
+                out.relabel_qubits_from_slice(layout)?;
+                Ok(out)
+            }
+        }
     }
 }
 
@@ -1938,6 +2012,69 @@ impl PyQubitSparsePauliList {
             out.append(to_py_tuple(view)?)?;
         }
         Ok(out.unbind())
+    }
+
+    /// Apply a transpiler layout to this qubit sparse Pauli list.
+    ///
+    /// This enables remapping of qubit indices, e.g. if the map is defined in terms of virtual
+    /// qubit labels.
+    ///
+    /// Args:
+    ///     layout (TranspileLayout | list[int] | None): The layout to apply.  Most uses of this
+    ///         function should pass the :attr:`.QuantumCircuit.layout` field from a circuit that
+    ///         was transpiled for hardware.  In addition, you can pass a list of new qubit indices.
+    ///         If given as explicitly ``None``, no remapping is applied (but you can still use
+    ///         ``num_qubits`` to expand the map).
+    ///     num_qubits (int | None): The number of qubits to expand the map to.  If not
+    ///         supplied, the output will be as wide as the given :class:`.TranspileLayout`, or the
+    ///         same width as the input if the ``layout`` is given in another form.
+    ///
+    /// Returns:
+    ///     A new :class:`PauliLindbladMap` with the provided layout applied.
+    #[pyo3(signature = (/, layout, num_qubits=None))]
+    fn apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+        let py = layout.py();
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        // A utility to check the number of qubits is compatible with the map.
+        let check_inferred_qubits = |inferred: u32| -> PyResult<u32> {
+            if inferred < inner.num_qubits() {
+                return Err(CoherenceError::NotEnoughQubits {
+                    current: inner.num_qubits() as usize,
+                    target: inferred as usize,
+                }
+                .into());
+            }
+            Ok(inferred)
+        };
+
+        // Normalize the number of qubits in the layout and the layout itself, depending on the
+        // input types, before calling PauliLindbladMap.apply_layout to do the actual work.
+        let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
+            (num_qubits.unwrap_or(inner.num_qubits()), None)
+        } else if layout.is_instance(
+            &py.import(intern!(py, "qiskit.transpiler"))?
+                .getattr(intern!(py, "TranspileLayout"))?,
+        )? {
+            (
+                check_inferred_qubits(
+                    layout.getattr(intern!(py, "_output_qubit_list"))?.len()? as u32
+                )?,
+                Some(
+                    layout
+                        .call_method0(intern!(py, "final_index_layout"))?
+                        .extract::<Vec<u32>>()?,
+                ),
+            )
+        } else {
+            (
+                check_inferred_qubits(num_qubits.unwrap_or(inner.num_qubits()))?,
+                Some(layout.extract()?),
+            )
+        };
+
+        let out = inner.apply_layout(layout.as_deref(), num_qubits)?;
+        Ok(out.into())
     }
 
     fn __len__(&self) -> PyResult<usize> {
