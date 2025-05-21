@@ -337,10 +337,10 @@ impl ParameterExpression {
     }
 
     // return merged set of parameter symbils in 2 parameters
-    fn merge_parameter_symbols(
-        &self,
-        other: &ParameterExpression,
-    ) -> Option<HashSet<Arc<ParameterExpression>>> {
+    fn merge_parameter_symbols<'a>(
+        &'a self,
+        other: &'a ParameterExpression,
+    ) -> Option<HashSet<&'a ParameterExpression>> {
         let mut ret: HashSet<Arc<ParameterExpression>> = match &self.parameter_symbols {
             Some(s) => s.clone(),
             None => match self.expr {
