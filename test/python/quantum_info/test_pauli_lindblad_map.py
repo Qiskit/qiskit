@@ -1056,6 +1056,7 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         with self.assertRaisesRegex(ValueError, r"mismatched numbers of qubits: 5, 4"):
             pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 5))
+
     def test_sample(self):
 
         # test all negative rates

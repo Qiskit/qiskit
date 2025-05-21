@@ -418,20 +418,17 @@ impl PauliLindbladMap {
             let mut random_pauli =
                 QubitSparsePauli::new(self.num_qubits(), Box::new([]), Box::new([]))?;
 
-            for ((p, generator), nnr) in self
+            for ((probability, generator), non_negative_rate) in self
                 .probabilities
                 .iter()
                 .zip(self.qubit_sparse_pauli_list.iter())
                 .zip(self.non_negative_rates.iter())
             {
-                let dist = Bernoulli::new(*p).unwrap();
-                let apply_pauli = !dist.sample(&mut rng);
-                if apply_pauli {
+                // Sample true or false with given probability. If false, apply the Pauli
+                if !Bernoulli::new(*probability).unwrap().sample(&mut rng) {
                     random_pauli = random_pauli.compose(&generator.to_term()).unwrap();
-                    // If the Pauli is applied and the rate is negative, flip the sign
-                    if !nnr {
-                        random_sign = !random_sign;
-                    }
+                    // if rate is negative, flip random_sign
+                    random_sign = random_sign == *non_negative_rate;
                 }
             }
 
@@ -1412,7 +1409,7 @@ impl PyPauliLindbladMap {
     }
 
     /// Sample sign and Pauli operator pairs from the map. Each sign is represented by a boolean,
-    /// with True representing +1, and False representing -1.
+    /// with `True` representing `+1`, and False representing `-1`.
     ///
     /// Given the quasi-probability representation given in the class level documentation, each
     /// sample is drawn via the following process:
