@@ -600,7 +600,7 @@ int test_compose(void) {
     qk_circuit_gate(sub, QkGate_RZ, &single_qubit, &theta);
     two_qubits[0] = 0;
     two_qubits[1] = 1;
-    qk_circuit_gate(sub, QkGate_CX, &two_qubits, NULL);
+    qk_circuit_gate(sub, QkGate_CX, two_qubits, NULL);
 
     two_qubits[0] = 3;
     two_qubits[1] = 2;
