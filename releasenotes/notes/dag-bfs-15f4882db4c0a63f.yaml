@@ -1,0 +1,5 @@
+---
+features_transpiler:
+  - |
+    :meth:`.DAGCircuit.bfs_predecessors`, a counterpart to the existing
+    :meth:`.DAGCircuit.bfs_successors` is now exposed as a Python-space method on :class:`.DAGCircuit`.
