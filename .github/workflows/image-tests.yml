@@ -56,4 +56,5 @@ jobs:
           name: image-test-failure-img-diffs
           path: |
             ./test/visual/mpl/graph/graph_results
+            ./test/visual/mpl/circuit/circuit_results
           if-no-files-found: error
