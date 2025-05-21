@@ -14,7 +14,7 @@ use std::hash::Hasher;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{AsInstructionRef, CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::{Operation, Param};
 use crate::TupleLikeArg;
@@ -31,6 +31,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
+use smallvec::SmallVec;
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
 #[pyclass(module = "qiskit._accelerate.circuit", subclass)]
@@ -191,6 +192,12 @@ impl DAGOpNode {
                         param_a.bind(py).eq(param_b)?
                     }
                     [Param::Obj(param_a), Param::Obj(param_b)] => param_a.bind(py).eq(param_b)?,
+                    [Param::Circuit(param_a), Param::Circuit(param_b)] => {
+                        param_a.bind(py).eq(param_b)?
+                    }
+                    [Param::Condition(param_a), Param::Condition(param_b)] => param_a == param_b,
+                    [Param::Duration(param_a), Param::Duration(param_b)] => param_a == param_b,
+                    [Param::Target(param_a), Param::Target(param_b)] => param_a == param_b,
                     _ => false,
                 };
                 if !res {
@@ -333,8 +340,8 @@ impl DAGOpNode {
     }
 
     #[getter]
-    fn get_params(&self) -> &[Param] {
-        self.instruction.params.as_slice()
+    fn get_params(&self) -> SmallVec<[Param; 3]> {
+        self.instruction.params.clone()
     }
 
     #[setter]
@@ -344,7 +351,7 @@ impl DAGOpNode {
 
     #[getter]
     fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = self.instruction.operation.matrix(&self.instruction.params);
+        let matrix = self.instruction.view().matrix();
         matrix.map(|mat| mat.into_pyarray(py))
     }
 
@@ -387,8 +394,8 @@ impl DAGOpNode {
     #[getter]
     fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
         self.instruction
-            .operation
-            .definition(&self.instruction.params)
+            .view()
+            .definition()
             .map(|data| {
                 QUANTUM_CIRCUIT
                     .get_bound(py)

@@ -21,13 +21,20 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
-use crate::circuit_instruction::Instruction;
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY, FOR_LOOP_OP, IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP};
-use crate::interner::Interned;
-use crate::operations::{ControlFlow, ControlFlowRef, DelayUnit, InstructionRef, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate, StandardGateRef, StandardInstruction, StandardInstructionRef, UnitaryGate, UnitaryGateRef};
-use crate::{Clbit, Qubit};
+use crate::circuit_instruction::Instruction;
 use crate::duration::Duration;
+use crate::imports::{
+    get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY,
+    FOR_LOOP_OP, IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
+};
+use crate::interner::Interned;
+use crate::operations::{
+    ControlFlow, ControlFlowRef, DelayUnit, InstructionRef, Operation, OperationRef, Param, PyGate,
+    PyInstruction, PyOperation, StandardGate, StandardGateRef, StandardInstruction,
+    StandardInstructionRef, UnitaryGate, UnitaryGateRef,
+};
+use crate::{Clbit, Qubit};
 
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -253,7 +260,7 @@ mod standard_instruction {
 
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
-    use crate::operations::{PyGate, PyInstruction, PyOperation, UnitaryGate, ControlFlow};
+    use crate::operations::{ControlFlow, PyGate, PyInstruction, PyOperation, UnitaryGate};
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
 
@@ -552,13 +559,34 @@ impl PackedOperation {
         let py_op = match self.view() {
             OperationRef::ControlFlow(control_flow) => {
                 return match control_flow {
-                    ControlFlow::Box { .. } => BOX_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
-                    ControlFlow::BreakLoop { .. } => BREAK_LOOP_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
-                    ControlFlow::ContinueLoop { .. } => CONTINUE_LOOP_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
-                    ControlFlow::ForLoop { .. } => FOR_LOOP_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
-                    ControlFlow::IfElse { .. } => IF_ELSE_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
-                    ControlFlow::Switch { .. } => SWITCH_CASE_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
-                    ControlFlow::While { .. } => WHILE_LOOP_OP.get_bound(py).downcast::<PyType>()?.is_subclass(py_type),
+                    ControlFlow::Box { .. } => BOX_OP
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    ControlFlow::BreakLoop { .. } => BREAK_LOOP_OP
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    ControlFlow::ContinueLoop { .. } => CONTINUE_LOOP_OP
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    ControlFlow::ForLoop { .. } => FOR_LOOP_OP
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    ControlFlow::IfElse { .. } => IF_ELSE_OP
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    ControlFlow::Switch { .. } => SWITCH_CASE_OP
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
+                    ControlFlow::While { .. } => WHILE_LOOP_OP
+                        .get_bound(py)
+                        .downcast::<PyType>()?
+                        .is_subclass(py_type),
                 }
             }
             OperationRef::StandardGate(standard) => {
@@ -652,7 +680,9 @@ impl Operation for PackedOperation {
 impl Clone for PackedOperation {
     fn clone(&self) -> Self {
         match self.view() {
-            OperationRef::ControlFlow(control_flow) => Self::from_control_flow(Box::new(control_flow.clone())),
+            OperationRef::ControlFlow(control_flow) => {
+                Self::from_control_flow(Box::new(control_flow.clone()))
+            }
             OperationRef::StandardGate(standard) => Self::from_standard_gate(standard),
             OperationRef::StandardInstruction(instruction) => {
                 Self::from_standard_instruction(instruction)
@@ -742,6 +772,11 @@ impl Instruction for PackedInstruction {
     fn label(&self) -> Option<&str> {
         self.label.as_ref().map(|label| label.as_str())
     }
+
+    #[cfg(feature = "cache_pygates")]
+    fn py_op(&self) -> &OnceLock<Py<PyAny>> {
+        &self.py_op
+    }
 }
 
 impl PackedInstruction {
@@ -757,34 +792,5 @@ impl PackedInstruction {
         self.params_view()
             .iter()
             .any(|x| matches!(x, Param::ParameterExpression(_)))
-    }
-
-    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
-    /// instruction.  This may construct the reference if the `DataInstruction` is a standard
-    /// gate or instruction with no already stored operation.
-    ///
-    /// A standard-gate or standard-instruction operation object returned by this function is
-    /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
-    /// and condition will not be propagated back.
-    pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
-        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
-        // Python interpreter as this one does, since that can allow CPython to freeze the thread
-        // and for another to attempt the initialisation.
-        #[cfg(feature = "cache_pygates")]
-        {
-            if let Some(ob) = self.py_op.get() {
-                return Ok(ob.clone_ref(py));
-            }
-        }
-        let out = self.create_py_op(py)?;
-        #[cfg(feature = "cache_pygates")]
-        {
-            // The unpacking operation can cause a thread pause and concurrency, since it can call
-            // interpreted Python code for a standard gate, so we need to take care that some other
-            // Python thread might have populated the cache before we do.
-            let _ = self.py_op.set(out.clone_ref(py));
-        }
-        Ok(out)
     }
 }

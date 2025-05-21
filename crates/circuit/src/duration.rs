@@ -39,7 +39,7 @@ use pyo3::PyTypeInfo;
 ///   else:
 ///       raise ValueError("expected dt or seconds")
 #[pyclass(eq, module = "qiskit._accelerate.circuit")]
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug, IntoPyObjectRef)]
 #[allow(non_camel_case_types)]
 pub enum Duration {
     dt(i64),

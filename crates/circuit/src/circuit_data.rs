@@ -20,7 +20,7 @@ use crate::bit::{
     ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{CircuitInstruction, Instruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
@@ -1135,7 +1135,7 @@ impl CircuitData {
                 self.global_phase = angle;
                 Ok(())
             }),
-            Param::Obj(_) => Err(PyTypeError::new_err("invalid type for global phase")),
+            _ => Err(PyTypeError::new_err("invalid type for global phase")),
         }
     }
 
@@ -1709,7 +1709,8 @@ impl CircuitData {
                          value: &Param,
                          coerce: bool|
          -> PyResult<Param> {
-            let new_expr = expr.call_method1(assign_attr, (param_ob, value.into_py_any(py)?))?;
+            let new_expr =
+                expr.call_method1(assign_attr, (param_ob, value.clone().into_py_any(py)?))?;
             if new_expr.getattr(parameters_attr)?.len()? == 0 {
                 let out = new_expr.call_method0(numeric_attr)?;
                 if coerce {
@@ -1820,21 +1821,25 @@ impl CircuitData {
                                         )?)?,
                                     }
                                 }
-                                Param::Obj(obj) => {
-                                    let obj = obj.bind_borrowed(py);
-                                    if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                                        return Err(inconsistent());
-                                    }
-                                    Param::extract_no_coerce(
-                                        &obj.call_method(
-                                            assign_parameters_attr,
-                                            ([(&param_ob, value.as_ref())].into_py_dict(py)?,),
-                                            Some(
-                                                &[("inplace", false), ("flat_input", true)]
-                                                    .into_py_dict(py)?,
-                                            ),
-                                        )?,
-                                    )?
+                                Param::Circuit(block) => {
+                                    // let obj = obj.bind_borrowed(py);
+                                    // if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                                    //     return Err(inconsistent());
+                                    // }
+                                    // Param::extract_no_coerce(
+                                    //     &obj.call_method(
+                                    //         assign_parameters_attr,
+                                    //         ([(&param_ob, value.as_ref())].into_py_dict(py)?,),
+                                    //         Some(
+                                    //             &[("inplace", false), ("flat_input", true)]
+                                    //                 .into_py_dict(py)?,
+                                    //         ),
+                                    //     )?,
+                                    // )?
+                                    todo!()
+                                }
+                                _ => {
+                                    return Err(inconsistent());
                                 }
                             };
                             op.getattr(params_attr)?.set_item(parameter, new_param)?;

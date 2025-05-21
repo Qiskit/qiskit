@@ -114,23 +114,12 @@ pub fn dag_to_circuit(
             };
             if copy_operations {
                 let op = instr.op.py_deepcopy(py, None)?;
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(
-                        instr
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                let instr = instr.clone();
+                let mut packed = instr.into_packed();
+                packed.op = op;
+                Ok(packed)
             } else {
-                Ok(instr.clone())
+                Ok(instr.clone().into_packed())
             }
         }),
         dag.get_global_phase(),
