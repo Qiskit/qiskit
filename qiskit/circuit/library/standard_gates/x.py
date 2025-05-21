@@ -1232,8 +1232,7 @@ class MCXGate(ControlledGate):
                     warnings.filterwarnings(
                         "ignore",
                         category=DeprecationWarning,
-                        # message=r".+qiskit\.circuit\.library\.standard_gates\.x\.",
-                        # module="qiskit",
+                        module="qiskit",
                     )
                     gate = self.__class__(
                         self.num_ctrl_qubits + num_ctrl_qubits,
