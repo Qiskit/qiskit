@@ -19,7 +19,7 @@ extern crate cbindgen;
 fn generate_version_header() {
     //Reading the version string from the VERSION.txt file.
     let version_file_path = "../../qiskit/VERSION.txt";
-    let version_h_file_path = "../../dist/c/include/version.h";
+    let version_h_file_path = "./version.h";
     let qiskit_version = fs::read_to_string(version_file_path)
         .expect("Failed to read VERSION.txt file!")
         .trim()

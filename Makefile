@@ -105,6 +105,7 @@ C_LIB_CARGO_PATH=$(C_CARGO_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
 
 C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
 C_LIBQISKIT=$(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
+C_VERSION_H=$(C_DIR_INCLUDE)/version.h
 
 # Run clang-format (does not apply any changes)
 cformat:
@@ -133,14 +134,18 @@ $(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH)
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
 
+$(C_VERSION_H): $(C_DIR_INCLUDE)
+	cp crates/cext/version.h $(C_DIR_INCLUDE)/version.h
+
 .PHONY: c cheader
-cheader: $(C_QISKIT_H)
-c: $(C_LIBQISKIT) $(C_QISKIT_H)
+cheader: $(C_QISKIT_H) $(C_VERSION_H)
+c: $(C_LIBQISKIT) $(C_QISKIT_H) $(C_VERSION_H)
 
 # Use ctest to run C API tests
 ctest: $(C_DIR_INCLUDE)
 	cargo rustc --crate-type cdylib -p qiskit-cext
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
+
 	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
 
 	# -S specifically specifies the source path to be the current folder
