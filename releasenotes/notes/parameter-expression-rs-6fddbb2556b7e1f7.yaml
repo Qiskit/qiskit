@@ -23,7 +23,7 @@ upgrade:
     objects has been removed. It has been replaced by a internal symbolic engine and is no
     longer required for core functionality in Qiskit. The only exception is that symengine
     was embedded into QPY formats 10, 11, and 12 so it is still required if you are
-    deserializing those formats. The depdency on symengine for :func:`.qpy.load` was made
+    deserializing those formats. The dependency on symengine for :func:`.qpy.load` was made
     explicitly optional in 2.0.0, but if you were previously relying on symengine getting
     installed by default for this functionality you will now need to manually install it
     to load the payload.
