@@ -72,8 +72,8 @@ from qiskit.circuit.library import (
     MCU1Gate,
     MCXGate,
     MCXGrayCode,
-    MCXVChain,
     MCXRecursive,
+    MCXVChain,
     C3XGate,
     C3SXGate,
     C4XGate,
@@ -85,13 +85,6 @@ from qiskit.circuit.library import (
     MCMTGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.synthesis.multi_controlled import (
-    synth_mcx_n_dirty_i15,
-    synth_mcx_n_clean_m15,
-    synth_mcx_1_clean_b95,
-    synth_mcx_gray_code,
-    synth_mcx_noaux_v24,
-)
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu2_real_diagonal
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -722,8 +715,7 @@ class TestControlledGate(QiskitTestCase):
         """Test an MCXGrayCode yields explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
         with self.assertWarns(DeprecationWarning):
-            mcx = MCXGrayCode(num_ctrl_qubits)
-        qc.append(mcx, list(range(qc.num_qubits)), [])
+            qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
         self.assertEqual(qc[0].operation.base_class, explicit[num_ctrl_qubits])
 
@@ -733,49 +725,56 @@ class TestControlledGate(QiskitTestCase):
         reference = np.zeros(2 ** (num_ctrl_qubits + 1))
         reference[-1] = 1
 
-        for synth_circuit in [
-            synth_mcx_n_dirty_i15(num_ctrl_qubits),
-            synth_mcx_n_clean_m15(num_ctrl_qubits),
-            synth_mcx_1_clean_b95(num_ctrl_qubits),
-            synth_mcx_gray_code(num_ctrl_qubits),
-            synth_mcx_noaux_v24(num_ctrl_qubits),
-        ]:
-            with self.subTest(synth_circuit_name=synth_circuit.name):
-                circuit = QuantumCircuit(synth_circuit.num_qubits)
+        with self.assertWarns(DeprecationWarning):
+            gates = [
+                MCXGrayCode(num_ctrl_qubits),
+                MCXRecursive(num_ctrl_qubits),
+                MCXVChain(num_ctrl_qubits, False),
+                MCXVChain(num_ctrl_qubits, True),
+            ]
+        for gate in gates:
+            with self.subTest(gate=gate):
+                circuit = QuantumCircuit(gate.num_qubits)
                 if num_ctrl_qubits > 0:
                     circuit.x(list(range(num_ctrl_qubits)))
-                circuit.compose(synth_circuit, inplace=True)
+                circuit.append(gate, list(range(gate.num_qubits)), [])
                 statevector = Statevector(circuit).data
 
                 # account for ancillas
-                num_ancillas = synth_circuit.num_qubits - num_ctrl_qubits - 1
-                if num_ancillas > 0:
+                if isinstance(gate, MCXGate):
+                    with self.assertWarns(DeprecationWarning):
+                        num_ancilla_qubits = gate.get_num_ancilla_qubits(gate.num_ctrl_qubits)
+                else:
+                    num_ancilla_qubits = 0
+                if num_ancilla_qubits > 0:
                     corrected = np.zeros(2 ** (num_ctrl_qubits + 1), dtype=complex)
                     for i, statevector_amplitude in enumerate(statevector):
-                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[num_ancillas:], 2)
+                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[num_ancilla_qubits:], 2)
                         corrected[i] += statevector_amplitude
                     statevector = corrected
                 np.testing.assert_array_almost_equal(statevector.real, reference)
 
     def test_mcxvchain_dirty_ancilla_action_only(self):
-        """Test the n_dirty_i15 mcx (former v-chain) with dirty auxiliary qubits
+        """Test the v-chain mcx with dirty auxiliary qubits
         with gate cancelling with mirrored circuit."""
+
         num_ctrl_qubits = 5
 
-        without_cancelling = synth_mcx_n_dirty_i15(num_ctrl_qubits, action_only=False)
-        with_cancelling = synth_mcx_n_dirty_i15(num_ctrl_qubits, action_only=True)
+        with self.assertWarns(DeprecationWarning):
+            gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+            gate_with_cancelling = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, action_only=True)
 
-        num_qubits = with_cancelling.num_qubits
+        num_qubits = gate.num_qubits
         ref_circuit = QuantumCircuit(num_qubits)
         circuit = QuantumCircuit(num_qubits)
 
-        ref_circuit.compose(without_cancelling, inplace=True)
+        ref_circuit.append(gate, list(range(num_qubits)), [])
         ref_circuit.h(num_ctrl_qubits)
-        ref_circuit.compose(without_cancelling, inplace=True)
+        ref_circuit.append(gate, list(range(num_qubits)), [])
 
-        circuit.compose(with_cancelling, inplace=True)
+        circuit.append(gate_with_cancelling, list(range(num_qubits)), [])
         circuit.h(num_ctrl_qubits)
-        circuit.compose(with_cancelling, inplace=True)
+        circuit.append(gate_with_cancelling.inverse(), list(range(num_qubits)), [])
 
         self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
 
@@ -784,21 +783,23 @@ class TestControlledGate(QiskitTestCase):
         with only relative phase Toffoli gates."""
         num_ctrl_qubits = 5
 
-        rel_phase_false = synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase=False)
-        rel_phase_true = synth_mcx_n_dirty_i15(num_ctrl_qubits, relative_phase=True)
+        with self.assertWarns(DeprecationWarning):
+            gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+            gate_relative_phase = MCXVChain(
+                num_ctrl_qubits, dirty_ancillas=True, relative_phase=True
+            )
 
-        num_qubits = rel_phase_false.num_qubits + 1
-
+        num_qubits = gate.num_qubits + 1
         ref_circuit = QuantumCircuit(num_qubits)
         circuit = QuantumCircuit(num_qubits)
 
-        ref_circuit.compose(rel_phase_false, inplace=True)
+        ref_circuit.append(gate, list(range(num_qubits - 1)), [])
         ref_circuit.h(num_qubits - 1)
-        ref_circuit.compose(rel_phase_false, inplace=True)
+        ref_circuit.append(gate, list(range(num_qubits - 1)), [])
 
-        ref_circuit.compose(rel_phase_true, inplace=True)
-        ref_circuit.h(num_qubits - 1)
-        ref_circuit.compose(rel_phase_true, inplace=True)
+        circuit.append(gate_relative_phase, list(range(num_qubits - 1)), [])
+        circuit.h(num_qubits - 1)
+        circuit.append(gate_relative_phase.inverse(), list(range(num_qubits - 1)), [])
 
         self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
 
@@ -1610,8 +1611,6 @@ class TestControlledStandardGates(QiskitTestCase):
             args[0] = 2
         elif gate_class in [MCU1Gate, MCPhaseGate]:
             args[1] = 2
-        elif gate_class in [MCXVChain, MCXRecursive]:
-            self.skipTest("No check for gates with auxiliary qubits.")
         elif issubclass(gate_class, MCXGate):
             args = [5]
         else:
@@ -1620,14 +1619,13 @@ class TestControlledStandardGates(QiskitTestCase):
                 if gate_params[i] == "num_ctrl_qubits":
                     args[i] = 2
 
-        if gate_class == MCXGrayCode:
-            with self.assertWarns(DeprecationWarning):
-                gate = gate_class(*args)
-        else:
-            gate = gate_class(*args)
+        gate = gate_class(*args)
 
         for ctrl_state in (ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed):
             with self.subTest(i=f"{gate_class.__name__}, ctrl_state={ctrl_state}"):
+                if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
+                    # skip matrices that include ancilla qubits
+                    continue
                 try:
                     cgate = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state)
                 except (AttributeError, QiskitError):
