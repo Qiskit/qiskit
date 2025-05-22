@@ -139,3 +139,10 @@ jobs:
           ls | grep -P "^\d" | xargs -d "\n" rm -f
           popd
           cp -r /tmp/terra-tests/.stestr .
+      - name: Copy and Publish images
+        uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: copied-images
+          path: "**/*.png"
+          if-no-files-found: error
