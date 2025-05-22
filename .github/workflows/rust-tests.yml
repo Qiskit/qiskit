@@ -19,11 +19,6 @@ jobs:
     name: Tests-Rust-${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
-    env:
-      QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-      PIP_CACHE_DIR: ${{ github.workspace }}/.pip
-      QISKIT_TEST_CAPTURE_STREAMS: 1
-      HAVE_VISUAL_TESTS_RUN: false
     strategy:
       fail-fast: false
     steps:
@@ -38,8 +33,6 @@ jobs:
           set -e
           python -m pip install -c constraints.txt -e .
       - name: Run Rust Tests
-        # Note that we use the virtual env with Qiskit installed to run the Rust
-        # tests since some of them still depend on Qiskit's Python API via PyO3.
         run: |
           python tools/report_numpy_state.py
           python tools/run_cargo_test.py
