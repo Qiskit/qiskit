@@ -80,7 +80,7 @@ jobs:
         run: |
           set -e
           pushd .stestr
-          ls | grep -P "^\d" | xargs -d "\n" rm -f
+          ls | perl -nle"print if m{^\d}" | xargs -d "\n" rm -f
           popd
           cp -r .stestr .
       - name: Copy and Publish images
