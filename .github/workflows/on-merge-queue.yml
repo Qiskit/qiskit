@@ -56,10 +56,7 @@ jobs:
   test-windows:
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-windows.yml
-    strategy:
-      matrix:
-        runner: ["windows-latest"]
     with:
       python-version: "3.13"
       install-optionals: false
-      runner: ${{ matrix.runner }}
+      runner: windows-latest
