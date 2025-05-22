@@ -654,7 +654,6 @@ cleanup:
 int test_circuit_compose(void) {
     QkCircuit *qc = qk_circuit_new(4, 4);
     QkCircuit *sub = qk_circuit_new(2, 2);
-    QkCircuit *composed;
     int result = Ok;
     uint32_t single_qubit;
     uint32_t two_qubits[2];
@@ -673,16 +672,16 @@ int test_circuit_compose(void) {
 
     two_qubits[0] = 3;
     two_qubits[1] = 2;
-    composed = qk_circuit_compose(qc, sub, two_qubits, two_qubits, false, false);
+    qk_circuit_compose(qc, sub, two_qubits, two_qubits);
 
     // check composed circuit
     {
         int i, j, nops;
         char *out_ops[4] = {"h", "x", "rz", "cx"};
         uint32_t out_qubits[4][2] = {{0, 0}, {1, 0}, {3, 0}, {3, 2}};
-        nops = qk_circuit_num_instructions(composed);
+        nops = qk_circuit_num_instructions(qc);
         for (i = 0; i < nops; i++) {
-            QkCircuitInstruction op = qk_circuit_get_instruction(composed, i);
+            QkCircuitInstruction op = qk_circuit_get_instruction(qc, i);
             result = strcmp(op.name, out_ops[i]);
             for (j = 0; j < op.num_qubits; j++) {
                 if (op.qubits[j] != out_qubits[i][j]) {
@@ -695,35 +694,6 @@ int test_circuit_compose(void) {
             }
         }
     }
-    qk_circuit_free(composed);
-
-    // another test for front case
-    two_qubits[0] = 3;
-    two_qubits[1] = 1;
-    composed = qk_circuit_compose(qc, sub, two_qubits, two_qubits, true, false);
-
-    // check composed circuit
-    {
-        int i, j, nops;
-        char *out_ops[4] = {"rz", "cx", "h", "x"};
-        uint32_t out_qubits[4][2] = {{3, 0}, {3, 1}, {0, 0}, {1, 0}};
-        nops = qk_circuit_num_instructions(composed);
-        for (i = 0; i < nops; i++) {
-            QkCircuitInstruction op = qk_circuit_get_instruction(composed, i);
-            result = strcmp(op.name, out_ops[i]);
-            for (j = 0; j < op.num_qubits; j++) {
-                if (op.qubits[j] != out_qubits[i][j]) {
-                    result = 1;
-                    break;
-                }
-            }
-            if (result != 0) {
-                break;
-            }
-        }
-    }
-    qk_circuit_free(composed);
-
     qk_circuit_free(qc);
     qk_circuit_free(sub);
     return result;
