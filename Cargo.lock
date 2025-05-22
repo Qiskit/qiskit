@@ -1410,7 +1410,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "ahash 0.8.11",
  "approx",
@@ -1442,7 +1442,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-cext"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "cbindgen",
  "num-complex",
@@ -1454,7 +1454,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "ahash 0.8.11",
  "approx",
@@ -1476,7 +1476,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
@@ -1488,7 +1488,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "hashbrown 0.15.2",
  "num-bigint",
@@ -1498,7 +1498,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "ahash 0.8.11",
  "hashbrown 0.15.2",
