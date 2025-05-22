@@ -210,7 +210,7 @@ def dump(
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
-    use_rust=True,
+    use_rust=False,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
