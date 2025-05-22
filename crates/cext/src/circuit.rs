@@ -749,7 +749,7 @@ pub unsafe extern "C" fn qk_circuit_compose(
     } else {
         unsafe { (0..num_qubits).map(|idx| Qubit(*qubits.add(idx))).collect() }
     };
-    let cargs_vec: Vec<Clbit> = if clbitsis_null() {
+    let cargs_vec: Vec<Clbit> = if clbits.is_null() {
         (0..target.num_clbits())
             .map(|idx| Clbit(idx as u32))
             .collect()
