@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :class:`.ConsolidateBlocks` transpiler pass where it
+    would fail to consolidate some blocks if the KAK gate selected (either
+    directly or via the target) is supercontrolled and not :class:`.CXGate`.
+    Fixed `#14413 <https://github.com/Qiskit/qiskit/issues/14413>`__

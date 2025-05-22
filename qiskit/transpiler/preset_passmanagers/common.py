@@ -51,6 +51,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.utils import deprecate_func
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -485,6 +486,71 @@ def generate_translation_passmanager(
             translator,
         ]
         fix_1q = [translator]
+    elif method == "clifford_t":
+        # The list of extended basis gates consists of the specified Clifford+T basis gates and
+        # additionally the 1q-gate "u".
+        # We set target=None to make sure extended_basis_gates is not overwritten by the target.
+        extended_basis_gates = list(basis_gates) + ["u"]
+
+        unroll = [
+            # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
+            # extended_basis_gates.
+            UnitarySynthesis(
+                basis_gates=extended_basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=None,
+            ),
+            # Use the HighLevelSynthesis pass to unroll all the remaining 1q and 2q custom
+            # gates into extended_basis_gates + the gates in the equivalence library.
+            # We set target=None to make sure extended_basis_gates is not overwritten by the target.
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=None,
+                use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=extended_basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
+            ),
+            # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
+            # In other words, this translates the gates in the equivalence library that are not
+            # in extended_basis_gates to gates in extended_basis_gates only.
+            # Note that we do not want to make any assumptions on which Clifford gates are present
+            # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
+            # a helpful error message otherwise).
+            BasisTranslator(sel, extended_basis_gates, None),
+            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
+            # gates.
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=None,
+                target=None,
+                approximation_degree=approximation_degree,
+                force_consolidate=True,
+            ),
+            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
+            # UnitarySynthesisPlugin.
+            UnitarySynthesis(
+                basis_gates=["h", "t", "tdg"],
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method="sk",
+                min_qubits=1,
+                target=None,
+            ),
+            # Finally, we use BasisTranslator to translate ["h", "t", "tdg"] to the actually
+            # specified set of basis gates.
+            BasisTranslator(sel, basis_gates, target),
+        ]
+        # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection
+        # into basis_gates.
+        translator = BasisTranslator(sel, basis_gates, target)
+        fix_1q = [translator]
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
@@ -670,3 +736,35 @@ def get_vf2_limits(
                 250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
             )
     return limits
+
+
+# Clifford+T basis, consisting of Clifford+T gate names + additional instruction names
+# that are a part of every basis
+_CLIFFORD_T_BASIS = set(_CLIFFORD_GATE_NAMES).union(
+    {"t", "tdg", "delay", "barrier", "reset", "measure"}.union(CONTROL_FLOW_OP_NAMES)
+)
+
+
+def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
+    """
+    Checks whether the given basis set can be considered as Clifford+T.
+
+    For this we require that:
+    1. The set only contains Clifford+T gates,
+    2. The set contains either T or Tdg gate or both.
+
+    In particular, these conditions guarantee that the empty basis set
+    is not considered as Clifford+T.
+    """
+
+    if target is not None:
+        basis = set(target.operation_names)
+    elif basis_gates is not None:
+        basis = set(basis_gates)
+    else:
+        basis = set()
+
+    if (basis_gates is None) or (("t" not in basis_gates) and ("tdg" not in basis_gates)):
+        return False
+
+    return basis.issubset(_CLIFFORD_T_BASIS)
