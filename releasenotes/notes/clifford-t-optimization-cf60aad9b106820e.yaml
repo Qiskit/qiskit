@@ -1,0 +1,6 @@
+---
+features_transpiler:
+  - |
+    Added a new :class:`.OptimizeCliffordT` transpiler optimization pass that
+    merges pairs of consecutive ``T``-gates into ``S``-gates and pairs of
+    consecutive ``Tdg``-gates into ``Sdg``-gates.
