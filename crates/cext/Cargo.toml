@@ -24,7 +24,6 @@ pyo3 = { workspace = true, optional = true }
 
 [build-dependencies]
 cbindgen = "0.28"
-regex = "1"
 
 [features]
 default = ["cbinding"]
