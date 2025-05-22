@@ -742,19 +742,19 @@ pub unsafe extern "C" fn qk_circuit_compose(
     let other = unsafe { const_ptr_as_ref(other) };
     let num_qubits = other.num_qubits();
     let num_clbits = other.num_clbits();
-    let qargs_vec: Vec<Qubit> = if qubits != std::ptr::null() {
-        unsafe { (0..num_qubits).map(|idx| Qubit(*qubits.add(idx))).collect() }
-    } else {
+    let qargs_vec: Vec<Qubit> = if qubits.is_null() {
         (0..target.num_qubits())
             .map(|idx| Qubit(idx as u32))
             .collect()
-    };
-    let cargs_vec: Vec<Clbit> = if clbits != std::ptr::null() {
-        unsafe { (0..num_clbits).map(|idx| Clbit(*clbits.add(idx))).collect() }
     } else {
+        unsafe { (0..num_qubits).map(|idx| Qubit(*qubits.add(idx))).collect() }
+    };
+    let cargs_vec: Vec<Clbit> = if clbitsis_null() {
         (0..target.num_clbits())
             .map(|idx| Clbit(idx as u32))
             .collect()
+    } else {
+        unsafe { (0..num_clbits).map(|idx| Clbit(*clbits.add(idx))).collect() }
     };
     match target.compose(other, &qargs_vec, &cargs_vec) {
         Ok(_) => ExitCode::Success,
