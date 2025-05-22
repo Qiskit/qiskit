@@ -1,6 +1,5 @@
 ---
-# Push to main or the stable branches.  The triggering branches also need to
-# be in the triggers at the top of this file.
+# Run on push to main or the stable branches.
 name: Push
 on:
   push:
