@@ -183,6 +183,15 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
             self.assertIn("hamiltonian", ops)
             self.assertIn("PauliEvolution", ops)
 
+    def test_sympify_is_real(self):
+        """Test converting the parameters to sympy is real."""
+        evo = evolved_operator_ansatz(SparsePauliOp(["Z"], coeffs=[1 + 0j]))
+        param = evo.parameters[0]  # get the gamma parameter
+
+        angle = evo.data[0].operation.params[0]
+        expected = (2.0 * param).sympify()
+        self.assertEqual(expected, angle.sympify())
+
 
 class TestHamiltonianVariationalAnsatz(QiskitTestCase):
     """Test the hamiltonian_variational_ansatz function.
