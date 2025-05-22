@@ -80,7 +80,7 @@ jobs:
         run: |
           set -e
           pushd .stestr
-          ls | perl -nle"print if m{^\d}" | xargs -d "\n" rm -f
+          ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
           popd
       - name: Copy and Publish images
         uses: actions/upload-artifact@v4
