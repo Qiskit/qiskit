@@ -19,8 +19,10 @@ from uuid import uuid4, UUID
 
 import qiskit._accelerate.circuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.optionals import HAS_SYMPY
 
 from .parameterexpression import ParameterExpression
+
 
 SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
 
@@ -178,3 +180,9 @@ class Parameter(ParameterExpression):
         self._name_map = None
         self._qpy_replay = []
         self._standalone_param = True
+
+    @HAS_SYMPY.require_in_call
+    def sympify(self):
+        import sympy
+
+        return sympy.Symbol(self.name)

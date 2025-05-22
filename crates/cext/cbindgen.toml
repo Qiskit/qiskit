@@ -41,7 +41,7 @@ typedef double complex QkComplex64;
 
 [parse]
 parse_deps = true
-include = ["qiskit-accelerate", "qiskit-circuit", "qiskit-transpiler"]
+include = ["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"]
 
 [enum]
 prefix_with_name = true

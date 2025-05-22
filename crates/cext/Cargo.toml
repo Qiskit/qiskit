@@ -18,7 +18,7 @@ workspace = true
 [dependencies]
 thiserror.workspace = true
 num-complex.workspace = true
-qiskit-accelerate.workspace = true
+qiskit-quantum-info.workspace = true
 qiskit-circuit.workspace = true
 qiskit-transpiler.workspace = true
 pyo3 = { workspace = true, optional = true }
@@ -26,7 +26,7 @@ indexmap.workspace = true
 ahash.workspace = true
 
 [build-dependencies]
-cbindgen = "0.28"
+cbindgen = "0.29"
 
 [features]
 default = ["cbinding"]
