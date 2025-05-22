@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
+use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
 
 /// Errors related to C input.
@@ -67,6 +68,24 @@ impl From<CInputError> for ExitCode {
             CInputError::AlignmentError => ExitCode::AlignmentError,
             CInputError::NullPointerError => ExitCode::NullPointerError,
             CInputError::IndexError => ExitCode::IndexError,
+        }
+    }
+}
+
+impl From<TargetError> for ExitCode {
+    fn from(value: TargetError) -> Self {
+        match value {
+            TargetError::InvalidKey(_) => ExitCode::TargetInvalidInstKey,
+            TargetError::AlreadyExists(_) => ExitCode::TargetInstAlreadyExists,
+            TargetError::QargsMismatch {
+                instruction: _,
+                arguments: _,
+            } => ExitCode::TargetQargMismatch,
+            TargetError::InvalidQargsKey {
+                instruction: _,
+                arguments: _,
+            } => ExitCode::TargetInvalidQargsKey,
+            _ => ExitCode::TargetError,
         }
     }
 }

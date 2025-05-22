@@ -16,7 +16,7 @@ use core::f64;
 use indexmap::IndexMap;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::PhysicalQubit;
-use qiskit_transpiler::target::{InstructionProperties, Qargs, Target, TargetError};
+use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
 
 /// @ingroup QkTarget
 /// Construct a new ``Target`` with the given number of qubits.
@@ -542,7 +542,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 
     match target.add_instruction(instruction.into(), parsed_params, None, props_map) {
         Ok(_) => ExitCode::Success,
-        Err(e) => target_error_to_error_code(e),
+        Err(e) => e.into(),
     }
 }
 
@@ -606,7 +606,7 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
         Some(InstructionProperties::new(duration, error)),
     ) {
         Ok(_) => ExitCode::Success,
-        Err(e) => target_error_to_error_code(e),
+        Err(e) => e.into(),
     }
 }
 
@@ -650,21 +650,5 @@ unsafe fn parse_qargs(qargs: *const u32, num_qubits: u32) -> Qargs {
                 .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
                 .collect()
         }
-    }
-}
-
-fn target_error_to_error_code(e: TargetError) -> ExitCode {
-    match e {
-        TargetError::InvalidKey(_) => ExitCode::TargetInvalidInstKey,
-        TargetError::AlreadyExists(_) => ExitCode::TargetInstAlreadyExists,
-        TargetError::QargsMismatch {
-            instruction: _,
-            arguments: _,
-        } => ExitCode::TargetQargMismatch,
-        TargetError::InvalidQargsKey {
-            instruction: _,
-            arguments: _,
-        } => ExitCode::TargetInvalidQargsKey,
-        _ => ExitCode::TargetError,
     }
 }
