@@ -86,8 +86,8 @@ pub(super) fn compose_transforms<'a>(
                 let nodes_to_replace = dag
                     .op_nodes(true)
                     .filter(|(_, op)| {
-                        (op.op.num_qubits() == *gate_num_qubits)
-                            && (op.op.name() == gate_name.as_str())
+                        (op.op().num_qubits() == *gate_num_qubits)
+                            && (op.op().name() == gate_name.as_str())
                     })
                     .map(|(node, op)| {
                         (
@@ -140,11 +140,11 @@ fn get_gates_num_params(
 ) -> PyResult<()> {
     for (_, inst) in dag.op_nodes(true) {
         example_gates.insert(
-            (inst.op.name().to_string(), inst.op.num_qubits()),
+            (inst.op().name().to_string(), inst.op().num_qubits()),
             inst.params_view().len(),
         );
-        if inst.op.control_flow() {
-            let blocks = inst.op.blocks();
+        if inst.op().control_flow() {
+            let blocks = inst.op().blocks();
             for block in blocks {
                 get_gates_num_params_circuit(&block, example_gates)?;
             }
@@ -163,11 +163,11 @@ fn get_gates_num_params_circuit(
 ) -> PyResult<()> {
     for inst in circuit.iter() {
         example_gates.insert(
-            (inst.op.name().to_string(), inst.op.num_qubits()),
+            (inst.op().name().to_string(), inst.op().num_qubits()),
             inst.params_view().len(),
         );
-        if inst.op.control_flow() {
-            let blocks = inst.op.blocks();
+        if inst.op().control_flow() {
+            let blocks = inst.op().blocks();
             for block in blocks {
                 get_gates_num_params_circuit(&block, example_gates)?;
             }

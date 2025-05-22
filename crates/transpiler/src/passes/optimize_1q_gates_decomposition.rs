@@ -142,9 +142,9 @@ pub fn run_optimize_1q_gates_decomposition(
                 let node = &dag[*node_index];
                 if let NodeType::Operation(inst) = node {
                     if let Some(target) = target {
-                        error *= compute_error_term_from_target(inst.op.name(), target, qubit);
+                        error *= compute_error_term_from_target(inst.op().name(), target, qubit);
                     }
-                    inst.op.matrix(inst.params_view()).unwrap()
+                    inst.op().matrix(inst.params_view()).unwrap()
                 } else {
                     unreachable!("Can only have op nodes here")
                 }
@@ -183,7 +183,7 @@ pub fn run_optimize_1q_gates_decomposition(
         if let Some(basis) = basis_gates {
             for node in &raw_run {
                 if let NodeType::Operation(inst) = &dag[*node] {
-                    if !basis.contains(inst.op.name()) {
+                    if !basis.contains(inst.op().name()) {
                         outside_basis = true;
                         break;
                     }
