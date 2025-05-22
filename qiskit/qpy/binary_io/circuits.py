@@ -1313,7 +1313,9 @@ def write_circuit(
     _write_layout(file_obj, circuit)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=False, use_rust=False):
+def read_circuit(
+    file_obj, version, metadata_deserializer=None, use_symengine=False, use_rust=False
+):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -1341,7 +1343,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
 
     if use_rust:
         return _qpy.py_read_circuit(file_obj, version, metadata_deserializer, use_symengine)
-    
+
     vectors = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)

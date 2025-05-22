@@ -29,10 +29,9 @@ pub struct QPYFormatV13 {
     pub layout: LayoutV2Pack,
 }
 
-#[binwrite]
-#[binread]
-#[derive(Debug)]
+#[binrw]
 #[brw(big)]
+#[derive(Debug)]
 pub struct CircuitHeaderV12Pack {
     #[bw(calc = circuit_name.as_bytes().len() as u16)]
     pub name_size: u16,
@@ -61,10 +60,9 @@ pub struct CircuitHeaderV12Pack {
 }
 
 // circuit instructions related
-#[binwrite]
-#[binread]
-#[derive(Debug)]
+#[binrw]
 #[brw(big)]
+#[derive(Debug)]
 pub struct CircuitInstructionV2Pack {
     #[bw(calc = gate_class_name.len() as u16)]
     pub name_size: u16,
@@ -179,6 +177,10 @@ pub enum ConditionData {
     Register(Bytes),
     Expression(GenericDataPack),
 }
+
+//most of the data here is "virtual" in the sense that is is not stored as-is
+//we use custom reader/writer to enable spreading the data to its relevant places in the qpy instruction
+//in newer versions of qpy it may be better to store all the data consecutively
 #[derive(Debug)]
 pub struct ConditionPack {
     pub key: u8,
@@ -230,73 +232,6 @@ impl ConditionPack {
         })
     }
 }
-
-// impl fmt::Debug for ConditionPack {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         f
-//         .debug_struct("ConditionPack")
-//         .field("type", &self.condition_type)
-//         .field("length", &self.condition_register_len)
-//         .field("length", &self.condition_value)
-//         .field("data", &self.condition_data)
-//         .finish()
-//     }
-// }
-// #[binread]
-// #[binwrite]
-// #[brw(big)]
-// #[derive(Debug)]
-// pub struct ConditionExpressionPack {
-//     // in expression we don't use the condition register len or condition value fields, but still need to write then (with value 0) due to the QPY format
-//     // TODO: this can be improved in a future version
-//     #[br(temp)]
-//     #[bw(calc = 0u16)]
-//     pub _condition_register_len: u16,
-//     #[br(temp)]
-//     #[bw(calc = 0i64)]
-//     pub _condition_value: i64,
-//     pub condition_expression: GenericDataPack,
-// }
-
-// #[binread]
-// #[binwrite]
-// #[brw(big)]
-// #[derive(Debug)]
-// pub struct ConditionRegisterPack {
-//     pub condition_type: u8,
-//     #[bw(calc = condition_register.len() as u16)]
-//     pub condition_register_len: u16,
-//     pub condition_value: i64,
-//     #[br(count = condition_register_len)]
-//     pub condition_register: Bytes,
-// }
-
-// pub mod condition_types {
-//     pub const NONE: u8 = 0;
-//     pub const TWO_TUPLE: u8 = 1;
-//     pub const EXPRESSION: u8 = 2;
-// }
-
-// #[binrw]
-// #[brw(big)]
-// #[derive(Debug)]
-// enum ConditionPack {
-//     // sadly, we literally need to use magic numbers and not condition_types
-//     #[br(magic = 0u8)]
-//     None(u16, i64),
-//     #[br(magic = 1u8)]
-//     Register(ConditionRegisterPack),
-//     #[br(magic = 2u8)]
-//     Expression(ConditionExpressionPack),
-// }
-// pub struct ConditionPack {
-//     pub condition_type: u8,
-//     #[bw(calc = condition_register.len() as u16)]
-//     pub condition_register_len: u16,
-//     pub condition_value: i64,
-//     #[br(count = condition_register_len)]
-//     pub condition_register: Bytes,
-// }
 
 #[binrw]
 #[brw(big)]
@@ -560,9 +495,6 @@ pub struct CalibrationsPack {
 }
 // implementations of custom read/write for the more complex data types
 
-// impl ReadEndian for QPYFormatV13 {
-//     const ENDIAN: EndianKind = EndianKind::Endian(())
-// }
 impl BinRead for QPYFormatV13 {
     type Args<'a> = ();
 
@@ -597,29 +529,6 @@ impl BinRead for QPYFormatV13 {
         })
     }
 }
-
-// impl BinWrite for QPYFormatV13 {
-//     type Args<'a> = ();
-
-//     fn write_options<W: Write + Seek>(
-//             &self,
-//             writer: &mut W,
-//             endian: Endian,
-//             args: Self::Args<'_>,
-//         ) -> BinResult<()> {
-//             self.header.write_options(writer, endian, ())?;
-//             for var in self.standalone_vars {
-//                 var.write_options(writer, endian, ())?;
-//             }
-//             self.custom_instructions.write_options(writer, endian, ());
-//             for instruction in self.instructions {
-//                 instruction.write_options(writer, endian, ());
-//             }
-//             self.calibrations.write_options(writer, endian, ());
-//             self.layout.write_options(writer, endian, ());
-//             Ok(())
-//     }
-// }
 
 fn write_string<W: Write>(
     value: &String,
