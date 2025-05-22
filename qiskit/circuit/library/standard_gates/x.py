@@ -1270,7 +1270,9 @@ class MCXGate(ControlledGate):
     def __deepcopy__(self, memo=None):
         if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, message=".+MCXVChain.+"
+                )
                 return super().__deepcopy__(memo=memo)
         return super().__deepcopy__(memo=memo)
 
