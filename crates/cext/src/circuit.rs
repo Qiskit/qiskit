@@ -771,24 +771,3 @@ pub unsafe extern "C" fn qk_circuit_compose(
     }
 }
 
-/// @ingroup QkCircuit
-/// Copy circuit
-///
-/// @param circuit A pointer to the circuit to be copied
-///
-/// @return A pointer to the copied circuit.
-///
-/// # Example
-///
-///     QkCircuit *qc = qk_circuit_new(100);
-///     QkCircuit *copied = qk_circuit_copy(qc);
-///
-/// # Safety
-///
-/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut CircuitData {
-    let circuit = unsafe { const_ptr_as_ref(circuit) };
-    Box::into_raw(Box::new(circuit.clone()))
-}
