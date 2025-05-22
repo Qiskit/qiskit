@@ -15,8 +15,8 @@ use indexmap::IndexSet;
 use ndarray::{s, ArrayView2};
 use smallvec::smallvec;
 
-use crate::synthesis::clifford::utils::{adjust_final_pauli_gates, SymplecticMatrix};
-use crate::synthesis::clifford::utils::{Clifford, CliffordGatesVec};
+use crate::clifford::utils::{adjust_final_pauli_gates, SymplecticMatrix};
+use crate::clifford::utils::{Clifford, CliffordGatesVec};
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::Qubit;
 

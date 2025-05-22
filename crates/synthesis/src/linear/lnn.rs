@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::synthesis::linear::utils::{_col_op, _row_op, _row_sum, calc_inverse_matrix_inner};
+use crate::linear::utils::{_col_op, _row_op, _row_sum, calc_inverse_matrix_inner};
 use ndarray::{Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
