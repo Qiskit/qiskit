@@ -20,7 +20,7 @@ from qiskit.circuit.exceptions import CircuitError
 from .control_flow import ControlFlowOp
 
 if typing.TYPE_CHECKING:
-    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit import QuantumCircuit, Annotation
 
 
 class BoxOp(ControlFlowOp):
@@ -40,6 +40,7 @@ class BoxOp(ControlFlowOp):
         duration: None = None,
         unit: typing.Literal["dt", "s", "ms", "us", "ns", "ps"] = "dt",
         label: str | None = None,
+        annotations: typing.Iterable[Annotation] = (),
     ):
         """
         Default constructor of :class:`BoxOp`.
@@ -56,6 +57,7 @@ class BoxOp(ControlFlowOp):
         super().__init__("box", body.num_qubits, body.num_clbits, [body], label=label)
         self.duration = duration
         self.unit = unit
+        self.annotations = list(annotations)
 
     @property
     def params(self):
@@ -107,6 +109,7 @@ class BoxOp(ControlFlowOp):
             isinstance(other, BoxOp)
             and self.duration == other.duration
             and self.unit == other.unit
+            and self.annotations == other.annotations
             and super().__eq__(other)
         )
 
@@ -117,7 +120,7 @@ class BoxContext:
     This is not part of the public interface, and should not be instantiated by users.
     """
 
-    __slots__ = ("_circuit", "_duration", "_unit", "_label")
+    __slots__ = ("_circuit", "_duration", "_unit", "_label", "_annotations")
 
     def __init__(
         self,
@@ -126,6 +129,7 @@ class BoxContext:
         duration: None = None,
         unit: typing.Literal["dt", "s", "ms", "us", "ns", "ps"] = "dt",
         label: str | None = None,
+        annotations: typing.Iterable[Annotation] = (),
     ):
         """
         Args:
@@ -138,6 +142,7 @@ class BoxContext:
         self._duration = duration
         self._unit = unit
         self._label = label
+        self._annotations = annotations
 
     def __enter__(self):
         # For a box to have the semantics of internal qubit alignment with a resolvable duration, we
@@ -156,7 +161,13 @@ class BoxContext:
         # `box` permitted.
         body = scope.build(scope.qubits(), scope.clbits())
         self._circuit.append(
-            BoxOp(body, duration=self._duration, unit=self._unit, label=self._label),
+            BoxOp(
+                body,
+                duration=self._duration,
+                unit=self._unit,
+                label=self._label,
+                annotations=self._annotations,
+            ),
             body.qubits,
             body.clbits,
         )

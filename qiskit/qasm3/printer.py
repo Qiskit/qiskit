@@ -205,6 +205,13 @@ class BasicPrinter:
     def _visit_Pragma(self, node: ast.Pragma) -> None:
         self._write_statement(f"#pragma {node.content}")
 
+    def _visit_Annotation(self, node: ast.Annotation) -> None:
+        self._start_line()
+        self.stream.write(f"@{node.namespace}")
+        if node.payload:
+            self.stream.write(f" {node.payload}")
+        self._end_line()
+
     def _visit_CalibrationGrammarDeclaration(self, node: ast.CalibrationGrammarDeclaration) -> None:
         self._write_statement(f'defcalgrammar "{node.name}"')
 
