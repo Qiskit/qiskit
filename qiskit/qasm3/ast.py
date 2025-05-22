@@ -54,6 +54,16 @@ class Pragma(ASTNode):
         self.content = content
 
 
+class Annotation(ASTNode):
+    """An annotation."""
+
+    __slots__ = ("namespace", "payload")
+
+    def __init__(self, namespace: str, payload: str):
+        self.namespace = namespace
+        self.payload = payload
+
+
 class CalibrationGrammarDeclaration(Statement):
     """
     calibrationGrammarDeclaration
@@ -701,15 +711,19 @@ class WhileLoopStatement(Statement):
 class BoxStatement(Statement):
     """Like ``box[duration] { statements* }``."""
 
-    __slots__ = ("duration", "body")
+    # TODO: the `annotations` field maybe should move to `Statement` if it becomes more generally
+    # supported.
+    __slots__ = ("annotations", "duration", "body")
 
     def __init__(
         self,
         body: ProgramBlock,
         duration: Expression | None = None,
+        annotations: Sequence[Annotation] = (),
     ):
         self.body = body
         self.duration = duration
+        self.annotations = tuple(annotations)
 
 
 class BreakStatement(Statement):
