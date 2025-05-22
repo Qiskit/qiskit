@@ -22,7 +22,6 @@ use std::fmt::Debug;
 use std::io::{Cursor, Write, Read, Seek};
 use std::ops::{Deref, DerefMut};
 
-
 // Bytes are the format used to store serialized data which is not automatically handled by binrw
 // It's a wrapper around Vec<u8> with extended serialization/deserialization capabilities
 #[derive(Debug)]

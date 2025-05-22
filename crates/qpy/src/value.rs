@@ -15,17 +15,17 @@ use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use pyo3::exceptions::PyValueError;
 
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple};
+use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple, PyBytes};
 
 use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Param, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
 
-use crate::circuits::{serialize_circuit, deserialize_circuit};
+use crate::circuits::{pack_circuit, deserialize_circuit};
 use crate::formats;
 use crate::params::{
-    serialize_parameter, serialize_parameter_expression, serialize_parameter_vector,
+    pack_parameter, pack_parameter_expression, unpack_parameter_expression, pack_parameter_vector, unpack_parameter,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 use core::fmt;
@@ -90,7 +90,9 @@ where
 {
     let mut buffer = Cursor::new(Vec::new());
     value.write(&mut buffer).unwrap();
-    Ok(buffer.into())
+    let result: Bytes = buffer.into();
+    println!("Serialized {:?} into {:?}", &value, &result.to_hex_string());
+    Ok(result)
 }
 
 pub fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, &[u8])> 
@@ -173,9 +175,9 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<(u8
         }
         tags::RANGE => serialize_range(py_object)?,
         tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
-        tags::PARAMETER => serialize_parameter(py_object)?,
-        tags::PARAMETER_VECTOR => serialize_parameter_vector(py_object)?,
-        tags::PARAMETER_EXPRESSION => serialize_parameter_expression(py, py_object, qpy_data)?,
+        tags::PARAMETER => serialize(&pack_parameter(py_object)?)?,
+        tags::PARAMETER_VECTOR => serialize(&pack_parameter_vector(py_object)?)?,
+        tags::PARAMETER_EXPRESSION => serialize(&pack_parameter_expression(py_object, qpy_data)?)?,
         tags::NUMPY_OBJ => {
             let np = py.import("numpy")?;
             let io = py.import("io")?;
@@ -187,7 +189,7 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<(u8
         tags::STRING => py_object.extract::<String>()?.into(),
         tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
         tags::NULL | tags::CASE_DEFAULT => Bytes::new(),
-        tags::CIRCUIT => serialize_circuit(py, py_object, py.None().bind(py), false, QPY_VERSION)?,
+        tags::CIRCUIT => serialize(&pack_circuit(py, py_object, py.None().bind(py), false, QPY_VERSION)?)?,
         _ => {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
                 "dumps_value: Unhandled type_key: {}",
@@ -221,6 +223,7 @@ pub fn pack_generic_data(
     qpy_data: &QPYData,
 ) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = dumps_value(py_data, qpy_data)?;
+    println!("Packing generic data of type {:?} to {:?}", type_key, &data.to_hex_string());
     Ok(formats::GenericDataPack {
         type_key,
         data,
@@ -450,9 +453,16 @@ impl DumpedValue {
             // }
             // tags::RANGE => serialize_range(py_object)?,
             // tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
-            // tags::PARAMETER => serialize_parameter(py_object)?,
+            tags::PARAMETER => {
+                let (parameter, _) = deserialize::<formats::ParameterPack>(&self.data)?;
+                unpack_parameter(py, parameter)?
+            },
             // tags::PARAMETER_VECTOR => serialize_parameter_vector(py_object)?,
-            // tags::PARAMETER_EXPRESSION => serialize_parameter_expression(py, py_object, qpy_data)?,
+            tags::PARAMETER_EXPRESSION => {
+                let (parameter_expression, _) = deserialize::<formats::ParameterExpressionPack>(&self.data)?;
+                    println!("deserialized packed parameter_expression {:?}", parameter_expression);
+                unpack_parameter_expression(py, parameter_expression)?
+            },
             // tags::NUMPY_OBJ => {
             //     let np = py.import("numpy")?;
             //     let io = py.import("io")?;
@@ -494,4 +504,12 @@ impl fmt::Debug for DumpedValue {
         .field("data", &self.data.to_hex_string())
         .finish()
     }
+}
+
+pub fn bytes_to_uuid(py: Python, bytes: [u8; 16]) -> PyResult<PyObject> {
+    let uuid_module = py.import("uuid")?;
+    let py_bytes = PyBytes::new(py, &bytes);
+    let kwargs = PyDict::new(py);
+    kwargs.set_item("bytes", py_bytes)?;
+    Ok(uuid_module.call_method("UUID", (), Some(&kwargs))?.unbind())
 }

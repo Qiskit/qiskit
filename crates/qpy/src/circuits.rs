@@ -39,9 +39,8 @@ use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, StandardIns
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{SmallVec, smallvec};
+use smallvec::SmallVec;
 
-use std::io::Cursor;
 use uuid::Uuid;
 
 use crate::formats;
@@ -53,7 +52,6 @@ use crate::value::{expression_var_declaration, pack_generic_data, pack_standalon
 use crate::bytes::Bytes;
 use crate::UnsupportedFeatureForVersion;
 use crate::consts::standard_gate_from_gate_class_name;
-use binrw::BinWrite;
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 type CustomOperationsMap = HashMap<String, PackedOperation>;
@@ -483,8 +481,8 @@ fn deserialize_standard_instruction(instruction: &formats::CircuitInstructionV2P
         _ => None,
     }
 }
-fn deserialize_instruction(py: Python, instruction: &formats::CircuitInstructionV2Pack, qpy_data: &QPYData) -> PyResult<Instruction> {
-    println!("deserialize_instruction {:?}", instruction);
+fn unpack_instruction(py: Python, instruction: &formats::CircuitInstructionV2Pack, qpy_data: &QPYData) -> PyResult<Instruction> {
+    println!("unpack_instruction {:?}", instruction);
     let name = &instruction.gate_class_name;
     let params: Vec<Param> = instruction.params.iter()
     .map(|packed_param| unpack_param(py, packed_param, &qpy_data))
@@ -533,8 +531,6 @@ fn deserialize_instruction(py: Python, instruction: &formats::CircuitInstruction
             _ =>  return Err(PyErr::new::<PyValueError, _>("Unrecognized bit type",)),
         };
     }
-    //let params = packed_instruction.params;
-    let params = smallvec![];
     Ok((op, SmallVec::from(params), qubits, clbits))
 }
 
@@ -972,9 +968,9 @@ fn unpack_custom_layout<'py>(py: Python<'py>, layout: formats::LayoutV2Pack, cir
     }
     
     if layout.final_layout_size > 0 {
-        return PyErr::new::<PyValueError, _>("Final layout handling is not implemented")?;
-        let final_layout_dict = PyDict::new(py);
-        for (index, bit) in layout.final_layout_items.iter().enumerate() {
+        return Err(PyErr::new::<PyValueError, _>("Final layout handling is not implemented"));
+        // let final_layout_dict = PyDict::new(py);
+        // for (index, bit) in layout.final_layout_items.iter().enumerate() {
             // TODO: not sure what to do here yet
             // layout_dict = {circuit.qubits[bit]: index for index, bit in enumerate(final_layout_array)}
 
@@ -983,7 +979,7 @@ fn unpack_custom_layout<'py>(py: Python<'py>, layout: formats::LayoutV2Pack, cir
             // .ok_or(PyErr::new::<PyValueError, _>(format!("Could not get physical bit for bit {:?}", bit)))?;
             
         // final_layout_dict.set_item(physical_bit, index)?;
-        }
+        // }
     }
     let transpiled_layout = transpiler_layout_class.call1((initial_layout, input_qubit_mapping, final_layout))?;
     // TODO: this is for version >= 10
@@ -994,24 +990,16 @@ fn unpack_custom_layout<'py>(py: Python<'py>, layout: formats::LayoutV2Pack, cir
     Ok(transpiled_layout)
 }
 
-fn serialize_sparse_pauli_op(operator: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<Bytes> {
+fn pack_sparse_pauli_op(operator: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<formats::SparsePauliOpListElemPack> {
     let op_as_np_list = operator.call_method1("to_list", (true,))?;
     let (_, data) = dumps_value(&op_as_np_list, qpy_data)?;
-    let pauli_pack = formats::SparsePauliOpListElemPack {
-        size: data.len() as u64,
-        data,
-    };
-    let mut buffer = Cursor::new(Vec::new());
-    pauli_pack.write(&mut buffer).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
-    })?;
-    Ok(buffer.into())
+    Ok(formats::SparsePauliOpListElemPack {data})
 }
 
-fn serialize_pauli_evolution_gate(
+fn pack_pauli_evolution_gate(
     evolution_gate: &Bound<PyAny>,
     qpy_data: &QPYData,
-) -> PyResult<Bytes> {
+) -> PyResult<formats::PauliEvolutionDefPack> {
     let py = evolution_gate.py();
     let operators = evolution_gate.getattr("operator")?;
     let mut standalone = false;
@@ -1021,11 +1009,9 @@ fn serialize_pauli_evolution_gate(
     } else {
         operators.downcast()?.clone()
     };
-    let operator_size = operator_list.call_method0("__len__")?.extract::<u64>()?;
-
-    let pauli_data: Vec<Bytes> = operator_list
+    let pauli_data = operator_list
         .iter()
-        .map(|operator| serialize_sparse_pauli_op(&operator, qpy_data))
+        .map(|operator| pack_sparse_pauli_op(&operator, qpy_data))
         .collect::<PyResult<_>>()?;
 
     let (time_type, time_data) = dumps_value(&evolution_gate.getattr("time")?, qpy_data)?;
@@ -1044,22 +1030,15 @@ fn serialize_pauli_evolution_gate(
         .into();
 
     let standalone_op = standalone as u8;
-    let packed_pauli_data = formats::PauliEvolutionDefPack {
-        operator_size,
+    Ok(formats::PauliEvolutionDefPack {
         standalone_op,
         time_type,
-        time_size: time_data.len() as u64,
-        synth_method_size: synth_data.len() as u64,
         pauli_data,
         time_data,
         synth_data,
-    };
-    let mut buffer = Cursor::new(Vec::new());
-    packed_pauli_data.write(&mut buffer).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
-    })?;
-    Ok(buffer.into())
+    })
 }
+
 fn pack_custom_instruction(
     py: Python,
     name: &String,
@@ -1085,7 +1064,7 @@ fn pack_custom_instruction(
     if gate_type == circuit_instruction_types::PAULI_EVOL_GATE {
         if let OperationRef::Gate(gate) = operation.view() {
             has_definition = true;
-            data = serialize_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?;
+            data = serialize(&pack_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?)?;
         }
     } else if gate_type == circuit_instruction_types::CONTROLLED_GATE {
         // For ControlledGate, we have to access and store the private `_definition` rather than the
@@ -1098,13 +1077,13 @@ fn pack_custom_instruction(
             // calling definition getter on object
             let gate = pygate.gate.bind(py);
             gate.getattr("definition")?; // this creates the _definition field
-            data = serialize_circuit(
+            data = serialize(&pack_circuit(
                 py,
                 &gate.getattr("_definition")?,
                 py.None().bind(py),
                 false,
                 qpy_data.version,
-            )?;
+            )?)?;
             num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
             base_gate = gate.getattr("base_gate")?.clone();
@@ -1123,13 +1102,13 @@ fn pack_custom_instruction(
                     None => (),
                     Some(definition) => {
                         has_definition = true;
-                        data = serialize_circuit(
+                        data = serialize(&pack_circuit(
                             py,
                             &definition,
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                        )?;
+                        )?)?;
                     }
                 }
             }
@@ -1139,13 +1118,13 @@ fn pack_custom_instruction(
                     None => (),
                     Some(definition) => {
                         has_definition = true;
-                        data = serialize_circuit(
+                        data = serialize(&pack_circuit(
                             py,
                             &definition,
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                        )?;
+                        )?)?;
                     }
                 }
             }
@@ -1155,13 +1134,13 @@ fn pack_custom_instruction(
                     None => (),
                     Some(definition) => {
                         has_definition = true;
-                        data = serialize_circuit(
+                        data = serialize(&pack_circuit(
                             py,
                             &definition,
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                        )?;
+                        )?)?;
                     }
                 }
             }
@@ -1297,7 +1276,7 @@ fn pack_standalone_vars(
     Ok(result)
 }
 
-fn pack_circuit(
+pub fn pack_circuit(
     py: Python,
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
@@ -1338,21 +1317,6 @@ fn pack_circuit(
     })
 }
 
-pub fn serialize_circuit(
-    py: Python,
-    circuit: &Bound<PyAny>,
-    metadata_serializer: &Bound<PyAny>,
-    use_symengine: bool,
-    version: u32,
-) -> PyResult<Bytes> {
-    let mut buffer = Cursor::new(Vec::new());
-    let packed_circuit = pack_circuit(py, circuit, metadata_serializer, use_symengine, version)?;
-    packed_circuit.write(&mut buffer).map_err(|e| {
-        PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("BinRW write failed: {e}"))
-    })?;
-    Ok(buffer.into())
-}
-
 type Instruction = (
     PackedOperation,
     SmallVec<[Param; 3]>,
@@ -1383,12 +1347,13 @@ pub fn deserialize_circuit<'py>(
     println!("Got num clbits: {:?}", num_clbits);
     println!("Got global_phase: {:?}", global_phase);
 
-    let mut packed_insts: Vec<Instruction> = Vec::new();
+    let mut instructions: Vec<Instruction> = Vec::new();
     for instruction in packed_circuit.instructions {
-        let inst = deserialize_instruction(py, &instruction, &qpy_data)?;
-        packed_insts.push(inst);
+        let inst = unpack_instruction(py, &instruction, &qpy_data)?;
+        println!("Got unpacked instruction {:?}", inst);
+        instructions.push(inst);
     }
-    let mut circuit_data = CircuitData::from_packed_operations(py, num_qubits, num_clbits, packed_insts.into_iter().map(Ok), global_phase)?;
+    let mut circuit_data = CircuitData::from_packed_operations(py, num_qubits, num_clbits, instructions.into_iter().map(Ok), global_phase)?;
     // since from_packed_operations does not generate register data, we use replace_bits to add them retroactively
     let mut qubits = Vec::new();
     let mut clbits = Vec::new();
@@ -1447,7 +1412,7 @@ pub fn py_write_circuit(
     version: u32,
 ) -> PyResult<usize> {
     let serialized_circuit =
-        serialize_circuit(py, circuit, metadata_serializer, use_symengine, version)?;
+        serialize(&pack_circuit(py, circuit, metadata_serializer, use_symengine, version)?)?;
     file_obj.call_method1(
         "write",
         (pyo3::types::PyBytes::new(py, &serialized_circuit),),

@@ -16,6 +16,8 @@ use crate::bytes::Bytes;
 use crate::value::{DumpedValue, ExpressionType};
 
 /// The overall structure of the QPY file
+
+// TODO: Still need to split by versioning and have a struct for the whole file, not a single circuit
 #[derive(BinWrite, Debug)]
 #[brw(big)]
 pub struct QPYFormatV13 {
@@ -357,6 +359,7 @@ pub struct PackedParam {
 
 #[binrw]
 #[brw(big)]
+#[derive(Debug)]
 pub struct ParameterPack {
     #[bw(calc = name.as_bytes().len() as u16)]
     pub name_length: u16,
@@ -390,55 +393,95 @@ pub struct ParameterExpressionElementPack {
     pub rhs: [u8; 16],
 }
 
-#[derive(BinWrite)]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct ParameterExpressionPack {
+    #[bw(calc = symbol_table_data.len() as u64)]
     pub symbol_tables_length: u64,
+    #[bw(calc = expression_data.len() as u64)]
     pub expression_data_length: u64,
+    #[br(count = expression_data_length)]
     pub expression_data: Bytes,
-    pub symbol_table_data: Bytes,
-    pub extra_symbol_table_data: Bytes,
+    #[br(count = symbol_tables_length)]
+    pub symbol_table_data: Vec<ParameterExpressionSymbolPack>,
 }
 
-#[derive(BinWrite)]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub struct ParameterExpressionSymbolPack {
-    pub symbol_key: u8,
+pub enum ParameterExpressionSymbolPack {
+    #[brw(magic = b'p')]
+    Parameter(ParameterExpressionParameterSymbolPack),
+    #[brw(magic = b'v')]
+    ParameterVector(ParameterExpressionParameterVectorSymbolPack),
+    #[brw(magic = b'e')]
+    ParameterExpression(ParameterExpressionParameterExpressionSymbolPack),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterExpressionParameterSymbolPack {
     pub value_key: u8,
+    #[bw(calc = value_data.len() as u64)]
     pub value_data_len: u64,
-    pub symbol_data: Bytes,
+    pub symbol_data: ParameterPack,
+    #[br(count = value_data_len)]
     pub value_data: Bytes,
 }
 
-#[derive(BinWrite)]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub struct ExtraSymbolsTablePack {
-    pub keys: Vec<ParameterExpressionSymbolPack>,
-    pub values: Vec<ParameterExpressionSymbolPack>,
+pub struct ParameterExpressionParameterVectorSymbolPack {
+    pub value_key: u8,
+    #[bw(calc = value_data.len() as u64)]
+    pub value_data_len: u64,
+    pub symbol_data: ParameterVectorPack,
+    #[br(count = value_data_len)]
+    pub value_data: Bytes,
 }
 
-#[derive(BinWrite)]
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterExpressionParameterExpressionSymbolPack {
+    pub value_key: u8,
+    #[bw(calc = value_data.len() as u64)]
+    pub value_data_len: u64,
+    pub symbol_data: ParameterExpressionPack,
+    #[br(count = value_data_len)]
+    pub value_data: Bytes,
+}
+
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct PauliEvolutionDefPack {
+    #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
     pub standalone_op: u8,
     pub time_type: u8,
+    #[bw(calc = time_data.len() as u64)]
     pub time_size: u64,
+    #[bw(calc = synth_data.len() as u64)]
     pub synth_method_size: u64,
-    pub pauli_data: Vec<Bytes>,
+    #[br(count = operator_size)]
+    pub pauli_data: Vec<SparsePauliOpListElemPack>,
+    #[br(count = time_size)]
     pub time_data: Bytes,
+    #[br(count = synth_method_size)]
     pub synth_data: Bytes,
 }
 
-#[derive(BinWrite)]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct SparsePauliOpListElemPack {
+    #[bw(calc = data.len() as u64)]
     pub size: u64,
+    #[br(count = size)]
     pub data: Bytes,
 }
 
