@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-
 use qiskit_circuit::operations::StandardGate;
 
 pub fn standard_gate_from_gate_class_name(name: &str) -> Option<StandardGate> {

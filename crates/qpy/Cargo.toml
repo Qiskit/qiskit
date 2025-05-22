@@ -22,6 +22,10 @@ qiskit-circuit.workspace = true
 binrw = "0.13"
 uuid = {version = "1", features = ["v4"]}
 
+[dependencies.smallvec]
+workspace = true
+features = ["union"]
+
 [dependencies.pyo3]
 workspace = true
 features = ["py-clone"]
@@ -29,3 +33,4 @@ features = ["py-clone"]
 [dependencies.numpy]
 workspace = true
 features = ["nalgebra"]
+

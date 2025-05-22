@@ -10,10 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use binrw::{binrw, binread, binwrite, BinRead, BinResult, BinWrite, Endian};
-use std::io::{Read, Write, Seek};
 use crate::bytes::Bytes;
 use crate::value::{DumpedValue, ExpressionType};
+use binrw::{binread, binrw, binwrite, BinRead, BinResult, BinWrite, Endian};
+use std::io::{Read, Seek, Write};
 
 /// The overall structure of the QPY file
 
@@ -60,7 +60,6 @@ pub struct CircuitHeaderV12Pack {
     pub registers: Vec<RegisterV4Pack>,
 }
 
-
 // circuit instructions related
 #[binwrite]
 #[binread]
@@ -94,7 +93,7 @@ pub struct CircuitInstructionV2Pack {
     pub condition: ConditionPack,
     #[br(count = num_qargs + num_cargs)]
     pub bit_data: Vec<CircuitInstructionArgPack>,
-    #[br(count = num_parameters)]
+    #[br(count = num_parameters as usize)]
     pub params: Vec<PackedParam>,
 }
 
@@ -177,8 +176,8 @@ pub mod condition_types {
 #[derive(Debug)]
 pub enum ConditionData {
     None,
-    Register(Bytes), 
-    Expression(GenericDataPack)
+    Register(Bytes),
+    Expression(GenericDataPack),
 }
 #[derive(Debug)]
 pub struct ConditionPack {
@@ -197,28 +196,33 @@ impl ConditionPack {
     ) -> binrw::BinResult<()> {
         match &value.data {
             ConditionData::None => (),
-            ConditionData::Register(register_data) => register_data.write_options(writer, endian, args)?,
-            ConditionData::Expression(expression_data) => expression_data.write_options(writer, endian, args)?,
+            ConditionData::Register(register_data) => {
+                register_data.write_options(writer, endian, args)?
+            }
+            ConditionData::Expression(expression_data) => {
+                expression_data.write_options(writer, endian, args)?
+            }
         }
         Ok(())
     }
-    
-    pub fn read<R: Read + Seek> (
+
+    pub fn read<R: Read + Seek>(
         reader: &mut R,
         endian: Endian,
         (register_size, key, value): (u16, u8, i64),
     ) -> BinResult<ConditionPack> {
-        
         let data = match key {
             condition_types::TWO_TUPLE => {
                 let mut buf = vec![0u8; register_size as usize];
                 reader.read_exact(&mut buf)?;
                 ConditionData::Register(buf.into())
-            },
-            condition_types::EXPRESSION => ConditionData::Expression(GenericDataPack::read_options(reader, endian, ())?),
-            condition_types::NONE | _ => ConditionData::None,
+            }
+            condition_types::EXPRESSION => {
+                ConditionData::Expression(GenericDataPack::read_options(reader, endian, ())?)
+            }
+            _ => ConditionData::None,
         };
-        Ok(ConditionPack{
+        Ok(ConditionPack {
             key,
             register_size,
             value,
@@ -561,7 +565,7 @@ pub struct CalibrationsPack {
 // }
 impl BinRead for QPYFormatV13 {
     type Args<'a> = ();
-    
+
     fn read_options<R: Read + Seek>(
         reader: &mut R,
         endian: Endian,
@@ -570,7 +574,11 @@ impl BinRead for QPYFormatV13 {
         let header = CircuitHeaderV12Pack::read_options(reader, endian, ())?;
         let mut standalone_vars = Vec::with_capacity(header.num_vars as usize);
         for _ in 0..header.num_vars {
-            standalone_vars.push(ExpressionVarDeclarationPack::read_options(reader, endian, ())?);
+            standalone_vars.push(ExpressionVarDeclarationPack::read_options(
+                reader,
+                endian,
+                (),
+            )?);
         }
         let custom_instructions = CustomCircuitInstructionsPack::read_options(reader, endian, ())?;
         let mut instructions = Vec::with_capacity(header.num_vars as usize);
@@ -579,7 +587,14 @@ impl BinRead for QPYFormatV13 {
         }
         let calibrations = CalibrationsPack::read_options(reader, endian, ())?;
         let layout = LayoutV2Pack::read_options(reader, endian, ())?;
-        Ok(Self { header, standalone_vars, custom_instructions, instructions, calibrations, layout })
+        Ok(Self {
+            header,
+            standalone_vars,
+            custom_instructions,
+            instructions,
+            calibrations,
+            layout,
+        })
     }
 }
 
@@ -615,10 +630,10 @@ fn write_string<W: Write>(
     Ok(writer.write_all(value.as_bytes())?)
 }
 
-fn read_string<R: Read + Seek> (
+fn read_string<R: Read + Seek>(
     reader: &mut R,
     _endian: Endian,
-    (len, ): (usize,),
+    (len,): (usize,),
 ) -> BinResult<String> {
     let mut buf = vec![0u8; len];
     reader.read_exact(&mut buf)?;

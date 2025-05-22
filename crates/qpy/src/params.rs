@@ -20,11 +20,13 @@ use qiskit_circuit::imports::PARAMETER_SUBS;
 use qiskit_circuit::operations::Param;
 use std::io::{Cursor, Write};
 
-use crate::formats;
 use crate::bytes::Bytes;
+use crate::formats;
 use crate::formats::PackedParam;
 use crate::value::DumpedValue;
-use crate::value::{dumps_register, dumps_value, get_type_key, serialize, tags, QPYData, bytes_to_uuid};
+use crate::value::{
+    bytes_to_uuid, dumps_register, dumps_value, get_type_key, serialize, tags, QPYData,
+};
 
 fn serialize_parameter_replay_entry(
     py: Python,
@@ -258,38 +260,41 @@ fn pack_symbol(
         true => (symbol_key, Bytes::new()),
         false => dumps_value(value, qpy_data)?,
     };
-    println!("packing symbol {:?} of type {:?}", symbol, symbol8_key);
     match symbol_key {
         tags::PARAMETER_EXPRESSION => {
             let symbol_data = pack_parameter_expression(symbol, qpy_data)?;
-            Ok(formats::ParameterExpressionSymbolPack::ParameterExpression(formats::ParameterExpressionParameterExpressionSymbolPack{
-                value_key,
-                symbol_data,
-                value_data,
-            }))
-        },
+            Ok(formats::ParameterExpressionSymbolPack::ParameterExpression(
+                formats::ParameterExpressionParameterExpressionSymbolPack {
+                    value_key,
+                    symbol_data,
+                    value_data,
+                },
+            ))
+        }
         tags::PARAMETER => {
             let symbol_data = pack_parameter(symbol)?;
-            Ok(formats::ParameterExpressionSymbolPack::Parameter(formats::ParameterExpressionParameterSymbolPack{
-                value_key,
-                symbol_data,
-                value_data,
-            }))
+            Ok(formats::ParameterExpressionSymbolPack::Parameter(
+                formats::ParameterExpressionParameterSymbolPack {
+                    value_key,
+                    symbol_data,
+                    value_data,
+                },
+            ))
         }
         tags::PARAMETER_VECTOR => {
             let symbol_data = pack_parameter_vector(symbol)?;
-            Ok(formats::ParameterExpressionSymbolPack::ParameterVector(formats::ParameterExpressionParameterVectorSymbolPack{
-                value_key,
-                symbol_data,
-                value_data,
-            }))
+            Ok(formats::ParameterExpressionSymbolPack::ParameterVector(
+                formats::ParameterExpressionParameterVectorSymbolPack {
+                    value_key,
+                    symbol_data,
+                    value_data,
+                },
+            ))
         }
-        _ => {
-            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
-                "Unhandled symbol_key: {}",
-                symbol_key
-            )))
-        }
+        _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+            "Unhandled symbol_key: {}",
+            symbol_key
+        ))),
     }
 }
 
@@ -297,8 +302,7 @@ fn pack_symbol_table(
     py: Python,
     py_object: &Bound<PyAny>,
     qpy_data: &QPYData,
-) -> PyResult<Vec<formats::ParameterExpressionSymbolPack>>{
-    println!("packing symbol table for {:?}, with parameter symbols {:?}", py_object, py_object.getattr(intern!(py, "_parameter_symbols"))?);
+) -> PyResult<Vec<formats::ParameterExpressionSymbolPack>> {
     py_object
         .getattr(intern!(py, "_parameter_symbols"))?
         .extract::<Bound<PyDict>>()?
@@ -310,16 +314,16 @@ fn pack_symbol_table(
 fn pack_extra_symbol_table(
     extra_symbols: &Bound<PyDict>,
     qpy_data: &QPYData,
-) ->  PyResult<(Vec<formats::ParameterExpressionSymbolPack>, Vec<formats::ParameterExpressionSymbolPack>)> {
-    println!("packing extra_symbols with extra symbols dict {:?}", extra_symbols);
+) -> PyResult<(
+    Vec<formats::ParameterExpressionSymbolPack>,
+    Vec<formats::ParameterExpressionSymbolPack>,
+)> {
     let keys = PyIterator::from_object(&extra_symbols.keys())?
         .map(|item| {
             let symbol = item?;
             pack_symbol(&symbol, &symbol, qpy_data)
         })
         .collect::<PyResult<_>>()?;
-
-    println!("again, packing extra_symbols with extra symbols dict values {:?}", extra_symbols.values());
     let values = PyIterator::from_object(&extra_symbols.values())?
         .map(|item| {
             let symbol = item?;
@@ -333,17 +337,13 @@ pub fn pack_parameter_expression(
     py_object: &Bound<PyAny>,
     qpy_data: &QPYData,
 ) -> PyResult<formats::ParameterExpressionPack> {
-    println!("pack_parameter_expression called with {:?}", py_object);
     let py = py_object.py();
     let mut extra_symbols = PyDict::new(py);
     let expression_data =
         serialize_parameter_expression_elements(py_object, &mut extra_symbols, qpy_data)?;
-    println!("packing expression data {:?}", &expression_data.to_hex_string());
-    // let (symbol_table_length, symbol_table_data) = serialize_symbol_table(py, py_object, qpy_data)?;
-    println!("Packing symbol table for {:?}", py_object);
     let mut symbol_table_data = pack_symbol_table(py, py_object, qpy_data)?;
-    println!("Packing extra symbols for {:?}", py_object);
-    let (extra_symbols_keys, extra_symbols_values) = pack_extra_symbol_table(&extra_symbols, qpy_data)?;
+    let (extra_symbols_keys, extra_symbols_values) =
+        pack_extra_symbol_table(&extra_symbols, qpy_data)?;
     symbol_table_data.extend(extra_symbols_keys);
     symbol_table_data.extend(extra_symbols_values);
     Ok(formats::ParameterExpressionPack {
@@ -352,10 +352,12 @@ pub fn pack_parameter_expression(
     })
 }
 
-pub fn unpack_parameter_expression(py: Python, parameter_expression: formats::ParameterExpressionPack) -> PyResult<PyObject> {
-    println!("unpacking parameter expression {:?}", parameter_expression);
+pub fn unpack_parameter_expression(
+    py: Python,
+    _parameter_expression: formats::ParameterExpressionPack,
+) -> PyResult<PyObject> {
     //TODO implement - go along the lines of python's _read_parameter_expr_v13
-    return Ok(py.None())
+    Ok(py.None())
 }
 
 pub fn pack_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::ParameterPack> {
@@ -367,17 +369,18 @@ pub fn pack_parameter(py_object: &Bound<PyAny>) -> PyResult<formats::ParameterPa
         .getattr(intern!(py, "uuid"))?
         .getattr(intern!(py, "bytes"))?
         .extract::<[u8; 16]>()?;
-    Ok(formats::ParameterPack {uuid, name})
+    Ok(formats::ParameterPack { uuid, name })
 }
 
 pub fn unpack_parameter(py: Python, parameter: formats::ParameterPack) -> PyResult<PyObject> {
     let kwargs = PyDict::new(py);
     kwargs.set_item("name", parameter.name)?;
     kwargs.set_item("uuid", bytes_to_uuid(py, parameter.uuid)?)?;
-    Ok(py.import("qiskit.circuit.parameter")?
-    .getattr("Parameter")?
-    .call((), Some(&kwargs))?
-    .unbind())
+    Ok(py
+        .import("qiskit.circuit.parameter")?
+        .getattr("Parameter")?
+        .call((), Some(&kwargs))?
+        .unbind())
 }
 // sadly, we currently need this code duplication to handle the special le encoding for parameters
 pub fn pack_generic_instruction_param_data(
@@ -385,10 +388,7 @@ pub fn pack_generic_instruction_param_data(
     qpy_data: &QPYData,
 ) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = dumps_instruction_param_value(py_data, qpy_data)?;
-    Ok(formats::GenericDataPack {
-        type_key,
-        data,
-    })
+    Ok(formats::GenericDataPack { type_key, data })
 }
 
 pub fn pack_generic_instruction_param_sequence(
@@ -437,29 +437,34 @@ pub fn pack_param(py: Python, param: &Param, qpy_data: &QPYData) -> PyResult<for
         Param::ParameterExpression(py_object) => dumps_value(py_object.bind(py), qpy_data)?,
         Param::Obj(py_object) => dumps_instruction_param_value(py_object.bind(py), qpy_data)?,
     };
-    Ok(formats::PackedParam {
-        type_key,
-        data,
-    })
+    Ok(formats::PackedParam { type_key, data })
 }
 
-pub fn unpack_param(py: Python, packed_param: &PackedParam, qpy_data: &QPYData) -> PyResult<Param>{
+pub fn unpack_param(py: Python, packed_param: &PackedParam, qpy_data: &QPYData) -> PyResult<Param> {
     match packed_param.type_key {
         tags::FLOAT => Ok(Param::Float(packed_param.data.try_to_le_f64()?)),
-        tags::PARAMETER_EXPRESSION | tags::PARAMETER => { // TODO - should we also do this for parameter vector?
-            println!("unpacking parameter expression {:?}", packed_param);
-            let dumped_value = DumpedValue {data_type: packed_param.type_key, data: Bytes(packed_param.data.clone())};
-            Ok(Param::ParameterExpression(dumped_value.to_python(py, qpy_data)?))
+        tags::PARAMETER_EXPRESSION | tags::PARAMETER => {
+            // TODO - should we also do this for parameter vector?
+            let dumped_value = DumpedValue {
+                data_type: packed_param.type_key,
+                data: Bytes(packed_param.data.clone()),
+            };
+            Ok(Param::ParameterExpression(
+                dumped_value.to_python(py, qpy_data)?,
+            ))
         }
         _ => {
             // TODO cloning the data in order to leverage DumpedValue's converter is far from optimal, we should find
             // as way to use some common interface for both DumpedValue and PackedParam conversions
-            let dumped_value = DumpedValue {data_type: packed_param.type_key, data: Bytes(packed_param.data.clone())};
+            let dumped_value = DumpedValue {
+                data_type: packed_param.type_key,
+                data: Bytes(packed_param.data.clone()),
+            };
             Ok(Param::Obj(dumped_value.to_python(py, qpy_data)?))
         }
-    }   
+    }
 }
-pub fn pack_parameter_vector (py_object: &Bound<PyAny>) -> PyResult<formats::ParameterVectorPack> {
+pub fn pack_parameter_vector(py_object: &Bound<PyAny>) -> PyResult<formats::ParameterVectorPack> {
     let vector = py_object.getattr("_vector")?;
     let name = vector.getattr("_name")?.extract::<String>()?;
     let vector_size = vector.call_method0("__len__")?.extract()?;
