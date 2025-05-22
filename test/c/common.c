@@ -13,12 +13,6 @@
 #include "common.h"
 #include <stdio.h>
 
-#ifdef _MSC_VER
-QkComplex64 make_complex_double(double real, double imag) { return (QkComplex64){real, imag}; }
-#else
-QkComplex64 make_complex_double(double real, double imag) { return real + I * imag; }
-#endif
-
 // A function to run a test function of a given name. This function will also
 // post-process the returned `TestResult` to product a minimal info message for
 // the developer running the test suite.
