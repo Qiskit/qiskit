@@ -23,7 +23,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{
-    AsInstructionRef, CircuitInstruction, Instruction, OperationFromPython,
+    CircuitInstruction, Instruction, IntoInstructionRef, OperationFromPython,
 };
 use crate::classical::expr;
 use crate::converters::QuantumCircuitData;
@@ -262,14 +262,14 @@ impl PyEq for DAGCircuit {
     }
 }
 
-impl AsInstructionRef for DAGInstruction {
+impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
     type Block = DAGCircuit;
 
-    fn op(&self) -> OperationRef<'_> {
+    fn op(self) -> OperationRef<'a> {
         self.op.view()
     }
 
-    fn standard_gate(&self) -> Option<StandardGateRef<'_>> {
+    fn standard_gate(self) -> Option<StandardGateRef<'a>> {
         let OperationRef::StandardGate(gate) = self.op() else {
             return None;
         };
@@ -282,7 +282,7 @@ impl AsInstructionRef for DAGInstruction {
         Some(StandardGateRef(gate, params.unwrap_or(&[])))
     }
 
-    fn standard_instruction(&self) -> Option<StandardInstructionRef> {
+    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
         let OperationRef::StandardInstruction(instruction) = self.op() else {
             return None;
         };
@@ -304,7 +304,7 @@ impl AsInstructionRef for DAGInstruction {
         })
     }
 
-    fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>> {
+    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
         let OperationRef::ControlFlow(control) = self.op.view() else {
             return None;
         };
@@ -2645,7 +2645,7 @@ impl DAGCircuit {
             let cargs_set = cargs_set.downcast::<PySet>().unwrap();
             if self.may_have_additional_wires(&node) {
                 let (add_cargs, _add_vars) =
-                    Python::with_gil(|py| self.additional_wires(py, node.op.view()))?;
+                    Python::with_gil(|py| self.additional_wires(py, node.view()))?;
                 for wire in add_cargs.iter() {
                     let clbit = self.clbits.get(*wire).unwrap();
                     if !cargs_set.contains(clbit)? {
@@ -2768,7 +2768,7 @@ impl DAGCircuit {
 
         let node_vars = if self.may_have_additional_wires(&node) {
             let (_additional_clbits, additional_vars) =
-                Python::with_gil(|py| self.additional_wires(py, node.op.view()))?;
+                Python::with_gil(|py| self.additional_wires(py, node.view()))?;
             let var_set: HashSet<&expr::Var> = additional_vars
                 .into_iter()
                 .map(|v| self.vars.get(v).unwrap())
@@ -2905,7 +2905,6 @@ impl DAGCircuit {
                                 qubits: old_op.num_qubits(),
                                 clbits: old_op.num_clbits(),
                                 params: old_op.num_params(),
-                                control_flow: old_op.control_flow(),
                                 op_name: old_op.name().to_string(),
                                 instruction: new_op.clone().unbind(),
                             }
@@ -2915,7 +2914,7 @@ impl DAGCircuit {
                                 new_inst.py_op = new_op.unbind().into();
                             }
                         }
-                    } else if old_inst.op.control_flow() {
+                    } else if old_inst.op.try_control_flow().is_some() {
                         if let Ok(condition) =
                             old_op.instruction.getattr(py, intern!(py, "condition"))
                         {
@@ -3406,8 +3405,8 @@ impl DAGCircuit {
         self.dag
             .node_references()
             .filter_map(|(node_index, node_type)| match node_type {
-                NodeType::Operation(ref node) => {
-                    if node.op.control_flow() {
+                NodeType::Operation(node) => {
+                    if node.op.try_control_flow().is_some() {
                         Some(self.unpack_into(py, node_index, node_type))
                     } else {
                         None
@@ -5296,7 +5295,7 @@ impl DAGCircuit {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
-                    Python::with_gil(|py| self.additional_wires(py, instr.op.view()))?;
+                    Python::with_gil(|py| self.additional_wires(py, instr.view()))?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -5324,7 +5323,7 @@ impl DAGCircuit {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(inst.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
-                    Python::with_gil(|py| self.additional_wires(py, inst.op.view()))?;
+                    Python::with_gil(|py| self.additional_wires(py, inst.view()))?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -5575,10 +5574,10 @@ impl DAGCircuit {
         let OperationRef::Instruction(inst) = instr.op.view() else {
             return false;
         };
-        inst.control_flow() || inst.op_name == "store"
+        instr.op.try_control_flow().is_some() || inst.op_name == "store"
     }
 
-    fn additional_wires(&self, py: Python, op: OperationRef) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
+    fn additional_wires(&self, py: Python, instr: InstructionRef<DAGCircuit>) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
         let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<Var>)> {
             let mut clbits = Vec::new();
             let mut vars: Vec<Var> = Vec::new();
@@ -5601,15 +5600,30 @@ impl DAGCircuit {
         let mut clbits = Vec::new();
         let mut vars = Vec::new();
 
-        if let OperationRef::Instruction(inst) = op {
-            let op = inst.instruction.bind(py);
-            if inst.control_flow() {
-                // The `condition` field might not exist, for example if this a `for` loop, and
-                // that's not an exceptional state for us.
-                if let Ok(condition) = op.getattr(intern!(py, "condition")) {
-                    if !condition.is_none() {
-                        if let Ok(condition) = condition.extract::<expr::Expr>() {
-                            let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
+        if let InstructionRef::ControlFlow(instr) = &instr {
+            match instr {
+                ControlFlowRef::IfElse { condition: Condition::Expr(condition), .. } | ControlFlowRef::While { condition: Condition::Expr(condition), .. }  => {
+                    // TODO: do we need to add bits from non-expr condition?
+                    let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
+                    for bit in expr_clbits {
+                        clbits.push(bit);
+                    }
+                    for var in expr_vars {
+                        vars.push(var);
+                    }
+                }
+                ControlFlowRef::Switch { target, .. } => {
+                    match target {
+                        Target::Bit(bit) => {
+                            clbits.push(self.clbits.find(bit).unwrap());
+                        }
+                        Target::Register(reg) => {
+                            for bit in reg.bits() {
+                                clbits.push(self.clbits.find(&bit).unwrap());
+                            }
+                        }
+                        Target::Expr(expr) => {
+                            let (expr_clbits, expr_vars) = wires_from_expr(expr)?;
                             for bit in expr_clbits {
                                 clbits.push(bit);
                             }
@@ -5619,34 +5633,16 @@ impl DAGCircuit {
                         }
                     }
                 }
-
-                // TODO: this is the Python-side `ControlFlowOp.iter_captured_vars` which iterates
-                //   over vars in all blocks of the op. This needs to be ported to Rust when control
-                //   flow is ported.
-                for var in op.call_method0("iter_captured_vars")?.try_iter()? {
-                    vars.push(self.vars.find(&var?.extract()?).unwrap())
+                _ => ()
+            }
+            for block in instr.blocks() {
+                for var in block.captured_vars() {
+                    vars.push(self.vars.find(var).unwrap());
                 }
-                if op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
-                    let target = op.getattr(intern!(py, "target"))?;
-                    if target.downcast::<PyClbit>().is_ok() {
-                        let target_clbit: ShareableClbit = target.extract()?;
-                        clbits.push(self.clbits.find(&target_clbit).unwrap());
-                    } else if target.is_instance_of::<PyClassicalRegister>() {
-                        for bit in target.try_iter()? {
-                            let clbit: ShareableClbit = bit?.extract()?;
-                            clbits.push(self.clbits.find(&clbit).unwrap());
-                        }
-                    } else {
-                        let (expr_clbits, expr_vars) = wires_from_expr(&target.extract()?)?;
-                        for bit in expr_clbits {
-                            clbits.push(bit);
-                        }
-                        for var in expr_vars {
-                            vars.push(var);
-                        }
-                    }
-                }
-            } else if op.is_instance(imports::STORE_OP.get_bound(py))? {
+            }
+        } else if let InstructionRef::Instruction(instr) = &instr {
+            let op = instr.instruction.bind(py);
+            if op.is_instance(imports::STORE_OP.get_bound(py))? {
                 let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
                 for bit in expr_clbits {
                     clbits.push(bit);
@@ -6367,7 +6363,7 @@ impl DAGCircuit {
         }
 
         if self.may_have_additional_wires(inst) {
-            let (clbits, vars) = Python::with_gil(|py| self.additional_wires(py, inst.op.view()))?;
+            let (clbits, vars) = Python::with_gil(|py| self.additional_wires(py, inst.view()))?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
                     return Err(DAGCircuitError::new_err(format!(
@@ -6641,7 +6637,7 @@ impl DAGCircuit {
                     let NodeType::Operation(node) = node else {
                         continue;
                     };
-                    if !node.op.control_flow() {
+                    if !node.op.try_control_flow().is_some() {
                         continue;
                     }
                     let OperationRef::Instruction(inst) = node.op.view() else {
@@ -7188,7 +7184,7 @@ impl DAGCircuit {
                         .map(|bit| self.clbits.find(&clbit_map[bit]).unwrap())
                         .collect::<Vec<Clbit>>();
 
-                    let instr = if inst.op.control_flow() {
+                    let instr = if inst.op.try_control_flow().is_some() {
                         let OperationRef::Instruction(op) = inst.op.view() else {
                             unreachable!("All control_flow ops should be PyInstruction");
                         };
@@ -7243,7 +7239,6 @@ impl DAGCircuit {
                                         clbits: op.clbits,
                                         params: op.params,
                                         op_name: op.op_name.clone(),
-                                        control_flow: op.control_flow,
                                         instruction: py_op.unbind(),
                                     }
                                     .into(),
@@ -7345,10 +7340,6 @@ impl DAGCircuit {
                     .map(|x| Wire::Clbit(*x)),
             )
             .collect();
-        let (additional_clbits, additional_vars) =
-            Python::with_gil(|py| self.additional_wires(py, new_op.operation.view()))?;
-        new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
-        new_wires.extend(additional_vars.iter().map(|x| Wire::Var(*x)));
 
         if old_packed.op.num_qubits() != new_op.operation.num_qubits()
             || old_packed.op.num_clbits() != new_op.operation.num_clbits()
@@ -7360,19 +7351,12 @@ impl DAGCircuit {
                 )));
         }
 
+        let label = new_op.label.clone();
+
         #[cfg(feature = "cache_pygates")]
         let py_op_cache = Some(op.clone().unbind());
-
-        let label = new_op.label.clone();
-        if new_wires != current_wires {
-            // The new wires must be a non-strict subset of the current wires; if they add new
-            // wires, we'd not know where to cut the existing wire to insert the new dependency.
-            return Err(DAGCircuitError::new_err(format!(
-                "New operation '{:?}' does not span the same wires as the old node '{:?}'. New wires: {:?}, old_wires: {:?}.", op.str(), old_packed.op.view(), new_wires, current_wires
-            )));
-        }
         let new_op_name = new_op.operation.name().to_string();
-        let new_weight = NodeType::Operation(DAGInstruction::from_packed(PackedInstruction {
+        let new_instr = DAGInstruction::from_packed(PackedInstruction {
             op: new_op.operation,
             qubits: old_packed.qubits,
             clbits: old_packed.clbits,
@@ -7380,7 +7364,21 @@ impl DAGCircuit {
             label,
             #[cfg(feature = "cache_pygates")]
             py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
-        }));
+        });
+
+        let (additional_clbits, additional_vars) =
+            Python::with_gil(|py| self.additional_wires(py, new_instr.view()))?;
+        new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
+        new_wires.extend(additional_vars.iter().map(|x| Wire::Var(*x)));
+
+        if new_wires != current_wires {
+            // The new wires must be a non-strict subset of the current wires; if they add new
+            // wires, we'd not know where to cut the existing wire to insert the new dependency.
+            return Err(DAGCircuitError::new_err(format!(
+                "New operation '{:?}' does not span the same wires as the old node '{:?}'. New wires: {:?}, old_wires: {:?}.", op.str(), old_packed.op.view(), new_wires, current_wires
+            )));
+        }
+        let new_weight = NodeType::Operation(new_instr);
         if let Some(weight) = self.dag.node_weight_mut(node_index) {
             *weight = new_weight;
         }

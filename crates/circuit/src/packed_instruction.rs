@@ -354,6 +354,20 @@ impl PackedOperation {
         bytemuck::checked::cast((self.0 & Self::DISCRIMINANT_MASK) as u8)
     }
 
+    /// Get the contained `ControlFlow`, if any.
+    pub fn control_flow(&self) -> &ControlFlow {
+        self.try_into()
+            .expect("the caller is responsible for knowing the correct type")
+    }
+
+    /// Get the contained `ControlFlow`.
+    ///
+    /// **Panics** if this `PackedOperation` doesn't contain a `ControlFlow`; see
+    /// `try_control_flow`.
+    pub fn try_control_flow(&self) -> Option<&ControlFlow> {
+        self.try_into().ok()
+    }
+
     /// Get the contained `StandardGate`.
     ///
     /// **Panics** if this `PackedOperation` doesn't contain a `StandardGate`; see
@@ -440,6 +454,7 @@ impl PackedOperation {
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `ControlFlow`.
+    #[inline]
     pub fn from_control_flow(control_flow: Box<ControlFlow>) -> Self {
         control_flow.into()
     }
@@ -496,7 +511,6 @@ impl PackedOperation {
                 qubits: instruction.qubits,
                 clbits: instruction.clbits,
                 params: instruction.params,
-                control_flow: instruction.control_flow,
                 op_name: instruction.op_name.clone(),
             }
             .into()),
@@ -535,7 +549,6 @@ impl PackedOperation {
                 qubits: instruction.qubits,
                 clbits: instruction.clbits,
                 params: instruction.params,
-                control_flow: instruction.control_flow,
                 op_name: instruction.op_name.clone(),
             })
             .into()),
@@ -664,10 +677,6 @@ impl Operation for PackedOperation {
         self.view().num_params()
     }
     #[inline]
-    fn control_flow(&self) -> bool {
-        self.view().control_flow()
-    }
-    #[inline]
     fn standard_gate(&self) -> Option<StandardGate> {
         self.view().standard_gate()
     }
@@ -780,6 +789,33 @@ impl Instruction for PackedInstruction {
 }
 
 impl PackedInstruction {
+    pub fn from_control_flow(
+        control_flow: ControlFlow,
+        qubits: Interned<[Qubit]>,
+        clbits: Interned<[Clbit]>,
+        blocks: impl IntoIterator<Item = CircuitData>,
+        label: Option<&str>,
+    ) -> Self {
+        // let params: Option<SmallVec<[Param; 3]>> = match control_flow {
+        //     ControlFlow::Box { .. } => Some(blocks.into_iter().take(1).map(|b| Param::Circuit(b)).collect()),
+        //     ControlFlow::BreakLoop { .. } => None,
+        //     ControlFlow::ContinueLoop { .. } => None,
+        //     ControlFlow::ForLoop { .. } => Some(blocks.into_iter().take(1).map(|b| Param::Circuit(b)).collect()),
+        //     ControlFlow::IfElse { .. } => {}
+        //     ControlFlow::Switch { .. } => {}
+        //     ControlFlow::While { .. } => {}
+        // };
+        // Self {
+        //     op: control_flow.into(),
+        //     qubits,
+        //     clbits,
+        //     params: params.map(|p| Box::new(p)),
+        //     label: label.map(|l| Box::new(l.to_string())),
+        //     py_op: Default::default(),
+        // }
+        todo!()
+    }
+
     /// Access the standard gate in this `DataInstruction`, if it is one.  If the instruction
     /// refers to a Python-space object, `None` is returned.
     #[inline]

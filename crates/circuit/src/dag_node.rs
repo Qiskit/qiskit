@@ -14,7 +14,7 @@ use std::hash::Hasher;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::circuit_instruction::{AsInstructionRef, CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{CircuitInstruction, IntoInstructionRef, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::{Operation, Param};
 use crate::TupleLikeArg;

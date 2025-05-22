@@ -37,16 +37,19 @@ use nalgebra::{MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
-pub trait AsInstructionRef {
+pub trait IntoInstructionRef<'a> {
     type Block;
 
-    fn op(&self) -> OperationRef<'_>;
-    fn standard_gate(&self) -> Option<StandardGateRef<'_>>;
-    fn standard_instruction(&self) -> Option<StandardInstructionRef>;
-    fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>>;
+    fn op(self) -> OperationRef<'a>;
+    fn standard_gate(self) -> Option<StandardGateRef<'a>>;
+    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>>;
+    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>>;
 
     #[inline]
-    fn view(&self) -> InstructionRef<'_, Self::Block> {
+    fn view(self) -> InstructionRef<'a, Self::Block>
+    where
+        Self: Copy + Sized,
+    {
         match self.op() {
             OperationRef::ControlFlow(_) => {
                 InstructionRef::ControlFlow(self.control_flow().unwrap())
@@ -129,20 +132,7 @@ pub trait Instruction {
                 todo!()
             }
             OperationRef::StandardGate(standard) => {
-                let gate_class = get_std_gate_class(py, standard)?;
-                let args = match self.params_view() {
-                    &[] => PyTuple::empty(py),
-                    params => PyTuple::new(
-                        py,
-                        params.iter().map(|x| x.clone().into_pyobject(py).unwrap()),
-                    )?,
-                };
-                if let Some(label) = self.label() {
-                    let kwargs = [("label", label.into_pyobject(py)?)].into_py_dict(py)?;
-                    gate_class.call(py, args, Some(&kwargs))
-                } else {
-                    gate_class.call(py, args, None)
-                }
+                standard.create_py_op(py, Some(self.params_view()), self.label())
             }
             OperationRef::StandardInstruction(instruction) => {
                 let kwargs = self
@@ -310,21 +300,21 @@ impl Instruction for CircuitInstruction {
     }
 }
 
-impl<T: Instruction> AsInstructionRef for T {
+impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
     type Block = PyObject;
 
-    fn op(&self) -> OperationRef<'_> {
+    fn op(self) -> OperationRef<'a> {
         Instruction::op(self)
     }
 
-    fn standard_gate(&self) -> Option<StandardGateRef<'_>> {
+    fn standard_gate(self) -> Option<StandardGateRef<'a>> {
         let OperationRef::StandardGate(gate) = self.op() else {
             return None;
         };
         Some(StandardGateRef(gate, self.params_view()))
     }
 
-    fn standard_instruction(&self) -> Option<StandardInstructionRef> {
+    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
         let OperationRef::StandardInstruction(instruction) = self.op() else {
             return None;
         };
@@ -346,7 +336,7 @@ impl<T: Instruction> AsInstructionRef for T {
         })
     }
 
-    fn control_flow(&self) -> Option<ControlFlowRef<'_, Self::Block>> {
+    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
         let OperationRef::ControlFlow(control) = self.op() else {
             return None;
         };
@@ -528,7 +518,7 @@ impl CircuitInstruction {
     /// Is the :class:`.Operation` contained in this instruction a control-flow operation (i.e. an
     /// instance of :class:`.ControlFlowOp`)?
     pub fn is_control_flow(&self) -> bool {
-        self.operation.control_flow()
+        self.operation.try_control_flow().is_some()
     }
 
     /// Does this instruction contain any :class:`.ParameterExpression` parameters?
@@ -774,6 +764,32 @@ pub struct OperationFromPython {
     pub label: Option<Box<String>>,
 }
 
+impl<'a> IntoInstructionRef<'a> for &'a OperationFromPython {
+    type Block = PyObject;
+
+    fn op(self) -> OperationRef<'a> {
+        self.operation.view()
+    }
+
+    fn standard_gate(self) -> Option<StandardGateRef<'a>> {
+        match self.op() {
+            OperationRef::StandardGate(g) => Some(StandardGateRef(g, self.params.as_slice())),
+            _ => None,
+        }
+    }
+
+    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
+        match self.op() {
+            OperationRef::StandardInstruction(i) => todo!(),
+            _ => None,
+        }
+    }
+
+    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
+        todo!()
+    }
+}
+
 impl<'py> FromPyObject<'py> for OperationFromPython {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
@@ -947,7 +963,6 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
                 params: params.len() as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
                 instruction: ob.clone().unbind(),
             });
             return Ok(OperationFromPython {
