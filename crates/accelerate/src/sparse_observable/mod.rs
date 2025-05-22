@@ -1932,14 +1932,15 @@ impl PySparseTerm {
         out
     }
 
-    /// Get a :class:`.Pauli` object that represents the measurement basis needed for this term.
+    /// Get a :class:`~.quantum_info.Pauli` object that represents the measurement basis needed for
+    /// this term.
     ///
     /// For example, the projector ``0l+`` will return a Pauli ``ZYX``.  The resulting
-    /// :class:`.Pauli` is dense, in the sense that explicit identities are stored.  An identity in
-    /// the Pauli output does not require a concrete measurement.
+    /// :class:`~.quantum_info.Pauli` is dense, in the sense that explicit identities are stored.
+    /// An identity in the Pauli output does not require a concrete measurement.
     ///
-    /// Returns:
-    ///     :class:`.Pauli`: the Pauli operator representing the necessary measurement basis.
+    /// Returns: :class:`~.quantum_info.Pauli`: the Pauli operator representing the necessary
+    ///     measurement basis.
     ///
     /// See also:
     ///     :meth:`SparseObservable.pauli_bases`
@@ -2291,10 +2292,11 @@ impl PySparseTerm {
 ///   :meth:`from_sparse_list`      Sum a list of tuples of sparse string labels, the qubits they
 ///                                 apply to, and their coefficients into an observable.
 ///
-///   :meth:`from_pauli`            Raise a single :class:`.Pauli` into a single-term
+///   :meth:`from_pauli`            Raise a single :class:`~.quantum_info.Pauli` into a single-term
 ///                                 :class:`.SparseObservable`.
 ///
-///   :meth:`from_sparse_pauli_op`  Raise a :class:`.SparsePauliOp` into a :class:`SparseObservable`.
+///   :meth:`from_sparse_pauli_op`  Raise a :class:`.SparsePauliOp` into a
+///                                 :class:`SparseObservable`.
 ///
 ///   :meth:`from_terms`            Sum explicit single :class:`Term` instances.
 ///
@@ -2312,7 +2314,7 @@ impl PySparseTerm {
 ///     number, the given integer must match the input.
 ///
 ///     :param data: The data type of the input.  This can be another :class:`SparseObservable`, in
-///         which case the input is copied, a :class:`.Pauli` or :class:`.SparsePauliOp`, in which
+///         which case the input is copied, a :class:`~.quantum_info.Pauli` or :class:`.SparsePauliOp`, in which
 ///         case :meth:`from_pauli` or :meth:`from_sparse_pauli_op` are called as appropriate, or it
 ///         can be a list in a valid format for either :meth:`from_list` or
 ///         :meth:`from_sparse_list`.
@@ -2606,13 +2608,13 @@ impl PySparseObservable {
         SparseObservable::identity(num_qubits).into()
     }
 
-    /// Construct a :class:`.SparseObservable` from a single :class:`.Pauli` instance.
+    /// Construct a :class:`.SparseObservable` from a single :class:`~.quantum_info.Pauli` instance.
     ///
     /// The output observable will have a single term, with a unitary coefficient dependent on the
     /// phase.
     ///
     /// Args:
-    ///     pauli (:class:`.Pauli`): the single Pauli to convert.
+    ///     pauli (:class:`~.quantum_info.Pauli`): the single Pauli to convert.
     ///
     /// Examples:
     ///
@@ -2674,7 +2676,7 @@ impl PySparseObservable {
     /// The resulting operator will have a coefficient of 1.  The label must be a sequence of the
     /// alphabet ``'IXYZ+-rl01'``.  The label is interpreted analogously to a bitstring.  In other
     /// words, the right-most letter is associated with qubit 0, and so on.  This is the same as the
-    /// labels for :class:`.Pauli` and :class:`.SparsePauliOp`.
+    /// labels for :class:`~.quantum_info.Pauli` and :class:`.SparsePauliOp`.
     ///
     /// Args:
     ///     label (str): the dense label.
@@ -2709,7 +2711,7 @@ impl PySparseObservable {
     ///
     /// The label must be a sequence of the alphabet ``'IXYZ+-rl01'``.  The label is interpreted
     /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
-    /// 0, and so on.  This is the same as the labels for :class:`.Pauli` and
+    /// 0, and so on.  This is the same as the labels for :class:`~.quantum_info.Pauli` and
     /// :class:`.SparsePauliOp`.
     ///
     /// Args:
@@ -3559,8 +3561,8 @@ impl PySparseObservable {
     /// (in order) in this observable.
     ///
     /// For example, the projector ``0l+`` will return a Pauli ``ZXY``.  The resulting
-    /// :class:`.Pauli` is dense, in the sense that explicit identities are stored.  An identity in
-    /// the Pauli output does not require a concrete measurement.
+    /// :class:`~.quantum_info.Pauli` is dense, in the sense that explicit identities are stored.
+    /// An identity in the Pauli output does not require a concrete measurement.
     ///
     /// This will return an entry in the Pauli list for every term in the sum.
     ///

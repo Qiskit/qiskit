@@ -21,6 +21,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
+import qiskit.quantum_info
 
 if TYPE_CHECKING:
     from qiskit.synthesis.evolution import EvolutionSynthesis
@@ -91,10 +92,10 @@ class PauliEvolutionGate(Gate):
     def __init__(
         self,
         operator: (
-            Pauli
+            qiskit.quantum_info.Pauli
             | SparsePauliOp
             | SparseObservable
-            | list[Pauli | SparsePauliOp | SparseObservable]
+            | list[qiskit.quantum_info.Pauli | SparsePauliOp | SparseObservable]
         ),
         time: ParameterValueType = 1.0,
         label: str | None = None,
