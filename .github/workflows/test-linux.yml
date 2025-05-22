@@ -91,6 +91,29 @@ jobs:
           sudo apt-get install -y graphviz
         if: ${{ inputs.install-optionals }}
       - name: Run Python tests
+        if: ${{ !inputs.install-from-sdist }}
+        run: |
+          set -e
+          source test-job/bin/activate
+          python tools/report_numpy_state.py
+          export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+          echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          stestr run
+          popd
+        env:
+          QISKIT_PARALLEL: FALSE
+          QISKIT_IGNORE_USER_SETTINGS: TRUE
+          RUST_BACKTRACE: 1
+      - name: Filter stestr history
+        if: ${{ !inputs.install-from-sdist }}
+        run: |
+          set -e
+          pushd .stestr
+          ls | grep -P "^\d" | xargs -d "\n" rm -f
+          popd
+          cp -r .stestr .
+      - name: Run Python tests (sdist)
+        if: ${{ inputs.install-from-sdist }}
         run: |
           set -e
           source test-job/bin/activate
@@ -108,3 +131,11 @@ jobs:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           RUST_BACKTRACE: 1
+      - name: Filter stestr history (sdist)
+        if: ${{ inputs.install-from-sdist }}
+        run: |
+          set -e
+          pushd /tmp/terra-tests/.stestr
+          ls | grep -P "^\d" | xargs -d "\n" rm -f
+          popd
+          cp -r /tmp/terra-tests/.stestr .

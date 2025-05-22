@@ -76,6 +76,13 @@ jobs:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           RUST_BACKTRACE: 1
+      - name: Filter stestr history
+        run: |
+          set -e
+          pushd .stestr
+          ls | grep -P "^\d" | xargs -d "\n" rm -f
+          popd
+          cp -r .stestr .
       - name: Copy and Publish images
         uses: actions/upload-artifact@v4
         if: ${{ failure() }}
