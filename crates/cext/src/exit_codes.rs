@@ -51,8 +51,6 @@ pub enum ExitCode {
     TargetInvalidQargsKey = 303,
     /// Querying an operation that doesn't exist in the Target.
     TargetInvalidInstKey = 304,
-    /// Qargs are not operated on in this Target
-    TargetQargsWithoutInstruction = 305,
 }
 
 impl From<ArithmeticError> for ExitCode {
