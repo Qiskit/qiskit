@@ -3,10 +3,10 @@ features_quantum_info:
   - |
     Added a new :meth:`~.Pauli.apply_layout`  method that is equivalent to
     :meth:`~.SparsePauliOp.apply_layout`. This method is used to apply
-    a :class:`~.TranspileLayout` layout from the transpiler to a :class:`~.Pauli`
+    a :class:`~.TranspileLayout` layout from the transpiler to a :class:`~.quantum_info.Pauli`
     observable that was built for an input circuit. This enables working with
     :class:`~.BaseEstimator` / :class:`~.BaseEstimatorV2` implementations and 
-    local transpilation when the input is of type :class:`~.Pauli`. For example::
+    local transpilation when the input is of type :class:`~.quantum_info.Pauli`. For example::
     
       from qiskit.circuit.library import RealAmplitudes
       from qiskit.primitives import BackendEstimatorV2
