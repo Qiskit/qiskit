@@ -470,7 +470,8 @@ pub unsafe extern "C" fn qk_property_map_add(
 /// This function will fail if a parametric gate is added.
 ///
 /// @note Adding parametric gates with non-fixed parameters is currently
-/// not supported. See ``qk_target_add_instruction_fixed_params()``.
+/// not supported. See ``qk_target_add_instruction_fixed_params()`` for
+/// adding gates with fixed parameters.
 ///
 /// @param target A pointer to the ``Target``.
 /// @param instruction The StandardGate to be added to the ``Target``.
@@ -621,7 +622,7 @@ pub unsafe extern "C" fn qk_target_add_instruction_fixed_params(
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
 ///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
+///     qk_target_add_instruction_fixed_params(target, QkGate_CRX, params, props_map);
 ///
 ///     qk_target_update_instruction_properties(target, QkGate_CRX, qargs, 2, 0.0012, 1.1)
 ///
@@ -678,9 +679,9 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
-///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
+///     qk_target_add_instruction(target, QkGate_H, NULL);
 ///
-///     qk_target_length(target, "x")
+///     qk_target_length(target)
 ///
 /// # Safety
 ///
