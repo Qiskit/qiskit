@@ -25,7 +25,5 @@ jobs:
           - windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: cargo install cbindgen
       - name: Run tests
         run: make ctest

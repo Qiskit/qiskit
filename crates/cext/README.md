@@ -4,14 +4,12 @@ This crate contains the bindings for Qiskit's C API.
 
 ## Building the library
 
-The C bindings are compiled into a shared library, which can be built along with the header file
-by running
+The C bindings are compiled into a shared library, which can be built by running
 ```bash
 make c
 ```
-in the root of the repository. The header file, `qiskit.h`, is generated using
-[cbindgen](https://github.com/mozilla/cbindgen) and stored in `dist/c/include`.
-Similarly, the `libqiskit` shared library is stored in `dist/c/lib`.
+in the root of the repository. This will store the shared library (e.g. `libqiskit.so`) in
+`dist/c/lib`. Similarly, a copy of the header file, `qiskit.h` is provided in `dist/c/include`.
 
 You can ask Make to build only the header file with `make cheader`, or only the
 shared-object library with `make clib`.

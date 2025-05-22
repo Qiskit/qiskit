@@ -1,9 +1,12 @@
-INPUT = docs/cdoc/ dist/c/include/qiskit.h dist/c/include/qiskit/
+INPUT = docs/cdoc/ crates/cext/include crates/cext/include/qiskit
 
 OPTIMIZE_OUTPUT_FOR_C = YES
 EXTRACT_ALL = YES
+EXTRACT_STATIC = YES
+EXTRACT_TYPEDEFS = YES
 ENABLE_PREPROCESSING = YES
 MACRO_EXPANSION = YES
+EXPORT_ANON_ENUMS = YES
 
 GENERATE_XML = YES
 XML_OUTPUT = docs/xml

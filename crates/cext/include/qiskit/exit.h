@@ -15,25 +15,27 @@
 
 #include <stdlib.h>
 
-/// Integer exit codes returned to C.
+/**
+ * Integer exit codes returned to C.
+ */
 enum QkExitCode
 #ifdef __cplusplus
     : uint32_t
 #endif // __cplusplus
 {
-    /// Success.
+    /* Success. */
     QkExitCode_Success = 0,
-    /// Error related to data input.
+    /* Error related to data input. */
     QkExitCode_CInputError = 100,
-    /// Unexpected null pointer.
+    /* Unexpected null pointer. */
     QkExitCode_NullPointerError = 101,
-    /// Pointer is not aligned to expected data.
+    /* Pointer is not aligned to expected data. */
     QkExitCode_AlignmentError = 102,
-    /// Index out of bounds.
+    /* Index out of bounds. */
     QkExitCode_IndexError = 103,
-    /// Error related to arithmetic operations or similar.
+    /* Error related to arithmetic operations or similar. */
     QkExitCode_ArithmeticError = 200,
-    /// Mismatching number of qubits.
+    /* Mismatching number of qubits. */
     QkExitCode_MismatchedQubits = 201,
 };
 #ifndef __cplusplus

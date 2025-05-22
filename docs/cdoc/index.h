@@ -1,19 +1,9 @@
-/**
- * @defgroup QkObs QkObs
- */
+/// @defgroup QkObsMethods QkObsMethods
 
-/**
- * @defgroup QkObsTerm QkObsTerm
- */
+/// @defgroup QkObsTermMethods QkObsTermMethods
 
-/**
- * @defgroup QkBitTerm QkBitTerm
- */
+/// @defgroup QkBitTermMethods QkBitTermMethods
 
-/**
- * @defgroup QkComplex64 QkComplex64
- */
+/// @defgroup QkComplex64Methods QkComplex64Methods
 
-/**
- * @defgroup QkCircuit QkCircuit
- */
+/// @defgroup QkCircuitMethods QkCircuitMethods
