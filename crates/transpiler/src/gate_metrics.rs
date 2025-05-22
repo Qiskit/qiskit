@@ -14,7 +14,7 @@ use ndarray::ArrayView2;
 use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::{operations::StandardGate, Qubit};
 
-use crate::unitary_compose;
+use qiskit_quantum_info::unitary_compose;
 
 /// For a (controlled) rotation or phase gate, return a tuple ``(Tr(gate) / dim, dim)``.
 /// Returns ``None`` if the rotation gate (specified by name) is not supported.
