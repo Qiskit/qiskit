@@ -18,7 +18,7 @@ use rand_pcg::Pcg64Mcg;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use rayon::prelude::IntoParallelIterator;
 
-use crate::getenv_use_multiple_threads;
+use qiskit_circuit::getenv_use_multiple_threads;
 
 /// Specifies the minimum number of qubits in order to parallelize computations
 /// (this number is chosen based on several local experiments).
