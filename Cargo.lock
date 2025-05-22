@@ -1473,6 +1473,7 @@ dependencies = [
  "pyo3",
  "qiskit-accelerate",
  "qiskit-circuit",
+ "regex",
  "thiserror 2.0.12",
 ]
 
