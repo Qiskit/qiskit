@@ -99,7 +99,6 @@ jobs:
           export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
           stestr run
-          popd
         env:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
@@ -111,7 +110,6 @@ jobs:
           pushd .stestr
           ls | grep -P "^\d" | xargs -d "\n" rm -f
           popd
-          cp -r .stestr .
       - name: Run Python tests (sdist)
         if: ${{ inputs.install-from-sdist }}
         run: |

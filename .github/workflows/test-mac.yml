@@ -82,7 +82,6 @@ jobs:
           pushd .stestr
           ls | perl -nle"print if m{^\d}" | xargs -d "\n" rm -f
           popd
-          cp -r .stestr .
       - name: Copy and Publish images
         uses: actions/upload-artifact@v4
         if: ${{ failure() }}

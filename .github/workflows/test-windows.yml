@@ -77,7 +77,6 @@ jobs:
           pushd .stestr
           ls | grep -P "^\d" | xargs -d "\n" rm -f
           popd
-          cp -r .stestr .
         env:
           LANG: "C.UTF-8"
           PYTHONIOENCODING: "utf-8:backslashreplace"
