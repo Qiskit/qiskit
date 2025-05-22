@@ -10,57 +10,28 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::env;
 use std::fs;
+use std::path::Path;
 use std::str::FromStr;
 
 extern crate cbindgen;
 
-/// This function generates the version.h file from the VERSION.txt file information.
-fn generate_version_header() {
-    //Reading the version string from the VERSION.txt file.
-    let version_file_path = "../../qiskit/VERSION.txt";
-    let version_h_file_path = "./version.h";
-    let qiskit_version = fs::read_to_string(version_file_path)
-        .expect("Failed to read VERSION.txt file!")
-        .trim()
-        .to_string();
+/// This function generates version_constants.rs with integer version numbers
+fn write_version_constants() {
+    //Obtain version constants from environment variables.
+    let major = env::var("CARGO_PKG_VERSION_MAJOR").unwrap();
+    let minor = env::var("CARGO_PKG_VERSION_MINOR").unwrap();
+    let patch = env::var("CARGO_PKG_VERSION_PATCH").unwrap();
 
-    // Obtain the major, minor and patch version numbers.
-    let mut part = qiskit_version.split('.');
-    let major = part.next().unwrap_or("0");
-    let minor = part.next().unwrap_or("0");
-    let patch = part.next().unwrap_or("0");
-
-    // Read the existing version.h content
-    let mut version_h_content = fs::read_to_string(version_h_file_path).unwrap();
-
-    // Define the regex patterns to match the version lines in version.h
-    use regex::Regex;
-    let re_major = Regex::new(r#"#define QISKIT_VERSION_MAJOR.*"#).unwrap();
-    let re_minor = Regex::new(r#"#define QISKIT_VERSION_MINOR.*"#).unwrap();
-    let re_patch = Regex::new(r#"#define QISKIT_VERSION_PATCH.*"#).unwrap();
-
-    // Replace the version lines with the new version numbers and write to version.h
-    version_h_content = re_major
-        .replace_all(
-            &version_h_content,
-            format!("#define QISKIT_VERSION_MAJOR {}", major),
-        )
-        .to_string();
-    version_h_content = re_minor
-        .replace_all(
-            &version_h_content,
-            format!("#define QISKIT_VERSION_MINOR {}", minor),
-        )
-        .to_string();
-    version_h_content = re_patch
-        .replace_all(
-            &version_h_content,
-            format!("#define QISKIT_VERSION_PATCH {}", patch),
-        )
-        .to_string();
-
-    fs::write(version_h_file_path, version_h_content).expect("Failed to write version.h file!");
+    // Read the contents of cbindgen.toml and update version numbers.
+    let cbindgen_path = Path::new("cbindgen.toml");
+    let contents = fs::read_to_string(&cbindgen_path).expect("Failed to read cbindgen.toml");
+    let contents = contents
+        .replace("@QISKIT_VERSION_MAJOR@", &major)
+        .replace("@QISKIT_VERSION_MINOR@", &minor)
+        .replace("@QISKIT_VERSION_PATCH@", &patch);
+    fs::write(&cbindgen_path, contents).expect("Failed to write cbindgen.generated.toml");
 }
 
 /// This function generates the C header for Qiskit from the qiskit-cext crate.
@@ -87,6 +58,6 @@ fn generate_qiskit_header() {
 }
 
 fn main() {
-    generate_version_header();
+    write_version_constants();
     generate_qiskit_header();
 }
