@@ -5176,14 +5176,18 @@ class QuantumCircuit:
             elif len(control_qubits) == 2:
                 self.ccx(control_qubits[0], control_qubits[1], q_target)
             else:
-                self.compose(synth_mcx_n_clean_m15(len(control_qubits)), inplace=True)
+                qubits = control_qubits + [target_qubit] + ancillary_qubits
+                mcx = synth_mcx_n_clean_m15(len(control_qubits))
+                self.compose(mcx, qubits, inplace=True)
             self.ry(-theta / 2, q_target)
             if len(control_qubits) == 1:
                 self.cx(control_qubits[0], q_target)
             elif len(control_qubits) == 2:
                 self.ccx(control_qubits[0], control_qubits[1], q_target)
             else:
-                self.compose(synth_mcx_n_clean_m15(len(control_qubits)), inplace=True)
+                qubits = control_qubits + [target_qubit] + ancillary_qubits
+                mcx = synth_mcx_n_clean_m15(len(control_qubits))
+                self.compose(mcx, qubits, inplace=True)
         elif mode == "noancilla":
             n_c = len(control_qubits)
             if n_c == 1:  # cu
