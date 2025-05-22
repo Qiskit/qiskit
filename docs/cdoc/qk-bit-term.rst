@@ -10,5 +10,5 @@ Data Types
 Functions
 =========
 
-.. doxygengroup:: __QkBitTerm
+.. doxygengroup:: QkBitTermMethods
    :content-only:
