@@ -318,6 +318,35 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 }
 
 /// @ingroup QkTarget
+/// Creates a copy of the ``Target``.
+///
+/// @param target A pointer to the ``Target`` to copy.
+///
+/// @return A pointer to the new copy of the ``Target``.
+///
+/// # Example
+///     
+///     QkTarget *target = qk_target_new(5);
+///     QkPropsMap *props_map = qk_property_map_new();
+///     uint32_t qargs[2] = {0, 1};
+///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
+///     qk_target_add_instruction(target, QkGate_CX, props_map);
+///
+///     QkTarget *copied = qk_target_copy(target);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    Box::into_raw(target.clone().into())
+}
+
+/// @ingroup QkTarget
 /// Free the ``Target``.
 ///
 /// @param target A pointer to the ``Target`` to free.
