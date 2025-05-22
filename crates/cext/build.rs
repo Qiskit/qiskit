@@ -27,7 +27,7 @@ fn write_version_constants() {
 
     // Read the contents of cbindgen.toml and update version numbers.
     let cbindgen_path = Path::new("cbindgen.toml");
-    let contents = fs::read_to_string(&cbindgen_path).expect("Failed to read cbindgen.toml");
+    let contents = fs::read_to_string(cbindgen_path).expect("Failed to read cbindgen.toml");
 
     // Regex to match the version macro lines
     let re_major = Regex::new(r#"(?m)^#define QISKIT_VERSION_MAJOR .*$"#).unwrap();
@@ -41,7 +41,7 @@ fn write_version_constants() {
     let contents =
         re_patch.replace_all(&contents, format!("#define QISKIT_VERSION_PATCH {}", patch));
 
-    fs::write(&cbindgen_path, contents.into_owned())
+    fs::write(cbindgen_path, contents.into_owned())
         .expect("Failed to write cbindgen.generated.toml");
 }
 
