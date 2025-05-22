@@ -159,11 +159,9 @@ int test_target_add_instruction(void) {
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
     // Add an X Gate.
-    // X Gate is not parametric.
-    double *params = NULL;
 
     // This operation is global, no property map is provided
-    qk_target_add_instruction(target, QkGate_X, params, NULL);
+    qk_target_add_instruction(target, QkGate_X, NULL);
 
     // Number of qubits of the target should not change.
     size_t current_num_qubits = qk_target_num_qubits(target);
@@ -186,10 +184,8 @@ int test_target_add_instruction(void) {
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
     qk_property_map_add(property_map, qargs, 2, inst_duration, inst_error);
-    // CX Gate is not paramtric. Re-use Null
-    double *cx_params = NULL;
 
-    qk_target_add_instruction(target, QkGate_CX, params, property_map);
+    qk_target_add_instruction(target, QkGate_CX, property_map);
 
     // Number of qubits of the target should change to 2.
     current_num_qubits = qk_target_num_qubits(target);
@@ -216,7 +212,7 @@ int test_target_add_instruction(void) {
     // CX Gate is not paramtric.
     double crx_params[1] = {3.14};
 
-    qk_target_add_instruction(target, QkGate_CRX, crx_params, property_map);
+    qk_target_add_instruction_fixed_params(target, QkGate_CRX, crx_params, property_map);
 
     // Number of qubits of the target should change to 3.
     current_num_qubits = qk_target_num_qubits(target);
@@ -230,6 +226,15 @@ int test_target_add_instruction(void) {
     if (current_num_qubits != 3) {
         printf("The size of this target is not correct: Expected 3, got %zu", current_size);
         return EqualityError;
+    }
+
+    // Try to add a parametric gate without fixed params
+    QkExitCode result_add = qk_target_add_instruction(target, QkGate_CRY, property_map);
+    if (result_add != QkExitCode_TargetNonFixedParametricGate) {
+        printf(
+            "Operation did not fail as expected. A parametric gate was added without parameters!");
+        result = EqualityError;
+        goto cleanup;
     }
 
 cleanup:
@@ -257,7 +262,7 @@ int test_target_update_instruction(void) {
     double inst_duration = 0.020039;
     qk_property_map_add(property_map, qargs, 2, inst_duration, inst_error);
     // CX Gate is not paramtric. Re-use Null
-    qk_target_add_instruction(target, QkGate_CX, NULL, property_map);
+    qk_target_add_instruction(target, QkGate_CX, property_map);
 
     // change the intruction property of cx
     double cx_new_inst_error = NAN;

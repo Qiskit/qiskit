@@ -465,7 +465,64 @@ pub unsafe extern "C" fn qk_property_map_add(
 }
 
 /// @ingroup QkTarget
-/// Adds a StandardGate to the ``Target``.
+/// Adds a non-parameteric StandardGate to the ``Target``.
+///
+/// This function will fail if a parametric gate is added.
+///
+/// @note Adding parametric gates with non-fixed parameters is currently
+/// not supported. See ``qk_target_add_instruction_fixed_params()``.
+///
+/// @param target A pointer to the ``Target``.
+/// @param instruction The StandardGate to be added to the ``Target``.
+/// @param property_map The mapping of qargs and InstructionProperties to
+/// be associated with this instruction.
+///
+/// # Example
+///     
+///     QkTarget *target = qk_target_new(5);
+///     QkPropsMap *props_map = qk_property_map_new();
+///     uint32_t qargs[2] = {0, 1};
+///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
+///     qk_target_add_instruction(target, QkGate_CX, props_map);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+///
+/// Behavior is undefined if ``property_map`` is not a valid, non-null pointer to a ``QkPropsMap``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_add_instruction(
+    target: *mut Target,
+    instruction: StandardGate,
+    property_map: *const PropertyMap,
+) -> ExitCode {
+    // Fast-fail if the gate is parametric.
+    if instruction.num_params() != 0 {
+        return ExitCode::TargetNonFixedParametricGate;
+    }
+
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { mut_ptr_as_ref(target) };
+
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let property_map = unsafe {
+        if property_map.is_null() {
+            None
+        } else {
+            Some(const_ptr_as_ref(property_map))
+        }
+    };
+    let props_map = property_map.map(|props| props.0.clone());
+
+    match target.add_instruction(instruction.into(), &[], None, props_map) {
+        Ok(_) => ExitCode::Success,
+        Err(e) => e.into(),
+    }
+}
+
+/// @ingroup QkTarget
+/// Adds a StandardGate to the ``Target`` with fixed parameters.
 ///
 /// @param target A pointer to the ``Target``.
 /// @param instruction The StandardGate to be added to the ``Target``.
@@ -482,7 +539,7 @@ pub unsafe extern "C" fn qk_property_map_add(
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
 ///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, QkGate_CRX, params, props_map);
+///     qk_target_add_instruction_fixed_params(target, QkGate_CRX, params, props_map);
 ///
 /// # Safety
 ///
@@ -497,7 +554,7 @@ pub unsafe extern "C" fn qk_property_map_add(
 /// Behavior is undefined if ``property_map`` is not a valid, non-null pointer to a ``QkPropsMap``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_add_instruction(
+pub unsafe extern "C" fn qk_target_add_instruction_fixed_params(
     target: *mut Target,
     instruction: StandardGate,
     params: *mut f64,
