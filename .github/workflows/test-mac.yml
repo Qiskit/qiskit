@@ -87,6 +87,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ failure() }}
         with:
-          name: copied-images
+          name: copied-images-${{ runner.name }}-tests-Python-${{ inputs.python-version }}
           path: "**/*.png"
           if-no-files-found: error
