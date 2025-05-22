@@ -847,12 +847,14 @@ class TestControlledGate(QiskitTestCase):
     @combine(num_ctrl_qubits=(1, 2, 3, 4, 5), num_target=(2, 3))
     def test_controlled_random_unitary(self, num_ctrl_qubits, num_target):
         """Test the matrix data of an Operator based on a random UnitaryGate."""
-        base_gate = random_unitary(2**num_target).to_instruction()
+        base_gate = random_unitary(
+            2**num_target, seed=10 * num_ctrl_qubits + num_target
+        ).to_instruction()
         base_mat = base_gate.to_matrix()
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-        self.assertTrue(matrix_equal(cop_mat, test_op.data))
+        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-7))
 
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):

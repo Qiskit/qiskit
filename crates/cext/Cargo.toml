@@ -22,7 +22,7 @@ qiskit-circuit.workspace = true
 pyo3 = { workspace = true, optional = true }
 
 [build-dependencies]
-cbindgen = "0.28"
+cbindgen = "0.29"
 
 [features]
 default = ["cbinding"]
