@@ -1619,11 +1619,20 @@ class TestControlledStandardGates(QiskitTestCase):
                 if gate_params[i] == "num_ctrl_qubits":
                     args[i] = 2
 
-        gate = gate_class(*args)
+        if issubclass(gate_class, (MCXGrayCode, MCXRecursive, MCXVChain)):
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(*args)
+        else:
+            gate = gate_class(*args)
 
         for ctrl_state in (ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed):
             with self.subTest(i=f"{gate_class.__name__}, ctrl_state={ctrl_state}"):
-                if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
+                if isinstance(gate, MCXGate):
+                    with self.assertWarns(DeprecationWarning):
+                        num_ancilla_qubits = gate.get_num_ancilla_qubits(gate.num_ctrl_qubits)
+                else:
+                    num_ancilla_qubits = 0
+                if num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue
                 try:

@@ -1263,7 +1263,12 @@ class MCXGate(ControlledGate):
             was provided
         """
         if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
-            with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".*qiskit\.circuit\.library\.standard_gates\.x.*",
+                )
                 return super().copy(name=name)
         return super().copy(name=name)
 
