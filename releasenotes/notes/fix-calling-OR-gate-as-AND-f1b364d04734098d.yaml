@@ -1,4 +1,5 @@
 ---
 fixes:
   - |
-    Fixed the name of the `OrGate`, that was set to `"and"` instead of `"or"`, and could have possibly led to several problems.
+    Fixed the name of the :class:`.OrGate`, that was set to `"and"` instead of 
+    `"or"`, and could have possibly led to several problems.
