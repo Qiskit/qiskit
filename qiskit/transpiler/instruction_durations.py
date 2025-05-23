@@ -74,6 +74,7 @@ class InstructionDurations:
 
         Raises:
             TranspilerError: If dt and dtm is different in the backend.
+            TypeError: If the backend is the wrong type
         """
         # All durations in seconds in gate_length
         if isinstance(backend, BackendV2):
