@@ -25,7 +25,7 @@ ndarray.workspace = true
 nalgebra.workspace = true
 
 [build-dependencies]
-cbindgen = "0.28"
+cbindgen = "0.29"
 
 [features]
 default = ["cbinding"]
