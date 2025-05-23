@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use nalgebra::{Complex, Matrix2, Matrix3, Matrix3x1};
+use nalgebra::{Matrix3, Matrix3x1};
 
 /// A bisection search on [f64] functions.
 fn bisect(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64, maxiter: usize) -> Option<f64> {
@@ -65,6 +65,7 @@ pub(crate) fn solve_decomposition_angle(matrix: &Matrix3<f64>) -> f64 {
 
 /// Add coeff * V to the out matrix, where V is the skew-symmetric representation of the
 /// cross product with the vector v.
+#[inline]
 fn add_cross_prod(coeff: f64, v: &Matrix3x1<f64>, out: &mut Matrix3<f64>) {
     out[(0, 1)] -= coeff * v[2];
     out[(0, 2)] += coeff * v[1];
@@ -75,6 +76,7 @@ fn add_cross_prod(coeff: f64, v: &Matrix3x1<f64>, out: &mut Matrix3<f64>) {
 }
 
 /// Add coeff * v.dot(v.T) to the output matrix.
+#[inline]
 fn add_outer_prod(coeff: f64, v: &Matrix3x1<f64>, out: &mut Matrix3<f64>) {
     out[(0, 0)] += coeff * v[0] * v[0];
     out[(0, 1)] += coeff * v[0] * v[1];
@@ -108,19 +110,19 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, tol: f64) -> Matrix3x1<f64> {
     if trace >= tol - 1. {
         // there's a skew symmetric part which we can use to get the rotation axis
         let theta = ((trace - 1.) / 2.).acos();
-        let skew = (matrix - matrix.transpose()) / 2.;
+        // let skew = (matrix - matrix.transpose()) / 2.;
 
         if theta.sin() > tol {
             let coeff = 1. / 2. / theta.sin();
             let axis = Matrix3x1::new(
-                coeff * (skew[(2, 1)] - skew[(1, 2)]),
-                coeff * (skew[(0, 2)] - skew[(2, 0)]),
-                coeff * (skew[(1, 0)] - skew[(0, 1)]),
+                coeff * (matrix[(2, 1)] - matrix[(1, 2)]),
+                coeff * (matrix[(0, 2)] - matrix[(2, 0)]),
+                coeff * (matrix[(1, 0)] - matrix[(0, 1)]),
             );
 
             // this might fail due to numerical error, in that case go to diagonal case
             if !axis.iter().any(|el| el.is_nan()) {
-                return axis / vector_norm(&axis);
+                return axis.normalize();
             }
         }
     }
@@ -155,23 +157,13 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, tol: f64) -> Matrix3x1<f64> {
         }
         _ => (),
     };
-    // // this is a 180 degree rotation about any of X, Y, or Z axis (then the trace is -1)
-    // let index = matrix
-    //     .diagonal()
-    //     .iter()
-    //     .enumerate()
-    //     .find(|(_index, el)| el.is_sign_positive())
-    //     .expect("At least one diagonal element must be 1")
-    //     .0;
-    // let mut axis = Matrix3x1::zeros();
-    // axis[index] = 1.;
     axis
 }
 
 /// Compute the SO(3) matrix that rotates from ``from`` to ``to``.
 fn rotation_matrix(from: &Matrix3x1<f64>, to: &Matrix3x1<f64>, do_checks: bool) -> Matrix3<f64> {
-    let from = from / vector_norm(from);
-    let to = to / vector_norm(to);
+    let from = from.normalize();
+    let to = to.normalize();
     let dot = from.dot(&to);
 
     let mut cross = Matrix3::zeros();
@@ -237,43 +229,15 @@ pub fn group_commutator_decomposition(
     (v, w)
 }
 
-/// Compute the L2 norm of a 3-element vector.
-fn vector_norm(mat: &Matrix3x1<f64>) -> f64 {
-    let summed = mat.iter().map(|el| el.powi(2)).sum::<f64>();
-    summed.sqrt()
-}
-
-pub(crate) fn matmul_bigcomplex(
-    a: &Matrix2<Complex<f64>>,
-    b: &Matrix2<Complex<f64>>,
-) -> Matrix2<Complex<f64>> {
-    Matrix2::new(
-        a[(0, 0)] * b[(0, 0)] + a[(0, 1)] * b[(1, 0)],
-        a[(0, 0)] * b[(0, 1)] + a[(0, 1)] * b[(1, 1)],
-        a[(1, 0)] * b[(0, 0)] + a[(1, 1)] * b[(1, 0)],
-        a[(1, 0)] * b[(0, 1)] + a[(1, 1)] * b[(1, 1)],
-    )
-}
-
-/// Compute the determinant of a 3x3 matrix.
-fn determinant(matrix: &Matrix3<f64>) -> f64 {
-    matrix[(0, 0)] * matrix[(1, 1)] * matrix[(2, 2)]
-        + matrix[(0, 1)] * matrix[(1, 2)] * matrix[(2, 0)]
-        + matrix[(0, 2)] * matrix[(1, 0)] * matrix[(2, 1)]
-        - matrix[(0, 2)] * matrix[(1, 1)] * matrix[(2, 0)]
-        - matrix[(0, 1)] * matrix[(1, 0)] * matrix[(2, 2)]
-        - matrix[(0, 0)] * matrix[(1, 2)] * matrix[(2, 1)]
-}
-
 pub(super) fn assert_so3(name: &str, matrix: &Matrix3<f64>) {
     if matrix.iter().any(|el| el.is_nan()) {
         panic!("{} has NaN value.", name);
     }
-    if (1. - determinant(matrix)) > (1e-5) {
+    if (1. - matrix.determinant()) > (1e-5) {
         panic!(
             "{} is not SO(3): Determinant is {}, not 1.",
             name,
-            determinant(matrix)
+            matrix.determinant()
         );
     }
     let diff = matrix * matrix.transpose() - Matrix3::<f64>::identity();

@@ -224,12 +224,7 @@ impl SolovayKitaevSynthesis {
         gate_matrix: PyReadonlyArray2<Complex64>,
         recursion_degree: usize,
     ) -> PyResult<CircuitData> {
-        let view = Matrix2::new(
-            *gate_matrix.get((0, 0)).unwrap(),
-            *gate_matrix.get((0, 1)).unwrap(),
-            *gate_matrix.get((1, 0)).unwrap(),
-            *gate_matrix.get((1, 1)).unwrap(),
-        );
+        let view = matrix2_from_pyreadonly(&gate_matrix);
         self.synthesize_matrix(&view, recursion_degree)
             .map_err(|err| err.into())
     }
@@ -323,12 +318,7 @@ impl SolovayKitaevSynthesis {
         &self,
         matrix: PyReadonlyArray2<Complex64>,
     ) -> PyResult<CircuitData> {
-        let matrix = Matrix2::new(
-            *matrix.get((0, 0)).unwrap(),
-            *matrix.get((0, 1)).unwrap(),
-            *matrix.get((1, 0)).unwrap(),
-            *matrix.get((1, 1)).unwrap(),
-        );
+        let matrix = matrix2_from_pyreadonly(&matrix);
         let sequence = GateSequence::from_u2(&matrix, true);
 
         let approximation = self
@@ -380,4 +370,14 @@ impl SolovayKitaevSynthesis {
             .cloned()
             .collect()
     }
+}
+
+#[inline]
+fn matrix2_from_pyreadonly(array: &PyReadonlyArray2<Complex64>) -> Matrix2<Complex64> {
+    Matrix2::new(
+        *array.get((0, 0)).unwrap(),
+        *array.get((0, 1)).unwrap(),
+        *array.get((1, 0)).unwrap(),
+        *array.get((1, 1)).unwrap(),
+    )
 }

@@ -14,6 +14,7 @@ crate-type = ["rlib"]
 [lints]
 workspace = true
 
+
 [dependencies]
 thiserror.workspace = true
 num-complex.workspace = true

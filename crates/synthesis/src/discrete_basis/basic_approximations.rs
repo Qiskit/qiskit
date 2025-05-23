@@ -281,7 +281,7 @@ impl GateSequence {
         let mut out = Matrix2::identity();
         for gate in gates {
             let matrix = standard_gates_to_u2(gate, &[])?;
-            out = math::matmul_bigcomplex(&matrix, &out);
+            out = matrix * out;
         }
         Ok(out)
     }
@@ -390,17 +390,7 @@ impl GateSequence {
             })
             .collect::<PyResult<_>>()?;
 
-        let matrix_so3 = Matrix3::new(
-            *matrix_so3.get((0, 0)).unwrap(),
-            *matrix_so3.get((0, 1)).unwrap(),
-            *matrix_so3.get((0, 2)).unwrap(),
-            *matrix_so3.get((1, 0)).unwrap(),
-            *matrix_so3.get((1, 1)).unwrap(),
-            *matrix_so3.get((1, 2)).unwrap(),
-            *matrix_so3.get((2, 0)).unwrap(),
-            *matrix_so3.get((2, 1)).unwrap(),
-            *matrix_so3.get((2, 2)).unwrap(),
-        );
+        let matrix_so3 = matrix3_from_pyreadonly(&matrix_so3);
         Ok(Self {
             gates: Some(gates),
             matrix_so3,
@@ -414,24 +404,9 @@ impl GateSequence {
     /// Legacy method for backward compatibility with Python SK.
     #[staticmethod]
     fn from_matrix(matrix_so3: PyReadonlyArray2<f64>) -> Self {
-        let matrix_so3 = Matrix3::new(
-            *matrix_so3.get((0, 0)).unwrap(),
-            *matrix_so3.get((0, 1)).unwrap(),
-            *matrix_so3.get((0, 2)).unwrap(),
-            *matrix_so3.get((1, 0)).unwrap(),
-            *matrix_so3.get((1, 1)).unwrap(),
-            *matrix_so3.get((1, 2)).unwrap(),
-            *matrix_so3.get((2, 0)).unwrap(),
-            *matrix_so3.get((2, 1)).unwrap(),
-            *matrix_so3.get((2, 2)).unwrap(),
-        );
+        let matrix_so3 = matrix3_from_pyreadonly(&matrix_so3);
         Self::from_so3(&matrix_so3, true)
     }
-}
-
-#[inline]
-fn array2_to_matrix2<T: Copy>(view: &ArrayView2<T>) -> Matrix2<T> {
-    Matrix2::new(view[[0, 0]], view[(0, 1)], view[(1, 0)], view[(1, 1)])
 }
 
 fn su2_to_so3(view: &Matrix2<Complex64>) -> Matrix3<f64> {
@@ -731,4 +706,24 @@ impl BasicApproximations {
             approximations,
         })
     }
+}
+
+#[inline]
+fn array2_to_matrix2<T: Copy>(view: &ArrayView2<T>) -> Matrix2<T> {
+    Matrix2::new(view[[0, 0]], view[(0, 1)], view[(1, 0)], view[(1, 1)])
+}
+
+#[inline]
+fn matrix3_from_pyreadonly(array: &PyReadonlyArray2<f64>) -> Matrix3<f64> {
+    Matrix3::new(
+        *array.get((0, 0)).unwrap(),
+        *array.get((0, 1)).unwrap(),
+        *array.get((0, 2)).unwrap(),
+        *array.get((1, 0)).unwrap(),
+        *array.get((1, 1)).unwrap(),
+        *array.get((1, 2)).unwrap(),
+        *array.get((2, 0)).unwrap(),
+        *array.get((2, 1)).unwrap(),
+        *array.get((2, 2)).unwrap(),
+    )
 }
