@@ -74,30 +74,12 @@ class InstructionDurations:
 
         Raises:
             TranspilerError: If dt and dtm is different in the backend.
+            TypeError: If the backend is the wrong type
         """
         # All durations in seconds in gate_length
         if isinstance(backend, BackendV2):
             return backend.target.durations()
-
-        instruction_durations = []
-        backend_properties = backend.properties()
-        if hasattr(backend_properties, "_gates"):
-            for gate, insts in backend_properties._gates.items():
-                for qubits, props in insts.items():
-                    if "gate_length" in props:
-                        gate_length = props["gate_length"][0]  # Throw away datetime at index 1
-                        instruction_durations.append((gate, qubits, gate_length, "s"))
-            for q, props in backend.properties()._qubits.items():
-                if "readout_length" in props:
-                    readout_length = props["readout_length"][0]  # Throw away datetime at index 1
-                    instruction_durations.append(("measure", [q], readout_length, "s"))
-
-        try:
-            dt = backend.configuration().dt
-        except AttributeError:
-            dt = None
-
-        return cls(instruction_durations, dt=dt)
+        raise TypeError("Unsupported backend type: {backend}")
 
     def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
