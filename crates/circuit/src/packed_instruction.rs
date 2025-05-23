@@ -793,7 +793,7 @@ impl PackedInstruction {
         control_flow: ControlFlow,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
-        blocks: impl IntoIterator<Item = CircuitData>,
+        blocks: impl IntoIterator<Item = PyObject>,
         label: Option<&str>,
     ) -> Self {
         // let params: Option<SmallVec<[Param; 3]>> = match control_flow {

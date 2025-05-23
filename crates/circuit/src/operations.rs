@@ -766,7 +766,7 @@ impl Operation for StandardInstruction {
 pub enum StandardInstructionRef<'a> {
     Barrier(u32),
     Delay {
-        duration: &'a PyObject,
+        duration: &'a Param,
         unit: DelayUnit,
     },
     Measure,
@@ -786,7 +786,7 @@ impl<'a> PyEq for StandardInstructionRef<'a> {
                     duration: duration_b,
                     unit: unit_b,
                 },
-            ) => Ok(unit_a == unit_b && duration_a.bind(py).eq(duration_b)?),
+            ) => Ok(unit_a == unit_b && duration_a.is_close(py, duration_b, 1e-10)?),
             (StandardInstructionRef::Measure, StandardInstructionRef::Measure) => Ok(true),
             (StandardInstructionRef::Reset, StandardInstructionRef::Reset) => Ok(true),
             _ => Ok(false),
@@ -2724,6 +2724,7 @@ impl<'a> PyEq for StandardGateRef<'a> {
             return Ok(false);
         }
         for (a, b) in self.1.iter().zip(other.1.iter()) {
+            // TODO: make sure this is right max_rel
             if !a.is_close(py, b, 1e-10)? {
                 return Ok(false);
             }

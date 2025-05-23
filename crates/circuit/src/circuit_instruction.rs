@@ -83,7 +83,10 @@ pub trait Instruction {
     fn label(&self) -> Option<&str>;
 
     #[cfg(feature = "cache_pygates")]
-    fn py_op(&self) -> &OnceLock<Py<PyAny>>;
+    fn py_op(&self) -> Option<&OnceLock<Py<PyAny>>> {
+        // Disable caching by default.
+        None
+    }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
     fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
@@ -194,17 +197,17 @@ pub trait Instruction {
         // and for another to attempt the initialisation.
         #[cfg(feature = "cache_pygates")]
         {
-            if let Some(ob) = self.py_op().get() {
+            if let Some(ob) = self.py_op().and_then(|cache| cache.get()) {
                 return Ok(ob.clone_ref(py));
             }
         }
         let out = self.create_py_op(py)?;
         #[cfg(feature = "cache_pygates")]
-        {
+        if let Some(cache) = self.py_op() {
             // The unpacking operation can cause a thread pause and concurrency, since it can call
             // interpreted Python code for a standard gate, so we need to take care that some other
             // Python thread might have populated the cache before we do.
-            let _ = self.py_op().set(out.clone_ref(py));
+            let _ = cache.set(out.clone_ref(py));
         }
         Ok(out)
     }
@@ -764,31 +767,49 @@ pub struct OperationFromPython {
     pub label: Option<Box<String>>,
 }
 
-impl<'a> IntoInstructionRef<'a> for &'a OperationFromPython {
-    type Block = PyObject;
-
-    fn op(self) -> OperationRef<'a> {
+impl Instruction for OperationFromPython {
+    fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
 
-    fn standard_gate(self) -> Option<StandardGateRef<'a>> {
-        match self.op() {
-            OperationRef::StandardGate(g) => Some(StandardGateRef(g, self.params.as_slice())),
-            _ => None,
-        }
+    fn params_view(&self) -> &[Param] {
+        self.params.as_slice()
     }
 
-    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
-        match self.op() {
-            OperationRef::StandardInstruction(i) => todo!(),
-            _ => None,
-        }
+    fn params_mut(&mut self) -> &mut [Param] {
+        self.params.as_mut_slice()
     }
 
-    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
-        todo!()
+    fn label(&self) -> Option<&str> {
+        self.label.as_ref().map(|label| label.as_str())
     }
 }
+
+// impl<'a> IntoInstructionRef<'a> for &'a OperationFromPython {
+//     type Block = PyObject;
+//
+//     fn op(self) -> OperationRef<'a> {
+//         self.operation.view()
+//     }
+//
+//     fn standard_gate(self) -> Option<StandardGateRef<'a>> {
+//         match self.op() {
+//             OperationRef::StandardGate(g) => Some(StandardGateRef(g, self.params.as_slice())),
+//             _ => None,
+//         }
+//     }
+//
+//     fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
+//         match self.op() {
+//             OperationRef::StandardInstruction(i) => todo!(),
+//             _ => None,
+//         }
+//     }
+//
+//     fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
+//         todo!()
+//     }
+// }
 
 impl<'py> FromPyObject<'py> for OperationFromPython {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {

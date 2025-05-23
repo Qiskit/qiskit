@@ -148,6 +148,33 @@ impl DAGInstruction {
         todo!()
     }
 
+    pub fn from_control_flow(
+        control_flow: ControlFlow,
+        qubits: Interned<[Qubit]>,
+        clbits: Interned<[Clbit]>,
+        blocks: impl IntoIterator<Item = DAGCircuit>,
+        label: Option<&str>,
+    ) -> Self {
+        // let params: Option<SmallVec<[Param; 3]>> = match control_flow {
+        //     ControlFlow::Box { .. } => Some(blocks.into_iter().take(1).map(|b| Param::Circuit(b)).collect()),
+        //     ControlFlow::BreakLoop { .. } => None,
+        //     ControlFlow::ContinueLoop { .. } => None,
+        //     ControlFlow::ForLoop { .. } => Some(blocks.into_iter().take(1).map(|b| Param::Circuit(b)).collect()),
+        //     ControlFlow::IfElse { .. } => {}
+        //     ControlFlow::Switch { .. } => {}
+        //     ControlFlow::While { .. } => {}
+        // };
+        // Self {
+        //     op: control_flow.into(),
+        //     qubits,
+        //     clbits,
+        //     params: params.map(|p| Box::new(p)),
+        //     label: label.map(|l| Box::new(l.to_string())),
+        //     py_op: Default::default(),
+        // }
+        todo!()
+    }
+
     // TODO: when exactly do we need to clear the py_op cache?
     pub fn from_packed(instr: PackedInstruction) -> Self {
         Self {
@@ -193,6 +220,7 @@ impl DAGInstruction {
     }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
+    // TODO: remove this? I think we can do it via py_eq in the view instead
     fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
         match (self.op(), other.op()) {
             (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
@@ -5577,7 +5605,11 @@ impl DAGCircuit {
         instr.op.try_control_flow().is_some() || inst.op_name == "store"
     }
 
-    fn additional_wires(&self, py: Python, instr: InstructionRef<DAGCircuit>) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
+    fn additional_wires(
+        &self,
+        py: Python,
+        instr: InstructionRef<DAGCircuit>,
+    ) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
         let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<Var>)> {
             let mut clbits = Vec::new();
             let mut vars: Vec<Var> = Vec::new();
@@ -5602,7 +5634,14 @@ impl DAGCircuit {
 
         if let InstructionRef::ControlFlow(instr) = &instr {
             match instr {
-                ControlFlowRef::IfElse { condition: Condition::Expr(condition), .. } | ControlFlowRef::While { condition: Condition::Expr(condition), .. }  => {
+                ControlFlowRef::IfElse {
+                    condition: Condition::Expr(condition),
+                    ..
+                }
+                | ControlFlowRef::While {
+                    condition: Condition::Expr(condition),
+                    ..
+                } => {
                     // TODO: do we need to add bits from non-expr condition?
                     let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
                     for bit in expr_clbits {
@@ -5612,28 +5651,26 @@ impl DAGCircuit {
                         vars.push(var);
                     }
                 }
-                ControlFlowRef::Switch { target, .. } => {
-                    match target {
-                        Target::Bit(bit) => {
-                            clbits.push(self.clbits.find(bit).unwrap());
-                        }
-                        Target::Register(reg) => {
-                            for bit in reg.bits() {
-                                clbits.push(self.clbits.find(&bit).unwrap());
-                            }
-                        }
-                        Target::Expr(expr) => {
-                            let (expr_clbits, expr_vars) = wires_from_expr(expr)?;
-                            for bit in expr_clbits {
-                                clbits.push(bit);
-                            }
-                            for var in expr_vars {
-                                vars.push(var);
-                            }
+                ControlFlowRef::Switch { target, .. } => match target {
+                    Target::Bit(bit) => {
+                        clbits.push(self.clbits.find(bit).unwrap());
+                    }
+                    Target::Register(reg) => {
+                        for bit in reg.bits() {
+                            clbits.push(self.clbits.find(&bit).unwrap());
                         }
                     }
-                }
-                _ => ()
+                    Target::Expr(expr) => {
+                        let (expr_clbits, expr_vars) = wires_from_expr(expr)?;
+                        for bit in expr_clbits {
+                            clbits.push(bit);
+                        }
+                        for var in expr_vars {
+                            vars.push(var);
+                        }
+                    }
+                },
+                _ => (),
             }
             for block in instr.blocks() {
                 for var in block.captured_vars() {
