@@ -44,7 +44,7 @@ typedef struct QkClassicalRegister QkClassicalRegister;
 
 [parse]
 parse_deps = true
-include = ["qiskit-accelerate", "qiskit-circuit"]
+include = ["qiskit-quantum-info", "qiskit-circuit"]
 
 [enum]
 prefix_with_name = true

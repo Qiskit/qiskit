@@ -194,28 +194,6 @@ class TestNLocal(QiskitTestCase):
         self.assertCircuitEqual(nlocal, reference)
         self.assertCircuitEqual(nlocal2, reference)
 
-    @unittest.skip("Feature missing")
-    def test_iadd_overload(self):
-        """Test the overloaded + operator."""
-        num_qubits, depth = 2, 2
-
-        # construct two circuits for adding
-        first_circuit = random_circuit(num_qubits, depth, seed=4242)
-        circuit = random_circuit(num_qubits, depth, seed=4242)
-
-        # get a reference
-        reference = first_circuit + circuit
-
-        # convert the object to be appended to different types
-        others = [circuit, circuit.to_instruction(), circuit.to_gate(), NLocal(circuit)]
-
-        # try adding each type
-        for other in others:
-            nlocal = NLocal(num_qubits, entanglement_blocks=first_circuit, reps=1)
-            nlocal += other
-            with self.subTest(msg=f"type: {type(other)}"):
-                self.assertCircuitEqual(nlocal, reference)
-
     def test_parameter_getter_from_automatic_repetition(self):
         """Test getting and setting of the nlocal parameters."""
         circuit = QuantumCircuit(2)
