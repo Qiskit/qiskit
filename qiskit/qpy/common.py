@@ -22,7 +22,7 @@ from qiskit.utils.optionals import HAS_SYMENGINE
 
 from qiskit.qpy import formats, exceptions
 
-QPY_VERSION = 14
+QPY_VERSION = 15
 QPY_COMPATIBILITY_VERSION = 13
 ENCODE = "utf8"
 
