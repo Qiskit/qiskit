@@ -310,105 +310,145 @@ pub fn run_unitary_synthesis(
                 py_op: new_node.unbind().into(),
             };
         }
-        if let OperationRef::Unitary(unitary_gate) = packed_instr.op.view() {
-            if packed_instr.op.num_qubits() < min_qubits as u32 {
-                out_dag.push_back(packed_instr)?;
-                continue;
-            }
-            let unitary = unitary_gate.matrix_view();
-            match unitary.shape() {
-                // Run 1q synthesis
-                [2, 2] => {
-                    let qubit = dag.get_qargs(packed_instr.qubits)[0];
-                    let target_basis_set = match target {
-                        Some(target) => get_target_basis_set(target, PhysicalQubit::new(qubit.0)),
-                        None => {
-                            let basis_gates: IndexSet<&str, ::ahash::RandomState> =
-                                basis_gates.iter().map(String::as_str).collect();
-                            get_euler_basis_set(basis_gates)
-                        }
-                    };
-                    let sequence = unitary_to_gate_sequence_inner(
-                        unitary,
+        if !(synth_gates.contains(packed_instr.op.name())
+            && packed_instr.op.num_qubits() >= min_qubits as u32)
+        {
+            out_dag.push_back(packed_instr)?;
+            continue;
+        }
+        match packed_instr.op.num_qubits() {
+            // Run 1q synthesis
+            1 => {
+                let qubit = dag.get_qargs(packed_instr.qubits)[0];
+                let target_basis_set = match target {
+                    Some(target) => get_target_basis_set(target, PhysicalQubit::new(qubit.0)),
+                    None => {
+                        let basis_gates: IndexSet<&str, ::ahash::RandomState> =
+                            basis_gates.iter().map(String::as_str).collect();
+                        get_euler_basis_set(basis_gates)
+                    }
+                };
+                let sequence = match packed_instr.op.view() {
+                    OperationRef::Unitary(gate) => unitary_to_gate_sequence_inner(
+                        gate.matrix_view(),
                         &target_basis_set,
                         qubit.0 as usize,
                         None,
                         true,
                         None,
-                    );
-                    match sequence {
-                        Some(sequence) => {
-                            for (gate, params) in sequence.gates {
-                                let new_params: SmallVec<[Param; 3]> =
-                                    params.iter().map(|p| Param::Float(*p)).collect();
-                                out_dag.apply_operation_back(
-                                    gate.into(),
-                                    &[qubit],
-                                    &[],
-                                    Some(new_params),
-                                    None,
-                                    #[cfg(feature = "cache_pygates")]
-                                    None,
-                                )?;
-                            }
-                            out_dag.add_global_phase(&Param::Float(sequence.global_phase))?;
+                    ),
+                    _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                        Some(matrix) => unitary_to_gate_sequence_inner(
+                            matrix.view(),
+                            &target_basis_set,
+                            qubit.0 as usize,
+                            None,
+                            true,
+                            None,
+                        ),
+                        None => return Err(QiskitError::new_err("Unitary not found")),
+                    },
+                };
+                match sequence {
+                    Some(sequence) => {
+                        for (gate, params) in sequence.gates {
+                            let new_params: SmallVec<[Param; 3]> =
+                                params.iter().map(|p| Param::Float(*p)).collect();
+                            out_dag.apply_operation_back(
+                                gate.into(),
+                                &[qubit],
+                                &[],
+                                Some(new_params),
+                                None,
+                                #[cfg(feature = "cache_pygates")]
+                                None,
+                            )?;
                         }
-                        None => {
-                            out_dag.push_back(packed_instr)?;
-                        }
+                        out_dag.add_global_phase(&Param::Float(sequence.global_phase))?;
                     }
-                }
-                // Run 2q synthesis
-                [4, 4] => {
-                    // "out_qargs" is used to append the synthesized instructions to the output dag
-                    let out_qargs = dag.get_qargs(packed_instr.qubits);
-                    // "ref_qubits" is used to access properties in the target. It accounts for control flow mapping.
-                    let ref_qubits: &[PhysicalQubit; 2] = &[
-                        PhysicalQubit::new(qubit_indices[out_qargs[0].0 as usize] as u32),
-                        PhysicalQubit::new(qubit_indices[out_qargs[1].0 as usize] as u32),
-                    ];
-                    let apply_original_op = |out_dag: &mut DAGCircuitBuilder| -> PyResult<()> {
-                        out_dag.push_back(packed_instr.clone())?;
-                        Ok(())
-                    };
-                    run_2q_unitary_synthesis(
-                        py,
-                        unitary,
-                        ref_qubits,
-                        &coupling_edges,
-                        target,
-                        basis_gates.clone(),
-                        approximation_degree,
-                        natural_direction,
-                        pulse_optimize,
-                        &mut out_dag,
-                        out_qargs,
-                        apply_original_op,
-                    )?;
-                }
-                // Run 3q+ synthesis
-                _ => {
-                    if basis_gates.is_empty() && target.is_none() {
-                        out_dag.push_back(packed_instr.clone())?;
-                    } else {
-                        let qs_decomposition: &Bound<'_, PyAny> =
-                            imports::QS_DECOMPOSITION.get_bound(py);
-                        let synth_circ = qs_decomposition.call1((unitary.to_pyarray(py),))?;
-                        let synth_dag = circuit_to_dag(
-                            py,
-                            QuantumCircuitData::extract_bound(&synth_circ)?,
-                            false,
-                            None,
-                            None,
-                        )?;
-                        let out_qargs = dag.get_qargs(packed_instr.qubits);
-                        apply_synth_dag(&mut out_dag, out_qargs, &synth_dag)?;
+                    None => {
+                        out_dag.push_back(packed_instr)?;
                     }
                 }
             }
-        } else {
-            out_dag.push_back(packed_instr)?;
-            continue;
+            // Run 2q synthesis
+            2 => {
+                // "out_qargs" is used to append the synthesized instructions to the output dag
+                let out_qargs = dag.get_qargs(packed_instr.qubits);
+                // "ref_qubits" is used to access properties in the target. It accounts for control flow mapping.
+                let ref_qubits: &[PhysicalQubit; 2] = &[
+                    PhysicalQubit::new(qubit_indices[out_qargs[0].0 as usize] as u32),
+                    PhysicalQubit::new(qubit_indices[out_qargs[1].0 as usize] as u32),
+                ];
+                let apply_original_op = |out_dag: &mut DAGCircuitBuilder| -> PyResult<()> {
+                    out_dag.push_back(packed_instr.clone())?;
+                    Ok(())
+                };
+                match packed_instr.op.view() {
+                    OperationRef::Unitary(gate) => {
+                        run_2q_unitary_synthesis(
+                            py,
+                            gate.matrix_view(),
+                            ref_qubits,
+                            &coupling_edges,
+                            target,
+                            basis_gates.clone(),
+                            approximation_degree,
+                            natural_direction,
+                            pulse_optimize,
+                            &mut out_dag,
+                            out_qargs,
+                            apply_original_op,
+                        )?;
+                    }
+                    _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                        Some(matrix) => {
+                            run_2q_unitary_synthesis(
+                                py,
+                                matrix.view(),
+                                ref_qubits,
+                                &coupling_edges,
+                                target,
+                                basis_gates.clone(),
+                                approximation_degree,
+                                natural_direction,
+                                pulse_optimize,
+                                &mut out_dag,
+                                out_qargs,
+                                apply_original_op,
+                            )?;
+                        }
+                        None => return Err(QiskitError::new_err("Unitary not found")),
+                    },
+                }
+            }
+            // Run 3q+ synthesis
+            _ => {
+                if basis_gates.is_empty() && target.is_none() {
+                    out_dag.push_back(packed_instr.clone())?;
+                } else {
+                    let qs_decomposition: &Bound<'_, PyAny> =
+                        imports::QS_DECOMPOSITION.get_bound(py);
+                    let synth_circ = match packed_instr.op.view() {
+                        OperationRef::Unitary(gate) => {
+                            qs_decomposition.call1((gate.matrix_view().to_pyarray(py),))?
+                        }
+                        _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                            Some(matrix) => qs_decomposition.call1((matrix.into_pyarray(py),))?,
+                            _ => return Err(QiskitError::new_err("Unitary not found")),
+                        },
+                    };
+                    let synth_dag = circuit_to_dag(
+                        py,
+                        QuantumCircuitData::extract_bound(&synth_circ)?,
+                        false,
+                        None,
+                        None,
+                    )?;
+                    let out_qargs = dag.get_qargs(packed_instr.qubits);
+                    apply_synth_dag(&mut out_dag, out_qargs, &synth_dag)?;
+                }
+            }
         }
     }
     Ok(out_dag.build())
