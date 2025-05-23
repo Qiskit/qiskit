@@ -79,7 +79,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
+        backend = GenericBackendV2(num_qubits=8, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -93,7 +93,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
+        backend = GenericBackendV2(num_qubits=8, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -104,7 +104,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
+        backend = GenericBackendV2(num_qubits=8, seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         tqc.layout.final_layout = None
         self.assert_roundtrip_equal(tqc)
@@ -168,8 +168,8 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
-        tqc = transpile(qc, backend, optimization_level=opt_level)
+        backend = GenericBackendV2(num_qubits=8, seed=42)
+        tqc = transpile(qc, backend, optimization_level=opt_level, seed_transpiler=0)
         self.assert_roundtrip_equal(tqc)
 
     @data(0, 1, 2, 3)
@@ -180,8 +180,8 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
-        tqc = transpile(qc, backend, optimization_level=opt_level)
+        backend = GenericBackendV2(num_qubits=8, seed=42)
+        tqc = transpile(qc, backend, optimization_level=opt_level, seed_transpiler=0)
         # Manually validate to deal with qubit equality needing exact objects
         qpy_file = io.BytesIO()
         dump(tqc, qpy_file)
