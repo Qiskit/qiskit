@@ -1,0 +1,11 @@
+---
+features_circuits:
+  - |
+    A compose function is added to Qiskit circuit C-Extensions:
+    ``qk_circuit_compose`` is similar function to ``QuantumCircuit.compose`` that merge two circuits in one circuit.
+    C function version only supports `front` and `inplace` options, but both option can not
+    be set to true at the same time.
+
+
+
+
