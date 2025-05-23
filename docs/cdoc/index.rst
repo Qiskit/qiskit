@@ -40,4 +40,5 @@ Quantum information
    qk-obs
    qk-obs-term
    qk-bit-term
+   qk-complex64
    qk-exit-code
