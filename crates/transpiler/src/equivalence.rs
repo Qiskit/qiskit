@@ -102,11 +102,10 @@ impl Key {
     }
 }
 impl Key {
-    fn from_operation(operation: &PackedOperation) -> Self {
-        let op_ref: OperationRef = operation.view();
+    fn from_operation(operation: &OperationRef) -> Self {
         Key {
-            name: op_ref.name().to_string(),
-            num_qubits: op_ref.num_qubits(),
+            name: operation.name().to_string(),
+            num_qubits: operation.num_qubits(),
         }
     }
 }
@@ -410,7 +409,7 @@ impl EquivalenceLibrary {
     ///         False otherwise.
     #[pyo3(name = "has_entry")]
     fn py_has_entry(&self, gate: GateOper) -> bool {
-        self.has_entry(&gate.operation)
+        self.has_entry(gate.operation.view())
     }
 
     /// Set the equivalence record for a Gate. Future queries for the Gate
@@ -669,7 +668,7 @@ impl EquivalenceLibrary {
     }
 
     /// Check if the [EquivalenceLibrary] instance contains any decompositions for gate.
-    pub fn has_entry(&self, operation: &PackedOperation) -> bool {
+    pub fn has_entry(&self, operation: &OperationRef) -> bool {
         let key = Key::from_operation(operation);
         self.key_to_node_index.contains_key(&key)
     }

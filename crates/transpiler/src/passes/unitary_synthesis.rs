@@ -21,7 +21,7 @@ use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
 use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
-use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
+use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction, Parameters};
 use smallvec::SmallVec;
 
 use pyo3::intern;
@@ -326,7 +326,7 @@ pub fn run_unitary_synthesis(
                                 gate.into(),
                                 &[qubit],
                                 &[],
-                                Some(new_params),
+                                Some(Parameters::Params(new_params)),
                                 None,
                                 #[cfg(feature = "cache_pygates")]
                                 None,

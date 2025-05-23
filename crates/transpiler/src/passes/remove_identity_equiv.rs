@@ -16,8 +16,9 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::target::Target;
 use qiskit_accelerate::gate_metrics::rotation_trace_and_dim;
-use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
+use qiskit_circuit::operations::{InstructionRef, Operation, StandardGateRef};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
@@ -38,7 +39,7 @@ pub fn run_remove_identity_equiv(
     // Minimum threshold to compare average gate fidelity to 1. This is chosen to account
     // for roundoff errors and to be consistent with other places.
 
-    let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
+    let get_error_cutoff = |inst: &DAGInstruction| -> f64 {
         match approx_degree {
             Some(degree) => {
                 if degree == 1.0 {
@@ -84,9 +85,9 @@ pub fn run_remove_identity_equiv(
             // Skip parameterized gates
             continue;
         }
-        let view = inst.op.view();
+        let view = inst.view();
         match view {
-            OperationRef::StandardGate(gate) => {
+            InstructionRef::StandardGate(StandardGateRef(gate, params)) => {
                 let (tr_over_dim, dim) = match gate {
                     StandardGate::RX
                     | StandardGate::RY
@@ -100,7 +101,7 @@ pub fn run_remove_identity_equiv(
                     | StandardGate::CRY
                     | StandardGate::CRZ
                     | StandardGate::CPhase => {
-                        if let Param::Float(angle) = inst.params_view()[0] {
+                        if let Param::Float(angle) = params[0] {
                             let (tr_over_dim, dim) =
                                 rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
                             (tr_over_dim, dim)
@@ -109,7 +110,7 @@ pub fn run_remove_identity_equiv(
                         }
                     }
                     _ => {
-                        if let Some(matrix) = gate.matrix(inst.params_view()) {
+                        if let Some(matrix) = view.matrix() {
                             let dim = matrix.shape()[0] as f64;
                             let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                             (tr_over_dim, dim)
@@ -127,7 +128,7 @@ pub fn run_remove_identity_equiv(
                 }
             }
             _ => {
-                let matrix = view.matrix(inst.params_view());
+                let matrix = view.matrix();
                 // If view.matrix() returns None, then there is no matrix and we skip the operation.
                 if let Some(matrix) = matrix {
                     let error = get_error_cutoff(inst);

@@ -49,8 +49,8 @@ pub fn run_split_2q_unitaries(
                 continue;
             }
             let matrix = inst
-                .op
-                .matrix(inst.params_view())
+                .view()
+                .matrix()
                 .expect("'unitary' gates should always have a matrix form");
             let decomp = TwoQubitWeylDecomposition::new_inner(
                 matrix.view(),
@@ -171,16 +171,6 @@ pub fn run_split_2q_unitaries(
                 .iter()
                 .map(|q| Qubit::new(mapping[q.index()]))
                 .collect();
-
-            // TODO: this used to be apply_operation_back, which would have more checks
-            new_dag.push_back(DAGInstruction {
-                op: inst.op.clone(),
-                qubits: mapped_qargs,
-                clbits: cargs,
-                params: None,
-                label: None,
-                py_op: Default::default(),
-            })?;
 
             new_dag.apply_operation_back(
                 inst.op.clone(),

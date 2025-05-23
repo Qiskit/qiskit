@@ -23,7 +23,7 @@ use qiskit_circuit::{
     operations::{Operation, Param},
 };
 use smallvec::SmallVec;
-
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use crate::equivalence::CircuitFromPython;
 
 // Custom types
@@ -65,6 +65,14 @@ pub(super) fn compose_transforms<'a>(
                 .collect::<SmallVec<[Param; 3]>>(),
         ))?;
         let gate_obj: OperationFromPython = gate.extract()?;
+        let gate_instr = PackedInstruction {
+            op: gate_obj.operation,
+            qubits: qubits,
+            clbits: (),
+            params: None,
+            label: None,
+            py_op: Default::default(),
+        };
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
         dag.apply_operation_back(
             gate_obj.operation,

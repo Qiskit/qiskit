@@ -89,7 +89,7 @@ static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", 
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
 
 #[derive(Clone, Debug)]
-enum Parameters {
+pub enum Parameters {
     Params(SmallVec<[Param; 3]>),
     Box {
         duration: Duration,
@@ -5403,7 +5403,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -5425,7 +5425,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -5448,7 +5448,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
         front: bool,
@@ -5483,7 +5483,7 @@ impl DAGCircuit {
         } else {
             OnceLock::new()
         };
-        let instr = DAGInstruction::from_packed(PackedInstruction {
+        let instr = DAGInstruction {
             op,
             qubits: self.qargs_interner.insert(qargs),
             clbits: self.cargs_interner.insert(cargs),
@@ -5491,7 +5491,7 @@ impl DAGCircuit {
             label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op,
-        });
+        };
 
         if front {
             self.push_front(instr)

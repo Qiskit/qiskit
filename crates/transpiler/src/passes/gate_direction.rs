@@ -34,6 +34,7 @@ use qiskit_circuit::{
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
+use qiskit_circuit::dag_circuit::Parameters;
 //#########################################################################
 //              CheckGateDirection analysis pass functions
 //#########################################################################
@@ -419,7 +420,7 @@ fn apply_operation_back(
         PackedOperation::from_standard_gate(gate),
         qargs,
         &[],
-        param,
+        param.map(|p| Parameters::Params(p)),
         None,
         #[cfg(feature = "cache_pygates")]
         None,
