@@ -1530,7 +1530,12 @@ class MCXVChain(MCXGate):
         Returns:
             MCXVChain: inverse gate (self-inverse).
         """
-        with warnings.catch_warnings(action="ignore", category=DeprecationWarning):
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.circuit\.library\.standard_gates\.x\.MCXVChain\..+",
+            )
             inverse = MCXVChain(
                 num_ctrl_qubits=self.num_ctrl_qubits,
                 dirty_ancillas=self._dirty_ancillas,
