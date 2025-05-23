@@ -185,7 +185,7 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_classical_register_new(
-    num_qubits: u32,
+    num_clbits: u32,
     name: *const c_char,
 ) -> *mut ClassicalRegister {
     // SAFETY: Per documentation the pointer for name is a valid CStr pointer
@@ -195,7 +195,7 @@ pub unsafe extern "C" fn qk_classical_register_new(
             .expect("Invalid UTF-8 character")
             .to_string()
     };
-    let reg = ClassicalRegister::new_owning(name, num_qubits);
+    let reg = ClassicalRegister::new_owning(name, num_clbits);
     Box::into_raw(Box::new(reg))
 }
 
