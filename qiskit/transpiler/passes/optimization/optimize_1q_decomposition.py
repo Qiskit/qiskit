@@ -19,6 +19,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit._accelerate import euler_one_qubit_decomposer
+from qiskit._accelerate import optimize_1q_gates_decomposition
 from qiskit.circuit.library.standard_gates import (
     UGate,
     PhaseGate,
@@ -207,7 +208,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        euler_one_qubit_decomposer.optimize_1q_gates_decomposition(
+        optimize_1q_gates_decomposition.optimize_1q_gates_decomposition(
             dag,
             target=self._target,
             global_decomposers=self._global_decomposers,

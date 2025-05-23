@@ -37,9 +37,10 @@ use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
-use crate::euler_one_qubit_decomposer::optimize_1q_gates_decomposition;
-use crate::target_transpiler::Target;
 use crate::QiskitError;
+
+use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
+use qiskit_transpiler::target::Target;
 
 static ECR_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
     ([I, Z, Z, Y], 0.),
@@ -378,7 +379,7 @@ fn generate_twirled_circuit(
     }
     if optimizer_target.is_some() {
         let mut dag = DAGCircuit::from_circuit_data(py, out_circ, false)?;
-        optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
+        run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
         dag_to_circuit(py, &dag, false)
     } else {
         Ok(out_circ)
