@@ -21,6 +21,8 @@ from collections.abc import Mapping
 from numbers import Integral
 from typing import Tuple, Union
 
+import numpy as np
+
 from qiskit import QuantumCircuit
 from qiskit.circuit import CircuitInstruction
 
@@ -32,12 +34,32 @@ __all__ = ["SamplerPubLike"]
 
 
 class SamplerPub(ShapedMixin):
-    """Pub (Primitive Unified Bloc) for a Sampler.
+    """Pub (Primitive Unified Bloc) for a sampler.
 
-    Pub is composed of tuple (circuit, parameter_values, shots).
+    This is the basic computational unit of a sampler, which accepts one or more pubs when being
+    run. A single sampler pub can result in a parametric circuit being run many times with different
+    parameters values bound each time
 
-    If shots are provided this number of shots will be run with the sampler,
-    if ``shots=None`` the number of run shots is determined by the sampler.
+    If a numeric ``shots`` value is provided to a sampler pub, then this value takes precedence
+    over any value provided to the :meth:`~.Sampler.run` method.
+
+    The value of a sampler pub's :attr:`~.shape` is typically taken from the ``parameter_values``
+    shape at construction time. However, it can also be specified manually as a constructor
+    arument, in which case it can be chosen to exceed the shape of the ``parameter_values`` so long
+    as the two shape tuples are still broadcastable. This can be used to inject non-trivial axes
+    into the execution. For example, if the provided bindings array object that specify the
+    parameter values has shape ``(2, 3)``, and if the shape tuple ``(8, 2, 3)`` is provided, then
+    the shape of the sampler pub will be ``(8, 2, 3)`` because of the implicit leading ``(1,)`` on
+    the binding arrays via standard broadcasting rules.
+
+    Args:
+        circuit: A quantum circuit.
+        parameter_values: A bindings array of parameter values valid for the circuit. This is
+            optional if the circuit is non-parametric.
+        shots: The number of shots to sample for each parameter value. This value takes
+            precedence over any value owned by or supplied to a sampler.
+        shape: The shape of the pub, or ``None`` to infer it from the ``parameter_values``.
+        validate: If ``True``, the input data is validated during initialization.
     """
 
     def __init__(
@@ -45,22 +67,15 @@ class SamplerPub(ShapedMixin):
         circuit: QuantumCircuit,
         parameter_values: BindingsArray | None = None,
         shots: int | None = None,
+        shape: Tuple[int, ...] | None = None,
         validate: bool = True,
     ):
-        """Initialize a sampler pub.
-
-        Args:
-            circuit: A quantum circuit.
-            parameter_values: A bindings array.
-            shots: A specific number of shots to run with. This value takes
-                precedence over any value owed by or supplied to a sampler.
-            validate: If ``True``, the input data is validated during initialization.
-        """
         super().__init__()
         self._circuit = circuit
         self._parameter_values = parameter_values or BindingsArray()
         self._shots = shots
-        self._shape = self._parameter_values.shape
+        self._shape = shape or self._parameter_values.shape
+
         if validate:
             self.validate()
 
@@ -122,9 +137,9 @@ class SamplerPub(ShapedMixin):
                 "instead of `sampler.run(circuit)`."
             )
 
-        if len(pub) not in [1, 2, 3]:
+        if len(pub) not in [1, 2, 3, 4]:
             raise ValueError(
-                f"The length of pub must be 1, 2 or 3, but length {len(pub)} is given."
+                f"The length of pub must be 1, 2, 3 or 4, but length {len(pub)} is given."
             )
         circuit = pub[0]
 
@@ -138,7 +153,14 @@ class SamplerPub(ShapedMixin):
 
         if len(pub) > 2 and pub[2] is not None:
             shots = pub[2]
-        return cls(circuit=circuit, parameter_values=parameter_values, shots=shots, validate=True)
+
+        return cls(
+            circuit=circuit,
+            parameter_values=parameter_values,
+            shots=shots,
+            shape=(pub[3] if len(pub) > 3 and pub[3] is not None else None),
+            validate=True,
+        )
 
     def validate(self):
         """Validate the pub."""
@@ -168,12 +190,31 @@ class SamplerPub(ShapedMixin):
                 )
             raise ValueError(message)
 
+        # check that the parameter values shape is consistent with the pub shape
+        if not isinstance(self.shape, tuple) or not all(isinstance(idx, int) for idx in self.shape):
+            raise ValueError(f"The shape must be a tuple of integers, found {self.shape} instead.")
+
+        try:
+            broadcast_shape = np.broadcast_shapes(self.shape, self.parameter_values.shape)
+        except ValueError as exc:
+            raise ValueError(
+                f"The shape of the parameter values, {self.parameter_values.shape}, "
+                f"is not compatible with the shape of the pub, {self.shape}."
+            ) from exc
+
+        if broadcast_shape != self.shape:
+            raise ValueError(
+                f"The shape of the parameter values, {self.parameter_values.shape}, "
+                f"exceeds the shape of the pub, {self.shape}, on some axis."
+            )
+
 
 SamplerPubLike = Union[
     QuantumCircuit,
     Tuple[QuantumCircuit],
     Tuple[QuantumCircuit, BindingsArrayLike],
     Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],
+    Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None], Tuple[int, ...]],
 ]
 """A Pub (Primitive Unified Bloc) for a Sampler.
 
