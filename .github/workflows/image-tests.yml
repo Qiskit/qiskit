@@ -57,4 +57,5 @@ jobs:
           path: |
             ./test/visual/mpl/graph/graph_results
             ./test/visual/mpl/circuit/circuit_results
+            ./test/visual/mpl/visual_test_failures
           if-no-files-found: error
