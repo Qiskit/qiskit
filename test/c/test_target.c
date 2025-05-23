@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 #include "common.h"
-#include <math.h>
 #include <complex.h>
+#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -267,8 +267,8 @@ int test_target_update_instruction(void) {
     // change the intruction property of cx
     double cx_new_inst_error = NAN;
     double cx_new_inst_duration = 0.09457;
-    QkExitCode result_1 = qk_target_update_property(
-        target, QkGate_CX, qargs, 2, cx_new_inst_duration, cx_new_inst_error);
+    QkExitCode result_1 = qk_target_update_property(target, QkGate_CX, qargs, 2,
+                                                    cx_new_inst_duration, cx_new_inst_error);
     if (result_1 != QkExitCode_Success) {
         printf("An unexpected error occured while modifying the property.");
         result = RuntimeError;
@@ -276,8 +276,8 @@ int test_target_update_instruction(void) {
     }
 
     // Try to modify wrong instruction
-    QkExitCode result_2 = qk_target_update_property(
-        target, QkGate_CH, qargs, 2, cx_new_inst_duration, cx_new_inst_error);
+    QkExitCode result_2 = qk_target_update_property(target, QkGate_CH, qargs, 2,
+                                                    cx_new_inst_duration, cx_new_inst_error);
     if (result_2 != QkExitCode_TargetInvalidInstKey) {
         printf("The function did not fail as expected when querying the wrong instruction.");
         result = RuntimeError;
@@ -286,8 +286,8 @@ int test_target_update_instruction(void) {
 
     uint32_t new_qargs[2] = {1, 2};
     // Try to modify wrong qargs
-    QkExitCode result_3 = qk_target_update_property(
-        target, QkGate_CX, new_qargs, 2, cx_new_inst_duration, cx_new_inst_error);
+    QkExitCode result_3 = qk_target_update_property(target, QkGate_CX, new_qargs, 2,
+                                                    cx_new_inst_duration, cx_new_inst_error);
     if (result_3 != QkExitCode_TargetInvalidQargsKey) {
         printf("The function did not fail as expected when querying with wrong qargs.");
         result = RuntimeError;
