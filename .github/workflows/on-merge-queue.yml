@@ -11,6 +11,8 @@ name: Merge queue
 on:
   merge_group:
     branches: [main, "stable/*"]
+  pull_request:
+    branches: [main, "stable/*"]
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   cancel-in-progress: true
