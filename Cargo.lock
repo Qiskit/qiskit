@@ -1458,6 +1458,7 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qiskit-circuit",
+ "regex",
  "qiskit-quantum-info",
  "thiserror 2.0.12",
 ]
