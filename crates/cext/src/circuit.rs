@@ -107,7 +107,7 @@ pub unsafe extern "C" fn qk_quantum_register_new(
 /// @ingroup QkQuantumRegister
 /// Free a quantum register.
 ///
-/// @param register A pointer to the register to free.
+/// @param reg A pointer to the register to free.
 ///
 /// # Example
 ///
@@ -137,7 +137,7 @@ pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
 /// @ingroup QkClassicalRegister
 /// Free a classical register.
 ///
-/// @param register A pointer to the register to free.
+/// @param reg A pointer to the register to free.
 ///
 /// # Example
 ///
