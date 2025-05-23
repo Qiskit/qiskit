@@ -20,43 +20,63 @@ jobs:
     if: github.repository_owner == 'Qiskit'
     name: Docs and Lint
     uses: ./.github/workflows/lint_docs.yml
-  test-linux:
+  test-linux-3-9:
+    name: Python Unit Tests
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-linux.yml
     strategy:
       matrix:
-        python-version: ["3.9", "3.13"]
         runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
     with:
-      python-version: ${{ matrix.python-version }}
-      install-optionals: ${{ matrix.python-version == '3.9' }}
+      python-version: 3.9
+      install-optionals: true
+      runner: ${{ matrix.runner }}
+  test-linux-3-13:
+    name: Python Unit Tests
+    if: github.repository_owner == 'Qiskit'
+    uses: ./.github/workflows/test-linux.yml
+    strategy:
+      matrix:
+        runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
+    with:
+      python-version: 3.13
+      install-optionals: false
       runner: ${{ matrix.runner }}
   test-rust:
+    name: Rust Unit Tests
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/rust-tests.yml
     with:
       python-version: "3.9"
       runner: "ubuntu-latest"
   test-images:
+    name: Image Comparison Tests
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/image-tests.yml
     with:
       python-version: "3.9"
       runner: "ubuntu-latest"
   test-mac:
+    name: Python Unit Tests
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-mac.yml
     strategy:
       matrix:
+        python-version: ["3.13"]
         runner: ["macos-13", "macos-14"]
     with:
-      python-version: "3.13"
+      python-version: ${{ matrix.python-version }}
       install-optionals: false
       runner: ${{ matrix.runner }}
   test-windows:
+    name: Python Unit Tests
     if: github.repository_owner == 'Qiskit'
     uses: ./.github/workflows/test-windows.yml
+    strategy:
+      matrix:
+        python-version: ["3.13"]
+        runner: ["windows-latest"]
     with:
-      python-version: "3.13"
+      python-version: ${{ matrix.python-version }}
       install-optionals: false
-      runner: windows-latest
+      runner: ${{ matrix.runner }}
