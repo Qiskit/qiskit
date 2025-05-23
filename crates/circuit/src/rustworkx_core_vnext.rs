@@ -473,10 +473,10 @@ pub mod isomorphism {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 match self {
                     IsIsomorphicError::NodeMatcherErr(e) => {
-                        write!(f, "Node match callback failed with: {}", e)
+                        write!(f, "Node match callback failed with: {e}")
                     }
                     IsIsomorphicError::EdgeMatcherErr(e) => {
-                        write!(f, "Edge match callback failed with: {}", e)
+                        write!(f, "Edge match callback failed with: {e}")
                     }
                 }
             }

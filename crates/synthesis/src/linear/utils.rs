@@ -35,8 +35,7 @@ pub fn binary_matmul_inner(
     let n2_cols = mat2.ncols();
     if n1_cols != n2_rows {
         return Err(format!(
-            "Cannot multiply matrices with inappropriate dimensions {}, {}",
-            n1_cols, n2_rows
+            "Cannot multiply matrices with inappropriate dimensions {n1_cols}, {n2_rows}"
         ));
     }
 

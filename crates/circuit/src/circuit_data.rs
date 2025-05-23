@@ -417,8 +417,7 @@ impl CircuitData {
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
                             CircuitError::new_err(format!(
-                                "Qubit at index {} exceeds circuit capacity.",
-                                bit_idx
+                                "Qubit at index {bit_idx} exceeds circuit capacity."
                             ))
                         })?,
                         [(register.clone(), index)],
@@ -470,8 +469,7 @@ impl CircuitData {
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
                             CircuitError::new_err(format!(
-                                "Clbit at index {} exceeds circuit capacity.",
-                                bit_idx
+                                "Clbit at index {bit_idx} exceeds circuit capacity."
                             ))
                         })?,
                         [(register.clone(), index)],
