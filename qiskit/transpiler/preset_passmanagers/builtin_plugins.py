@@ -31,6 +31,8 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
+from qiskit.transpiler.passes import OptimizeCliffordT
+from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -67,6 +69,7 @@ from qiskit.circuit.library.standard_gates import (
     SXGate,
     SXdgGate,
 )
+from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.utils import default_num_processes
 from qiskit import user_config
 
@@ -1079,11 +1082,14 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
             elif optimization_level in [2, 3]:
+                # The optimization loop runs OptimizeCliffordT + CommutativeCancellation
+                # until fixpoint.
                 _opt = [
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
+                    OptimizeCliffordT(),
                     CommutativeCancellation(target=pass_manager_config.target),
                     ContractIdleWiresInControlFlow(),
                 ]
@@ -1096,6 +1102,13 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
 
             opt_loop = _opt + _depth_check + _size_check
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
+            # We need to run BasisTranslator because OptimizeCliffordT does not consider the basis set.
+            if optimization_level in [2, 3]:
+                optimization.append(
+                    BasisTranslator(
+                        sel, pass_manager_config.basis_gates, pass_manager_config.target
+                    )
+                )
             return optimization
         else:
             return None
