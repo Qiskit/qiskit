@@ -75,7 +75,7 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                     // currently array index is stored as string
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
-                    let s = format!("{}[{}]", v, i);
+                    let s = format!("{v}[{i}]");
                     Ok(SymbolExpr::Symbol(Box::new(s)))
                 }
                 None => Ok(SymbolExpr::Symbol(Box::new(v.to_string()))),
@@ -248,7 +248,7 @@ pub fn parse_expression(s: &str) -> Result<SymbolExpr, String> {
         Ok(o) => Ok(o.1),
         Err(e) => match e {
             nom::Err::Error(e) => Err(convert_error(s, e)),
-            _ => Err(format!(" Error occurs while parsing expression {}.", s)),
+            _ => Err(format!(" Error occurs while parsing expression {s}.")),
         },
     }
 }

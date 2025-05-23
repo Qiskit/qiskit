@@ -1443,7 +1443,7 @@ impl SparseTermView<'_> {
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
             .join(" ");
-        format!("({})({})", coeff, paulis)
+        format!("({coeff})({paulis})")
     }
 }
 
@@ -1756,13 +1756,12 @@ impl<'py> FromPyObject<'py> for BitTerm {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
-                Ok(repr) => PyTypeError::new_err(format!("bad type for 'BitTerm': {}", repr)),
+                Ok(repr) => PyTypeError::new_err(format!("bad type for 'BitTerm': {repr}")),
                 Err(err) => err,
             })?;
         let value_error = || {
             PyValueError::new_err(format!(
-                "value {} is not a valid letter of the single-qubit alphabet for 'BitTerm'",
-                value
+                "value {value} is not a valid letter of the single-qubit alphabet for 'BitTerm'"
             ))
         };
         let value: u8 = value.try_into().map_err(|_| value_error())?;
@@ -3655,8 +3654,7 @@ impl PySparseObservable {
                 .join(" + ")
         };
         Ok(format!(
-            "<SparseObservable with {} on {}: {}>",
-            str_num_terms, str_num_qubits, str_terms
+            "<SparseObservable with {str_num_terms} on {str_num_qubits}: {str_terms}>"
         ))
     }
 

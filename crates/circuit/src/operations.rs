@@ -340,8 +340,7 @@ impl<'py> FromPyObject<'py> for DelayUnit {
             "expr" => DelayUnit::EXPR,
             unknown_unit => {
                 return Err(PyValueError::new_err(format!(
-                    "Unit '{}' is invalid.",
-                    unknown_unit
+                    "Unit '{unknown_unit}' is invalid."
                 )));
             }
         })
