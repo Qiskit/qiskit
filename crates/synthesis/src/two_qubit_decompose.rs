@@ -41,12 +41,12 @@ use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 
-use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
     angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
 };
 use crate::QiskitError;
+use qiskit_quantum_info::convert_2q_block_matrix::change_basis;
 
 use rand::prelude::*;
 use rand_distr::StandardNormal;

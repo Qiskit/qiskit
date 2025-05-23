@@ -56,10 +56,14 @@ crosstalk-pass = [
 csp-layout-pass = [
     "python-constraint >= 1.4",
 ]
+qpy-compat = [
+    "symengine>=0.11,<0.14",
+    "sympy>1.3"
+]
 # This will make the resolution work for installers from PyPI, but `pip install .[all]` will be
 # unreliable because `qiskit` will resolve to the PyPI version, so local changes in the
 # optionals won't be reflected.
-all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass]"]
+all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass,qpy-compat]"]
 
 [project.urls]
 Homepage = "https://www.ibm.com/quantum/qiskit"

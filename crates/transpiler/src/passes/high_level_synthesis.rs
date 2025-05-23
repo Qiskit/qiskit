@@ -43,10 +43,10 @@ use crate::equivalence::EquivalenceLibrary;
 use crate::target::Qargs;
 use crate::target::Target;
 use crate::TranspilerError;
-use qiskit_accelerate::euler_one_qubit_decomposer::angles_from_unitary;
-use qiskit_accelerate::euler_one_qubit_decomposer::EulerBasis;
-use qiskit_accelerate::two_qubit_decompose::TwoQubitBasisDecomposer;
 use qiskit_circuit::PhysicalQubit;
+use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
+use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
+use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;

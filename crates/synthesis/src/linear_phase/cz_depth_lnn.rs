@@ -22,7 +22,7 @@ use qiskit_circuit::{
 };
 use smallvec::{smallvec, SmallVec};
 
-use crate::synthesis::permutation::{_append_cx_stage1, _append_cx_stage2};
+use crate::permutation::{_append_cx_stage1, _append_cx_stage2};
 
 // A sequence of Lnn gates
 // Represents the return type for Lnn Synthesis algorithms
