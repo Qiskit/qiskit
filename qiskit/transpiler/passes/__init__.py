@@ -244,6 +244,7 @@ from .synthesis import HighLevelSynthesis
 from .synthesis import HLSConfig
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import CliffordUnitarySynthesis
 from .synthesis import AQCSynthesisPlugin
 
 # circuit scheduling
