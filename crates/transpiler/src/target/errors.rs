@@ -39,4 +39,7 @@ pub enum TargetError {
     /// not operated on by any instruction.
     #[error["{0} not in Target."]]
     QargsWithoutInstruction(String),
+    ///The specified bounds for the instruction are not valid.
+    #[error["Lower bound {low} is not less than higher bound {high}."]]
+    InvalidBounds { low: f64, high: f64 },
 }
