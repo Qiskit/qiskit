@@ -78,6 +78,7 @@ def dump(
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
+    use_rust: bool = True,
 ):
     """Write QPY binary data to a file
 
@@ -136,6 +137,7 @@ def dump(
             to generate an older QPY format version.  You can access the current QPY version and
             minimum compatible version with :attr:`.qpy.QPY_VERSION` and
             :attr:`.qpy.QPY_COMPATIBILITY_VERSION` respectively.
+        use_rust: whether to use the rust based serialization engine. On by default.
 
             .. note::
 
@@ -201,12 +203,14 @@ def dump(
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
+            use_rust=use_rust,
         )
 
 
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
+    use_rust=False,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
@@ -244,6 +248,7 @@ def load(
             If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
+        use_rust: whether to use the rust based deserialization engine. On by default.
 
     Returns:
         The list of Qiskit programs contained in the QPY data.
@@ -339,6 +344,7 @@ def load(
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
                 use_symengine=use_symengine,
+                use_rust=use_rust,
             )
         )
     return programs
