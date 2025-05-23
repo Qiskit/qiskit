@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a visualization bug in the text circuit drawer where post-transpilation control-flow
+    operations could have their closing "bracket" rendered vertically out of order.  See
+    `#14271 <https://github.com/Qiskit/qiskit/issues/14271>`__ for more detail.

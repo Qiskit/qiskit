@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::env;
+
 pub mod bit;
 pub mod bit_locator;
 pub mod circuit_data;
@@ -24,12 +26,16 @@ pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
+pub mod nlayout;
 pub mod object_registry;
 pub mod operations;
 pub mod packed_instruction;
+pub mod parameter_expression;
 pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
+pub mod symbol_expr;
+pub mod symbol_parser;
 pub mod util;
 
 pub mod rustworkx_core_vnext;
@@ -49,6 +55,9 @@ pub struct Var(u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Stretch(u32);
+
+pub use nlayout::PhysicalQubit;
+pub use nlayout::VirtualQubit;
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {
@@ -145,6 +154,19 @@ macro_rules! impl_intopyobject_for_copy_pyclass {
     };
 }
 
+#[inline]
+pub fn getenv_use_multiple_threads() -> bool {
+    let parallel_context = env::var("QISKIT_IN_PARALLEL")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    let force_threads = env::var("QISKIT_FORCE_THREADS")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    !parallel_context || force_threads
+}
+
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bit::PyBit>()?;
     m.add_class::<bit::PyClbit>()?;
@@ -189,11 +211,10 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_circuit::PyBitLocations>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
-
+    m.add_class::<parameter_expression::ParameterExpression>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;
     classical::register_python(&classical_mod)?;
     m.add_submodule(&classical_mod)?;
-
     Ok(())
 }
 
