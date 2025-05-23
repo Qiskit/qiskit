@@ -21,7 +21,7 @@ use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
-use qiskit_accelerate::getenv_use_multiple_threads;
+use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
 
 use super::heuristic::Heuristic;
