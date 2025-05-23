@@ -305,6 +305,44 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     return qc
 
 
+def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
+    r"""
+    Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
+    implements Fig. 4a of [1]. The order of returned qubits is qr_a, qr_a, qr_target.
+
+    Args:
+        n: Number of conditionally clean ancillae to create.
+        apply_x: If True, apply X gate to the target qubit.
+
+    Returns:
+        QuantumCircuit: The quantum circuit for creating n-condionally clean ancillae.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    n_qubits = 3 * n
+    q = QuantumRegister(n_qubits, name="q")
+    qc = QuantumCircuit(q, name=f"ccxn_{n}")
+    qr_a, qr_b, qr_target = q[:n], q[n : 2 * n], q[2 * n :]
+
+    if apply_x:
+        qc.x(qr_target)
+
+    qc.h(qr_target)
+    qc.t(qr_target)
+    qc.cx(qr_a, qr_target)
+    qc.tdg(qr_target)
+    qc.cx(qr_b, qr_target)
+    qc.t(qr_target)
+    qc.cx(qr_a, qr_target)
+    qc.tdg(qr_target)
+    qc.h(qr_target)
+
+    return qc
+
+
 def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, list[int]]:
     r"""
     Helper function to create linear-depth ladder operations used in Khattar and Gidney's MCX synthesis.
@@ -333,10 +371,10 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
     qc = QuantumCircuit(n)
     qreg = list(range(n))
 
+    ccx_x_relative = _n_parallel_ccx_x(1)
     # up-ladder
     for i in range(2, n - 2, 2):
-        qc.ccx(qreg[i + 1], qreg[i + 2], qreg[i])
-        qc.x(qreg[i])
+        qc.compose(ccx_x_relative, [qreg[i + 1], qreg[i + 2], qreg[i]], inplace=True)
 
     # down-ladder
     if n % 2 != 0:
@@ -345,12 +383,10 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
         a, b, target = n - 1, n - 4, n - 5
 
     if target > 0:
-        qc.ccx(qreg[a], qreg[b], qreg[target])
-        qc.x(qreg[target])
+        qc.compose(ccx_x_relative.inverse(), [qreg[a], qreg[b], qreg[target]], inplace=True)
 
     for i in range(target, 2, -2):
-        qc.ccx(qreg[i], qreg[i - 1], qreg[i - 2])
-        qc.x(qreg[i - 2])
+        qc.compose(ccx_x_relative.inverse(), [qreg[i], qreg[i - 1], qreg[i - 2]], inplace=True)
 
     mid_second_ctrl = 1 + max(0, 6 - n)
     final_ctrl = qreg[mid_second_ctrl] - 1
@@ -386,7 +422,11 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     qc = QuantumCircuit(q_controls, q_target, q_ancilla, name="mcx_linear_depth")
 
     ladder_ops, final_ctrl = _linear_depth_ladder_ops(num_ctrl_qubits)
-    qc.ccx(q_controls[0], q_controls[1], q_ancilla)  #                  # create cond. clean ancilla
+    ccx_x_relative = _n_parallel_ccx_x(1, apply_x=False)
+
+    qc.compose(
+        ccx_x_relative, [q_controls[0], q_controls[1], q_ancilla[0]], inplace=True
+    )  #                                                                # create cond. clean ancilla
     qc.compose(ladder_ops, q_ancilla[:] + q_controls[:], inplace=True)  # up-ladder
     qc.ccx(q_ancilla, q_controls[final_ctrl], q_target)  #              # target
     qc.compose(  #                                                      # down-ladder
@@ -394,7 +434,9 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
         q_ancilla[:] + q_controls[:],
         inplace=True,
     )
-    qc.ccx(q_controls[0], q_controls[1], q_ancilla)
+    qc.compose(
+        ccx_x_relative.inverse(), [q_controls[0], q_controls[1], q_ancilla[0]], inplace=True
+    )  #                                                               # create cond. clean ancilla
 
     if not clean:
         # perform toggle-detection if ancilla is dirty
@@ -451,32 +493,6 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     return synth_mcx_1_kg24(num_ctrl_qubits, clean=False)
 
 
-def _n_parallel_ccx_x(n: int) -> QuantumCircuit:
-    r"""
-    Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
-    implements Fig. 4a of [1]. The order of returned qubits is qr_a, qr_a, qr_target.
-
-    Args:
-        n: Number of conditionally clean ancillae to create.
-
-    Returns:
-        QuantumCircuit: The quantum circuit for creating n-condionally clean ancillae.
-
-    References:
-        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-    """
-
-    n_qubits = 3 * n
-    q = QuantumRegister(n_qubits, name="q")
-    qc = QuantumCircuit(q, name=f"ccxn_{n}")
-    qr_a, qr_b, qr_target = q[:n], q[n : 2 * n], q[2 * n :]
-    qc.x(qr_target)
-    qc.ccx(qr_a, qr_b, qr_target)
-
-    return qc
-
-
 def _build_logn_depth_ccx_ladder(
     ancilla_idx: int, ctrls: list[int], skip_cond_clean: bool = False
 ) -> tuple[QuantumCircuit, list[int]]:
@@ -525,7 +541,11 @@ def _build_logn_depth_ccx_ladder(
                 qc.compose(_n_parallel_ccx_x(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
             else:
                 if not skip_cond_clean:
-                    qc.ccx(ccx_x[0], ccx_y[0], ccx_t[0])  #  # create conditionally clean ancilla
+                    qc.compose(
+                        _n_parallel_ccx_x(1, apply_x=False),
+                        [ccx_x[0], ccx_y[0], ccx_t[0]],
+                        inplace=True,
+                    )  #                                     # create conditionally clean ancilla
             new_anc += nxt_batch[st:]  #                     # newly created cond. clean ancilla
             nxt_batch = ccx_t + nxt_batch[:st]
             anc = anc[:-ccx_n]
