@@ -16,7 +16,7 @@ mod errors;
 mod instruction_properties;
 mod qargs;
 
-use errors::TargetError;
+pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
 
@@ -275,7 +275,7 @@ impl Target {
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
-    fn new(
+    pub fn new(
         description: Option<String>,
         mut num_qubits: Option<usize>,
         dt: Option<f64>,
@@ -1408,6 +1408,11 @@ impl Target {
 
     pub fn is_empty(&self) -> bool {
         self.gate_map.is_empty()
+    }
+
+    /// Returns a reference to the value within that key if present.
+    pub fn get(&self, name: &str) -> Option<&PropsMap> {
+        self.gate_map.get(name)
     }
 }
 

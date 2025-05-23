@@ -41,3 +41,5 @@ Quantum information
    qk-obs-term
    qk-bit-term
    qk-exit-code
+   qk-target
+   qk-props-map
