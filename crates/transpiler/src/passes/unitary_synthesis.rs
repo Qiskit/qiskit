@@ -20,8 +20,8 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
-use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
+use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
+use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
 use smallvec::SmallVec;
 
 use pyo3::intern;
@@ -255,19 +255,10 @@ pub fn run_unitary_synthesis(
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
         let mut packed_instr = dag[node].unwrap_operation().clone();
-
-        if packed_instr.op.control_flow() {
-            let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
-                unreachable!("Control flow op must be an instruction")
-            };
-            let raw_blocks: Vec<PyResult<Bound<PyAny>>> = py_instr
-                .instruction
-                .getattr(py, "blocks")?
-                .bind(py)
-                .try_iter()?
-                .collect();
-            let mut new_blocks = Vec::with_capacity(raw_blocks.len());
-            for raw_block in raw_blocks {
+        if let Some(control_flow) = packed_instr.control_flow() {
+            let blocks = control_flow.blocks();
+            let mut new_blocks = Vec::with_capacity(blocks.len());
+            for block in blocks {
                 let new_ids = dag
                     .get_qargs(packed_instr.qubits)
                     .iter()
@@ -275,13 +266,7 @@ pub fn run_unitary_synthesis(
                     .collect_vec();
                 let res = run_unitary_synthesis(
                     py,
-                    &mut circuit_to_dag(
-                        py,
-                        QuantumCircuitData::extract_bound(&raw_block?)?,
-                        false,
-                        None,
-                        None,
-                    )?,
+                    &mut block.clone(),
                     new_ids,
                     min_qubits,
                     target,
@@ -292,22 +277,15 @@ pub fn run_unitary_synthesis(
                     natural_direction,
                     pulse_optimize,
                 )?;
-                new_blocks.push(dag_to_circuit.call1((res,))?);
+                new_blocks.push(res);
             }
-            let new_node = py_instr
-                .instruction
-                .bind(py)
-                .call_method1("replace_blocks", (new_blocks,))?;
-            let new_node_op: OperationFromPython = new_node.extract()?;
-            packed_instr = PackedInstruction {
-                op: new_node_op.operation,
-                qubits: packed_instr.qubits,
-                clbits: packed_instr.clbits,
-                params: (!new_node_op.params.is_empty()).then(|| Box::new(new_node_op.params)),
-                label: new_node_op.label,
-                #[cfg(feature = "cache_pygates")]
-                py_op: new_node.unbind().into(),
-            };
+            packed_instr = DAGInstruction::from_control_flow(
+                packed_instr.op.control_flow().clone(),
+                packed_instr.qubits,
+                packed_instr.clbits,
+                new_blocks,
+                packed_instr.label.map(|l| l.as_str()),
+            );
         }
         if !(synth_gates.contains(packed_instr.op.name())
             && packed_instr.op.num_qubits() >= min_qubits as u32)
@@ -315,11 +293,10 @@ pub fn run_unitary_synthesis(
             out_dag.push_back(packed_instr)?;
             continue;
         }
-        let unitary: Array<Complex<f64>, Dim<[usize; 2]>> =
-            match packed_instr.op.matrix(packed_instr.params_view()) {
-                Some(unitary) => unitary,
-                None => return Err(QiskitError::new_err("Unitary not found")),
-            };
+        let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match packed_instr.view().matrix() {
+            Some(unitary) => unitary,
+            None => return Err(QiskitError::new_err("Unitary not found")),
+        };
         match unitary.shape() {
             // Run 1q synthesis
             [2, 2] => {
@@ -645,7 +622,7 @@ fn get_2q_decomposers_from_target(
     // Step 2: Try TwoQubitBasisDecomposers
     #[inline]
     fn is_supercontrolled(op: &NormalOperation) -> bool {
-        match op.operation.matrix(&op.params) {
+        match op.view().matrix() {
             None => false,
             Some(unitary_matrix) => {
                 let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
@@ -674,7 +651,7 @@ fn get_2q_decomposers_from_target(
             }
             let decomposer = TwoQubitBasisDecomposer::new_inner(
                 gate.operation.name().to_string(),
-                gate.operation.matrix(&gate.params).unwrap().view(),
+                gate.view().matrix().unwrap().view(),
                 basis_2q_fidelity,
                 basis_1q,
                 pulse_optimize,
@@ -699,7 +676,7 @@ fn get_2q_decomposers_from_target(
     // Step 3: Try XXDecomposers (Python)
     #[inline]
     fn is_controlled(op: &NormalOperation) -> bool {
-        match op.operation.matrix(&op.params) {
+        match op.view().matrix() {
             None => false,
             Some(unitary_matrix) => {
                 let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
@@ -722,7 +699,7 @@ fn get_2q_decomposers_from_target(
         |(name, (op, props))| -> PyResult<(f64, f64, pyo3::Bound<'_, pyo3::PyAny>)> {
             let strength = 2.0
                 * TwoQubitWeylDecomposition::new_inner(
-                    op.operation.matrix(&op.params).unwrap().view(),
+                    op.view().matrix().unwrap().view(),
                     None,
                     None,
                 )

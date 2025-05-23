@@ -16,6 +16,7 @@ use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use qiskit_circuit::bit::{QuantumRegister, Register};
+use qiskit_circuit::circuit_instruction::Instruction;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
@@ -33,7 +34,6 @@ use qiskit_circuit::{
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
-
 //#########################################################################
 //              CheckGateDirection analysis pass functions
 //#########################################################################

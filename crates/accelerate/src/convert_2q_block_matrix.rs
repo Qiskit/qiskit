@@ -19,25 +19,27 @@ use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
-use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
-use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::operations::{
+    ArrayType, InstructionRef, Operation, OperationRef, StandardGateRef,
+};
 use qiskit_circuit::Qubit;
 
 use crate::quantum_info::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
 
 #[inline]
-pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.op.matrix(inst.params_view()) {
+pub fn get_matrix_from_inst(py: Python, inst: &DAGInstruction) -> PyResult<Array2<Complex64>> {
+    if let Some(mat) = inst.view().matrix() {
         Ok(mat)
-    } else if inst.op.try_standard_gate().is_some() {
+    } else if inst.standard_gate().is_some() {
         Err(QiskitError::new_err(
             "Parameterized gates can't be consolidated",
         ))
-    } else if let OperationRef::Gate(gate) = inst.op.view() {
+    } else if let InstructionRef::Gate(gate) = inst.view() {
         Ok(QI_OPERATOR
             .get_bound(py)
             .call1((gate.gate.clone_ref(py),))?
@@ -106,11 +108,13 @@ impl Separable1q {
 }
 
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
-fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU2> {
+fn versor_from_1q_gate(py: Python, inst: &DAGInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
-    match inst.op.view() {
-        OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
-        OperationRef::Unitary(gate) => match &gate.array {
+    match inst.view() {
+        InstructionRef::StandardGate(StandardGateRef(gate, params)) => {
+            VersorU2::from_standard(gate, params)
+        }
+        InstructionRef::Unitary(gate) => match &gate.array {
             ArrayType::NDArray(arr) => Ok(VersorU2::from_ndarray_unchecked(&arr.view())),
             ArrayType::OneQ(arr) => Ok(VersorU2::from_nalgebra_unchecked(arr)),
             ArrayType::TwoQ(_) => Err(VersorU2Error::MultiQubit),

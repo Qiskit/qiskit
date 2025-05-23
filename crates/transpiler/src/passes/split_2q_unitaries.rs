@@ -18,12 +18,13 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType, Wire};
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 
 use qiskit_accelerate::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
@@ -108,8 +109,8 @@ pub fn run_split_2q_unitaries(
             let qubits = dag.get_qargs(inst.qubits).to_vec();
             if qubits.len() == 2 && inst.op.name() == "unitary" {
                 let matrix = inst
-                    .op
-                    .matrix(inst.params_view())
+                    .view()
+                    .matrix()
                     .expect("'unitary' gates should always have a matrix form");
                 let decomp = TwoQubitWeylDecomposition::new_inner(
                     matrix.view(),
@@ -170,6 +171,16 @@ pub fn run_split_2q_unitaries(
                 .iter()
                 .map(|q| Qubit::new(mapping[q.index()]))
                 .collect();
+
+            // TODO: this used to be apply_operation_back, which would have more checks
+            new_dag.push_back(DAGInstruction {
+                op: inst.op.clone(),
+                qubits: mapped_qargs,
+                clbits: cargs,
+                params: None,
+                label: None,
+                py_op: Default::default(),
+            })?;
 
             new_dag.apply_operation_back(
                 inst.op.clone(),

@@ -35,8 +35,11 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
-use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::operations::{Operation, OperationRef, Param};
+use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef, OperationFromPython};
+use qiskit_circuit::operations::{
+    ControlFlowRef, InstructionRef, Operation, OperationRef, Param, StandardGateRef,
+    StandardInstructionRef,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
 
@@ -99,24 +102,6 @@ pub struct NormalOperation {
 }
 
 impl NormalOperation {
-    // Creates a python Operation type based on the operation's internal data.
-    #[inline]
-    fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<PyObject> {
-        let obj = match self.operation.view() {
-            OperationRef::StandardGate(standard_gate) => {
-                standard_gate.create_py_op(py, Some(&self.params), label)?
-            }
-            OperationRef::StandardInstruction(standard_instruction) => {
-                standard_instruction.create_py_op(py, Some(&self.params), label)?
-            }
-            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-            OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
-        };
-        Ok(obj)
-    }
-
     /// Creates a of [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
         Self {
@@ -127,13 +112,53 @@ impl NormalOperation {
     }
 }
 
+impl Instruction for NormalOperation {
+    fn op(&self) -> OperationRef<'_> {
+        self.operation.view()
+    }
+
+    fn params_view(&self) -> &[Param] {
+        self.params.as_slice()
+    }
+
+    fn params_mut(&mut self) -> &mut [Param] {
+        self.params.as_mut_slice()
+    }
+
+    fn label(&self) -> Option<&str> {
+        None
+    }
+}
+
+impl<'a> IntoInstructionRef<'a> for &'a NormalOperation {
+    type Block = PyObject;
+
+    fn op(self) -> OperationRef<'a> {
+        self.operation.view()
+    }
+
+    fn standard_gate(self) -> Option<StandardGateRef<'a>> {
+        self.operation
+            .try_standard_gate()
+            .map(|g| StandardGateRef(g, self.params.as_slice()))
+    }
+
+    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
+        todo!()
+    }
+
+    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
+        todo!()
+    }
+}
+
 impl<'py> IntoPyObject<'py> for NormalOperation {
     type Target = PyAny;
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+        match self.op_object.get_or_init(|| self.create_py_op(py)) {
             Ok(op) => Ok(op.bind(py).clone()),
             Err(err) => Err(err.clone_ref(py)),
         }
@@ -146,7 +171,7 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+        match self.op_object.get_or_init(|| self.create_py_op(py)) {
             Ok(op) => Ok(op.bind_borrowed(py)),
             Err(err) => Err(err.clone_ref(py)),
         }
@@ -608,11 +633,11 @@ impl Target {
                     if parameters.len() != obj_params.len() {
                         return Ok(false);
                     }
-                    for (index, params) in parameters.iter().enumerate() {
+                    for (index, param) in parameters.iter().enumerate() {
                         let mut matching_params = false;
                         let obj_at_index = &obj_params[index];
                         if matches!(obj_at_index, Param::ParameterExpression(_))
-                            || python_compare(py, params, &obj_params[index])?
+                            || python_compare(py, param.clone(), obj_params[index].clone())?
                         {
                             matching_params = true;
                         }
@@ -713,9 +738,7 @@ impl Target {
     fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(gate) = self._gate_name_map.get(name) {
             match gate {
-                TargetOperation::Normal(normal_operation) => {
-                    normal_operation.create_py_op(py, None)
-                }
+                TargetOperation::Normal(normal_operation) => normal_operation.create_py_op(py),
                 TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
             }
         } else {
@@ -760,18 +783,7 @@ impl Target {
         let list = PyList::empty(py);
         for (inst, qargs) in self._instructions() {
             let out_inst = match inst {
-                TargetOperation::Normal(op) => match op.operation.view() {
-                    OperationRef::StandardGate(standard) => standard
-                        .create_py_op(py, Some(&op.params), None)?
-                        .into_any(),
-                    OperationRef::StandardInstruction(standard) => standard
-                        .create_py_op(py, Some(&op.params), None)?
-                        .into_any(),
-                    OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-                    OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-                    OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-                    OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
-                },
+                TargetOperation::Normal(op) => op.create_py_op(py)?,
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };
             list.append((out_inst, qargs))?;

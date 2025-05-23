@@ -27,6 +27,7 @@ use qiskit_accelerate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, OneQubitGateSequence, EULER_BASES,
     EULER_BASIS_NAMES,
 };
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::PhysicalQubit;
 
 fn compute_error_term_from_target(gate: &str, target: &Target, qubit: PhysicalQubit) -> f64 {
@@ -144,7 +145,7 @@ pub fn run_optimize_1q_gates_decomposition(
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
                     }
-                    inst.op.matrix(inst.params_view()).unwrap()
+                    inst.view().matrix().unwrap()
                 } else {
                     unreachable!("Can only have op nodes here")
                 }

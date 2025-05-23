@@ -17,6 +17,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_instruction::Instruction;
 use qiskit_circuit::operations::{DelayUnit, Operation, Param, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
