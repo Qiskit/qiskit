@@ -1225,6 +1225,7 @@ class TestStatevector(QiskitTestCase):
         state2 = Statevector.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
     @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
@@ -1239,6 +1240,7 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg=" draw('latex', convention='vector')"):
             sv.draw("latex", convention="vector")
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_none(self):
         """
         Test for `\rangleNone` output in latex representation
@@ -1263,6 +1265,7 @@ class TestStatevector(QiskitTestCase):
             "\\frac{\\sqrt{2}}{2} |000\\rangle- \\frac{\\sqrt{2}}{2} |011\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_large_statevector(self):
         """Test conversion of large dense state vector"""
         sv = Statevector(np.ones((2**15, 1)))
@@ -1275,6 +1278,7 @@ class TestStatevector(QiskitTestCase):
             " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_with_prefix(self):
         """Test adding prefix to state vector latex output"""
         psi = Statevector(np.array([np.sqrt(1 / 2), 0, 0, np.sqrt(1 / 2)]))
@@ -1284,12 +1288,14 @@ class TestStatevector(QiskitTestCase):
         latex_representation = state_to_latex(psi, prefix=prefix)
         self.assertEqual(latex_representation, latex_expected)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_large_sparse_statevector(self):
         """Test conversion of large sparse state vector"""
         sv = Statevector(np.eye(2**15, 1))
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_with_max_size_limit(self):
         """Test limit the maximum number of non-zero terms in the expression"""
         sv = Statevector(
@@ -1323,6 +1329,7 @@ class TestStatevector(QiskitTestCase):
             "\\frac{\\sqrt{2} i}{4} |1111\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_with_decimals_round(self):
         """Test rounding of decimal places in the expression"""
         sv = Statevector(
@@ -1344,6 +1351,7 @@ class TestStatevector(QiskitTestCase):
             "0.354 |000\\rangle+0.354 |001\\rangle- 0.354 i |110\\rangle+0.354 i |111\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""
         sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
