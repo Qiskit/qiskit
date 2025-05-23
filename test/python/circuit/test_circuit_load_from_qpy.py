@@ -34,6 +34,7 @@ from qiskit.circuit.library import (
     CXGate,
     RYGate,
     QFT,
+    QFTGate,
     QAOAAnsatz,
     PauliEvolutionGate,
     DCXGate,
@@ -628,7 +629,8 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_initialize_qft(self):
+    @ddt.data(True, False)
+    def test_initialize_qft(self, use_qft_gate):
         """Test that initialize with a complex statevector and qft work."""
         k = 5
         state = (1 / np.sqrt(8)) * np.array(
@@ -647,7 +649,13 @@ class TestLoadFromQPY(QiskitTestCase):
         qubits = 3
         qc = QuantumCircuit(qubits, qubits)
         qc.initialize(state)
-        qc.append(QFT(qubits), range(qubits))
+        if use_qft_gate:
+            qft = QFTGate(qubits)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                qft = QFT(qubits)
+
+        qc.append(qft, range(qubits))
         qc.measure(range(qubits), range(qubits))
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -659,7 +667,8 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_statepreparation(self):
+    @ddt.data(True, False)
+    def test_statepreparation(self, use_qft_gate):
         """Test that state preparation with a complex statevector and qft work."""
         k = 5
         state = (1 / np.sqrt(8)) * np.array(
@@ -678,7 +687,13 @@ class TestLoadFromQPY(QiskitTestCase):
         qubits = 3
         qc = QuantumCircuit(qubits, qubits)
         qc.prepare_state(state)
-        qc.append(QFT(qubits), range(qubits))
+        if use_qft_gate:
+            qft = QFTGate(qubits)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                qft = QFT(qubits)
+
+        qc.append(qft, range(qubits))
         qc.measure(range(qubits), range(qubits))
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -713,7 +728,8 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
         cost_operator = Pauli("ZIIZ")
-        qaoa = QAOAAnsatz(cost_operator, reps=2)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOAAnsatz(cost_operator, reps=2)
 
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
@@ -1260,9 +1276,12 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(6)
         mcu1_gate = MCU1Gate(np.pi, 2)
         mcx_gate = MCXGate(5)
-        mcx_gray_gate = MCXGrayCode(5)
-        mcx_recursive_gate = MCXRecursive(4)
-        mcx_vchain_gate = MCXVChain(3)
+        with self.assertWarns(DeprecationWarning):
+            mcx_gray_gate = MCXGrayCode(5)
+        with self.assertWarns(DeprecationWarning):
+            mcx_recursive_gate = MCXRecursive(4)
+        with self.assertWarns(DeprecationWarning):
+            mcx_vchain_gate = MCXVChain(3)
         mcmt_gate = MCMTGate(ZGate(), 2, 1)
         qc.append(mcu1_gate, [0, 2, 1])
         qc.append(mcx_gate, list(range(0, 6)))
@@ -1276,7 +1295,8 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
+        with self.assertWarns(DeprecationWarning):
+            new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 

@@ -43,14 +43,14 @@ class Adder(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg=(
             "Use the adder gates provided in qiskit.circuit.library.arithmetic instead. "
             "The gate type depends on the adder kind: fixed, half, full are represented by "
             "ModularAdderGate, HalfAdderGate, FullAdderGate, respectively. For different adder "
             "implementations, see https://docs.quantum.ibm.com/api/qiskit/synthesis.",
         ),
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_state_qubits: int, name: str = "Adder") -> None:
         """

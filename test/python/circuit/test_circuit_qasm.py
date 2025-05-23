@@ -403,9 +403,12 @@ mcx q[0],q[1],q[2],q[3];"""
 
         n = 5
         qc = QuantumCircuit(2 * n - 1)
-        qc.append(cl.MCXGrayCode(n), range(n + 1))
-        qc.append(cl.MCXRecursive(n), range(n + 2))
-        qc.append(cl.MCXVChain(n), range(2 * n - 1))
+        with self.assertWarns(DeprecationWarning):
+            qc.append(cl.MCXGrayCode(n), range(n + 1))
+        with self.assertWarns(DeprecationWarning):
+            qc.append(cl.MCXRecursive(n), range(n + 2))
+        with self.assertWarns(DeprecationWarning):
+            qc.append(cl.MCXVChain(n), range(2 * n - 1))
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
