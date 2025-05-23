@@ -429,8 +429,6 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 
 /// @ingroup QkCircuit
 /// Append an arbitrary unitary matrix to the circuit.
-/// The user passes a row-major array of interleaved real-imaginary pairs #[
-/// representing the unitary matrix.
 ///
 /// @param circuit A pointer to the circuit to append the unitary to.
 /// @param matrix A pointer to the ``QkComplex64`` array representing the unitary matrix.
