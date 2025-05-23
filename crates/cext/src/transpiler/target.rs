@@ -81,7 +81,7 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> usize {
 /// @return The dt value of this ``Target`` or `NaN` if not assigned.
 ///
 /// # Example
-///     const dt = 10e-9;
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     qk_target_set_dt(target, 10e-9);
 ///     double dt = qk_target_dt(target);
@@ -102,9 +102,10 @@ pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
 ///
 /// @param target A pointer to the ``Target``.
 ///
-/// @return The granularity value of this ``Target``.
+/// @return The ``granularity`` value of this ``Target``.
 ///
 /// # Example
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     uint32_t granularity = qk_target_granularity(target);
@@ -121,13 +122,14 @@ pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
 }
 
 /// @ingroup QkTarget
-/// Returns the `min_length` value of this ``Target``.
+/// Returns the ``min_length`` value of this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
 ///
-/// @return The min_length value of this ``Target``.
+/// @return The ``min_length`` value of this ``Target``.
 ///
 /// # Example
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     size_t min_length = qk_target_min_length(target);
@@ -144,13 +146,14 @@ pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> usize {
 }
 
 /// @ingroup QkTarget
-/// Returns the `pulse_alignment` value of this ``Target``.
+/// Returns the ``pulse_alignment`` value of this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
 ///
-/// @return The pulse_alignment value of this ``Target``.
+/// @return The ``pulse_alignment`` value of this ``Target``.
 ///
 /// # Example
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     uint32_t pulse_alignment = qk_target_pulse_alignment(target);
@@ -167,13 +170,14 @@ pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32
 }
 
 /// @ingroup QkTarget
-/// Returns the `acquire_alignment` value of this ``Target``.
+/// Returns the ``acquire_alignment`` value of this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
 ///
-/// @return The acquire_alignment value of this ``Target``.
+/// @return The ``acquire_alignment`` value of this ``Target``.
 ///
 /// # Example
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 0
 ///     uint32_t acquire_alignment = qk_target_pulse_alignment(target);
@@ -193,9 +197,12 @@ pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u
 /// Sets the dt value of this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param dt The dt value for the system time resolution of input.
+/// @param dt The ``dt`` value for the system time resolution of input.
+///
+/// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     double dt = qk_target_set_dt(target, 10e-9);
 ///
@@ -212,13 +219,16 @@ pub unsafe extern "C" fn qk_target_set_dt(target: *mut Target, dt: f64) -> ExitC
 }
 
 /// @ingroup QkTarget
-/// Sets the granularity value of this ``Target``.
+/// Sets the ``granularity`` value of this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
 /// @param granularity The value for the minimum pulse gate resolution in
 ///     units of ``dt``.
 ///
+/// @return ``QkExitCode`` specifying if the operation was successful.
+///
 /// # Example
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     qk_target_set_granularity(target, 2);
@@ -239,12 +249,15 @@ pub unsafe extern "C" fn qk_target_set_granularity(
 }
 
 /// @ingroup QkTarget
-/// Sets the `min_length` value of this ``Target``.
+/// Sets the ``min_length`` value of this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param min_length minimum pulse gate length value in units of ``dt``.
+/// @param min_length The minimum pulse gate length value in units of ``dt``.
+///
+/// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     qk_target_set_min_length(target, 3);
@@ -265,12 +278,15 @@ pub unsafe extern "C" fn qk_target_set_min_length(
 }
 
 /// @ingroup QkTarget
-/// Returns the `pulse_alignment` value of this ``Target``.
+/// Returns the ``pulse_alignment`` value of this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
 /// @param pulse_alignment value representing a time resolution of gate.
 ///
+/// @return ``QkExitCode`` specifying if the operation was successful.
+///
 /// # Example
+///
 ///     QkTarget *target = qk_target_new(5);
 ///     // The value defaults to 1
 ///     qk_target_set_pulse_alignment(target, 4);
@@ -291,11 +307,13 @@ pub unsafe extern "C" fn qk_target_set_pulse_alignment(
 }
 
 /// @ingroup QkTarget
-/// Sets the `acquire_alignment` value of this ``Target``.
+/// Sets the ``acquire_alignment`` value of this ``Target``.
 ///
 /// @param target A pointer to the ``Target``.
 /// @param acquire_alignment value representing a time resolution of measure instruction
 ///     starting time.
+///
+/// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
 ///     QkTarget *target = qk_target_new(5);
@@ -375,7 +393,7 @@ pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
     }
 }
 
-/// Represents the mapping between qargs and `InstructionProperties`
+/// Represents the mapping between qargs and ``InstructionProperties``
 pub struct PropertyMap(IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>);
 
 /// @ingroup QkPropsMap
@@ -403,7 +421,7 @@ pub extern "C" fn qk_property_map_new() -> *mut PropertyMap {
 /// # Example
 ///
 ///     QkPropsMap *props_map = qk_property_map_new();
-///     size_t props_size = qk_property_map_length(props_map);
+///     size_t props_size = qk_property_map_len(props_map);
 ///
 /// # Safety
 ///
@@ -411,7 +429,7 @@ pub extern "C" fn qk_property_map_new() -> *mut PropertyMap {
 /// non-null pointer to a ``QkPropsMap`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_property_map_length(property_map: *const PropertyMap) -> usize {
+pub unsafe extern "C" fn qk_property_map_len(property_map: *const PropertyMap) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let prop_map = unsafe { const_ptr_as_ref(property_map) };
     prop_map.0.len()
@@ -448,7 +466,7 @@ pub unsafe extern "C" fn qk_property_map_free(property_map: *mut PropertyMap) {
 }
 
 /// @ingroup QkPropsMap
-/// Adds an InstructionProperty based on its assigned qargs.
+/// Adds an instruction property instance based on its assigned qargs.
 ///
 /// @param property_map The pointer to the mapping object.
 /// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
@@ -494,18 +512,18 @@ pub unsafe extern "C" fn qk_property_map_add(
 }
 
 /// @ingroup QkTarget
-/// Adds a non-parameteric StandardGate to the ``Target``.
-///
-/// This function will fail if a parametric gate is added.
+/// Adds a non-parameteric ``QkGate`` to the ``Target``.
 ///
 /// @note Adding parametric gates with non-fixed parameters is currently
-/// not supported. See ``qk_target_add_instruction_fixed_params()`` for
+/// not supported. See ``qk_target_add_fixed_instruction()`` for
 /// adding gates with fixed parameters.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param instruction The StandardGate to be added to the ``Target``.
+/// @param instruction The ``QkGate`` to be added to the ``Target``.
 /// @param property_map The mapping of qargs and InstructionProperties to
 /// be associated with this instruction.
+///
+/// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
 ///     
@@ -552,15 +570,17 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 }
 
 /// @ingroup QkTarget
-/// Adds a StandardGate to the ``Target`` with fixed parameters.
+/// Adds a ``QkGate`` to the ``Target`` with fixed parameters.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param instruction The StandardGate to be added to the ``Target``.
+/// @param instruction The ``QkGate`` to be added to the ``Target``.
 /// @param params The pointer to the array of ``double`` values to use as
 /// parameters to the StandardGate. This can be a null pointer if there
 /// are no parameters to be added.
 /// @param property_map The mapping of qargs and InstructionProperties to
 /// be associated with this instruction.
+///
+/// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
 ///     
@@ -569,7 +589,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
 ///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction_fixed_params(target, QkGate_CRX, params, props_map);
+///     qk_target_add_fixed_instruction(target, QkGate_CRX, params, props_map);
 ///
 /// # Safety
 ///
@@ -584,7 +604,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// Behavior is undefined if ``property_map`` is not a valid, non-null pointer to a ``QkPropsMap``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_add_instruction_fixed_params(
+pub unsafe extern "C" fn qk_target_add_fixed_instruction(
     target: *mut Target,
     instruction: StandardGate,
     params: *mut f64,
@@ -644,6 +664,9 @@ pub unsafe extern "C" fn qk_target_add_instruction_fixed_params(
 /// @param duration The instruction's duration in seconds on the specific set of
 ///     qubits.
 /// @param error The instruction's average error rate on the specific set of qubits.
+///
+/// @return ``QkExitCode`` specifying if the operation was successful.
+///
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
@@ -653,7 +676,7 @@ pub unsafe extern "C" fn qk_target_add_instruction_fixed_params(
 ///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction_fixed_params(target, QkGate_CRX, params, props_map);
 ///
-///     qk_target_update_instruction_properties(target, QkGate_CRX, qargs, 2, 0.0012, 1.1)
+///     qk_target_update_property(target, QkGate_CRX, qargs, 2, 0.0012, 1.1)
 ///
 /// # Safety
 ///
@@ -667,7 +690,7 @@ pub unsafe extern "C" fn qk_target_add_instruction_fixed_params(
 /// for a given gate.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_update_instruction_prop(
+pub unsafe extern "C" fn qk_target_update_property(
     target: *mut Target,
     instruction: StandardGate,
     qargs: *mut u32,
@@ -704,20 +727,19 @@ pub unsafe extern "C" fn qk_target_update_instruction_prop(
 ///
 /// @return The length of the target.
 ///
-///
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
 ///     qk_target_add_instruction(target, QkGate_H, NULL);
 ///
-///     qk_target_length(target)
+///     qk_target_len(target)
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_length(target: *const Target) -> usize {
+pub unsafe extern "C" fn qk_target_len(target: *const Target) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 

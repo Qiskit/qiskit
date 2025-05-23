@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 #include "common.h"
-#include "math.h"
+#include <math.h>
 #include <complex.h>
 #include <qiskit.h>
 #include <stdbool.h>
@@ -129,7 +129,7 @@ int test_property_map_construction(void) {
     QkPropsMap *property_map = qk_property_map_new();
 
     // Test length
-    const size_t length = qk_property_map_length(property_map);
+    const size_t length = qk_property_map_len(property_map);
     if (length != 0) {
         printf("The initial length of the provided property map was not zero: %zu", length);
         return EqualityError;
@@ -140,7 +140,7 @@ int test_property_map_construction(void) {
 
     qk_property_map_add(property_map, qargs, 2, 0.00018, 0.00002);
     // Test length
-    const size_t new_length = qk_property_map_length(property_map);
+    const size_t new_length = qk_property_map_len(property_map);
     if (new_length != 1) {
         printf("The initial length of the provided property map was not 1: %zu", length);
         return EqualityError;
@@ -170,7 +170,7 @@ int test_target_add_instruction(void) {
                current_num_qubits);
         return EqualityError;
     }
-    size_t current_size = qk_target_length(target);
+    size_t current_size = qk_target_len(target);
     if (current_num_qubits != 1) {
         printf("The size of this target is not correct: Expected 1, got %zu", current_size);
         return EqualityError;
@@ -195,7 +195,7 @@ int test_target_add_instruction(void) {
         result = EqualityError;
         goto cleanup;
     }
-    current_size = qk_target_length(target);
+    current_size = qk_target_len(target);
     if (current_num_qubits != 2) {
         printf("The size of this target is not correct: Expected 2, got %zu", current_size);
         return EqualityError;
@@ -212,7 +212,7 @@ int test_target_add_instruction(void) {
     // CX Gate is not paramtric.
     double crx_params[1] = {3.14};
 
-    qk_target_add_instruction_fixed_params(target, QkGate_CRX, crx_params, property_map);
+    qk_target_add_fixed_instruction(target, QkGate_CRX, crx_params, property_map);
 
     // Number of qubits of the target should change to 3.
     current_num_qubits = qk_target_num_qubits(target);
@@ -222,7 +222,7 @@ int test_target_add_instruction(void) {
         result = EqualityError;
         goto cleanup;
     }
-    current_size = qk_target_length(target);
+    current_size = qk_target_len(target);
     if (current_num_qubits != 3) {
         printf("The size of this target is not correct: Expected 3, got %zu", current_size);
         return EqualityError;
@@ -267,7 +267,7 @@ int test_target_update_instruction(void) {
     // change the intruction property of cx
     double cx_new_inst_error = NAN;
     double cx_new_inst_duration = 0.09457;
-    QkExitCode result_1 = qk_target_update_instruction_prop(
+    QkExitCode result_1 = qk_target_update_property(
         target, QkGate_CX, qargs, 2, cx_new_inst_duration, cx_new_inst_error);
     if (result_1 != QkExitCode_Success) {
         printf("An unexpected error occured while modifying the property.");
@@ -276,7 +276,7 @@ int test_target_update_instruction(void) {
     }
 
     // Try to modify wrong instruction
-    QkExitCode result_2 = qk_target_update_instruction_prop(
+    QkExitCode result_2 = qk_target_update_property(
         target, QkGate_CH, qargs, 2, cx_new_inst_duration, cx_new_inst_error);
     if (result_2 != QkExitCode_TargetInvalidInstKey) {
         printf("The function did not fail as expected when querying the wrong instruction.");
@@ -286,7 +286,7 @@ int test_target_update_instruction(void) {
 
     uint32_t new_qargs[2] = {1, 2};
     // Try to modify wrong qargs
-    QkExitCode result_3 = qk_target_update_instruction_prop(
+    QkExitCode result_3 = qk_target_update_property(
         target, QkGate_CX, new_qargs, 2, cx_new_inst_duration, cx_new_inst_error);
     if (result_3 != QkExitCode_TargetInvalidQargsKey) {
         printf("The function did not fail as expected when querying with wrong qargs.");

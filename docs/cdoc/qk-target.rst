@@ -10,15 +10,15 @@ A mapping of instructions and properties representing the partiucular constraint
 of a backend. Its purpose is to provide the compiler with information that allows it
 to compile an input circuit into another that is optimized taking in consideration the
 ``Target``'s specifications. This structure represents a low level interface to the main
-:class:`.Target` data structure in Rust, which represents the base class for its Python
-counterpart.
+Target data structure in Rust, which represents the base class for its Python
+counterpart, :class:`.Target`.
 
 Here's an example of how this structure works:
 
 .. code-block:: C
 
     #include <qiskit.h>
-    #include "math.h"
+    #include <math.h>
 
     // Create a Target with 2 qubits
     QkTarget *target = qk_target_new(2);
@@ -40,8 +40,8 @@ Here's an example of how this structure works:
     qk_target_free(target);
 
 The Target C API currently only supports additions of ``StandardGate`` instances as
-``NormalOperation`` and queries using ``StandardGate`` instead of gate names. The
-functionality will be expanded over time as we improve our Rust data model capabilities.
+``NormalOperation``. The functionality will be expanded over time as we improve our
+Rust data model capabilities.
 
 Functions
 =========
