@@ -2880,7 +2880,7 @@ class TestTranspileCustomPM(QiskitTestCase):
         transpiled = passmanager.run([qc, qc])
 
         expected = QuantumCircuit(QuantumRegister(2, "q"))
-        expected.append(U2Gate(0, 3.141592653589793), [0])
+        expected.append(U2Gate(0, math.pi), [0])
         expected.cx(0, 1)
 
         self.assertEqual(len(transpiled), 2)
