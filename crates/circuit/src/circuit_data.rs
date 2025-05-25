@@ -25,9 +25,7 @@ use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{
-    multiply_param, Operation, OperationRef, Param, PyGate, StandardGate, StandardInstruction,
-};
+use crate::operations::{multiply_param, Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -1443,52 +1441,6 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         });
-    }
-
-    /// Append a standard gate to this CircuitData
-    pub fn push_standard_instruction(
-        &mut self,
-        operation: StandardInstruction,
-        params: &[Param],
-        qargs: &[Qubit],
-        cargs: &[Clbit],
-    ) -> PyResult<()> {
-        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
-        let qubits = self.qargs_interner.insert(qargs);
-        let clbits = self.cargs_interner.insert(cargs);
-        self.data.push(PackedInstruction {
-            op: operation.into(),
-            qubits,
-            clbits,
-            params,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        });
-        Ok(())
-    }
-
-    /// Append a py gate to this CircuitData
-    pub fn push_py_gate(
-        &mut self,
-        operation: PyGate,
-        params: &[Param],
-        qargs: &[Qubit],
-        cargs: &[Clbit],
-    ) -> PyResult<()> {
-        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
-        let qubits = self.qargs_interner.insert(qargs);
-        let clbits = self.cargs_interner.insert(cargs);
-        self.data.push(PackedInstruction {
-            op: operation.into(),
-            qubits,
-            clbits,
-            params,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        });
-        Ok(())
     }
 
     /// Append a packed operation to this CircuitData

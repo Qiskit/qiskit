@@ -234,12 +234,12 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
             gate: mcphase_gate.into(),
         };
 
-        circuit.push_py_gate(
-            as_py_gate,
+        circuit.push_packed_operation(
+            as_py_gate.into(),
             &[],
             &(0..num_qubits).map(Qubit).collect::<Vec<Qubit>>(),
             &[],
-        )?;
+        );
 
         circuit.h(target);
 
