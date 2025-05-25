@@ -324,12 +324,81 @@ pub struct ParameterVectorPack {
 
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
-pub struct ParameterExpressionElementPack {
-    pub op_code: u8,
+pub enum ParameterExpressionElementPack {
+    #[brw(magic = 0u8)]
+    Add(ParameterExpressionStandardOpPack),
+    #[brw(magic = 1u8)]
+    Sub(ParameterExpressionStandardOpPack),
+    #[brw(magic = 2u8)]
+    Mul(ParameterExpressionStandardOpPack),
+    #[brw(magic = 3u8)]
+    Div(ParameterExpressionStandardOpPack),
+    #[brw(magic = 4u8)]
+    Pow(ParameterExpressionStandardOpPack),
+    #[brw(magic = 5u8)]
+    Sin(ParameterExpressionStandardOpPack),
+    #[brw(magic = 6u8)]
+    Cos(ParameterExpressionStandardOpPack),
+    #[brw(magic = 7u8)]
+    Tan(ParameterExpressionStandardOpPack),
+    #[brw(magic = 8u8)]
+    Asin(ParameterExpressionStandardOpPack),
+    #[brw(magic = 9u8)]
+    Acos(ParameterExpressionStandardOpPack),
+    #[brw(magic = 10u8)]
+    Exp(ParameterExpressionStandardOpPack),
+    #[brw(magic = 11u8)]
+    Log(ParameterExpressionStandardOpPack),
+    #[brw(magic = 12u8)]
+    Sign(ParameterExpressionStandardOpPack),
+    #[brw(magic = 13u8)]
+    Grad(ParameterExpressionStandardOpPack),
+    #[brw(magic = 14u8)]
+    Conj(ParameterExpressionStandardOpPack),
+    #[brw(magic = 15u8)]
+    Substitute(ParameterExpressionSubsOpPack),
+    #[brw(magic = 16u8)]
+    Abs(ParameterExpressionStandardOpPack),
+    #[brw(magic = 17u8)]
+    Atan(ParameterExpressionStandardOpPack),
+    #[brw(magic = 18u8)]
+    Rsub(ParameterExpressionStandardOpPack),
+    #[brw(magic = 19u8)]
+    Rdiv(ParameterExpressionStandardOpPack),
+    #[brw(magic = 20u8)]
+    Rpow(ParameterExpressionStandardOpPack),
+    #[brw(magic = 255u8)]
+    Expression(ParameterExpressionStandardOpPack),
+}
+
+#[derive(BinWrite, BinRead, Debug)]
+#[brw(big)]
+pub struct ParameterExpressionStandardOpPack {
     pub lhs_type: u8,
     pub lhs: [u8; 16],
     pub rhs_type: u8,
     pub rhs: [u8; 16],
+}
+#[binrw]
+#[derive(Debug)]
+#[brw(big)]
+pub struct ParameterExpressionSubsOpPack {
+    #[bw(calc = "u".as_bytes()[0])]
+    pub _lhs_type: u8,
+    #[bw(calc = {
+        let mut size = [0u8; 16];
+        let len_bytes = (mapping_data.len() as u64).to_be_bytes();
+        size[..8].copy_from_slice(&len_bytes);
+        size
+    })]
+    pub mapping_data_size: [u8; 16],
+    #[bw(calc = "n".as_bytes()[0])]
+    pub _rhs_type: u8,
+    #[bw(calc = [0u8; 16])]
+    pub _rhs: [u8; 16],
+
+    #[br(count = u64::from_be_bytes(mapping_data_size[..8].try_into().unwrap()))]
+    pub mapping_data: Bytes,
 }
 
 #[binrw]

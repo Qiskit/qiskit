@@ -1333,7 +1333,7 @@ def read_circuit(
             supported in all platforms. Please check that your target platform is supported by
             the symengine library before setting this option, as it will be required by qpy to
             deserialize the payload.
-        use_rust: whether to use the rust based deserialization engine. On by default.
+        use_rust (bool): whether to use the rust based deserialization engine. Off by default.
     Returns:
         QuantumCircuit: The circuit object from the file.
 

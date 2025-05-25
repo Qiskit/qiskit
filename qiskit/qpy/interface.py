@@ -210,7 +210,7 @@ def dump(
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
-    use_rust=False,
+    use_rust: bool = False,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
@@ -248,7 +248,7 @@ def load(
             If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-        use_rust: whether to use the rust based deserialization engine. On by default.
+        use_rust: whether to use the rust based deserialization engine. Off by default.
 
     Returns:
         The list of Qiskit programs contained in the QPY data.

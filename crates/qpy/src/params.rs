@@ -9,7 +9,6 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use binrw::BinWrite;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::PyAttributeError;
 use pyo3::intern;
@@ -18,7 +17,6 @@ use pyo3::types::{PyAny, PyDict, PyIterator};
 use pyo3::PyObject;
 use qiskit_circuit::imports::PARAMETER_SUBS;
 use qiskit_circuit::operations::Param;
-use std::io::{Cursor, Write};
 
 use crate::bytes::Bytes;
 use crate::formats;
@@ -28,16 +26,16 @@ use crate::value::{
     bytes_to_uuid, dumps_register, dumps_value, get_type_key, serialize, tags, QPYData,
 };
 
-fn serialize_parameter_replay_entry(
+fn pack_parameter_replay_entry(
     py: Python,
     inst: &Bound<PyAny>,
     r_side: bool,
     qpy_data: &QPYData,
-) -> PyResult<(u8, [u8; 16], Bytes)> {
+) -> PyResult<(u8, [u8; 16], Vec<formats::ParameterExpressionElementPack>)> {
     // This is different from `dumps_value` since we aim specifically for [u8; 16]
     // This means parameters are not fully stored, only their uuid
     // Also integers and floats are padded with 0
-    let mut extra_data = Bytes::new();
+    let mut extra_data = Vec::new();
     let key_type = get_type_key(inst)?;
     let data = match key_type {
         tags::PARAMETER | tags::PARAMETER_VECTOR => inst
@@ -68,47 +66,49 @@ fn serialize_parameter_replay_entry(
             .try_into()
             .unwrap(),
         tags::PARAMETER_EXPRESSION => {
-            let mut buffer = Cursor::new(Vec::new());
             let entry = if r_side {
-                formats::ParameterExpressionElementPack {
-                    op_code: 255,
-                    lhs_type: "n".as_bytes()[0],
-                    lhs: [0u8; 16],
-                    rhs_type: "s".as_bytes()[0],
-                    rhs: [0u8; 16],
-                }
+                formats::ParameterExpressionElementPack::Expression(
+                    formats::ParameterExpressionStandardOpPack {
+                        lhs_type: "n".as_bytes()[0],
+                        lhs: [0u8; 16],
+                        rhs_type: "s".as_bytes()[0],
+                        rhs: [0u8; 16],
+                    },
+                )
             } else {
-                formats::ParameterExpressionElementPack {
-                    op_code: 255,
-                    lhs_type: "s".as_bytes()[0],
-                    lhs: [0u8; 16],
-                    rhs_type: "n".as_bytes()[0],
-                    rhs: [0u8; 16],
-                }
+                formats::ParameterExpressionElementPack::Expression(
+                    formats::ParameterExpressionStandardOpPack {
+                        lhs_type: "s".as_bytes()[0],
+                        lhs: [0u8; 16],
+                        rhs_type: "n".as_bytes()[0],
+                        rhs: [0u8; 16],
+                    },
+                )
             };
-            entry.write(&mut buffer).unwrap();
-            let serialized_expression =
-                serialize_parameter_expression_elements(inst, &mut PyDict::new(py), qpy_data)?;
-            buffer.write_all(&serialized_expression).unwrap();
+            extra_data.push(entry);
+            let packed_expression =
+                pack_parameter_expression_elements(inst, &mut PyDict::new(py), qpy_data)?;
+            extra_data.extend(packed_expression);
             let entry = if r_side {
-                formats::ParameterExpressionElementPack {
-                    op_code: 255,
-                    lhs_type: "n".as_bytes()[0],
-                    lhs: [0u8; 16],
-                    rhs_type: "e".as_bytes()[0],
-                    rhs: [0u8; 16],
-                }
+                formats::ParameterExpressionElementPack::Expression(
+                    formats::ParameterExpressionStandardOpPack {
+                        lhs_type: "n".as_bytes()[0],
+                        lhs: [0u8; 16],
+                        rhs_type: "e".as_bytes()[0],
+                        rhs: [0u8; 16],
+                    },
+                )
             } else {
-                formats::ParameterExpressionElementPack {
-                    op_code: 255,
-                    lhs_type: "e".as_bytes()[0],
-                    lhs: [0u8; 16],
-                    rhs_type: "n".as_bytes()[0],
-                    rhs: [0u8; 16],
-                }
+                formats::ParameterExpressionElementPack::Expression(
+                    formats::ParameterExpressionStandardOpPack {
+                        lhs_type: "e".as_bytes()[0],
+                        lhs: [0u8; 16],
+                        rhs_type: "n".as_bytes()[0],
+                        rhs: [0u8; 16],
+                    },
+                )
             };
-            entry.write(&mut buffer).unwrap();
-            extra_data = buffer.into();
+            extra_data.push(entry);
             [0u8; 16] // return empty
         }
         _ => {
@@ -126,13 +126,12 @@ fn serialize_parameter_replay_entry(
     Ok((key_type, data, extra_data))
 }
 
-fn serialize_replay_subs(
+fn pack_replay_subs(
     subs_obj: &Bound<PyAny>,
     extra_symbols: &mut Bound<PyDict>,
     qpy_data: &QPYData,
-) -> PyResult<Bytes> {
+) -> PyResult<formats::ParameterExpressionElementPack> {
     let py = subs_obj.py();
-    let mut buffer = Cursor::new(Vec::new());
     let binds = subs_obj.getattr("binds")?;
     extra_symbols.call_method1("update", (&binds,))?;
 
@@ -163,22 +162,9 @@ fn serialize_replay_subs(
         num_elements,
         items,
     };
-    let mut mapping_buffer = Cursor::new(Vec::new());
-    mapping.write(&mut mapping_buffer).unwrap();
-    let mapping_data = mapping_buffer.into_inner();
-    let mapping_data_size: [u8; 8] = (mapping_data.len() as u64).to_be_bytes();
-    let mut lhs = [0u8; 16];
-    lhs[..8].copy_from_slice(&mapping_data_size);
-    let entry = formats::ParameterExpressionElementPack {
-        op_code: subs_obj.getattr("op")?.extract::<u8>()?,
-        lhs_type: "u".as_bytes()[0],
-        lhs,
-        rhs_type: "n".as_bytes()[0],
-        rhs: [0u8; 16],
-    };
-    entry.write(&mut buffer).unwrap();
-    buffer.write_all(&mapping_data)?;
-    Ok(buffer.into())
+    let mapping_data = serialize(&mapping)?;
+    let entry = formats::ParameterExpressionSubsOpPack { mapping_data };
+    Ok(formats::ParameterExpressionElementPack::Substitute(entry))
 }
 
 fn getattr_or_none<'py>(py_object: &'py Bound<PyAny>, name: &str) -> PyResult<Bound<'py, PyAny>> {
@@ -194,57 +180,87 @@ fn getattr_or_none<'py>(py_object: &'py Bound<PyAny>, name: &str) -> PyResult<Bo
     }
 }
 
-fn serialize_parameter_expression_element(
+fn pack_parameter_expression_element(
     replay_obj: &Bound<PyAny>,
     extra_symbols: &mut Bound<PyDict>,
     qpy_data: &QPYData,
-) -> PyResult<Bytes> {
+) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
     let py = replay_obj.py();
+    let mut result = Vec::new();
     if replay_obj
         .is_instance(PARAMETER_SUBS.get_bound(py))
         .unwrap()
     {
-        return serialize_replay_subs(replay_obj, extra_symbols, qpy_data);
+        return Ok(vec![pack_replay_subs(replay_obj, extra_symbols, qpy_data)?]);
     }
-    let (lhs_type, lhs, extra_lhs_data) = serialize_parameter_replay_entry(
-        py,
-        &getattr_or_none(replay_obj, "lhs")?,
-        false,
-        qpy_data,
-    )?;
+    let (lhs_type, lhs, extra_lhs_data) =
+        pack_parameter_replay_entry(py, &getattr_or_none(replay_obj, "lhs")?, false, qpy_data)?;
     let (rhs_type, rhs, extra_rhs_data) =
-        serialize_parameter_replay_entry(py, &getattr_or_none(replay_obj, "rhs")?, true, qpy_data)?;
+        pack_parameter_replay_entry(py, &getattr_or_none(replay_obj, "rhs")?, true, qpy_data)?;
     let op_code = replay_obj.getattr(intern!(py, "op"))?.extract::<u8>()?;
-    let packed_element = formats::ParameterExpressionElementPack {
-        op_code,
+    let entry = formats::ParameterExpressionStandardOpPack {
         lhs_type,
         lhs,
         rhs_type,
         rhs,
     };
-    let mut buffer = Cursor::new(Vec::new());
-    buffer.write_all(&extra_lhs_data).unwrap();
-    buffer.write_all(&extra_rhs_data).unwrap();
-    packed_element.write(&mut buffer).unwrap();
-    Ok(buffer.into())
+    let packed_parameter = vec![pack_parameter_expression_by_op(op_code, entry)?];
+    result.extend(extra_lhs_data);
+    result.extend(extra_rhs_data);
+    result.extend(packed_parameter);
+    Ok(result)
 }
-fn serialize_parameter_expression_elements(
+
+fn pack_parameter_expression_by_op(
+    opcode: u8,
+    data: formats::ParameterExpressionStandardOpPack,
+) -> PyResult<formats::ParameterExpressionElementPack> {
+    use formats::ParameterExpressionElementPack::*;
+    match opcode {
+        0 => Ok(Add(data)),
+        1 => Ok(Sub(data)),
+        2 => Ok(Mul(data)),
+        3 => Ok(Div(data)),
+        4 => Ok(Pow(data)),
+        5 => Ok(Sin(data)),
+        6 => Ok(Cos(data)),
+        7 => Ok(Tan(data)),
+        8 => Ok(Asin(data)),
+        9 => Ok(Acos(data)),
+        10 => Ok(Exp(data)),
+        11 => Ok(Log(data)),
+        12 => Ok(Sign(data)),
+        13 => Ok(Grad(data)),
+        14 => Ok(Conj(data)),
+        16 => Ok(Abs(data)),
+        17 => Ok(Atan(data)),
+        18 => Ok(Rsub(data)),
+        19 => Ok(Rdiv(data)),
+        20 => Ok(Rpow(data)),
+        255 => Ok(Expression(data)),
+        _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+            "Invalid opcode: {}",
+            opcode
+        ))),
+    }
+}
+
+fn pack_parameter_expression_elements(
     py_object: &Bound<PyAny>,
     extra_symbols: &mut Bound<PyDict>,
     qpy_data: &QPYData,
-) -> PyResult<Bytes> {
+) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
     let py = py_object.py();
     let qpy_replay = py_object
         .getattr(intern!(py, "_qpy_replay"))?
         .extract::<Vec<PyObject>>()?;
-    let result_data: Bytes = qpy_replay
-        .iter()
-        .flat_map(|replay_obj| {
-            serialize_parameter_expression_element(replay_obj.bind(py), extra_symbols, qpy_data)
-                .unwrap()
-        })
-        .collect();
-    Ok(result_data)
+    let mut result = Vec::new();
+    for replay_obj in qpy_replay.iter() {
+        let packed_parameter =
+            pack_parameter_expression_element(replay_obj.bind(py), extra_symbols, qpy_data)?;
+        result.extend(packed_parameter);
+    }
+    Ok(result)
 }
 
 fn pack_symbol(
@@ -339,8 +355,9 @@ pub fn pack_parameter_expression(
 ) -> PyResult<formats::ParameterExpressionPack> {
     let py = py_object.py();
     let mut extra_symbols = PyDict::new(py);
-    let expression_data =
-        serialize_parameter_expression_elements(py_object, &mut extra_symbols, qpy_data)?;
+    let packed_expression_data =
+        pack_parameter_expression_elements(py_object, &mut extra_symbols, qpy_data)?;
+    let expression_data = serialize(&packed_expression_data)?;
     let mut symbol_table_data = pack_symbol_table(py, py_object, qpy_data)?;
     let (extra_symbols_keys, extra_symbols_values) =
         pack_extra_symbol_table(&extra_symbols, qpy_data)?;
