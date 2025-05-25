@@ -2945,6 +2945,25 @@ impl Operation for UnitaryGate {
             ArrayType::TwoQ(_) => None,
         }
     }
+
+    fn matrix_as_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+        match &self.array {
+            ArrayType::OneQ(mat) => Some(*mat),
+            ArrayType::NDArray(arr) => {
+                if self.num_qubits() == 1 {
+                    Some(Matrix2::new(
+                        arr[[0, 0]],
+                        arr[[0, 1]],
+                        arr[[1, 0]],
+                        arr[[1, 1]],
+                    ))
+                } else {
+                    None
+                }
+            }
+            ArrayType::TwoQ(_) => None,
+        }
+    }
 }
 
 impl UnitaryGate {
