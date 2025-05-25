@@ -1596,24 +1596,17 @@ impl Operation for StandardGate {
                             (Self::S, smallvec![], smallvec![Qubit(1)]),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U,
-                                smallvec![
-                                    multiply_param(theta, -0.5, py),
-                                    Param::Float(0.0),
-                                    Param::Float(0.0)
-                                ],
+                                Self::RY,
+                                smallvec![multiply_param(theta, -0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U,
-                                smallvec![
-                                    multiply_param(theta, 0.5, py),
-                                    Param::Float(-PI / 2.),
-                                    Param::Float(0.0)
-                                ],
+                                Self::RY,
+                                smallvec![multiply_param(theta, 0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
+                            (Self::Sdg, smallvec![], smallvec![Qubit(1)]),
                         ],
                         Param::Float(0.0),
                     )

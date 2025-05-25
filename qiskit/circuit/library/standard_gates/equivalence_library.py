@@ -216,9 +216,9 @@ _sel.add_equivalence(CPhaseGate(theta), cphase_to_rzz)
 
 # RGate
 #
-#    ┌────────┐        ┌───────────────────────┐
+#    ┌────────┐        ┌──────────────────────┐
 # q: ┤ R(ϴ,φ) ├  ≡  q: ┤ U(ϴ,φ - π/2,π/2 - φ) ├
-#    └────────┘        └───────────────────────┘
+#    └────────┘        └──────────────────────┘
 q = QuantumRegister(1, "q")
 theta = Parameter("theta")
 phi = Parameter("phi")
@@ -511,6 +511,28 @@ cry_to_rzz.rzz(-theta / 2, 0, 1)
 cry_to_rzz.h(1)
 cry_to_rzz.s(1)
 _sel.add_equivalence(CRYGate(theta), cry_to_rzz)
+
+# RYYGate
+#
+#      ┌─────────┐          ┌─────────┐                   ┌──────────┐
+# q_0: ┤0        ├     q_0: ┤ Rx(π/2) ├──■─────────────■──┤ Rx(-π/2) ├
+#      │  Ryy(ϴ) │  ≡       ├─────────┤┌─┴─┐┌───────┐┌─┴─┐├──────────┤
+# q_1: ┤1        ├     q_1: ┤ Rx(π/2) ├┤ X ├┤ Rz(ϴ) ├┤ X ├┤ Rx(-π/2) ├
+#      └─────────┘          └─────────┘└───┘└───────┘└───┘└──────────┘
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+def_ryy = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (RXGate(pi / 2), [q[0]], []),
+    (RXGate(pi / 2), [q[1]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (RZGate(theta), [q[1]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (RXGate(-pi / 2), [q[0]], []),
+    (RXGate(-pi / 2), [q[1]], []),
+]:
+    def_ryy.append(inst, qargs, cargs)
+_sel.add_equivalence(RYYGate(theta), def_ryy)
 
 # RYYGate
 #
