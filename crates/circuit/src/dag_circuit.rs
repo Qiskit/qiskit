@@ -381,14 +381,14 @@ impl PyBitLocations {
 }
 
 #[derive(Copy, Clone, Debug)]
-enum DAGVarType {
+pub enum DAGVarType {
     Input = 0,
     Capture = 1,
     Declare = 2,
 }
 
 #[derive(Clone, Debug)]
-struct DAGVarInfo {
+pub struct DAGVarInfo {
     var: Var,
     type_: DAGVarType,
     in_node: NodeIndex,
@@ -420,16 +420,26 @@ impl DAGVarInfo {
             out_node: NodeIndex::new(val_tuple.get_item(3)?.extract()?),
         })
     }
+
+    #[inline(always)]
+    pub fn get_var(&self) -> &Var {
+        &self.var
+    }
+
+    #[inline(always)]
+    pub fn get_type(&self) -> &DAGVarType {
+        &self.type_
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
-enum DAGStretchType {
+pub enum DAGStretchType {
     Capture = 0,
     Declare = 1,
 }
 
 #[derive(Clone, Debug)]
-struct DAGStretchInfo {
+pub struct DAGStretchInfo {
     stretch: Stretch,
     type_: DAGStretchType,
 }
@@ -450,10 +460,20 @@ impl DAGStretchInfo {
             },
         })
     }
+
+    #[inline(always)]
+    pub fn get_stretch(&self) -> &Stretch {
+        &self.stretch
+    }
+
+    #[inline(always)]
+    pub fn get_type(&self) -> &DAGStretchType {
+        &self.type_
+    }
 }
 
 #[derive(Clone, Debug)]
-enum DAGIdentifierInfo {
+pub enum DAGIdentifierInfo {
     Stretch(DAGStretchInfo),
     Var(DAGVarInfo),
 }
@@ -4594,7 +4614,12 @@ impl DAGCircuit {
         &self.vars
     }
 
-    /// Returns an iterator over the input variables used by the circuit.
+    /// Returns an iterator over the stored identifiers in order of insertion
+    pub fn identifiers(&self) -> impl ExactSizeIterator<Item = &DAGIdentifierInfo> {
+        self.identifier_info.iter().map(|id| id.1)
+    }
+
+    /// Returns an iterator over the input variables used by the circuit. // TODO: this can be used in the circuitdata as a comment
     pub fn input_vars(&self) -> impl ExactSizeIterator<Item = &expr::Var> {
         self.vars_input.iter().map(|v| self.vars.get(*v).unwrap())
     }
@@ -6136,6 +6161,13 @@ impl DAGCircuit {
         self.vars.get(var)
     }
 
+    /// Retrieve a stretch given its unique [Stretch] key within the DAG.
+    ///
+    /// The provided [Stretch] must be from this [DAGCircuit].
+    pub fn get_stretch(&self, stretch: Stretch) -> Option<&expr::Stretch> {
+        self.stretches.get(stretch)
+    }
+
     fn add_var(&mut self, var: expr::Var, type_: DAGVarType) -> PyResult<Var> {
         // The setup of the initial graph structure between an "in" and an "out" node is the same as
         // the bit-related `_add_wire`, but this logically needs to do different bookkeeping around
@@ -6233,7 +6265,7 @@ impl DAGCircuit {
     pub fn with_capacity(
         num_qubits: usize,
         num_clbits: usize,
-        num_vars: Option<usize>,
+        num_vars: Option<usize>, // TODO: something similar for CircuitData's with_capacity
         num_ops: Option<usize>,
         num_edges: Option<usize>,
         num_stretches: Option<usize>,
