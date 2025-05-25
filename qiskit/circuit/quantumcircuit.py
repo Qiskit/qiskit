@@ -133,6 +133,34 @@ class QuantumCircuit:
         different regimes of quantum-circuit descriptions in Qiskit, see the module-level
         documentation of :mod:`qiskit.circuit`.
 
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+
+       from qiskit import QuantumCircuit
+
+       # Create a new circuit with two qubits
+       qc = QuantumCircuit(2)
+
+       # Add a Hadamard gate to qubit 0
+       qc.h(0)
+
+       # Perform a controlled-X gate on qubit 1, controlled by qubit 0
+       qc.cx(0, 1)
+
+       # Return a text drawing of the circuit.
+       qc.draw()
+
+    .. code-block:: text
+
+            ┌───┐
+       q_0: ┤ H ├──■──
+            └───┘┌─┴─┐
+       q_1: ─────┤ X ├
+                 └───┘
+
     Circuit attributes
     ==================
 
@@ -142,50 +170,55 @@ class QuantumCircuit:
     A small handful of the attributes are intentionally mutable, the rest are data attributes that
     should be considered immutable.
 
-    ========================= ======================================================================
-    Mutable attribute         Summary
-    ========================= ======================================================================
-    :attr:`global_phase`      The global phase of the circuit, measured in radians.
-    :attr:`metadata`          Arbitrary user mapping, which Qiskit will preserve through the
-                              transpiler, but otherwise completely ignore.
-    :attr:`name`              An optional string name for the circuit.
-    ========================= ======================================================================
+    ============================== =================================================================
+    Mutable attribute              Summary
+    ============================== =================================================================
+    :attr:`global_phase`           The global phase of the circuit, measured in radians.
+    :attr:`metadata`               Arbitrary user mapping, which Qiskit will preserve through the
+                                   transpiler, but otherwise completely ignore.
+    :attr:`name`                   An optional string name for the circuit.
+    ============================== =================================================================
 
-    ========================= ======================================================================
-    Immutable data attribute  Summary
-    ========================= ======================================================================
-    :attr:`ancillas`          List of :class:`AncillaQubit`\\ s tracked by the circuit.
-    :attr:`cregs`             List of :class:`ClassicalRegister`\\ s tracked by the circuit.
+    ============================== =================================================================
+    Immutable data attribute       Summary
+    ============================== =================================================================
+    :attr:`ancillas`               List of :class:`AncillaQubit`\\ s tracked by the circuit.
+    :attr:`cregs`                  List of :class:`ClassicalRegister`\\ s tracked by the circuit.
 
-    :attr:`clbits`            List of :class:`Clbit`\\ s tracked by the circuit.
-    :attr:`data`              List of individual :class:`CircuitInstruction`\\ s that make up the
-                              circuit.
-    :attr:`duration`          Total duration of the circuit, added by scheduling transpiler passes.
-                              This attribute is deprecated and :meth:`.estimate_duration` should
-                              be used instead.
+    :attr:`clbits`                 List of :class:`Clbit`\\ s tracked by the circuit.
+    :attr:`data`                   List of individual :class:`CircuitInstruction`\\ s that make up
+                                   the circuit.
+    :attr:`duration`               Total duration of the circuit, added by scheduling transpiler
+                                   passes.
+                                   This attribute is deprecated and :meth:`.estimate_duration`
+                                   should be used instead.
 
-    :attr:`layout`            Hardware layout and routing information added by the transpiler.
-    :attr:`num_ancillas`      The number of ancilla qubits in the circuit.
-    :attr:`num_clbits`        The number of clbits in the circuit.
-    :attr:`num_captured_vars` Number of captured real-time classical variables.
+    :attr:`layout`                 Hardware layout and routing information added by the transpiler.
+    :attr:`num_ancillas`           The number of ancilla qubits in the circuit.
+    :attr:`num_clbits`             The number of clbits in the circuit.
+    :attr:`num_captured_vars`      Number of captured real-time classical variables.
+    :attr:`num_captured_stretches` Number of captured stretches.
+    :attr:`num_declared_vars`      Number of locally declared real-time classical variables in the
+                                   outer circuit scope.
+    :attr:`num_declared_stretches` Number of locally declared stretches in the outer circuit scope.
+    :attr:`num_input_vars`         Number of input real-time classical variables.
+    :attr:`num_parameters`         Number of compile-time :class:`Parameter`\\ s in the circuit.
+    :attr:`num_qubits`             Number of qubits in the circuit.
 
-    :attr:`num_declared_vars` Number of locally declared real-time classical variables in the outer
-                              circuit scope.
-    :attr:`num_input_vars`    Number of input real-time classical variables.
-    :attr:`num_parameters`    Number of compile-time :class:`Parameter`\\ s in the circuit.
-    :attr:`num_qubits`        Number of qubits in the circuit.
+    :attr:`num_vars`               Total number of real-time classical variables in the outer
+                                   circuit scope.
+    :attr:`num_stretches`          Total number of stretches in the outer circuit scope.
+    :attr:`num_identifiers`        Total number of both variables and stretches in the outer
+                                   circuit.
+    :attr:`op_start_times`         Start times of scheduled operations, added by scheduling
+                                   transpiler passes.
+    :attr:`parameters`             Ordered set-like view of the compile-time :class:`Parameter`\\ s
+                                   tracked by the circuit.
+    :attr:`qregs`                  List of :class:`QuantumRegister`\\ s tracked by the circuit.
 
-    :attr:`num_vars`          Total number of real-time classical variables in the outer circuit
-                              scope.
-    :attr:`op_start_times`    Start times of scheduled operations, added by scheduling transpiler
-                              passes.
-    :attr:`parameters`        Ordered set-like view of the compile-time :class:`Parameter`\\ s
-                              tracked by the circuit.
-    :attr:`qregs`             List of :class:`QuantumRegister`\\ s tracked by the circuit.
-
-    :attr:`qubits`            List of :class:`Qubit`\\ s tracked by the circuit.
-    :attr:`unit`              The unit of the :attr:`duration` field.
-    ========================= ======================================================================
+    :attr:`qubits`                 List of :class:`Qubit`\\ s tracked by the circuit.
+    :attr:`unit`                   The unit of the :attr:`duration` field.
+    ============================== =================================================================
 
     The core attribute is :attr:`data`.  This is a sequence-like object that exposes the
     :class:`CircuitInstruction`\\ s contained in an ordered form.  You generally should not mutate
@@ -255,10 +288,14 @@ class QuantumCircuit:
     .. autoattribute:: num_ancillas
     .. autoattribute:: num_clbits
     .. autoattribute:: num_captured_vars
+    .. autoattribute:: num_captured_stretches
     .. autoattribute:: num_declared_vars
+    .. autoattribute:: num_declared_stretches
     .. autoattribute:: num_input_vars
+    .. autoattribute:: num_identifiers
     .. autoattribute:: num_parameters
     .. autoattribute:: num_qubits
+    .. autoattribute:: num_stretches
     .. autoattribute:: num_vars
 
     Creating new circuits
@@ -325,8 +362,10 @@ class QuantumCircuit:
     :meth:`add_bits`               :class:`.Qubit`\\ s and :class:`.Clbit`\\ s.
     :meth:`add_register`           :class:`.QuantumRegister` and :class:`.ClassicalRegister`.
     :meth:`add_var`                :class:`~.expr.Var` nodes with local scope and initializers.
+    :meth:`add_stretch`            :class:`~.expr.Stretch` nodes with local scope.
     :meth:`add_input`              :class:`~.expr.Var` nodes that are treated as circuit inputs.
-    :meth:`add_capture`            :class:`~.expr.Var` nodes captured from containing scopes.
+    :meth:`add_capture`            :class:`~.expr.Var` or :class:`~.expr.Stretch` nodes captured
+                                   from containing scopes.
     :meth:`add_uninitialized_var`  :class:`~.expr.Var` nodes with local scope and undefined state.
     =============================  =================================================================
 
@@ -356,10 +395,12 @@ class QuantumCircuit:
     to instantiate these separately to a circuit (see :meth:`.Var.new`), but it is often more
     convenient to use circuit methods that will automatically manage the types and expression
     initialization for you.  The two most common methods are :meth:`add_var` (locally scoped
-    variables) and :meth:`add_input` (inputs to the circuit).
+    variables) and :meth:`add_input` (inputs to the circuit). Additionally, the method
+    :meth:`add_stretch` can be used to add stretches to the circuit.
 
     .. automethod:: add_var
     .. automethod:: add_input
+    .. automethod:: add_stretch
 
     In addition, there are two lower-level methods that can be useful for programmatic generation of
     circuits.  When working interactively, you will most likely not need these; most uses of
@@ -427,26 +468,37 @@ class QuantumCircuit:
             as a whole.
 
         :ref:`circuit-adding-data-objects`
-            The methods for adding new :class:`~.expr.Var` variables to a circuit after
-            initialization.
+            The methods for adding new :class:`~.expr.Var` or :class:`~.expr.Stretch` identifiers
+            to a circuit after initialization.
 
-    You can retrive a :class:`~.expr.Var` instance attached to a circuit by using its variable name
-    using :meth:`get_var`, or check if a circuit contains a given variable with :meth:`has_var`.
+    You can retrieve identifiers attached to a circuit (e.g. a :class:`~.expr.Var` or
+    :class:`~.expr.Stretch`) by name with methods :meth:`get_var`, :meth:`get_stretch`, or
+    :meth:`get_identifier`. You can also check if a circuit
+    contains a given identifier with :meth:`has_var`, :meth:`has_stretch`, or
+    :meth:`has_identifier`.
 
     .. automethod:: get_var
+    .. automethod:: get_stretch
+    .. automethod:: get_identifier
     .. automethod:: has_var
+    .. automethod:: has_stretch
+    .. automethod:: has_identifier
 
-    There are also several iterator methods that you can use to get the full set of variables
+
+    There are also several iterator methods that you can use to get the full set of identifiers
     tracked by a circuit.  At least one of :meth:`iter_input_vars` and :meth:`iter_captured_vars`
     will be empty, as inputs and captures are mutually exclusive.  All of the iterators have
     corresponding dynamic properties on :class:`QuantumCircuit` that contain their length:
-    :attr:`num_vars`, :attr:`num_input_vars`, :attr:`num_captured_vars` and
-    :attr:`num_declared_vars`.
+    :attr:`num_vars`, :attr:`num_stretches`, :attr:`num_input_vars`, :attr:`num_captured_vars`,
+    :attr:`num_captured_stretches`, :attr:`num_declared_vars`, or :attr:`num_declared_stretches`.
 
     .. automethod:: iter_vars
+    .. automethod:: iter_stretches
     .. automethod:: iter_input_vars
     .. automethod:: iter_captured_vars
+    .. automethod:: iter_captured_stretches
     .. automethod:: iter_declared_vars
+    .. automethod:: iter_declared_stretches
 
 
     .. _circuit-adding-operations:
@@ -1046,7 +1098,24 @@ class QuantumCircuit:
             regs = tuple(int(reg) for reg in regs)  # cast to int
         self._base_name = None
         self.name: str
-        """A human-readable name for the circuit."""
+        """A human-readable name for the circuit.
+        
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+                :context: reset
+
+                from qiskit import QuantumCircuit
+
+                qc = QuantumCircuit(2, 2, name="my_circuit")
+                print(qc.name)
+
+            .. code-block:: text
+
+                my_circuit
+        """
         if name is None:
             self._base_name = self._cls_prefix()
             self._name_update()
@@ -1104,10 +1173,27 @@ class QuantumCircuit:
         self._duration = None
         self._unit = "dt"
         self.metadata = {} if metadata is None else metadata
-        """Arbitrary user-defined metadata for the circuit.
+        """Arbitrary user-defined dictionary of metadata for the circuit.
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
-        transpiler and reattach it to the output, so you can track your own metadata."""
+        transpiler and reattach it to the output, so you can track your own metadata.
+        
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+
+                qc = QuantumCircuit(2, 2, metadata={'experiment_type': 'Bell state experiment'})
+
+                print(qc.metadata)
+
+            .. code-block:: text
+
+                {'experiment_type': 'Bell state experiment'}
+        """
 
     @property
     @deprecate_func(since="1.3.0", removal_timeline="in Qiskit 3.0.0", is_property=True)
@@ -1204,7 +1290,7 @@ class QuantumCircuit:
 
     @property
     def layout(self) -> Optional[TranspileLayout]:
-        r"""Return any associated layout information about the circuit
+        """Return any associated layout information about the circuit.
 
         This attribute contains an optional :class:`~.TranspileLayout`
         object. This is typically set on the output from :func:`~.transpile`
@@ -1212,10 +1298,47 @@ class QuantumCircuit:
         permutations caused on the input circuit by transpilation.
 
         There are two types of permutations caused by the :func:`~.transpile`
-        function, an initial layout which permutes the qubits based on the
-        selected physical qubits on the :class:`~.Target`, and a final layout
-        which is an output permutation caused by :class:`~.SwapGate`\s
+        function: an initial layout that permutes the qubits based on the
+        selected physical qubits on the :class:`~.Target`, and a final layout,
+        which is an output permutation caused by :class:`~.SwapGate`\\ s
         inserted during routing.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+                from qiskit.providers.fake_provider import GenericBackendV2
+                from qiskit.transpiler import generate_preset_pass_manager
+
+                # Create circuit to test transpiler on
+                qc = QuantumCircuit(3, 3)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.swap(1, 2)
+                qc.cx(0, 1)
+
+                # Add measurements to the circuit
+                qc.measure([0, 1, 2], [0, 1, 2])
+
+                # Specify the QPU to target
+                backend = GenericBackendV2(3)
+
+                # Transpile the circuit
+                pass_manager = generate_preset_pass_manager(
+                optimization_level=1, backend=backend
+                )
+                transpiled = pass_manager.run(qc)
+
+                # Print the layout after transpilation
+                print(transpiled.layout.routing_permutation())
+
+            .. code-block:: text
+
+                [0, 1, 2]
+
         """
         return self._layout
 
@@ -1223,9 +1346,26 @@ class QuantumCircuit:
     def data(self) -> QuantumCircuitData:
         """The circuit data (instructions and context).
 
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+
+                qc = QuantumCircuit(2, 2)
+                qc.measure([0], [1])
+                print(qc.data)
+
+            .. code-block:: text
+
+                [CircuitInstruction(operation=Instruction(name='measure', num_qubits=1,
+                num_clbits=1, params=[]), qubits=(Qubit(QuantumRegister(2, 'q'), 0),),
+                clbits=(Clbit(ClassicalRegister(2, 'c'), 1),))]
+
         Returns:
-            QuantumCircuitData: a list-like object containing the :class:`.CircuitInstruction`\\ s
-            for each instruction.
+            A list-like object containing the :class:`.CircuitInstruction` instances in the circuit.
         """
         return QuantumCircuitData(self)
 
@@ -1271,6 +1411,69 @@ class QuantumCircuit:
         This attribute is enabled once one of scheduling analysis passes
         runs on the quantum circuit.
 
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+                from qiskit.providers.fake_provider import GenericBackendV2
+                from qiskit.transpiler import generate_preset_pass_manager
+
+                qc = QuantumCircuit(2)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure_all()
+
+                # Print the original circuit
+                print("Original circuit:")
+                print(qc)
+
+                # Transpile the circuit with a specific basis gates list and print the resulting circuit
+                backend = GenericBackendV2(2, basis_gates=['u1', 'u2', 'u3', 'cx'])
+                pm = generate_preset_pass_manager(
+                    optimization_level=1, backend=backend, scheduling_method="alap"
+                )
+                transpiled_qc = pm.run(qc)
+                print("Transpiled circuit with basis gates ['u1', 'u2', 'u3', 'cx']:")
+                print(transpiled_qc)
+
+                # Print the start times of each instruction in the transpiled circuit
+                print("Start times of instructions in the transpiled circuit:")
+                for instruction, start_time in zip(transpiled_qc.data, transpiled_qc.op_start_times):
+                    print(f"{instruction.operation.name}: {start_time}")
+
+            .. code-block:: text
+
+
+                Original circuit:
+                        ┌───┐      ░ ┌─┐
+                q_0: ┤ H ├──■───░─┤M├───
+                        └───┘┌─┴─┐ ░ └╥┘┌─┐
+                q_1: ─────┤ X ├─░──╫─┤M├
+                            └───┘ ░  ║ └╥┘
+                meas: 2/══════════════╩══╩═
+                                    0  1
+
+                Transpiled circuit with basis gates ['u1', 'u2', 'u3', 'cx']:
+                            ┌─────────┐          ░ ┌─────────────────┐┌─┐
+                q_0 -> 0 ───┤ U2(0,π) ├──────■───░─┤ Delay(1255[dt]) ├┤M├
+                        ┌──┴─────────┴───┐┌─┴─┐ ░ └───────┬─┬───────┘└╥┘
+                q_1 -> 1 ┤ Delay(196[dt]) ├┤ X ├─░─────────┤M├─────────╫─
+                        └────────────────┘└───┘ ░         └╥┘         ║
+                meas: 2/═══════════════════════════════════╩══════════╩═
+                                                            1          0
+
+                Start times of instructions in the transpiled circuit:
+                u2: 0
+                delay: 0
+                cx: 196
+                barrier: 2098
+                delay: 2098
+                measure: 3353
+                measure: 2098
+
         Returns:
             List of integers representing instruction estimated start times.
             The index corresponds to the index of instruction in :attr:`QuantumCircuit.data`.
@@ -1287,14 +1490,34 @@ class QuantumCircuit:
 
     @property
     def metadata(self) -> dict:
-        """The user provided metadata associated with the circuit.
+        """The user-provided metadata associated with the circuit.
 
-        The metadata for the circuit is a user provided ``dict`` of metadata
+        The metadata for the circuit is a user-provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
         operation of the circuit, but it is expected to be passed between
-        all transforms of the circuit (ie transpilation) and that providers will
+        all transforms of the circuit (i.e., transpilation) and that providers will
         associate any circuit metadata with the results it returns from
         execution of that circuit.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+                q = QuantumRegister(2)
+                c = ClassicalRegister(2)
+                qc = QuantumCircuit(q, c)
+
+                qc.metadata = {'experiment_type': 'Bell state experiment'}
+
+                print(qc.metadata)
+
+            .. code-block:: text
+
+               {'experiment_type': 'Bell state experiment'}
         """
         return self._metadata
 
@@ -2136,7 +2359,33 @@ class QuantumCircuit:
     @property
     def clbits(self) -> list[Clbit]:
         """A list of :class:`Clbit`\\ s in the order that they were added.  You should not mutate
-        this."""
+        this.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+                :context: reset
+
+                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+
+                qr1 = QuantumRegister(2)
+                qr2 = QuantumRegister(1)
+                cr1 = ClassicalRegister(2)
+                cr2 = ClassicalRegister(1)
+                qc = QuantumCircuit(qr1, qr2, cr1, cr2)
+
+                print("List the qubits in this circuit:", qc.qubits)
+                print("List the classical bits in this circuit:", qc.clbits)
+
+            .. code-block:: text
+
+                List the qubits in this circuit: [Qubit(QuantumRegister(2, 'q0'), 0),
+                Qubit(QuantumRegister(2, 'q0'), 1), Qubit(QuantumRegister(1, 'q1'), 0)]
+                List the classical bits in this circuit: [Clbit(ClassicalRegister(2, 'c0'), 0),
+                Clbit(ClassicalRegister(2, 'c0'), 1), Clbit(ClassicalRegister(1, 'c1'), 0)]
+        """
         return self._data.clbits
 
     @property
@@ -3682,12 +3931,54 @@ class QuantumCircuit:
 
     @property
     def num_ancillas(self) -> int:
-        """Return the number of ancilla qubits."""
+        """Return the number of ancilla qubits.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit, QuantumRegister, AncillaRegister
+
+                # Create a 2-qubit quantum circuit
+                reg = QuantumRegister(2)
+                qc = QuantumCircuit(reg)
+
+                # Create an ancilla register with 1 qubit
+                anc = AncillaRegister(1)
+                qc.add_register(anc)  # Add the ancilla register to the circuit
+
+                print("Number of ancilla qubits:", qc.num_ancillas)
+
+            .. code-block:: text
+
+                Number of ancilla qubits: 1
+        """
         return len(self.ancillas)
 
     @property
     def num_clbits(self) -> int:
-        """Return number of classical bits."""
+        """Return number of classical bits.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+
+                from qiskit import QuantumCircuit
+
+                # Create a new circuit with two qubits and one classical bit
+                qc = QuantumCircuit(2, 1)
+                print("Number of classical bits:", qc.num_clbits)
+
+            .. code-block:: text
+
+                Number of classical bits: 1
+
+
+        """
         return self._data.num_clbits
 
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
@@ -4251,7 +4542,41 @@ class QuantumCircuit:
 
     @property
     def global_phase(self) -> ParameterValueType:
-        """The global phase of the current circuit scope in radians."""
+        """The global phase of the current circuit scope in radians.
+
+        Example:
+
+            .. plot::
+                :include-source:
+                :nofigs:
+                :context: reset
+
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.h(0)
+                circuit.cx(0, 1)
+                print(circuit.global_phase)
+
+            .. code-block:: text
+
+                0.0
+
+            .. plot::
+                :include-source:
+                :nofigs:
+                :context:
+
+                from numpy import pi
+
+                circuit.global_phase = pi/4
+                print(circuit.global_phase)
+
+            .. code-block:: text
+
+                0.7853981633974483
+        """
+
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1].global_phase
         return self._data.global_phase

@@ -14,7 +14,6 @@
 Tests for the ConsolidateBlocks transpiler pass.
 """
 
-import unittest
 import numpy as np
 from ddt import ddt, data
 
@@ -24,10 +23,12 @@ from qiskit.circuit.library import (
     SwapGate,
     CXGate,
     CZGate,
+    ECRGate,
     UnitaryGate,
     SXGate,
     XGate,
     RZGate,
+    RZZGate,
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.operators import Operator
@@ -352,12 +353,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
         self.assertEqual(expected, pass_manager.run(qc))
 
-    def test_single_gate_block_outside_basis_with_target(self):
+    @data(CXGate, CZGate, ECRGate)
+    def test_single_gate_block_outside_basis_with_target(self, basis_gate):
         """Test a gate outside basis defined in target gets converted."""
         qc = QuantumCircuit(2)
         target = Target(num_qubits=2)
         # Add ideal basis gates to all qubits
-        target.add_instruction(CXGate())
+        target.add_instruction(basis_gate())
         qc.swap(0, 1)
         consolidate_block_pass = ConsolidateBlocks(target=target)
         pass_manager = PassManager()
@@ -367,12 +369,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
         self.assertEqual(expected, pass_manager.run(qc))
 
-    def test_single_gate_block_outside_local_basis_with_target(self):
+    @data(CXGate, CZGate, ECRGate)
+    def test_single_gate_block_outside_local_basis_with_target(self, basis_gate):
         """Test that a gate in basis but outside valid qubits is treated as outside basis with target."""
         qc = QuantumCircuit(2)
         target = Target(num_qubits=2)
-        # Add ideal cx to (1, 0) only
-        target.add_instruction(CXGate(), {(1, 0): None})
+        # Add ideal basis to (1, 0) only
+        target.add_instruction(basis_gate(), {(1, 0): None})
         qc.cx(0, 1)
         consolidate_block_pass = ConsolidateBlocks(target=target)
         pass_manager = PassManager()
@@ -382,7 +385,8 @@ class TestConsolidateBlocks(QiskitTestCase):
         expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]), [0, 1])
         self.assertEqual(expected, pass_manager.run(qc))
 
-    def test_single_gate_block_outside_target_with_matching_basis_gates(self):
+    @data("cx", "ecr", "cz")
+    def test_single_gate_block_outside_target_with_matching_basis_gates(self, basis_gate):
         """Ensure the target is the source of truth with basis_gates also set."""
         qc = QuantumCircuit(2)
         target = Target(num_qubits=2)
@@ -390,7 +394,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         target.add_instruction(SwapGate())
         qc.swap(0, 1)
         consolidate_block_pass = ConsolidateBlocks(
-            basis_gates=["id", "cx", "rz", "sx", "x"], target=target
+            basis_gates=["id", basis_gate, "rz", "sx", "x"], target=target
         )
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
@@ -669,6 +673,21 @@ class TestConsolidateBlocks(QiskitTestCase):
         tqc = pm.run(qc)
         self.assertEqual(tqc.count_ops()["rzz"], 1)
 
+    @data(CXGate, CZGate, ECRGate)
+    def test_rzz_collection(self, basis_gate):
+        """Test that a parameterized gate outside the target is consolidated."""
+        phi = Parameter("phi")
+        target = Target(num_qubits=2)
+        target.add_instruction(SXGate(), {(0,): None, (1,): None})
+        target.add_instruction(XGate(), {(0,): None, (1,): None})
+        target.add_instruction(RZGate(phi), {(0,): None, (1,): None})
+        target.add_instruction(basis_gate(), {(0, 1): None, (1, 0): None})
+        consolidate_pass = ConsolidateBlocks(target=target)
 
-if __name__ == "__main__":
-    unittest.main()
+        for angle in [np.pi / 2, np.pi]:
+            qc = QuantumCircuit(2)
+            qc.rzz(angle, 0, 1)
+            res = consolidate_pass(qc)
+            expected = QuantumCircuit(2)
+            expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
+            self.assertEqual(res, expected)

@@ -19,7 +19,7 @@ import numpy as np
 
 from ddt import ddt, data, unpack
 
-from qiskit import transpile
+from qiskit import transpile, generate_preset_pass_manager
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression, Gate
 from qiskit.circuit.library import (
     n_local,
@@ -40,10 +40,9 @@ from qiskit.circuit.library import (
     RYGate,
     EfficientSU2,
     RZGate,
-    RXXGate,
-    RYYGate,
     CXGate,
     SXGate,
+    XXPlusYYGate,
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -194,28 +193,6 @@ class TestNLocal(QiskitTestCase):
 
         self.assertCircuitEqual(nlocal, reference)
         self.assertCircuitEqual(nlocal2, reference)
-
-    @unittest.skip("Feature missing")
-    def test_iadd_overload(self):
-        """Test the overloaded + operator."""
-        num_qubits, depth = 2, 2
-
-        # construct two circuits for adding
-        first_circuit = random_circuit(num_qubits, depth, seed=4242)
-        circuit = random_circuit(num_qubits, depth, seed=4242)
-
-        # get a reference
-        reference = first_circuit + circuit
-
-        # convert the object to be appended to different types
-        others = [circuit, circuit.to_instruction(), circuit.to_gate(), NLocal(circuit)]
-
-        # try adding each type
-        for other in others:
-            nlocal = NLocal(num_qubits, entanglement_blocks=first_circuit, reps=1)
-            nlocal += other
-            with self.subTest(msg=f"type: {type(other)}"):
-                self.assertCircuitEqual(nlocal, reference)
 
     def test_parameter_getter_from_automatic_repetition(self):
         """Test getting and setting of the nlocal parameters."""
@@ -809,8 +786,7 @@ class TestNLocalFamily(QiskitTestCase):
 
         x = Parameter("x")
         block = QuantumCircuit(2)
-        block.rxx(x, 0, 1)
-        block.ryy(x, 0, 1)
+        block.append(XXPlusYYGate(2 * x), [0, 1])
         if mode == "fsim":
             y = Parameter("y")
             block.cp(y, 0, 1)
@@ -828,6 +804,16 @@ class TestNLocalFamily(QiskitTestCase):
         self.assertEqual(
             expected.assign_parameters(circuit.parameters).decompose(), circuit.decompose()
         )
+
+    def test_excitation_preserving_transpile(self):
+        """Test two-qubit gate count after transpiling excitation preserving ansatz."""
+        ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
+        pm = generate_preset_pass_manager(
+            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+        )
+        transpiled_circuit = pm.run(ansatz)
+        self.assertEqual(ansatz.decompose().decompose().count_ops()["cx"], 4)
+        self.assertEqual(transpiled_circuit.count_ops()["cx"], 4)
 
     def test_excitation_preserving_invalid_mode(self):
         """Test an error is raised for an invalid mode."""
@@ -1165,9 +1151,8 @@ class TestTwoLocal(QiskitTestCase):
         with self.subTest(msg="test entanglement gate"):
             self.assertEqual(len(two.entanglement_blocks), 1)
             block = two.entanglement_blocks[0]
-            self.assertEqual(len(block.data), 2)
-            self.assertIsInstance(block.data[0].operation, RXXGate)
-            self.assertIsInstance(block.data[1].operation, RYYGate)
+            self.assertEqual(len(block.data), 1)
+            self.assertIsInstance(block.data[0].operation, XXPlusYYGate)
 
         with self.subTest(msg="test parameter bounds"):
             expected = [(-np.pi, np.pi)] * two.num_parameters
@@ -1178,40 +1163,31 @@ class TestTwoLocal(QiskitTestCase):
         num_qubits = 3
         reps = 2
         entanglement = "linear"
-        parameters = ParameterVector("theta", num_qubits * (reps + 1) + reps * (num_qubits - 1))
+        parameters = ParameterVector("θ", num_qubits * (reps + 1) + reps * (num_qubits - 1))
         param_iter = iter(parameters)
 
-        #      ┌──────────┐┌────────────┐┌────────────┐ ┌──────────┐               »
-        # q_0: ┤ Rz(θ[0]) ├┤0           ├┤0           ├─┤ Rz(θ[5]) ├───────────────»
-        #      ├──────────┤│  Rxx(θ[3]) ││  Ryy(θ[3]) │┌┴──────────┴┐┌────────────┐»
-        # q_1: ┤ Rz(θ[1]) ├┤1           ├┤1           ├┤0           ├┤0           ├»
-        #      ├──────────┤└────────────┘└────────────┘│  Rxx(θ[4]) ││  Ryy(θ[4]) │»
-        # q_2: ┤ Rz(θ[2]) ├────────────────────────────┤1           ├┤1           ├»
-        #      └──────────┘                            └────────────┘└────────────┘»
-        # «                 ┌────────────┐┌────────────┐┌───────────┐               »
-        # «q_0: ────────────┤0           ├┤0           ├┤ Rz(θ[10]) ├───────────────»
-        # «     ┌──────────┐│  Rxx(θ[8]) ││  Ryy(θ[8]) │├───────────┴┐┌────────────┐»
-        # «q_1: ┤ Rz(θ[6]) ├┤1           ├┤1           ├┤0           ├┤0           ├»
-        # «     ├──────────┤└────────────┘└────────────┘│  Rxx(θ[9]) ││  Ryy(θ[9]) │»
-        # «q_2: ┤ Rz(θ[7]) ├────────────────────────────┤1           ├┤1           ├»
-        # «     └──────────┘                            └────────────┘└────────────┘»
-        # «
-        # «q_0: ─────────────
-        # «     ┌───────────┐
-        # «q_1: ┤ Rz(θ[11]) ├
-        # «     ├───────────┤
-        # «q_2: ┤ Rz(θ[12]) ├
-        # «     └───────────┘
+        #      ┌──────────┐┌────────────────────┐     ┌──────────┐                 »
+        # q_0: ┤ Rz(θ[0]) ├┤0                   ├─────┤ Rz(θ[5]) ├─────────────────»
+        #      ├──────────┤│  (XX+YY)(2*θ[3],0) │┌────┴──────────┴────┐┌──────────┐»
+        # q_1: ┤ Rz(θ[1]) ├┤1                   ├┤0                   ├┤ Rz(θ[6]) ├»
+        #      ├──────────┤└────────────────────┘│  (XX+YY)(2*θ[4],0) │├──────────┤»
+        # q_2: ┤ Rz(θ[2]) ├──────────────────────┤1                   ├┤ Rz(θ[7]) ├»
+        #      └──────────┘                      └────────────────────┘└──────────┘»
+        # «     ┌────────────────────┐    ┌───────────┐
+        # «q_0: ┤0                   ├────┤ Rz(θ[10]) ├──────────────────
+        # «     │  (XX+YY)(2*θ[8],0) │┌───┴───────────┴────┐┌───────────┐
+        # «q_1: ┤1                   ├┤0                   ├┤ Rz(θ[11]) ├
+        # «     └────────────────────┘│  (XX+YY)(2*θ[9],0) │├───────────┤
+        # «q_2: ──────────────────────┤1                   ├┤ Rz(θ[12]) ├
+        # «                           └────────────────────┘└───────────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
                 expected.rz(next(param_iter), i)
             shared_param = next(param_iter)
-            expected.rxx(shared_param, 0, 1)
-            expected.ryy(shared_param, 0, 1)
+            expected.append(XXPlusYYGate(2 * shared_param), [0, 1])
             shared_param = next(param_iter)
-            expected.rxx(shared_param, 1, 2)
-            expected.ryy(shared_param, 1, 2)
+            expected.append(XXPlusYYGate(2 * shared_param), [1, 2])
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
 
@@ -1231,38 +1207,29 @@ class TestTwoLocal(QiskitTestCase):
         parameters = [1] * (num_qubits * (reps + 1) + reps * (1 + num_qubits))
         param_iter = iter(parameters)
 
-        #      ┌───────┐┌─────────┐┌─────────┐        ┌───────┐                   »
-        # q_0: ┤ Rz(1) ├┤0        ├┤0        ├─■──────┤ Rz(1) ├───────────────────»
-        #      ├───────┤│  Rxx(1) ││  Ryy(1) │ │P(1) ┌┴───────┴┐┌─────────┐       »
-        # q_1: ┤ Rz(1) ├┤1        ├┤1        ├─■─────┤0        ├┤0        ├─■─────»
-        #      ├───────┤└─────────┘└─────────┘       │  Rxx(1) ││  Ryy(1) │ │P(1) »
-        # q_2: ┤ Rz(1) ├─────────────────────────────┤1        ├┤1        ├─■─────»
-        #      └───────┘                             └─────────┘└─────────┘       »
-        # «              ┌─────────┐┌─────────┐        ┌───────┐                   »
-        # «q_0: ─────────┤0        ├┤0        ├─■──────┤ Rz(1) ├───────────────────»
-        # «     ┌───────┐│  Rxx(1) ││  Ryy(1) │ │P(1) ┌┴───────┴┐┌─────────┐       »
-        # «q_1: ┤ Rz(1) ├┤1        ├┤1        ├─■─────┤0        ├┤0        ├─■─────»
-        # «     ├───────┤└─────────┘└─────────┘       │  Rxx(1) ││  Ryy(1) │ │P(1) »
-        # «q_2: ┤ Rz(1) ├─────────────────────────────┤1        ├┤1        ├─■─────»
-        # «     └───────┘                             └─────────┘└─────────┘       »
-        # «
-        # «q_0: ─────────
-        # «     ┌───────┐
-        # «q_1: ┤ Rz(1) ├
-        # «     ├───────┤
-        # «q_2: ┤ Rz(1) ├
-        # «     └───────┘
+        #      ┌───────┐┌───────────────┐           ┌───────┐                    »
+        # q_0: ┤ Rz(1) ├┤0              ├─■─────────┤ Rz(1) ├────────────────────»
+        #      ├───────┤│  (XX+YY)(2,0) │ │P(1) ┌───┴───────┴───┐       ┌───────┐»
+        # q_1: ┤ Rz(1) ├┤1              ├─■─────┤0              ├─■─────┤ Rz(1) ├»
+        #      ├───────┤└───────────────┘       │  (XX+YY)(2,0) │ │P(1) ├───────┤»
+        # q_2: ┤ Rz(1) ├────────────────────────┤1              ├─■─────┤ Rz(1) ├»
+        #      └───────┘                        └───────────────┘       └───────┘»
+        # «     ┌───────────────┐           ┌───────┐
+        # «q_0: ┤0              ├─■─────────┤ Rz(1) ├────────────────────
+        # «     │  (XX+YY)(2,0) │ │P(1) ┌───┴───────┴───┐       ┌───────┐
+        # «q_1: ┤1              ├─■─────┤0              ├─■─────┤ Rz(1) ├
+        # «     └───────────────┘       │  (XX+YY)(2,0) │ │P(1) ├───────┤
+        # «q_2: ────────────────────────┤1              ├─■─────┤ Rz(1) ├
+        # «                             └───────────────┘       └───────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
                 expected.rz(next(param_iter), i)
             shared_param = next(param_iter)
-            expected.rxx(shared_param, 0, 1)
-            expected.ryy(shared_param, 0, 1)
+            expected.append(XXPlusYYGate(2 * shared_param), [0, 1])
             expected.cp(next(param_iter), 0, 1)
             shared_param = next(param_iter)
-            expected.rxx(shared_param, 1, 2)
-            expected.ryy(shared_param, 1, 2)
+            expected.append(XXPlusYYGate(2 * shared_param), [1, 2])
             expected.cp(next(param_iter), 1, 2)
         for i in range(num_qubits):
             expected.rz(next(param_iter), i)
