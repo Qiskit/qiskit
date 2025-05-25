@@ -2933,17 +2933,16 @@ impl Operation for UnitaryGate {
         false
     }
     fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        match self.num_qubits() {
-            1 => match &self.array {
-                ArrayType::NDArray(arr) => {
+        match &self.array {
+            ArrayType::OneQ(mat) => Some([[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]]),
+            ArrayType::NDArray(arr) => {
+                if self.num_qubits() == 1 {
                     Some([[arr[(0, 0)], arr[(0, 1)]], [arr[(1, 0)], arr[(1, 1)]]])
+                } else {
+                    None
                 }
-                ArrayType::OneQ(mat) => {
-                    Some([[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]])
-                }
-                _ => None,
-            },
-            _ => None,
+            }
+            ArrayType::TwoQ(_) => None,
         }
     }
 }
