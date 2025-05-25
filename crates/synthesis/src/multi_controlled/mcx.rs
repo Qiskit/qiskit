@@ -12,21 +12,57 @@
 
 use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{PyGate, StandardGate};
-use qiskit_circuit::{circuit_data::CircuitData, operations::Param, Qubit};
+use qiskit_circuit::operations::{Operation, Param, PyGate, StandardGate};
+use qiskit_circuit::Qubit;
 
 use std::f64::consts::PI;
 const PI2: f64 = PI / 2.0;
 
-/// Efficient synthesis for CCX.
+/// Definition circuit for CCX.
 pub fn ccx() -> PyResult<CircuitData> {
-    CircuitData::from_standard_gate_definition(StandardGate::CCX, &[])
+    StandardGate::CCX
+        .definition(&[])
+        .ok_or(CircuitError::new_err(
+            "Error extracting the definition of CCX",
+        ))
 }
 
-/// Efficient synthesis for 3-controlled X-gate.
+/// Definition circuit for C3X.
 pub fn c3x() -> PyResult<CircuitData> {
-    CircuitData::from_standard_gate_definition(StandardGate::C3X, &[])
+    StandardGate::C3X
+        .definition(&[])
+        .ok_or(CircuitError::new_err(
+            "Error extracting the definition of C3X",
+        ))
+}
+
+/// Definition circuit for RC3X.
+fn rccx() -> PyResult<CircuitData> {
+    StandardGate::RCCX
+        .definition(&[])
+        .ok_or(CircuitError::new_err(
+            "Error extracting the definition of RCCX",
+        ))
+}
+
+/// Definition circuit for RC3X.
+fn rc3x() -> PyResult<CircuitData> {
+    StandardGate::RC3X
+        .definition(&[])
+        .ok_or(CircuitError::new_err(
+            "Error extracting the definition of RC3X",
+        ))
+}
+
+/// Definition circuit for C3SX.
+fn c3sx() -> PyResult<CircuitData> {
+    StandardGate::C3SX
+        .definition(&[])
+        .ok_or(CircuitError::new_err(
+            "Error extracting the definition of C3SX",
+        ))
 }
 
 /// Efficient synthesis for 4-controlled X-gate.
@@ -35,24 +71,16 @@ pub fn c4x() -> PyResult<CircuitData> {
     circuit.h(4);
     circuit.cp(PI2, 3, 4);
     circuit.h(4);
-    circuit.compose(
-        &CircuitData::from_standard_gate_definition(StandardGate::RC3X, &[])?,
-        &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
-        &[],
-    )?;
+    circuit.compose(&rc3x()?, &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)], &[])?;
     circuit.h(4);
     circuit.cp(-PI2, 3, 4);
     circuit.h(4);
     circuit.compose(
-        &CircuitData::from_standard_gate_definition(StandardGate::RC3X, &[])?.inverse()?,
+        &rc3x()?.inverse()?,
         &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
         &[],
     )?;
-    circuit.compose(
-        &CircuitData::from_standard_gate_definition(StandardGate::C3SX, &[])?,
-        &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)],
-        &[],
-    )?;
+    circuit.compose(&c3sx()?, &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])?;
     Ok(circuit)
 }
 
@@ -165,7 +193,7 @@ pub fn synth_mcx_n_dirty_i15(
             }
 
             circuit.compose(
-                &CircuitData::from_standard_gate_definition(StandardGate::RCCX, &[])?,
+                &rccx()?,
                 &[Qubit(controls[0]), Qubit(controls[1]), Qubit(ancillas[0])],
                 &[],
             )?;

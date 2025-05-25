@@ -2032,19 +2032,6 @@ impl CircuitData {
         Ok(inverse_circuit)
     }
 
-    /// Constructs from the definition of a standard gate
-    pub fn from_standard_gate_definition(
-        standard_gate: StandardGate,
-        params: &[Param],
-    ) -> PyResult<Self> {
-        standard_gate
-            .definition(params)
-            .ok_or(CircuitError::new_err(format!(
-                "Error extracting the definition of a standard gate {:?}",
-                standard_gate
-            )))
-    }
-
     // Convenience functions
 
     /// Appends XGate to the circuit.
