@@ -1959,27 +1959,30 @@ impl CircuitData {
         }
     }
 
-    /// Compose ``other`` into ``self``, while optionally remapping the
-    /// qubits over which ``other`` is defined.
-    pub fn compose(&mut self, other: &Self, qubit_map: Option<&[Qubit]>) -> PyResult<()> {
+    /// Compose ``other`` into ``self``, while remapping the qubits over which ``other`` is defined.
+    /// The operations are added in-place.
+    pub fn compose(
+        &mut self,
+        other: &Self,
+        qargs_map: &[Qubit],
+        cargs_map: &[Clbit],
+    ) -> PyResult<()> {
         for inst in &other.data {
-            let remapped_qubits: Vec<Qubit> = match qubit_map {
-                Some(qubit_map) => other
-                    .get_qargs(inst.qubits)
-                    .iter()
-                    .map(|q| qubit_map[q.index()])
-                    .collect(),
-                None => other.get_qargs(inst.qubits).to_vec(),
-            };
-            let remapped_clbits: Vec<Clbit> = other.get_cargs(inst.clbits).to_vec();
-
-            let qubits = self.qargs_interner.insert(&remapped_qubits);
-            let clbits = self.cargs_interner.insert(&remapped_clbits);
+            let remapped_qubits: Vec<Qubit> = other
+                .get_qargs(inst.qubits)
+                .iter()
+                .map(|q| qargs_map[q.index()])
+                .collect();
+            let remapped_clbits: Vec<Clbit> = other
+                .get_cargs(inst.clbits)
+                .iter()
+                .map(|c| cargs_map[c.index()])
+                .collect();
 
             self.data.push(PackedInstruction {
                 op: inst.op.clone(),
-                qubits,
-                clbits,
+                qubits: self.qargs_interner.insert(&remapped_qubits),
+                clbits: self.cargs_interner.insert(&remapped_clbits),
                 params: inst.params.clone(),
                 label: None,
                 #[cfg(feature = "cache_pygates")]

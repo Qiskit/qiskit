@@ -37,18 +37,21 @@ pub fn c4x() -> PyResult<CircuitData> {
     circuit.h(4);
     circuit.compose(
         &CircuitData::from_standard_gate_definition(StandardGate::RC3X, &[])?,
-        Some(&[Qubit(0), Qubit(1), Qubit(2), Qubit(3)]),
+        &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
+        &[],
     )?;
     circuit.h(4);
     circuit.cp(-PI2, 3, 4);
     circuit.h(4);
     circuit.compose(
         &CircuitData::from_standard_gate_definition(StandardGate::RC3X, &[])?.inverse()?,
-        Some(&[Qubit(0), Qubit(1), Qubit(2), Qubit(3)]),
+        &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
+        &[],
     )?;
     circuit.compose(
         &CircuitData::from_standard_gate_definition(StandardGate::C3SX, &[])?,
-        Some(&[Qubit(0), Qubit(1), Qubit(2), Qubit(4)]),
+        &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)],
+        &[],
     )?;
     Ok(circuit)
 }
@@ -119,29 +122,32 @@ pub fn synth_mcx_n_dirty_i15(
             if !relative_phase {
                 circuit.compose(
                     &ccx()?,
-                    Some(&[
+                    &[
                         Qubit(controls[num_controls - 1]),
                         Qubit(ancillas[num_controls - 3]),
                         Qubit(target),
-                    ]),
+                    ],
+                    &[],
                 )?;
             } else if j == 0 {
                 circuit.compose(
                     &action_gadget()?,
-                    Some(&[
+                    &[
                         Qubit(controls[num_controls - 1]),
                         Qubit(ancillas[num_controls - 3]),
                         Qubit(target),
-                    ]),
+                    ],
+                    &[],
                 )?;
             } else if j == 1 {
                 circuit.compose(
                     &reset_gadget()?,
-                    Some(&[
+                    &[
                         Qubit(controls[num_controls - 1]),
                         Qubit(ancillas[num_controls - 3]),
                         Qubit(target),
-                    ]),
+                    ],
+                    &[],
                 )?;
             }
 
@@ -149,39 +155,43 @@ pub fn synth_mcx_n_dirty_i15(
             for i in (0..num_controls - 3).rev() {
                 circuit.compose(
                     &action_gadget()?,
-                    Some(&[
+                    &[
                         Qubit(controls[i + 2]),
                         Qubit(ancillas[i]),
                         Qubit(ancillas[i + 1]),
-                    ]),
+                    ],
+                    &[],
                 )?;
             }
 
             circuit.compose(
                 &CircuitData::from_standard_gate_definition(StandardGate::RCCX, &[])?,
-                Some(&[Qubit(controls[0]), Qubit(controls[1]), Qubit(ancillas[0])]),
+                &[Qubit(controls[0]), Qubit(controls[1]), Qubit(ancillas[0])],
+                &[],
             )?;
 
             // reset part
             for i in 0..num_controls - 3 {
                 circuit.compose(
                     &reset_gadget()?,
-                    Some(&[
+                    &[
                         Qubit(controls[i + 2]),
                         Qubit(ancillas[i]),
                         Qubit(ancillas[i + 1]),
-                    ]),
+                    ],
+                    &[],
                 )?;
             }
 
             if action_only {
                 circuit.compose(
                     &ccx()?,
-                    Some(&[
+                    &[
                         Qubit(controls[num_controls - 1]),
                         Qubit(ancillas[num_controls - 3]),
                         Qubit(target),
-                    ]),
+                    ],
+                    &[],
                 )?;
                 break;
             }
