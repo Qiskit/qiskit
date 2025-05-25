@@ -2031,54 +2031,6 @@ impl CircuitData {
         }
         Ok(inverse_circuit)
     }
-
-    // Convenience functions
-
-    /// Appends XGate to the circuit.
-    #[inline]
-    pub fn x(&mut self, q: u32) {
-        self.push_standard_gate(StandardGate::X, &[], &[Qubit(q)]);
-    }
-
-    /// Appends HGate to the circuit.
-    #[inline]
-    pub fn h(&mut self, q: u32) {
-        self.push_standard_gate(StandardGate::H, &[], &[Qubit(q)]);
-    }
-
-    /// Appends TGate to the circuit.
-    #[inline]
-    pub fn t(&mut self, q: u32) {
-        self.push_standard_gate(StandardGate::T, &[], &[Qubit(q)]);
-    }
-
-    /// Appends TdgGate to the circuit.
-    #[inline]
-    pub fn tdg(&mut self, q: u32) {
-        self.push_standard_gate(StandardGate::Tdg, &[], &[Qubit(q)]);
-    }
-
-    /// Appends PhaseGate to the circuit.
-    #[inline]
-    pub fn p(&mut self, theta: f64, q: u32) {
-        self.push_standard_gate(StandardGate::Phase, &[Param::Float(theta)], &[Qubit(q)]);
-    }
-
-    /// Appends CXGate to the circuit.
-    #[inline]
-    pub fn cx(&mut self, q1: u32, q2: u32) {
-        self.push_standard_gate(StandardGate::CX, &[], &[Qubit(q1), Qubit(q2)]);
-    }
-
-    /// Appends CPhase to the circuit.
-    #[inline]
-    pub fn cp(&mut self, theta: f64, q1: u32, q2: u32) {
-        self.push_standard_gate(
-            StandardGate::CU1,
-            &[Param::Float(theta)],
-            &[Qubit(q1), Qubit(q2)],
-        );
-    }
 }
 
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in

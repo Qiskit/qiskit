@@ -65,6 +65,80 @@ fn c3sx() -> PyResult<CircuitData> {
         ))
 }
 
+/// Convenience methods to add gates to the circuit.
+pub trait CircuitDataAdder {
+    /// Appends H to the circuit.
+    fn h(&mut self, q: u32);
+
+    /// Appends X to the circuit.
+    #[allow(dead_code)]
+    fn x(&mut self, q: u32);
+
+    /// Appends T to the circuit.
+    fn t(&mut self, q: u32);
+
+    /// Appends Tdg to the circuit.
+    fn tdg(&mut self, q: u32);
+
+    /// Appends Phase to the circuit.
+    #[allow(dead_code)]
+    fn p(&mut self, theta: f64, q: u32);
+
+    /// Appends CX to the circuit.
+    fn cx(&mut self, q1: u32, q2: u32);
+
+    /// Appends CPhase to the circuit.
+    fn cp(&mut self, theta: f64, q1: u32, q2: u32);
+}
+
+impl CircuitDataAdder for CircuitData {
+    /// Appends H to the circuit.
+    #[inline]
+    fn h(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::H, &[], &[Qubit(q)]);
+    }
+
+    /// Appends X to the circuit.
+    #[inline]
+    fn x(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::X, &[], &[Qubit(q)]);
+    }
+
+    /// Appends T to the circuit.
+    #[inline]
+    fn t(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::T, &[], &[Qubit(q)]);
+    }
+
+    /// Appends Tdg to the circuit.
+    #[inline]
+    fn tdg(&mut self, q: u32) {
+        self.push_standard_gate(StandardGate::Tdg, &[], &[Qubit(q)]);
+    }
+
+    /// Appends Phase to the circuit.
+    #[inline]
+    fn p(&mut self, theta: f64, q: u32) {
+        self.push_standard_gate(StandardGate::Phase, &[Param::Float(theta)], &[Qubit(q)]);
+    }
+
+    /// Appends CX to the circuit.
+    #[inline]
+    fn cx(&mut self, q1: u32, q2: u32) {
+        self.push_standard_gate(StandardGate::CX, &[], &[Qubit(q1), Qubit(q2)]);
+    }
+
+    /// Appends CPhase to the circuit.
+    #[inline]
+    fn cp(&mut self, theta: f64, q1: u32, q2: u32) {
+        self.push_standard_gate(
+            StandardGate::CPhase,
+            &[Param::Float(theta)],
+            &[Qubit(q1), Qubit(q2)],
+        );
+    }
+}
+
 /// Efficient synthesis for 4-controlled X-gate.
 pub fn c4x() -> PyResult<CircuitData> {
     let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
