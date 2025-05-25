@@ -44,6 +44,75 @@ int test_empty(void) {
     return Ok;
 }
 
+int test_circuit_copy(void) {
+    QkCircuit *qc = qk_circuit_new(10, 10);
+    QkCircuit *copy = qk_circuit_copy(qc);
+    for (int i = 0; i < 10; i++) {
+        qk_circuit_measure(qc, i, i);
+        int qubits[1] = {
+            i,
+        };
+        if (i % 2 == 0) {
+            qk_circuit_gate(copy, QkGate_H, qubits, NULL);
+        }
+    }
+    size_t num_instructions = qk_circuit_num_instructions(qc);
+    size_t num_copy_instructions = qk_circuit_num_instructions(copy);
+    qk_circuit_free(qc);
+    qk_circuit_free(copy);
+    if (num_instructions == num_copy_instructions) {
+        printf("The number of instructions %lu is equal to the copied %lu", num_instructions,
+               num_copy_instructions);
+        return EqualityError;
+    }
+    return Ok;
+}
+
+int test_circuit_copy_with_instructions(void) {
+    QkCircuit *qc = qk_circuit_new(10, 10);
+    for (int i = 0; i < 10; i++) {
+        qk_circuit_measure(qc, i, i);
+        int qubits[1] = {
+            i,
+        };
+        qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+    }
+    QkCircuit *copy = qk_circuit_copy(qc);
+    size_t num_instructions = qk_circuit_num_instructions(qc);
+    size_t num_copy_instructions = qk_circuit_num_instructions(copy);
+    if (num_instructions != num_copy_instructions) {
+        printf("The number of instructions %lu does not equal the copied %lu", num_instructions,
+               num_copy_instructions);
+        return EqualityError;
+    }
+
+    for (int i = 0; i < 10; i++) {
+        qk_circuit_measure(qc, i, i);
+        int qubits[1] = {
+            i,
+        };
+        qk_circuit_gate(qc, QkGate_Z, qubits, NULL);
+    }
+    for (int i = 0; i < 15; i++) {
+        qk_circuit_measure(qc, i, i);
+        int qubits[1] = {
+            i,
+        };
+        qk_circuit_gate(copy, QkGate_X, qubits, NULL);
+    }
+
+    num_instructions = qk_circuit_num_instructions(qc);
+    num_copy_instructions = qk_circuit_num_instructions(copy);
+    qk_circuit_free(qc);
+    qk_circuit_free(copy);
+    if (num_instructions == num_copy_instructions) {
+        printf("The number of instructions %lu is equal to the copied %lu", num_instructions,
+               num_copy_instructions);
+        return EqualityError;
+    }
+    return Ok;
+}
+
 int test_no_gate_1000_bits(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
@@ -558,9 +627,28 @@ cleanup:
     return result;
 }
 
+int test_delay_instruction(void) {
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    int result = Ok;
+
+    QkExitCode delay_s_code;
+
+    delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
+    if (delay_s_code != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_circuit_free(qc);
+    return result;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
+    num_failed += RUN_TEST(test_circuit_copy);
+    num_failed += RUN_TEST(test_circuit_copy_with_instructions);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);
     num_failed += RUN_TEST(test_get_gate_counts_bv_measures);
@@ -568,6 +656,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_get_gate_counts_bv_resets_barrier_and_measures);
     num_failed += RUN_TEST(test_gate_num_qubits);
     num_failed += RUN_TEST(test_gate_num_params);
+    num_failed += RUN_TEST(test_delay_instruction);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

@@ -99,7 +99,7 @@ class TestSolovayKitaev(QiskitTestCase):
         passes = PassManager([_1q, _cons, _synth])
         compiled = passes.run(circuit)
 
-        self.assertLessEqual(set(compiled.count_ops().keys()), {"h", "s", "sdg", "cx"})
+        self.assertLessEqual(set(compiled.count_ops().keys()), {"h", "s", "cx"})
 
     def test_plugin(self):
         """Test calling the plugin directly."""
@@ -111,7 +111,7 @@ class TestSolovayKitaev(QiskitTestCase):
         plugin = SolovayKitaevSynthesis()
         out = plugin.run(unitary, basis_gates=["h", "s"])
 
-        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "sdg", "cx"})
+        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "cx"})
 
     def test_multiple_plugins(self):
         """Test calling the plugins directly but with different instances of basis set."""
@@ -319,6 +319,24 @@ class TestSolovayKitaev(QiskitTestCase):
         transpiled = SolovayKitaev()(circuit)
         diff = _trace_distance(circuit, transpiled)
         self.assertLess(diff, 1e-6)
+
+    @data(["unitary"], ["rz"])
+    def test_sk_synth_gates_to_basis(self, synth_gates):
+        """Verify two qubit unitaries are synthesized to match basis gates."""
+        unitary = QuantumCircuit(1)
+        unitary.h(0)
+        unitary_op = Operator(unitary)
+
+        qc = QuantumCircuit(1)
+        qc.unitary(unitary_op, 0)
+        qc.rz(0.1, 0)
+        dag = circuit_to_dag(qc)
+
+        basis_gates = ["h", "t", "tdg"]
+        out = UnitarySynthesis(basis_gates=basis_gates, synth_gates=synth_gates, method="sk").run(
+            dag
+        )
+        self.assertTrue(set(out.count_ops()).isdisjoint(synth_gates))
 
 
 @ddt

@@ -23,8 +23,13 @@ rand_pcg.workspace = true
 num-complex.workspace = true
 rustworkx-core.workspace = true
 qiskit-circuit.workspace = true
-qiskit-accelerate.workspace = true
+qiskit-synthesis.workspace = true
+qiskit-quantum-info.workspace = true
 thiserror.workspace = true
+
+[dependencies.uuid]
+workspace = true
+features = ["v4", "fast-rng"]
 
 [dependencies.smallvec]
 workspace = true

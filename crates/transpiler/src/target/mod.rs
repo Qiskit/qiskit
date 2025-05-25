@@ -915,7 +915,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     /// use qiskit_circuit::operations::StandardGate;
     ///
     /// let mut target = Target::default();
@@ -1023,9 +1023,9 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::{Target, InstructionProperties, Qargs};
+    /// use qiskit_transpiler::target::{Target, InstructionProperties, Qargs};
     /// use qiskit_circuit::operations::StandardGate;
-    /// use qiskit_accelerate::nlayout::PhysicalQubit;
+    /// use qiskit_circuit::PhysicalQubit;
     /// use indexmap::IndexMap;
     ///
     /// let mut target = Target::default();
@@ -1283,6 +1283,10 @@ impl Target {
         })
     }
 
+    pub fn num_qargs(&self) -> usize {
+        self.qarg_gate_map.len()
+    }
+
     /// Gets an iterator with all the qargs used by the specified operation name.
     ///
     /// Rust native equivalent of ``BaseTarget.qargs_for_operation_name()``
@@ -1313,10 +1317,6 @@ impl Target {
             return None;
         }
         Some(qargs)
-    }
-
-    pub fn num_qargs(&self) -> usize {
-        self.qarg_gate_map.len()
     }
 
     /// Checks whether an instruction is supported by the Target based on instruction name and qargs.
