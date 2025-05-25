@@ -61,14 +61,14 @@ import hypothesis.strategies as st
 
 from qiskit import transpile, qasm2
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Measure, Reset, Gate, Barrier
+from qiskit.circuit import Measure, Reset, Barrier
 from qiskit.providers.fake_provider import GenericBackendV2
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.circuit.library.standard_gates import *
 from ..python.legacy_cmaps import ALMADEN_CMAP, KYOTO_CMAP
 
-from qiskit_aer import Aer  # pylint: disable=wrong-import-order
+from qiskit_aer import AerSimulator  # pylint: disable=wrong-import-order
 
 default_profile = "transpiler_equivalence"
 settings.register_profile(
@@ -124,7 +124,6 @@ layout_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS") or [
 routing_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_ROUTING_METHODS") or [
     None,
     "basic",
-    "stochastic",
     "lookahead",
     "sabre",
 ]
@@ -185,7 +184,7 @@ class QCircuitMachine(RuleBasedStateMachine):
     qubits = Bundle("qubits")
     clbits = Bundle("clbits")
 
-    backend = Aer.get_backend("aer_simulator")
+    backend = AerSimulator()
     max_qubits = int(backend.num_qubits / 2)
 
     # Limit reg generation for more interesting circuits
@@ -242,22 +241,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         """Append a gate with a variable number of qargs."""
         self.qc.append(gate(len(qargs)), qargs)
 
-    @precondition(lambda self: len(self.qc.data) > 0)
-    @rule(carg=clbits, data=st.data())
-    def add_c_if_last_gate(self, carg, data):
-        """Modify the last gate to be conditional on a classical register."""
-        creg = self.qc.find_bit(carg).registers[0][0]
-        val = data.draw(st.integers(min_value=0, max_value=2 ** len(creg) - 1))
-
-        last_gate = self.qc.data[-1]
-
-        # Conditional instructions are not supported
-        assume(isinstance(last_gate.operation, Gate))
-
-        last_gate.operation.c_if(creg, val)
-
     # Properties to check
-
     @invariant()
     def qasm(self):
         """After each circuit operation, it should be possible to build QASM."""

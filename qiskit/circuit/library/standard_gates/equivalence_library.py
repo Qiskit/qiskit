@@ -797,6 +797,17 @@ def_s = QuantumCircuit(q)
 def_s.append(U1Gate(pi / 2), [q[0]], [])
 _sel.add_equivalence(SGate(), def_s)
 
+# SGate
+#
+#    ┌───┐┌───┐
+# q: ┤ T ├┤ T ├
+#    └───┘└───┘
+q = QuantumRegister(1, "q")
+def_s = QuantumCircuit(q)
+def_s.append(TGate(), [q[0]], [])
+def_s.append(TGate(), [q[0]], [])
+_sel.add_equivalence(SGate(), def_s)
+
 # SdgGate
 #
 #    ┌─────┐        ┌──────────┐
@@ -846,6 +857,20 @@ for inst, qargs, cargs in [
     (SGate(), [q[0]], []),
     (SGate(), [q[0]], []),
     (SGate(), [q[0]], []),
+]:
+    def_sdg.append(inst, qargs, cargs)
+_sel.add_equivalence(SdgGate(), def_sdg)
+
+# SdgGate
+#
+#    ┌─────┐┌─────┐
+# q: ┤ Tdg ├┤ Tdg ├
+#    └─────┘└─────┘
+q = QuantumRegister(1, "q")
+def_sdg = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (TdgGate(), [q[0]], []),
+    (TdgGate(), [q[0]], []),
 ]:
     def_sdg.append(inst, qargs, cargs)
 _sel.add_equivalence(SdgGate(), def_sdg)
@@ -1159,6 +1184,17 @@ def_t = QuantumCircuit(q)
 def_t.append(U1Gate(pi / 4), [q[0]], [])
 _sel.add_equivalence(TGate(), def_t)
 
+# TGate
+#
+#    ┌─────┐┌─────┐┌─────┐┌─────┐┌─────┐┌─────┐┌─────┐
+# q: ┤ Tdg ├┤ Tdg ├┤ Tdg ├┤ Tdg ├┤ Tdg ├┤ Tdg ├┤ Tdg ├
+#    └─────┘└─────┘└─────┘└─────┘└─────┘└─────┘└─────┘
+q = QuantumRegister(1, "q")
+def_t = QuantumCircuit(q)
+for _ in range(7):
+    def_t.append(TdgGate(), [q[0]], [])
+_sel.add_equivalence(TGate(), def_t)
+
 # TdgGate
 #
 #    ┌─────┐        ┌──────────┐
@@ -1167,6 +1203,17 @@ _sel.add_equivalence(TGate(), def_t)
 q = QuantumRegister(1, "q")
 def_tdg = QuantumCircuit(q)
 def_tdg.append(U1Gate(-pi / 4), [q[0]], [])
+_sel.add_equivalence(TdgGate(), def_tdg)
+
+# TdgGate
+#
+#    ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
+# q: ┤ T ├┤ T ├┤ T ├┤ T ├┤ T ├┤ T ├┤ T ├
+#    └───┘└───┘└───┘└───┘└───┘└───┘└───┘
+q = QuantumRegister(1, "q")
+def_tdg = QuantumCircuit(q)
+for _ in range(7):
+    def_tdg.append(TGate(), [q[0]], [])
 _sel.add_equivalence(TdgGate(), def_tdg)
 
 # UGate
@@ -1790,6 +1837,31 @@ rules: list[tuple[Gate, list[Qubit], list[Clbit]]] = [
     (RZGate(-pi / 2), [q[1]], []),
     (SXdgGate(), [q[1]], []),
     (RZGate(pi / 2), [q[1]], []),
+    (RZGate(-beta), [q[0]], []),
+]
+for instr, qargs, cargs in rules:
+    xxplusyy._append(instr, qargs, cargs)
+_sel.add_equivalence(XXPlusYYGate(theta, beta), xxplusyy)
+
+# XXPlusYYGate
+# ┌───────────────┐
+# ┤0              ├
+# │  {XX+YY}(θ,β) │
+# ┤1              ├
+# └───────────────┘
+#   ┌───────┐┌─────────────┐┌─────────────┐┌────────┐
+#   ┤ Rz(β) ├┤0            ├┤0            ├┤ Rz(-β) ├
+# ≡ └───────┘│  Rxx(0.5*θ) ││  Ryy(0.5*θ) │└────────┘
+#   ─────────┤1            ├┤1            ├──────────
+#            └─────────────┘└─────────────┘
+q = QuantumRegister(2, "q")
+xxplusyy = QuantumCircuit(q)
+beta = Parameter("beta")
+theta = Parameter("theta")
+rules: list[tuple[Gate, list[Qubit], list[Clbit]]] = [
+    (RZGate(beta), [q[0]], []),
+    (RXXGate(0.5 * theta), [q[0], q[1]], []),
+    (RYYGate(0.5 * theta), [q[0], q[1]], []),
     (RZGate(-beta), [q[0]], []),
 ]
 for instr, qargs, cargs in rules:

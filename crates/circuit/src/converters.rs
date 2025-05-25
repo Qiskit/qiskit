@@ -17,6 +17,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::circuit_data::CircuitData;
+use crate::classical::expr;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::packed_instruction::PackedInstruction;
 
@@ -25,13 +26,13 @@ use crate::packed_instruction::PackedInstruction;
 #[derive(Debug, Clone)]
 pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
-    pub name: Option<Bound<'py, PyAny>>,
+    pub name: Option<String>,
     pub metadata: Option<Bound<'py, PyAny>>,
-    pub input_vars: Vec<Bound<'py, PyAny>>,
-    pub captured_vars: Vec<Bound<'py, PyAny>>,
-    pub declared_vars: Vec<Bound<'py, PyAny>>,
-    pub captured_stretches: Vec<Bound<'py, PyAny>>,
-    pub declared_stretches: Vec<Bound<'py, PyAny>>,
+    pub input_vars: Vec<expr::Var>,
+    pub captured_vars: Vec<expr::Var>,
+    pub declared_vars: Vec<expr::Var>,
+    pub captured_stretches: Vec<expr::Stretch>,
+    pub declared_stretches: Vec<expr::Stretch>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -41,27 +42,32 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
         let data_borrowed = circuit_data.extract::<CircuitData>()?;
         Ok(QuantumCircuitData {
             data: data_borrowed,
-            name: ob.getattr(intern!(py, "name")).ok(),
+            name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             input_vars: ob
                 .call_method0(intern!(py, "iter_input_vars"))?
                 .try_iter()?
+                .map(|x| x?.extract())
                 .collect::<PyResult<Vec<_>>>()?,
             captured_vars: ob
                 .call_method0(intern!(py, "iter_captured_vars"))?
                 .try_iter()?
+                .map(|x| x?.extract())
                 .collect::<PyResult<Vec<_>>>()?,
             declared_vars: ob
                 .call_method0(intern!(py, "iter_declared_vars"))?
                 .try_iter()?
+                .map(|x| x?.extract())
                 .collect::<PyResult<Vec<_>>>()?,
             captured_stretches: ob
                 .call_method0(intern!(py, "iter_captured_stretches"))?
                 .try_iter()?
+                .map(|x| x?.extract())
                 .collect::<PyResult<Vec<_>>>()?,
             declared_stretches: ob
                 .call_method0(intern!(py, "iter_declared_stretches"))?
                 .try_iter()?
+                .map(|x| x?.extract())
                 .collect::<PyResult<Vec<_>>>()?,
         })
     }

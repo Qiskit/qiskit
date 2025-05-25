@@ -597,7 +597,7 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(pqc.parameters, {phi})
 
         self.assertTrue(isinstance(pqc.data[0].operation.params[0], ParameterExpression))
-        self.assertEqual(str(pqc.data[0].operation.params[0]), "phi + 2")
+        self.assertEqual(str(pqc.data[0].operation.params[0]), "2 + phi")
 
         fbqc = pqc.assign_parameters({phi: 1.0})
 
@@ -1496,8 +1496,8 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_cast_to_float_intermediate_complex_value(self):
         """Verify expression can be cast to a float when it is fully bound, but an intermediate part
-        of the expression evaluation involved complex types.  Sympy is generally more permissive
-        than symengine here, and sympy's tends to be the expected behavior for our users."""
+        of the expression evaluation involved complex types.
+        """
         x = Parameter("x")
         bound_expr = (x + 1.0 + 1.0j).bind({x: -1.0j})
         self.assertEqual(float(bound_expr), 1.0)
@@ -2107,12 +2107,8 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertIsInstance(one_imaginary.numeric(), complex)
         self.assertEqual(one_imaginary.numeric(), 1j)
 
-        # This is one particular case where symengine 0.9.2 (and probably others) struggles when
-        # evaluating in the complex domain, but gets the right answer if forced to the real domain.
-        # It appears more commonly because `symengine.Basic.subs` does not simplify the expression
-        # tree eagerly, so the `_symbol_expr` is `0.5 * (0.5)**2`.  Older symengines then introduce
-        # a spurious small imaginary component when evaluating this `Mul(x, Pow(y, z))` pattern in
-        # the complex domain.
+        # This is one particular case where symbolic libraries struggled (e.g. symengine 0.9.2) when
+        # evaluating in the complex domain, but got the right answer if forced to the real domain.
         problem = (0.5 * a * b).assign(b, 0.5).assign(a, 0.5)
         self.assertIsInstance(problem.numeric(), float)
         self.assertEqual(problem.numeric(), 0.125)
