@@ -2041,7 +2041,6 @@ class QuantumCircuit:
             nonlocal var_remap
 
             if out := cache.get(var):
-                print("FOUND MAP: ", out)
                 return out
             if (replacement := var_remap.get(var)) or (replacement := var_remap.get(var.name)):
                 if isinstance(var, expr.Var):

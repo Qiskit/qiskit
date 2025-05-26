@@ -1446,17 +1446,17 @@ impl CircuitData {
 
     /// Number of input classical variables tracked by the circuit.
     #[getter]
-    fn num_input_vars(&self) -> usize {
+    pub fn num_input_vars(&self) -> usize {
         self.vars_input.len()
     }
 
     #[getter]
-    fn num_captured_vars(&self) -> usize {
+    pub fn num_captured_vars(&self) -> usize {
         self.vars_captured.len()
     }
 
     #[getter]
-    fn num_declared_vars(&self) -> usize {
+    pub fn num_declared_vars(&self) -> usize {
         self.vars_declared.len()
 
     }
@@ -1536,12 +1536,12 @@ impl CircuitData {
     }
 
     #[getter]
-    fn num_declared_stretches(&self) -> usize {
+    pub fn num_declared_stretches(&self) -> usize {
         self.stretches_declared.len()
     }
 
     #[getter]
-    fn num_captured_stretches(&self) -> usize {
+    pub fn num_captured_stretches(&self) -> usize {
         self.stretches_captured.len()
     }
 }
@@ -2377,7 +2377,7 @@ impl CircuitData {
         Ok(var_idx)
     }
 
-    fn get_vars(&self, type_: CircuitVarType) -> impl ExactSizeIterator<Item = &expr::Var> {
+    pub fn get_vars(&self, type_: CircuitVarType) -> impl ExactSizeIterator<Item = &expr::Var> {
         match type_ {
             CircuitVarType::Input => &self.vars_input,
             CircuitVarType::Capture => &self.vars_captured,
@@ -2424,7 +2424,7 @@ impl CircuitData {
         self.vars.get(var)
     }
 
-    fn get_stretches(&self, type_: CircuitStretchType) -> impl ExactSizeIterator<Item = &expr::Stretch> {
+    pub fn get_stretches(&self, type_: CircuitStretchType) -> impl ExactSizeIterator<Item = &expr::Stretch> {
         match type_ {
             CircuitStretchType::Capture => &self.stretches_captured,
             CircuitStretchType::Declare => &self.stretches_declared

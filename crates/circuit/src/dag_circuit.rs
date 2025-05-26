@@ -21,7 +21,7 @@ use crate::bit::{
     Register, ShareableClbit, ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, CircuitVarType, CircuitStretchType};
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::converters::QuantumCircuitData;
@@ -6575,8 +6575,8 @@ impl DAGCircuit {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
         let num_ops = qc_data.__len__();
-        let num_vars = qc.declared_vars.len() + qc.input_vars.len() + qc.captured_vars.len();
-        let num_stretches = qc.declared_stretches.len() + qc.captured_stretches.len();
+        let num_vars = qc_data.num_declared_vars() + qc_data.num_input_vars() + qc_data.num_captured_vars();
+        let num_stretches = qc_data.num_declared_stretches() + qc_data.num_captured_stretches();
 
         // Build DAGCircuit with capacity
         let mut new_dag = DAGCircuit::with_capacity(
@@ -6669,24 +6669,24 @@ impl DAGCircuit {
         };
 
         // Add all of the new vars.
-        for var in qc.declared_vars {
-            new_dag.add_var(var, DAGVarType::Declare)?;
+        for var in qc_data.get_vars(CircuitVarType::Declare) {
+            new_dag.add_var(var.clone(), DAGVarType::Declare)?;
         }
 
-        for var in qc.input_vars {
-            new_dag.add_var(var, DAGVarType::Input)?;
+        for var in qc_data.get_vars(CircuitVarType::Input) {
+            new_dag.add_var(var.clone(), DAGVarType::Input)?;
         }
 
-        for var in qc.captured_vars {
-            new_dag.add_var(var, DAGVarType::Capture)?;
+        for var in qc_data.get_vars(CircuitVarType::Capture) {
+            new_dag.add_var(var.clone(), DAGVarType::Capture)?;
         }
 
-        for stretch in qc.captured_stretches {
-            new_dag.add_captured_stretch(stretch)?;
+        for stretch in qc_data.get_stretches(CircuitStretchType::Capture) {
+            new_dag.add_captured_stretch(stretch.clone())?;
         }
 
-        for stretch in qc.declared_stretches {
-            new_dag.add_declared_stretch(stretch)?;
+        for stretch in qc_data.get_stretches(CircuitStretchType::Declare) {
+            new_dag.add_declared_stretch(stretch.clone())?;
         }
 
         // Add all the registers
@@ -6730,11 +6730,6 @@ impl DAGCircuit {
             data: circuit_data,
             name: None,
             metadata: None,
-            input_vars: Vec::new(),
-            captured_vars: Vec::new(),
-            declared_vars: Vec::new(),
-            captured_stretches: Vec::new(),
-            declared_stretches: Vec::new(),
         };
         Self::from_circuit(py, circ, copy_op, None, None)
     }
