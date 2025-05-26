@@ -36,9 +36,9 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::{Clbit, Qubit};
 
+use crate::gate_metrics;
 use crate::QiskitError;
-use qiskit_accelerate::gate_metrics;
-use qiskit_accelerate::unitary_compose;
+use qiskit_quantum_info::unitary_compose;
 
 const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
     let mut lut = [false; STANDARD_GATE_SIZE];
