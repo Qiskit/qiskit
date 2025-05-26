@@ -2041,6 +2041,7 @@ class QuantumCircuit:
             nonlocal var_remap
 
             if out := cache.get(var):
+                print("FOUND MAP: ", out)
                 return out
             if (replacement := var_remap.get(var)) or (replacement := var_remap.get(var.name)):
                 if isinstance(var, expr.Var):
@@ -2981,7 +2982,9 @@ class QuantumCircuit:
                 A similar method to this, but for compile-time :class:`.Parameter`\\ s instead of
                 run-time :class:`.expr.Var` variables.
         """
-        return self._data.has_var(name_or_var)
+        if isinstance(name_or_var, str):
+            return self.get_var(name_or_var, None) is not None
+        return self.get_var(name_or_var.name, None) == name_or_var
 
     @typing.overload
     def get_stretch(self, name: str, default: T) -> Union[expr.Stretch, T]: ...

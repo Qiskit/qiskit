@@ -11,8 +11,7 @@
 // that they have been altered from the originals.
 
 use std::fmt::Debug;
-use std::hash::Hash;
-use ahash::RandomState;
+use std::hash::{Hash, RandomState};
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -54,6 +53,9 @@ type CircuitDataState<'py> = (
     Vec<ClassicalRegister>,
     Bound<'py, PyDict>,
     Bound<'py, PyDict>,
+    Vec<(String, PyObject)>,
+    Vec<expr::Var>,
+    Vec<expr::Stretch>,
 );
 
 /// A container for :class:`.QuantumCircuit` instruction listings that stores
@@ -138,12 +140,14 @@ pub struct CircuitData {
     /// Identifiers, in order of their addition to the circuit
     identifier_info: IndexMap<String, CircuitIdentifierInfo, RandomState>,
 
-    vars_input: HashSet<Var>,
-    vars_captured: HashSet<Var>,
-    vars_declared: HashSet<Var>, // TODO: I would call this vars_local instead. Also in DAGCircuit
+    // Var and Stretch indices stored in the circuit.
+    // These all of type Vec so that insertion order is kept when using the various iterator functions in Python (e.g. iter_vars)
+    vars_input: Vec<Var>,
+    vars_captured: Vec<Var>,
+    vars_declared: Vec<Var>,
 
-    stretches_captured: HashSet<Stretch>,
-    stretches_declared: HashSet<Stretch>,
+    stretches_captured: Vec<Stretch>,
+    stretches_declared: Vec<Stretch>,
 
     param_table: ParameterTable,
     #[pyo3(get)]
@@ -247,7 +251,7 @@ impl CircuitIdentifierInfo { // TODO: test pickling
 }
 
 /// Used in copy_empty_like TODO: document
-enum VarsCopyModes {
+pub enum VarsCopyMode {
     Alike = 0,
     Captures = 1,
     Drop = 2,
@@ -280,11 +284,11 @@ impl CircuitData {
             vars: ObjectRegistry::new(),
             stretches: ObjectRegistry::new(),
             identifier_info: IndexMap::default(),
-            vars_input: HashSet::new(),
-            vars_captured: HashSet::new(),
-            vars_declared: HashSet::new(),
-            stretches_captured: HashSet::new(),
-            stretches_declared: HashSet::new(),
+            vars_input: Vec::new(),
+            vars_captured: Vec::new(),
+            vars_declared: Vec::new(),
+            stretches_captured: Vec::new(),
+            stretches_declared: Vec::new(),
         };
         self_.set_global_phase(global_phase)?;
         if let Some(qubits) = qubits {
@@ -323,12 +327,15 @@ impl CircuitData {
                 borrowed.cregs.registers().to_vec(),
                 borrowed.qubit_indices.cached(py).clone_ref(py),
                 borrowed.clbit_indices.cached(py).clone_ref(py),
+                borrowed.identifier_info.iter().map(|(k, v)| (k.clone(), v.clone().to_pickle(py).unwrap())).collect::<Vec<(String, PyObject)>>(),
+                borrowed.vars.objects().clone(),
+                borrowed.stretches.objects().clone(),
             )
         };
         (ty, args, state, self_.try_iter()?).into_py_any(py)
     }
 
-    pub fn __setstate__(slf: &Bound<CircuitData>, state: CircuitDataState) -> PyResult<()> {
+    pub fn __setstate__(slf: &Bound<CircuitData>, py: Python, state: CircuitDataState) -> PyResult<()> {
         let mut borrowed_mut = slf.borrow_mut();
         // Add the registers directly to the `RegisterData` struct
         // to not modify the bit indices.
@@ -342,6 +349,40 @@ impl CircuitData {
         // After the registers are added, reset bit locations.
         borrowed_mut.qubit_indices = BitLocator::from_py_dict(&state.2)?;
         borrowed_mut.clbit_indices = BitLocator::from_py_dict(&state.3)?;
+
+        borrowed_mut.identifier_info = IndexMap::<String, CircuitIdentifierInfo>::with_capacity_and_hasher((&state.4).len(), RandomState::default());
+        for identifier_info in state.4 {
+            let circuit_id_info = CircuitIdentifierInfo::from_pickle(identifier_info.1.bind(py))?;
+            match &circuit_id_info {
+                CircuitIdentifierInfo::Stretch(stretch_info) => {
+                    match stretch_info.type_ {
+                        CircuitStretchType::Capture => &mut borrowed_mut.stretches_captured,
+                        CircuitStretchType::Declare => &mut borrowed_mut.stretches_declared,
+                    }
+                    .push(stretch_info.stretch);
+                },
+                CircuitIdentifierInfo::Var(var_info) => {
+                        match var_info.type_ {
+                    CircuitVarType::Input => &mut borrowed_mut.vars_input,
+                    CircuitVarType::Capture => &mut borrowed_mut.vars_captured,
+                    CircuitVarType::Declare => &mut borrowed_mut.vars_declared,
+
+                }
+                .push(var_info.var);
+                },
+            }
+            borrowed_mut.identifier_info.insert(identifier_info.0, circuit_id_info);
+        }
+
+        borrowed_mut.vars = ObjectRegistry::<Var, expr::Var>::with_capacity((&state.5).len());
+        for var in state.5 {
+            borrowed_mut.vars.add(var, false)?;
+        }
+
+        borrowed_mut.stretches = ObjectRegistry::<Stretch, expr::Stretch>::with_capacity((&state.6).len());
+        for stretch in state.6 {
+            borrowed_mut.stretches.add(stretch, false)?;
+        }
 
         Ok(())
     }
@@ -616,7 +657,7 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = self.copy_empty_like(VarsCopyModes::Alike)?;
+        let mut res = self.copy_empty_like(VarsCopyMode::Alike)?;
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
         res.reserve(self.data().len());
@@ -660,9 +701,9 @@ impl CircuitData {
     #[pyo3(name = "copy_empty_like", signature = (*, vars_mode="alike"))]
     fn py_copy_empty_like(&self, vars_mode: &str) -> PyResult<Self> { // TODO: test the function
         let vars_mode = match vars_mode {
-            "alike" => VarsCopyModes::Alike,
-            "captures" => VarsCopyModes::Captures,
-            "drop" => VarsCopyModes::Drop,
+            "alike" => VarsCopyMode::Alike,
+            "captures" => VarsCopyMode::Captures,
+            "drop" => VarsCopyMode::Drop,
             _ => return Err(PyValueError::new_err(format!(
                 "unknown vars_mode: '{}'",
                 vars_mode
@@ -1636,11 +1677,11 @@ impl CircuitData {
             vars: ObjectRegistry::new(), // TODO: the following are just stopgaps for now. Should callers pass var info?
             stretches: ObjectRegistry::new(),
             identifier_info: IndexMap::default(),
-            vars_input: HashSet::new(),
-            vars_captured: HashSet::new(),
-            vars_declared: HashSet::new(),
-            stretches_captured: HashSet::new(),
-            stretches_declared: HashSet::new(),
+            vars_input: Vec::new(),
+            vars_captured: Vec::new(),
+            vars_declared: Vec::new(),
+            stretches_captured: Vec::new(),
+            stretches_declared: Vec::new(),
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -1724,11 +1765,11 @@ impl CircuitData {
             vars: ObjectRegistry::new(),
             stretches: ObjectRegistry::new(),
             identifier_info: IndexMap::default(),
-            vars_input: HashSet::new(),
-            vars_captured: HashSet::new(),
-            vars_declared: HashSet::new(),
-            stretches_captured: HashSet::new(),
-            stretches_declared: HashSet::new(),
+            vars_input: Vec::new(),
+            vars_captured: Vec::new(),
+            vars_declared: Vec::new(),
+            stretches_captured: Vec::new(),
+            stretches_declared: Vec::new(),
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -2232,45 +2273,45 @@ impl CircuitData {
         &self.data
     }
 
-    /// Clone an empty CircuitData from a given reference.
-    ///
-    /// The new copy will have the global properties from the provided `CircuitData`.
-    /// The the bit data fields and interners, global phase, etc will be copied to
-    /// the new returned `CircuitData`, but the `data` field's instruction list will
-    /// be empty. This can be useful for scenarios where you want to rebuild a copy
-    /// of the circuit from a reference but insert new gates in the middle.
-    ///
-    /// # Arguments
-    ///
-    /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
-    /// * capacity - The capacity for instructions to use in the output `CircuitData`
-    ///   If `None` the length of `other` will be used, if `Some` the integer
-    ///   value will be used as the capacity.
-    pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> PyResult<Self> {
-        let mut empty = CircuitData {
-            data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
-            qargs_interner: other.qargs_interner.clone(),
-            cargs_interner: other.cargs_interner.clone(),
-            qubits: other.qubits.clone(),
-            clbits: other.clbits.clone(),
-            param_table: ParameterTable::new(),
-            global_phase: Param::Float(0.0),
-            qregs: other.qregs.clone(),
-            cregs: other.cregs.clone(),
-            qubit_indices: other.qubit_indices.clone(),
-            clbit_indices: other.clbit_indices.clone(),
-            vars: ObjectRegistry::new(), // TODO: the following are just stopgaps for now: should use vars? probably not, since new data might just ignore those altogether.
-            stretches: ObjectRegistry::new(),
-            identifier_info: IndexMap::default(),
-            vars_input: HashSet::new(),
-            vars_captured: HashSet::new(),
-            vars_declared: HashSet::new(),
-            stretches_captured: HashSet::new(),
-            stretches_declared: HashSet::new(),
-        };
-        empty.set_global_phase(other.global_phase.clone())?;
-        Ok(empty)
-    }
+    // /// Clone an empty CircuitData from a given reference.
+    // ///
+    // /// The new copy will have the global properties from the provided `CircuitData`.
+    // /// The the bit data fields and interners, global phase, etc will be copied to
+    // /// the new returned `CircuitData`, but the `data` field's instruction list will
+    // /// be empty. This can be useful for scenarios where you want to rebuild a copy
+    // /// of the circuit from a reference but insert new gates in the middle.
+    // ///
+    // /// # Arguments
+    // ///
+    // /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
+    // /// * capacity - The capacity for instructions to use in the output `CircuitData`
+    // ///   If `None` the length of `other` will be used, if `Some` the integer
+    // ///   value will be used as the capacity.
+    // pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> PyResult<Self> {
+    //     let mut empty = CircuitData {
+    //         data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
+    //         qargs_interner: other.qargs_interner.clone(),
+    //         cargs_interner: other.cargs_interner.clone(),
+    //         qubits: other.qubits.clone(),
+    //         clbits: other.clbits.clone(),
+    //         param_table: ParameterTable::new(),
+    //         global_phase: Param::Float(0.0),
+    //         qregs: other.qregs.clone(),
+    //         cregs: other.cregs.clone(),
+    //         qubit_indices: other.qubit_indices.clone(),
+    //         clbit_indices: other.clbit_indices.clone(),
+    //         vars: ObjectRegistry::new(), // TODO: the following are just stopgaps for now: should use vars? probably not, since new data might just ignore those altogether.
+    //         stretches: ObjectRegistry::new(),
+    //         identifier_info: IndexMap::default(),
+    //         vars_input: Vec::new(),
+    //         vars_captured: Vec::new(),
+    //         vars_declared: Vec::new(),
+    //         stretches_captured: Vec::new(),
+    //         stretches_declared: Vec::new(),
+    //     };
+    //     empty.set_global_phase(other.global_phase.clone())?;
+    //     Ok(empty)
+    // }
 
     /// Append a PackedInstruction to the circuit data.
     ///
@@ -2324,7 +2365,7 @@ impl CircuitData {
             CircuitVarType::Capture => &mut self.vars_captured,
             CircuitVarType::Declare => &mut self.vars_declared,
         }
-        .insert(var_idx);
+        .push(var_idx);
 
         self.identifier_info.insert(
             name,
@@ -2366,7 +2407,7 @@ impl CircuitData {
             CircuitStretchType::Capture => &mut self.stretches_captured,
             CircuitStretchType::Declare => &mut self.stretches_declared,
         }
-        .insert(stretch_idx);
+        .push(stretch_idx);
 
         self.identifier_info.insert(
             name,
@@ -2398,7 +2439,7 @@ impl CircuitData {
     ///
     /// Returns:
     ///     CircuitData: The shallow copy.
-    fn copy_empty_like(&self, vars_copy_mode: VarsCopyModes) -> PyResult<Self> {
+    pub fn copy_empty_like(&self, vars_copy_mode: VarsCopyMode) -> PyResult<Self> {
         let mut res = CircuitData::new(
             Some(self.qubits.objects().clone()),
             Some(self.clbits.objects().clone()),
@@ -2414,7 +2455,7 @@ impl CircuitData {
         res.clbit_indices = self.clbit_indices.clone();
 
         match vars_copy_mode {
-            VarsCopyModes::Alike => {
+            VarsCopyMode::Alike => {
                 for info in self.identifier_info.values() {
                     match info {
                         CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, type_ }) => {
@@ -2428,7 +2469,7 @@ impl CircuitData {
                     }
                 }
             },
-            VarsCopyModes::Captures => {
+            VarsCopyMode::Captures => {
                 for info in self.identifier_info.values() {
                     match info {
                         CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, .. }) => {
@@ -2443,7 +2484,7 @@ impl CircuitData {
                 }
 
             },
-            VarsCopyModes::Drop => {},
+            VarsCopyMode::Drop => {},
         }
 
         Ok(res)
