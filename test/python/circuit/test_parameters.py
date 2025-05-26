@@ -375,7 +375,9 @@ class TestParameters(QiskitTestCase):
     def test_assign_parameters_with_string_values_and_strict_equals_false(self):
         """Test that a string parameter with strict=False does not return an error"""
         qc = QuantumCircuit(2)
-        self.assertIsInstance(qc.assign_parameters({'a':1.0, 'b':2.0}, strict=False), QuantumCircuit)
+        self.assertIsInstance(
+            qc.assign_parameters({"a": 1.0, "b": 2.0}, strict=False), QuantumCircuit
+        )
 
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
