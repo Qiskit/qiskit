@@ -38,16 +38,16 @@ class SamplerPub(ShapedMixin):
 
     This is the basic computational unit of a sampler, which accepts one or more pubs when being
     run. A single sampler pub can result in a parametric circuit being run many times with different
-    parameters values bound each time
+    parameters values bound each time.
 
     If a numeric ``shots`` value is provided to a sampler pub, then this value takes precedence
     over any value provided to the :meth:`~.Sampler.run` method.
 
     The value of a sampler pub's :attr:`~.shape` is typically taken from the ``parameter_values``
     shape at construction time. However, it can also be specified manually as a constructor
-    arument, in which case it can be chosen to exceed the shape of the ``parameter_values`` so long
+    argument, in which case it can be chosen to exceed the shape of the ``parameter_values`` so long
     as the two shape tuples are still broadcastable. This can be used to inject non-trivial axes
-    into the execution. For example, if the provided bindings array object that specify the
+    into the execution. For example, if the provided bindings array object that specifies the
     parameter values has shape ``(2, 3)``, and if the shape tuple ``(8, 2, 3)`` is provided, then
     the shape of the sampler pub will be ``(8, 2, 3)`` because of the implicit leading ``(1,)`` on
     the binding arrays via standard broadcasting rules.
