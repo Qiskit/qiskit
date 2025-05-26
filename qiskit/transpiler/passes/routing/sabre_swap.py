@@ -210,6 +210,8 @@ class SabreSwap(TransformationPass):
                 " This circuit cannot be routed to this device."
             )
 
+        # In our defaults, the basic heuristic shouldn't scale by size; if it does, it's liable to
+        # get the algorithm stuck.  See https://github.com/Qiskit/qiskit/pull/14458 for more.
         if isinstance(self.heuristic, Heuristic):
             heuristic = self.heuristic
         elif self.heuristic == "basic":

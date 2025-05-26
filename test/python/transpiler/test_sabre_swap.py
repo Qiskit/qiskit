@@ -26,6 +26,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.passes import SabreSwap, CheckMap
+from qiskit.transpiler.passes.routing.sabre_swap import Heuristic, SetScaling
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import optionals
@@ -36,7 +37,7 @@ from ..legacy_cmaps import MUMBAI_CMAP
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
-    """A circuit that causes SabreSwap to loop infinitely.
+    """A circuit that causes SabreSwap to loop infinitely for the legacy 'lookahead' heuristic.
 
     This looks like (using cz gates to show the symmetry, though we actually output cx for testing
     purposes):
@@ -245,15 +246,21 @@ class TestSabreSwap(QiskitTestCase):
         self.assertEqual(last_h.qubits, first_measure.qubits)
         self.assertNotEqual(last_h.qubits, second_measure.qubits)
 
-    # The 'basic' method can't get stuck in the same way.
-    @ddt.data("lookahead", "decay")
-    def test_no_infinite_loop(self, method):
+    def test_no_infinite_loop(self):
         """Test that the 'release value' mechanisms allow SabreSwap to make progress even on
         circuits that get stuck in a stable local minimum of the lookahead parameters."""
+        # This is Qiskit's "legacy" lookahead heuristic, which is the same as described in the
+        # original Sabre paper.  We use this here because Qiskit's modern default heuristics don't
+        # hit the release valve.
+        heuristic = (
+            Heuristic(attempt_limit=100)
+            # The basic heuristic scaling by size is the problematic bit.
+            .with_basic(1.0, SetScaling.Size).with_lookahead(0.5, 20, SetScaling.Size)
+        )
         qc = looping_circuit(3, 1)
         qc.measure_all()
         coupling_map = CouplingMap.from_line(qc.num_qubits)
-        routing_pass = PassManager(SabreSwap(coupling_map, method))
+        routing_pass = PassManager(SabreSwap(coupling_map, heuristic))
 
         # Since all the logic happens in Rust space these days, the best we'll really see here is
         # the test hanging.
