@@ -6044,7 +6044,7 @@ class QuantumCircuit:
 
     @deprecate_arg(
         name="mode",
-        since="2.0",
+        since="2.1",
         additional_msg=(
             "Instead, add a generic MCXGate to the circuit and specify the synthesis method "
             "via the ``hls_config`` in the transpilation. Alternatively, specific decompositions "
