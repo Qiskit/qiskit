@@ -1379,8 +1379,8 @@ class MCXRecursive(MCXGate):
             "It is recommended to use MCXGate and let HighLevelSynthesis choose "
             "the best synthesis method depending on the number of ancilla qubits available. "
             "If this specific synthesis method is required, one can specify it using the "
-            "high-level-synthesis plugin '1_clean_b95' for MCX gates, or, alternatively, "
-            "one can use synth_mcx_1_clean to construct the gate directly."
+            "high-level-synthesis plugin ``'gray_code'`` for MCX gates, or, alternatively, "
+            "one can use ``'synth_mcx_1_clean'`` to construct the gate directly."
         ),
         removal_timeline="in Qiskit 3.0",
     )
