@@ -130,28 +130,6 @@ impl Instruction for NormalOperation {
     }
 }
 
-impl<'a> IntoInstructionRef<'a> for &'a NormalOperation {
-    type Block = PyObject;
-
-    fn op(self) -> OperationRef<'a> {
-        self.operation.view()
-    }
-
-    fn standard_gate(self) -> Option<StandardGateRef<'a>> {
-        self.operation
-            .try_standard_gate()
-            .map(|g| StandardGateRef(g, self.params.as_slice()))
-    }
-
-    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
-        todo!()
-    }
-
-    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
-        todo!()
-    }
-}
-
 impl<'py> IntoPyObject<'py> for NormalOperation {
     type Target = PyAny;
     type Output = Bound<'py, Self::Target>;

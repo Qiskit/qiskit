@@ -13,7 +13,7 @@
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
-use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
@@ -23,6 +23,8 @@ use qiskit_circuit::{
     operations::{Operation, Param},
 };
 use smallvec::SmallVec;
+use qiskit_circuit::dag_circuit::DAGInstruction;
+use qiskit_circuit::interner::Interned;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use crate::equivalence::CircuitFromPython;
 
@@ -65,28 +67,35 @@ pub(super) fn compose_transforms<'a>(
                 .collect::<SmallVec<[Param; 3]>>(),
         ))?;
         let gate_obj: OperationFromPython = gate.extract()?;
+        let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
+
         let gate_instr = PackedInstruction {
             op: gate_obj.operation,
-            qubits: qubits,
-            clbits: (),
-            params: None,
-            label: None,
-            py_op: Default::default(),
-        };
-        let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
-        dag.apply_operation_back(
-            gate_obj.operation,
-            &qubits,
-            &[],
-            if gate_obj.params.is_empty() {
+            qubits: dag.qargs_interner().insert(&qubits),
+            clbits: Default::default(),
+            params: if gate_obj.params.is_empty() {
                 None
             } else {
-                Some(gate_obj.params)
+                Some(Box::new(gate_obj.params))
             },
-            gate_obj.label.map(|x| *x),
+            label: gate_obj.label,
             #[cfg(feature = "cache_pygates")]
-            Some(gate.into()),
-        )?;
+            py_op: gate.into(),
+        };
+        dag.push_back(DAGInstruction::from_packed(gate_instr))?;
+        // dag.apply_operation_back(
+        //     gate_obj.operation,
+        //     &qubits,
+        //     &[],
+        //     if gate_obj.params.is_empty() {
+        //         None
+        //     } else {
+        //         Some(gate_obj.params)
+        //     },
+        //     gate_obj.label.map(|x| *x),
+        //     #[cfg(feature = "cache_pygates")]
+        //     Some(gate.into()),
+        // )?;
         mapped_instructions.insert((gate_name, gate_num_qubits), (placeholder_params, dag));
 
         for ((gate_name, gate_num_qubits), (equiv_params, equiv)) in basis_transforms {
@@ -111,7 +120,7 @@ pub(super) fn compose_transforms<'a>(
                     let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
                         equiv_params
                             .iter()
-                            .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
+                            .map(|x| ParameterUuid::from_parameter(&x.clone().into_pyobject(py).unwrap()))
                             .zip(params)
                             .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
                                 Ok((uuid?, param.clone_ref(py)))
@@ -151,33 +160,9 @@ fn get_gates_num_params(
             (inst.op.name().to_string(), inst.op.num_qubits()),
             inst.params_view().len(),
         );
-        if inst.op.control_flow() {
-            let blocks = inst.op.blocks();
-            for block in blocks {
-                get_gates_num_params_circuit(&block, example_gates)?;
-            }
-        }
-    }
-    Ok(())
-}
-
-/// `CircuitData` variant.
-///
-/// Gets the identifier of a gate instance (name, number of qubits) mapped to the
-/// number of parameters it contains currently.
-fn get_gates_num_params_circuit(
-    circuit: &CircuitData,
-    example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
-) -> PyResult<()> {
-    for inst in circuit.iter() {
-        example_gates.insert(
-            (inst.op.name().to_string(), inst.op.num_qubits()),
-            inst.params_view().len(),
-        );
-        if inst.op.control_flow() {
-            let blocks = inst.op.blocks();
-            for block in blocks {
-                get_gates_num_params_circuit(&block, example_gates)?;
+        if let Some(control_flow) = inst.control_flow() {
+            for block in control_flow.blocks() {
+                get_gates_num_params(block, example_gates)?;
             }
         }
     }

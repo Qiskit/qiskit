@@ -213,7 +213,7 @@ fn apply_synth_sequence(
             new_op,
             &mapped_qargs,
             &[],
-            new_params,
+            new_params.map(|p| Parameters::Params(p)),
             None,
             #[cfg(feature = "cache_pygates")]
             None,
@@ -284,7 +284,7 @@ pub fn run_unitary_synthesis(
                 packed_instr.qubits,
                 packed_instr.clbits,
                 new_blocks,
-                packed_instr.label.map(|l| l.as_str()),
+                packed_instr.label.as_deref().map(|l| l.as_str()),
             );
         }
         if !(synth_gates.contains(packed_instr.op.name())

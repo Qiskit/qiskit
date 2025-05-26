@@ -2709,6 +2709,16 @@ impl Operation for StandardGate {
 pub struct StandardGateRef<'a>(pub StandardGate, pub &'a [Param]);
 
 impl<'a> StandardGateRef<'a> {
+    #[inline]
+    pub fn gate(&self) -> &StandardGate {
+        &self.0
+    }
+
+    #[inline]
+    pub fn params(&self) -> &'a [Param] {
+        self.1
+    }
+
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         self.0.matrix(self.1)
     }

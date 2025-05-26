@@ -29,7 +29,7 @@ use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
+use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction, Parameters};
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
@@ -591,22 +591,33 @@ fn apply_translation(
 fn replace_node(
     py: Python,
     dag: &mut DAGCircuitBuilder,
-    node: PackedInstruction,
+    node: DAGInstruction,
     instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
 ) -> PyResult<()> {
     let (target_params, target_dag) =
         &instr_map[&(node.op.name().to_string(), node.op.num_qubits())];
-    if node.params_view().len() != target_params.len() {
+
+    // TODO: this assumes that all instruction kinds (i.e. standard gates, PyGates,
+    //   standard instructions, etc.) use a list of Param for their params. This
+    //   is exactly what this PR is trying to move us away from, but for now we only
+    //   have custom parameters for control flow ops so we can get away with this
+    //   mostly as is.
+    let params_view = node.params.as_deref().map(|p| match p {
+        Parameters::Params(params) => params.as_slice(),
+        _ => panic!("must be params list")
+    }).unwrap_or(&[]);
+
+    if params_view.len() != target_params.len() {
         return Err(TranspilerError::new_err(format!(
             "Translation num_params not equal to op num_params. \
             Op: {:?} {} Translation: {:?}\n{:?}",
-            node.params_view(),
+            params_view,
             node.op.name(),
             &target_params,
             &target_dag
         )));
     }
-    if node.params_view().is_empty() {
+    if params_view.is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
@@ -649,7 +660,7 @@ fn replace_node(
     } else {
         let parameter_map = target_params
             .iter()
-            .zip(node.params_view())
+            .zip(params_view)
             .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();

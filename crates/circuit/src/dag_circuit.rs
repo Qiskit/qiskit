@@ -140,6 +140,10 @@ pub struct DAGInstruction {
 }
 
 impl DAGInstruction {
+    pub fn label(&self) -> Option<&str> {
+        self.label.as_deref().map(|l| l.as_str())
+    }
+
     fn extract_params(params: SmallVec<[Param; 3]>) -> Parameters {
         todo!()
     }
@@ -7317,7 +7321,7 @@ impl DAGCircuit {
         &mut self,
         node_index: NodeIndex,
         new_op: PackedOperation,
-        params: SmallVec<[Param; 3]>,
+        params: Option<Parameters>,
         label: Option<&str>,
     ) -> PyResult<()> {
         let old_packed = self.dag[node_index].unwrap_operation();
@@ -7333,15 +7337,15 @@ impl DAGCircuit {
                 )));
         }
         let new_op_name = new_op.name().to_string();
-        let new_weight = NodeType::Operation(DAGInstruction::from_packed(PackedInstruction {
+        let new_weight = NodeType::Operation(DAGInstruction {
             op: new_op,
             qubits: old_packed.qubits,
             clbits: old_packed.clbits,
-            params: (!params.is_empty()).then(|| params.into()),
+            params: params.map(|p| p.into()),
             label: label.map(|label| Box::new(label.to_string())),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
-        }));
+        });
         if let Some(weight) = self.dag.node_weight_mut(node_index) {
             *weight = new_weight;
         }
@@ -7506,7 +7510,7 @@ impl DAGCircuitBuilder {
         op: PackedOperation,
         qubits: &[Qubit],
         clbits: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -7519,7 +7523,7 @@ impl DAGCircuitBuilder {
             #[cfg(feature = "cache_pygates")]
             py_op,
         );
-        self.push_back(DAGInstruction::from_packed(instruction))
+        self.push_back(instruction)
     }
 
     /// Pushes a valid [DAGInstruction] to the back ot the circuit.
@@ -7607,17 +7611,17 @@ impl DAGCircuitBuilder {
         Ok(new_node)
     }
 
-    /// Packs a [PackedOperation] into a valid [PackedInstruction] within the circuit.
+    /// Packs a [PackedOperation] into a valid [DAGInstruction] within the circuit.
     #[inline]
     pub fn pack_instruction(
         &mut self,
         op: PackedOperation,
         qubits: &[Qubit],
         clbits: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
-    ) -> PackedInstruction {
+    ) -> DAGInstruction {
         #[cfg(feature = "cache_pygates")]
         let py_op = if let Some(py_op) = py_op {
             py_op.into()
@@ -7634,7 +7638,7 @@ impl DAGCircuitBuilder {
         } else {
             self.dag.cargs_interner.get_default()
         };
-        PackedInstruction {
+        DAGInstruction {
             op,
             qubits,
             clbits,

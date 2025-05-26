@@ -21,11 +21,12 @@ use smallvec::{smallvec, SmallVec};
 
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{InstructionRef, Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use super::analyze_commutations;
 use qiskit_accelerate::{euler_one_qubit_decomposer, QiskitError};
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
 static ROTATION_GATES: [&str; 4] = ["p", "u1", "rz", "rx"];
@@ -213,18 +214,16 @@ pub fn cancel_commutations(
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
                 for current_node in cancel_set {
-                    let node_op = match &dag[*current_node] {
-                        NodeType::Operation(instr) => instr,
-                        _ => panic!("Unexpected type in commutation set run."),
-                    };
-                    let node_op_name = node_op.op.name();
+                    let node_op = &dag[*current_node].unwrap_operation().standard_gate()
+                        .expect("standard gate operation expected");
+                    let node_op_name = node_op.gate().name();
 
                     let node_angle = if ROTATION_GATES.contains(&node_op_name) {
-                        match node_op.params_view().first() {
+                        match node_op.params().first() {
                             Some(Param::Float(f)) => Ok(*f),
                             _ => return Err(QiskitError::new_err(format!(
                                 "Rotational gate with parameter expression encountered in cancellation {:?}",
-                                node_op.op
+                                node_op.gate()
                             )))
                         }
                     } else if HALF_TURNS.contains(&node_op_name) {
@@ -242,8 +241,7 @@ pub fn cancel_commutations(
                     total_angle += node_angle?;
 
                     let Param::Float(new_phase) = node_op
-                        .op
-                        .definition(node_op.params_view())
+                        .definition()
                         .unwrap()
                         .global_phase()
                         .clone()

@@ -33,7 +33,7 @@ use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VirtualQubit};
-
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use crate::target::{Qargs, Target};
 use crate::TranspilerError;
 
@@ -357,31 +357,22 @@ fn build_interaction_graph<Ty: EdgeType>(
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
-        if inst.op.control_flow() {
-            Python::with_gil(|py| -> PyResult<_> {
-                let OperationRef::Instruction(py_inst) = inst.op.view() else {
-                    unreachable!("Control flow must be a python instruction");
-                };
-                let raw_blocks = py_inst.instruction.getattr(py, "blocks").unwrap();
-                let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
-                for block in blocks.iter() {
-                    let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
-                    let node_qargs = dag.get_qargs(inst.qubits);
+        if let Some(control_flow) = inst.control_flow() {
+            for block in control_flow.blocks() {
+                let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
+                let node_qargs = dag.get_qargs(inst.qubits);
 
-                    for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
-                        inner_wire_map[inner as usize] = wire_map[outer.index()]
-                    }
-                    let block_dag = circuit_to_dag(py, block.extract()?, false, None, None)?;
-                    build_interaction_graph(
-                        &block_dag,
-                        &inner_wire_map,
-                        im_graph,
-                        im_graph_node_map,
-                        reverse_im_graph_node_map,
-                    )?;
+                for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
+                    inner_wire_map[inner as usize] = wire_map[outer.index()]
                 }
-                Ok(())
-            })?;
+                build_interaction_graph(
+                    &block,
+                    &inner_wire_map,
+                    im_graph,
+                    im_graph_node_map,
+                    reverse_im_graph_node_map,
+                )?;
+            }
             continue;
         }
         let len_args = inst.op.num_qubits();

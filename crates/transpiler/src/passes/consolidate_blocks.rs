@@ -133,7 +133,7 @@ pub fn run_consolidate_blocks(
                 dag.substitute_op(
                     inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                 )?;
                 continue;
@@ -171,10 +171,11 @@ pub fn run_consolidate_blocks(
                 0,
                 block.iter().map(|node| {
                     let inst = dag[*node].unwrap_operation();
+                    let inst = inst.clone().into_packed();
 
                     Ok((
-                        inst.op.clone(),
-                        inst.params_view().iter().cloned().collect(),
+                        inst.op,
+                        inst.params.map(|p| *p).unwrap_or_default(),
                         dag.get_qargs(inst.qubits)
                             .iter()
                             .map(|x| Qubit::new(block_index_map[x]))
@@ -293,7 +294,7 @@ pub fn run_consolidate_blocks(
                 dag.substitute_op(
                     first_inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                 )?;
                 continue;
