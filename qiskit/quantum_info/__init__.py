@@ -33,6 +33,7 @@ Operators
    CNOTDihedral
    PauliList
    pauli_basis
+   get_clifford_gate_names
 
 .. _quantum_info_states:
 
@@ -129,6 +130,7 @@ from .operators import (
     commutator,
     double_commutator,
     pauli_basis,
+    get_clifford_gate_names,
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral

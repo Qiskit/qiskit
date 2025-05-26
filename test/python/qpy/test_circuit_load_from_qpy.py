@@ -312,4 +312,4 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
                     file_obj.read(FILE_HEADER_V10_SIZE),
                 )
             )
-            self.assertEqual(header_data.symbolic_encoding, b"e")
+            self.assertEqual(header_data.symbolic_encoding, b"p")
