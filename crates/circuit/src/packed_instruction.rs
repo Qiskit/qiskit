@@ -83,10 +83,10 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///
 /// ```text
 /// StandardGate:
-/// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_SSSSSSSS_xxxxx000
-///                                                          |------|      |-|
-///                                                              |          |
-///                      Standard gate, stored inline as a u8. --+          +-- Discriminant.
+/// 0b_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxSSS_SSSSS000
+///                                                               |-------||-|
+///                                                                   |     |
+///                      Standard gate, stored inline as a u8. -------+     +-- Discriminant.
 ///
 /// StandardInstruction:
 /// 0b_DDDDDDDD_DDDDDDDD_DDDDDDDD_DDDDDDDD_xxxxxxxx_xxxxxxxx_SSSSSSSS_xxxxx001
@@ -632,6 +632,10 @@ impl Operation for PackedOperation {
     #[inline]
     fn directive(&self) -> bool {
         self.view().directive()
+    }
+    #[inline]
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        self.view().matrix_as_static_1q(params)
     }
 }
 

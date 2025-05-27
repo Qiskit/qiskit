@@ -145,18 +145,25 @@ impl CircuitData {
         reserve: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
+        let qubit_size = qubits.as_ref().map_or(0, |bits| bits.len());
+        let clbit_size = clbits.as_ref().map_or(0, |bits| bits.len());
+        let qubits_registry = ObjectRegistry::with_capacity(qubit_size);
+        let clbits_registry = ObjectRegistry::with_capacity(clbit_size);
+        let qubit_indices = BitLocator::with_capacity(qubit_size);
+        let clbit_indices = BitLocator::with_capacity(clbit_size);
+
         let mut self_ = CircuitData {
             data: Vec::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: ObjectRegistry::new(),
-            clbits: ObjectRegistry::new(),
+            qubits: qubits_registry,
+            clbits: clbits_registry,
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
             cregs: RegisterData::new(),
-            qubit_indices: BitLocator::new(),
-            clbit_indices: BitLocator::new(),
+            qubit_indices,
+            clbit_indices,
         };
         self_.set_global_phase(global_phase)?;
         if let Some(qubits) = qubits {
@@ -1428,7 +1435,7 @@ impl CircuitData {
         operation: StandardGate,
         params: &[Param],
         qargs: &[Qubit],
-    ) -> PyResult<()> {
+    ) {
         let no_clbit_index = self.cargs_interner.get_default();
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
@@ -1441,7 +1448,6 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         });
-        Ok(())
     }
 
     /// Append a packed operation to this CircuitData
@@ -1451,7 +1457,7 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
         cargs: &[Clbit],
-    ) -> PyResult<()> {
+    ) {
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
@@ -1464,7 +1470,6 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         });
-        Ok(())
     }
 
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
