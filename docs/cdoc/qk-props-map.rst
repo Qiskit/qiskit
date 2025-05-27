@@ -31,9 +31,6 @@ Here's an example of how this structure works:
     // Free the pointer
     qk_property_map_free(property_map)
 
-.. note::
-    This feature might be removed in a future release as we move to more C native
-    structure usage.
 
 Functions
 =========
