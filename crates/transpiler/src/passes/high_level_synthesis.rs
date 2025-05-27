@@ -22,7 +22,7 @@ use pyo3::types::PyTuple;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, VarsCopyMode};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
@@ -464,7 +464,7 @@ fn run_on_circuitdata(
     // all available ancilla qubits to the current operation ("the-first-takes-all" approach).
     // It does not distribute ancilla qubits between different operations present in the circuit.
 
-    let mut output_circuit: CircuitData = CircuitData::clone_empty_like(input_circuit, None)?;
+    let mut output_circuit: CircuitData = CircuitData::copy_empty_like(input_circuit, VarsCopyMode::Alike)?;
     let mut output_qubits = input_qubits.to_vec();
 
     // The "inverse" map from the global qubits to the output circuit's qubits.

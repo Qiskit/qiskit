@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use std::fmt::Debug;
-use std::hash::Hash;
+use std::hash::{Hash, RandomState};
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -30,7 +30,8 @@ use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
-use crate::{Clbit, Qubit};
+use crate::{Clbit, Qubit, Var, Stretch};
+use crate::classical::expr;
 
 use numpy::PyReadonlyArray1;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
@@ -52,6 +53,9 @@ type CircuitDataState<'py> = (
     Vec<ClassicalRegister>,
     Bound<'py, PyDict>,
     Bound<'py, PyDict>,
+    Vec<(String, PyObject)>,
+    Vec<expr::Var>,
+    Vec<expr::Stretch>,
 );
 
 /// A container for :class:`.QuantumCircuit` instruction listings that stores
@@ -129,10 +133,130 @@ pub struct CircuitData {
     /// Mapping between [ShareableClbit] and its locations in
     /// the circuit
     clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
+    /// Variables registered in the circuit
+    vars: ObjectRegistry<Var, expr::Var>,
+    /// Stretches registered in the circuit
+    stretches: ObjectRegistry<Stretch, expr::Stretch>,
+    /// Identifiers, in order of their addition to the circuit
+    identifier_info: IndexMap<String, CircuitIdentifierInfo, RandomState>,
+
+    // Var and Stretch indices stored in the circuit.
+    // These all of type Vec so that insertion order is kept when using the various iterator functions in Python (e.g. iter_vars)
+    vars_input: Vec<Var>,
+    vars_captured: Vec<Var>,
+    vars_declared: Vec<Var>,
+
+    stretches_captured: Vec<Stretch>,
+    stretches_declared: Vec<Stretch>,
+
     param_table: ParameterTable,
     #[pyo3(get)]
     global_phase: Param,
 }
+
+#[derive(Copy, Clone, Debug)]
+pub enum CircuitVarType {
+    Input = 0,
+    Capture = 1,
+    Declare = 2,
+}
+
+#[derive(Clone, Debug)]
+struct CircuitVarInfo {
+    var: Var,
+    type_: CircuitVarType,
+}
+
+impl CircuitVarInfo {
+    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+        (
+            self.var.0,
+            self.type_ as u8,
+        )
+            .into_py_any(py)
+    }
+
+    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
+        let val_tuple = ob.downcast::<PyTuple>()?;
+        Ok(CircuitVarInfo {
+            var: Var(val_tuple.get_item(0)?.extract()?),
+            type_: match val_tuple.get_item(1)?.extract::<u8>()? {
+                0 => CircuitVarType::Input,
+                1 => CircuitVarType::Capture,
+                2 => CircuitVarType::Declare,
+                _ => return Err(PyValueError::new_err("Invalid var type")),
+            },
+        })
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum CircuitStretchType { // TODO: can this be merged with DAGStretchType?
+    Capture = 0,
+    Declare = 1,
+}
+
+#[derive(Clone, Debug)]
+struct CircuitStretchInfo { // TODO: can this be merged with DAGStretchType?
+    stretch: Stretch,
+    type_: CircuitStretchType,
+}
+
+impl CircuitStretchInfo {
+    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+        (self.stretch.0, self.type_ as u8).into_py_any(py)
+    }
+
+    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
+        let val_tuple = ob.downcast::<PyTuple>()?;
+        Ok(CircuitStretchInfo {
+            stretch: Stretch(val_tuple.get_item(0)?.extract()?),
+            type_: match val_tuple.get_item(1)?.extract::<u8>()? {
+                0 => CircuitStretchType::Capture,
+                1 => CircuitStretchType::Declare,
+                _ => return Err(PyValueError::new_err("Invalid stretch type")),
+            },
+        })
+    }
+}
+
+
+#[derive(Clone, Debug)]
+enum CircuitIdentifierInfo { // This is stored in identifier_info
+    Stretch(CircuitStretchInfo),
+    Var(CircuitVarInfo),
+}
+
+impl CircuitIdentifierInfo { // TODO: test pickling
+    fn to_pickle(&self, py: Python) -> PyResult<PyObject> {
+        match self {
+            CircuitIdentifierInfo::Stretch(info) => (0, info.to_pickle(py)?).into_py_any(py),
+            CircuitIdentifierInfo::Var(info) => (1, info.to_pickle(py)?).into_py_any(py),
+
+        }
+    }
+
+    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
+        let val_tuple = ob.downcast::<PyTuple>()?;
+        match val_tuple.get_item(0)?.extract::<u8>()? {
+            0 => Ok(CircuitIdentifierInfo::Stretch(CircuitStretchInfo::from_pickle(
+                &val_tuple.get_item(1)?,
+            )?)),
+            1 => Ok(CircuitIdentifierInfo::Var(CircuitVarInfo::from_pickle(
+                &val_tuple.get_item(1)?,
+            )?)),
+            _ => Err(PyValueError::new_err("Invalid identifier info type")),
+        }
+    }
+}
+
+/// Used in copy_empty_like TODO: document
+pub enum VarsCopyMode {
+    Alike = 0,
+    Captures = 1,
+    Drop = 2,
+}
+
 
 #[pymethods]
 impl CircuitData {
@@ -157,6 +281,14 @@ impl CircuitData {
             cregs: RegisterData::new(),
             qubit_indices: BitLocator::new(),
             clbit_indices: BitLocator::new(),
+            vars: ObjectRegistry::new(),
+            stretches: ObjectRegistry::new(),
+            identifier_info: IndexMap::default(),
+            vars_input: Vec::new(),
+            vars_captured: Vec::new(),
+            vars_declared: Vec::new(),
+            stretches_captured: Vec::new(),
+            stretches_declared: Vec::new(),
         };
         self_.set_global_phase(global_phase)?;
         if let Some(qubits) = qubits {
@@ -195,12 +327,15 @@ impl CircuitData {
                 borrowed.cregs.registers().to_vec(),
                 borrowed.qubit_indices.cached(py).clone_ref(py),
                 borrowed.clbit_indices.cached(py).clone_ref(py),
+                borrowed.identifier_info.iter().map(|(k, v)| (k.clone(), v.clone().to_pickle(py).unwrap())).collect::<Vec<(String, PyObject)>>(),
+                borrowed.vars.objects().clone(),
+                borrowed.stretches.objects().clone(),
             )
         };
         (ty, args, state, self_.try_iter()?).into_py_any(py)
     }
 
-    pub fn __setstate__(slf: &Bound<CircuitData>, state: CircuitDataState) -> PyResult<()> {
+    pub fn __setstate__(slf: &Bound<CircuitData>, py: Python, state: CircuitDataState) -> PyResult<()> {
         let mut borrowed_mut = slf.borrow_mut();
         // Add the registers directly to the `RegisterData` struct
         // to not modify the bit indices.
@@ -214,6 +349,40 @@ impl CircuitData {
         // After the registers are added, reset bit locations.
         borrowed_mut.qubit_indices = BitLocator::from_py_dict(&state.2)?;
         borrowed_mut.clbit_indices = BitLocator::from_py_dict(&state.3)?;
+
+        borrowed_mut.identifier_info = IndexMap::<String, CircuitIdentifierInfo>::with_capacity_and_hasher((&state.4).len(), RandomState::default());
+        for identifier_info in state.4 {
+            let circuit_id_info = CircuitIdentifierInfo::from_pickle(identifier_info.1.bind(py))?;
+            match &circuit_id_info {
+                CircuitIdentifierInfo::Stretch(stretch_info) => {
+                    match stretch_info.type_ {
+                        CircuitStretchType::Capture => &mut borrowed_mut.stretches_captured,
+                        CircuitStretchType::Declare => &mut borrowed_mut.stretches_declared,
+                    }
+                    .push(stretch_info.stretch);
+                },
+                CircuitIdentifierInfo::Var(var_info) => {
+                        match var_info.type_ {
+                    CircuitVarType::Input => &mut borrowed_mut.vars_input,
+                    CircuitVarType::Capture => &mut borrowed_mut.vars_captured,
+                    CircuitVarType::Declare => &mut borrowed_mut.vars_declared,
+
+                }
+                .push(var_info.var);
+                },
+            }
+            borrowed_mut.identifier_info.insert(identifier_info.0, circuit_id_info);
+        }
+
+        borrowed_mut.vars = ObjectRegistry::<Var, expr::Var>::with_capacity((&state.5).len());
+        for var in state.5 {
+            borrowed_mut.vars.add(var, false)?;
+        }
+
+        borrowed_mut.stretches = ObjectRegistry::<Stretch, expr::Stretch>::with_capacity((&state.6).len());
+        for stretch in state.6 {
+            borrowed_mut.stretches.add(stretch, false)?;
+        }
 
         Ok(())
     }
@@ -488,7 +657,7 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = self.copy_empty_like()?;
+        let mut res = self.copy_empty_like(VarsCopyMode::Alike)?;
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
         res.reserve(self.data().len());
@@ -525,26 +694,23 @@ impl CircuitData {
         Ok(res)
     }
 
-    /// Performs a copy with no instruction.
+    /// Performs a copy with no instructions.
     ///
     /// Returns:
     ///     CircuitData: The shallow copy.
-    pub fn copy_empty_like(&self) -> PyResult<Self> {
-        let mut res = CircuitData::new(
-            Some(self.qubits.objects().clone()),
-            Some(self.clbits.objects().clone()),
-            None,
-            0,
-            self.global_phase.clone(),
-        )?;
+    #[pyo3(name = "copy_empty_like", signature = (*, vars_mode="alike"))]
+    fn py_copy_empty_like(&self, vars_mode: &str) -> PyResult<Self> { // TODO: test the function
+        let vars_mode = match vars_mode {
+            "alike" => VarsCopyMode::Alike,
+            "captures" => VarsCopyMode::Captures,
+            "drop" => VarsCopyMode::Drop,
+            _ => return Err(PyValueError::new_err(format!(
+                "unknown vars_mode: '{}'",
+                vars_mode
+            ))),
+        };
 
-        // After initialization, copy register info.
-        res.qregs = self.qregs.clone();
-        res.cregs = self.cregs.clone();
-        res.qubit_indices = self.qubit_indices.clone();
-        res.clbit_indices = self.clbit_indices.clone();
-
-        Ok(res)
+        self.copy_empty_like(vars_mode)
     }
 
     /// Reserves capacity for at least ``additional`` more
@@ -1193,7 +1359,194 @@ impl CircuitData {
         }
         Ok(())
     }
+
+    // TODO: organize the order of all the vars & stretches functions below
+    /// Add an input variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
+    #[pyo3(name = "add_input_var")]
+    fn py_add_input_var(&mut self, var: expr::Var) -> PyResult<()> {
+        // if !self.vars_captured.is_empty() { // TODO: || !self.stretches_capture.is_empty() { // TODO: take all this logic (and in the other add_ functions) to the Rust function
+        //     return Err(CircuitError::new_err(
+        //         "cannot add inputs to a circuit with captures",
+        //     ));
+        // }
+        self.add_var(var, CircuitVarType::Input)?;
+        Ok(())
+    }
+
+    /// Add an input variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
+    #[pyo3(name = "add_captured_var")]
+    fn py_add_captured_var(&mut self, var: expr::Var) -> PyResult<()> {
+        // if !self.vars_input.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+        //     return Err(CircuitError::new_err(
+        //         "cannot add inputs to a circuit with captures",
+        //     ));
+        // }
+        self.add_var(var, CircuitVarType::Capture)?;
+        Ok(())
+    }
+
+    /// Add an input variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
+    #[pyo3(name = "add_declared_var")]
+    fn py_add_declared_var(&mut self, var: expr::Var) -> PyResult<()> {
+        // if !self.vars_input.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+        //     return Err(CircuitError::new_err(
+        //         "cannot add inputs to a circuit with captures",
+        //     ));
+        // }
+        self.add_var(var, CircuitVarType::Declare)?;
+        Ok(())
+    }
+
+    /// Is this realtime variable in the circuit?
+    ///
+    /// Args:
+    ///     var: the variable or name to check.
+    #[pyo3(name = "has_var")]
+    fn py_has_var(&self, var: &Bound<PyAny>) -> PyResult<bool> {
+        if let Ok(name) = var.extract::<String>() {
+            Ok(matches!(
+                self.identifier_info.get(&name),
+                Some(CircuitIdentifierInfo::Var(_))
+            ))
+        } else {
+            let var = var.extract::<expr::Var>()?;
+            let expr::Var::Standalone { name, .. } = &var else {
+                return Ok(false);
+            };
+            if let Some(CircuitIdentifierInfo::Var(info)) = self.identifier_info.get(name) {
+                return Ok(&var == self.vars.get(info.var).unwrap());
+            }
+            Ok(false)
+        }
+    }
+
+    #[pyo3(name="get_var")]
+    pub fn py_get_var(&self, py: Python, name: &str) -> PyResult<PyObject> {
+        if let Some(CircuitIdentifierInfo::Var(var_info)) = self.identifier_info.get(name) {
+            let var = self.vars.get(var_info.var).unwrap().clone();
+            return var.into_py_any(py);
+        }
+
+        Ok(py.None().into())
+    }
+
+    #[pyo3(name = "get_input_vars")]
+    fn py_get_input_vars(&self, py: Python) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.get_vars(CircuitVarType::Input).map(|var| var.clone().into_pyobject(py).unwrap()))?.unbind())
+    }
+
+    /// Number of input classical variables tracked by the circuit.
+    #[getter]
+    pub fn num_input_vars(&self) -> usize {
+        self.vars_input.len()
+    }
+
+    #[getter]
+    pub fn num_captured_vars(&self) -> usize {
+        self.vars_captured.len()
+    }
+
+    #[getter]
+    pub fn num_declared_vars(&self) -> usize {
+        self.vars_declared.len()
+
+    }
+
+    #[pyo3(name = "add_captured_stretch")]
+    fn py_add_captured_stretch(&mut self, stretch: expr::Stretch) -> PyResult<()> { // TODO: make these also get strings
+        // if !self.vars_input.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+        //     return Err(CircuitError::new_err(
+        //         "cannot add inputs to a circuit with captures",
+        //     ));
+        // }
+        self.add_stretch(stretch, CircuitStretchType::Capture)?;
+        Ok(())
+    }
+
+    /// Add an input variable to the circuit.
+    ///
+    /// Args:
+    ///     var: the variable to add.
+    #[pyo3(name = "add_declared_stretch")]
+    fn py_add_declared_stretch(&mut self, var: expr::Stretch) -> PyResult<()> {
+        // if !self.vars_input.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
+        //     return Err(CircuitError::new_err(
+        //         "cannot add inputs to a circuit with captures",
+        //     ));
+        // }
+        self.add_stretch(var, CircuitStretchType::Declare)?;
+        Ok(())
+    }
+
+
+    #[pyo3(name = "has_stretch")]
+    fn py_has_stretch(&self, stretch: &Bound<PyAny>) -> PyResult<bool> {
+        if let Ok(name) = stretch.extract::<String>() {
+            Ok(matches!(
+                self.identifier_info.get(&name),
+                Some(CircuitIdentifierInfo::Stretch(_))
+            ))
+        } else {
+            let stretch = stretch.extract::<expr::Stretch>()?;
+            if let Some(CircuitIdentifierInfo::Stretch(info)) = self.identifier_info.get(&stretch.name)
+            {
+                return Ok(&stretch == self.stretches.get(info.stretch).unwrap());
+            }
+            Ok(false)
+        }
+    }
+
+    #[pyo3(name="get_stretch")]
+    pub fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<PyObject> {
+        if let Some(CircuitIdentifierInfo::Stretch(stretch_info)) = self.identifier_info.get(name) {
+            let stretch = self.stretches.get(stretch_info.stretch).unwrap().clone();
+            return stretch.into_py_any(py);
+        }
+
+        Ok(py.None().into())
+    }
+
+    #[pyo3(name = "get_captured_vars")]
+    fn py_get_captured_vars(&self, py: Python) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.get_vars(CircuitVarType::Capture).map(|var| var.clone().into_pyobject(py).unwrap()))?.unbind())
+    }
+
+    #[pyo3(name = "get_declared_vars")]
+    fn py_get_declared_vars(&self, py: Python) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.get_vars(CircuitVarType::Declare).map(|var| var.clone().into_pyobject(py).unwrap()))?.unbind())
+    }
+
+    #[pyo3(name = "get_captured_stretches")]
+    fn py_get_captured_stretches(&self, py: Python) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.get_stretches(CircuitStretchType::Capture).map(|stretch| stretch.clone().into_pyobject(py).unwrap()))?.unbind())
+    }
+
+    #[pyo3(name = "get_declared_stretches")]
+    fn py_get_declared_stretches(&self, py: Python) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.get_stretches(CircuitStretchType::Declare).map(|stretch| stretch.clone().into_pyobject(py).unwrap()))?.unbind())
+    }
+
+    #[getter]
+    pub fn num_declared_stretches(&self) -> usize {
+        self.stretches_declared.len()
+    }
+
+    #[getter]
+    pub fn num_captured_stretches(&self) -> usize {
+        self.stretches_captured.len()
+    }
 }
+
+
 
 impl CircuitData {
     /// An alternate constructor to build a new `CircuitData` from an iterator
@@ -1260,7 +1613,7 @@ impl CircuitData {
 
     /// A constructor for CircuitData from an iterator of PackedInstruction objects
     ///
-    /// This is tpically useful when iterating over a CircuitData or DAGCircuit
+    /// This is typically useful when iterating over a CircuitData or DAGCircuit
     /// to construct a new CircuitData from the iterator of PackedInstructions. As
     /// such it requires that you have `BitData` and `Interner` objects to run. If
     /// you just wish to build a circuit data from an iterator of instructions
@@ -1285,7 +1638,7 @@ impl CircuitData {
     /// * clbit_indices: The Mapping between clbit instances and their locations within
     ///   registers in the circuit.
     /// * Instructions: An iterator with items of type: `PyResult<PackedInstruction>`
-    ///   that contais the instructions to insert in iterator order to the new
+    ///   that contains the instructions to insert in iterator order to the new
     ///   CircuitData. This returns a `PyResult` to facilitate the case where
     ///   you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
     ///   of the operation while iterating for constructing the new `CircuitData`. An
@@ -1321,6 +1674,14 @@ impl CircuitData {
             cregs,
             qubit_indices,
             clbit_indices,
+            vars: ObjectRegistry::new(), // TODO: the following are just stopgaps for now. Should callers pass var info?
+            stretches: ObjectRegistry::new(),
+            identifier_info: IndexMap::default(),
+            vars_input: Vec::new(),
+            vars_captured: Vec::new(),
+            vars_declared: Vec::new(),
+            stretches_captured: Vec::new(),
+            stretches_declared: Vec::new(),
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -1401,6 +1762,14 @@ impl CircuitData {
             cregs: RegisterData::new(),
             qubit_indices: BitLocator::with_capacity(num_qubits as usize),
             clbit_indices: BitLocator::with_capacity(num_clbits as usize),
+            vars: ObjectRegistry::new(),
+            stretches: ObjectRegistry::new(),
+            identifier_info: IndexMap::default(),
+            vars_input: Vec::new(),
+            vars_captured: Vec::new(),
+            vars_declared: Vec::new(),
+            stretches_captured: Vec::new(),
+            stretches_declared: Vec::new(),
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -1904,37 +2273,45 @@ impl CircuitData {
         &self.data
     }
 
-    /// Clone an empty CircuitData from a given reference.
-    ///
-    /// The new copy will have the global properties from the provided `CircuitData`.
-    /// The the bit data fields and interners, global phase, etc will be copied to
-    /// the new returned `CircuitData`, but the `data` field's instruction list will
-    /// be empty. This can be useful for scenarios where you want to rebuild a copy
-    /// of the circuit from a reference but insert new gates in the middle.
-    ///
-    /// # Arguments
-    ///
-    /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
-    /// * capacity - The capacity for instructions to use in the output `CircuitData`
-    ///   If `None` the length of `other` will be used, if `Some` the integer
-    ///   value will be used as the capacity.
-    pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> PyResult<Self> {
-        let mut empty = CircuitData {
-            data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
-            qargs_interner: other.qargs_interner.clone(),
-            cargs_interner: other.cargs_interner.clone(),
-            qubits: other.qubits.clone(),
-            clbits: other.clbits.clone(),
-            param_table: ParameterTable::new(),
-            global_phase: Param::Float(0.0),
-            qregs: other.qregs.clone(),
-            cregs: other.cregs.clone(),
-            qubit_indices: other.qubit_indices.clone(),
-            clbit_indices: other.clbit_indices.clone(),
-        };
-        empty.set_global_phase(other.global_phase.clone())?;
-        Ok(empty)
-    }
+    // /// Clone an empty CircuitData from a given reference.
+    // ///
+    // /// The new copy will have the global properties from the provided `CircuitData`.
+    // /// The the bit data fields and interners, global phase, etc will be copied to
+    // /// the new returned `CircuitData`, but the `data` field's instruction list will
+    // /// be empty. This can be useful for scenarios where you want to rebuild a copy
+    // /// of the circuit from a reference but insert new gates in the middle.
+    // ///
+    // /// # Arguments
+    // ///
+    // /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
+    // /// * capacity - The capacity for instructions to use in the output `CircuitData`
+    // ///   If `None` the length of `other` will be used, if `Some` the integer
+    // ///   value will be used as the capacity.
+    // pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> PyResult<Self> {
+    //     let mut empty = CircuitData {
+    //         data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
+    //         qargs_interner: other.qargs_interner.clone(),
+    //         cargs_interner: other.cargs_interner.clone(),
+    //         qubits: other.qubits.clone(),
+    //         clbits: other.clbits.clone(),
+    //         param_table: ParameterTable::new(),
+    //         global_phase: Param::Float(0.0),
+    //         qregs: other.qregs.clone(),
+    //         cregs: other.cregs.clone(),
+    //         qubit_indices: other.qubit_indices.clone(),
+    //         clbit_indices: other.clbit_indices.clone(),
+    //         vars: ObjectRegistry::new(), // TODO: the following are just stopgaps for now: should use vars? probably not, since new data might just ignore those altogether.
+    //         stretches: ObjectRegistry::new(),
+    //         identifier_info: IndexMap::default(),
+    //         vars_input: Vec::new(),
+    //         vars_captured: Vec::new(),
+    //         vars_declared: Vec::new(),
+    //         stretches_captured: Vec::new(),
+    //         stretches_declared: Vec::new(),
+    //     };
+    //     empty.set_global_phase(other.global_phase.clone())?;
+    //     Ok(empty)
+    // }
 
     /// Append a PackedInstruction to the circuit data.
     ///
@@ -1958,6 +2335,161 @@ impl CircuitData {
             _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
         }
     }
+
+    pub fn add_var(&mut self, var: expr::Var, type_: CircuitVarType) -> PyResult<Var> {
+        // TODO: implement logic for checking var shadowing rules in this function
+        let name = {
+            let expr::Var::Standalone { name, .. } = &var else {
+                return Err(CircuitError::new_err(
+                    "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances", // TODO: check this logic
+                ));
+            };
+            name.clone()
+        };
+
+        match self.identifier_info.get(&name) {
+            Some(CircuitIdentifierInfo::Var(info)) if Some(&var) == self.vars.get(info.var) => {
+                return Err(CircuitError::new_err("already present in the circuit"));
+            }
+            Some(_) => {
+                return Err(CircuitError::new_err(
+                    "cannot add var as its name shadows an existing identifier",
+                ));
+            }
+            _ => {}
+        }
+
+        let var_idx = self.vars.add(var, true)?;
+        match type_ {
+            CircuitVarType::Input => &mut self.vars_input,
+            CircuitVarType::Capture => &mut self.vars_captured,
+            CircuitVarType::Declare => &mut self.vars_declared,
+        }
+        .push(var_idx);
+
+        self.identifier_info.insert(
+            name,
+            CircuitIdentifierInfo::Var(CircuitVarInfo {
+                var: var_idx,
+                type_,
+            }),
+        );
+        Ok(var_idx)
+    }
+
+    pub fn get_vars(&self, type_: CircuitVarType) -> impl ExactSizeIterator<Item = &expr::Var> {
+        match type_ {
+            CircuitVarType::Input => &self.vars_input,
+            CircuitVarType::Capture => &self.vars_captured,
+            CircuitVarType::Declare => &self.vars_declared
+        }.iter().map(|var| self.vars.get(*var).unwrap())
+    }
+
+
+    pub fn add_stretch(&mut self, stretch: expr::Stretch, type_: CircuitStretchType) -> PyResult<Stretch> {
+        // TODO: implement logic for checking var shadowing rules in this function
+        let name = stretch.name.clone();
+
+        match self.identifier_info.get(&name) {
+            Some(CircuitIdentifierInfo::Stretch(info)) if Some(&stretch) == self.stretches.get(info.stretch) => {
+                return Err(CircuitError::new_err("already present in the circuit"));
+            }
+            Some(_) => {
+                return Err(CircuitError::new_err(
+                    "cannot add stretch as its name shadows an existing identifier",
+                ));
+            }
+            _ => {}
+        }
+
+        let stretch_idx = self.stretches.add(stretch, true)?;
+        match type_ {
+            CircuitStretchType::Capture => &mut self.stretches_captured,
+            CircuitStretchType::Declare => &mut self.stretches_declared,
+        }
+        .push(stretch_idx);
+
+        self.identifier_info.insert(
+            name,
+            CircuitIdentifierInfo::Stretch(
+                CircuitStretchInfo {stretch: stretch_idx, type_,}),
+        );
+        Ok(stretch_idx)
+    }
+
+    /// Retrieve a variable given its unique [Var] key within the circuit.
+    ///
+    /// The provided [Var] must be from this [CircuitData]. TODO: how does it look in the docs??
+    pub fn get_var(&self, var: Var) -> Option<&expr::Var> {
+        self.vars.get(var)
+    }
+
+    pub fn get_stretches(&self, type_: CircuitStretchType) -> impl ExactSizeIterator<Item = &expr::Stretch> {
+        match type_ {
+            CircuitStretchType::Capture => &self.stretches_captured,
+            CircuitStretchType::Declare => &self.stretches_declared
+        }.iter().map(|stretch| self.stretches.get(*stretch).unwrap())
+    }
+
+    pub fn get_stretch(&self, stretch: Stretch) -> Option<&expr::Stretch> {
+        self.stretches.get(stretch)
+    }
+
+    /// Performs a copy with no instruction. TODO: document
+    ///
+    /// Returns:
+    ///     CircuitData: The shallow copy.
+    pub fn copy_empty_like(&self, vars_copy_mode: VarsCopyMode) -> PyResult<Self> {
+        let mut res = CircuitData::new(
+            Some(self.qubits.objects().clone()),
+            Some(self.clbits.objects().clone()),
+            None,
+            0,
+            self.global_phase.clone(),
+        )?;
+
+        // After initialization, copy register info.
+        res.qregs = self.qregs.clone();
+        res.cregs = self.cregs.clone();
+        res.qubit_indices = self.qubit_indices.clone();
+        res.clbit_indices = self.clbit_indices.clone();
+
+        match vars_copy_mode {
+            VarsCopyMode::Alike => {
+                for info in self.identifier_info.values() {
+                    match info {
+                        CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, type_ }) => {
+                            let stretch = self.stretches.get(*stretch).unwrap().clone();
+                            res.add_stretch(stretch, *type_);
+                        }
+                        CircuitIdentifierInfo::Var(CircuitVarInfo { var, type_, .. }) => {
+                            let var = self.vars.get(*var).unwrap().clone();
+                            res.add_var(var, *type_)?;
+                        }
+                    }
+                }
+            },
+            VarsCopyMode::Captures => {
+                for info in self.identifier_info.values() {
+                    match info {
+                        CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, .. }) => {
+                            let stretch = self.stretches.get(*stretch).unwrap().clone();
+                            res.add_stretch(stretch, CircuitStretchType::Capture);
+                        }
+                        CircuitIdentifierInfo::Var(CircuitVarInfo { var, .. }) => {
+                            let var = self.vars.get(*var).unwrap().clone();
+                            res.add_var(var, CircuitVarType::Capture)?;
+                        }
+                    }
+                }
+
+            },
+            VarsCopyMode::Drop => {},
+        }
+
+        Ok(res)
+    }
+
 }
 
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in
