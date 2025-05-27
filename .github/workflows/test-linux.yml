@@ -1,0 +1,145 @@
+---
+name: Test Linux
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: >
+          Python version to currently test
+        type: string
+        required: true
+      runner:
+        description: >
+          Describes the system this workflow should run on.
+        type: string
+        required: true
+      install-optionals:
+        description: >
+          Decides whether we install optional dependencies
+        type: boolean
+        default: false
+      install-from-sdist:
+        description: >
+          Decides whether we perform rust tests
+        type: boolean
+        default: false
+
+jobs:
+  unit-tests:
+    if: github.repository_owner == 'Qiskit'
+    name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 60
+    env:
+      QISKIT_TEST_CAPTURE_STREAMS: 1
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Cache stestr
+        uses: actions/cache@v4
+        with:
+          key: 'stestr | "${{ runner.os }}" | "${{ inputs.python-version }}" | "${{ github.run_id }}"'
+          restore-keys: |
+            stestr | "${{ runner.os }}" | "${{ inputs.python-version }}"
+            stestr | "${{ runner.os }}"
+            stestr
+          path: .stestr
+      - name: Prepare venv
+        run: |
+          set -e
+          python -m pip install --upgrade pip setuptools wheel
+          python -m venv test-job
+      - name: Install Qiskit from sdist
+        if: ${{ inputs.install-from-sdist }}
+        run: |
+          set -e
+          source test-job/bin/activate
+          python -m pip install -U pip build
+          python -m build --sdist .
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            dist/qiskit-*.tar.gz
+      - name: Install Qiskit directly
+        if: ${{ !inputs.install-from-sdist }}
+        run: |
+          set -e
+          source test-job/bin/activate
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            -e .
+      - name: Install Optional packages
+        run: |
+          set -e
+          source test-job/bin/activate
+          python -m pip install -r requirements-optional.txt -c constraints.txt
+          python -m pip check
+        if: ${{ inputs.install-optionals }}
+      - name: Install optional non-Python dependencies
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+        if: ${{ inputs.install-optionals }}
+      - name: Run Python tests
+        if: ${{ !inputs.install-from-sdist }}
+        run: |
+          set -e
+          source test-job/bin/activate
+          python tools/report_numpy_state.py
+          export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+          echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          stestr run
+        env:
+          QISKIT_PARALLEL: FALSE
+          QISKIT_IGNORE_USER_SETTINGS: TRUE
+          RUST_BACKTRACE: 1
+      - name: Filter stestr history
+        if: ${{ !inputs.install-from-sdist }}
+        run: |
+          set -e
+          pushd .stestr
+          ls | grep -P "^\d" | xargs -d "\n" rm -f
+          popd
+      - name: Run Python tests (sdist)
+        if: ${{ inputs.install-from-sdist }}
+        run: |
+          set -e
+          source test-job/bin/activate
+          python tools/report_numpy_state.py
+          mkdir -p /tmp/terra-tests
+          cp -r test /tmp/terra-tests/.
+          cp .stestr.conf /tmp/terra-tests/.
+          cp -r .stestr /tmp/terra-tests/. || :
+          pushd /tmp/terra-tests
+          export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+          echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+          stestr run
+          popd
+        env:
+          QISKIT_PARALLEL: FALSE
+          QISKIT_IGNORE_USER_SETTINGS: TRUE
+          RUST_BACKTRACE: 1
+      - name: Filter stestr history (sdist)
+        if: ${{ inputs.install-from-sdist }}
+        run: |
+          set -e
+          pushd /tmp/terra-tests/.stestr
+          ls | grep -P "^\d" | xargs -d "\n" rm -f
+          popd
+          cp -r /tmp/terra-tests/.stestr .
+      - name: Copy and Publish images
+        uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: copied-images-${{ runner.name }}-tests-Python-${{ inputs.python-version }}
+          path: "**/*.png"
+          if-no-files-found: error

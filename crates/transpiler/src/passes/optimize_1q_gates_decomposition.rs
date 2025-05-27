@@ -23,11 +23,11 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param};
 
 use crate::target::Target;
-use qiskit_accelerate::euler_one_qubit_decomposer::{
+use qiskit_circuit::PhysicalQubit;
+use qiskit_synthesis::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, OneQubitGateSequence, EULER_BASES,
     EULER_BASIS_NAMES,
 };
-use qiskit_circuit::PhysicalQubit;
 
 fn compute_error_term_from_target(gate: &str, target: &Target, qubit: PhysicalQubit) -> f64 {
     1. - target.get_error(gate, &[qubit]).unwrap_or(0.)
