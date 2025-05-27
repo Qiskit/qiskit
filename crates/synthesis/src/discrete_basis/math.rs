@@ -10,7 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use nalgebra::{Matrix3, Matrix3x1};
+use nalgebra::{Matrix2, Matrix3, Matrix3x1};
+use num_complex::ComplexFloat;
+use numpy::Complex64;
+use std::ops::Div;
 
 /// A bisection search on [f64] functions.
 fn bisect(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64, maxiter: usize) -> Option<f64> {
@@ -49,6 +52,11 @@ fn bisect(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64, maxiter: usize) -> O
 pub(crate) fn solve_decomposition_angle(matrix: &Matrix3<f64>) -> f64 {
     let trace = matrix.trace().min(3.0); // avoid roundoff errors
     let angle = ((trace - 1.) / 2.).acos();
+
+    // let phi = 2. * (angle / 4.).sin().sqrt().abs().asin();
+    // phi
+
+    // old way:
     let lhs = (angle / 2.).sin();
 
     // we use a bisect search to solve the angle equation (Eq. 10 in the paper)
@@ -245,4 +253,34 @@ pub(super) fn assert_so3(name: &str, matrix: &Matrix3<f64>) {
     if diff.iter().any(|el| el.abs() > tol) {
         panic!("{} is not SO(3): Matrix is not orthogonal.", name)
     }
+}
+
+pub fn su2_to_so3(view: &Matrix2<Complex64>) -> Matrix3<f64> {
+    let a = view[(0, 0)].re;
+    let b = view[(0, 0)].im;
+    let c = -view[(0, 1)].re;
+    let d = -view[(0, 1)].im;
+
+    Matrix3::new(
+        a.powi(2) - b.powi(2) - c.powi(2) + d.powi(2),
+        2.0 * (a * b + c * d),
+        2.0 * (b * d - a * c),
+        2.0 * (c * d - a * b),
+        a.powi(2) - b.powi(2) + c.powi(2) - d.powi(2),
+        2.0 * (a * d + b * c),
+        2.0 * (a * c + b * d),
+        2.0 * (b * c - a * d),
+        a.powi(2) + b.powi(2) - c.powi(2) - d.powi(2),
+    )
+}
+
+pub fn u2_to_so3(matrix_u2: &Matrix2<Complex64>) -> (Matrix3<f64>, f64) {
+    let determinant = matrix_u2[(0, 0)] * matrix_u2[(1, 1)] - matrix_u2[(1, 0)] * matrix_u2[(0, 1)];
+    let matrix_su2 = matrix_u2.div(determinant.sqrt());
+    let matrix_so3 = su2_to_so3(&matrix_su2);
+    // let phase = determinant.sqrt().arg();
+    let z = 1. / determinant.sqrt();
+    let phase = z.im().atan2(z.re());
+
+    (matrix_so3, phase)
 }

@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use nalgebra::Matrix2;
+use nalgebra::{Matrix2, Matrix3};
 use numpy::{Complex64, PyReadonlyArray2};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::types::PyString;
@@ -63,8 +63,14 @@ impl SolovayKitaevSynthesis {
         matrix_u2: &Matrix2<Complex64>,
         recursion_degree: usize,
     ) -> Result<CircuitData, DiscreteBasisError> {
-        let input_sequence = GateSequence::from_u2(matrix_u2, self.do_checks);
-        self.synthesize_sequence(&input_sequence, recursion_degree)
+        let (matrix_so3, phase) = math::u2_to_so3(matrix_u2);
+        let mut output = self.recurse(&matrix_so3, recursion_degree);
+
+        output.inverse_cancellation();
+
+        // Compute the error in the SO(3) representation to return with the circuit.
+        let circuit = output.to_circuit(Some((matrix_u2, phase)))?;
+        Ok(circuit)
     }
 
     /// Run the Solovay Kitaev algorithm on a standard gate + gate parameters.
@@ -78,29 +84,17 @@ impl SolovayKitaevSynthesis {
         params: &[Param],
         recursion_degree: usize,
     ) -> Result<CircuitData, DiscreteBasisError> {
-        let input_sequence = GateSequence::from_std(gate, params)?;
-        self.synthesize_sequence(&input_sequence, recursion_degree)
-    }
+        let array_u2 = gate
+            .matrix(params)
+            .expect("StandardGate::matrix() should return a matrix.");
+        let matrix_u2 = Matrix2::new(
+            array_u2[(0, 0)],
+            array_u2[(0, 1)],
+            array_u2[(1, 0)],
+            array_u2[(1, 1)],
+        );
 
-    /// Run Solovay Kitaev given a [GateSequence].
-    ///
-    /// Mainly an internal helper for other runner methods.
-    fn synthesize_sequence(
-        &self,
-        sequence: &GateSequence,
-        recursion_degree: usize,
-    ) -> Result<CircuitData, DiscreteBasisError> {
-        // Run SK recursion.
-        let mut output = self.recurse(sequence, recursion_degree);
-
-        // Do minor optimizations on the output sequence, e.g. cancel gate-inverse-pairs, which
-        // can arise due to the recursions (even though they should not be present in the initial
-        // set of basic approximations).
-        output.inverse_cancellation();
-
-        // Compute the error in the SO(3) representation to return with the circuit.
-        let circuit = output.to_circuit(Some(sequence))?;
-        Ok(circuit)
+        self.synthesize_matrix(&matrix_u2, recursion_degree)
     }
 
     /// Run a recursion step for a gate sequence, given a recursion degree.
@@ -108,32 +102,32 @@ impl SolovayKitaevSynthesis {
     /// If the degree is 0 (recursion root), return the closest approximation in the set of
     /// basic approximations. Otherwise, decompose the difference between the approximation
     /// and the target unitary as balanced group commutator, and recurse on each element.
-    fn recurse(&self, sequence: &GateSequence, degree: usize) -> GateSequence {
+    fn recurse(&self, matrix_so3: &Matrix3<f64>, degree: usize) -> GateSequence {
         // Recursion root: return the best approximation in the precomputed set.
         if degree == 0 {
             if self.do_checks {
-                math::assert_so3("Recursion root", &sequence.matrix_so3);
+                math::assert_so3("Recursion root", matrix_so3);
             }
             let basic_approximation = self
                 .basic_approximations
-                .query(sequence)
+                .query(matrix_so3)
                 .expect("No basic approximation in root found")
                 .clone();
             return basic_approximation;
         }
 
         // Find a basic approximation of the target sequence...
-        let u_n1 = self.recurse(sequence, degree - 1);
+        let u_n1 = self.recurse(matrix_so3, degree - 1);
 
         // ... and then improve the delta in between that approximation and the target.
-        let delta = sequence.matrix_so3 * u_n1.matrix_so3.transpose();
+        let delta = matrix_so3 * u_n1.matrix_so3.transpose();
         let (matrix_vn, matrix_wn) = group_commutator_decomposition(&delta, self.do_checks);
-        let vn = GateSequence::from_so3(&matrix_vn, self.do_checks);
-        let wn = GateSequence::from_so3(&matrix_wn, self.do_checks);
+        // let vn = GateSequence::from_so3(&matrix_vn, self.do_checks);
+        // let wn = GateSequence::from_so3(&matrix_wn, self.do_checks);
 
         // Recurse on the group commutator elements.
-        let v_n1 = self.recurse(&vn, degree - 1);
-        let w_n1 = self.recurse(&wn, degree - 1);
+        let v_n1 = self.recurse(&matrix_vn, degree - 1);
+        let w_n1 = self.recurse(&matrix_wn, degree - 1);
 
         v_n1.dot(&w_n1)
             .dot(&v_n1.adjoint())
@@ -257,7 +251,7 @@ impl SolovayKitaevSynthesis {
     fn find_basic_approximation(&self, sequence: GateSequence) -> GateSequence {
         let approximation = self
             .basic_approximations
-            .query(&sequence)
+            .query(&sequence.matrix_so3)
             .expect("No basic approximation found");
 
         approximation.clone()
@@ -272,38 +266,28 @@ impl SolovayKitaevSynthesis {
     ///     CircuitData: The sequence in the set of basic approximations closest to the input.
     fn query_basic_approximation(&self, gate: OperationFromPython) -> PyResult<CircuitData> {
         let params = gate.params;
-        let sequence = match gate.operation.view() {
-            OperationRef::StandardGate(std_gate) => {
-                match GateSequence::from_std(&std_gate, &params) {
-                    Ok(sequence) => sequence,
-                    Err(e) => return Err(PyValueError::new_err(e.to_string())),
-                }
-            }
-            _ => {
-                let matrix_u2 = match gate.operation.matrix(&params) {
-                    Some(matrix) => Matrix2::new(
-                        matrix[(0, 0)],
-                        matrix[(0, 1)],
-                        matrix[(1, 0)],
-                        matrix[(1, 1)],
-                    ),
-                    None => {
-                        return Err(PyValueError::new_err(
-                            "Failed to construct matrix representation.",
-                        ))
-                    }
-                };
-                GateSequence::from_u2(&matrix_u2, self.do_checks)
+        let matrix_u2 = match gate.operation.matrix(&params) {
+            Some(matrix) => Matrix2::new(
+                matrix[(0, 0)],
+                matrix[(0, 1)],
+                matrix[(1, 0)],
+                matrix[(1, 1)],
+            ),
+            None => {
+                return Err(PyValueError::new_err(
+                    "Failed to construct matrix representation.",
+                ))
             }
         };
 
+        let (matrix_so3, phase) = math::u2_to_so3(&matrix_u2);
         let approximation = self
             .basic_approximations
-            .query(&sequence)
+            .query(&matrix_so3)
             .expect("No basic approximation found");
 
         approximation
-            .to_circuit(Some(&sequence))
+            .to_circuit(Some((&matrix_u2, phase)))
             .map_err(|e| e.into())
     }
 
@@ -318,16 +302,16 @@ impl SolovayKitaevSynthesis {
         &self,
         matrix: PyReadonlyArray2<Complex64>,
     ) -> PyResult<CircuitData> {
-        let matrix = matrix2_from_pyreadonly(&matrix);
-        let sequence = GateSequence::from_u2(&matrix, true);
+        let matrix_u2 = matrix2_from_pyreadonly(&matrix);
+        let (matrix_so3, phase) = math::u2_to_so3(&matrix_u2);
 
         let approximation = self
             .basic_approximations
-            .query(&sequence)
+            .query(&matrix_so3)
             .expect("No basic approximation found");
 
         approximation
-            .to_circuit(Some(&sequence))
+            .to_circuit(Some((&matrix_u2, phase)))
             .map_err(|e| e.into())
     }
 

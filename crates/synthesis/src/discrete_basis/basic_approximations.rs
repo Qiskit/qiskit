@@ -57,20 +57,17 @@ impl From<DiscreteBasisError> for PyErr {
 pub struct GateSequence {
     // The sequence of standard gates. Can be None if the sequence is only specified by the
     // SO(3) matrix and phase, which is useful for lookup of matrices.
-    pub gates: Option<Vec<StandardGate>>,
+    pub gates: Vec<StandardGate>,
     // The SO(3) representation of the sequence. Note that this is only equal to SU(2) up to a sign.
     pub matrix_so3: Matrix3<f64>,
     // A global phase taking the U(2) representation of the sequence to SU(2).
     pub phase: f64,
-    // Optional, the U(2) matrix of the gates, which can be cached for efficiency.
-    // This is invalidated upon any operation and can be recomputed via the ``u2`` method.
-    pub matrix_u2: Option<Matrix2<Complex<f64>>>,
 }
 
 /// A serializable version of the [GateSequence] used to store and retrieve [BasicApproximations].
 #[derive(Serialize, Deserialize)]
 struct SerializableGateSequence {
-    gates: Option<Vec<u8>>,
+    gates: Vec<u8>,
     matrix_so3: Vec<f64>,
     phase: f64,
 }
@@ -80,8 +77,9 @@ impl From<&GateSequence> for SerializableGateSequence {
         // store the StandardGates as u8
         let gates = value
             .gates
-            .as_ref()
-            .map(|gates| gates.iter().map(|gate| *gate as u8).collect::<Vec<u8>>());
+            .iter()
+            .map(|gate| *gate as u8)
+            .collect::<Vec<u8>>();
 
         // store the SO(3) matrix as flattened vector
         let matrix_so3 = value.matrix_so3.iter().copied().collect::<Vec<f64>>();
@@ -97,12 +95,11 @@ impl From<&GateSequence> for SerializableGateSequence {
 impl From<&SerializableGateSequence> for GateSequence {
     fn from(value: &SerializableGateSequence) -> Self {
         // map u8 back into StandardGate
-        let gates = value.gates.as_ref().map(|gates| {
-            gates
-                .iter()
-                .map(|gate_id| ::bytemuck::checked::cast::<_, StandardGate>(*gate_id))
-                .collect::<Vec<StandardGate>>()
-        });
+        let gates = value
+            .gates
+            .iter()
+            .map(|gate_id| ::bytemuck::checked::cast::<_, StandardGate>(*gate_id))
+            .collect::<Vec<StandardGate>>();
 
         // map serialized matrix back into Matrix3
         let matrix_so3 = Matrix3::from_iterator(value.matrix_so3.clone());
@@ -111,7 +108,6 @@ impl From<&SerializableGateSequence> for GateSequence {
             gates,
             matrix_so3,
             phase: value.phase,
-            matrix_u2: None,
         }
     }
 }
@@ -120,66 +116,25 @@ impl GateSequence {
     /// Create a new, empty sequence.
     fn new() -> Self {
         Self {
-            gates: Some(vec![]),
+            gates: vec![],
             matrix_so3: Matrix3::identity(),
             phase: 0.,
-            matrix_u2: None,
         }
     }
 
     /// Get the gate labels.
     pub fn label(&self) -> String {
-        match &self.gates {
-            Some(gates) => gates.iter().map(|gate| gate.name()).collect(),
-            None => "none".to_string(),
-        }
-    }
-
-    /// Initialize a from a U(2) matrix. This sequence does not have gates.
-    pub fn from_u2(matrix_u2: &Matrix2<Complex64>, do_checks: bool) -> Self {
-        // turn into a SU(2) matrix and compute SO(3) representation from it
-        let determinant =
-            matrix_u2[(0, 0)] * matrix_u2[(1, 1)] - matrix_u2[(1, 0)] * matrix_u2[(0, 1)];
-        let matrix_su2 = matrix_u2.div(determinant.sqrt());
-        let matrix_so3 = su2_to_so3(&matrix_su2);
-        let phase = determinant.sqrt().arg(); // possibly map to [0, 2pi)
-
-        if do_checks {
-            math::assert_so3("Matrix generated from U(2)", &matrix_so3);
-        }
-
-        Self {
-            gates: None,
-            matrix_so3,
-            phase: (phase),
-            matrix_u2: Some(*matrix_u2),
-        }
-    }
-
-    /// Initialize from a SO(3) matrix. This sequence does not have gates.
-    pub fn from_so3(matrix_so3: &Matrix3<f64>, do_checks: bool) -> Self {
-        if do_checks {
-            math::assert_so3("SO(3) input matrix", matrix_so3);
-        }
-
-        Self {
-            gates: None,
-            matrix_so3: *matrix_so3,
-            phase: 0.,
-            matrix_u2: None,
-        }
+        self.gates.iter().map(|gate| gate.name()).collect()
     }
 
     /// Initialize from a [StandardGate] plus parameters.
     pub fn from_std(gate: &StandardGate, params: &[Param]) -> Result<Self, DiscreteBasisError> {
         let (matrix_so3, phase) = standard_gates_to_so3(gate, params)?;
-        let matrix_u2 = standard_gates_to_u2(gate, params)?;
 
         Ok(Self {
-            gates: Some(vec![*gate]),
+            gates: vec![*gate],
             matrix_so3,
             phase,
-            matrix_u2: Some(matrix_u2),
         })
     }
 
@@ -188,16 +143,9 @@ impl GateSequence {
     /// ``self.dot(other)`` results in a sequence where the gates are ``other.gates + self.gates``.
     pub fn dot(&self, other: &GateSequence) -> GateSequence {
         // merge the gates
-        let gates = match (&self.gates, &other.gates) {
-            (Some(self_gates), Some(other_gates)) => {
-                let mut joint_gates = Vec::with_capacity(other_gates.len() + self_gates.len());
-                joint_gates.extend_from_slice(other_gates);
-                joint_gates.extend_from_slice(self_gates);
-                Some(joint_gates)
-            }
-            (None, None) => None,
-            _ => panic!("Incompatible gates in dot."),
-        };
+        let mut gates = Vec::with_capacity(other.gates.len() + self.gates.len());
+        gates.extend_from_slice(&other.gates);
+        gates.extend_from_slice(&self.gates);
 
         // update the matrices and global phase
         let phase = self.phase + other.phase; // map to [0, 2pi)
@@ -207,20 +155,18 @@ impl GateSequence {
             gates,
             matrix_so3,
             phase,
-            matrix_u2: None, // just invalidate, recompute only when needed
         }
     }
 
     /// Return the adjoint.
     pub fn adjoint(&self) -> GateSequence {
         // Flip the gate order and invert them
-        let gates = self.gates.as_ref().map(|gates| {
-            gates
-                .iter()
-                .rev()
-                .map(|&gate| gate.inverse(&[]).unwrap().0)
-                .collect()
-        });
+        let gates = self
+            .gates
+            .iter()
+            .rev()
+            .map(|&gate| gate.inverse(&[]).unwrap().0)
+            .collect();
 
         // The transpose of an orthogonal matrix is equal to its inverse
         let matrix_so3 = self.matrix_so3.transpose();
@@ -229,39 +175,37 @@ impl GateSequence {
             gates,
             matrix_so3,
             phase: -self.phase,
-            matrix_u2: None, // just invalidate, recompute only when needed
         }
     }
 
     /// Remove gate-inverse pairs in-place.
     pub fn inverse_cancellation(&mut self) {
-        let gates = match &self.gates {
-            Some(gates) => gates,
-            None => return, // no gates set, nothing to cancel
-        };
-        if gates.len() < 2 {
+        if self.gates.len() < 2 {
             return; // if there is only 1 gate, there is nothing to cancel
         }
 
-        let mut reduced_gates: Vec<StandardGate> = Vec::with_capacity(gates.len());
+        let mut reduced_gates: Vec<StandardGate> = Vec::with_capacity(self.gates.len());
         let mut index = 0;
-        while index < gates.len() - 1 {
-            let inverse = gates[index].inverse(&[]).expect("Failed to get inverse").0;
-            if inverse == gates[index + 1] {
+        while index < self.gates.len() - 1 {
+            let inverse = self.gates[index]
+                .inverse(&[])
+                .expect("Failed to get inverse")
+                .0;
+            if inverse == self.gates[index + 1] {
                 index += 2; // skip the gate-inverse-pair
             } else {
-                reduced_gates.push(gates[index]);
+                reduced_gates.push(self.gates[index]);
                 index += 1;
             }
         }
         // add the last gate if it was not considered yet
-        if index == gates.len() - 1 {
-            reduced_gates.push(gates[index]);
+        if index == self.gates.len() - 1 {
+            reduced_gates.push(self.gates[index]);
         }
 
         // we managed to cancel something, recurse, since we may have uncovered new cancellations
-        if gates.len() > reduced_gates.len() {
-            self.gates = Some(reduced_gates);
+        if self.gates.len() > reduced_gates.len() {
+            self.gates = reduced_gates;
             self.inverse_cancellation();
         }
     }
@@ -269,17 +213,8 @@ impl GateSequence {
     /// Get the U(2) matrix implemented by the gates. Fails if the gates are ``None`` and no U(2)
     /// matrix is cached.
     pub fn u2(&self) -> Result<Matrix2<Complex<f64>>, DiscreteBasisError> {
-        if let Some(matrix_u2) = self.matrix_u2 {
-            return Ok(matrix_u2);
-        }
-
-        let gates = match &self.gates {
-            Some(gates) => gates,
-            None => return Err(DiscreteBasisError::UninitializedSequence),
-        };
-
         let mut out = Matrix2::identity();
-        for gate in gates {
+        for gate in &self.gates {
             let matrix = standard_gates_to_u2(gate, &[])?;
             out = matrix * out;
         }
@@ -290,9 +225,12 @@ impl GateSequence {
     ///
     /// This assumes that [self] is a good approximation to ``target``, otherwise the result
     /// may not make sense.
-    pub fn compute_phase(&self, target: &GateSequence) -> Result<f64, DiscreteBasisError> {
+    pub fn compute_phase(
+        &self,
+        target_u2: &Matrix2<Complex64>,
+        target_phase: f64,
+    ) -> Result<f64, DiscreteBasisError> {
         let self_u2 = self.u2()?;
-        let target_u2 = target.u2()?;
         let (target_first, self_first) = target_u2
             .iter()
             .zip(self_u2.iter())
@@ -302,7 +240,7 @@ impl GateSequence {
         // When we convert SU(2) to SO(3) we lose sign information, which translates to a
         // global phase uncertainty of +-1 = exp(i pi). We fix this here by checking which phase
         // is a better match (one should be clearly correct if the algorithm converged).
-        let phase_candidate = self.phase - target.phase;
+        let phase_candidate = self.phase - target_phase;
         let coeff_candidate = Complex::new(0., phase_candidate).exp();
         let candidate = self_first * coeff_candidate;
 
@@ -320,20 +258,17 @@ impl GateSequence {
     /// If a target sequence is given, match the phase of [self] to the target.
     pub fn to_circuit(
         &self,
-        target: Option<&GateSequence>,
+        target: Option<(&Matrix2<Complex64>, f64)>,
     ) -> Result<CircuitData, DiscreteBasisError> {
-        let gates = match &self.gates {
-            Some(gates) => gates,
-            None => return Err(DiscreteBasisError::UninitializedSequence),
-        };
-
         let global_phase = match target {
-            Some(target) => Param::Float(self.compute_phase(target)?),
+            Some((target_u2, target_phase)) => {
+                Param::Float(self.compute_phase(target_u2, target_phase)?)
+            }
             None => Param::Float(self.phase),
         };
 
-        let mut circuit = CircuitData::with_capacity(1, 0, gates.len(), global_phase).unwrap();
-        for gate in gates {
+        let mut circuit = CircuitData::with_capacity(1, 0, self.gates.len(), global_phase).unwrap();
+        for gate in &self.gates {
             circuit.push_standard_gate(*gate, &[], &[Qubit(0)]);
         }
         Ok(circuit)
@@ -347,10 +282,7 @@ impl GateSequence {
         // update matrix representations and keep track of the gate
         self.matrix_so3 = so3_matrix * self.matrix_so3;
         self.phase += phase;
-        match &mut self.gates {
-            Some(gates) => gates.push(gate),
-            None => return Err(DiscreteBasisError::UninitializedSequence),
-        }
+        self.gates.push(gate);
 
         Ok(())
     }
@@ -392,40 +324,11 @@ impl GateSequence {
 
         let matrix_so3 = matrix3_from_pyreadonly(&matrix_so3);
         Ok(Self {
-            gates: Some(gates),
+            gates: gates,
             matrix_so3,
             phase,
-            matrix_u2: None,
         })
     }
-
-    /// Initialize from an SO(3) matrix.
-    ///
-    /// Legacy method for backward compatibility with Python SK.
-    #[staticmethod]
-    fn from_matrix(matrix_so3: PyReadonlyArray2<f64>) -> Self {
-        let matrix_so3 = matrix3_from_pyreadonly(&matrix_so3);
-        Self::from_so3(&matrix_so3, true)
-    }
-}
-
-fn su2_to_so3(view: &Matrix2<Complex64>) -> Matrix3<f64> {
-    let a = view[(0, 0)].re;
-    let b = view[(0, 0)].im;
-    let c = -view[(0, 1)].re;
-    let d = -view[(0, 1)].im;
-
-    Matrix3::new(
-        a.powi(2) - b.powi(2) - c.powi(2) + d.powi(2),
-        2.0 * (a * b + c * d),
-        2.0 * (b * d - a * c),
-        2.0 * (c * d - a * b),
-        a.powi(2) - b.powi(2) + c.powi(2) - d.powi(2),
-        2.0 * (a * d + b * c),
-        2.0 * (a * c + b * d),
-        2.0 * (b * c - a * d),
-        a.powi(2) + b.powi(2) - c.powi(2) - d.powi(2),
-    )
 }
 
 /// A point in the R* tree. Contains the SO(3) representation of the gate sequence, plus an
@@ -441,6 +344,13 @@ impl BasicPoint {
         Self {
             point: ::core::array::from_fn(|i| sequence.matrix_so3[(i % 3, i / 3)]),
             index,
+        }
+    }
+
+    pub fn from_matrix(matrix: &Matrix3<f64>) -> Self {
+        Self {
+            point: ::core::array::from_fn(|i| matrix[(i % 3, i / 3)]),
+            index: None,
         }
     }
 }
@@ -545,12 +455,9 @@ fn standard_gates_to_so3(
                 .matrix(params)
                 .expect("Failed to get matrix representation.");
             let matrix_u2 = array2_to_matrix2(&array_u2.view());
-            let det = matrix_u2[(0, 0)] * matrix_u2[(1, 1)] - matrix_u2[(1, 0)] * matrix_u2[(0, 1)];
-            let smatrix_u2 = matrix_u2.div(det.sqrt());
-            let so3 = su2_to_so3(&smatrix_u2);
+            let (so3, phase) = math::u2_to_so3(&matrix_u2);
 
-            let phase = det.sqrt().arg();
-            Ok((so3, (phase)))
+            Ok((so3, phase))
         }
     }
 }
@@ -648,8 +555,8 @@ impl BasicApproximations {
     }
 
     /// Query the closest point to a [GateSequence].
-    pub fn query(&self, sequence: &GateSequence) -> Option<&GateSequence> {
-        let query_point = BasicPoint::from_sequence(sequence, None);
+    pub fn query(&self, matrix: &Matrix3<f64>) -> Option<&GateSequence> {
+        let query_point = BasicPoint::from_matrix(matrix);
         let point = self.points.nearest_neighbor(&query_point).map(|point| {
             let index = point
                 .index
