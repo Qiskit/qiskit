@@ -64,6 +64,10 @@ impl<R: Register + PartialEq> BitLocations<R> {
         None
     }
 
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+
     pub fn registers(&self) -> &[(R, usize)] {
         &self.registers
     }

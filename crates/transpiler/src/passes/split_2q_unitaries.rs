@@ -23,7 +23,7 @@ use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, Unit
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 
-use qiskit_accelerate::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
+use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
 
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
@@ -102,7 +102,7 @@ pub fn run_split_2q_unitaries(
     // We have swap-like unitaries, so we create a new DAG in a manner similar to
     // The Elide Permutations pass, while also splitting the unitaries to 1-qubit gates
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
-    let mut new_dag = dag.copy_empty_like(py, "alike")?;
+    let mut new_dag = dag.copy_empty_like("alike")?;
     for node in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag.dag()[node] {
             let qubits = dag.get_qargs(inst.qubits).to_vec();
@@ -142,7 +142,6 @@ pub fn run_split_2q_unitaries(
                     mapping.swap(index0, index1);
                     // now add the two 1-qubit gates
                     new_dag.apply_operation_back(
-                        py,
                         PackedOperation::from_unitary(k1r_gate),
                         &[Qubit::new(mapping[index0])],
                         &[],
@@ -152,7 +151,6 @@ pub fn run_split_2q_unitaries(
                         None,
                     )?;
                     new_dag.apply_operation_back(
-                        py,
                         PackedOperation::from_unitary(k1l_gate),
                         &[Qubit::new(mapping[index1])],
                         &[],
@@ -174,7 +172,6 @@ pub fn run_split_2q_unitaries(
                 .collect();
 
             new_dag.apply_operation_back(
-                py,
                 inst.op.clone(),
                 &mapped_qargs,
                 cargs,

@@ -21,7 +21,7 @@ qiskit-circuit.workspace = true
 ahash.workspace = true
 regex = "1.11"
 lazy_static = "1.5"
-thiserror = "1.0"
+thiserror.workspace = true
 
 [dependencies.pyo3]
 workspace = true

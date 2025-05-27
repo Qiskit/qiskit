@@ -21,6 +21,15 @@ To combine the C API with custom Python extensions, see
 As this interface is still new in Qiskit it should be considered experimental
 and the interface might change between minor version releases.
 
+---------------
+Quantum Circuit
+---------------
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-circuit
+
 -------------------
 Quantum information
 -------------------

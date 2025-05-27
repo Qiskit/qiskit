@@ -18,13 +18,12 @@ workspace = true
 [dependencies]
 thiserror.workspace = true
 num-complex.workspace = true
-qiskit-accelerate.workspace = true
+qiskit-quantum-info.workspace = true
 qiskit-circuit.workspace = true
 pyo3 = { workspace = true, optional = true }
 
 [build-dependencies]
-cbindgen = "0.28"
-pyo3-build-config = { version = "0.24", features = ["resolve-config"] }
+cbindgen = "0.29"
 
 [features]
 default = ["cbinding"]

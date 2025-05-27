@@ -24,7 +24,6 @@ const PARALLEL_THRESHOLD: usize = 150;
 #[pyfunction]
 #[pyo3(name = "barrier_before_final_measurements", signature=(dag, label=None))]
 pub fn run_barrier_before_final_measurements(
-    py: Python,
     dag: &mut DAGCircuit,
     label: Option<String>,
 ) -> PyResult<()> {
@@ -112,7 +111,7 @@ pub fn run_barrier_before_final_measurements(
     };
 
     let final_ops: Vec<NodeIndex> = if dag.num_qubits() >= PARALLEL_THRESHOLD
-        && ::qiskit_accelerate::getenv_use_multiple_threads()
+        && ::qiskit_circuit::getenv_use_multiple_threads()
     {
         dag.qubit_io_map()
             .par_iter()
@@ -143,7 +142,6 @@ pub fn run_barrier_before_final_measurements(
         .collect();
     let qargs: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
     dag.apply_operation_back(
-        py,
         PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
             dag.num_qubits() as u32
         )),
@@ -155,7 +153,7 @@ pub fn run_barrier_before_final_measurements(
         None,
     )?;
     for inst in final_packed_ops {
-        dag.push_back(py, inst)?;
+        dag.push_back(inst)?;
     }
     Ok(())
 }

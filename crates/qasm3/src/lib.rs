@@ -185,20 +185,19 @@ pub fn dumps(
     let mut options = DumpOptions::default();
 
     if let Some(kw) = kwargs {
-        let kw = kw.as_ref();
-        if let Ok(val) = kw.get_item("includes") {
+        if let Some(val) = kw.get_item("includes")? {
             options.includes = val.extract::<Vec<String>>()?;
         }
-        if let Ok(val) = kw.get_item("basis_gates") {
+        if let Some(val) = kw.get_item("basis_gates")? {
             options.basis_gates = val.extract::<Vec<String>>()?;
         }
-        if let Ok(val) = kw.get_item("disable_constants") {
+        if let Some(val) = kw.get_item("disable_constants")? {
             options.disable_constants = val.extract::<bool>()?;
         }
-        if let Ok(val) = kw.get_item("allow_aliasing") {
+        if let Some(val) = kw.get_item("allow_aliasing")? {
             options.allow_aliasing = val.extract::<bool>()?;
         }
-        if let Ok(val) = kw.get_item("indent") {
+        if let Some(val) = kw.get_item("indent")? {
             options.indent = val.extract::<String>()?;
         }
     }
@@ -238,20 +237,19 @@ pub fn dump(
     let mut options = DumpOptions::default();
 
     if let Some(kw) = kwargs {
-        let kw = kw.as_ref();
-        if let Ok(val) = kw.get_item("includes") {
+        if let Some(val) = kw.get_item("includes")? {
             options.includes = val.extract::<Vec<String>>()?;
         }
-        if let Ok(val) = kw.get_item("basis_gates") {
+        if let Some(val) = kw.get_item("basis_gates")? {
             options.basis_gates = val.extract::<Vec<String>>()?;
         }
-        if let Ok(val) = kw.get_item("disable_constants") {
+        if let Some(val) = kw.get_item("disable_constants")? {
             options.disable_constants = val.extract::<bool>()?;
         }
-        if let Ok(val) = kw.get_item("allow_aliasing") {
+        if let Some(val) = kw.get_item("allow_aliasing")? {
             options.allow_aliasing = val.extract::<bool>()?;
         }
-        if let Ok(val) = kw.get_item("indent") {
+        if let Some(val) = kw.get_item("indent")? {
             options.indent = val.extract::<String>()?;
         }
     }
