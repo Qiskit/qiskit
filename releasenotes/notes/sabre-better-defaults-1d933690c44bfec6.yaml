@@ -1,5 +1,5 @@
 ---
-upgrade_transpiler:
+other:
   - |
     The relative weights of the "basic" and "lookahead" components of the :class:`.SabreSwap` and
     :class:`.SabreLayout` heuristics have been modified when extended-set tracking is active (as it
