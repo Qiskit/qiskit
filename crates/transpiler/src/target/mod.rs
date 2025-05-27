@@ -1409,11 +1409,6 @@ impl Target {
     pub fn is_empty(&self) -> bool {
         self.gate_map.is_empty()
     }
-
-    /// Returns a reference to the value within that key if present.
-    pub fn get(&self, name: &str) -> Option<&PropsMap> {
-        self.gate_map.get(name)
-    }
 }
 
 // To access the Target's gate map by gate name.
