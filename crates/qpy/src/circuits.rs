@@ -499,7 +499,7 @@ fn deserialize_standard_instruction(
 fn unpack_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
-    qpy_data: &QPYData,
+    qpy_data: &mut QPYData,
 ) -> PyResult<Instruction> {
     let name = &instruction.gate_class_name;
     let params: Vec<Param> = instruction
@@ -1325,6 +1325,7 @@ pub fn pack_circuit(
         _use_symengine: use_symengine,
         clbit_indices,
         standalone_var_indices: standalone_var_indices.unbind(),
+        vectors: HashMap::new(),
     };
     let header = pack_circuit_header(circuit, metadata_serializer, &qpy_data)?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
@@ -1363,11 +1364,12 @@ pub fn deserialize_circuit<'py>(
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
 ) -> PyResult<Bound<'py, PyAny>> {
-    let qpy_data = QPYData {
+    let mut qpy_data = QPYData {
         version,
         _use_symengine: use_symengine,
         clbit_indices: PyDict::new(py).unbind(),
         standalone_var_indices: PyDict::new(py).unbind(),
+        vectors: HashMap::new(),
     };
     // println!("Deserializing circuit {:?}", hex_string(serialized_circuit));
     let (packed_circuit, _) = deserialize::<formats::QPYFormatV13>(serialized_circuit)?;
@@ -1376,11 +1378,11 @@ pub fn deserialize_circuit<'py>(
     let global_phase = packed_circuit
         .header
         .global_phase_data
-        .to_param(py, &qpy_data)?;
+        .to_param(py, &mut qpy_data)?;
 
     let mut instructions: Vec<Instruction> = Vec::new();
     for instruction in packed_circuit.instructions {
-        let inst = unpack_instruction(py, &instruction, &qpy_data)?;
+        let inst = unpack_instruction(py, &instruction, &mut qpy_data)?;
         instructions.push(inst);
     }
     let mut circuit_data = CircuitData::from_packed_operations(

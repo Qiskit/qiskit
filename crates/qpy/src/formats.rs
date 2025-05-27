@@ -55,7 +55,7 @@ pub struct CircuitHeaderV12Pack {
     pub global_phase_data: DumpedValue,
     #[br(count = metadata_size)]
     pub metadata: Bytes,
-    #[br(count = num_registers)] // TODO: this is wrong
+    #[br(count = num_registers)]
     pub registers: Vec<RegisterV4Pack>,
 }
 
@@ -495,30 +495,29 @@ pub struct SparsePauliOpListElemPack {
 
 // general data types
 
-#[derive(BinWrite)]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct MappingPack {
+    #[bw(calc = items.len() as u64)]
     pub num_elements: u64,
+    #[br(count = num_elements)]
     pub items: Vec<MappingItem>,
 }
 
-#[derive(BinWrite)]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct MappingItem {
-    pub item_header: MappingItemHeader,
-    pub key_bytes: Bytes,
-    pub item_bytes: Bytes,
-}
-
-#[derive(BinWrite)]
-#[brw(big)]
-#[derive(Debug)]
-pub struct MappingItemHeader {
+    #[bw(calc = key_bytes.len() as u16)]
     pub key_size: u16,
     pub item_type: u8,
+    #[bw(calc = item_bytes.len() as u16)]
     pub size: u16,
+    #[br(count = usize::from(key_size))]
+    pub key_bytes: Bytes,
+    #[br(count = usize::from(size))]
+    pub item_bytes: Bytes,
 }
 
 #[derive(BinWrite)]

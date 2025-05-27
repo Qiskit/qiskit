@@ -12,6 +12,7 @@
 
 use binrw::meta::WriteEndian;
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
+use hashbrown::HashMap;
 use pyo3::exceptions::PyValueError;
 
 use pyo3::prelude::*;
@@ -27,7 +28,7 @@ use crate::circuits::{deserialize_circuit, pack_circuit};
 use crate::formats;
 use crate::params::{
     pack_parameter, pack_parameter_expression, pack_parameter_vector, unpack_parameter,
-    unpack_parameter_expression,
+    unpack_parameter_expression, unpack_parameter_vector,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 use core::fmt;
@@ -41,6 +42,7 @@ pub struct QPYData {
     pub _use_symengine: bool,
     pub clbit_indices: Py<PyDict>,
     pub standalone_var_indices: Py<PyDict>,
+    pub vectors: HashMap<String, Py<PyAny>>,
 }
 
 pub mod tags {
@@ -102,6 +104,19 @@ where
     let value = T::read_options(&mut cursor, Endian::Big, ()).unwrap(); //TODO better error handling
     let pos = cursor.position() as usize;
     Ok((value, &bytes[pos..]))
+}
+
+pub fn deserialize_vec<T>(mut bytes: &[u8]) -> PyResult<Vec<T>>
+where
+    T: BinRead<Args<'static> = ()> + Debug,
+{
+    let mut result = Vec::new();
+    while !bytes.is_empty() {
+        let (item, rest) = deserialize::<T>(bytes)?;
+        result.push(item);
+        bytes = rest;
+    }
+    Ok(result)
 }
 
 pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
@@ -433,7 +448,7 @@ impl DumpedValue {
         })
     }
 
-    pub fn to_python(&self, py: Python<'_>, qpy_data: &QPYData) -> PyResult<PyObject> {
+    pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYData) -> PyResult<PyObject> {
         Ok(match self.data_type {
             tags::INTEGER => {
                 let value: i64 = (&self.data).try_into()?;
@@ -450,13 +465,18 @@ impl DumpedValue {
             // tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
             tags::PARAMETER => {
                 let (parameter, _) = deserialize::<formats::ParameterPack>(&self.data)?;
-                unpack_parameter(py, parameter)?
+                unpack_parameter(py, &parameter)?
             }
-            // tags::PARAMETER_VECTOR => serialize_parameter_vector(py_object)?,
+            tags::PARAMETER_VECTOR => {
+                let (parameter_vector, _) =
+                    deserialize::<formats::ParameterVectorPack>(&self.data)?;
+                unpack_parameter_vector(py, &parameter_vector, qpy_data)?
+            }
+
             tags::PARAMETER_EXPRESSION => {
                 let (parameter_expression, _) =
                     deserialize::<formats::ParameterExpressionPack>(&self.data)?;
-                unpack_parameter_expression(py, parameter_expression)?
+                unpack_parameter_expression(py, parameter_expression, qpy_data)?
             }
             // tags::NUMPY_OBJ => {
             //     let np = py.import("numpy")?;
@@ -488,7 +508,7 @@ impl DumpedValue {
             }
         })
     }
-    pub fn to_param(&self, py: Python, qpy_data: &QPYData) -> PyResult<Param> {
+    pub fn to_param(&self, py: Python, qpy_data: &mut QPYData) -> PyResult<Param> {
         match self.data_type {
             tags::FLOAT => Ok(Param::Float((&self.data).try_into()?)),
             tags::PARAMETER_EXPRESSION => {
