@@ -331,7 +331,9 @@ def load(filename: str, num_physical_qubits: int | None = None):
         if not isinstance(num_physical_qubits, int):
             raise TypeError("`num_physical_qubits` has to be of type `int`")
         if qasm3_ckt.num_qubits > num_physical_qubits:
-            raise ValueError("Number of physical qubits cannot be more than than backend maximum number of qubits")
+            raise ValueError(
+                "Number of physical qubits cannot be more than than backend maximum number of qubits"
+            )
         if (difference := num_physical_qubits - qasm3_ckt.num_qubits) > 0:
             qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
 
@@ -367,7 +369,9 @@ def loads(program: str, num_physical_qubits: int | None = None):
         if not isinstance(num_physical_qubits, int):
             raise TypeError("`num_physical_qubits` has to be of type `int`")
         if qasm3_ckt.num_qubits > num_physical_qubits:
-            raise ValueError("Number of physical qubits cannot be more than than backend maximum number of qubits")
+            raise ValueError(
+                "Number of physical qubits cannot be more than than backend maximum number of qubits"
+            )
         if (difference := num_physical_qubits - qasm3_ckt.num_qubits) > 0:
             qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
 
