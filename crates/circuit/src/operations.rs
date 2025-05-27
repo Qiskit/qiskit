@@ -2776,24 +2776,18 @@ impl Operation for PyGate {
     }
 
     fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        if self.num_qubits() != 1 {
+            return None;
+        }
         Python::with_gil(|py| -> Option<[[Complex64; 2]; 2]> {
-            match self.num_qubits() {
-                1 => match self.gate.getattr(py, intern!(py, "to_matrix")) {
-                    Ok(to_matrix) => {
-                        let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
-                        match res {
-                            Some(x) => {
-                                let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
-                                let arr = array.as_array();
-                                Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
-                            }
-                            None => None,
-                        }
-                    }
-                    Err(_) => None,
-                },
-                _ => None,
-            }
+            let array = self
+                .gate
+                .call_method0(py, intern!(py, "to_matrix"))
+                .ok()?
+                .extract::<PyReadonlyArray2<Complex64>>(py)
+                .ok()?;
+            let arr = array.as_array();
+            Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
         })
     }
 }
