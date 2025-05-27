@@ -145,22 +145,12 @@ impl CircuitData {
         reserve: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
-        let qubits_registry = match qubits {
-            Some(ref bits) => ObjectRegistry::with_capacity(bits.len()),
-            None => ObjectRegistry::new(),
-        };
-        let clbits_registry = match clbits {
-            Some(ref bits) => ObjectRegistry::with_capacity(bits.len()),
-            None => ObjectRegistry::new(),
-        };
-        let qubit_indices = match qubits {
-            Some(ref bits) => BitLocator::with_capacity(bits.len()),
-            None => BitLocator::new(),
-        };
-        let clbit_indices = match qubits {
-            Some(ref bits) => BitLocator::with_capacity(bits.len()),
-            None => BitLocator::new(),
-        };
+        let qubit_size = qubits.as_ref().map_or(0, |bits| bits.len());
+        let clbit_size = clbits.as_ref().map_or(0, |bits| bits.len());
+        let qubits_registry = ObjectRegistry::with_capacity(qubit_size);
+        let clbits_registry = ObjectRegistry::with_capacity(clbit_size);
+        let qubit_indices = BitLocator::with_capacity(qubit_size);
+        let clbit_indices = BitLocator::with_capacity(clbit_size);
 
         let mut self_ = CircuitData {
             data: Vec::new(),
