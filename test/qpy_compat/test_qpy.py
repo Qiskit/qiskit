@@ -29,8 +29,8 @@ from qiskit.circuit import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info import Operator
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
+from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate, evolved_operator_ansatz
 from qiskit.circuit.gate import Gate
 from qiskit.version import VERSION as current_version_str
 
@@ -845,6 +845,10 @@ def generate_replay_with_expression_substitutions():
 
     return [qc]
 
+def generate_param_expression_with_complex_coeff():
+    """Test that parameter expressions stay real after QPY round trip."""
+    qc = evolved_operator_ansatz(SparsePauliOp(["Z"], coeffs=[1 + 0j]))
+    return [qc]
 
 def generate_v14_expr():
     """Circuits that contain expressions and types new in QPY v14."""
@@ -987,14 +991,16 @@ def generate_circuits(version_parts, current_version, load_context=False):
         output_circuits["replay_with_expressions.qpy"] = (
             generate_replay_with_expression_substitutions()
         )
-
+    if version_parts >= (1, 3, 0):
+        output_circuits["param_expr_with_complex.qpy"] = (
+            generate_param_expression_with_complex_coeff()
+        )
     if version_parts >= (2, 0, 0):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
         output_circuits["box.qpy"] = generate_box()
     return output_circuits
 
-
-def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False):
+def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False, sympify=False):
     """Compare two circuits."""
     if bind is not None:
         reference_parameter_names = [x.name for x in reference.parameters]
@@ -1008,6 +1014,25 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
             sys.exit(4)
         reference = reference.assign_parameters(bind)
         qpy = qpy.assign_parameters(bind)
+
+    if sympify is not None:
+        for i, data in enumerate(qpy.data):
+            for j, param in enumerate(data.params):
+                if not param.sympify() == reference.data[i][j].sympify():
+                    msg = (
+                        f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+                        f"qpy loaded circuit {count}:\n{qpy}\n"
+                    )
+            sys.stderr.write(msg)
+            sys.exit(1)
+
+        if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
+            msg = (
+                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+                f"qpy loaded circuit {count}:\n{qpy}\n"
+            )
+            sys.stderr.write(msg)
+            sys.exit(1)
 
     if equivalent:
         if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
@@ -1089,6 +1114,7 @@ def load_qpy(qpy_files, version_parts):
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
         for i, circuit in enumerate(circuits):
             bind = None
+            sympify = False
             if path == "parameterized.qpy":
                 bind = [1, 2]
             elif path == "param_phase.qpy":
@@ -1102,9 +1128,11 @@ def load_qpy(qpy_files, version_parts):
                 bind = np.linspace(1.0, 2.0, 15)
             elif path == "replay_with_expressions.qpy":
                 bind = [2.0]
+            elif path == "param_expr_with_complex.qpy":
+                sympify=True
 
             assert_equal(
-                circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
+                circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent, sympify=sympify
             )
 
     from qiskit.qpy.exceptions import QpyError
