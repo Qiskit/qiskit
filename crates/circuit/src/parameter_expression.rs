@@ -52,10 +52,8 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
         } else {
             None
         }
-    } else if let Ok(e) = value.extract::<ParameterExpression>() {
-        Some(e)
     } else {
-        None
+        value.extract::<ParameterExpression>().ok()
     }
 }
 
@@ -120,14 +118,6 @@ impl ParameterExpression {
             }),
             Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
         }
-    }
-
-    // return string to pass to sympify
-    pub fn expr_for_sympy(&self) -> String {
-        // using altenate format for sympify
-        let ret = self.expr.optimize().sympify().to_string();
-        ret.replace("$\\", "__begin_sympy_replace__")
-            .replace('$', "__end_sympy_replace__")
     }
 
     // unary functions
