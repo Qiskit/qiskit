@@ -72,7 +72,7 @@ jobs:
           python tools/report_numpy_state.py
           export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          stestr run
+          stestr run --slowest
         env:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
