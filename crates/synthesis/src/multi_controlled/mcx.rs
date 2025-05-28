@@ -66,7 +66,10 @@ fn c3sx() -> PyResult<CircuitData> {
 }
 
 /// Convenience methods to add gates to the circuit.
-pub trait CircuitDataAdder {
+///
+/// This trait is **not** intended to be user-facing. It defines utility functions
+/// that make the code easier to read and that are used only for synthesis.
+trait CircuitDataAdder {
     /// Appends H to the circuit.
     fn h(&mut self, q: u32);
 
