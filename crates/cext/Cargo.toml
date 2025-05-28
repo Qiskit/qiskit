@@ -21,6 +21,8 @@ num-complex.workspace = true
 qiskit-quantum-info.workspace = true
 qiskit-circuit.workspace = true
 pyo3 = { workspace = true, optional = true }
+ndarray.workspace = true
+nalgebra.workspace = true
 
 [build-dependencies]
 cbindgen = "0.29"

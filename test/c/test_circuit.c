@@ -38,7 +38,7 @@ int test_empty(void) {
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %lu is not 0", num_instructions);
+        printf("The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -339,12 +339,12 @@ int test_get_gate_counts_bv_barrier_and_measures() {
     for (i = 0; i < 1000; i++) {
         barrier_qubits[i] = i;
     }
-    qk_circuit_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 1000; i += 2) {
         uint32_t qubits[2] = {i, 999};
         qk_circuit_gate(qc, QkGate_CX, qubits, params);
     }
-    qk_circuit_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 999; i++) {
         uint32_t qubits[1] = {i};
         qk_circuit_gate(qc, QkGate_H, qubits, params);
@@ -423,12 +423,12 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
     for (i = 0; i < 1000; i++) {
         barrier_qubits[i] = i;
     }
-    qk_circuit_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 1000; i += 2) {
         uint32_t qubits[2] = {i, 999};
         qk_circuit_gate(qc, QkGate_CX, qubits, params);
     }
-    qk_circuit_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 999; i++) {
         uint32_t qubits[1] = {i};
         qk_circuit_gate(qc, QkGate_H, qubits, params);
@@ -627,6 +627,90 @@ cleanup:
     return result;
 }
 
+/**
+ * Test appending a unitary gate.
+ */
+int test_unitary_gate(void) {
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    uint32_t qubits[2] = {0, 1};
+
+    QkComplex64 c0 = make_complex_double(0, 0);
+    QkComplex64 c1 = make_complex_double(1, 0);
+    QkComplex64 matrix[16] = {c1, c0, c0, c0,  // this
+                              c0, c1, c0, c0,  // is
+                              c0, c0, c1, c0,  // for
+                              c0, c0, c0, c1}; // formatting
+
+    int ec = qk_circuit_unitary(qc, matrix, qubits, 2, false);
+    if (ec != QkExitCode_Success) {
+        qk_circuit_free(qc);
+        return ec;
+    }
+
+    int result = Ok;
+
+    size_t num_inst = qk_circuit_num_instructions(qc);
+    if (num_inst != 1) {
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    if (op_counts.len != 1 || strcmp(op_counts.data[0].name, "unitary") != 0 ||
+        op_counts.data[0].count != 1) {
+        result = EqualityError;
+        qk_opcounts_free(op_counts);
+        goto cleanup;
+    }
+    qk_opcounts_free(op_counts);
+
+    QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
+    if (strcmp(inst.name, "unitary") != 0 || inst.num_clbits != 0 || inst.num_params != 0 ||
+        inst.num_qubits != 2) {
+        result = EqualityError;
+    }
+    qk_circuit_instruction_free(inst);
+
+cleanup:
+    qk_circuit_free(qc);
+    return result;
+}
+
+/**
+ * Test passing a non-unitary gate returns the correct exit code.
+ */
+int test_not_unitary_gate(void) {
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    uint32_t qubits[2] = {0, 1};
+
+    QkComplex64 c0 = make_complex_double(0, 0);
+    QkComplex64 c1 = make_complex_double(1, 0);
+    QkComplex64 matrix[16] = {c1, c1, c0, c0,  // this
+                              c1, c1, c0, c0,  // is
+                              c0, c0, c1, c0,  // for
+                              c0, c0, c0, c1}; // formatting
+
+    int exit_code = qk_circuit_unitary(qc, matrix, qubits, 2, true);
+
+    int result = Ok;
+    if (exit_code != QkExitCode_ExpectedUnitary) {
+        printf("Got exit code %i but expected %i", exit_code, QkExitCode_ExpectedUnitary);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    size_t num_inst = qk_circuit_num_instructions(qc);
+    if (num_inst != 0) { // we expect no gate was added
+        printf("Found gate when none should be added");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_circuit_free(qc);
+    return result;
+}
+
 int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
@@ -657,6 +741,8 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_gate_num_qubits);
     num_failed += RUN_TEST(test_gate_num_params);
     num_failed += RUN_TEST(test_delay_instruction);
+    num_failed += RUN_TEST(test_unitary_gate);
+    num_failed += RUN_TEST(test_not_unitary_gate);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

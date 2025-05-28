@@ -1,0 +1,37 @@
+---
+name: Rust Tests
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: >
+          Python version to currently test
+        type: string
+        required: true
+
+      runner:
+        description: >
+          Describes the system this workflow should run on.
+        type: string
+        required: true
+jobs:
+  unit-tests:
+    name: Tests-Rust-${{ inputs.python-version }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Install Qiskit directly
+        run: |
+          set -e
+          python -m pip install -c constraints.txt -e .
+      - name: Run Rust Tests
+        run: |
+          python tools/report_numpy_state.py
+          python tools/run_cargo_test.py
