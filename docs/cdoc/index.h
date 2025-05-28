@@ -19,5 +19,5 @@
  */
 
 /**
- * @defgroup QkPropsMap QkPropsMap
+ * @defgroup QkTargetEntry QkTargetEntry
  */

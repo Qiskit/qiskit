@@ -17,6 +17,7 @@ use indexmap::IndexMap;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
+use smallvec::{smallvec, SmallVec};
 
 /// @ingroup QkTarget
 /// Construct a new ``Target`` with the given number of qubits.
@@ -345,10 +346,10 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
-///     QkPropsMap *props_map = qk_property_map_new();
+///     QkTargetEntry *entry = qk_target_entry_new();
 ///     uint32_t qargs[2] = {0, 1};
-///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, QkGate_CX, props_map);
+///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+///     qk_target_add_instruction(target, QkGate_CX, entry);
 ///
 ///     QkTarget *copied = qk_target_copy(target);
 ///
@@ -394,64 +395,128 @@ pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
 }
 
 /// Represents the mapping between qargs and ``InstructionProperties``
-pub struct PropertyMap(IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>);
+#[derive(Debug)]
+pub struct TargetEntry {
+    operation: StandardGate,
+    params: Option<SmallVec<[Param; 3]>>,
+    map: IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
+}
 
-/// @ingroup QkPropsMap
-/// Creates an object that will serve as a mapping between an instruction's
-/// qargs and instruction properties.
+impl TargetEntry {
+    pub fn new(operation: StandardGate) -> Self {
+        Self {
+            operation,
+            params: None,
+            map: Default::default(),
+        }
+    }
+
+    pub fn new_fixed(operation: StandardGate, params: SmallVec<[Param; 3]>) -> Self {
+        Self {
+            operation,
+            params: Some(params),
+            map: Default::default(),
+        }
+    }
+}
+
+/// @ingroup QkTargetEntry
+/// Creates an entry to the ``QkTarget`` based on a ``QkGate`` instance with
+/// no parameters.
 ///
-/// @return The Property Mapping structure.
+/// @param operation The Standard Gate representing this entry in the target.
+///
+/// @return The ``QkTargetEntry`` structure.
 ///
 /// # Example
 ///
-///     QkPropsMap *props_map = qk_property_map_new();
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_property_map_new() -> *mut PropertyMap {
-    Box::into_raw(Box::new(PropertyMap(Default::default())))
+pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEntry {
+    // Fast fail if the instruction is expecting parameters.
+    if operation.num_params() != 0 {
+        panic!("Tried to create an non-parametric entry with a parametric gate.")
+    }
+    Box::into_raw(Box::new(TargetEntry::new(operation)))
 }
 
-/// @ingroup QkPropsMap
+/// @ingroup QkTargetEntry
+/// Creates an object that will serve as a mapping between an instruction's
+/// qargs and instruction properties.
+///
+/// @param operation The Standard Gate representing this entry in the target.
+/// @param params The list of fixed parameters for this gate.
+///
+/// @return The ``QkTargetEntry`` structure.
+///
+/// # Example
+///
+///     double crx_params[1] = {3.14};
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CRX, crx_params);
+///
+/// # Safety
+///
+/// The ``params`` type is expected to be a pointer to an array of ``double`` where the length
+/// matches the the expectations of the standard gate. If the array is insufficently long the
+/// behavior of this function is undefined as this will read outside the bounds of the array.
+/// It can be a null pointer if there are no params for a given gate. You can check
+/// `qk_gate_num_params` to determine how many qubits are required for a given gate.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_entry_new_fixed(
+    operation: StandardGate,
+    params: *mut f64,
+) -> *mut TargetEntry {
+    unsafe {
+        Box::into_raw(Box::new(TargetEntry::new_fixed(
+            operation,
+            parse_params(operation, params),
+        )))
+    }
+}
+
+/// @ingroup QkTargetEntry
 /// Retrieves the length of the current property map.
 ///
 /// @param property_map The pointer to the mapping object.
 ///
-/// @return The length of the PropertyMap.
+/// @return The length of the TargetEntry.
 ///
 /// # Example
 ///
-///     QkPropsMap *props_map = qk_property_map_new();
-///     size_t props_size = qk_property_map_len(props_map);
+///     QkTargetEntry *entry = qk_target_entry_new();
+///     size_t props_size = qk_target_entry_len(entry);
 ///
 /// # Safety
 ///
 /// The behavior is undefined if ``property_map`` is not a valid,
-/// non-null pointer to a ``QkPropsMap`` object.
+/// non-null pointer to a ``QkTargetEntry`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_property_map_len(property_map: *const PropertyMap) -> usize {
+pub unsafe extern "C" fn qk_target_entry_len(property_map: *const TargetEntry) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let prop_map = unsafe { const_ptr_as_ref(property_map) };
-    prop_map.0.len()
+    prop_map.map.len()
 }
 
-/// @ingroup QkPropsMap
-/// Frees the property map.
+/// @ingroup QkTargetEntry
+/// Frees the entry.
 ///
 /// @param property_map The pointer to the mapping object to be freed.
 ///
 /// # Example
 ///
-///     QkPropsMap *props_map = qk_property_map_new();
-///     qk_property_map_free(props_map);
+///     QkTargetEntry *entry = qk_target_entry_new();
+///     qk_target_entry_free(entry);
 ///
 /// # Safety
 ///
 /// The behavior is undefined if ``property_map`` is not a valid,
-/// non-null pointer to a ``QkPropsMap`` object.
+/// non-null pointer to a ``QkTargetEntry`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_property_map_free(property_map: *mut PropertyMap) {
+pub unsafe extern "C" fn qk_target_entry_free(property_map: *mut TargetEntry) {
     if !property_map.is_null() {
         if !property_map.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.")
@@ -465,7 +530,7 @@ pub unsafe extern "C" fn qk_property_map_free(property_map: *mut PropertyMap) {
     }
 }
 
-/// @ingroup QkPropsMap
+/// @ingroup QkTargetEntry
 /// Adds an instruction property instance based on its assigned qargs.
 ///
 /// @param property_map The pointer to the mapping object.
@@ -478,18 +543,18 @@ pub unsafe extern "C" fn qk_property_map_free(property_map: *mut PropertyMap) {
 ///
 /// # Example
 ///
-///     QkPropsMap *props_map = qk_property_map_new();
+///     QkTargetEntry *entry = qk_target_entry_new();
 ///     uint32_t qargs[2] = {0, 1};
-///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
+///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///
 /// # Safety
 ///
 /// The behavior is undefined if ``property_map`` is not a valid, non-null pointer
-/// to a ``QkPropsMap`` object.
+/// to a ``QkTargetEntry`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_property_map_add(
-    property_map: *mut PropertyMap,
+pub unsafe extern "C" fn qk_target_entry_add_property(
+    property_map: *mut TargetEntry,
     qargs: *mut u32,
     num_qubits: u32,
     duration: f64,
@@ -507,147 +572,62 @@ pub unsafe extern "C" fn qk_property_map_add(
     };
     let error = if error.is_nan() { None } else { Some(error) };
     prop_map
-        .0
+        .map
         .insert(qubits, Some(InstructionProperties::new(duration, error)));
 }
 
 /// @ingroup QkTarget
-/// Adds a non-parameteric ``QkGate`` to the ``Target``.
+/// Adds a gate to the ``QkTarget`` through a ``QkTargetEntry``.
 ///
 /// @note Adding parametric gates with non-fixed parameters is currently
 /// not supported. See ``qk_target_add_fixed_instruction()`` for
 /// adding gates with fixed parameters.
 ///
 /// @param target A pointer to the ``Target``.
-/// @param instruction The ``QkGate`` to be added to the ``Target``.
-/// @param property_map The mapping of qargs and InstructionProperties to
-/// be associated with this instruction.
+/// @param target_entry A pointer to the ``TargetEntry`` containing the gate and
+/// the mapping of qargs and InstructionProperties to be associated with this
+/// instruction. The pointer gets freed when added to the ``Target``.
 ///
 /// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
-///     QkPropsMap *props_map = qk_property_map_new();
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
 ///     uint32_t qargs[2] = {0, 1};
-///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, QkGate_CX, props_map);
+///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+///     qk_target_add_instruction(target, entry);
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
-/// Behavior is undefined if ``property_map`` is not a valid, non-null pointer to a ``QkPropsMap``.
+/// Behavior is undefined if ``property_map`` is not a valid, non-null pointer to a ``QkTargetEntry``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_add_instruction(
     target: *mut Target,
-    instruction: StandardGate,
-    property_map: *const PropertyMap,
+    target_entry: *mut TargetEntry,
 ) -> ExitCode {
-    // Fast-fail if the gate is parametric.
-    if instruction.num_params() != 0 {
-        return ExitCode::TargetNonFixedParametricGate;
-    }
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let entry = unsafe { Box::from_raw(target_entry) };
+    let instruction = entry.operation;
 
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
 
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let property_map = unsafe {
-        if property_map.is_null() {
-            None
-        } else {
-            Some(const_ptr_as_ref(property_map))
-        }
+    let property_map = if entry.map.is_empty() {
+        None
+    } else {
+        Some(entry.map)
     };
-    let props_map = property_map.map(|props| props.0.clone());
 
-    match target.add_instruction(instruction.into(), &[], None, props_map) {
-        Ok(_) => ExitCode::Success,
-        Err(e) => e.into(),
-    }
-}
-
-/// @ingroup QkTarget
-/// Adds a ``QkGate`` to the ``Target`` with fixed parameters.
-///
-/// @param target A pointer to the ``Target``.
-/// @param instruction The ``QkGate`` to be added to the ``Target``.
-/// @param params The pointer to the array of ``double`` values to use as
-/// parameters to the StandardGate. This can be a null pointer if there
-/// are no parameters to be added.
-/// @param property_map The mapping of qargs and InstructionProperties to
-/// be associated with this instruction.
-///
-/// @return ``QkExitCode`` specifying if the operation was successful.
-///
-/// # Example
-///     
-///     QkTarget *target = qk_target_new(5);
-///     QkPropsMap *props_map = qk_property_map_new();
-///     uint32_t qargs[2] = {0, 1};
-///     double params[1] = {3.1415};
-///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
-///     qk_target_add_fixed_instruction(target, QkGate_CRX, params, props_map);
-///
-/// # Safety
-///
-/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-///
-/// The ``params`` type is expected to be a pointer to an array of ``double`` where the length
-/// matches the the expectations of the standard gate. If the array is insufficently long the
-/// behavior of this function is undefined as this will read outside the bounds of the array.
-/// It can be a null pointer if there are no params for a given gate. You can check
-/// `qk_gate_num_params` to determine how many qubits are required for a given gate.
-///
-/// Behavior is undefined if ``property_map`` is not a valid, non-null pointer to a ``QkPropsMap``.
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_add_fixed_instruction(
-    target: *mut Target,
-    instruction: StandardGate,
-    params: *mut f64,
-    property_map: *const PropertyMap,
-) -> ExitCode {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let target = unsafe { mut_ptr_as_ref(target) };
-
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let property_map = unsafe {
-        if property_map.is_null() {
-            None
-        } else {
-            Some(const_ptr_as_ref(property_map))
-        }
-    };
-    // SAFETY: Per the documentation the params pointers are arrays of num_params() elements.
-    let parsed_params: &[Param] = unsafe {
-        match instruction.num_params() {
-            0 => &[],
-            1 => &[(*params.wrapping_add(0)).into()],
-            2 => &[
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-            ],
-            3 => &[
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-                (*params.wrapping_add(2)).into(),
-            ],
-            4 => &[
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-                (*params.wrapping_add(2)).into(),
-                (*params.wrapping_add(3)).into(),
-            ],
-            // There are no standard gates that take > 4 params
-            _ => unreachable!(),
-        }
-    };
-    let props_map = property_map.map(|props| props.0.clone());
-
-    match target.add_instruction(instruction.into(), parsed_params, None, props_map) {
+    match target.add_instruction(
+        instruction.into(),
+        &entry.params.unwrap_or_default(),
+        None,
+        property_map,
+    ) {
         Ok(_) => ExitCode::Success,
         Err(e) => e.into(),
     }
@@ -670,11 +650,11 @@ pub unsafe extern "C" fn qk_target_add_fixed_instruction(
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
-///     QkPropsMap *props_map = qk_property_map_new();
+///     QkTargetEntry *entry = qk_target_entry_new();
 ///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
-///     qk_property_map_add(props_map, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction_fixed_params(target, QkGate_CRX, params, props_map);
+///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+///     qk_target_add_instruction_fixed_params(target, QkGate_CRX, params, entry);
 ///
 ///     qk_target_update_property(target, QkGate_CRX, qargs, 2, 0.0012, 1.1)
 ///
@@ -730,7 +710,8 @@ pub unsafe extern "C" fn qk_target_update_property(
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
-///     qk_target_add_instruction(target, QkGate_H, NULL);
+///     QkTargetEntry *target_enty = qk_target_entry_new(QkGate_H);
+///     qk_target_add_instruction(target, target_entry);
 ///
 ///     qk_target_len(target)
 ///
@@ -758,6 +739,34 @@ unsafe fn parse_qargs(qargs: *const u32, num_qubits: u32) -> Qargs {
             (0..num_qubits)
                 .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
                 .collect()
+        }
+    }
+}
+
+/// Parse params based on a standarg gate and a pointer to a float.
+unsafe fn parse_params(gate: StandardGate, params: *mut f64) -> SmallVec<[Param; 3]> {
+    // SAFETY: Per the documentation the params pointers are arrays of num_params() elements.
+    unsafe {
+        match gate.num_params() {
+            0 => smallvec![],
+            1 => smallvec![(*params.wrapping_add(0)).into()],
+            2 => smallvec![
+                (*params.wrapping_add(0)).into(),
+                (*params.wrapping_add(1)).into(),
+            ],
+            3 => smallvec![
+                (*params.wrapping_add(0)).into(),
+                (*params.wrapping_add(1)).into(),
+                (*params.wrapping_add(2)).into(),
+            ],
+            4 => smallvec![
+                (*params.wrapping_add(0)).into(),
+                (*params.wrapping_add(1)).into(),
+                (*params.wrapping_add(2)).into(),
+                (*params.wrapping_add(3)).into(),
+            ],
+            // There are no standard gates that take > 4 params
+            _ => unreachable!(),
         }
     }
 }

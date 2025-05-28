@@ -126,10 +126,10 @@ int test_target_construct(void) {
  * Test construction of PropsMap
  */
 int test_property_map_construction(void) {
-    QkPropsMap *property_map = qk_property_map_new();
+    QkTargetEntry *property_map = qk_target_entry_new(QkGate_H);
 
     // Test length
-    const size_t length = qk_property_map_len(property_map);
+    const size_t length = qk_target_entry_len(property_map);
     if (length != 0) {
         printf("The initial length of the provided property map was not zero: %zu", length);
         return EqualityError;
@@ -138,15 +138,15 @@ int test_property_map_construction(void) {
     // Add some qargs and properties
     uint32_t qargs[2] = {0, 1};
 
-    qk_property_map_add(property_map, qargs, 2, 0.00018, 0.00002);
+    qk_target_entry_add_property(property_map, qargs, 2, 0.00018, 0.00002);
     // Test length
-    const size_t new_length = qk_property_map_len(property_map);
+    const size_t new_length = qk_target_entry_len(property_map);
     if (new_length != 1) {
         printf("The initial length of the provided property map was not 1: %zu", length);
         return EqualityError;
     }
 
-    qk_property_map_free(property_map);
+    qk_target_entry_free(property_map);
     return Ok;
 }
 
@@ -161,7 +161,7 @@ int test_target_add_instruction(void) {
     // Add an X Gate.
 
     // This operation is global, no property map is provided
-    qk_target_add_instruction(target, QkGate_X, NULL);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
 
     // Number of qubits of the target should not change.
     size_t current_num_qubits = qk_target_num_qubits(target);
@@ -179,13 +179,13 @@ int test_target_add_instruction(void) {
     // Add a CX Gate.
     // Create prop_map for the instruction
     // Add property for (0, 1)
-    QkPropsMap *property_map = qk_property_map_new();
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
     uint32_t qargs[2] = {0, 1};
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
-    qk_property_map_add(property_map, qargs, 2, inst_duration, inst_error);
+    qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
 
-    qk_target_add_instruction(target, QkGate_CX, property_map);
+    qk_target_add_instruction(target, cx_entry);
 
     // Number of qubits of the target should change to 2.
     current_num_qubits = qk_target_num_qubits(target);
@@ -204,15 +204,15 @@ int test_target_add_instruction(void) {
     // Add a CRX Gate.
     // Create prop_map for the instruction
     // Add property for (0, 1)
-    QkPropsMap *crx_property_map = qk_property_map_new();
+    double crx_params[1] = {3.14};
+    QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params);
     uint32_t crx_qargs[2] = {1, 2};
     double crx_inst_error = 0.0129023;
     double crx_inst_duration = 0.92939;
-    qk_property_map_add(property_map, crx_qargs, 2, crx_inst_duration, crx_inst_error);
+    qk_target_entry_add_property(crx_entry, crx_qargs, 2, crx_inst_duration, crx_inst_error);
     // CX Gate is not paramtric.
-    double crx_params[1] = {3.14};
 
-    qk_target_add_fixed_instruction(target, QkGate_CRX, crx_params, property_map);
+    qk_target_add_instruction(target, crx_entry);
 
     // Number of qubits of the target should change to 3.
     current_num_qubits = qk_target_num_qubits(target);
@@ -228,19 +228,8 @@ int test_target_add_instruction(void) {
         return EqualityError;
     }
 
-    // Try to add a parametric gate without fixed params
-    QkExitCode result_add = qk_target_add_instruction(target, QkGate_CRY, property_map);
-    if (result_add != QkExitCode_TargetNonFixedParametricGate) {
-        printf(
-            "Operation did not fail as expected. A parametric gate was added without parameters!");
-        result = EqualityError;
-        goto cleanup;
-    }
-
 cleanup:
     qk_target_free(target);
-    qk_property_map_free(property_map);
-    qk_property_map_free(crx_property_map);
     return result;
 }
 
@@ -256,13 +245,13 @@ int test_target_update_instruction(void) {
     // Add a CX Gate.
     // Create prop_map for the instruction
     // Add property for (0, 1)
-    QkPropsMap *property_map = qk_property_map_new();
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
     uint32_t qargs[2] = {0, 1};
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
-    qk_property_map_add(property_map, qargs, 2, inst_duration, inst_error);
+    qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
     // CX Gate is not paramtric. Re-use Null
-    qk_target_add_instruction(target, QkGate_CX, property_map);
+    qk_target_add_instruction(target, cx_entry);
 
     // change the intruction property of cx
     double cx_new_inst_error = NAN;
@@ -296,7 +285,6 @@ int test_target_update_instruction(void) {
 
 cleanup:
     qk_target_free(target);
-    qk_property_map_free(property_map);
     return result;
 }
 

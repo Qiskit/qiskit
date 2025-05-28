@@ -1462,6 +1462,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-transpiler",
+ "smallvec",
  "thiserror 2.0.12",
 ]
 

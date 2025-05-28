@@ -1,11 +1,11 @@
 
-==========
-QkPropsMap
-==========
+=============
+QkTargetEntry
+=============
 
 .. code-block:: C
 
-    typedef struct QkPropsMap QkPropsMap
+    typedef struct QkTargetEntry QkTargetEntry
 
 A mapping of qargs and instruction properties representing gate map of the 
 Target. This feature is used due to not having valid native mappings available from
@@ -18,23 +18,20 @@ Here's an example of how this structure works:
     #include <qiskit.h>
     #include "math.h"
 
-    // Create a Property Map
-    QkPropsMap *property_map = qk_property_map_new();
+    // Create a Property Map for a CX Gate
+    QkTargetEntry *property_map = qk_target_entry_new(QkGate_CX);
 
     // Add mapping between (0,1) and InstructionProperties(10e-9, NAN)
     uint32_t qargs[2] = {0, 1};
-    qk_property_map_add(property_map, qargs, 2, 10e-9, NAN);
+    qk_target_entry_add(property_map, qargs, 2, 10e-9, NAN);
 
     // Add mapping between Global, and InstructionProperties(NAN, 0.003)
-    qk_property_map_add(property_map, NULL, 0, NAN, 0.003);
-
-    // Free the pointer
-    qk_property_map_free(property_map)
+    qk_target_entry_add(property_map, NULL, 0, NAN, 0.003);
 
 
 Functions
 =========
 
-.. doxygengroup:: QkPropsMap
+.. doxygengroup:: QkTargetEntry
     :members:
     :content-only:
