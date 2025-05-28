@@ -642,6 +642,12 @@ impl CircuitData {
         Ok(())
     }
 
+    /// Checks whether the circuit has an instance of :class:`.ControlFlowOp`
+    /// present amongst its operations.
+    pub fn has_control_flow_op(&self) -> bool {
+        self.data.iter().any(|inst| inst.op.control_flow())
+    }
+
     /// Replaces the bits of this container with the given ``qubits``
     /// and/or ``clbits``.
     ///
