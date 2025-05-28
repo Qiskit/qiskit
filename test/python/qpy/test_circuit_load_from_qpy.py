@@ -14,7 +14,6 @@
 
 import io
 import struct
-import unittest
 
 from ddt import ddt, data
 
@@ -297,8 +296,6 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
     @data(True, False)
     def test_use_symengine_with_bool_like(self, use_symengine):
         """Test that the use_symengine flag is set correctly with a bool-like input."""
-        if use_symengine and not optionals.HAS_SYMENGINE:
-            raise unittest.SkipTest("we can't force 'use_symengine' if we don't have it")
 
         class Booly:  # pylint: disable=missing-class-docstring,missing-function-docstring
             def __init__(self, value):
@@ -313,6 +310,9 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
         qc.rx(two_theta, 0)
         qc.measure_all()
         # Assert Roundtrip works
+        # `use_symengine` is near-completely ignored with QPY versions 13+; it doesn't actually
+        # matter if we _have_ symengine installed or not, because those QPYs don't ever use it
+        # (except for setting a single byte in the header, which is promptly ignored).
         self.assert_roundtrip_equal(qc, use_symengine=Booly(use_symengine), version=13)
         # Also check the qpy symbolic expression encoding is correct in the
         # payload
