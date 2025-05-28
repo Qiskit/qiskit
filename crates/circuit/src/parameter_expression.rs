@@ -184,14 +184,10 @@ pub struct ParameterExpression {
 impl Hash for ParameterExpression {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match &self.inner {
-            ParameterInner::Symbol { name, ..} => {
+            ParameterInner::Symbol { name, .. } => {
                 name.hash(state);
             }
-            ParameterInner::VectorElement {
-                name,
-                index,
-                ..
-            } => {
+            ParameterInner::VectorElement { name, index, .. } => {
                 name.hash(state);
                 index.hash(state);
             }
@@ -1145,7 +1141,7 @@ impl ParameterExpression {
                 } else {
                     false
                 }
-            },
+            }
             (
                 ParameterInner::Expression { expr, .. },
                 ParameterInner::Expression {
@@ -1163,11 +1159,8 @@ impl ParameterExpression {
                 } else {
                     false
                 }
-            },
-            (
-                ParameterInner::Expression { expr, .. },
-                _,
-            ) => {
+            }
+            (ParameterInner::Expression { expr, .. }, _) => {
                 if expr == &other.expr() {
                     if check_uuid {
                         // if there are some conflicts, the equation is not equal
@@ -1179,7 +1172,7 @@ impl ParameterExpression {
                 } else {
                     false
                 }
-            },
+            }
             (
                 _,
                 ParameterInner::Expression {
@@ -1197,7 +1190,7 @@ impl ParameterExpression {
                 } else {
                     false
                 }
-            },
+            }
         }
     }
 
@@ -1921,7 +1914,7 @@ impl ParameterExpression {
                         }
                     }
                     Ok(out.unbind())
-                },
+                }
                 None => Ok(out.unbind()),
             },
             ParameterInner::VectorElement { .. } => {
