@@ -65,14 +65,15 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
     Example::
 
-        from qiskit.circuit.library import QFT
+        from qiskit.circuit.library import QFTGate
         from qiskit.transpiler import PassManager
         from qiskit.transpiler.passes import ALAPScheduleAnalysis, ContextAwareDynamicalDecoupling
         from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
         from qiskit_ibm_runtime.fake_provider import FakeSherbrooke
 
         num_qubits = 10
-        circuit = QFT(num_qubits)
+        circuit = QuantumCircuit(num_qubits)
+        circuit.append(QFTGate(num_qubits), circuit.qubits)
         circuit.measure_all()
 
         target = FakeSherbrooke().target
@@ -99,7 +100,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         self,
         target: Target,
         *,
-        min_joinable_duration: int | None = None,
+        min_duration: int | None = None,
         skip_reset_qubits: bool = True,
         skip_dd_threshold: float = 1.0,
         pulse_alignment: int | None = None,
@@ -108,7 +109,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         """
         Args:
             target: The :class:`.Target` of the device to run the circuit.
-            min_joinable_duration: Minimal delay duration (in ``dt``) to join delays. This
+            min_duration: Minimal delay duration (in ``dt``) to insert a DD sequence. This
                 can be useful, e.g. if a big delay block would be interrupted and split into
                 smaller blocks due to a very short, adjacent delay. If ``None``, this is set
                 to be at least twice the difference of the longest/shortest CX or ECR gate.
@@ -137,13 +138,13 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         if not 0 <= skip_dd_threshold <= 1:
             raise ValueError(f"skip_dd_threshold must be in [0, 1], but is {skip_dd_threshold}")
 
-        if min_joinable_duration is None:
+        if min_duration is None:
             if target.dt is None:
-                min_joinable_duration = 0
+                min_duration = 0
             else:
-                min_joinable_duration = 2 * _gate_length_variance(target) / target.dt
+                min_duration = 2 * _gate_length_variance(target) / target.dt
 
-        self._min_joinable_duration = min_joinable_duration
+        self._min_duration = min_duration
         self._skip_reset_qubits = skip_reset_qubits
         self._skip_dd_threshold = skip_dd_threshold
         self._target = target
@@ -260,7 +261,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             if (
                 node.op.name == "delay"
                 and not is_after_reset(node)
-                and self._duration(node, qubit_map) > self._min_joinable_duration
+                and self._duration(node, qubit_map) > self._min_duration
             )
             for event_type in (EventType.BEGIN, EventType.END)
         ]

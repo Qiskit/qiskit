@@ -182,8 +182,8 @@ class TestContextAwareDD(QiskitTestCase):
 
         self.assertEqual(circuit.count_ops().get("x", 0), expected_x)
 
-    def test_min_joinable_default(self):
-        """Test the default value for minimum joinable durations."""
+    def test_min_duration_default(self):
+        """Test the default value for minimum durations."""
         circuit = QuantumCircuit(3)
         circuit.cx(0, 1)
         circuit.cx(1, 2)
@@ -192,7 +192,7 @@ class TestContextAwareDD(QiskitTestCase):
         target, max_diff = get_varying_target(5)
         dd = ContextAwareDynamicalDecoupling(target)
 
-        self.assertAlmostEqual(2 * max_diff / target.dt, dd._min_joinable_duration)
+        self.assertAlmostEqual(2 * max_diff / target.dt, dd._min_duration)
 
     def test_2q_gate_combos(self):
         """Test the ctrl/tgt specific behavior for CX/ECR and default for others (like CZ).
@@ -574,7 +574,7 @@ class TestContextAwareDD(QiskitTestCase):
         dd = PassManager(
             [
                 ALAPScheduleAnalysis(target.durations(), target=target),
-                ContextAwareDynamicalDecoupling(target, min_joinable_duration=0),
+                ContextAwareDynamicalDecoupling(target, min_duration=0),
             ]
         )
         circuit = dd.run(pre.run(circuit))
@@ -588,7 +588,7 @@ class TestContextAwareDD(QiskitTestCase):
         # or if there are more than len(snake) - 2 layers of multi delay operations
         self.assertEqual(num_x, circuit.count_ops().get("x", 0))
 
-    def test_min_joinable_duration(self):
+    def test_min_duration(self):
         """Test cutting off short peaks below the joinable duration.
 
         delay is too short
@@ -615,7 +615,7 @@ class TestContextAwareDD(QiskitTestCase):
                 ContextAwareDynamicalDecoupling(
                     target,
                     skip_reset_qubits=False,
-                    min_joinable_duration=self.t_x + 1,
+                    min_duration=self.t_x + 1,
                 ),
             ]
         )
