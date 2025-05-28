@@ -123,7 +123,7 @@ def n_local(
     .. plot::
         :alt: Circuit diagram output by the previous code.
         :include-source:
-        :context:
+
         from qiskit.circuit.library import n_local
         circuit = n_local(3, "ry", "cx", "linear", reps=2, insert_barriers=True)
         circuit.draw("mpl")
@@ -134,7 +134,7 @@ def n_local(
     .. plot::
         :alt: Circuit diagram output by the previous code.
         :include-source:
-        :context: close-figs
+
         circuit = n_local(3, ["ry", "rz"], "cz", "full", reps=1, insert_barriers=True)
         circuit.draw("mpl")
 
@@ -143,7 +143,7 @@ def n_local(
     .. plot::
         :alt: Circuit diagram output by the previous code.
         :include-source:
-        :context: close-figs
+
         circuit = n_local(4, [], "cry", reps=2)
         circuit.draw("mpl")
 
@@ -152,7 +152,7 @@ def n_local(
     .. plot::
         :alt: Circuit diagram output by the previous code.
         :include-source:
-        :context: close-figs
+
         entangler_map = [[0, 1], [2, 0]]
         circuit = n_local(3, "x", "crx", entangler_map, reps=2)
         circuit.draw("mpl")
@@ -164,7 +164,7 @@ def n_local(
     .. plot::
         :alt: Circuit diagram output by the previous code.
         :include-source:
-        :context: close-figs
+
         def entanglement(layer_index):
             if layer_index % 2 == 0:
                 return [[0, 1], [0, 2]]
