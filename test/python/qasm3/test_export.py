@@ -441,14 +441,19 @@ gate rxx(p0) _gate_q_0, _gate_q_1 {
 gate PauliEvolution(_t_0_) _gate_q_0, _gate_q_1 {
   rxx(2*_t_0_) _gate_q_0, _gate_q_1;
 }
+gate sxdg _gate_q_0 {
+  s _gate_q_0;
+  h _gate_q_0;
+  s _gate_q_0;
+}
 gate ryy(p0) _gate_q_0, _gate_q_1 {
-  rx(pi/2) _gate_q_0;
-  rx(pi/2) _gate_q_1;
+  sxdg _gate_q_0;
+  sxdg _gate_q_1;
   cx _gate_q_0, _gate_q_1;
   rz(p0) _gate_q_1;
   cx _gate_q_0, _gate_q_1;
-  rx(-pi/2) _gate_q_0;
-  rx(-pi/2) _gate_q_1;
+  sx _gate_q_0;
+  sx _gate_q_1;
 }
 gate PauliEvolution_0(_t_1_) _gate_q_0, _gate_q_1 {
   ryy(2*_t_1_) _gate_q_0, _gate_q_1;
@@ -635,23 +640,17 @@ PauliEvolution_1(_t_2_) q[0], q[1];
         circuit.cx(0, 1)
         expected_qasm = """\
 OPENQASM 3.0;
-gate u3(p0, p1, p2) _gate_q_0 {
-  U(p0, p1, p2) _gate_q_0;
-}
-gate u1(p0) _gate_q_0 {
-  u3(0, 0, p0) _gate_q_0;
+gate p(p0) _gate_q_0 {
+  U(0, 0, p0) _gate_q_0;
 }
 gate rz(p0) _gate_q_0 {
-  u1(p0) _gate_q_0;
+  p(p0) _gate_q_0;
 }
 gate sdg _gate_q_0 {
-  u1(-pi/2) _gate_q_0;
-}
-gate u2(p0, p1) _gate_q_0 {
-  u3(pi/2, p0, p1) _gate_q_0;
+  p(-pi/2) _gate_q_0;
 }
 gate h _gate_q_0 {
-  u2(0, pi) _gate_q_0;
+  U(pi/2, 0, pi) _gate_q_0;
 }
 gate sx _gate_q_0 {
   sdg _gate_q_0;

@@ -71,7 +71,7 @@ class TestDecompose(QiskitTestCase):
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
-        self.assertEqual(op_nodes[0].name, "u2")
+        self.assertEqual(op_nodes[0].name, "u")
 
     def test_decompose_none(self):
         """Test decompose a single H into u2."""
@@ -83,7 +83,7 @@ class TestDecompose(QiskitTestCase):
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
-        self.assertEqual(op_nodes[0].name, "u2")
+        self.assertEqual(op_nodes[0].name, "u")
 
     def test_decompose_only_h(self):
         """Test to decompose a single H, without the rest"""
@@ -97,7 +97,7 @@ class TestDecompose(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 2)
         for node in op_nodes:
-            self.assertIn(node.name, ["cx", "u2"])
+            self.assertIn(node.name, ["cx", "u"])
 
     def test_decompose_toffoli(self):
         """Test decompose CCX."""
@@ -180,7 +180,7 @@ class TestDecompose(QiskitTestCase):
         decom_circ = circ.decompose(["h"])
         dag = circuit_to_dag(decom_circ)
         self.assertEqual(len(dag.op_nodes()), 2)
-        self.assertEqual(dag.op_nodes()[0].name, "u2")
+        self.assertEqual(dag.op_nodes()[0].name, "u")
         self.assertEqual(dag.op_nodes()[1].name, "cz")
 
     def test_decompose_only_given_label(self):
