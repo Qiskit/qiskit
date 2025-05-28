@@ -22,7 +22,7 @@ jobs:
           python -m pip install -c constraints.txt -e .
           python -m pip install "qiskit-aer" "z3-solver" "cplex" -c constraints.txt
       - name: Run all tests including slow
-        run: stestr run
+        run: stestr run --slowest
         env:
           RUST_BACKTRACE: 1
           QISKIT_TESTS: "run_slow"
