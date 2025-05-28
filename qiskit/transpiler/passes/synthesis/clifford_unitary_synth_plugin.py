@@ -48,7 +48,7 @@ class CliffordUnitarySynthesis(UnitarySynthesisPlugin):
 
     * min_qubits: the minumum number of qubits to consider (the default value is 1).
 
-    * max_qubits: the maximum number of qubits to consider (the defauly value is 3).
+    * max_qubits: the maximum number of qubits to consider (the default value is 3).
 
     """
 
