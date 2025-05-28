@@ -458,9 +458,9 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 /// @param qubits A pointer to array of qubit indices, of length ``num_qubits``.
 /// @param num_qubits The number of qubits the unitary acts on.
 /// @param check_input When true, the function verifies that the matrix is unitary.
-        If set to False the caller is responsible for ensuring the matrix is unitary, if
-        the matrix is not unitary this is undefined behavior and will result in a corrupt
-        circuit.     
+///     If set to False the caller is responsible for ensuring the matrix is unitary, if
+///     the matrix is not unitary this is undefined behavior and will result in a corrupt
+///     circuit.
 /// # Example
 ///
 ///     QkComplex64 c0 = qk_complex64_from_native(0);  // 0+0i
