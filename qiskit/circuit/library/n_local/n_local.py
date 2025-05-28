@@ -208,7 +208,7 @@ class NLocal(BlueprintCircuit):
         The :class:`NLocal` class is deprecated and will be removed in a future release.
         For new code, use the :func:`~qiskit.circuit.library.n_local` function instead,
         which provides the same functionality with better performance.
-        
+
         Usage examples have been moved to the :func:`~qiskit.circuit.library.n_local` function docstring.
     """
 
