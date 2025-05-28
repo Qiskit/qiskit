@@ -3947,7 +3947,9 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc = QuantumCircuit(127)
         for i in range(1, 127):
             qc.ecr(0, i)
-        backend = GenericBackendV2(num_qubits=130)
+        backend = GenericBackendV2(
+            num_qubits=130, coupling_map=CouplingMap.from_line(130, bidirectional=False)
+        )
         original_map = copy.deepcopy(backend.coupling_map)
         transpile(qc, backend, optimization_level=opt_level, seed_transpiler=42)
         self.assertEqual(original_map, backend.coupling_map)
