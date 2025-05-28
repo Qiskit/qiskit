@@ -414,7 +414,7 @@ pub struct OpCounts {
 }
 
 #[inline]
-fn conjugate(matrix: &ArrayView2<Complex64>) -> Array2<Complex64> {
+fn conjugate(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
     Array2::from_shape_fn((matrix.nrows(), matrix.ncols()), |(i, j)| {
         matrix[(j, i)].conj()
     })
@@ -432,10 +432,10 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
             .iter()
             .any(|val| val.abs() > tol),
         ArrayType::NDArray(mat) => {
-            let product = mat.dot(&conjugate(&mat.view()));
+            let product = mat.dot(&conjugate(mat.view()));
             product.indexed_iter().any(|((row, col), value)| {
                 if row == col {
-                    (value - Complex64::new(1.0, 0.0)).abs() > tol
+                    (value - Complex64::ONE).abs() > tol
                 } else {
                     value.abs() > tol
                 }
@@ -452,11 +452,15 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 /// @param matrix A pointer to the ``QkComplex64`` array representing the unitary matrix.
 ///     This must be a row-major, unitary matrix of dimension ``2 ^ num_qubits x 2 ^ num_qubits``.
 ///     More explicitly: the ``(i, j)``-th element is given by ``matrix[i * 2^n + j]``.
-///     The contents or ``matrix`` are copied into an internal buffer, so caller keeps ownership of
-///     the original  memoru and can free it or reuse it after the call.
+///     The contents of ``matrix`` are copied inside this function before being added to the circuit,
+///     so caller keeps ownership of the original memory that ``matrix`` points to and can reuse it
+///     after the call and the caller is responsible for freeing it.
 /// @param qubits A pointer to array of qubit indices, of length ``num_qubits``.
 /// @param num_qubits The number of qubits the unitary acts on.
 /// @param check_input When true, the function verifies that the matrix is unitary.
+        If set to False the caller is responsible for ensuring the matrix is unitary, if
+        the matrix is not unitary this is undefined behavior and will result in a corrupt
+        circuit.     
 /// # Example
 ///
 ///     QkComplex64 c0 = qk_complex64_from_native(0);  // 0+0i
