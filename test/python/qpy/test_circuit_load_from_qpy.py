@@ -24,7 +24,6 @@ from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
 from qiskit.transpiler import TranspileLayout
 from qiskit.compiler import transpile
-from qiskit.utils import optionals
 from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
