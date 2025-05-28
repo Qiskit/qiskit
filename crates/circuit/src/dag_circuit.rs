@@ -7524,17 +7524,12 @@ mod test {
 
     macro_rules! cx_gate {
         ($dag:expr, $q0:expr, $q1:expr) => {
-            PackedInstruction {
-                op: PackedOperation::from_standard_gate(StandardGate::CX),
-                qubits: $dag
-                    .qargs_interner
+            PackedInstruction::from_standard_gate(
+                StandardGate::CX,
+                None,
+                $dag.qargs_interner
                     .insert_owned(vec![Qubit($q0), Qubit($q1)]),
-                clbits: $dag.cargs_interner.get_default(),
-                params: None,
-                label: None,
-                #[cfg(feature = "cache_pygates")]
-                py_op: Default::default(),
-            }
+            )
         };
     }
 
