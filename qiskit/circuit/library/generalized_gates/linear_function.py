@@ -227,9 +227,9 @@ class LinearFunction(Gate):
         self.definition = synth_cnot_count_full_pmh(self.linear)
 
     @deprecate_func(
-        since="1.3",
-        pending=True,
+        since="2.1",
         additional_msg="Call LinearFunction.definition instead, or compile the circuit.",
+        removal_timeline="in Qiskit 3.0",
     )
     def synthesize(self):
         """Synthesizes the linear function into a quantum circuit.

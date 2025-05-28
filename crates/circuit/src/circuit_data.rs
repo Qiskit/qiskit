@@ -145,18 +145,25 @@ impl CircuitData {
         reserve: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
+        let qubit_size = qubits.as_ref().map_or(0, |bits| bits.len());
+        let clbit_size = clbits.as_ref().map_or(0, |bits| bits.len());
+        let qubits_registry = ObjectRegistry::with_capacity(qubit_size);
+        let clbits_registry = ObjectRegistry::with_capacity(clbit_size);
+        let qubit_indices = BitLocator::with_capacity(qubit_size);
+        let clbit_indices = BitLocator::with_capacity(clbit_size);
+
         let mut self_ = CircuitData {
             data: Vec::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: ObjectRegistry::new(),
-            clbits: ObjectRegistry::new(),
+            qubits: qubits_registry,
+            clbits: clbits_registry,
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
             cregs: RegisterData::new(),
-            qubit_indices: BitLocator::new(),
-            clbit_indices: BitLocator::new(),
+            qubit_indices,
+            clbit_indices,
         };
         self_.set_global_phase(global_phase)?;
         if let Some(qubits) = qubits {

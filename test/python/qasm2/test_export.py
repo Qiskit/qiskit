@@ -393,9 +393,13 @@ mcx q[0],q[1],q[2],q[3];"""
         # pylint: disable=line-too-long
         n = 5
         qc = QuantumCircuit(2 * n - 1)
-        qc.append(lib.MCXGrayCode(n), range(n + 1))
-        qc.append(lib.MCXRecursive(n), range(n + 2))
-        qc.append(lib.MCXVChain(n), range(2 * n - 1))
+        with self.assertWarns(DeprecationWarning):
+            gray = lib.MCXGrayCode(n)
+            recursive = lib.MCXRecursive(n)
+            vchain = lib.MCXVChain(n)
+        qc.append(gray, range(n + 1))
+        qc.append(recursive, range(n + 2))
+        qc.append(vchain, range(2 * n - 1))
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
