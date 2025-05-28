@@ -21,7 +21,7 @@ import numpy.random
 
 from qiskit.circuit import Clbit, ControlFlowOp, Qubit
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -1335,6 +1335,46 @@ class TestSabreSwapControlFlow(QiskitTestCase):
             if instruction.operation.name == "swap":
                 running_layout.swap(*instruction.qubits)
         self.assertEqual(initial_layout, running_layout)
+
+    def test_nested_vars(self):
+        """The Sabre rebuilder shouldn't choke if there is `Var` usage within a control-flow
+        block."""
+        qc = QuantumCircuit(4)
+        a = qc.add_input("a", types.Bool())
+        b = qc.add_var("b", False)
+        for other in qc.qubits[1:]:
+            qc.cx(0, other)
+        with qc.if_test(a):  # block 1
+            d = qc.add_var("d", False)
+            for other in qc.qubits[1:]:
+                qc.cx(0, other)
+            with qc.while_loop(expr.logic_and(b, d)):  # block 2
+                for other in qc.qubits[1:]:
+                    qc.cx(0, other)
+
+        # We don't care about the routing, just that the vars are there.
+        out = SabreSwap(CouplingMap.from_line(4), heuristic="basic", seed=0, trials=1)(qc)
+
+        def extract_vars(circuit):
+            """Extract the variables and the types of variables from a circuit and contained
+            control-flow blocks.  We assume that each block contains at most 1 control-flow block
+            with disparate names, just for ease."""
+
+            def extract_local(block):
+                return {
+                    "inputs": set(block.iter_input_vars()),
+                    "captures": set(block.iter_captured_vars()),
+                    "locals": set(block.iter_declared_vars()),
+                }
+
+            blocks = (
+                ("global", circuit),
+                ("if", (if_body := circuit.data[-1].operation.blocks[0])),
+                ("while", if_body.data[-1].operation.blocks[0]),
+            )
+            return {name: extract_local(block) for name, block in blocks}
+
+        self.assertEqual(extract_vars(qc), extract_vars(out))
 
 
 @ddt.ddt
