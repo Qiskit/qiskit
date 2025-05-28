@@ -78,8 +78,9 @@ def n_local(
     circuit). Each layer is repeated ``reps`` times, and by default a final rotation layer is
     appended.
 
-    Examples:
-        Minimal usage:
+    Examples::
+
+        Minimal usage::
             from qiskit.circuit.library import n_local, RYGate, CXGate
             circuit = n_local(
                 num_qubits=3,
@@ -91,7 +92,7 @@ def n_local(
             )
             print(circuit.count_ops())
 
-        Multiple rotation and entanglement blocks:
+        Multiple rotation and entanglement blocks::
             from qiskit.circuit.library import n_local, RYGate, RZGate, CXGate, CZGate
             from qiskit.circuit import Parameter
             theta = Parameter('θ')
@@ -106,7 +107,7 @@ def n_local(
             # and entanglement using CX and CZ gates in both linear and full patterns.
             print(circuit.count_ops())
 
-        Custom entanglement map:
+        Custom entanglement map::
             from qiskit.circuit.library import n_local, RYGate, CXGate
             circuit = n_local(
                 num_qubits=3,
@@ -117,7 +118,7 @@ def n_local(
             )
             print(circuit.count_ops())
 
-        Callable entanglement:
+        Callable entanglement::
             from qiskit.circuit.library import n_local, RYGate, CXGate
             def entanglement(layer):
                 return [[layer % 3, (layer + 1) % 3]]
@@ -130,7 +131,7 @@ def n_local(
             )
             print(circuit.count_ops())
 
-        Using an initial state:
+        Prepending an initial state::
             from qiskit.circuit.library import n_local, RYGate, CXGate
             from qiskit.circuit import QuantumCircuit
             initial = QuantumCircuit(3)
@@ -138,10 +139,10 @@ def n_local(
             circuit = n_local(
                 num_qubits=3,
                 rotation_blocks=RYGate(1),
-                entanglement_blocks=CXGate(),
-                initial_state=initial
+                entanglement_blocks=CXGate()
             )
-            print(circuit.count_ops())
+            full_circuit = initial.compose(circuit)
+            print(full_circuit.count_ops())
 
     Args:
         num_qubits: The number of qubits of the circuit.
@@ -209,7 +210,118 @@ class NLocal(BlueprintCircuit):
         For new code, use the :func:`~qiskit.circuit.library.n_local` function instead,
         which provides the same functionality with better performance.
 
-        Usage examples have been moved to the :func:`~qiskit.circuit.library.n_local` function docstring.
+    The structure of the n-local circuit are alternating rotation and entanglement layers.
+    In both layers, parameterized circuit-blocks act on the circuit in a defined way.
+    In the rotation layer, the blocks are applied stacked on top of each other, while in the
+    entanglement layer according to the ``entanglement`` strategy.
+    The circuit blocks can have arbitrary sizes (smaller equal to the number of qubits in the
+    circuit). Each layer is repeated ``reps`` times, and by default a final rotation layer is
+    appended.
+
+    For instance, a rotation block on 2 qubits and an entanglement block on 4 qubits using
+    ``'linear'`` entanglement yields the following circuit.
+
+    .. code-block:: text
+
+        ┌──────┐ ░ ┌──────┐                      ░ ┌──────┐
+        ┤0     ├─░─┤0     ├──────────────── ... ─░─┤0     ├
+        │  Rot │ ░ │      │┌──────┐              ░ │  Rot │
+        ┤1     ├─░─┤1     ├┤0     ├──────── ... ─░─┤1     ├
+        ├──────┤ ░ │  Ent ││      │┌──────┐      ░ ├──────┤
+        ┤0     ├─░─┤2     ├┤1     ├┤0     ├ ... ─░─┤0     ├
+        │  Rot │ ░ │      ││  Ent ││      │      ░ │  Rot │
+        ┤1     ├─░─┤3     ├┤2     ├┤1     ├ ... ─░─┤1     ├
+        ├──────┤ ░ └──────┘│      ││  Ent │      ░ ├──────┤
+        ┤0     ├─░─────────┤3     ├┤2     ├ ... ─░─┤0     ├
+        │  Rot │ ░         └──────┘│      │      ░ │  Rot │
+        ┤1     ├─░─────────────────┤3     ├ ... ─░─┤1     ├
+        └──────┘ ░                 └──────┘      ░ └──────┘
+
+        |                                 |
+        +---------------------------------+
+               repeated reps times
+
+    If specified, barriers can be inserted in between every block.
+    If an initial state object is provided, it is added in front of the NLocal.
+
+    .. seealso::
+
+        The :func:`.n_local` function constructs a functionally equivalent circuit, but faster.
+
+    Examples::
+
+        Minimal usage::
+
+            from qiskit.circuit.library import NLocal
+            from qiskit.circuit.library.standard_gates import RYGate, CXGate
+
+            nlocal = NLocal(
+                num_qubits=3,
+                rotation_blocks=RYGate(1),
+                entanglement_blocks=CXGate(),
+                entanglement='linear',
+                reps=2,
+                insert_barriers=True
+            )
+            nlocal.decompose().draw('mpl')
+
+        Multiple rotation and entanglement blocks::
+
+            from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate, CZGate
+
+            nlocal = NLocal(
+                num_qubits=4,
+                rotation_blocks=[RYGate(1), RZGate(1)],
+                entanglement_blocks=[CXGate(), CZGate()],
+                entanglement=['linear', 'full'],
+                reps=1
+            )
+
+        Custom entanglement map::
+
+            nlocal = NLocal(
+                num_qubits=3,
+                rotation_blocks=RYGate(1),
+                entanglement_blocks=CXGate(),
+                entanglement=[[0, 1], [1, 2]],
+                reps=2
+            )
+
+        Callable entanglement::
+
+            def entanglement(layer):
+                return [[layer % 3, (layer + 1) % 3]]
+
+            nlocal = NLocal(
+                num_qubits=3,
+                rotation_blocks=RYGate(1),
+                entanglement_blocks=CXGate(),
+                entanglement=entanglement,
+                reps=3
+            )
+
+        Using an initial state::
+
+            from qiskit.circuit import QuantumCircuit
+            initial = QuantumCircuit(3)
+            initial.x(0)
+            nlocal = NLocal(
+                num_qubits=3,
+                rotation_blocks=RYGate(1),
+                entanglement_blocks=CXGate(),
+                initial_state=initial
+            )
+
+        Parameter binding::
+
+            from qiskit.circuit import Parameter
+            theta = Parameter('θ')
+            nlocal = NLocal(
+                num_qubits=2,
+                rotation_blocks=RYGate(theta),
+                entanglement_blocks=CXGate()
+            )
+            nlocal_bound = nlocal.assign_parameters({theta: 0.5})
     """
 
     @deprecate_func(
