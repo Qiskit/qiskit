@@ -306,6 +306,86 @@ class NLocal(BlueprintCircuit):
 
         The :func:`.n_local` function constructs a functionally equivalent circuit, but faster.
 
+    Examples:
+
+        Minimal usage::
+
+            from qiskit.circuit.library import NLocal
+            from qiskit.circuit.library.standard_gates import RYGate, CXGate
+
+            nlocal = NLocal(
+                num_qubits=3,
+                rotation_blocks=RYGate(1),
+                entanglement_blocks=CXGate(),
+                entanglement='linear',
+                reps=2,
+                insert_barriers=True
+            )
+            nlocal.decompose().draw('mpl')
+
+        Multiple rotation and entanglement blocks::
+
+            from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate, CZGate
+
+            nlocal = NLocal(
+                num_qubits=4,
+                rotation_blocks=[RYGate(1), RZGate(1)],
+                entanglement_blocks=[CXGate(), CZGate()],
+                entanglement=['linear', 'full'],
+                reps=1
+            )
+
+        Custom entanglement map::
+
+            nlocal = NLocal(
+                num_qubits=3,
+                rotation_blocks=RYGate(1),
+                entanglement_blocks=CXGate(),
+                entanglement=[[0, 1], [1, 2]],
+                reps=2
+            )
+
+        Callable entanglement::
+
+            def entanglement(layer):
+                return [[layer % 3, (layer + 1) % 3]]
+
+            nlocal = NLocal(
+                num_qubits=3,
+                rotation_blocks=RYGate(1),
+                entanglement_blocks=CXGate(),
+                entanglement=entanglement,
+                reps=3
+            )
+
+        Using an initial state::
+
+            from qiskit.circuit import QuantumCircuit
+            initial = QuantumCircuit(3)
+            initial.x(0)
+            nlocal = NLocal(
+                num_qubits=3,
+                rotation_blocks=RYGate(1),
+                entanglement_blocks=CXGate(),
+                initial_state=initial
+            )
+
+        Parameter binding::
+
+            from qiskit.circuit import Parameter
+            theta = Parameter('θ')
+            nlocal = NLocal(
+                num_qubits=2,
+                rotation_blocks=RYGate(theta),
+                entanglement_blocks=CXGate()
+            )
+            nlocal_bound = nlocal.assign_parameters({theta: 0.5})
+
+    .. note::
+        The :class:`NLocal` class is deprecated and will be removed in a future release.
+        For new code, use the :func:`~qiskit.circuit.library.n_local` function instead,
+        which provides the same functionality with better performance.
+
     """
 
     @deprecate_func(
