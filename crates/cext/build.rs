@@ -10,40 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use regex::Regex;
-use std::env;
-use std::fs;
-use std::path::Path;
 use std::str::FromStr;
 
 extern crate cbindgen;
-
-/// This function generates version_constants.rs with integer version numbers
-fn write_version_constants() {
-    //Obtain version constants from environment variables.
-    let major = env::var("CARGO_PKG_VERSION_MAJOR").unwrap();
-    let minor = env::var("CARGO_PKG_VERSION_MINOR").unwrap();
-    let patch = env::var("CARGO_PKG_VERSION_PATCH").unwrap();
-
-    // Read the contents of cbindgen.toml and update version numbers.
-    let cbindgen_path = Path::new("cbindgen.toml");
-    let contents = fs::read_to_string(cbindgen_path).expect("Failed to read cbindgen.toml");
-
-    // Regex to match the version macro lines
-    let re_major = Regex::new(r#"(?m)^#define QISKIT_VERSION_MAJOR .*$"#).unwrap();
-    let re_minor = Regex::new(r#"(?m)^#define QISKIT_VERSION_MINOR .*$"#).unwrap();
-    let re_patch = Regex::new(r#"(?m)^#define QISKIT_VERSION_PATCH .*$"#).unwrap();
-
-    let contents =
-        re_major.replace_all(&contents, format!("#define QISKIT_VERSION_MAJOR {}", major));
-    let contents =
-        re_minor.replace_all(&contents, format!("#define QISKIT_VERSION_MINOR {}", minor));
-    let contents =
-        re_patch.replace_all(&contents, format!("#define QISKIT_VERSION_PATCH {}", patch));
-
-    fs::write(cbindgen_path, contents.into_owned())
-        .expect("Failed to write cbindgen.generated.toml");
-}
 
 /// This function generates the C header for Qiskit from the qiskit-cext crate.
 fn generate_qiskit_header() {
@@ -69,6 +38,5 @@ fn generate_qiskit_header() {
 }
 
 fn main() {
-    write_version_constants();
     generate_qiskit_header();
 }
