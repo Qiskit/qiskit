@@ -10,14 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ffi::{c_char, CStr, CString};
-
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use std::ffi::{c_char, CStr, CString};
 
+use nalgebra::{Matrix2, Matrix4};
+use ndarray::{Array2, ArrayView2};
+use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{DelayUnit, Operation, Param, StandardGate, StandardInstruction};
+use qiskit_circuit::operations::{
+    ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -420,6 +424,117 @@ pub struct OpCounts {
     data: *mut OpCount,
     /// The number of elements in ``data``
     len: usize,
+}
+
+#[inline]
+fn conjugate(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
+    Array2::from_shape_fn((matrix.nrows(), matrix.ncols()), |(i, j)| {
+        matrix[(j, i)].conj()
+    })
+}
+
+/// Check an [ArrayType] represents a unitary matrix. Uses an element-wise check; if
+/// any element in ``conjugate(matrix) * matrix`` differs from the identity by more than ``tol``
+/// (in magnitude), the matrix is not considered unitary.
+fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
+    let not_unitary = match matrix {
+        ArrayType::OneQ(mat) => (mat.adjoint() * mat - Matrix2::identity())
+            .iter()
+            .any(|val| val.abs() > tol),
+        ArrayType::TwoQ(mat) => (mat.adjoint() * mat - Matrix4::identity())
+            .iter()
+            .any(|val| val.abs() > tol),
+        ArrayType::NDArray(mat) => {
+            let product = mat.dot(&conjugate(mat.view()));
+            product.indexed_iter().any(|((row, col), value)| {
+                if row == col {
+                    (value - Complex64::ONE).abs() > tol
+                } else {
+                    value.abs() > tol
+                }
+            })
+        }
+    };
+    !not_unitary // using double negation to use ``any`` (faster) instead of ``all``
+}
+
+/// @ingroup QkCircuit
+/// Append an arbitrary unitary matrix to the circuit.
+///
+/// @param circuit A pointer to the circuit to append the unitary to.
+/// @param matrix A pointer to the ``QkComplex64`` array representing the unitary matrix.
+///     This must be a row-major, unitary matrix of dimension ``2 ^ num_qubits x 2 ^ num_qubits``.
+///     More explicitly: the ``(i, j)``-th element is given by ``matrix[i * 2^n + j]``.
+///     The contents of ``matrix`` are copied inside this function before being added to the circuit,
+///     so caller keeps ownership of the original memory that ``matrix`` points to and can reuse it
+///     after the call and the caller is responsible for freeing it.
+/// @param qubits A pointer to array of qubit indices, of length ``num_qubits``.
+/// @param num_qubits The number of qubits the unitary acts on.
+/// @param check_input When true, the function verifies that the matrix is unitary.
+///     If set to False the caller is responsible for ensuring the matrix is unitary, if
+///     the matrix is not unitary this is undefined behavior and will result in a corrupt
+///     circuit.
+/// # Example
+///
+///     QkComplex64 c0 = qk_complex64_from_native(0);  // 0+0i
+///     QkComplex64 c1 = qk_complex64_from_native(1);  // 1+0i
+///
+///     const uint32_t num_qubits = 1;
+///     const uint32_t dim = 2;
+///     QkComplex64[dim * dim] unitary = {c0, c1,  // row 0
+///                                       c1, c0}; // row 1
+///
+///     QkCircuit *circuit = qk_circuit_new(1, 0);  // 1 qubit circuit
+///     uint32_t qubit = {0};  // qubit to apply the unitary on
+///     qk_circuit_unitary(circuit, unitary, qubit, num_qubits);
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+///
+///   * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+///   * ``matrix`` is a pointer to a nested array of ``QkComplex64`` of dimension
+///     ``2 ^ num_qubits x 2 ^ num_qubits``
+///   * ``qubits`` is a pointer to ``num_qubits`` readable element of type ``uint32_t``
+///
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_unitary(
+    circuit: *mut CircuitData,
+    matrix: *const Complex64,
+    qubits: *const u32,
+    num_qubits: u32,
+    check_input: bool,
+) -> ExitCode {
+    // SAFETY: Caller quarantees pointer validation, alignment
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // Dimension of the unitart: 2^n
+    let dim = 1 << num_qubits;
+
+    // Build ndarray::Array2
+    let raw = unsafe { std::slice::from_raw_parts(matrix, dim * dim * 2) };
+    let mat = match num_qubits {
+        1 => ArrayType::OneQ(Matrix2::from_fn(|i, j| raw[i * dim + j])),
+        2 => ArrayType::TwoQ(Matrix4::from_fn(|i, j| raw[i * dim + j])),
+        _ => ArrayType::NDArray(Array2::from_shape_fn((dim, dim), |(i, j)| raw[i * dim + j])),
+    };
+
+    // verify the matrix is unitary
+    if check_input && !is_unitary(&mat, 1e-12) {
+        return ExitCode::ExpectedUnitary;
+    }
+
+    // Build qubit slice
+    let qargs: &[Qubit] =
+        unsafe { std::slice::from_raw_parts(qubits as *const Qubit, num_qubits as usize) };
+
+    // Create PackedOperation -> push to circuit_data
+    let u_gate = Box::new(UnitaryGate { array: mat });
+    let op = PackedOperation::from_unitary(u_gate);
+    circuit.push_packed_operation(op, &[], qargs, &[]);
+    // Return success
+    ExitCode::Success
 }
 
 /// @ingroup QkCircuit
