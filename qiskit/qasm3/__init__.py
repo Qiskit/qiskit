@@ -234,11 +234,10 @@ from qiskit.circuit import library
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.utils import optionals as _optionals
 
+from .._accelerate.qasm3 import CustomGate
+from .exceptions import QASM3Error, QASM3ExporterError, QASM3ImporterError
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter
-from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
-from .._accelerate.qasm3 import CustomGate
-
 
 STDGATES_INC_GATES = (
     CustomGate(library.PhaseGate, "p", 1, 1),
@@ -370,3 +369,76 @@ def load_experimental(pathlike_or_filelike, /, *, custom_gates=None, include_pat
         category=ExperimentalWarning,
     )
     return _qasm3.load(pathlike_or_filelike, custom_gates=custom_gates, include_path=include_path)
+
+
+@functools.wraps(_qasm3.dumps)
+def dumps_experimental(
+    circuit,
+    *,
+    includes=None,
+    basis_gates=None,
+    disable_constants=True,
+    alias_classical_registers=False,
+    allow_aliasing=False,
+    indent="  ",
+):
+    """<overridden by functools.wraps>"""
+    warnings.warn(
+        "This is an experimental version of serialization of a :class:`~qiskit.circuit.QuantumCircuit`"
+        " object in an OpenQASM 3 string."
+        " Beware that its interface might change, and it might be missing features.",
+        category=ExperimentalWarning,
+    )
+    if includes is None:
+        includes = ["stdgates.inc"]
+    if basis_gates is None:
+        basis_gates = ["U"]
+    return _qasm3.dumps(
+        circuit,
+        {
+            "includes": includes,
+            "basis_gates": basis_gates,
+            "disable_constants": disable_constants,
+            "alias_classical_registers": alias_classical_registers,
+            "allow_aliasing": allow_aliasing,
+            "indent": indent,
+        },
+    )
+
+
+@functools.wraps(_qasm3.dump)
+def dump_experimental(
+    circuit,
+    stream,
+    *,
+    includes=None,
+    basis_gates=None,
+    disable_constants=True,
+    alias_classical_registers=False,
+    allow_aliasing=False,
+    indent="  ",
+):
+    """<overridden by functools.wraps>"""
+    warnings.warn(
+        "This is an experimental version of serialization of a :class:`~qiskit.circuit.QuantumCircuit`"
+        " object in an OpenQASM 3 string."
+        " Beware that its interface might change, and it might be missing features.",
+        category=ExperimentalWarning,
+    )
+    if includes is None:
+        includes = ["stdgates.inc"]
+    if basis_gates is None:
+        basis_gates = ["U"]
+
+    return _qasm3.dump(
+        circuit,
+        stream,
+        {
+            "includes": includes,
+            "basis_gates": basis_gates,
+            "disable_constants": disable_constants,
+            "alias_classical_registers": alias_classical_registers,
+            "allow_aliasing": allow_aliasing,
+            "indent": indent,
+        },
+    )
