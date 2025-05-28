@@ -433,13 +433,9 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
             .any(|val| val.abs() > tol),
         ArrayType::NDArray(mat) => {
             let product = mat.dot(&conjugate(&mat.view()));
-            let n = mat.nrows();
-            let one = Complex64::new(1.0, 0.0);
-            product.iter().enumerate().any(|(index, value)| {
-                let col_idx = index % n;
-                let row_idx = index / n;
-                if col_idx == row_idx {
-                    (value - one).abs() > tol
+            product.indexed_iter().any(|((row, col), value)| {
+                if row == col {
+                    (value - Complex64::new(1.0, 0.0)).abs() > tol
                 } else {
                     value.abs() > tol
                 }
