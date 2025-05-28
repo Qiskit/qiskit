@@ -706,6 +706,23 @@ pub struct PackedInstruction {
 }
 
 impl PackedInstruction {
+    /// Pack a [StandardGate] into a complete instruction.
+    pub fn from_standard_gate(
+        gate: StandardGate,
+        params: Option<Box<SmallVec<[Param; 3]>>>,
+        qubits: Interned<[Qubit]>,
+    ) -> Self {
+        Self {
+            op: gate.into(),
+            qubits,
+            clbits: Default::default(),
+            params,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        }
+    }
+
     /// Access the standard gate in this `PackedInstruction`, if it is one.  If the instruction
     /// refers to a Python-space object, `None` is returned.
     #[inline]
