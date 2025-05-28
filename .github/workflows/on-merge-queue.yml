@@ -81,6 +81,6 @@ jobs:
       install-optionals: false
       runner: ${{ matrix.runner }}
   c-tests:
-+   if: github.repository_owner == 'Qiskit'
-+   name: C API Unit Tests
-+   uses: ./.github/workflows/ctests.yml
+    if: github.repository_owner == 'Qiskit'
+    name: C API Unit Tests
+    uses: ./.github/workflows/ctests.yml
