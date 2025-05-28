@@ -305,6 +305,184 @@ class NLocal(BlueprintCircuit):
     .. seealso::
 
         The :func:`.n_local` function constructs a functionally equivalent circuit, but faster.
+    
+    Examples:
+
+        **Basic Usage:**
+
+        Create a simple 4-qubit NLocal circuit with default RY rotation gates and CNOT 
+        entanglement gates:
+
+        .. code-block:: python
+        
+            from qiskit import QuantumCircuit
+            from qiskit.circuit.library import NLocal, RYGate, RZGate, CXGate, CZGate
+            from qiskit.circuit.library import HGate, UGate, RXXGate, RYYGate, RZZGate
+            import numpy as np
+
+            # Basic 4-qubit circuit with 2 repetitions
+            nlocal_basic = NLocal(
+                num_qubits=4,
+                entanglement_blocks=[CXGate(), RYGate(np.pi/2)],
+                reps=2,
+                insert_barriers=True
+            )
+            print(f"Parameters: {nlocal_basic.num_parameters}")
+            print(nlocal_basic.decompose().draw())
+            
+
+        **Custom Rotation and Entanglement Blocks:**
+
+        Use custom gates for rotation and entanglement layers:
+
+        .. code-block:: python
+
+            # Create custom rotation block with multiple gates
+            rotation_block = QuantumCircuit(1)
+            rotation_block.rx(Parameter('θ_rx'), 0)
+            rotation_block.ry(Parameter('θ_ry'), 0)
+            rotation_block.rz(Parameter('θ_rz'), 0)
+    
+            # Create custom entanglement block
+            entanglement_block = QuantumCircuit(2)
+            entanglement_block.cx(0, 1)
+            entanglement_block.rxx(Parameter('θ_rxx'), 0, 1)
+    
+            # Build NLocal with custom blocks
+            nlocal_custom = NLocal(
+                num_qubits=3,
+                rotation_blocks=rotation_block,
+                entanglement_blocks=entanglement_block,
+                reps=2,
+                insert_barriers=True,
+                parameter_prefix='custom'
+            )
+
+        **Different Entanglement Strategies:**
+
+        Explore various connectivity patterns:
+
+        .. code-block:: python
+
+            # Linear entanglement (default): 0-1, 1-2, 2-3, ...
+            linear_circuit = NLocal(
+                num_qubits=num_qubits,
+                entanglement_blocks=[CXGate()],
+                entanglement='linear',
+                reps=1,
+                insert_barriers=True
+            )
+
+            # Full entanglement: all-to-all connectivity
+            full_circuit = NLocal(
+                num_qubits=num_qubits,
+                entanglement_blocks=[CXGate()],
+                entanglement='full',
+                reps=1,
+                insert_barriers=True
+            )
+
+            # Circular entanglement: linear + wrap-around
+            circular_circuit = NLocal(
+                num_qubits=num_qubits,
+                entanglement_blocks=[CXGate()],
+                entanglement='circular',
+                reps=1,
+                insert_barriers=True
+            )
+
+            # Custom entanglement pattern
+            custom_entanglement = [[0, 2], [1, 3], [0, 1]]
+            custom_circuit = NLocal(
+                num_qubits=4,
+                entanglement_blocks=[CXGate()],
+                entanglement=custom_entanglement, 
+                reps=1
+            )
+
+        **VQE-Style Hardware-Efficient Ansatz:**
+
+        Create ansätze commonly used in Variational Quantum Eigensolver:
+
+        .. code-block:: python
+
+            from qiskit.circuit.library import RYGate, CXGate
+
+            # Hardware-efficient ansatz for VQE
+            vqe_ansatz = NLocal(
+                num_qubits=4,
+                rotation_blocks=RYGate(Parameter('θ')),
+                entanglement_blocks=CXGate(),
+                entanglement='linear',
+                reps=3,
+                skip_final_rotation_layer=False,
+                parameter_prefix='vqe'
+            )
+
+            print(f"VQE ansatz parameters: {vqe_ansatz.num_parameters}")
+            print(f"Circuit depth: {vqe_ansatz.depth()}")
+            print(vqe_ansatz.decompose().draw())
+            
+
+        **QAOA-Style Ansatz:**
+
+        Build ansätze for Quantum Approximate Optimization Algorithm:
+
+        .. code-block:: python
+
+            # QAOA mixer layer (X rotations)
+            mixer = QuantumCircuit(1)
+            mixer.rx(Parameter('β'), 0)
+
+            # QAOA cost layer (ZZ interactions)  
+            cost = QuantumCircuit(2)
+            cost.rzz(Parameter('γ'), 0, 1)
+
+            qaoa_ansatz = NLocal(
+                num_qubits=4,
+                rotation_blocks=mixer,
+                entanglement_blocks=cost,
+                entanglement='linear',
+                reps=3,  # p=3 QAOA layers
+                parameter_prefix='qaoa'
+            )
+
+
+        **Layered Circuit Construction:**
+
+        Build complex circuits by adding layers dynamically:
+
+        .. code-block:: python
+
+            # Start with base circuit
+            base = NLocal(
+                num_qubits=4,
+                rotation_blocks=RYGate(Parameter('θ')),
+                entanglement='linear',
+                reps=1,
+                insert_barriers=True,
+                parameter_prefix='base'
+            )
+
+            # Add custom layer
+            custom_layer = QuantumCircuit(4)
+            custom_layer.h(0)
+            custom_layer.cx(0, 1)
+            custom_layer.cx(1, 2)
+            custom_layer.cx(2, 3)
+
+            # Add layer to existing circuit
+            base.add_layer(custom_layer, front=False)
+
+            # Compose with another NLocal
+            second = NLocal(
+                num_qubits=4, 
+                rotation_blocks=RZGate(Parameter('φ')),
+                entanglement='full',
+                reps=1,
+                parameter_prefix='second'
+            )
+            composed_circuit = base.compose(second)
 
     """
 
