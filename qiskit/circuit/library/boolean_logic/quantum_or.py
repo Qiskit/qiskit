@@ -55,9 +55,9 @@ class OR(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.OrGate instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -135,7 +135,7 @@ class OrGate(Gate):
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
 
-       from qiskit.circuit import QuantumCircuit
+       from qiskit import QuantumCircuit
        from qiskit.circuit.library import OrGate
        from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = QuantumCircuit(6)
