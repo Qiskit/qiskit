@@ -145,18 +145,25 @@ impl CircuitData {
         reserve: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
+        let qubit_size = qubits.as_ref().map_or(0, |bits| bits.len());
+        let clbit_size = clbits.as_ref().map_or(0, |bits| bits.len());
+        let qubits_registry = ObjectRegistry::with_capacity(qubit_size);
+        let clbits_registry = ObjectRegistry::with_capacity(clbit_size);
+        let qubit_indices = BitLocator::with_capacity(qubit_size);
+        let clbit_indices = BitLocator::with_capacity(clbit_size);
+
         let mut self_ = CircuitData {
             data: Vec::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: ObjectRegistry::new(),
-            clbits: ObjectRegistry::new(),
+            qubits: qubits_registry,
+            clbits: clbits_registry,
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
             cregs: RegisterData::new(),
-            qubit_indices: BitLocator::new(),
-            clbit_indices: BitLocator::new(),
+            qubit_indices,
+            clbit_indices,
         };
         self_.set_global_phase(global_phase)?;
         if let Some(qubits) = qubits {
@@ -1364,19 +1371,12 @@ impl CircuitData {
         let mut res =
             Self::with_capacity(num_qubits, 0, instruction_iter.size_hint().0, global_phase)?;
 
-        let no_clbit_index = res.cargs_interner.get_default();
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
-            res.data.push(PackedInstruction {
-                op: operation.into(),
-                qubits,
-                clbits: no_clbit_index,
-                params,
-                label: None,
-                #[cfg(feature = "cache_pygates")]
-                py_op: OnceLock::new(),
-            });
+            res.data.push(PackedInstruction::from_standard_gate(
+                operation, params, qubits,
+            ));
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
         Ok(res)
@@ -1429,18 +1429,11 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) {
-        let no_clbit_index = self.cargs_interner.get_default();
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
-        self.data.push(PackedInstruction {
-            op: operation.into(),
-            qubits,
-            clbits: no_clbit_index,
-            params,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        });
+        self.data.push(PackedInstruction::from_standard_gate(
+            operation, params, qubits,
+        ));
     }
 
     /// Append a packed operation to this CircuitData

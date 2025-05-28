@@ -2880,7 +2880,7 @@ class TestTranspileCustomPM(QiskitTestCase):
         transpiled = passmanager.run([qc, qc])
 
         expected = QuantumCircuit(QuantumRegister(2, "q"))
-        expected.append(U2Gate(0, 3.141592653589793), [0])
+        expected.append(U2Gate(0, math.pi), [0])
         expected.cx(0, 1)
 
         self.assertEqual(len(transpiled), 2)
@@ -3947,7 +3947,9 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc = QuantumCircuit(127)
         for i in range(1, 127):
             qc.ecr(0, i)
-        backend = GenericBackendV2(num_qubits=130)
+        backend = GenericBackendV2(
+            num_qubits=130, coupling_map=CouplingMap.from_line(130, bidirectional=False)
+        )
         original_map = copy.deepcopy(backend.coupling_map)
         transpile(qc, backend, optimization_level=opt_level, seed_transpiler=42)
         self.assertEqual(original_map, backend.coupling_map)
