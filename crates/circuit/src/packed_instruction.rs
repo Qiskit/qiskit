@@ -786,29 +786,20 @@ impl Instruction for PackedInstruction {
 impl PackedInstruction {
     pub fn from_control_flow(
         control_flow: ControlFlow,
+        params: SmallVec<[Param; 3]>,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
-        blocks: impl IntoIterator<Item = PyObject>,
         label: Option<&str>,
     ) -> Self {
-        // let params: Option<SmallVec<[Param; 3]>> = match control_flow {
-        //     ControlFlow::Box { .. } => Some(blocks.into_iter().take(1).map(|b| Param::Circuit(b)).collect()),
-        //     ControlFlow::BreakLoop { .. } => None,
-        //     ControlFlow::ContinueLoop { .. } => None,
-        //     ControlFlow::ForLoop { .. } => Some(blocks.into_iter().take(1).map(|b| Param::Circuit(b)).collect()),
-        //     ControlFlow::IfElse { .. } => {}
-        //     ControlFlow::Switch { .. } => {}
-        //     ControlFlow::While { .. } => {}
-        // };
-        // Self {
-        //     op: control_flow.into(),
-        //     qubits,
-        //     clbits,
-        //     params: params.map(|p| Box::new(p)),
-        //     label: label.map(|l| Box::new(l.to_string())),
-        //     py_op: Default::default(),
-        // }
-        todo!()
+        Self {
+            op: control_flow.into(),
+            qubits,
+            clbits,
+            params: Some(params.into()),
+            label: label.map(|l| Box::new(l.to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: Default::default(),
+        }
     }
 
     /// Access the standard gate in this `DataInstruction`, if it is one.  If the instruction

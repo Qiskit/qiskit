@@ -48,6 +48,32 @@ pub enum Param {
     Obj(PyObject),
 }
 
+/// Replace the blocks of a Params list with new ones.
+///
+/// Note: this is a short-term solution until Param becomes just an enum of numeric
+/// types for use in gates. At that point, we'll also have a Parameters enum type
+/// for `impl Instruction`s that allows per-instruction kind signatures (mirroring
+/// [dag_circuit::Parameters]).
+pub fn replace_blocks(
+    params: SmallVec<[Param; 3]>,
+    blocks: impl IntoIterator<Item = PyObject>,
+) -> SmallVec<[Param; 3]> {
+    let mut replacements = blocks.into_iter();
+    let result = params
+        .into_iter()
+        .map(|p| match p {
+            Param::Circuit(_) => {
+                Param::Circuit(replacements.next().expect("not enough replacement blocks"))
+            }
+            param => param,
+        })
+        .collect();
+    if replacements.next().is_some() {
+        panic!("too many replacement blocks")
+    }
+    result
+}
+
 // impl<'a, 'py> IntoPyObject<'py> for &'a Param {
 //     type Target = PyAny;
 //     type Output = Borrowed<'a, 'py, Self::Target>;

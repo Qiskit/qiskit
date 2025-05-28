@@ -277,9 +277,13 @@ pub fn run_unitary_synthesis(
             }
             packed_instr = DAGInstruction::from_control_flow(
                 packed_instr.op.control_flow().clone(),
+                packed_instr.params.as_deref().map(|p| {
+                    let mut params = p.clone();
+                    params.replace_blocks(new_blocks);
+                    params
+                }),
                 packed_instr.qubits,
                 packed_instr.clbits,
-                new_blocks,
                 packed_instr.label.as_deref().map(|l| l.as_str()),
             );
         }

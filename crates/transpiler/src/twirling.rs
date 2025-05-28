@@ -34,10 +34,10 @@ use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{InstructionRef, Operation, Param, StandardGate, StandardGateRef};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
-use qiskit_accelerate::QiskitError;
-
 use crate::passes::run_optimize_1q_gates_decomposition;
 use crate::target::Target;
+use qiskit_accelerate::QiskitError;
+use qiskit_circuit::operations;
 
 static ECR_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
     ([I, Z, Z, Y], 0.),
@@ -335,9 +335,12 @@ fn generate_twirled_circuit(
                     py,
                     PackedInstruction::from_control_flow(
                         inst.op.control_flow().clone(),
+                        operations::replace_blocks(
+                            inst.params_view().into_iter().cloned().collect(),
+                            new_blocks,
+                        ),
                         inst.qubits,
                         inst.clbits,
-                        new_blocks,
                         inst.label(),
                     ),
                 )?;

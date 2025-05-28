@@ -377,9 +377,13 @@ fn apply_translation(
                 }
                 let new_instr = DAGInstruction::from_control_flow(
                     node_obj.op.control_flow().clone(),
+                    node_obj.params.as_deref().map(|p| {
+                        let mut params = p.clone();
+                        params.replace_blocks(flow_blocks);
+                        params
+                    }),
                     node_obj.qubits,
                     node_obj.clbits,
-                    flow_blocks,
                     node_obj.label(),
                 );
                 out_dag_builder.push_back(new_instr)?;

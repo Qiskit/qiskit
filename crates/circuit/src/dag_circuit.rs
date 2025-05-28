@@ -113,6 +113,44 @@ pub enum Parameters {
     },
 }
 
+impl Parameters {
+    /// Replace all blocks of this parameter set, in order.
+    ///
+    /// Panics if `blocks` does not contain exactly the expected number of blocks
+    /// for the parameter set.
+    pub fn replace_blocks(&mut self, blocks: impl IntoIterator<Item = DAGCircuit>) {
+        let mut replacements = blocks.into_iter();
+        match self {
+            Parameters::Params(_) => {}
+            Parameters::Box { body, .. } => {
+                *body = replacements.next().expect("not enough blocks");
+            }
+            Parameters::ForLoop { body, .. } => {
+                *body = replacements.next().expect("not enough blocks");
+            }
+            Parameters::IfElse {
+                true_body,
+                false_body,
+                ..
+            } => {
+                *true_body = replacements.next().expect("not enough blocks");
+                *false_body = replacements.next().expect("not enough blocks");
+            }
+            Parameters::Switch { cases, .. } => {
+                for case in cases {
+                    *case = replacements.next().expect("not enough blocks");
+                }
+            }
+            Parameters::While { body, .. } => {
+                *body = replacements.next().expect("not enough blocks");
+            }
+        }
+        if replacements.next().is_some() {
+            panic!("too many blocks");
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct DAGInstruction {
     pub op: PackedOperation,
@@ -152,29 +190,20 @@ impl DAGInstruction {
 
     pub fn from_control_flow(
         control_flow: ControlFlow,
+        params: Option<Parameters>,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
-        blocks: impl IntoIterator<Item = DAGCircuit>,
         label: Option<&str>,
     ) -> Self {
-        // let params: Option<SmallVec<[Param; 3]>> = match control_flow {
-        //     ControlFlow::Box { .. } => Some(blocks.into_iter().take(1).map(|b| Param::Circuit(b)).collect()),
-        //     ControlFlow::BreakLoop { .. } => None,
-        //     ControlFlow::ContinueLoop { .. } => None,
-        //     ControlFlow::ForLoop { .. } => Some(blocks.into_iter().take(1).map(|b| Param::Circuit(b)).collect()),
-        //     ControlFlow::IfElse { .. } => {}
-        //     ControlFlow::Switch { .. } => {}
-        //     ControlFlow::While { .. } => {}
-        // };
-        // Self {
-        //     op: control_flow.into(),
-        //     qubits,
-        //     clbits,
-        //     params: params.map(|p| Box::new(p)),
-        //     label: label.map(|l| Box::new(l.to_string())),
-        //     py_op: Default::default(),
-        // }
-        todo!()
+        Self {
+            op: control_flow.into(),
+            params: params.map(|p| p.into()),
+            qubits,
+            clbits,
+            label: label.map(|l| l.to_string().into()),
+            #[cfg(feature = "cache_pygates")]
+            py_op: Default::default(),
+        }
     }
 
     // TODO: when exactly do we need to clear the py_op cache?

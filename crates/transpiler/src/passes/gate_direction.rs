@@ -317,9 +317,13 @@ where
         let packed_inst = dag[node].unwrap_operation();
         let packed_inst = DAGInstruction::from_control_flow(
             packed_inst.op.control_flow().clone(),
+            packed_inst.params.as_deref().map(|p| {
+                let mut params = p.clone();
+                params.replace_blocks(op_blocks);
+                params
+            }),
             packed_inst.qubits,
             packed_inst.clbits,
-            op_blocks,
             packed_inst.label.as_ref().map(|l| l.as_str()),
         );
 

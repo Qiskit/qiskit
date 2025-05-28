@@ -33,8 +33,8 @@ use qiskit_circuit::operations::{radd_param, Param};
 use qiskit_circuit::operations::{InstructionRef, Operation};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Clbit;
 use qiskit_circuit::Qubit;
+use qiskit_circuit::{operations, Clbit};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -548,9 +548,12 @@ fn run_on_circuitdata(
 
             let packed_instruction = PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),
+                operations::replace_blocks(
+                    inst.params_view().into_iter().cloned().collect(),
+                    new_blocks_py.into_iter().map(|b| b.unbind()),
+                ),
                 inst.qubits,
                 inst.clbits,
-                new_blocks_py.into_iter().map(|b| b.unbind()),
                 inst.label(),
             );
             output_circuit.push(py, packed_instruction)?;
