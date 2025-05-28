@@ -14,6 +14,7 @@
 
 import io
 import struct
+import unittest
 
 from ddt import ddt, data
 
@@ -289,22 +290,34 @@ class TestVersionArg(QpyCircuitTestCase):
         self.assert_roundtrip_equal(qc)
 
 
+@ddt
 class TestUseSymengineFlag(QpyCircuitTestCase):
     """Test that the symengine flag works correctly."""
 
-    def test_use_symengine_with_bool_like(self):
+    @data(True, False)
+    def test_use_symengine_with_bool_like(self, use_symengine):
         """Test that the use_symengine flag is set correctly with a bool-like input."""
+        if use_symengine and not optionals.HAS_SYMENGINE:
+            raise unittest.SkipTest("we can't force 'use_symengine' if we don't have it")
+
+        class Booly:  # pylint: disable=missing-class-docstring,missing-function-docstring
+            def __init__(self, value):
+                self.value = value
+
+            def __bool__(self):
+                return self.value
+
         theta = Parameter("theta")
         two_theta = 2 * theta
         qc = QuantumCircuit(1)
         qc.rx(two_theta, 0)
         qc.measure_all()
         # Assert Roundtrip works
-        self.assert_roundtrip_equal(qc, use_symengine=optionals.HAS_SYMENGINE, version=13)
+        self.assert_roundtrip_equal(qc, use_symengine=Booly(use_symengine), version=13)
         # Also check the qpy symbolic expression encoding is correct in the
         # payload
         with io.BytesIO() as file_obj:
-            dump(qc, file_obj, use_symengine=optionals.HAS_SYMENGINE)
+            dump(qc, file_obj, use_symengine=Booly(use_symengine))
             file_obj.seek(0)
             header_data = FILE_HEADER_V10._make(
                 struct.unpack(
@@ -312,4 +325,4 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
                     file_obj.read(FILE_HEADER_V10_SIZE),
                 )
             )
-            self.assertEqual(header_data.symbolic_encoding, b"p")
+            self.assertEqual(header_data.symbolic_encoding, b"e" if use_symengine else b"p")
