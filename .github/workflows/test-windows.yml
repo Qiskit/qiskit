@@ -70,7 +70,7 @@ jobs:
           python tools/report_numpy_state.py
           $Env:PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          stestr run
+          stestr run --slowest
       - name: Filter stestr history
         run: |
           pushd .stestr
