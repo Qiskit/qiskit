@@ -2909,6 +2909,10 @@ impl UnitaryGate {
         Ok(gate.unbind())
     }
 
+    /// Get a read-only ndarray view of the matrix stored in the `UnitaryGate`
+    ///
+    /// Regardless of the underlying array type `Matrix2`, `Matrix4`, or `Array2` it returns
+    /// a read-only an ndarray `ArrayView2` view to the underlying matrix by reference.
     #[inline]
     pub fn matrix_view(&self) -> ArrayView2<Complex64> {
         match &self.array {
