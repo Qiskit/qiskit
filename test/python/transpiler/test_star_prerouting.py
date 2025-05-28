@@ -19,7 +19,7 @@ import unittest
 from test import QiskitTestCase
 import ddt
 
-from qiskit.circuit.library import QFT
+from qiskit.synthesis.qft import synth_qft_full
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -398,7 +398,7 @@ class TestStarPreRouting(QiskitTestCase):
         self.assertEqual(len(star_blocks[2].nodes), 3)
 
     def test_count_70_qft_stars(self):
-        qft_module = QFT(10, do_swaps=False).decompose()
+        qft_module = synth_qft_full(10, do_swaps=False)
         qftqc = QuantumCircuit(100)
         for i in range(10):
             qftqc.compose(qft_module, qubits=range(i * 10, (i + 1) * 10), inplace=True)
@@ -415,7 +415,7 @@ class TestStarPreRouting(QiskitTestCase):
             self.assertEqual(star_len_list.count(i), 10)
 
     def test_count_50_qft_stars(self):
-        qft_module = QFT(10, do_swaps=False).decompose()
+        qft_module = synth_qft_full(10, do_swaps=False)
         qftqc = QuantumCircuit(10)
         for _ in range(10):
             qftqc.compose(qft_module, qubits=range(10), inplace=True)
@@ -463,7 +463,7 @@ class TestStarPreRouting(QiskitTestCase):
 
     def test_routing_after_star_prerouting(self):
         nq = 6
-        qc = QFT(nq, do_swaps=False, insert_barriers=True).decompose()
+        qc = synth_qft_full(nq, do_swaps=False, insert_barriers=True)
         cm = CouplingMap.from_line(nq)
 
         pm_preroute = PassManager()
@@ -486,7 +486,7 @@ class TestStarPreRouting(QiskitTestCase):
     def test_qft_linearization(self, num_qubits):
         """Test the QFT circuit to verify if it is linearized and requires n-2 swaps."""
 
-        qc = QFT(num_qubits, do_swaps=False, insert_barriers=True).decompose()
+        qc = synth_qft_full(num_qubits, do_swaps=False, insert_barriers=True)
         dag = circuit_to_dag(qc)
         new_dag = StarPreRouting().run(dag)
         new_qc = dag_to_circuit(new_dag)

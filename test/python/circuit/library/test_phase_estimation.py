@@ -79,7 +79,8 @@ class TestPhaseEstimation(QiskitTestCase):
             # using three digits as 3 evaluation qubits are used
             phase_as_binary = "0100"
 
-            pec = PhaseEstimation(4, unitary)
+            with self.assertWarns(DeprecationWarning):
+                pec = PhaseEstimation(4, unitary)
 
             self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
 
@@ -95,7 +96,8 @@ class TestPhaseEstimation(QiskitTestCase):
             # using three digits as 3 evaluation qubits are used
             phase_as_binary = "110"
 
-            pec = PhaseEstimation(3, unitary)
+            with self.assertWarns(DeprecationWarning):
+                pec = PhaseEstimation(3, unitary)
 
             self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
 
@@ -129,7 +131,8 @@ class TestPhaseEstimation(QiskitTestCase):
             # the unitary acts as identity on the eigenstate, thus the phase is 0
             phase_as_binary = "00"
 
-            pec = PhaseEstimation(2, unitary)
+            with self.assertWarns(DeprecationWarning):
+                pec = PhaseEstimation(2, unitary)
 
             self.assertPhaseEstimationIsCorrect(pec, eigenstate, phase_as_binary)
 
@@ -139,15 +142,19 @@ class TestPhaseEstimation(QiskitTestCase):
         unitary.s(0)
 
         with self.subTest("default QFT"):
-            pec = PhaseEstimation(3, unitary)
-            expected_qft = QFT(3, inverse=True, do_swaps=False)
+            with self.assertWarns(DeprecationWarning):
+                pec = PhaseEstimation(3, unitary)
+                expected_qft = QFT(3, inverse=True, do_swaps=False)
+
             self.assertEqual(
                 pec.decompose().data[-1].operation.definition, expected_qft.decompose()
             )
 
         with self.subTest("custom QFT"):
-            iqft = QFT(3, approximation_degree=2).inverse()
-            pec = PhaseEstimation(3, unitary, iqft=iqft)
+            with self.assertWarns(DeprecationWarning):
+                iqft = QFT(3, approximation_degree=2).inverse()
+                pec = PhaseEstimation(3, unitary, iqft=iqft)
+
             self.assertEqual(pec.decompose().data[-1].operation.definition, iqft.decompose())
 
     def test_phase_estimation_function(self):
