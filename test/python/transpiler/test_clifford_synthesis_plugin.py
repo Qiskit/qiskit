@@ -84,50 +84,22 @@ class TestCliffordSynthesis(QiskitTestCase):
         plugin = CliffordUnitarySynthesis()
         clifford_gate_names = set(get_clifford_gate_names())
 
-        with self.subTest(msg="uc1"):
-            mat = self.uc1.to_matrix()
+        for gate in [self.uc1, self.uc2, self.uc3]:
+            mat = gate.to_matrix()
             out = plugin.run(mat)
             self.assertLessEqual(set(out.count_ops()), clifford_gate_names)
             self.assertEqual(Operator(dag_to_circuit(out)), Operator(mat))
 
-        with self.subTest(msg="uc2"):
-            mat = self.uc2.to_matrix()
-            out = plugin.run(mat)
-            self.assertLessEqual(set(out.count_ops()), clifford_gate_names)
-            self.assertEqual(Operator(dag_to_circuit(out)), Operator(mat))
-
-        with self.subTest(msg="uc3"):
-            mat = self.uc3.to_matrix()
-            out = plugin.run(mat)
-            self.assertLessEqual(set(out.count_ops()), clifford_gate_names)
-            self.assertEqual(Operator(dag_to_circuit(out)), Operator(mat))
-
-        with self.subTest(msg="un1"):
-            out = plugin.run(self.un1.to_matrix())
-            self.assertIsNone(out)
-
-        with self.subTest(msg="un2"):
-            out = plugin.run(self.un2.to_matrix())
-            self.assertIsNone(out)
-
-        with self.subTest(msg="un3"):
-            out = plugin.run(self.un3.to_matrix())
+        for gate in [self.un1, self.un2, self.un3]:
+            out = plugin.run(gate.to_matrix())
             self.assertIsNone(out)
 
     def test_plugin_with_parameters(self):
         """Test that we can pass parameters to the plugin."""
 
         plugin = CliffordUnitarySynthesis()
-
-        with self.subTest(msg="min_qubits=2"):
-            config = {"min_qubits": 2}
-            mat = self.uc1.to_matrix()
-            out = plugin.run(mat, config=config)
-            self.assertIsNone(out)
-
-        with self.subTest(msg="max_qubits=2"):
-            config = {"max_qubits": 2}
-            mat = self.uc3.to_matrix()
+        for gate, config in [(self.uc1, {"min_qubits": 2}), (self.uc3, {"max_qubits": 2})]:
+            mat = gate.to_matrix()
             out = plugin.run(mat, config=config)
             self.assertIsNone(out)
 
@@ -135,70 +107,31 @@ class TestCliffordSynthesis(QiskitTestCase):
         """Test running the plugin from the unitary synthesis transpiler pass."""
 
         clifford_gate_names = set(get_clifford_gate_names())
+        qubits = [2, 0, 1]
 
-        with self.subTest(msg="uc1"):
+        for gate in [self.uc1, self.uc2, self.uc3]:
             qc = QuantumCircuit(3)
-            qc.append(self.uc1, [1])
+            qc.append(gate, qubits[: gate.num_qubits])
             transpiled = UnitarySynthesis(method="clifford")(qc)
             transpiled_ops = transpiled.count_ops()
             self.assertEqual(transpiled_ops.get("unitary", 0), 0)
             self.assertLessEqual(set(transpiled_ops), clifford_gate_names)
             self.assertEqual(Operator(transpiled), Operator(qc))
 
-        with self.subTest(msg="uc2"):
+        for gate in [self.un1, self.un2, self.un3]:
             qc = QuantumCircuit(3)
-            qc.append(self.uc2, [1, 2])
-            transpiled = UnitarySynthesis(method="clifford")(qc)
-            transpiled_ops = transpiled.count_ops()
-            self.assertEqual(transpiled_ops.get("unitary", 0), 0)
-            self.assertLessEqual(set(transpiled_ops), clifford_gate_names)
-            self.assertEqual(Operator(transpiled), Operator(qc))
-
-        with self.subTest(msg="uc3"):
-            qc = QuantumCircuit(3)
-            qc.append(self.uc3, [2, 0, 1])
-            transpiled = UnitarySynthesis(method="clifford")(qc)
-            transpiled_ops = transpiled.count_ops()
-            self.assertEqual(transpiled_ops.get("unitary", 0), 0)
-            self.assertLessEqual(set(transpiled_ops), clifford_gate_names)
-            self.assertEqual(Operator(transpiled), Operator(qc))
-
-        with self.subTest(msg="un1"):
-            qc = QuantumCircuit(3)
-            qc.append(self.un1, [1])
-            # the circuit should be unchanged
-            transpiled = UnitarySynthesis(method="clifford")(qc)
-            self.assertEqual(qc, transpiled)
-
-        with self.subTest(msg="un2"):
-            qc = QuantumCircuit(3)
-            qc.append(self.un2, [1, 2])
-            # the circuit should be unchanged
-            transpiled = UnitarySynthesis(method="clifford")(qc)
-            self.assertEqual(qc, transpiled)
-
-        with self.subTest(msg="un3"):
-            qc = QuantumCircuit(3)
-            qc.append(self.un3, [2, 0, 1])
+            qc.append(gate, qubits[: gate.num_qubits])
             # the circuit should be unchanged
             transpiled = UnitarySynthesis(method="clifford")(qc)
             self.assertEqual(qc, transpiled)
 
     def test_unitary_synthesis_with_parameters(self):
         """Test that we can pass parameters to the plugin via unitary synthesis."""
+        qubits = [2, 0, 1]
 
-        with self.subTest(msg="min_qubits=2"):
-            config = {"min_qubits": 2}
+        for gate, config in [(self.uc1, {"min_qubits": 2}), (self.uc3, {"max_qubits": 2})]:
             qc = QuantumCircuit(3)
-            qc.append(self.uc1, [1])
-            transpiled = UnitarySynthesis(method="clifford", plugin_config=config)(qc)
-            # the circuit should be unchanged
-            self.assertEqual(qc, transpiled)
-
-        with self.subTest(msg="max_qubits=2"):
-            config = {"max_qubits": 2}
-            qc = QuantumCircuit(3)
-            qc.append(self.uc3, [2, 0, 1])
+            qc.append(gate, qubits[: gate.num_qubits])
             transpiled = UnitarySynthesis(method="clifford", plugin_config=config)(qc)
             # the circuit should be unchanged
             self.assertEqual(qc, transpiled)
