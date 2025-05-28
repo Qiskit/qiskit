@@ -225,6 +225,7 @@ from .optimization import OptimizeAnnotated
 from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
 from .optimization import ContractIdleWiresInControlFlow
+from .optimization import OptimizeCliffordT
 
 # circuit analysis
 from .analysis import ResourceEstimation
