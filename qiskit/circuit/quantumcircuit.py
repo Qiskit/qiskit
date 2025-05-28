@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import warnings
 import collections.abc
 import copy as _copy
 
@@ -48,7 +49,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import deprecate_func
+from qiskit.utils import deprecate_func, deprecate_arg
 from . import (  # pylint: disable=cyclic-import
     Bit,
     QuantumRegister,
@@ -1099,7 +1100,7 @@ class QuantumCircuit:
         self._base_name = None
         self.name: str
         """A human-readable name for the circuit.
-        
+
         Example:
 
             .. plot::
@@ -1177,7 +1178,7 @@ class QuantumCircuit:
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata.
-        
+
         Example:
 
             .. plot::
@@ -3591,7 +3592,7 @@ class QuantumCircuit:
         parameter_map: dict[Parameter, ParameterValueType] | None = None,
         label: str | None = None,
     ) -> Gate:
-        """Create a :class:`.Gate` out of this circuit.  The circuit must act only qubits and
+        """Create a :class:`.Gate` out of this circuit.  The circuit must act only on qubits and
         contain only unitary operations.
 
         .. seealso::
@@ -5142,7 +5143,6 @@ class QuantumCircuit:
         """
         # pylint: disable=cyclic-import
         from .library.standard_gates.ry import RYGate
-        from .library.standard_gates.x import MCXGate
         from qiskit.synthesis.multi_controlled import (
             _apply_cu,
             _apply_mcu_graycode,
@@ -5161,17 +5161,33 @@ class QuantumCircuit:
         # auto-select the best mode
         if mode is None:
             # if enough ancillary qubits are provided, use the 'v-chain' method
-            additional_vchain = MCXGate.get_num_ancilla_qubits(len(control_qubits), "v-chain")
+            additional_vchain = max(0, len(control_qubits) - 2)
             if len(ancillary_qubits) >= additional_vchain:
                 mode = "basic"
             else:
                 mode = "noancilla"
 
         if mode == "basic":
+            from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
+
             self.ry(theta / 2, q_target)
-            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
+            if len(control_qubits) == 1:
+                self.cx(control_qubits[0], q_target)
+            elif len(control_qubits) == 2:
+                self.ccx(control_qubits[0], control_qubits[1], q_target)
+            else:
+                qubits = control_qubits + [target_qubit] + ancillary_qubits
+                mcx = synth_mcx_n_clean_m15(len(control_qubits))
+                self.compose(mcx, qubits, inplace=True)
             self.ry(-theta / 2, q_target)
-            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
+            if len(control_qubits) == 1:
+                self.cx(control_qubits[0], q_target)
+            elif len(control_qubits) == 2:
+                self.ccx(control_qubits[0], control_qubits[1], q_target)
+            else:
+                qubits = control_qubits + [target_qubit] + ancillary_qubits
+                mcx = synth_mcx_n_clean_m15(len(control_qubits))
+                self.compose(mcx, qubits, inplace=True)
         elif mode == "noancilla":
             n_c = len(control_qubits)
             if n_c == 1:  # cu
@@ -6026,12 +6042,21 @@ class QuantumCircuit:
             copy=False,
         )
 
+    @deprecate_arg(
+        name="mode",
+        since="2.1",
+        additional_msg=(
+            "Instead, add a generic MCXGate to the circuit and specify the synthesis method "
+            "via the ``hls_config`` in the transpilation. Alternatively, specific decompositions "
+            "are available at https://qisk.it/mcx."
+        ),
+    )
     def mcx(
         self,
         control_qubits: Sequence[QubitSpecifier],
         target_qubit: QubitSpecifier,
         ancilla_qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
-        mode: str = "noancilla",
+        mode: str | None = None,
         ctrl_state: str | int | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCXGate`.
@@ -6067,46 +6092,62 @@ class QuantumCircuit:
         num_ctrl_qubits = len(control_qubits)
 
         available_implementations = {
-            "noancilla": MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state),
-            "recursion": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
-            "v-chain": MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state),
-            "v-chain-dirty": MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state),
-            # outdated, previous names
-            "advanced": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
-            "basic": MCXVChain(num_ctrl_qubits, dirty_ancillas=False, ctrl_state=ctrl_state),
-            "basic-dirty-ancilla": MCXVChain(
-                num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state
-            ),
+            "noancilla",
+            "recursion",
+            "v-chain",
+            "v-chain-dirty",
+            "advanced",
+            "basic",
+            "basic-dirty-ancilla",
         }
 
         # check ancilla input
         if ancilla_qubits:
             _ = self._qbit_argument_conversion(ancilla_qubits)
 
-        try:
-            gate = available_implementations[mode]
-        except KeyError as ex:
-            all_modes = list(available_implementations.keys())
-            raise ValueError(
-                f"Unsupported mode ({mode}) selected, choose one of {all_modes}"
-            ) from ex
-
-        if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
-            required = gate.num_ancilla_qubits
-            if ancilla_qubits is None:
-                raise AttributeError(f"No ancillas provided, but {required} are needed!")
-
-            # convert ancilla qubits to a list if they were passed as int or qubit
-            if not hasattr(ancilla_qubits, "__len__"):
-                ancilla_qubits = [ancilla_qubits]
-
-            if len(ancilla_qubits) < required:
-                actually = len(ancilla_qubits)
-                raise ValueError(f"At least {required} ancillas required, but {actually} given.")
-            # size down if too many ancillas were provided
-            ancilla_qubits = ancilla_qubits[:required]
+        if mode is None:
+            gate = MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state)
+        elif mode in available_implementations:
+            if mode == "noancilla":
+                gate = MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state)
+            elif mode in ["recursion", "advanced"]:
+                gate = MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state)
+            elif mode in ["v-chain", "basic"]:
+                gate = MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state)
+            elif mode in ["v-chain-dirty", "basic-dirty-ancilla"]:
+                gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state)
+            else:
+                raise ValueError("unreachable.")
+            # else is unreachable, we exhausted all options
         else:
+            raise ValueError(
+                f"Unsupported mode ({mode}) selected, choose one of {available_implementations}"
+            )
+
+        if mode is None or not hasattr(gate, "num_ancilla_qubits"):
             ancilla_qubits = []
+        else:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                required = gate.num_ancilla_qubits
+
+            if required > 0:
+                if ancilla_qubits is None:
+                    raise AttributeError(f"No ancillas provided, but {required} are needed!")
+
+                # convert ancilla qubits to a list if they were passed as int or qubit
+                if not hasattr(ancilla_qubits, "__len__"):
+                    ancilla_qubits = [ancilla_qubits]
+
+                if len(ancilla_qubits) < required:
+                    actually = len(ancilla_qubits)
+                    raise ValueError(
+                        f"At least {required} ancillas required, but {actually} given."
+                    )
+                # size down if too many ancillas were provided
+                ancilla_qubits = ancilla_qubits[:required]
+            else:
+                ancilla_qubits = []
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
