@@ -7,6 +7,11 @@ int test_version_macros() {
     if (QISKIT_VERSION_MAJOR < 0 || QISKIT_VERSION_MINOR < 0 || QISKIT_VERSION_PATCH < 0) {
         return EqualityError;
     }
+    if (QISKIT_VERSION_NUMERIC(QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH) !=
+        QISKIT_VERSION) {
+        fprintf(stderr, "QISKIT_VERSION_NUMERIC does not match QISKIT_VERSION\n");
+        return EqualityError;
+    }
     return Ok;
 }
 
