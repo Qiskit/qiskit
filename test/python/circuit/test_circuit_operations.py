@@ -1624,7 +1624,7 @@ class TestCircuitOperations(QiskitTestCase):
             circ.cx(0, 1)
             circ.measure(0, 0)
             circ.measure(1, 1)
-            self.assertTrue(not circ.has_control_flow_op())
+            self.assertFalse(circ.has_control_flow_op())
             for op in op_combination:
                 circ.append(op, [0, 1], [1])
             # Check if circuit has any control flow operation
