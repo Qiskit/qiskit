@@ -20,7 +20,7 @@ use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use nalgebra::{Matrix2, Matrix4};
-use ndarray::{array, aview2, Array2};
+use ndarray::{array, aview2, Array2, ArrayView2, Dim, ShapeBuilder};
 use num_complex::Complex64;
 use smallvec::{smallvec, SmallVec};
 
@@ -2907,5 +2907,30 @@ impl UnitaryGate {
             .get_bound(py)
             .call((out_array,), Some(&kwargs))?;
         Ok(gate.unbind())
+    }
+
+    /// Get a read-only ndarray view of the matrix stored in the `UnitaryGate`
+    ///
+    /// Regardless of the underlying array type `Matrix2`, `Matrix4`, or `Array2` it returns
+    /// a read-only an ndarray `ArrayView2` view to the underlying matrix by reference.
+    #[inline]
+    pub fn matrix_view(&self) -> ArrayView2<Complex64> {
+        match &self.array {
+            ArrayType::NDArray(arr) => arr.view(),
+            ArrayType::OneQ(mat) => {
+                let dim = Dim(mat.shape());
+                let strides = Dim(mat.strides());
+                // SAFETY: We know the array is a 2x2 and contiguous block so we don't need to
+                // check for invalid format
+                unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) }
+            }
+            ArrayType::TwoQ(mat) => {
+                let dim = Dim(mat.shape());
+                let strides = Dim(mat.strides());
+                // SAFETY: We know the array is a 4x4 and contiguous block so we don't need to
+                // check for invalid format
+                unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) }
+            }
+        }
     }
 }
