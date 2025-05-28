@@ -224,10 +224,10 @@ class CRXGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
-        # q_0: ───────■───────────────────■───────────────────
-        #      ┌───┐┌─┴─┐┌─────────────┐┌─┴─┐┌───────────────┐
-        # q_1: ┤ S ├┤ X ├┤ U(-θ/2,0,0) ├┤ X ├┤ U(θ/2,-π/2,0) ├
-        #      └───┘└───┘└─────────────┘└───┘└───────────────┘
+        # q_0: ───────■────────────────────■──────────────────────
+        #      ┌───┐┌─┴─┐┌──────────────┐┌─┴─┐┌───────────┐┌─────┐
+        # q_1: ┤ S ├┤ X ├┤ Ry((-0.5)*θ) ├┤ X ├┤ Ry(0.5*θ) ├┤ Sdg ├
+        #      └───┘└───┘└──────────────┘└───┘└───────────┘└─────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
             StandardGate.CRX._get_definition(self.params), add_regs=True, name=self.name
