@@ -12,6 +12,7 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
+import warnings
 from typing import Optional, Union, Type
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -878,7 +879,25 @@ class MCXGate(ControlledGate):
         _base_label=None,
     ):
         """Create new MCX gate."""
-        num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        if self.__class__ in [MCXGate, MCXGrayCode, MCXRecursive, MCXVChain]:
+            # DeprecationWarning for internal subclasses (that are deprecated) is fine. We should
+            # still raise warnings for other subclasses out of our control
+            # TODO MCXGate, MCXGrayCode, MCXRecursive, MCXVChain are deprecated and this path can be
+            #   removed once they get removed:
+            #   https://github.com/Qiskit/qiskit/pull/12961
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".+qiskit\.circuit\.library\.standard_gates\.x\.MCXGate\."
+                    r"get_num_ancilla_qubits.+",
+                    module="qiskit",
+                )
+                num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        else:
+            num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+
+        # alternative: just remove the above
         super().__init__(
             _name,
             num_ctrl_qubits + 1 + num_ancilla_qubits,
@@ -914,8 +933,8 @@ class MCXGate(ControlledGate):
             "qubits is require, one can create a custom gate by calling the corresponding "
             "synthesis function directly."
         ),
-        since="1.3",
-        pending=True,
+        since="2.1",
+        removal_timeline="in Qiskit 3.0",
     )
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
         """Get the number of required ancilla qubits without instantiating the class.
@@ -942,7 +961,7 @@ class MCXGate(ControlledGate):
     @property
     def num_ancilla_qubits(self):
         """The number of ancilla qubits."""
-        return self.__class__.get_num_ancilla_qubits(self.num_ctrl_qubits)
+        return self.get_num_ancilla_qubits(self.num_ctrl_qubits)
 
     def control(
         self,
@@ -966,15 +985,64 @@ class MCXGate(ControlledGate):
         """
         if not annotated and ctrl_state is None:
             # use __class__ so this works for derived classes
-            gate = self.__class__(
-                self.num_ctrl_qubits + num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                _base_label=self.label,
-            )
+            if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
+                # DeprecationWarning for internal subclasses (that are deprecated) is fine. We should
+                # still raise warnings for other subclasses out of our control
+                # TODO MCXGate, MCXGrayCode, MCXRecursive, MCXVChain are deprecated and this path can be
+                #   removed once they get removed:
+                #   https://github.com/Qiskit/qiskit/pull/12961
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        category=DeprecationWarning,
+                        module="qiskit",
+                    )
+                    gate = self.__class__(
+                        self.num_ctrl_qubits + num_ctrl_qubits,
+                        label=label,
+                        ctrl_state=ctrl_state,
+                        _base_label=self.label,
+                    )
+            else:
+                gate = MCXGate(
+                    self.num_ctrl_qubits + num_ctrl_qubits,
+                    label=label,
+                    ctrl_state=ctrl_state,
+                    _base_label=self.label,
+                )
         else:
             gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
         return gate
+
+    def copy(self, name=None):
+        """
+        Copy of the instruction.
+
+        Args:
+            name (str): name to be given to the copied circuit, if ``None`` then the name stays the same.
+
+        Returns:
+            qiskit.circuit.Instruction: a copy of the current instruction, with the name updated if it
+            was provided
+        """
+        if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message=r".*qiskit\.circuit\.library\.standard_gates\.x.*",
+                )
+                return super().copy(name=name)
+        return super().copy(name=name)
+
+    def __deepcopy__(self, memo=None):
+        if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, message=".+MCXVChain.+"
+                )
+                return super().__deepcopy__(memo=memo)
+        return super().__deepcopy__(memo=memo)
 
 
 class MCXGrayCode(MCXGate):
@@ -983,6 +1051,17 @@ class MCXGrayCode(MCXGate):
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg=(
+            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
+            "the best synthesis method depending on the number of ancilla qubits available. "
+            "If this specific synthesis method is required, one can specify it using the "
+            "high-level-synthesis plugin 'gray_code' for MCX gates, or, alternatively, "
+            "one can use synth_mcx_gray_code' to construct the gate directly."
+        ),
+        removal_timeline="in Qiskit 3.0",
+    )
     def __new__(
         cls,
         num_ctrl_qubits: Optional[int] = None,
@@ -1010,17 +1089,6 @@ class MCXGrayCode(MCXGate):
             return gate
         return super().__new__(cls)
 
-    @deprecate_func(
-        additional_msg=(
-            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
-            "the best synthesis method depending on the number of ancilla qubits available. "
-            "If this specific synthesis method is required, one can specify it using the "
-            "high-level-synthesis plugin `gray_code` for MCX gates, or, alternatively, "
-            "one can use synth_mcx_gray_code to construct the gate directly."
-        ),
-        since="1.3",
-        pending=True,
-    )
     def __init__(
         self,
         num_ctrl_qubits: int,
@@ -1041,7 +1109,10 @@ class MCXGrayCode(MCXGate):
         Returns:
             MCXGrayCode: inverse gate (self-inverse).
         """
-        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            inverse = MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        return inverse
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
@@ -1066,16 +1137,26 @@ class MCXRecursive(MCXGate):
     """
 
     @deprecate_func(
+        since="2.1",
         additional_msg=(
             "It is recommended to use MCXGate and let HighLevelSynthesis choose "
             "the best synthesis method depending on the number of ancilla qubits available. "
             "If this specific synthesis method is required, one can specify it using the "
-            "high-level-synthesis plugin '1_clean_b95' for MCX gates, or, alternatively, "
-            "one can use synth_mcx_1_clean to construct the gate directly."
+            "high-level-synthesis plugin ``'gray_code'`` for MCX gates, or, alternatively, "
+            "one can use ``'synth_mcx_1_clean'`` to construct the gate directly."
         ),
-        since="1.3",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
+    def __new__(
+        cls,
+        num_ctrl_qubits: Optional[int] = None,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        _base_label=None,
+    ):
+        return super().__new__(cls, num_ctrl_qubits, label, ctrl_state, _base_label=_base_label)
+
     def __init__(
         self,
         num_ctrl_qubits: int,
@@ -1109,7 +1190,10 @@ class MCXRecursive(MCXGate):
         Returns:
             MCXRecursive: inverse gate (self-inverse).
         """
-        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            inverse = MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        return inverse
 
     def _define(self):
         """Define the MCX gate using recursion."""
@@ -1124,6 +1208,18 @@ class MCXRecursive(MCXGate):
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg=(
+            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
+            "the best synthesis method depending on the number of ancilla qubits available. "
+            "If this specific synthesis method is required, one can specify it using the "
+            "high-level-synthesis plugins `n_clean_m15` (using clean ancillas) or "
+            "`n_dirty_i15` (using dirty ancillas) for MCX gates. Alternatively, one can "
+            "use synth_mcx_n_dirty_i15 and synth_mcx_n_clean_m15 to construct the gate directly."
+        ),
+        removal_timeline="in Qiskit 3.0",
+    )
     def __new__(
         cls,
         num_ctrl_qubits: Optional[int] = None,
@@ -1147,18 +1243,6 @@ class MCXVChain(MCXGate):
             _base_label=_base_label,
         )
 
-    @deprecate_func(
-        additional_msg=(
-            "It is recommended to use MCXGate and let HighLevelSynthesis choose "
-            "the best synthesis method depending on the number of ancilla qubits available. "
-            "If this specific synthesis method is required, one can specify it using the "
-            "high-level-synthesis plugins `n_clean_m15` (using clean ancillas) or "
-            "`n_dirty_i15` (using dirty ancillas) for MCX gates. Alternatively, one can "
-            "use synth_mcx_n_dirty_i15 and synth_mcx_n_clean_m15 to construct the gate directly."
-        ),
-        since="1.3",
-        pending=True,
-    )
     def __init__(
         self,
         num_ctrl_qubits: int,
@@ -1209,13 +1293,20 @@ class MCXVChain(MCXGate):
         Returns:
             MCXVChain: inverse gate (self-inverse).
         """
-        return MCXVChain(
-            num_ctrl_qubits=self.num_ctrl_qubits,
-            dirty_ancillas=self._dirty_ancillas,
-            ctrl_state=self.ctrl_state,
-            relative_phase=self._relative_phase,
-            action_only=self._action_only,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=r".+qiskit\.circuit\.library\.standard_gates\.x\.MCXVChain\..+",
+            )
+            inverse = MCXVChain(
+                num_ctrl_qubits=self.num_ctrl_qubits,
+                dirty_ancillas=self._dirty_ancillas,
+                ctrl_state=self.ctrl_state,
+                relative_phase=self._relative_phase,
+                action_only=self._action_only,
+            )
+        return inverse
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "v-chain"):

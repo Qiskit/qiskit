@@ -23,7 +23,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param};
 
 use crate::target::Target;
-use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::{gate_matrix, PhysicalQubit};
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, OneQubitGateSequence, EULER_BASES,
     EULER_BASIS_NAMES,
@@ -144,21 +144,15 @@ pub fn run_optimize_1q_gates_decomposition(
                     if let Some(target) = target {
                         error *= compute_error_term_from_target(inst.op.name(), target, qubit);
                     }
-                    inst.op.matrix(inst.params_view()).unwrap()
+                    inst.op.matrix_as_static_1q(inst.params_view()).unwrap()
                 } else {
                     unreachable!("Can only have op nodes here")
                 }
             })
-            .fold(
-                [
-                    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-                    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-                ],
-                |mut operator, node| {
-                    matmul_1q(&mut operator, node);
-                    operator
-                },
-            );
+            .fold(gate_matrix::ONE_QUBIT_IDENTITY, |mut operator, node| {
+                matmul_1q_with_slice(&mut operator, &node);
+                operator
+            });
 
         let old_error = if target.is_some() {
             (1. - error, raw_run.len())
@@ -216,6 +210,21 @@ pub(crate) fn matmul_1q(operator: &mut [[Complex64; 2]; 2], other: Array2<Comple
         [
             other[[1, 0]] * operator[0][0] + other[[1, 1]] * operator[1][0],
             other[[1, 0]] * operator[0][1] + other[[1, 1]] * operator[1][1],
+        ],
+    ];
+}
+
+/// Computes matrix product ``other * operator`` and stores the result within ``operator``.
+#[inline(always)]
+pub fn matmul_1q_with_slice(operator: &mut [[Complex64; 2]; 2], other: &[[Complex64; 2]; 2]) {
+    *operator = [
+        [
+            other[0][0] * operator[0][0] + other[0][1] * operator[1][0],
+            other[0][0] * operator[0][1] + other[0][1] * operator[1][1],
+        ],
+        [
+            other[1][0] * operator[0][0] + other[1][1] * operator[1][0],
+            other[1][0] * operator[0][1] + other[1][1] * operator[1][1],
         ],
     ];
 }
