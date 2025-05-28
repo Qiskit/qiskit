@@ -20,7 +20,7 @@ import numpy.random
 
 from qiskit.circuit import Clbit, ControlFlowOp, Qubit
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -1283,6 +1283,51 @@ class TestSabreSwapControlFlow(QiskitTestCase):
 
         pass_ = SabreSwap(coupling, "decay", seed=2025_02_05, trials=1)
         self.assertEqual(pass_(qc), expected)
+
+    def test_nested_vars(self):
+        """The Sabre rebuilder shouldn't choke if there is `Var` or `Stretch` usage within a
+        control-flow block."""
+        qc = QuantumCircuit(4)
+        a = qc.add_input("a", types.Bool())
+        b = qc.add_var("b", False)
+        stretch_0 = qc.add_stretch("c")
+        for other in qc.qubits[1:]:
+            qc.cx(0, other)
+        qc.delay(stretch_0, 0)
+        with qc.if_test(a):  # block 1
+            d = qc.add_var("d", False)
+            stretch_1 = qc.add_stretch("e")
+            for other in qc.qubits[1:]:
+                qc.cx(0, other)
+            with qc.while_loop(expr.logic_and(b, d)):  # block 2
+                for other in qc.qubits[1:]:
+                    qc.cx(0, other)
+                qc.delay(stretch_1)
+
+        # We don't care about the routing, just that the stretches and vars are there.
+        out = SabreSwap(CouplingMap.from_line(4), heuristic="basic", seed=0, trials=1)(qc)
+
+        def extract_vars(circuit):
+            """Extract the variables and the types of variables from a circuit and contained
+            control-flow blocks.  We assume that each block contains at most 1 control-flow block
+            with disparate names, just for ease."""
+
+            def extract_local(block):
+                return {
+                    "inputs": set(block.iter_input_vars()),
+                    "captures": set(block.iter_captures()),
+                    "local vars": set(block.iter_declared_vars()),
+                    "local stretches": set(block.iter_declared_stretches()),
+                }
+
+            blocks = (
+                ("global", circuit),
+                ("if", (if_body := circuit.data[-1].operation.blocks[0])),
+                ("while", if_body.data[-1].operation.blocks[0]),
+            )
+            return {name: extract_local(block) for name, block in blocks}
+
+        self.assertEqual(extract_vars(qc), extract_vars(out))
 
 
 @ddt.ddt
