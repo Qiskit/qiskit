@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed the :attr:`~.Gate.name` attribute of the :class:`.OrGate` class so
+    that it now is set to ``"or"`` to uniquely identify this gate. It was
+    previously incorrectly set to ``"and"`` which made it impossible to
+    distinguish it from :class:`.AndGate` or have synthesis plugins to
+    synthesize an :class:`.OrGate`.
+    Fixed `#14434 <https://github.com/Qiskit/qiskit/issues/14434>`__

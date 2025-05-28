@@ -151,11 +151,11 @@ class OrGate(Gate):
     ) -> None:
         """
         Args:
-            num_variable_qubits: The qubits of which the AND is computed. The result will be written
+            num_variable_qubits: The qubits of which the OR is computed. The result will be written
                 into an additional result qubit.
             flags: A list of +1/0/-1 marking negations or omissions of qubits.
         """
-        super().__init__("and", num_variable_qubits + 1, [])
+        super().__init__("or", num_variable_qubits + 1, [])
         self.num_variable_qubits = num_variable_qubits
         self.flags = flags
 
