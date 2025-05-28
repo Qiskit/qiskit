@@ -374,6 +374,14 @@ def _apply_sabre_result(
         empty.add_clbits(block.clbits)
         for creg in block.cregs:
             empty.add_creg(creg)
+        for var_ in block.iter_declared_vars():
+            empty.add_declared_var(var_)
+        for var_ in block.iter_captured_vars():
+            empty.add_captured_var(var_)
+        for stretch in block.iter_declared_stretches():
+            empty.add_declared_stretch(stretch)
+        for stretch in block.iter_captured_stretches():
+            empty.add_captured_stretch(stretch)
         empty.global_phase = block.global_phase
         return empty
 
