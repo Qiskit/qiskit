@@ -376,6 +376,10 @@ def _apply_sabre_result(
         empty.add_clbits(block.clbits)
         for creg in block.cregs:
             empty.add_creg(creg)
+        for var_ in block.iter_declared_vars():
+            empty.add_declared_var(var_)
+        for var_ in block.iter_captured_vars():
+            empty.add_captured_var(var_)
         empty.global_phase = block.global_phase
         return empty
 
