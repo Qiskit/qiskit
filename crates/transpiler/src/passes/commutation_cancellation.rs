@@ -214,7 +214,9 @@ pub fn cancel_commutations(
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
                 for current_node in cancel_set {
-                    let node_op = &dag[*current_node].unwrap_operation().standard_gate()
+                    let node_op = &dag[*current_node]
+                        .unwrap_operation()
+                        .standard_gate()
                         .expect("standard gate operation expected");
                     let node_op_name = node_op.gate().name();
 
@@ -240,11 +242,8 @@ pub fn cancel_commutations(
                     };
                     total_angle += node_angle?;
 
-                    let Param::Float(new_phase) = node_op
-                        .definition()
-                        .unwrap()
-                        .global_phase()
-                        .clone()
+                    let Param::Float(new_phase) =
+                        node_op.definition().unwrap().global_phase().clone()
                     else {
                         unreachable!()
                     };

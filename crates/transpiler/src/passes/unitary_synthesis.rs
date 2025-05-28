@@ -1288,20 +1288,33 @@ fn run_2q_unitary_synthesis(
                 let scoring_info = synth_dag
                     .topological_op_nodes()
                     .expect("Unexpected error in dag.topological_op_nodes()")
-                    .map(|node| {
+                    .filter_map(|node| {
                         let NodeType::Operation(inst) = &synth_dag[node] else {
                             unreachable!("DAG node must be an instruction")
                         };
+                        if !matches!(
+                            inst.op(),
+                            OperationRef::StandardGate(_)
+                                | OperationRef::Gate(_)
+                                | OperationRef::Operation(_)
+                                | OperationRef::Unitary(_)
+                        ) {
+                            // Instruction needs to be gate-like (we should introduce a view for that).
+                            return None;
+                        }
                         let inst_qubits = synth_dag
                             .get_qargs(inst.qubits)
                             .iter()
                             .map(|q| ref_qubits[q.0 as usize])
                             .collect();
-                        (
+                        Some((
                             inst.op.name().to_string(),
-                            inst.params.clone().map(|boxed| *boxed),
+                            inst.params.as_deref().map(|p| match p {
+                                Parameters::Params(inst_params) => inst_params.clone(),
+                                _ => panic!("Expected gate parameters"),
+                            }),
                             inst_qubits,
-                        )
+                        ))
                     });
                 let score = synth_error(py, scoring_info, target.unwrap());
                 synth_errors_dag.push((synth_dag, score));

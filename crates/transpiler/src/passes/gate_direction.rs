@@ -17,6 +17,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use qiskit_circuit::bit::{QuantumRegister, Register};
 use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef};
+use qiskit_circuit::dag_circuit::{DAGInstruction, Parameters};
 use qiskit_circuit::operations::{InstructionRef, OperationRef, StandardGateRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
@@ -34,7 +35,6 @@ use qiskit_circuit::{
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
-use qiskit_circuit::dag_circuit::{DAGInstruction, Parameters};
 //#########################################################################
 //              CheckGateDirection analysis pass functions
 //#########################################################################
@@ -326,7 +326,8 @@ where
         let packed_inst = DAGInstruction::from_control_flow(
             packed_inst.op.control_flow().clone(),
             packed_inst.qubits,
-            packed_inst.clbits, op_blocks,
+            packed_inst.clbits,
+            op_blocks,
             packed_inst.label.as_ref().map(|l| l.as_str()),
         );
 
@@ -335,7 +336,7 @@ where
             node,
             packed_inst.op,
             packed_inst.params.map(|p| *p),
-            packed_inst.label.as_deref().map(|l| l.as_str())
+            packed_inst.label.as_deref().map(|l| l.as_str()),
         )?;
     }
 

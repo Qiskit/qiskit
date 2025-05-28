@@ -31,7 +31,9 @@ use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
-use qiskit_circuit::operations::{InstructionRef, Operation, OperationRef, Param, StandardGate, StandardGateRef, STANDARD_GATE_SIZE};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
+};
 use qiskit_circuit::{Clbit, Qubit};
 
 use crate::QiskitError;
@@ -276,14 +278,12 @@ impl CommutationChecker {
     pub fn commute_inner(
         &mut self,
         py: Python,
-        op1: impl IntoInstructionRef<'_>,
-        // op1: &OperationRef,
-        // params1: &[Param],
+        op1: &OperationRef,
+        params1: &[Param],
         qargs1: &[Qubit],
         cargs1: &[Clbit],
-        op2: impl IntoInstructionRef<'_>,
-        // op2: &OperationRef,
-        // params2: &[Param],
+        op2: &OperationRef,
+        params2: &[Param],
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
@@ -296,26 +296,16 @@ impl CommutationChecker {
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
-        let (op1_gate, params1) = if let InstructionRef::StandardGate(StandardGateRef(gate, params1)) = op1 {
-            let (op1_gate, params1, trivial) = map_rotation(gate, params1, tol);
-            if trivial {
-                return Ok(true);
-            }
-            (op1_gate, params1)
-        } else {
-            (None, Default::default())
-        };
-
-        // let (op1_gate, trivial1) = map_rotation(&op1, tol);
-        // if trivial1 {
-        //     return Ok(true);
-        // }
+        let (op1_gate, params1, trivial1) = map_rotation(op1, params1, tol);
+        if trivial1 {
+            return Ok(true);
+        }
         let op1 = if let Some(gate) = op1_gate {
             &OperationRef::StandardGate(gate)
         } else {
             op1
         };
-        let (op2_gate, trivial2) = map_rotation(&op2, tol);
+        let (op2_gate, params2, trivial2) = map_rotation(op2, params2, tol);
         if trivial2 {
             return Ok(true);
         }
@@ -561,7 +551,9 @@ fn commutation_precheck(
     cargs2: &[Clbit],
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if matches!(op1, OperationRef::ControlFlow { .. }) || matches!(op2, OperationRef::ControlFlow { .. }) {
+    if matches!(op1, OperationRef::ControlFlow { .. })
+        || matches!(op2, OperationRef::ControlFlow { .. })
+    {
         return Some(false);
     }
 
@@ -604,13 +596,12 @@ fn get_matrix(
     operation: &OperationRef,
     params: &[Param],
 ) -> PyResult<Option<Array2<Complex64>>> {
-    match operation.matrix(params) {
-        Some(matrix) => Ok(Some(matrix)),
-        None => match operation {
-            PyGateType(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
-            PyOperationType(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
-            _ => Ok(None),
-        },
+    match operation {
+        OperationRef::StandardGate(g) => Ok(g.matrix(params)),
+        OperationRef::Gate(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
+        OperationRef::Operation(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
+        OperationRef::Unitary(u) => Ok(u.matrix()),
+        _ => Ok(None),
     }
 }
 
@@ -632,40 +623,42 @@ fn is_parameterized(params: &[Param]) -> bool {
 
 /// Check if a given operation can be mapped onto a generator.
 ///
-/// If ``gate`` is in the ``SUPPORTED_ROTATIONS`` hashmap, it is a rotation and we
+/// If ``op`` is in the ``SUPPORTED_ROTATIONS`` hashmap, it is a rotation and we
 ///   (1) check whether the rotation is so small (modulo pi) that we assume it is the
 ///       identity and it commutes trivially with every other operation
 ///   (2) otherwise, we check whether a generator of the rotation is given (e.g. X for RX)
 ///       and we return the generator
 ///
 /// Returns (operation, parameters, commutes_trivially).
-fn map_rotation(
-    gate: StandardGate,
-    params: &[Param],
+fn map_rotation<'a>(
+    op: &'a OperationRef<'a>,
+    params: &'a [Param],
     tol: f64,
-) -> (Option<StandardGate>, &[Param], bool) {
-    if let Some(generator) = SUPPORTED_ROTATIONS[gate as usize] {
-        // If the rotation angle is below the tolerance, the gate is assumed to
-        // commute with everything, and we simply return the operation with the flag that
-        // it commutes trivially.
-        if let Param::Float(angle) = params[0] {
-            let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(gate, angle)
-                .expect("All rotation should be covered at this point");
-            let gate_fidelity = tr_over_dim.abs().powi(2);
-            let process_fidelity = (dim * gate_fidelity + 1.) / (dim + 1.);
-            if (1. - process_fidelity).abs() <= tol {
-                return (Some(gate), params, true);
+) -> (Option<StandardGate>, &'a [Param], bool) {
+    if let Some(gate) = op.standard_gate() {
+        if let Some(generator) = SUPPORTED_ROTATIONS[gate as usize] {
+            // If the rotation angle is below the tolerance, the gate is assumed to
+            // commute with everything, and we simply return the operation with the flag that
+            // it commutes trivially.
+            if let Param::Float(angle) = params[0] {
+                let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(gate, angle)
+                    .expect("All rotation should be covered at this point");
+                let gate_fidelity = tr_over_dim.abs().powi(2);
+                let process_fidelity = (dim * gate_fidelity + 1.) / (dim + 1.);
+                if (1. - process_fidelity).abs() <= tol {
+                    return (Some(gate), params, true);
+                };
             };
-        };
 
-        // Otherwise we need to cover two cases -- either a generator is given, in which case
-        // we return it, or we don't have a generator yet, but we know we have the operation
-        // stored in the commutation library. For example, RXX does not have a generator in Rust
-        // yet (PauliGate is not in Rust currently), but it is stored in the library, so we
-        // can strip the parameters and just return the gate.
-        if let Some(gate) = generator {
-            return (Some(gate), &[], false);
-        };
+            // Otherwise we need to cover two cases -- either a generator is given, in which case
+            // we return it, or we don't have a generator yet, but we know we have the operation
+            // stored in the commutation library. For example, RXX does not have a generator in Rust
+            // yet (PauliGate is not in Rust currently), but it is stored in the library, so we
+            // can strip the parameters and just return the gate.
+            if let Some(gate) = generator {
+                return (Some(gate), &[], false);
+            };
+        }
     }
     (None, params, false)
 }

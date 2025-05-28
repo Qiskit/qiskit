@@ -3059,7 +3059,7 @@ impl Operation for UnitaryGate {
 }
 
 impl UnitaryGate {
-    fn matrix(&self) -> Option<Array2<Complex64>> {
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
         match &self.array {
             ArrayType::NDArray(arr) => Some(arr.clone()),
             ArrayType::OneQ(mat) => Some(array!(
@@ -3085,12 +3085,12 @@ impl Deref for UnitaryGateRef<'_> {
         self.0
     }
 }
-
-impl<'a> UnitaryGateRef<'a> {
-    pub fn matrix(&self) -> Option<Array2<Complex64>> {
-        self.0.matrix()
-    }
-}
+//
+// impl<'a> UnitaryGateRef<'a> {
+//     pub fn matrix(&self) -> Option<Array2<Complex64>> {
+//         self.0.matrix()
+//     }
+// }
 
 impl<'a> PyEq for UnitaryGateRef<'a> {
     fn py_eq(&self, _py: Python, other: &Self) -> PyResult<bool> {

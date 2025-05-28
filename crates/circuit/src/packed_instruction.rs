@@ -783,8 +783,8 @@ impl Instruction for PackedInstruction {
     }
 
     #[cfg(feature = "cache_pygates")]
-    fn py_op(&self) -> &OnceLock<Py<PyAny>> {
-        &self.py_op
+    fn py_op(&self) -> Option<&OnceLock<Py<PyAny>>> {
+        Some(&self.py_op)
     }
 }
 

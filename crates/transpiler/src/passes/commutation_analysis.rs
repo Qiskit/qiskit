@@ -20,9 +20,9 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 
 use pyo3::types::{PyDict, PyList};
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Parameters, Wire};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.
@@ -87,21 +87,31 @@ pub fn analyze_commutations(
                         let op1 = packed_inst0.op.view();
                         let op2 = packed_inst1.op.view();
 
-                        if packed_inst0.control_flow().is_some() || packed_inst1.control_flow().is_some() {
+                        if packed_inst0.control_flow().is_some()
+                            || packed_inst1.control_flow().is_some()
+                        {
                             all_commute = false;
                             break;
                         }
 
                         // TODO: we assume that operations other than ControlFlow use Params as their
                         //   parameters, but we should move away from this.
-                        let params1 = packed_inst0.params.as_deref().map(|p| match p {
-                            Parameters::Params(p) => p.as_slice(),
-                            _ => panic!("expected Params as parameter type"),
-                        }).unwrap_or_default();
-                        let params2 = packed_inst1.params.as_deref().map(|p| match p {
-                            Parameters::Params(p) => p.as_slice(),
-                            _ => panic!("expected Params as parameter type"),
-                        }).unwrap_or_default();
+                        let params1 = packed_inst0
+                            .params
+                            .as_deref()
+                            .map(|p| match p {
+                                Parameters::Params(p) => p.as_slice(),
+                                _ => panic!("expected Params as parameter type"),
+                            })
+                            .unwrap_or_default();
+                        let params2 = packed_inst1
+                            .params
+                            .as_deref()
+                            .map(|p| match p {
+                                Parameters::Params(p) => p.as_slice(),
+                                _ => panic!("expected Params as parameter type"),
+                            })
+                            .unwrap_or_default();
 
                         let qargs1 = dag.get_qargs(packed_inst0.qubits);
                         let qargs2 = dag.get_qargs(packed_inst1.qubits);

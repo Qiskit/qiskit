@@ -29,10 +29,10 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
-use qiskit_circuit::operations::{InstructionRef, Operation};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{radd_param, Param};
+use qiskit_circuit::operations::{InstructionRef, Operation};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Clbit;
@@ -515,7 +515,8 @@ fn run_on_circuitdata(
 
             // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
             // new_blocks_py keeps the recursively synthesized circuits
-            let old_blocks_py: Vec<Bound<PyAny>> = control_flow.blocks().map(|b| b.bind(py).clone()).collect();
+            let old_blocks_py: Vec<Bound<PyAny>> =
+                control_flow.blocks().map(|b| b.bind(py).clone()).collect();
             let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
 
             // We do not allow using any additional qubits outside of the block.
@@ -564,13 +565,8 @@ fn run_on_circuitdata(
         // synthesized, or returns a quantum circuit together with the global qubits on which this
         // circuit is defined. Note that the synthesized circuit may involve auxiliary
         // global qubits not used by the input circuit.
-        let synthesize_operation_result = synthesize_operation(
-            py,
-            data,
-            tracker,
-            &op_qubits,
-            inst,
-        )?;
+        let synthesize_operation_result =
+            synthesize_operation(py, data, tracker, &op_qubits, inst)?;
 
         match synthesize_operation_result {
             None => {
@@ -657,10 +653,7 @@ fn run_on_circuitdata(
 /// Essentially this function constructs a default definition for a unitary gate, in which case
 /// ``op.definition`` purposefully returns ``None``.
 /// For all other operation types, it simply calls ``op.definition``.
-fn extract_definition(
-    py: Python,
-    instr: &impl Instruction,
-) -> PyResult<Option<CircuitData>> {
+fn extract_definition(py: Python, instr: &impl Instruction) -> PyResult<Option<CircuitData>> {
     match instr.view() {
         InstructionRef::Unitary(unitary) => {
             let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match unitary.matrix() {
@@ -741,7 +734,7 @@ fn synthesize_operation(
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
     input_qubits: &[usize],
-    instr: &impl Instruction
+    instr: &impl Instruction,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     let op = instr.op();
     if op.num_qubits() != input_qubits.len() as u32 {
@@ -769,13 +762,8 @@ fn synthesize_operation(
 
     // Try to synthesize using plugins.
     if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
-        output_circuit_and_qubits = synthesize_op_using_plugins(
-            py,
-            data,
-            tracker,
-            input_qubits,
-            instr,
-        )?;
+        output_circuit_and_qubits =
+            synthesize_op_using_plugins(py, data, tracker, input_qubits, instr)?;
     }
 
     // Check if present in the equivalent library.
@@ -890,13 +878,7 @@ fn py_synthesize_operation(
         return Ok(None);
     }
 
-    synthesize_operation(
-        py,
-        data,
-        tracker,
-        &input_qubits,
-        &op,
-    )
+    synthesize_operation(py, data, tracker, &input_qubits, &op)
 }
 
 /// Runs HighLevelSynthesis transpiler pass.

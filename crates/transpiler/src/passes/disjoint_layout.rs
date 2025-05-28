@@ -26,16 +26,16 @@ use rustworkx_core::petgraph::EdgeType;
 use smallvec::SmallVec;
 use uuid::Uuid;
 
+use crate::target::{Qargs, Target};
+use crate::TranspilerError;
 use qiskit_circuit::bit::ShareableQubit;
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VirtualQubit};
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
-use crate::target::{Qargs, Target};
-use crate::TranspilerError;
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
