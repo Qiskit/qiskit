@@ -15,60 +15,14 @@ use num_complex::ComplexFloat;
 use numpy::Complex64;
 use std::ops::Div;
 
-/// A bisection search on [f64] functions.
-fn bisect(f: impl Fn(f64) -> f64, a: f64, b: f64, tol: f64, maxiter: usize) -> Option<f64> {
-    // sort: we always want a < b, as we assume the interval is [a, b]
-    let (mut a, mut b) = if a > b { (b, a) } else { (a, b) };
-
-    // check trivial cases
-    if f(a).abs() < tol {
-        return Some(a);
-    }
-    if f(b).abs() < tol {
-        return Some(b);
-    }
-    if f(a) * f(b) > 0. {
-        return None; // invalid boundaries
-    }
-
-    let half = 0.5;
-    let mut midpoint = half * (a + b);
-    for _ in 0..maxiter {
-        // solution is in [a, midpoint]
-        if f(a) * f(midpoint) < 0. {
-            b = midpoint;
-        } else {
-            a = midpoint;
-        }
-        midpoint = half * (a + b);
-
-        if (b - a) < tol {
-            break; // we're done!
-        }
-    }
-    Some(midpoint)
-}
-
+/// Solve equation (10) in https://arxiv.org/pdf/quant-ph/0505030 by using the
+/// substitution sin(u/2) = sin^2(phi/4).
 pub(crate) fn solve_decomposition_angle(matrix: &Matrix3<f64>) -> f64 {
     let trace = matrix.trace().min(3.0); // avoid roundoff errors
     let angle = ((trace - 1.) / 2.).acos();
 
-    // let phi = 2. * (angle / 4.).sin().sqrt().abs().asin();
-    // phi
-
-    // old way:
-    let lhs = (angle / 2.).sin();
-
-    // we use a bisect search to solve the angle equation (Eq. 10 in the paper)
-    let min_angle = 0.;
-    let max_angle = 2. * (1. / 2_f64.powf(0.25)).asin();
-
-    let f = move |phi: f64| -> f64 {
-        let sin_sq = (phi / 2.).sin().powi(2);
-        2. * sin_sq * (1. - sin_sq.powi(2)).sqrt() - lhs
-    };
-
-    bisect(f, min_angle, max_angle, 1e-20, 70).expect("Who coded this cannot math")
+    let phi = 2. * (angle / 4.).sin().sqrt().abs().asin();
+    phi
 }
 
 /// Add coeff * V to the out matrix, where V is the skew-symmetric representation of the

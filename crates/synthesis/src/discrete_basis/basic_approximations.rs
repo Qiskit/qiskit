@@ -26,7 +26,7 @@ use qiskit_circuit::{
 use rstar::{Point, RTree};
 use serde::{Deserialize, Serialize};
 use std::f64::consts::FRAC_1_SQRT_2;
-use std::{fmt::Debug, ops::Div};
+use std::fmt::Debug;
 use thiserror::Error;
 
 use super::math;
