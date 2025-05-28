@@ -1367,10 +1367,14 @@ class TestSabreSwapControlFlow(QiskitTestCase):
                     "locals": set(block.iter_declared_vars()),
                 }
 
+            def inner_block(circuit):
+                inst = next(inst for inst in circuit.data if inst.is_control_flow())
+                return inst.operation.blocks[0]
+
             blocks = (
                 ("global", circuit),
-                ("if", (if_body := circuit.data[-1].operation.blocks[0])),
-                ("while", if_body.data[-1].operation.blocks[0]),
+                ("if", (if_body := inner_block(circuit))),
+                ("while", inner_block(if_body)),
             )
             return {name: extract_local(block) for name, block in blocks}
 
