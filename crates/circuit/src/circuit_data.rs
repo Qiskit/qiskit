@@ -22,7 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, Instruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
-use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
+use crate::imports::ANNOTATED_OPERATION;
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, StandardGate};

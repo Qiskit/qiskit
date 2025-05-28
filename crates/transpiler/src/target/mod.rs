@@ -35,11 +35,8 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
-use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef, OperationFromPython};
-use qiskit_circuit::operations::{
-    ControlFlowRef, InstructionRef, Operation, OperationRef, Param, StandardGateRef,
-    StandardInstructionRef,
-};
+use qiskit_circuit::circuit_instruction::{Instruction, OperationFromPython};
+use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
 

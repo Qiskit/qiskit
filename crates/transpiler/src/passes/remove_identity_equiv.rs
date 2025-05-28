@@ -18,11 +18,9 @@ use crate::target::Target;
 use qiskit_accelerate::gate_metrics::rotation_trace_and_dim;
 use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
-use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{InstructionRef, Operation, StandardGateRef};
-use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::PhysicalQubit;
 
 const MINIMUM_TOL: f64 = 1e-12;

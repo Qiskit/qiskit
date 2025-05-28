@@ -16,7 +16,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 
 const PARALLEL_THRESHOLD: usize = 150;

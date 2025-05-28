@@ -13,7 +13,6 @@
 use std::hash::Hash;
 
 use ahash::RandomState;
-use approx::relative_eq;
 use smallvec::SmallVec;
 
 use crate::bit::{
@@ -34,12 +33,11 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, Condition, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef,
-    Param, PyEq, PyInstruction, StandardGate, StandardGateRef, StandardInstruction,
-    StandardInstructionRef, Target, UnitaryGateRef,
+    Condition, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef, Param, PyEq,
+    PyInstruction, StandardGate, StandardGateRef, StandardInstruction, StandardInstructionRef,
+    Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;

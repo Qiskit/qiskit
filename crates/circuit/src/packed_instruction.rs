@@ -17,22 +17,17 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 
-use ndarray::Array2;
-use num_complex::Complex64;
 use smallvec::SmallVec;
 
-use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::Instruction;
-use crate::duration::Duration;
 use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY,
     FOR_LOOP_OP, IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
 };
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, ControlFlowRef, DelayUnit, InstructionRef, Operation, OperationRef, Param, PyGate,
-    PyInstruction, PyOperation, StandardGate, StandardGateRef, StandardInstruction,
-    StandardInstructionRef, UnitaryGate, UnitaryGateRef,
+    ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
 

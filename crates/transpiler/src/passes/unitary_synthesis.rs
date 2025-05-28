@@ -20,7 +20,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::{Complex, Complex64};
 use numpy::IntoPyArray;
-use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction, Parameters};
 use smallvec::SmallVec;
 
@@ -34,7 +34,7 @@ use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 
 use crate::target::{NormalOperation, Target, TargetOperation};
@@ -246,10 +246,6 @@ pub fn run_unitary_synthesis(
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
 ) -> PyResult<DAGCircuit> {
-    // We need to use the python converter because the currently available Rust conversion
-    // is lossy. We need `QuantumCircuit` instances to be used in `replace_blocks`.
-    let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-
     let mut out_dag = dag.copy_empty_like("alike")?;
 
     // Iterate over dag nodes and determine unitary synthesis approach

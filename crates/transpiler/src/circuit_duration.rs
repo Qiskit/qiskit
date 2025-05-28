@@ -15,8 +15,7 @@ use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{
-    DelayUnit, InstructionRef, Operation, OperationRef, Param, StandardInstruction,
-    StandardInstructionRef,
+    DelayUnit, InstructionRef, Operation, Param, StandardInstructionRef,
 };
 
 use crate::target::Target;

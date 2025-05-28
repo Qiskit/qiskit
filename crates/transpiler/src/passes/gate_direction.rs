@@ -14,23 +14,15 @@ use crate::target::Target;
 use crate::TranspilerError;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use qiskit_circuit::bit::{QuantumRegister, Register};
-use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef};
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::dag_circuit::{DAGInstruction, Parameters};
 use qiskit_circuit::operations::{InstructionRef, OperationRef, StandardGateRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
-    converters::{circuit_to_dag, QuantumCircuitData},
-    dag_circuit::DAGCircuit,
-    imports,
-    imports::get_std_gate_class,
-    operations::Operation,
-    operations::Param,
-    operations::StandardGate,
-    packed_instruction::PackedInstruction,
-    Qubit,
+    dag_circuit::DAGCircuit, imports::get_std_gate_class, operations::Operation, operations::Param,
+    operations::StandardGate, Qubit,
 };
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};

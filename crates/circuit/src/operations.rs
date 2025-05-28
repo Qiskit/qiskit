@@ -11,13 +11,12 @@
 // that they have been altered from the originals.
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
-use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
+use crate::imports::get_std_gate_class;
+use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 use approx::relative_eq;
 use std::f64::consts::PI;
 use std::fmt::Debug;
-use std::marker::PhantomData;
 use std::ops::Deref;
 use std::{fmt, vec};
 
@@ -29,15 +28,13 @@ use smallvec::{smallvec, SmallVec};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::classical::expr;
 use crate::duration::Duration;
-use crate::parameter_expression::ParameterExpression;
 use numpy::IntoPyArray;
 use numpy::PyArray2;
 use numpy::PyReadonlyArray2;
-use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
-use pyo3::{intern, IntoPyObjectExt, Python};
+use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
+use pyo3::{intern, Python};
 
 #[derive(Clone, Debug, IntoPyObject)]
 pub enum Param {

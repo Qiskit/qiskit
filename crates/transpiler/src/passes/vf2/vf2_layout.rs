@@ -14,7 +14,6 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use pyo3::{create_exception, wrap_pyfunction};
 use rayon::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
@@ -23,9 +22,8 @@ use rustworkx_core::petgraph::EdgeType;
 use std::cmp::Ordering;
 use std::time::Instant;
 
-use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{ControlFlowRef, Operation, OperationRef, Param};
+use qiskit_circuit::operations::{ControlFlowRef, Operation};
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;
 

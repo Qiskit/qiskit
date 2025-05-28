@@ -22,10 +22,9 @@ use pyo3::types::{IntoPyDict, PyBool, PyDict, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
-use crate::circuit_data::CircuitData;
 use crate::imports::{
-    get_std_gate_class, BARRIER, CONTROLLED_GATE, CONTROL_FLOW_OP, DELAY, GATE, INSTRUCTION,
-    MEASURE, OPERATION, RESET, UNITARY_GATE, WARNINGS_WARN,
+    BARRIER, CONTROLLED_GATE, DELAY, GATE, INSTRUCTION, MEASURE, OPERATION, RESET, UNITARY_GATE,
+    WARNINGS_WARN,
 };
 use crate::operations::{
     ArrayType, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef, Param, PyGate,

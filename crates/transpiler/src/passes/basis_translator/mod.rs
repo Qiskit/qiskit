@@ -27,16 +27,12 @@ mod compose_transforms;
 
 use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
-use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
-use qiskit_circuit::converters::circuit_to_dag;
+use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction, Parameters};
-use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
-    circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
     operations::{Operation, OperationRef},
 };

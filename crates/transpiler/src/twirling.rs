@@ -19,13 +19,10 @@ use ndarray::ArrayView2;
 use num_complex::Complex64;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::PyList;
 use pyo3::wrap_pyfunction;
-use pyo3::IntoPyObjectExt;
 use pyo3::Python;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
-use smallvec::SmallVec;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef, OperationFromPython};
@@ -34,9 +31,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
-use qiskit_circuit::operations::{
-    InstructionRef, Operation, OperationRef, Param, PyInstruction, StandardGate, StandardGateRef,
-};
+use qiskit_circuit::operations::{InstructionRef, Operation, Param, StandardGate, StandardGateRef};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use qiskit_accelerate::QiskitError;

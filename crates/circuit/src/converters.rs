@@ -10,16 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::circuit_data::CircuitData;
 use crate::classical::expr;
 use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.

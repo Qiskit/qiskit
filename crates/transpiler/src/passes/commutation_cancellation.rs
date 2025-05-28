@@ -21,7 +21,7 @@ use smallvec::{smallvec, SmallVec};
 
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::operations::{InstructionRef, Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use super::analyze_commutations;

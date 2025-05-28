@@ -11,15 +11,12 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashSet;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::imports::CIRCUIT_TO_DAG;
-use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::Qubit;
 
 fn recurse<'py>(
