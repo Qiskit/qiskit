@@ -671,8 +671,6 @@ pub enum QkDelayUnit {
     NS = 3,
     /// Picoseconds.
     PS = 4,
-    /// Device-native time unit ``dt``.
-    DT = 5,
 }
 
 /// @ingroup QkCircuit
@@ -710,7 +708,6 @@ pub unsafe extern "C" fn qk_circuit_delay(
         QkDelayUnit::US => DelayUnit::US,
         QkDelayUnit::NS => DelayUnit::NS,
         QkDelayUnit::PS => DelayUnit::PS,
-        QkDelayUnit::DT => DelayUnit::DT,
     };
 
     let duration_param: Param = duration.into();
