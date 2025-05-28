@@ -722,3 +722,60 @@ pub unsafe extern "C" fn qk_circuit_delay(
 
     ExitCode::Success
 }
+
+/// @ingroup QkCircuit
+/// Compose a circuit into other circuit
+///
+/// @param target A pointer to the base circuit to compose another circuit
+/// @param other A pointer to the other circuit to be appended to the target circuit
+/// @param qubits A pointer to array of qubits of target to map other circuit onto
+///      the length of array is no more than number of qubits for target circuit.
+///      qubits can be null and operations are mapped on the same qubits on the target
+/// @param clbits A pointer to array of clbits of target to map other circuit onto
+///      clbits can be null and mapped on the same clbits on the target
+/// @param front insert other circuit onto the top of target circuit
+/// @param inplace insert other circuit into target itself, returns null pointer
+///        both inplace and front can not be set to true at the same time
+///
+/// @return An exit code.
+///
+/// # Example
+///
+///     QkCircuit *qc = qk_circuit_new(100);
+///     QkCircuit *qc_sub = qk_circuit_new(2);
+///     qk_circuit_compose(qc, qc_sub, *[3, 2], *[3, 2]);
+///
+/// # Safety
+///
+/// Behavior is undefined ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_compose(
+    target: *mut CircuitData,
+    other: *const CircuitData,
+    qubits: *const u32,
+    clbits: *const u32,
+) -> ExitCode {
+    let target = unsafe { mut_ptr_as_ref(target) };
+    let other = unsafe { const_ptr_as_ref(other) };
+    let num_qubits = other.num_qubits();
+    let num_clbits = other.num_clbits();
+    let qargs_vec: Vec<Qubit> = if qubits.is_null() {
+        (0..target.num_qubits())
+            .map(|idx| Qubit(idx as u32))
+            .collect()
+    } else {
+        unsafe { (0..num_qubits).map(|idx| Qubit(*qubits.add(idx))).collect() }
+    };
+    let cargs_vec: Vec<Clbit> = if clbits.is_null() {
+        (0..target.num_clbits())
+            .map(|idx| Clbit(idx as u32))
+            .collect()
+    } else {
+        unsafe { (0..num_clbits).map(|idx| Clbit(*clbits.add(idx))).collect() }
+    };
+    match target.compose(other, &qargs_vec, &cargs_vec) {
+        Ok(_) => ExitCode::Success,
+        Err(_) => ExitCode::MismatchedQubits,
+    }
+}

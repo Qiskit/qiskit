@@ -1957,6 +1957,32 @@ impl CircuitData {
             _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
         }
     }
+
+    /// Compose other CircuitData into the CircuitData
+    /// add operations at the end of the PackedOperation vector inplace
+    pub fn compose(
+        &mut self,
+        other: &Self,
+        qargs_map: &[Qubit],
+        cargs_map: &[Clbit],
+    ) -> Result<(), String> {
+        if self.num_qubits() < other.num_qubits() {
+            return Err(
+                "CircuitData::compose : an input circuit is larger than this circuit".to_string(),
+            );
+        }
+        for op in &other.data {
+            let mut comp = op.clone();
+            let qargs = other.get_qargs(op.qubits);
+            let qubits: Vec<Qubit> = qargs.iter().map(|q| qargs_map[q.0 as usize]).collect();
+            comp.qubits = self.qargs_interner.insert(&qubits);
+            let cargs = other.get_cargs(op.clbits);
+            let clbits: Vec<Clbit> = cargs.iter().map(|c| cargs_map[c.0 as usize]).collect();
+            comp.clbits = self.cargs_interner.insert(&clbits);
+            self.data.push(comp);
+        }
+        Ok(())
+    }
 }
 
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in
