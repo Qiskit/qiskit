@@ -452,9 +452,11 @@ fn is_unitary(matrix: &ArrayType, tol: f64) -> bool {
 /// @param matrix A pointer to the ``QkComplex64`` array representing the unitary matrix.
 ///     This must be a row-major, unitary matrix of dimension ``2 ^ num_qubits x 2 ^ num_qubits``.
 ///     More explicitly: the ``(i, j)``-th element is given by ``matrix[i * 2^n + j]``.
+///     The contents or ``matrix`` are copied into an internal buffer, so caller keeps ownership of
+///     the original  memoru and can free it or reuse it after the call.
 /// @param qubits A pointer to array of qubit indices, of length ``num_qubits``.
 /// @param num_qubits The number of qubits the unitary acts on.
-///
+/// @param check_input When true, the function verifies that the matrix is unitary.
 /// # Example
 ///
 ///     QkComplex64 c0 = qk_complex64_from_native(0);  // 0+0i
