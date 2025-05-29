@@ -783,9 +783,8 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///         >>> ops = QubitSparsePauli.Pauli
 ///         >>> assert ops.X is QubitSparsePauli.Pauli.X
 ///
-///     You can access all the values of the enumeration by either their full all-capitals name, or
-///     by their single-letter label.  The single-letter labels are not generally valid Python
-///     identifiers, so you must use indexing notation to access them::
+///     You can access all the values of the enumeration either with attribute access, or with
+///     dictionary-like indexing by string::
 ///
 ///         >>> assert QubitSparsePauli.Pauli.X is QubitSparsePauli.Pauli["X"]
 ///
