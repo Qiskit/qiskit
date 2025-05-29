@@ -44,6 +44,30 @@ int test_empty(void) {
     return Ok;
 }
 
+int test_circuit_with_quantum_reg(void) {
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkQuantumRegister *qr = qk_quantum_register_new(1024, "my_little_register");
+    qk_circuit_add_quantum_register(qc, qr);
+    uint32_t num_qubits = qk_circuit_num_qubits(qc);
+    uint32_t num_clbits = qk_circuit_num_clbits(qc);
+    size_t num_instructions = qk_circuit_num_instructions(qc);
+    qk_circuit_free(qc);
+    qk_quantum_register_free(qr);
+    if (num_qubits != 1024) {
+        printf("The number of qubits %d is not 1024", num_qubits);
+        return EqualityError;
+    }
+    if (num_clbits != 0) {
+        printf("The number of clbits %d is not 0", num_clbits);
+        return EqualityError;
+    }
+    if (num_instructions != 0) {
+        printf("The number of instructions %lu is not 0", num_instructions);
+        return EqualityError;
+    }
+    return Ok;
+}
+
 int test_circuit_copy(void) {
     QkCircuit *qc = qk_circuit_new(10, 10);
     QkCircuit *copy = qk_circuit_copy(qc);
@@ -63,6 +87,30 @@ int test_circuit_copy(void) {
     if (num_instructions == num_copy_instructions) {
         printf("The number of instructions %lu is equal to the copied %lu", num_instructions,
                num_copy_instructions);
+        return EqualityError;
+    }
+    return Ok;
+}
+
+int test_circuit_with_classical_reg(void) {
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkClassicalRegister *cr = qk_classical_register_new(2048, "my_less_little_register");
+    qk_circuit_add_classical_register(qc, cr);
+    uint32_t num_qubits = qk_circuit_num_qubits(qc);
+    uint32_t num_clbits = qk_circuit_num_clbits(qc);
+    size_t num_instructions = qk_circuit_num_instructions(qc);
+    qk_circuit_free(qc);
+    qk_classical_register_free(cr);
+    if (num_qubits != 0) {
+        printf("The number of qubits %d is not 0", num_qubits);
+        return EqualityError;
+    }
+    if (num_clbits != 2048) {
+        printf("The number of clbits %d is not 2048", num_clbits);
+        return EqualityError;
+    }
+    if (num_instructions != 0) {
+        printf("The number of instructions %lu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -339,12 +387,12 @@ int test_get_gate_counts_bv_barrier_and_measures() {
     for (i = 0; i < 1000; i++) {
         barrier_qubits[i] = i;
     }
-    qk_circuit_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 1000; i += 2) {
         uint32_t qubits[2] = {i, 999};
         qk_circuit_gate(qc, QkGate_CX, qubits, params);
     }
-    qk_circuit_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 999; i++) {
         uint32_t qubits[1] = {i};
         qk_circuit_gate(qc, QkGate_H, qubits, params);
@@ -423,12 +471,12 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
     for (i = 0; i < 1000; i++) {
         barrier_qubits[i] = i;
     }
-    qk_circuit_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 1000; i += 2) {
         uint32_t qubits[2] = {i, 999};
         qk_circuit_gate(qc, QkGate_CX, qubits, params);
     }
-    qk_circuit_barrier(qc, 1000, barrier_qubits);
+    qk_circuit_barrier(qc, barrier_qubits, 1000);
     for (i = 0; i < 999; i++) {
         uint32_t qubits[1] = {i};
         qk_circuit_gate(qc, QkGate_H, qubits, params);
@@ -647,6 +695,8 @@ cleanup:
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
+    num_failed += RUN_TEST(test_circuit_with_quantum_reg);
+    num_failed += RUN_TEST(test_circuit_with_classical_reg);
     num_failed += RUN_TEST(test_circuit_copy);
     num_failed += RUN_TEST(test_circuit_copy_with_instructions);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
