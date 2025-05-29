@@ -134,11 +134,11 @@ class SolovayKitaev(TransformationPass):
 
     def __init__(
         self,
-        recursion_degree: int = 3,
+        recursion_degree: int = 5,
         basic_approximations: str | dict[str, np.ndarray] | None = None,
         *,
         basis_gates: list[str | Gate] | None = None,
-        depth: int = 16,
+        depth: int = 12,
     ) -> None:
         r"""
         Args:
@@ -150,11 +150,13 @@ class SolovayKitaev(TransformationPass):
                 file to load the approximations from. If a dictionary, it contains
                 ``{label: SO(3)-matrix}`` pairs. If ``None``, a default based on the :math:`H`,
                  :math:`T` and :math:`T^\dagger` gates up to depth 16 is generated.
+                 Note that if ``basic_approximations`` is passed, ``basis_gates`` and
+                 ``depth`` cannot be set.
             basis_gates: The basis gates used to build the net of basic approximations.
-                Defaults to ``["h", "t", "tdg"]``. This argument is incompatible with
-                ``basic_approximations``.
-            depth: The maximal gate depth used in basic approximations. This argument is
-                incompatible with ``basic_approximations``.
+                Defaults to ``["h", "t", "tdg"]``. This argument cannot be set if
+                ``basic_approximations`` is provided.
+            depth: The maximal gate depth used in basic approximations. This argument cannot be
+                set if ``basic_approximations`` is provided.
         """
         super().__init__()
         self.recursion_degree = recursion_degree
@@ -228,7 +230,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
     depth (int):
         The gate-depth of the basic approximations. All possible, unique combinations of the
-        basis gates up to length ``depth`` are considered. If None, defaults to 16.
+        basis gates up to length ``depth`` are considered. If None, defaults to 12.
         If ``basic_approximations`` is not None, ``depth`` is required to correspond to the
         depth that was used to generate it.
 
@@ -300,7 +302,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
         config = options.get("config") or {}
         basis_gates = options.get("basis_gates", None)
-        depth = config.get("depth", 16)
+        depth = config.get("depth", 12)
         basic_approximations = config.get("basic_approximations", None)
         recursion_degree = config.get("recursion_degree", 5)
 

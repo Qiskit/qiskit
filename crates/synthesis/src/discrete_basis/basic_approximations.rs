@@ -508,7 +508,7 @@ impl BasicApproximations {
 
         let mut this_level: Vec<GateSequence> = vec![GateSequence::new()];
         let mut next_level: Vec<GateSequence> = Vec::new();
-        let radius_sq = tol.unwrap_or(1e-14);
+        let radius_sq = tol.unwrap_or(1e-12);
 
         for _ in 0..depth {
             for node in this_level.iter() {

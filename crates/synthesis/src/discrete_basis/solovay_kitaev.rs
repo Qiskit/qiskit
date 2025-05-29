@@ -26,6 +26,8 @@ use super::math::{self, group_commutator_decomposition};
 
 /// A stateful implementation of Solovay Kitaev.
 ///
+/// The code is based mainly on https://arxiv.org/pdf/quant-ph/0505030.
+///
 /// This generates the basic approximation set once as R-tree and re-uses it for
 /// each queried decomposition.
 #[pyclass]
@@ -55,7 +57,7 @@ impl SolovayKitaevSynthesis {
     /// Run the Solovay Kitaev algorithm, given the initial unitary as U(2) matrix.
     ///
     /// This matrix is given using [Complex64] numbers, which can limit the precision of the
-    /// algorithm. It is preferred to run the algorithm using [synthesize_std], which let's Qiskit
+    /// algorithm. It is preferred to run the algorithm using [synthesize_std], which lets Qiskit
     /// attempt to construct the underlying SO(3) matrix representation using [f64] at
     /// quadruple precision, instead of inferring it from the double precision U(2) matrix.
     pub fn synthesize_matrix(
@@ -122,8 +124,6 @@ impl SolovayKitaevSynthesis {
         // ... and then improve the delta in between that approximation and the target.
         let delta = matrix_so3 * u_n1.matrix_so3.transpose();
         let (matrix_vn, matrix_wn) = group_commutator_decomposition(&delta, self.do_checks);
-        // let vn = GateSequence::from_so3(&matrix_vn, self.do_checks);
-        // let wn = GateSequence::from_so3(&matrix_wn, self.do_checks);
 
         // Recurse on the group commutator elements.
         let v_n1 = self.recurse(&matrix_vn, degree - 1);
@@ -155,12 +155,12 @@ impl SolovayKitaevSynthesis {
     ///         gates. Defaults to ``[H, T, Tdg]``.
     ///     depth (int): The number of basis gate combinations to consider in the basis set. This
     ///         determines how fast (and if) the algorithm converges and should be chosen
-    ///         sufficiently high. Defaults to 16.
+    ///         sufficiently high. Defaults to 12,
     ///     tol (float | None): A tolerance determining the granularity of the basic approximations.
     ///         Any sequence whose SO(3) representation is withing :math:`\sqrt{\texttt{tol}}` of
-    ///         an existing point, will be discarded. Defaults to ``1e-14``.
+    ///         an existing point, will be discarded. Defaults to ``1e-10``.
     #[new]
-    #[pyo3 (signature = (basis_gates=None, depth=16, tol=None, do_checks=false))]
+    #[pyo3 (signature = (basis_gates=None, depth=12, tol=None, do_checks=false))]
     fn py_new(
         basis_gates: Option<&Bound<PyList>>,
         depth: usize,

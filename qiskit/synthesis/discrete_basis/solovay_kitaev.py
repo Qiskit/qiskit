@@ -83,13 +83,6 @@ class SolovayKitaevDecomposition:
                     basic_approximations, True
                 )
             else:
-                warnings.warn(
-                    "It is suggested to pass basic_approximations in the binary format produced "
-                    "by SolovayKitaevDecomposition.save_basic_approximations, which is more "
-                    "performant than other formats. Other formats are pending deprecation "
-                    "and will be deprecated in a future release.",
-                    category=PendingDeprecationWarning,
-                )
                 sequences = self.load_basic_approximations(basic_approximations)
                 self._sk = RustSolovayKitaevSynthesis.from_sequences(sequences, True)
 
@@ -116,13 +109,6 @@ class SolovayKitaevDecomposition:
         return self._basis_gates
 
     @staticmethod
-    @deprecate_func(
-        since="2.1",
-        additional_msg="Loading basic approximations is more performant via "
-        "SolovayKitaevDecomposition(<filename>), where the file is generated via "
-        "SolovayKitaevDecomposition.save_basic_approximations().",
-        pending=True,
-    )
     def load_basic_approximations(data: list | str | dict) -> list[GateSequence]:
         """Load basic approximations.
 
@@ -142,6 +128,19 @@ class SolovayKitaevDecomposition:
         Raises:
             ValueError: If the number of gate combinations and associated matrices does not match.
         """
+        # new data format stored by the Rust internal class
+        if isinstance(data, str) and data[-4:] != ".npy":
+            sk = SolovayKitaevDecomposition(data)
+            return sk._sk.get_gate_sequences()
+
+        warnings.warn(
+            "It is suggested to pass basic_approximations in the binary format produced "
+            "by SolovayKitaevDecomposition.save_basic_approximations, which is more "
+            "performant than other formats. Other formats are pending deprecation "
+            "and will be deprecated in a future release.",
+            category=PendingDeprecationWarning,
+        )
+
         # is already a list of GateSequences
         if isinstance(data, list):
             return data
@@ -166,7 +165,23 @@ class SolovayKitaevDecomposition:
         return sequences
 
     def save_basic_approximations(self, filename: str):
-        """Save the basic approximations into a file."""
+        """Save the basic approximations into a file.
+
+        This can then be loaded again via the class initializer (preferred) or
+        via :meth:`load_basic_approximations`::
+
+            filename = "approximations.bin"
+            sk.save_basic_approximations(filename)
+
+            new_sk = SolovayKitaevDecomposition(filename)
+
+        Args:
+            filename: The filename to store the approximations in.
+
+        Raises:
+            ValueError: If the filename has a `.npy` extension. The format is not `.npy`,
+                and storing as such can cause errors when loading the file again.
+        """
         # Safety guard: previously, we serialized via npy, but this format is incompatible
         # with the current serialization, using Rust's serde + bincode. While we can still load
         # .npy files in legacy format, the new format should not be stored as .npy.
@@ -229,6 +244,12 @@ class SolovayKitaevDecomposition:
         circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
         return circuit
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use query_basic_approximation instead, which takes a Gate or matrix "
+        "as input and returns a QuantumCircuit object.",
+        pending=True,
+    )
     def find_basic_approximation(self, sequence: GateSequence) -> GateSequence:
         """Find ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
 
@@ -236,7 +257,7 @@ class SolovayKitaevDecomposition:
             sequence: ``GateSequence`` to find the approximation to.
 
         Returns:
-            ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
+            ``GateSequence`` in that approximates ``sequence``.
         """
         return self._sk.find_basic_approximation(sequence)
 

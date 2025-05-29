@@ -37,22 +37,8 @@ fn add_cross_prod(coeff: f64, v: &Matrix3x1<f64>, out: &mut Matrix3<f64>) {
     out[(2, 1)] += coeff * v[0];
 }
 
-/// Add coeff * v.dot(v.T) to the output matrix.
-#[inline]
-fn add_outer_prod(coeff: f64, v: &Matrix3x1<f64>, out: &mut Matrix3<f64>) {
-    out[(0, 0)] += coeff * v[0] * v[0];
-    out[(0, 1)] += coeff * v[0] * v[1];
-    out[(0, 2)] += coeff * v[0] * v[2];
-    out[(1, 0)] += coeff * v[1] * v[0];
-    out[(1, 1)] += coeff * v[1] * v[1];
-    out[(1, 2)] += coeff * v[1] * v[2];
-    out[(2, 0)] += coeff * v[2] * v[0];
-    out[(2, 1)] += coeff * v[2] * v[1];
-    out[(2, 2)] += coeff * v[2] * v[2];
-}
-
 /// Compute the group commutator UVU^{-1}V^{-1}. This code leverages the fact that
-/// the matrices as SO(3) and U^{-1} = U^T.
+/// the matrices are in SO(3) and U^{-1} = U^T.
 fn group_commutator(left: &Matrix3<f64>, right: &Matrix3<f64>) -> Matrix3<f64> {
     left * right * left.transpose() * right.transpose()
 }
@@ -72,7 +58,6 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, tol: f64) -> Matrix3x1<f64> {
     if trace >= tol - 1. {
         // there's a skew symmetric part which we can use to get the rotation axis
         let theta = ((trace - 1.) / 2.).acos();
-        // let skew = (matrix - matrix.transpose()) / 2.;
 
         if theta.sin() > tol {
             let coeff = 1. / 2. / theta.sin();
@@ -142,9 +127,9 @@ fn rotation_matrix(from: &Matrix3x1<f64>, to: &Matrix3x1<f64>, do_checks: bool) 
 fn so3_from_angle_axis(angle: f64, axis: &Matrix3x1<f64>) -> Matrix3<f64> {
     let mut out = Matrix3::<f64>::identity() * angle.cos();
     add_cross_prod(angle.sin(), axis, &mut out);
-    add_outer_prod(1. - angle.cos(), axis, &mut out);
 
-    out
+    let outer = axis * axis.transpose();
+    out + (1. - angle.cos()) * outer
 }
 
 /// Decompose the SO(3) input matrix M into a balanced group commutator, that is
@@ -168,7 +153,7 @@ pub fn group_commutator_decomposition(
     let vx = so3_from_angle_axis(angle, &e1);
     let wy = so3_from_angle_axis(angle, &e2);
 
-    let tol = 1e-15;
+    let tol = 1e-14;
     let group_comm = group_commutator(&vx, &wy);
     let group_comm_axis = rotation_axis_from_so3(&group_comm, tol);
     let matrix_axis = rotation_axis_from_so3(matrix_so3, tol);

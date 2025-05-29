@@ -110,7 +110,7 @@ class TestSolovayKitaev(QiskitTestCase):
         compiled = passes.run(circuit)
 
         diff = _trace_distance(circuit, compiled)
-        self.assertLess(diff, 1e-5)
+        self.assertLess(diff, 1e-4)
         self.assertEqual(set(compiled.count_ops().keys()), {"h", "t", "tdg", "cx"})
 
     def test_plugin(self):
@@ -160,8 +160,10 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit.h(0)
         circuit.tdg(0)
 
+        sk = SolovayKitaev(3, basis_gates=["h", "t", "tdg"], depth=12)
+
         dag = circuit_to_dag(circuit)
-        decomposed_dag = self.default_sk.run(dag)
+        decomposed_dag = sk.run(dag)
         decomposed_circuit = dag_to_circuit(decomposed_dag)
         self.assertEqual(circuit, decomposed_circuit)
 
