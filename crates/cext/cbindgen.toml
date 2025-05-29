@@ -4,31 +4,12 @@ include_guard = "QISKIT_H"
 style = "type"
 cpp_compat = true
 
-sys_includes = ["complex.h"]
 after_includes = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
     #include <Python.h>
 #endif
 
-// Complex number typedefs -- note these are memory aligned but
-// not calling convention compatible.
-#ifdef __cplusplus
-#include <complex>
-
-typedef std::complex<float> QkComplex32;
-typedef std::complex<double> QkComplex64;
-#else  //__cplusplus
-#include "complex.h"
-
-#ifdef _MSC_VER
-typedef _Fcomplex QkComplex32;
-typedef _Dcomplex QkComplex64;
-#else
-typedef float complex QkComplex32;
-typedef double complex QkComplex64;
-#endif
-
-#endif  //__cplusplus
+#include <qiskit/complex.h>
 
 // Always expose [cfg(feature = "cbinding")] -- workaround for
 // https://github.com/mozilla/cbindgen/issues/995

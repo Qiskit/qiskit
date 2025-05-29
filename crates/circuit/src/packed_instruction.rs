@@ -633,6 +633,10 @@ impl Operation for PackedOperation {
     fn directive(&self) -> bool {
         self.view().directive()
     }
+    #[inline]
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        self.view().matrix_as_static_1q(params)
+    }
 }
 
 impl Clone for PackedOperation {
@@ -702,6 +706,23 @@ pub struct PackedInstruction {
 }
 
 impl PackedInstruction {
+    /// Pack a [StandardGate] into a complete instruction.
+    pub fn from_standard_gate(
+        gate: StandardGate,
+        params: Option<Box<SmallVec<[Param; 3]>>>,
+        qubits: Interned<[Qubit]>,
+    ) -> Self {
+        Self {
+            op: gate.into(),
+            qubits,
+            clbits: Default::default(),
+            params,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        }
+    }
+
     /// Access the standard gate in this `PackedInstruction`, if it is one.  If the instruction
     /// refers to a Python-space object, `None` is returned.
     #[inline]
