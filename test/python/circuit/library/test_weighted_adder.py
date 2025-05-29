@@ -72,7 +72,8 @@ class TestWeightedAdder(QiskitTestCase):
                 num_ancillas = adder.num_sum_qubits - 1
                 num_ancillas += int(adder.num_sum_qubits > 2)
             else:
-                adder = WeightedAdder(len(weights), weights)
+                with self.assertWarns(DeprecationWarning):
+                    adder = WeightedAdder(len(weights), weights)
                 num_ancillas = None
 
             with self.subTest(use_gate=use_gate):
@@ -91,7 +92,8 @@ class TestWeightedAdder(QiskitTestCase):
 
     def test_mutability(self):
         """Test the mutability of the weighted adder."""
-        adder = WeightedAdder()
+        with self.assertWarns(DeprecationWarning):
+            adder = WeightedAdder()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):
