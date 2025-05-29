@@ -59,7 +59,7 @@ def sampled_expectation_value(dist, oper):
         oper_strs = []
         coeffs = []
         n = oper.num_qubits
-        for op, indxs, coeff in oper.to_sparse_list():
+        for op, indxs, coeff in oper.as_paulis().to_sparse_list():
             full_op = ["I"] * n
             for char, i in zip(op, indxs):
                 full_op[n - 1 - i] = char
