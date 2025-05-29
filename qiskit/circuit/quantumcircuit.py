@@ -54,7 +54,7 @@ from .controlflow import ControlFlowOp, _builder_utils
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
 from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
 from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
-from .controlflow.for_loop import ForLoopOp, ForLoopContext
+from .controlflow.for_loop import ForLoopOp, ForLoopContext, DynamicRange
 from .controlflow.if_else import IfElseOp, IfContext
 from .controlflow.switch_case import SwitchCaseOp, SwitchContext
 from .controlflow.while_loop import WhileLoopOp, WhileLoopContext
@@ -6108,7 +6108,7 @@ class QuantumCircuit:
     @typing.overload
     def for_loop(
         self,
-        indexset: Iterable[int],
+        indexset: Iterable[int] | DynamicRange,
         loop_parameter: Parameter | None,
         body: None,
         qubits: None,
@@ -6120,7 +6120,7 @@ class QuantumCircuit:
     @typing.overload
     def for_loop(
         self,
-        indexset: Iterable[int],
+        indexset: Iterable[int] | DynamicRange,
         loop_parameter: Union[Parameter, None],
         body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
