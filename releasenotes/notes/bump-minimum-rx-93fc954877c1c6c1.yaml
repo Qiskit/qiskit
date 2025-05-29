@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The minimum required version of `rustworkx <https://www.rustworkx.org/>`__
+    in Qiskit's dependencies has been raised from 0.15.0 to 0.16.0. This was
+    done as functionality added in 0.16.0 is now being used in Qiskit.
