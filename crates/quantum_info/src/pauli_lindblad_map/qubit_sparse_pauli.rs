@@ -1123,10 +1123,6 @@ impl PyQubitSparsePauli {
         Ok(qubit_sparse_pauli_list.into())
     }
 
-    fn to_label(&self) -> PyResult<String> {
-        Ok(self.inner.view().to_sparse_str())
-    }
-
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
         if slf.is(&other) {
             return Ok(true);
@@ -1221,20 +1217,6 @@ impl PyQubitSparsePauli {
         let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
         out.readwrite().make_nonwriteable();
         out
-    }
-
-    /// Return the pauli labels of the term as string.
-    ///
-    /// Returns:
-    ///     The non-identity pauli terms as concatenated string.
-    fn pauli_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
-        let string: String = self
-            .inner
-            .paulis()
-            .iter()
-            .map(|bit| bit.py_label())
-            .collect();
-        PyString::new(py, string.as_str())
     }
 
     // The documentation for this is inlined into the class-level documentation of
