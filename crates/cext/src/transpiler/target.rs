@@ -346,10 +346,10 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *entry = qk_target_entry_new();
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
 ///     uint32_t qargs[2] = {0, 1};
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, QkGate_CX, entry);
+///     qk_target_add_instruction(target, entry);
 ///
 ///     QkTarget *copied = qk_target_copy(target);
 ///
@@ -477,55 +477,60 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
 }
 
 /// @ingroup QkTargetEntry
-/// Retrieves the length of the current property map.
+/// Retrieves the length of the current target entry's property map..
 ///
-/// @param property_map The pointer to the mapping object.
+/// @param entry The pointer to the mapping object.
 ///
 /// @return The length of the TargetEntry.
 ///
 /// # Example
 ///
-///     QkTargetEntry *entry = qk_target_entry_new();
+///     // Create an entry for an H gate
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
 ///     size_t props_size = qk_target_entry_len(entry);
 ///
 /// # Safety
 ///
-/// The behavior is undefined if ``property_map`` is not a valid,
+/// The behavior is undefined if ``entry`` is not a valid,
 /// non-null pointer to a ``QkTargetEntry`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_entry_len(property_map: *const TargetEntry) -> usize {
+pub unsafe extern "C" fn qk_target_entry_len(entry: *const TargetEntry) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let prop_map = unsafe { const_ptr_as_ref(property_map) };
+    let prop_map = unsafe { const_ptr_as_ref(entry) };
     prop_map.map.len()
 }
 
 /// @ingroup QkTargetEntry
 /// Frees the entry.
 ///
-/// @param property_map The pointer to the mapping object to be freed.
+/// @note An entry pointer will be freed when added to a ``QkTarget`` via
+/// ``qk_target_add_instruction``, this function is only meant to be used
+/// alternatively if an entry is never added to a ``QkTarget`` instance.
+///
+/// @param entry The pointer to the mapping object to be freed.
 ///
 /// # Example
 ///
-///     QkTargetEntry *entry = qk_target_entry_new();
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
 ///     qk_target_entry_free(entry);
 ///
 /// # Safety
 ///
-/// The behavior is undefined if ``property_map`` is not a valid,
+/// The behavior is undefined if ``entry`` is not a valid,
 /// non-null pointer to a ``QkTargetEntry`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_entry_free(property_map: *mut TargetEntry) {
-    if !property_map.is_null() {
-        if !property_map.is_aligned() {
+pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
+    if !entry.is_null() {
+        if !entry.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.")
         }
 
         // SAFETY: We have verified the pointer is non-null and aligned, so it should be
         // readable by Box.
         unsafe {
-            let _ = Box::from_raw(property_map);
+            let _ = Box::from_raw(entry);
         }
     }
 }
@@ -533,7 +538,7 @@ pub unsafe extern "C" fn qk_target_entry_free(property_map: *mut TargetEntry) {
 /// @ingroup QkTargetEntry
 /// Adds an instruction property instance based on its assigned qargs.
 ///
-/// @param property_map The pointer to the mapping object.
+/// @param entry The pointer to the entry object.
 /// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
 ///     gate on, can be a null pointer to check for global properties.
 /// @param num_qubits The length of the qargs array.
@@ -543,25 +548,25 @@ pub unsafe extern "C" fn qk_target_entry_free(property_map: *mut TargetEntry) {
 ///
 /// # Example
 ///
-///     QkTargetEntry *entry = qk_target_entry_new();
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
 ///     uint32_t qargs[2] = {0, 1};
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///
 /// # Safety
 ///
-/// The behavior is undefined if ``property_map`` is not a valid, non-null pointer
+/// The behavior is undefined if ``entry`` is not a valid, non-null pointer
 /// to a ``QkTargetEntry`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_add_property(
-    property_map: *mut TargetEntry,
+    entry: *mut TargetEntry,
     qargs: *mut u32,
     num_qubits: u32,
     duration: f64,
     error: f64,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let prop_map = unsafe { mut_ptr_as_ref(property_map) };
+    let prop_map = unsafe { mut_ptr_as_ref(entry) };
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qubits: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -602,7 +607,7 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
-/// Behavior is undefined if ``property_map`` is not a valid, non-null pointer to a ``QkTargetEntry``.
+/// Behavior is undefined if ``entry`` is not a valid, non-null pointer to a ``QkTargetEntry``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_add_instruction(
@@ -650,11 +655,11 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// # Example
 ///     
 ///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *entry = qk_target_entry_new();
-///     uint32_t qargs[2] = {0, 1};
 ///     double params[1] = {3.1415};
+///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, params);
+///     uint32_t qargs[2] = {0, 1};
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction_fixed_params(target, QkGate_CRX, params, entry);
+///     qk_target_add_instruction(target, entry);
 ///
 ///     qk_target_update_property(target, QkGate_CRX, qargs, 2, 0.0012, 1.1)
 ///

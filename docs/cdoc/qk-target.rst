@@ -22,21 +22,20 @@ Here's an example of how this structure works:
 
     // Create a Target with 2 qubits
     QkTarget *target = qk_target_new(2);
-    // Create a property map with qargs (0, 1) and properties
+    // Create an entry for a CX Gate with qargs (0, 1) and properties
     // duration = 0.0123
     // error = NaN
     uint32_t qargs[2] = {0, 1};
-    QkPropsMap *property_map = qk_property_map_new();
-    qk_property_map_add(property_map, qargs, 2, 0.0123, NAN);
+    QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+    qk_target_entry_add(entry, qargs, 2, 0.0123, NAN);
     
     // Add a CX Gate to the target
-    qk_target_add_instruction(target, QkGate_CX, property_map);
+    qk_target_add_instruction(target, entry);
 
     // Add a global H gate
-    qk_target_add_instruction(target, QkGate_H, NULL);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
 
-    // Free the created property_map and target.
-    qk_property_map_free(property_map);
+    // Free the created target.
     qk_target_free(target);
 
 The Target C API currently only supports additions of ``StandardGate`` instances as
