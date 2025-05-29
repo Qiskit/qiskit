@@ -317,6 +317,123 @@ class TwoQubitControlledUDecomposer:
         return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
 
 
+class TwoQubitDiscreteDecomposer:
+    """Decompose a two-qubit unitary into a discrete basis"""
+
+    def __init__(
+        self,
+        two_qubit_gate: Type[Gate] = CXGate(),
+        discrete_one_qubit_basis: list[str] = ["h", "t", "tdg"],
+        basic_approximations: str | dict = None,
+        recursion_degree: int = 3,
+        depth: int = 10,
+    ):
+        r"""Initialize the KAK decomposition.
+
+        Args:
+            two_qubit_gate: a 2-qubit gate which is Clifford and KAK, currently only CX
+                (we can add CZ, ECR later)
+            discrete_one_qubit_basis: e.g. [H, T, Tdg]
+            basic_approximations: SK parameter
+            recursion_degree: SK parameter
+            depth: SK parameter
+        """
+        from qiskit.synthesis.discrete_basis import (
+            generate_basic_approximations,
+            SolovayKitaevDecomposition,
+        )
+
+        self._basis_gates = discrete_one_qubit_basis
+        if basic_approximations is None:
+            basic_approximations = generate_basic_approximations(self._basis_gates, depth)
+        self._sk_decomposer = SolovayKitaevDecomposition(basic_approximations)
+        self._two_qubit_gate = two_qubit_gate
+        self._recursion_degree = recursion_degree
+
+    def __call__(self, unitary: Operator | np.ndarray) -> QuantumCircuit:
+        """Returns the discrete decomposition in circuit form.
+
+        Args:
+            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
+
+        Returns:
+            QuantumCircuit: Synthesized quantum circuit.
+        """
+        # pylint: disable=attribute-defined-outside-init
+        self._2q_decomposer = TwoQubitWeylDecomposition(unitary)
+        c1l = self._sk_decomposer.run(self._2q_decomposer.K1l, self._recursion_degree)
+        c2l = self._sk_decomposer.run(self._2q_decomposer.K2l, self._recursion_degree)
+        c1r = self._sk_decomposer.run(self._2q_decomposer.K1r, self._recursion_degree)
+        c2r = self._sk_decomposer.run(self._2q_decomposer.K2r, self._recursion_degree)
+
+        circ = QuantumCircuit(2, global_phase=self._2q_decomposer.global_phase)
+        circ.compose(c2r, [0], inplace=True)
+        circ.compose(c2l, [1], inplace=True)
+        self._weyl_gate(circ)
+        circ.compose(c1r, [0], inplace=True)
+        circ.compose(c1l, [1], inplace=True)
+        return circ
+
+    def _weyl_gate(self, circ: QuantumCircuit, atol=1.0e-13):
+        """
+        Decomposes the canonical gate into a circuit of RXX - RYY - RZZ form
+
+        Args:
+            circ: a circuit to append the gates
+            atol: tolerance level
+
+        Returns:
+            circ: updated circuit
+        """
+        # RXX part
+        circ_rxx = QuantumCircuit(2)
+        # circ_rxx.rxx(-2 * self._2q_decomposer.a, 0, 1)
+        rz_mat = RZGate(-2 * self._2q_decomposer.a).to_matrix()
+        rz_decomp = self._sk_decomposer.run(rz_mat, self._recursion_degree)
+        circ_rxx.h([0, 1])
+        circ_rxx.cx(0, 1)
+        circ_rxx.compose(rz_decomp, [1], inplace=True)
+        circ_rxx.cx(0, 1)
+        circ_rxx.h([0, 1])
+        circ.compose(circ_rxx, inplace=True)
+
+        # RYY part
+        if abs(self._2q_decomposer.b) > atol:
+            circ_ryy = QuantumCircuit(2)
+            # circ_ryy.ryy(-2 * self._2q_decomposer.b, 0, 1)
+            rz_mat = RZGate(-2 * self._2q_decomposer.b).to_matrix()
+            rz_decomp = self._sk_decomposer.run(rz_mat, self._recursion_degree)
+            circ_ryy.sdg([0, 1])
+            circ_ryy.h([0, 1])
+            circ_ryy.cx(0, 1)
+            circ_ryy.compose(rz_decomp, [1], inplace=True)
+            circ_ryy.cx(0, 1)
+            circ_ryy.h([0, 1])
+            circ_ryy.s([0, 1])
+            circ.compose(circ_ryy, inplace=True)
+
+        # RZZ part
+        if abs(self._2q_decomposer.c) > atol:
+            gamma, invert = -2 * self._2q_decomposer.c, False
+            if gamma > 0:
+                gamma *= -1
+                invert = True
+
+            circ_rzz = QuantumCircuit(2)
+            # circ_rzz.rzz(gamma, 0, 1)
+            rz_mat = RZGate(gamma).to_matrix()
+            rz_decomp = self._sk_decomposer.run(rz_mat, self._recursion_degree)
+            circ_rzz.cx(0, 1)
+            circ_rzz.compose(rz_decomp, [1], inplace=True)
+            circ_rzz.cx(0, 1)
+            if invert:
+                circ.compose(circ_rzz.inverse(), inplace=True)
+            else:
+                circ.compose(circ_rzz, inplace=True)
+
+        return circ
+
+
 class TwoQubitBasisDecomposer:
     """A class for decomposing 2-qubit unitaries into minimal number of uses of a 2-qubit
     basis gate.
