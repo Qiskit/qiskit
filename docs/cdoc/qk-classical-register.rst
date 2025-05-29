@@ -6,8 +6,14 @@ QkClassicalRegister
 
    typedef struct QkClassicalRegister QkClassicalRegister
 
-A common way to instantiate several bits at once is to create a register, such
-as by:
+A common way to instantiate several bits at once is to create a register. A
+register is a named collection of bits. Creating a register enables giving a
+collection of bits a name which can be use as metadata around specific bits
+in a circuit. This name will also typically be preseserved when exporting the
+circuit to interchange languages.
+
+You can create a register by calling ``qk_classical_register_new()``, for
+example:
 
 .. code-block: c
 
@@ -15,10 +21,10 @@ as by:
 
     QkClassicalRegister *creg = qk_classical_register_new(5, "my_creg");
 
-This has the advantage that you can give a collection of bits a name. This is
-used as metadata around bits in the circuit when you add the register to the
-circuit which will be used when exporting the circuit to interchange languages.
-Continuing from the above example:
+Which creates a new 5 classical bit register named ``"my_creg"``.
+
+Then to add the register to a circuit you use the
+``qk_circuit_add_classical_register()`` function:
 
 .. code-block: c
 
@@ -26,7 +32,7 @@ Continuing from the above example:
     qk_circuit_add_classical_register(qc, creg);
     uint32_t num_qubits = qk_circuit_num_qubits(qc); // 5
 
-Circuits track registers, but registers themselves impart almost no behavioral
+While circuits track registers, the registers themselves impart almost no behavioral
 differences on circuits.
 
 Functions
