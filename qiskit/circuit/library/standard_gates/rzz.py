@@ -94,30 +94,18 @@ class RZZGate(Gate):
         super().__init__("rzz", 2, [theta], label=label)
 
     def _define(self):
-        """
-        gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .x import CXGate
-        from .rz import RZGate
+        from qiskit.circuit import QuantumCircuit
 
         # q_0: ──■─────────────■──
         #      ┌─┴─┐┌───────┐┌─┴─┐
         # q_1: ┤ X ├┤ Rz(0) ├┤ X ├
         #      └───┘└───────┘└───┘
-        q = QuantumRegister(2, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RZZ._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,
