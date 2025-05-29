@@ -20,6 +20,7 @@ from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.quantumcircuit import QuantumCircuit, _copy_metadata
+from qiskit.utils.deprecation import deprecate_func
 
 
 class BlueprintCircuit(QuantumCircuit, ABC):
@@ -33,6 +34,11 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     accessed, the ``_build`` method is called. There the configuration of the circuit is checked.
     """
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg="There is no direct replacement other than the QuantumCircuit class.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(self, *regs, name: str | None = None) -> None:
         """Create a new blueprint circuit."""
         self._is_initialized = False
