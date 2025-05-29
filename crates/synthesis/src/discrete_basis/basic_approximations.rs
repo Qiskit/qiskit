@@ -185,29 +185,20 @@ impl GateSequence {
         }
 
         let mut reduced_gates: Vec<StandardGate> = Vec::with_capacity(self.gates.len());
-        let mut index = 0;
-        while index < self.gates.len() - 1 {
-            let inverse = self.gates[index]
-                .inverse(&[])
-                .expect("Failed to get inverse")
-                .0;
-            if inverse == self.gates[index + 1] {
-                index += 2; // skip the gate-inverse-pair
-            } else {
-                reduced_gates.push(self.gates[index]);
-                index += 1;
+        for gate in &self.gates {
+            // if we have a last gate check whether it cancels with the next one
+            if let Some(last) = reduced_gates.last() {
+                let inverse = gate.inverse(&[]).expect("Failed to get inverse").0;
+                if *last == inverse {
+                    reduced_gates.pop();
+                    continue;
+                }
             }
-        }
-        // add the last gate if it was not considered yet
-        if index == self.gates.len() - 1 {
-            reduced_gates.push(self.gates[index]);
+            // we didn't have a gate in the queue yet or we don't have a cancelling pair
+            reduced_gates.push(*gate);
         }
 
-        // we managed to cancel something, recurse, since we may have uncovered new cancellations
-        if self.gates.len() > reduced_gates.len() {
-            self.gates = reduced_gates;
-            self.inverse_cancellation();
-        }
+        self.gates = reduced_gates;
     }
 
     /// Get the U(2) matrix implemented by the gates. Fails if the gates are ``None`` and no U(2)
@@ -324,7 +315,7 @@ impl GateSequence {
 
         let matrix_so3 = matrix3_from_pyreadonly(&matrix_so3);
         Ok(Self {
-            gates: gates,
+            gates,
             matrix_so3,
             phase,
         })
@@ -340,10 +331,10 @@ pub struct BasicPoint {
 }
 
 impl BasicPoint {
-    pub fn from_sequence(sequence: &GateSequence, index: Option<usize>) -> Self {
+    pub fn from_sequence(sequence: &GateSequence, index: usize) -> Self {
         Self {
             point: ::core::array::from_fn(|i| sequence.matrix_so3[(i % 3, i / 3)]),
-            index,
+            index: Some(index),
         }
     }
 
@@ -438,16 +429,19 @@ fn standard_gates_to_so3(
             let phase = f64::FRAC_PI_2();
             Ok((so3, phase))
         }
-        StandardGate::RZ => {
+        StandardGate::RX | StandardGate::RY | StandardGate::RZ => {
             let angle = match params[0] {
                 Param::Float(angle) => angle,
                 _ => return Err(DiscreteBasisError::ParameterizedGate),
             };
-            let cos = (angle / 2.).cos();
-            let sin = (angle / 2.).sin();
-            let so3_00 = cos.powi(2) - sin.powi(2);
-            let so3_10 = 2. * cos * sin;
-            let so3 = Matrix3::new(so3_00, -so3_10, 0., so3_10, so3_00, 0., 0., 0., 1.);
+            let cos = angle.cos();
+            let sin = angle.sin();
+            let so3 = match gate {
+                StandardGate::RX => Matrix3::new(1., 0., 0., 0., cos, sin, 0., -sin, cos),
+                StandardGate::RY => Matrix3::new(cos, 0., sin, 0., 1., 0., -sin, 0., cos),
+                StandardGate::RZ => Matrix3::new(cos, sin, 0., -sin, cos, 0., 0., 0., 1.),
+                _ => unreachable!(),
+            };
             Ok((so3, 0.))
         }
         _ => {
@@ -502,7 +496,7 @@ impl BasicApproximations {
 
         // identity approximation
         let root = GateSequence::new();
-        points.insert(BasicPoint::from_sequence(&root, Some(0)));
+        points.insert(BasicPoint::from_sequence(&root, 0));
         approximations.insert(0, root);
         let mut index = 1;
 
@@ -514,7 +508,7 @@ impl BasicApproximations {
             for node in this_level.iter() {
                 for candidate in node.iter_additions(basis_gates) {
                     let candidate = candidate?;
-                    let point = BasicPoint::from_sequence(&candidate, Some(index));
+                    let point = BasicPoint::from_sequence(&candidate, index);
                     if points
                         .locate_within_distance(point.clone(), radius_sq)
                         .next()
@@ -546,7 +540,7 @@ impl BasicApproximations {
         let mut approximations: HashMap<usize, GateSequence> = HashMap::new();
         for (unique_index, sequence) in sequences.iter().enumerate() {
             approximations.insert(unique_index, sequence.clone());
-            points.insert(BasicPoint::from_sequence(sequence, Some(unique_index)));
+            points.insert(BasicPoint::from_sequence(sequence, unique_index));
         }
         Self {
             points,
@@ -605,7 +599,7 @@ impl BasicApproximations {
         // build the RTree from the sequences
         let mut points: RTree<BasicPoint> = RTree::new();
         for (index, sequence) in approximations.iter() {
-            points.insert(BasicPoint::from_sequence(sequence, Some(*index)));
+            points.insert(BasicPoint::from_sequence(sequence, *index));
         }
 
         Ok(Self {

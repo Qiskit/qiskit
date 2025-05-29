@@ -21,8 +21,7 @@ pub(crate) fn solve_decomposition_angle(matrix: &Matrix3<f64>) -> f64 {
     let trace = matrix.trace().min(3.0); // avoid roundoff errors
     let angle = ((trace - 1.) / 2.).acos();
 
-    let phi = 2. * (angle / 4.).sin().sqrt().abs().asin();
-    phi
+    2. * (angle / 4.).sin().sqrt().abs().asin()
 }
 
 /// Add coeff * V to the out matrix, where V is the skew-symmetric representation of the
@@ -44,12 +43,13 @@ fn group_commutator(left: &Matrix3<f64>, right: &Matrix3<f64>) -> Matrix3<f64> {
 }
 
 /// Compute the rotation axis of a SO(3) matrix.
-fn rotation_axis_from_so3(matrix: &Matrix3<f64>, tol: f64) -> Matrix3x1<f64> {
+fn rotation_axis_from_so3(matrix: &Matrix3<f64>, do_checks: bool) -> Matrix3x1<f64> {
     let trace = matrix.trace();
 
     // Try to obtain the matrix via Rodrigues formula. If the matrix is diagonal (or the Rodrigues
     // approach fails, likely because the matrix was diagonal up to numerical error), determine
     // the axis from the diagonal.
+    let tol = 1e-15;
     if trace >= 3. - tol {
         // matrix is the identity, ie. no rotation
         return Matrix3x1::identity();
@@ -70,6 +70,9 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, tol: f64) -> Matrix3x1<f64> {
             // this might fail due to numerical error, in that case go to diagonal case
             if !axis.iter().any(|el| el.is_nan()) {
                 return axis.normalize();
+            }
+            if do_checks {
+                panic!("Encountered NaN in rotation axis.");
             }
         }
     }
@@ -153,10 +156,9 @@ pub fn group_commutator_decomposition(
     let vx = so3_from_angle_axis(angle, &e1);
     let wy = so3_from_angle_axis(angle, &e2);
 
-    let tol = 1e-14;
     let group_comm = group_commutator(&vx, &wy);
-    let group_comm_axis = rotation_axis_from_so3(&group_comm, tol);
-    let matrix_axis = rotation_axis_from_so3(matrix_so3, tol);
+    let group_comm_axis = rotation_axis_from_so3(&group_comm, do_checks);
+    let matrix_axis = rotation_axis_from_so3(matrix_so3, do_checks);
 
     let sim_matrix = rotation_matrix(&group_comm_axis, &matrix_axis, do_checks);
     let sim_matrix_t = sim_matrix.transpose();
@@ -214,10 +216,9 @@ pub fn su2_to_so3(view: &Matrix2<Complex64>) -> Matrix3<f64> {
 }
 
 pub fn u2_to_so3(matrix_u2: &Matrix2<Complex64>) -> (Matrix3<f64>, f64) {
-    let determinant = matrix_u2[(0, 0)] * matrix_u2[(1, 1)] - matrix_u2[(1, 0)] * matrix_u2[(0, 1)];
+    let determinant = matrix_u2.determinant();
     let matrix_su2 = matrix_u2.div(determinant.sqrt());
     let matrix_so3 = su2_to_so3(&matrix_su2);
-    // let phase = determinant.sqrt().arg();
     let z = 1. / determinant.sqrt();
     let phase = z.im().atan2(z.re());
 

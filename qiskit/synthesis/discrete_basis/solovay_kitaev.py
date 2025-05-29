@@ -202,8 +202,9 @@ class SolovayKitaevDecomposition:
         r"""Run the algorithm.
 
         Args:
-            gate_matrix: The 2x2 matrix representing the gate. This matrix has to be SU(2)
-                up to global phase.
+            gate_matrix: The single-qubit gate to approximate. Can either be a :class:`.Gate`, where
+                :meth:`.Gate.to_matrix` returns the matrix, or a :math:`2\times 2` unitary matrix
+                representing the gate.
             recursion_degree: The recursion degree, called :math:`n` in the paper.
             return_dag: If ``True`` return a :class:`.DAGCircuit`, else a :class:`.QuantumCircuit`.
             check_input: If ``True`` check that the input matrix is valid for the decomposition.

@@ -57,8 +57,8 @@ impl SolovayKitaevSynthesis {
     /// Run the Solovay Kitaev algorithm, given the initial unitary as U(2) matrix.
     ///
     /// This matrix is given using [Complex64] numbers, which can limit the precision of the
-    /// algorithm. It is preferred to run the algorithm using [synthesize_std], which lets Qiskit
-    /// attempt to construct the underlying SO(3) matrix representation using [f64] at
+    /// algorithm. It is preferred to run the algorithm using [Self::synthesize_gate], which lets
+    /// Qiskit attempt to construct the underlying SO(3) matrix representation using [f64] at
     /// quadruple precision, instead of inferring it from the double precision U(2) matrix.
     pub fn synthesize_matrix(
         &self,
@@ -80,7 +80,7 @@ impl SolovayKitaevSynthesis {
     /// This attempts to directly construct the SO(3) matrix representation to minimize roundoff
     /// errors. If unsuccessful, this falls back onto constructing the standard U(2) matrix
     /// representation and converting it to SO(3).
-    pub fn synthesize_std(
+    pub fn synthesize_gate(
         &self,
         gate: &StandardGate,
         params: &[Param],
@@ -241,7 +241,7 @@ impl SolovayKitaevSynthesis {
             OperationRef::StandardGate(gate) => gate,
             _ => return Err(PyValueError::new_err("Only standard gates are supported.")),
         };
-        self.synthesize_std(&gate, &params, recursion_degree)
+        self.synthesize_gate(&gate, &params, recursion_degree)
             .map_err(|err| err.into())
     }
 
