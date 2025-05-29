@@ -517,8 +517,6 @@ pub struct CInstruction {
 /// @param instruction A pointer to where to write out the ``QKCircuitInstruction``
 ///
 ///
-/// @return The instruction details for the specified instructions.
-///
 /// # Example
 ///
 ///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
