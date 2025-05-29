@@ -681,14 +681,14 @@ impl Drop for PackedOperation {
 ///
 /// A `PackedInstruction` in general cannot be safely mutated outside the context of its
 /// `CircuitData`, because the majority of the data is not actually stored here.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct PackedInstruction {
-    pub op: PackedOperation,
+    op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
     pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
     pub clbits: Interned<[Clbit]>,
-    pub params: Option<Box<SmallVec<[Param; 3]>>>,
+    params: Option<Box<SmallVec<[Param; 3]>>>,
     pub label: Option<Box<String>>,
 
     #[cfg(feature = "cache_pygates")]
@@ -702,10 +702,94 @@ pub struct PackedInstruction {
     /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
     /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
     /// feature.
-    pub py_op: OnceLock<Py<PyAny>>,
+    py_op: OnceLock<Py<PyAny>>,
 }
 
 impl PackedInstruction {
+    /// Creates a new instance of #[PackedInstruction]
+    pub fn new(
+        op: PackedOperation,
+        qubits: Interned<[Qubit]>,
+        clbits: Interned<[Clbit]>,
+        params: Option<Box<SmallVec<[Param; 3]>>>,
+        label: Option<Box<String>>,
+        #[cfg(feature = "cache_pygates")] py_op: OnceLock<PyObject>,
+    ) -> Self {
+        Self {
+            op,
+            qubits,
+            clbits,
+            params,
+            label,
+            #[cfg(feature = "cache_pygates")]
+            py_op,
+        }
+    }
+
+    /// Retrieves an immutable reference to the instruction's underlying operation.
+    #[inline]
+    pub fn op(&self) -> &PackedOperation {
+        &self.op
+    }
+
+    /// Retrieves an immutable reference to the index under which the interner has stored `qubits`.
+    #[inline]
+    pub fn qubits(&self) -> Interned<[Qubit]> {
+        self.qubits
+    }
+
+    /// Retrieves an immutable reference to the index under which the interner has stored `clbits`.
+    #[inline]
+    pub fn clbits(&self) -> Interned<[Clbit]> {
+        self.clbits
+    }
+
+    /// Retrieves the cached py_gate immutably.
+    #[cfg(feature = "cache_pygates")]
+    #[inline]
+    pub fn py_op(&self) -> &OnceLock<PyObject> {
+        &self.py_op
+    }
+
+    /// Retrieves a mutable reference to the instruction's underlying operation.
+    #[inline]
+    pub fn op_mut(&mut self) -> &mut PackedOperation {
+        #[cfg(feature = "cache_pygates")]
+        {
+            self.py_op.take();
+        }
+        &mut self.op
+    }
+
+    /// Retrieves a mutable reference to the index under which the interner has stored `qubits`.
+    #[inline]
+    pub fn qubits_mut(&mut self) -> &mut Interned<[Qubit]> {
+        &mut self.qubits
+    }
+
+    /// Retrieves a mutable reference to the index under which the interner has stored `clbits`.
+    #[inline]
+    pub fn clbits_mut(&mut self) -> &mut Interned<[Clbit]> {
+        &mut self.clbits
+    }
+
+    /// Retrieves a mutable reference to the label of this instruction.
+    #[inline]
+    pub fn label_mut(&mut self) -> Option<&mut String> {
+        #[cfg(feature = "cache_pygates")]
+        {
+            self.py_op.take();
+        }
+        self.label.as_deref_mut()
+    }
+
+    /// Retrieves the cached py_gate mutably.
+    #[cfg(feature = "cache_pygates")]
+    #[inline]
+    pub fn py_op_mut(&mut self) -> &mut OnceLock<PyObject> {
+        &mut self.py_op
+    }
+
     /// Pack a [StandardGate] into a complete instruction.
     pub fn from_standard_gate(
         gate: StandardGate,
@@ -741,11 +825,35 @@ impl PackedInstruction {
 
     /// Get a mutable slice view onto the contained parameters.
     #[inline]
-    pub fn params_mut(&mut self) -> &mut [Param] {
-        self.params
+    pub fn params_view_mut(&mut self) -> &mut [Param] {
+        let params = self
+            .params
             .as_deref_mut()
             .map(SmallVec::as_mut_slice)
-            .unwrap_or(&mut [])
+            .unwrap_or(&mut []);
+        #[cfg(feature = "cache_pygates")]
+        {
+            // Delete the old cache to ensure changes to parameters regenerate the cached instruction.
+            self.py_op.take();
+        }
+        params
+    }
+
+    /// Get a reference of the contained parameters.
+    #[inline]
+    pub fn params_raw(&self) -> &Option<Box<SmallVec<[Param; 3]>>> {
+        &self.params
+    }
+
+    /// Get a mutable reference of the contained parameters.
+    #[inline]
+    pub fn params_mut_raw(&mut self) -> &mut Option<Box<SmallVec<[Param; 3]>>> {
+        #[cfg(feature = "cache_pygates")]
+        {
+            // Delete the old cache to ensure changes to parameters regenerate the cached instruction.
+            self.py_op.take();
+        }
+        &mut self.params
     }
 
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
@@ -755,6 +863,7 @@ impl PackedInstruction {
             .any(|x| matches!(x, Param::ParameterExpression(_)))
     }
 
+    /// Retrieves an immutable reference to the extra_attributes of this instruction.
     #[inline]
     pub fn label(&self) -> Option<&str> {
         self.label.as_ref().map(|label| label.as_str())
@@ -846,5 +955,25 @@ impl PackedInstruction {
             }
             _ => Ok(false),
         }
+    }
+}
+
+// When cloning a `PackedInstruction` we will need to delete the old cached
+// operation to avoid having duplicated references to the same python object.
+impl Clone for PackedInstruction {
+    fn clone(&self) -> Self {
+        Self {
+            op: self.op.clone(),
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params.clone(),
+            label: self.label.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        *self = source.clone()
     }
 }
