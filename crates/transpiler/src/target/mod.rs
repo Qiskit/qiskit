@@ -931,9 +931,6 @@ impl Target {
 
     /// Adds a description to a newly constructed [Target].
     ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
-    ///
     /// # Arguments
     ///
     /// * `description` - An optional string to describe the Target.
@@ -945,7 +942,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().with_description("New Target");
     /// assert_eq!(target.description, Some("New Target".to_string()))
@@ -959,9 +956,6 @@ impl Target {
     }
 
     /// Sets the num qubits attribute to a newly constructed [Target]
-    ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
     ///
     /// # Arguments
     ///
@@ -981,10 +975,10 @@ impl Target {
     /// This method will panic if there was a specified [Target::qubit_properties]
     /// attribute and its length is not equal to ``num_qubits``.
     ///
-    /// /// # Examples
+    /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().with_num_qubits(1);
     /// assert_eq!(target.unwrap().num_qubits, Some(1));
@@ -995,9 +989,6 @@ impl Target {
     }
 
     /// Sets the num qubits attribute to a newly constructed [Target]
-    ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
     ///
     /// # Arguments
     ///
@@ -1015,10 +1006,10 @@ impl Target {
     /// * `Err`: (if there was a specified [Target::qubit_properties] attribute and the
     ///     lengths did not match) [TargetError].
     ///
-    /// /// # Examples
+    /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().try_with_num_qubits(1);
     /// assert!(target.is_ok());
@@ -1042,9 +1033,6 @@ impl Target {
     /// Adds a `dt` value for the system time resulution of input of the [Target],
     /// in seconds.
     ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
-    ///
     /// # Arguments
     ///
     /// * `dt` - The system time resolution of input signals in seconds.
@@ -1056,7 +1044,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().with_dt(0.02903);
     /// assert_eq!(target.dt, Some(0.02903))
@@ -1068,9 +1056,6 @@ impl Target {
 
     /// Adds a `granularity` value for the minimum pulse gate resolution in units of ``dt``
     /// of the [Target].
-    ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
     ///
     /// # Arguments
     ///
@@ -1085,7 +1070,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().with_granularity(2);
     /// assert_eq!(target.granularity, 2)
@@ -1096,9 +1081,6 @@ impl Target {
     }
 
     /// Adds a minimum pulse gate length value for the [Target] in units of ``dt``.
-    ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
     ///
     /// # Arguments
     ///
@@ -1113,7 +1095,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().with_min_length(3);
     /// assert_eq!(target.min_length, 3)
@@ -1125,9 +1107,6 @@ impl Target {
 
     /// Adds a `pulse_alignment` value representing a time resolution of
     /// gate instruction starting time for the [Target].
-    ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
     ///
     /// # Arguments
     ///
@@ -1143,7 +1122,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().with_pulse_alignment(4);
     /// assert_eq!(target.pulse_alignment, 4)
@@ -1155,9 +1134,6 @@ impl Target {
 
     /// Adds an `acquire_alignment` value representing a time resolution of
     /// measure instruction starting time for the [Target].
-    ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
     ///
     /// # Arguments
     ///
@@ -1173,7 +1149,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().with_acquire_alignment(5);
     /// assert_eq!(target.acquire_alignment, 5)
@@ -1185,9 +1161,6 @@ impl Target {
 
     /// Sets a list of the characteristics of each qubit on the [Target] device.
     ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
-    ///
     /// # Arguments
     ///
     /// * `qubit_properties` - A list of python `QubitProperties` objects defining
@@ -1195,7 +1168,7 @@ impl Target {
     ///        the length of this list must match the number of qubits in the target,
     ///        where the index in the list matches the qubit number the properties
     ///        are defined for. If some qubits don't have properties available you
-    ///        can set that entry to ``None``.
+    ///        can set that entry to ``py.None()``.
     ///
     /// # Returns
     ///
@@ -1206,10 +1179,10 @@ impl Target {
     /// This function panics if there was a specified [Target::num_qubits] attribute and the
     /// the length of the provided list is not equal to [Target::num_qubits].
     ///
-    /// /// # Examples
+    /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().with_qubit_properties(vec![]);
     /// assert_eq!(target.num_qubits, Some(0));
@@ -1221,9 +1194,6 @@ impl Target {
 
     /// Sets a list of the characteristics of each qubit on the [Target] device.
     ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
-    ///
     /// # Arguments
     ///
     /// * `qubit_properties` - A list of python `QubitProperties` objects defining
@@ -1231,7 +1201,7 @@ impl Target {
     ///        the length of this list must match the number of qubits in the target,
     ///        where the index in the list matches the qubit number the properties
     ///        are defined for. If some qubits don't have properties available you
-    ///        can set that entry to ``None``.
+    ///        can set that entry to ``py.None()``.
     ///
     /// # Returns
     ///
@@ -1239,10 +1209,10 @@ impl Target {
     /// * `Err`: (if there was a specified [Target::num_qubits] attribute and the
     ///     lengths did not match) [TargetError].
     ///
-    /// /// # Examples
+    /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     ///
     /// let mut target = Target::new().try_with_qubit_properties(vec![]);
     /// assert!(target.is_ok());
@@ -1269,9 +1239,6 @@ impl Target {
 
     /// Specifies a list of qubits in the [Target] that need to be measure together.
     ///
-    /// **Warning:** Should only be used during the construction process of [Target],
-    /// after calling [Target::new] or any other construction methods.
-    ///
     /// # Arguments
     ///
     /// * `concurrent_measurements` - A list of sets of qubits that must be
@@ -1285,8 +1252,8 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
-    /// use qiskit_accelerate::nlayout::PhysicalQubit;
+    /// use qiskit_transpiler::target::Target;
+    /// use qiskit_circuit::PhysicalQubit::PhysicalQubit;
     ///
     /// let mut target = Target::new().with_concurrent_measurements(vec![vec![PhysicalQubit(0), PhysicalQubit(1)], vec![PhysicalQubit(2), PhysicalQubit(3), PhysicalQubit(4)]]);
     /// assert_eq!(target.concurrent_measurements, Some(vec![vec![PhysicalQubit(0), PhysicalQubit(1)], vec![PhysicalQubit(2), PhysicalQubit(3), PhysicalQubit(4)]]))
