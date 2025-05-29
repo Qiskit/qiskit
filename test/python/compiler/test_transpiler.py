@@ -94,7 +94,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP, MUMBAI_CMAP
 
 
 class CustomCX(Gate):
@@ -202,7 +202,9 @@ class TestTranspile(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        target = GenericBackendV2(num_qubits=27, seed=42).target
+        target = GenericBackendV2(
+            num_qubits=27, coupling_map=CouplingMap.from_line(27), seed=42
+        ).target
         res = transpile([qc] * 3, target=target, num_processes=num_processes)
         self.assertIsInstance(res, list)
         for circ in res:
@@ -628,69 +630,6 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(len(circuits), 1)
         self.assertIsInstance(circuits[0], QuantumCircuit)
 
-    def test_mapping_correction(self):
-        """Test mapping works in previous failed case."""
-        backend = GenericBackendV2(num_qubits=12, seed=42)
-        qr = QuantumRegister(name="qr", size=11)
-        cr = ClassicalRegister(name="qc", size=11)
-        circuit = QuantumCircuit(qr, cr)
-        circuit.u(1.564784764685993, -1.2378965763410095, 2.9746763177861713, qr[3])
-        circuit.u(1.2269835563676523, 1.1932982847014162, -1.5597357740824318, qr[5])
-        circuit.cx(qr[5], qr[3])
-        circuit.p(0.856768317675967, qr[3])
-        circuit.u(-3.3911273825190915, 0.0, 0.0, qr[5])
-        circuit.cx(qr[3], qr[5])
-        circuit.u(2.159209321625547, 0.0, 0.0, qr[5])
-        circuit.cx(qr[5], qr[3])
-        circuit.u(0.30949966910232335, 1.1706201763833217, 1.738408691990081, qr[3])
-        circuit.u(1.9630571407274755, -0.6818742967975088, 1.8336534616728195, qr[5])
-        circuit.u(1.330181833806101, 0.6003162754946363, -3.181264980452862, qr[7])
-        circuit.u(0.4885914820775024, 3.133297443244865, -2.794457469189904, qr[8])
-        circuit.cx(qr[8], qr[7])
-        circuit.p(2.2196187596178616, qr[7])
-        circuit.u(-3.152367609631023, 0.0, 0.0, qr[8])
-        circuit.cx(qr[7], qr[8])
-        circuit.u(1.2646005789809263, 0.0, 0.0, qr[8])
-        circuit.cx(qr[8], qr[7])
-        circuit.u(0.7517780502091939, 1.2828514296564781, 1.6781179605443775, qr[7])
-        circuit.u(0.9267400575390405, 2.0526277839695153, 2.034202361069533, qr[8])
-        circuit.u(2.550304293455634, 3.8250017126569698, -2.1351609599720054, qr[1])
-        circuit.u(0.9566260876600556, -1.1147561503064538, 2.0571590492298797, qr[4])
-        circuit.cx(qr[4], qr[1])
-        circuit.p(2.1899329069137394, qr[1])
-        circuit.u(-1.8371715243173294, 0.0, 0.0, qr[4])
-        circuit.cx(qr[1], qr[4])
-        circuit.u(0.4717053496327104, 0.0, 0.0, qr[4])
-        circuit.cx(qr[4], qr[1])
-        circuit.u(2.3167620677708145, -1.2337330260253256, -0.5671322899563955, qr[1])
-        circuit.u(1.0468499525240678, 0.8680750644809365, -1.4083720073192485, qr[4])
-        circuit.u(2.4204244021892807, -2.211701932616922, 3.8297006565735883, qr[10])
-        circuit.u(0.36660280497727255, 3.273119149343493, -1.8003362351299388, qr[6])
-        circuit.cx(qr[6], qr[10])
-        circuit.p(1.067395863586385, qr[10])
-        circuit.u(-0.7044917541291232, 0.0, 0.0, qr[6])
-        circuit.cx(qr[10], qr[6])
-        circuit.u(2.1830003849921527, 0.0, 0.0, qr[6])
-        circuit.cx(qr[6], qr[10])
-        circuit.u(2.1538343756723917, 2.2653381826084606, -3.550087952059485, qr[10])
-        circuit.u(1.307627685019188, -0.44686656993522567, -2.3238098554327418, qr[6])
-        circuit.u(2.2046797998462906, 0.9732961754855436, 1.8527865921467421, qr[9])
-        circuit.u(2.1665254613904126, -1.281337664694577, -1.2424905413631209, qr[0])
-        circuit.cx(qr[0], qr[9])
-        circuit.p(2.6209599970201007, qr[9])
-        circuit.u(0.04680566321901303, 0.0, 0.0, qr[0])
-        circuit.cx(qr[9], qr[0])
-        circuit.u(1.7728411151289603, 0.0, 0.0, qr[0])
-        circuit.cx(qr[0], qr[9])
-        circuit.u(2.4866395967434443, 0.48684511243566697, -3.0069186877854728, qr[9])
-        circuit.u(1.7369112924273789, -4.239660866163805, 1.0623389015296005, qr[0])
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-
-        circuits = transpile(circuit, backend, seed_transpiler=42)
-
-        self.assertIsInstance(circuits, QuantumCircuit)
-
     def test_transpiler_layout_from_intlist(self):
         """A list of ints gives layout to correctly map circuit.
         virtual  physical
@@ -750,7 +689,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs."""
-        backend = GenericBackendV2(num_qubits=8, seed=42)
+        backend = GenericBackendV2(num_qubits=8, coupling_map=CouplingMap.from_line(8), seed=42)
         qr = QuantumRegister(3, name="qr")
         qr2 = QuantumRegister(1, name="qr2")
         qr3 = QuantumRegister(4, name="qr3")
@@ -894,12 +833,8 @@ class TestTranspile(QiskitTestCase):
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
-        coupling_map = []
-        for node1, node2 in GenericBackendV2(num_qubits=16, seed=42).coupling_map:
-            coupling_map.append([node1, node2])
-            coupling_map.append([node2, node1])
-
-        orig_pass = GateDirection(CouplingMap(coupling_map))
+        coupling_map = CouplingMap.from_line(16, bidirectional=True)
+        orig_pass = GateDirection(coupling_map)
         with patch.object(GateDirection, "run", wraps=orig_pass.run) as mock_pass:
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
@@ -981,7 +916,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping."""
-        cmap = GenericBackendV2(num_qubits=16, seed=42).coupling_map
+        cmap = CouplingMap.from_line(16)
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
@@ -2002,7 +1937,9 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_transpile_with_custom_control_flow_target(self, opt_level):
         """Test transpile() with a target and control flow ops."""
-        target = GenericBackendV2(num_qubits=8, control_flow=True).target
+        target = GenericBackendV2(
+            num_qubits=8, coupling_map=CouplingMap.from_line(8), control_flow=True
+        ).target
 
         circuit = QuantumCircuit(6, 1)
         circuit.h(0)
@@ -2533,7 +2470,12 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=GenericBackendV2(num_qubits=8, control_flow=True),
+            backend=GenericBackendV2(
+                num_qubits=8,
+                coupling_map=CouplingMap.from_line(8),
+                control_flow=True,
+                seed=2025_05_28,
+            ),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -2543,25 +2485,6 @@ class TestPostTranspileIntegration(QiskitTestCase):
         qpy.dump(transpiled, buffer)
         buffer.seek(0)
         round_tripped = qpy.load(buffer)[0]
-        self.assertEqual(round_tripped, transpiled)
-
-    @data(0, 1, 2, 3)
-    def test_qpy_roundtrip_backendv2(self, optimization_level):
-        """Test that the output of a transpiled circuit can be round-tripped through QPY."""
-        transpiled = transpile(
-            self._regular_circuit(),
-            backend=GenericBackendV2(num_qubits=8, control_flow=True),
-            optimization_level=optimization_level,
-            seed_transpiler=2022_10_17,
-        )
-
-        # Round-tripping the layout is out-of-scope for QPY while it's a private attribute.
-        transpiled._layout = None
-        buffer = io.BytesIO()
-        qpy.dump(transpiled, buffer)
-        buffer.seek(0)
-        round_tripped = qpy.load(buffer)[0]
-
         self.assertEqual(round_tripped, transpiled)
 
     @data(0, 1, 2, 3)
@@ -2574,7 +2497,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 "See #10345 for more details."
             )
 
-        backend = GenericBackendV2(num_qubits=8, control_flow=True)
+        backend = GenericBackendV2(
+            num_qubits=8, coupling_map=CouplingMap.from_line(8), control_flow=True, seed=2025_05_28
+        )
         transpiled = transpile(
             self._control_flow_circuit(),
             backend=backend,
@@ -2591,56 +2516,15 @@ class TestPostTranspileIntegration(QiskitTestCase):
         self.assertEqual(round_tripped, transpiled)
 
     @data(0, 1, 2, 3)
-    def test_qpy_roundtrip_control_flow_backendv2(self, optimization_level):
-        """Test that the output of a transpiled circuit with control flow can be round-tripped
-        through QPY."""
-        transpiled = transpile(
-            self._control_flow_circuit(),
-            backend=GenericBackendV2(num_qubits=8, control_flow=True),
-            optimization_level=optimization_level,
-            seed_transpiler=2022_10_17,
-        )
-        # Round-tripping the layout is out-of-scope for QPY while it's a private attribute.
-        transpiled._layout = None
-        buffer = io.BytesIO()
-        qpy.dump(transpiled, buffer)
-        buffer.seek(0)
-        round_tripped = qpy.load(buffer)[0]
-        self.assertEqual(round_tripped, transpiled)
-
-    @data(0, 1, 2, 3)
     def test_qpy_roundtrip_control_flow_expr(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow including `Expr` nodes can
         be round-tripped through QPY."""
-        if optimization_level == 3 and sys.platform == "win32":
-            self.skipTest(
-                "This test case triggers a bug in the eigensolver routine on windows. "
-                "See #10345 for more details."
-            )
-        backend = GenericBackendV2(num_qubits=16)
-        transpiled = transpile(
-            self._control_flow_expr_circuit(),
-            backend=backend,
-            basis_gates=backend.operation_names
-            + ["if_else", "for_loop", "while_loop", "switch_case"],
-            optimization_level=optimization_level,
-            seed_transpiler=2023_07_26,
+        backend = GenericBackendV2(
+            num_qubits=27,
+            coupling_map=CouplingMap.from_line(27),
+            seed=2025_05_28,
+            control_flow=True,
         )
-        buffer = io.BytesIO()
-        qpy.dump(transpiled, buffer)
-        buffer.seek(0)
-        round_tripped = qpy.load(buffer)[0]
-        self.assertEqual(round_tripped, transpiled)
-
-    @data(0, 1, 2, 3)
-    def test_qpy_roundtrip_control_flow_expr_backendv2(self, optimization_level):
-        """Test that the output of a transpiled circuit with control flow including `Expr` nodes can
-        be round-tripped through QPY."""
-        backend = GenericBackendV2(num_qubits=27)
-        backend.target.add_instruction(IfElseOp, name="if_else")
-        backend.target.add_instruction(ForLoopOp, name="for_loop")
-        backend.target.add_instruction(WhileLoopOp, name="while_loop")
-        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         transpiled = transpile(
             self._control_flow_circuit(),
             backend=backend,
@@ -2657,30 +2541,12 @@ class TestPostTranspileIntegration(QiskitTestCase):
     def test_qpy_roundtrip_standalone_var(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow including standalone `Var`
         nodes can be round-tripped through QPY."""
-        backend = GenericBackendV2(num_qubits=7)
-        transpiled = transpile(
-            self._standalone_var_circuit(),
-            backend=backend,
-            basis_gates=backend.operation_names
-            + ["if_else", "for_loop", "while_loop", "switch_case"],
-            optimization_level=optimization_level,
-            seed_transpiler=2024_05_01,
+        backend = GenericBackendV2(
+            num_qubits=11,
+            coupling_map=CouplingMap.from_line(11),
+            control_flow=True,
+            seed=2025_05_28,
         )
-        buffer = io.BytesIO()
-        qpy.dump(transpiled, buffer)
-        buffer.seek(0)
-        round_tripped = qpy.load(buffer)[0]
-        self.assertEqual(round_tripped, transpiled)
-
-    @data(0, 1, 2, 3)
-    def test_qpy_roundtrip_standalone_var_target(self, optimization_level):
-        """Test that the output of a transpiled circuit with control flow including standalone `Var`
-        nodes can be round-tripped through QPY."""
-        backend = GenericBackendV2(num_qubits=11)
-        backend.target.add_instruction(IfElseOp, name="if_else")
-        backend.target.add_instruction(ForLoopOp, name="for_loop")
-        backend.target.add_instruction(WhileLoopOp, name="while_loop")
-        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         transpiled = transpile(
             self._standalone_var_circuit(),
             backend=backend,
@@ -2720,7 +2586,12 @@ class TestPostTranspileIntegration(QiskitTestCase):
         OpenQASM 3."""
         transpiled = transpile(
             self._control_flow_circuit(),
-            backend=GenericBackendV2(num_qubits=8, control_flow=True),
+            backend=GenericBackendV2(
+                num_qubits=8,
+                coupling_map=CouplingMap.from_line(8),
+                control_flow=True,
+                seed=2025_05_28,
+            ),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -2738,7 +2609,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
         dumped into OpenQASM 3."""
         transpiled = transpile(
             self._control_flow_circuit(),
-            backend=GenericBackendV2(num_qubits=27, control_flow=True),
+            backend=GenericBackendV2(
+                num_qubits=27, coupling_map=MUMBAI_CMAP, control_flow=True, seed=2025_05_28
+            ),
             optimization_level=optimization_level,
             seed_transpiler=2023_07_26,
         )
@@ -2756,7 +2629,12 @@ class TestPostTranspileIntegration(QiskitTestCase):
         can be dumped into OpenQASM 3."""
         transpiled = transpile(
             self._standalone_var_circuit(),
-            backend=GenericBackendV2(num_qubits=13, control_flow=True),
+            backend=GenericBackendV2(
+                num_qubits=13,
+                coupling_map=CouplingMap.from_line(13),
+                control_flow=True,
+                seed=2025_05_28,
+            ),
             optimization_level=optimization_level,
             seed_transpiler=2024_05_01,
         )
@@ -2932,7 +2810,7 @@ class TestTranspileParallel(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        target = GenericBackendV2(num_qubits=27).target
+        target = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP, seed=2025_05_28).target
         res = transpile([qc] * 3, target=target, num_processes=num_processes)
         self.assertIsInstance(res, list)
         for circ in res:

@@ -25,8 +25,6 @@ pyo3 = { workspace = true, optional = true }
 indexmap.workspace = true
 ahash.workspace = true
 smallvec.workspace = true
-ndarray.workspace = true
-nalgebra.workspace = true
 
 [build-dependencies]
 cbindgen = "0.29"

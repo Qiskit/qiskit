@@ -1457,8 +1457,6 @@ dependencies = [
  "ahash 0.8.12",
  "cbindgen",
  "indexmap",
- "nalgebra",
- "ndarray",
  "num-complex",
  "pyo3",
  "qiskit-circuit",

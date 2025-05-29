@@ -42,8 +42,6 @@ pub enum ExitCode {
     ArithmeticError = 200,
     /// Mismatching number of qubits.
     MismatchedQubits = 201,
-    /// Matrix is not unitary.
-    ExpectedUnitary = 202,
     /// Target related error
     TargetError = 300,
     /// Instruction already exists in the Target
