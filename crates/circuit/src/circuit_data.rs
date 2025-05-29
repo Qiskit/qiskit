@@ -25,7 +25,7 @@ use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{multiply_param, Operation, OperationRef, Param, StandardGate};
+use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -1964,79 +1964,6 @@ impl CircuitData {
             )),
             _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
         }
-    }
-
-    /// Compose ``other`` into ``self``, while remapping the qubits over which ``other`` is defined.
-    /// The operations are added in-place.
-    pub fn compose(
-        &mut self,
-        other: &Self,
-        qargs_map: &[Qubit],
-        cargs_map: &[Clbit],
-    ) -> PyResult<()> {
-        for inst in &other.data {
-            let remapped_qubits: Vec<Qubit> = other
-                .get_qargs(inst.qubits)
-                .iter()
-                .map(|q| qargs_map[q.index()])
-                .collect();
-            let remapped_clbits: Vec<Clbit> = other
-                .get_cargs(inst.clbits)
-                .iter()
-                .map(|c| cargs_map[c.index()])
-                .collect();
-
-            self.data.push(PackedInstruction {
-                op: inst.op.clone(),
-                qubits: self.qargs_interner.insert(&remapped_qubits),
-                clbits: self.cargs_interner.insert(&remapped_clbits),
-                params: inst.params.clone(),
-                label: None,
-                #[cfg(feature = "cache_pygates")]
-                py_op: OnceLock::new(),
-            });
-        }
-
-        self.add_global_phase(other.global_phase())?;
-        Ok(())
-    }
-
-    /// Construct the inverse circuit
-    pub fn inverse(&self) -> PyResult<CircuitData> {
-        let inverse_global_phase =
-            Python::with_gil(|py| -> Param { multiply_param(self.global_phase(), -1.0, py) });
-
-        let mut inverse_circuit = CircuitData::clone_empty_like(self, None)?;
-        inverse_circuit.set_global_phase(inverse_global_phase)?;
-
-        for inst in self.data.iter().rev() {
-            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op.view() {
-                OperationRef::StandardGate(gate) => gate.inverse(inst.params_view()),
-                _ => None,
-            };
-
-            if inverse_inst.is_none() {
-                return Err(CircuitError::new_err(format!(
-                    "The circuit cannot be inverted: {} is not a standard gate.",
-                    inst.op.name()
-                )));
-            }
-
-            let (inverse_op, inverse_op_params) = inverse_inst.unwrap();
-            let inverse_params = (!inverse_op_params.is_empty())
-                .then(|| Box::new(inverse_op_params.iter().cloned().collect()));
-
-            inverse_circuit.data.push(PackedInstruction {
-                op: inverse_op.into(),
-                qubits: inst.qubits,
-                clbits: inst.clbits,
-                params: inverse_params,
-                label: None,
-                #[cfg(feature = "cache_pygates")]
-                py_op: OnceLock::new(),
-            });
-        }
-        Ok(inverse_circuit)
     }
 }
 

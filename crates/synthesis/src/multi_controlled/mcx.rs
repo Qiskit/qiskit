@@ -14,8 +14,11 @@ use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, Param, PyGate, StandardGate};
-use qiskit_circuit::Qubit;
+use qiskit_circuit::operations::{
+    multiply_param, Operation, OperationRef, Param, PyGate, StandardGate,
+};
+use qiskit_circuit::{Clbit, Qubit};
+use smallvec::SmallVec;
 
 use std::f64::consts::PI;
 const PI2: f64 = PI / 2.0;
@@ -92,6 +95,13 @@ trait CircuitDataAdder {
 
     /// Appends CPhase to the circuit.
     fn cp(&mut self, theta: f64, q1: u32, q2: u32);
+
+    /// Compose ``other`` into ``self``, while remapping the qubits
+    /// over which ``other`` is defined. The operations are added in-place.
+    fn compose(&mut self, other: &Self, qargs_map: &[Qubit], cargs_map: &[Clbit]) -> PyResult<()>;
+
+    /// Construct the inverse circuit
+    fn inverse(&self) -> PyResult<CircuitData>;
 }
 
 impl CircuitDataAdder for CircuitData {
@@ -139,6 +149,70 @@ impl CircuitDataAdder for CircuitData {
             &[Param::Float(theta)],
             &[Qubit(q1), Qubit(q2)],
         );
+    }
+
+    /// Compose ``other`` into ``self``, while remapping the qubits over which ``other`` is defined.
+    /// The operations are added in-place.
+    fn compose(&mut self, other: &Self, qargs_map: &[Qubit], cargs_map: &[Clbit]) -> PyResult<()> {
+        for inst in other.data() {
+            let remapped_qubits: Vec<Qubit> = other
+                .get_qargs(inst.qubits)
+                .iter()
+                .map(|q| qargs_map[q.index()])
+                .collect();
+            let remapped_clbits: Vec<Clbit> = other
+                .get_cargs(inst.clbits)
+                .iter()
+                .map(|c| cargs_map[c.index()])
+                .collect();
+
+            self.push_packed_operation(
+                inst.op.clone(),
+                inst.params_view(),
+                &remapped_qubits,
+                &remapped_clbits,
+            );
+        }
+
+        self.add_global_phase(other.global_phase())?;
+        Ok(())
+    }
+
+    /// Construct the inverse circuit
+    fn inverse(&self) -> PyResult<CircuitData> {
+        let inverse_global_phase =
+            Python::with_gil(|py| -> Param { multiply_param(self.global_phase(), -1.0, py) });
+
+        let mut inverse_circuit = CircuitData::clone_empty_like(self, None)?;
+        inverse_circuit.set_global_phase(inverse_global_phase)?;
+
+        let data = self.data();
+
+        for i in 0..data.len() {
+            let inst = &data[data.len() - 1 - i];
+
+            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op.view() {
+                OperationRef::StandardGate(gate) => gate.inverse(inst.params_view()),
+                _ => None,
+            };
+
+            if inverse_inst.is_none() {
+                return Err(CircuitError::new_err(format!(
+                    "The circuit cannot be inverted: {} is not a standard gate.",
+                    inst.op.name()
+                )));
+            }
+
+            let (inverse_op, inverse_op_params) = inverse_inst.unwrap();
+
+            inverse_circuit.push_packed_operation(
+                inverse_op.into(),
+                &inverse_op_params,
+                self.get_qargs(inst.qubits),
+                self.get_cargs(inst.clbits),
+            );
+        }
+        Ok(inverse_circuit)
     }
 }
 
