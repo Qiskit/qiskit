@@ -25,6 +25,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
+from qiskit import user_config
 from qiskit.version import __version__
 
 
@@ -282,6 +283,15 @@ def load(
                 formats.FILE_HEADER_V10_PACK,
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
+        )
+
+    config = user_config.get_config()
+    
+    min_qpy_version = config.get("min_qpy_version")
+    if min_qpy_version is not None and common.QPY_VERSION < int(min_qpy_version):
+        raise QiskitError(
+            f"QPY version {data.qpy_version} is lower than the configured minimum "
+            f"version {min_qpy_version}. Aborting load for security reasons."
         )
 
     if data.preface.decode(common.ENCODE) != "QISKIT":
