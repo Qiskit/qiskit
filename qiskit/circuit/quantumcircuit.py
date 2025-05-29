@@ -827,6 +827,9 @@ class QuantumCircuit:
     a block, even though it has no operations defined.  In this case, you can use the :meth:`noop`
     method.
 
+    To check whether a circuit contains a :class:`.ControlFlowOp` you can use the helper method
+    :meth:`.QuantumCircuit.has_control_flow_op`.
+
     ..
         TODO: expand the examples of the builder interface.
 
@@ -839,6 +842,7 @@ class QuantumCircuit:
     .. automethod:: switch
     .. automethod:: while_loop
     .. automethod:: noop
+    .. automethod:: has_control_flow_op
 
 
     Converting circuits to single objects
@@ -4819,6 +4823,11 @@ class QuantumCircuit:
             target._data.assign_parameters_iterable(parameters)
 
         return None if inplace else target
+
+    def has_control_flow_op(self) -> bool:
+        """Checks whether the circuit has an instance of :class:`.ControlFlowOp`
+        present amongst its operations."""
+        return self._data.has_control_flow_op()
 
     def _unroll_param_dict(
         self, parameter_binds: Mapping[Parameter, ParameterValueType]
