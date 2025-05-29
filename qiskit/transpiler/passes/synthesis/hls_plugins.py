@@ -403,6 +403,10 @@ Half Adder Synthesis
       - :class:`.HalfAdderSynthesisC04`
       - 1
       - a ripple-carry adder
+    * - ``"ripple_r25"``
+      - :class:`.HalfAdderSynthesisR25`
+      - 0
+      - a ripple-carry adder with no ancillas
     * - ``"ripple_vbe"``
       - :class:`.HalfAdderSynthesisV95`
       - :math:`n-1`, for :math:`n`-bit numbers
@@ -422,6 +426,7 @@ Half Adder Synthesis
    HalfAdderSynthesisC04
    HalfAdderSynthesisD00
    HalfAdderSynthesisV95
+   HalfAdderSynthesisR25
    HalfAdderSynthesisDefault
 
 Full Adder Synthesis
@@ -561,6 +566,7 @@ from qiskit.synthesis.arithmetic import (
     adder_ripple_c04,
     adder_qft_d00,
     adder_ripple_v95,
+    adder_ripple_r25,
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
@@ -1685,13 +1691,17 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        # For up to 3 qubits, ripple_v95 is better (if there are enough ancilla qubits)
-        if high_level_object.num_state_qubits <= 3:
-            decomposition = HalfAdderSynthesisV95().run(
-                high_level_object, coupling_map, target, qubits, **options
+        # For up to 3 qubits, ripple_r25 is better
+        if (
+            high_level_object.num_state_qubits <= 3
+            and (
+                decomposition := HalfAdderSynthesisR25().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
             )
-            if decomposition is not None:
-                return decomposition
+            is not None
+        ):
+            return decomposition
 
         # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
         if (
@@ -1701,8 +1711,8 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         ) is not None:
             return decomposition
 
-        # The QFT-based adder does not require ancilla qubits and should always succeed
-        return HalfAdderSynthesisD00().run(
+        # The ripple_rv_25 adder does not require ancilla qubits and should always succeed
+        return HalfAdderSynthesisR25().run(
             high_level_object, coupling_map, target, qubits, **options
         )
 
@@ -1757,6 +1767,22 @@ class HalfAdderSynthesisV95(HighLevelSynthesisPlugin):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="half")
+
+
+class HalfAdderSynthesisR25(HighLevelSynthesisPlugin):
+    """A ripple-carry adder with a carry-out bit with no ancillary qubits.
+
+    This plugin name is:``HalfAdder.ripple_r25`` which can be used as the key on an
+    :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, HalfAdderGate):
+            return None
+
+        num_state_qubits = high_level_object.num_state_qubits
+        return adder_ripple_r25(num_state_qubits)
 
 
 class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):

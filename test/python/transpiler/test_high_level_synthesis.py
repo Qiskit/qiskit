@@ -697,7 +697,8 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit/issues/13412 for more
         details.
         """
-        qc = QAOAAnsatz(SparsePauliOp("Z"), initial_state=QuantumCircuit(1))
+        with self.assertWarns(DeprecationWarning):
+            qc = QAOAAnsatz(SparsePauliOp("Z"), initial_state=QuantumCircuit(1))
         pm = PassManager([HighLevelSynthesis(basis_gates=["PauliEvolution"])])
         qct = pm.run(qc)
         self.assertEqual(qct.count_ops()["PauliEvolution"], 2)
@@ -741,6 +742,21 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             expected_block = QuantumCircuit(2, global_phase=0.8)
             expected_block.cx(0, 1)
             self.assertEqual(transpiled_block, expected_block)
+
+    def test_control_flow(self):
+        """Test that the pass recurses into control-flow ops."""
+        clifford_circuit = QuantumCircuit(3)
+        clifford_circuit.cx(1, 0)
+        clifford_circuit.cz(0, 2)
+        cliff = Clifford(clifford_circuit)
+
+        qc = QuantumCircuit(5, 5)
+        with qc.for_loop(range(3)):
+            qc.append(cliff, [0, 1, 4])
+
+        transpiled = HighLevelSynthesis(basis_gates=["cx", "u", "for_loop"])(qc)
+        transpiled_block = transpiled[0].operation.blocks[0]
+        self.assertNotIn("clifford", transpiled_block.count_ops())
 
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):

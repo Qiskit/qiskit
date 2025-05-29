@@ -2,26 +2,21 @@ language = "C"
 include_version = true
 include_guard = "QISKIT_H"
 style = "type"
+cpp_compat = true
 
-sys_includes = ["complex.h"]
 after_includes = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
     #include <Python.h>
 #endif
 
-// Complex number typedefs -- note these are memory aligned but
-// not calling convention compatible. 
-#ifdef _MSC_VER
-typedef _Fcomplex QkComplex32;
-typedef _Dcomplex QkComplex64;
-#else
-typedef float complex QkComplex32;
-typedef double complex QkComplex64;
-#endif
+#include <qiskit/complex.h>
 
 // Always expose [cfg(feature = "cbinding")] -- workaround for
 // https://github.com/mozilla/cbindgen/issues/995
 #define QISKIT_WITH_CBINDINGS
+
+typedef struct QkQuantumRegister QkQuantumRegister;
+typedef struct QkClassicalRegister QkClassicalRegister;
 """
 
 [defines]
@@ -30,7 +25,7 @@ typedef double complex QkComplex64;
 
 [parse]
 parse_deps = true
-include = ["qiskit-accelerate"]
+include = ["qiskit-quantum-info", "qiskit-circuit"]
 
 [enum]
 prefix_with_name = true
@@ -40,4 +35,11 @@ prefix_with_name = true
 "CSparseTerm" = "QkObsTerm"
 "BitTerm" = "QkBitTerm"
 "Complex64" = "QkComplex64"
+"CircuitData" = "QkCircuit"
+"StandardGate" = "QkGate"
+"OpCounts" = "QkOpCounts"
+"OpCount" = "QkOpCount"
+"CInstruction" = "QkCircuitInstruction"
 "ExitCode" = "QkExitCode"
+"QuantumRegister" = "QkQuantumRegister"
+"ClassicalRegister" = "QkClassicalRegister"

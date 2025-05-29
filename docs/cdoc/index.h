@@ -9,3 +9,19 @@
 /**
  * @defgroup QkBitTerm QkBitTerm
  */
+
+/**
+ * @defgroup QkComplex64 QkComplex64
+ */
+
+/**
+ * @defgroup QkCircuit QkCircuit
+ */
+
+/**
+ * @defgroup QkQuantumRegister QkQuantumRegister
+ */
+
+/**
+ * @defgroup QkClassicalRegister QkClassicalRegister
+ */

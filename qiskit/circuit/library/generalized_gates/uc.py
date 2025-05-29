@@ -286,7 +286,7 @@ class UCGate(Gate):
         This method finds the single qubit gate arising in the decomposition of UCGates given in
         https://arxiv.org/pdf/quant-ph/0410066.pdf.
         """
-        single_qubit_gates = [gate.astype(complex) for gate in self.params]
+        single_qubit_gates = [np.asarray(gate, dtype=complex, order="f") for gate in self.params]
         if self.simp_contr[0]:
             return uc_gate.dec_ucg_help(single_qubit_gates, len(self.simp_contr[1]) + 1)
         return uc_gate.dec_ucg_help(single_qubit_gates, self.num_qubits)

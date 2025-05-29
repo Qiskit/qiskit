@@ -25,6 +25,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
 from qiskit.transpiler.timing_constraints import TimingConstraints
 
@@ -129,9 +130,9 @@ def generate_preset_pass_manager(
             :class:`~.StagedPassManager`. You can see a list of installed plugins by using
             :func:`~.list_stage_plugins` with ``"layout"`` for the ``stage_name`` argument.
         routing_method (str): The pass to use for routing qubits on the
-            architecture. Valid choices are ``'basic'``, ``'lookahead'``, ``'stochastic'``,
+            architecture. Valid choices are ``'basic'``, ``'lookahead'``,
             ``'sabre'``, and ``'none'`` representing :class:`~.BasicSwap`,
-            :class:`~.LookaheadSwap`, :class:`~.StochasticSwap`, :class:`~.SabreSwap`, and
+            :class:`~.LookaheadSwap`, :class:`~.SabreSwap`, and
             erroring if routing is required respectively. This can also be the external plugin
             name to use for the ``routing`` stage of the output :class:`~.StagedPassManager`.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
@@ -302,6 +303,11 @@ def generate_preset_pass_manager(
         pm_config = PassManagerConfig.from_backend(backend, **pm_options)
     else:
         pm_config = PassManagerConfig(**pm_options)
+
+    pm_config._is_clifford_t = is_clifford_t_basis(
+        basis_gates=pm_config.basis_gates, target=pm_config.target
+    )
+
     if optimization_level == 0:
         pm = level_0_pass_manager(pm_config)
     elif optimization_level == 1:
