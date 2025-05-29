@@ -102,17 +102,6 @@ impl Pauli {
         }
     }
 
-    /// Get the name of this `Pauli`, which is how Python space refers to the integer constant.
-    #[inline]
-    pub fn py_name(&self) -> &'static str {
-        // Note: these names are part of the stable Python API and should not be changed.
-        match self {
-            Self::X => "X",
-            Self::Y => "Y",
-            Self::Z => "Z",
-        }
-    }
-
     /// Attempt to convert a `u8` into `Pauli`.
     ///
     /// Unlike the implementation of `TryFrom<u8>`, this allows `b'I'` as an alphabet letter,
@@ -631,8 +620,8 @@ fn make_py_pauli(py: Python) -> PyResult<Py<PyType>> {
     let terms = [Pauli::X, Pauli::Y, Pauli::Z]
         .into_iter()
         .flat_map(|term| {
-            let mut out = vec![(term.py_name(), term as u8)];
-            if term.py_name() != term.py_label() {
+            let mut out = vec![(term.py_label(), term as u8)];
+            if term.py_label() != term.py_label() {
                 // Also ensure that the labels are created as aliases.  These can't be (easily) accessed
                 // by attribute-getter (dot) syntax, but will work with the item-getter (square-bracket)
                 // syntax, or programmatically with `getattr`.
@@ -679,7 +668,7 @@ impl<'py> IntoPyObject<'py> for Pauli {
                     .ok()
                     .map(|term: Pauli| {
                         py_enum
-                            .getattr(term.py_name())
+                            .getattr(term.py_label())
                             .expect("the created `Pauli` enum should have matching attribute names to the terms")
                             .unbind()
                     })
