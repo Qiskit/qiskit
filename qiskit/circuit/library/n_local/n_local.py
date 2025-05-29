@@ -78,6 +78,28 @@ def n_local(
     circuit). Each layer is repeated ``reps`` times, and by default a final rotation layer is
     appended.
 
+    For instance, a rotation block on 2 qubits and an entanglement block on 4 qubits using
+    ``"linear"`` entanglement yields the following circuit.
+
+    .. parsed-literal::
+
+        ┌──────┐ ░ ┌──────┐                      ░ ┌──────┐
+        ┤0     ├─░─┤0     ├──────────────── ... ─░─┤0     ├
+        │  Rot │ ░ │      │┌──────┐              ░ │  Rot │
+        ┤1     ├─░─┤1     ├┤0     ├──────── ... ─░─┤1     ├
+        ├──────┤ ░ │  Ent ││      │┌──────┐      ░ ├──────┤
+        ┤0     ├─░─┤2     ├┤1     ├┤0     ├ ... ─░─┤0     ├
+        │  Rot │ ░ │      ││  Ent ││      │      ░ │  Rot │
+        ┤1     ├─░─┤3     ├┤2     ├┤1     ├ ... ─░─┤1     ├
+        ├──────┤ ░ └──────┘│      ││  Ent │      ░ ├──────┤
+        ┤0     ├─░─────────┤3     ├┤2     ├ ... ─░─┤0     ├
+        │  Rot │ ░         └──────┘│      │      ░ │  Rot │
+        ┤1     ├─░─────────────────┤3     ├ ... ─░─┤1     ├
+        └──────┘ ░                 └──────┘      ░ └──────┘
+        |                                 |
+        +---------------------------------+
+               repeated reps times
+
     The entanglement describes the connections of the gates in the entanglement layer.
     For a two-qubit gate for example, the entanglement contains pairs of qubits on which the
     gate should act, e.g. ``[[ctrl0, target0], [ctrl1, target1], ...]``.
@@ -136,7 +158,9 @@ def n_local(
         :include-source:
 
         from qiskit.circuit.library import n_local
-        circuit = n_local(3, ["ry", "rz"], "cz", "full", reps=1, insert_barriers=True)
+        from qiskit.circuit import Parameter
+        theta = Parameter('θ')
+        circuit = n_local(4, ["ry", "rz"], ["cx", "cz"], ["linear", "full"], reps=1)
         circuit.draw("mpl")
 
     To omit rotation or entanglement layers, the block can be set to an empty list:
@@ -160,7 +184,7 @@ def n_local(
         circuit = n_local(3, "x", "crx", entangler_map, reps=2)
         circuit.draw("mpl")
 
-    We can set different entanglements per layer, by specifing a callable that takes
+    We can set different entanglements per layer, by specifying a callable that takes
     as input the current layer index, and returns the entanglement structure. For example,
     the following uses different entanglements for odd and even layers:
 
@@ -175,73 +199,6 @@ def n_local(
             return [[1, 2]]
         circuit = n_local(3, "x", "cx", entanglement, reps=3, insert_barriers=True)
         circuit.draw("mpl")
-
-    Additional usage examples::
-
-        Minimal usage::
-            from qiskit.circuit.library import n_local, RYGate, CXGate
-            circuit = n_local(
-                num_qubits=3,
-                rotation_blocks=RYGate(1),
-                entanglement_blocks=CXGate(),
-                entanglement='linear',
-                reps=2,
-                insert_barriers=True
-            )
-            print(circuit.count_ops())
-
-        Multiple rotation and entanglement blocks::
-            from qiskit.circuit.library import n_local, RYGate, RZGate, CXGate, CZGate
-            from qiskit.circuit import Parameter
-            theta = Parameter('θ')
-            circuit = n_local(
-                num_qubits=4,
-                rotation_blocks=[RYGate(theta), RZGate(1)],
-                entanglement_blocks=[CXGate(), CZGate()],
-                entanglement=['linear', 'full'],
-                reps=1
-            )
-            # This creates a circuit with alternating RY (with a free parameter) and RZ rotations,
-            # and entanglement using CX and CZ gates in both linear and full patterns.
-            print(circuit.count_ops())
-
-        Custom entanglement map::
-            from qiskit.circuit.library import n_local, RYGate, CXGate
-            circuit = n_local(
-                num_qubits=3,
-                rotation_blocks=RYGate(1),
-                entanglement_blocks=CXGate(),
-                entanglement=[[0, 1], [1, 2]],
-                reps=2
-            )
-            print(circuit.count_ops())
-
-        Callable entanglement::
-            from qiskit.circuit.library import n_local, RYGate, CXGate
-            def entanglement(layer):
-                return [[layer % 3, (layer + 1) % 3]]
-            circuit = n_local(
-                num_qubits=3,
-                rotation_blocks=RYGate(1),
-                entanglement_blocks=CXGate(),
-                entanglement=entanglement,
-                reps=3
-            )
-            print(circuit.count_ops())
-
-        Prepending an initial state::
-            from qiskit.circuit.library import n_local, RYGate, CXGate
-            from qiskit.circuit import QuantumCircuit
-            initial = QuantumCircuit(3)
-            initial.x(0)
-            circuit = n_local(
-                num_qubits=3,
-                rotation_blocks=RYGate(1),
-                entanglement_blocks=CXGate(),
-                initial_state=initial
-            )
-            full_circuit = initial.compose(circuit)
-            print(full_circuit.count_ops())
 
     Args:
         num_qubits: The number of qubits of the circuit.
