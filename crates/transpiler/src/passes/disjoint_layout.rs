@@ -23,7 +23,6 @@ use rustworkx_core::connectivity::connected_components;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{IntoEdgeReferences, IntoNodeReferences, NodeFiltered};
 use rustworkx_core::petgraph::EdgeType;
-use smallvec::SmallVec;
 use uuid::Uuid;
 
 use crate::target::{Qargs, Target};
@@ -524,7 +523,7 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
                 let new_node = dag.replace_block(
                     &[*other_index, node_index],
                     new_op,
-                    SmallVec::new(),
+                    None,
                     new_label.as_deref(),
                     true,
                     &HashMap::new(),

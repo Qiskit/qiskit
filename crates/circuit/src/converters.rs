@@ -111,11 +111,11 @@ pub fn dag_to_circuit(
             if copy_operations {
                 let op = instr.op.py_deepcopy(py, None)?;
                 let instr = instr.clone();
-                let mut packed = instr.into_packed();
+                let mut packed = instr.into_packed(py)?;
                 packed.op = op;
                 Ok(packed)
             } else {
-                Ok(instr.clone().into_packed())
+                instr.clone().into_packed(py)
             }
         }),
         dag.get_global_phase(),

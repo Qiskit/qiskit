@@ -931,7 +931,7 @@ pub fn run_high_level_synthesis(
         let (output_circuit, _) =
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
-        let new_dag = convert_circuit_to_dag_with_data(dag, &output_circuit)?;
+        let new_dag = convert_circuit_to_dag_with_data(py, dag, &output_circuit)?;
 
         Ok(Some(new_dag))
     }
@@ -939,6 +939,7 @@ pub fn run_high_level_synthesis(
 
 /// Converts circuit to DAGCircuit, while taking the missing python data from dag.
 fn convert_circuit_to_dag_with_data(
+    py: Python,
     dag: &DAGCircuit,
     circuit: &CircuitData,
 ) -> PyResult<DAGCircuit> {
@@ -950,16 +951,19 @@ fn convert_circuit_to_dag_with_data(
     let carg_map = new_dag.merge_cargs(circuit.cargs_interner(), |bit: &Clbit| Some(*bit));
 
     new_dag.try_extend(circuit.iter().map(|instr| -> PyResult<DAGInstruction> {
-        Ok(DAGInstruction::from_packed(PackedInstruction {
-            // SHould this be: op: instr.op.py_deepcopy(py, None)?,
-            op: instr.op.clone(),
-            qubits: qarg_map[instr.qubits],
-            clbits: carg_map[instr.clbits],
-            params: instr.params.clone(),
-            label: instr.label.clone(),
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        }))
+        DAGInstruction::from_packed(
+            py,
+            PackedInstruction {
+                // SHould this be: op: instr.op.py_deepcopy(py, None)?,
+                op: instr.op.clone(),
+                qubits: qarg_map[instr.qubits],
+                clbits: carg_map[instr.clbits],
+                params: instr.params.clone(),
+                label: instr.label.clone(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
+            },
+        )
     }))?;
     Ok(new_dag)
 }

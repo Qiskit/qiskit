@@ -81,7 +81,7 @@ pub(super) fn compose_transforms<'a>(
             #[cfg(feature = "cache_pygates")]
             py_op: gate.unbind().into(),
         };
-        builder.push_back(DAGInstruction::from_packed(gate_instr))?;
+        builder.push_back(DAGInstruction::from_packed(py, gate_instr)?)?;
         dag = builder.build();
         mapped_instructions.insert((gate_name, gate_num_qubits), (placeholder_params, dag));
 
