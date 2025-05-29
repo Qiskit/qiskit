@@ -19,6 +19,14 @@
  */
 
 /**
+ * @defgroup QkQuantumRegister QkQuantumRegister
+ */
+
+/**
+ * @defgroup QkClassicalRegister QkClassicalRegister
+ */
+
+/**
  * @defgroup QkTarget QkTarget
  */
 

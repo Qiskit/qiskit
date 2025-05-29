@@ -29,6 +29,8 @@ Quantum Circuit
    :maxdepth: 1
 
    qk-circuit
+   qk-quantum-register
+   qk-classical-register
 
 -------------------
 Quantum information
