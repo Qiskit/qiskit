@@ -290,7 +290,7 @@ class TestQubitSparsePauli(QiskitTestCase):
     @ddt.data(
         QubitSparsePauli.from_label("IIXIZI"),
         QubitSparsePauli.from_label("X"),
-        QubitSparsePauli.from_label("III")
+        QubitSparsePauli.from_label("III"),
     )
     def test_repr(self, data):
         # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
