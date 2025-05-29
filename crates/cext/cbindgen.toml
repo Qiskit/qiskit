@@ -9,6 +9,8 @@ after_includes = """
     #include <Python.h>
 #endif
 
+#include <qiskit/complex.h>
+
 #define QISKIT_VERSION_MAJOR 2
 #define QISKIT_VERSION_MINOR 1
 #define QISKIT_VERSION_PATCH 0
