@@ -204,53 +204,21 @@ fn twirl_gate(
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
     out_circ.push(
         py,
-        PackedInstruction {
-            op: PackedOperation::from_standard_gate(twirl[0]),
-            qubits: bit_zero,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
+        PackedInstruction::from_standard_gate(twirl[0], None, bit_zero),
     )?;
     out_circ.push(
         py,
-        PackedInstruction {
-            op: PackedOperation::from_standard_gate(twirl[1]),
-            qubits: bit_one,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
+        PackedInstruction::from_standard_gate(twirl[1], None, bit_one),
     )?;
 
     out_circ.push(py, inst.clone())?;
     out_circ.push(
         py,
-        PackedInstruction {
-            op: PackedOperation::from_standard_gate(twirl[2]),
-            qubits: bit_zero,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
+        PackedInstruction::from_standard_gate(twirl[2], None, bit_zero),
     )?;
     out_circ.push(
         py,
-        PackedInstruction {
-            op: PackedOperation::from_standard_gate(twirl[3]),
-            qubits: bit_one,
-            clbits: circ.cargs_interner().get_default(),
-            params: None,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: std::sync::OnceLock::new(),
-        },
+        PackedInstruction::from_standard_gate(twirl[3], None, bit_one),
     )?;
 
     if *twirl_phase != 0. {
