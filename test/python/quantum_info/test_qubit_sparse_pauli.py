@@ -288,9 +288,9 @@ class TestQubitSparsePauli(QiskitTestCase):
         self.assertEqual(qubit_sparse_pauli, pickle.loads(pickle.dumps(qubit_sparse_pauli)))
 
     @ddt.data(
-        # This is every combination of (0, 1, many) for (terms, qubits, non-identites per term).
         QubitSparsePauli.from_label("IIXIZI"),
         QubitSparsePauli.from_label("X"),
+        QubitSparsePauli.from_label("III")
     )
     def test_repr(self, data):
         # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
@@ -829,7 +829,6 @@ class TestQubitSparsePauliList(QiskitTestCase):
         )
 
     @ddt.data(
-        # This is every combination of (0, 1, many) for (terms, qubits, non-identites per term).
         QubitSparsePauliList.empty(0),
         QubitSparsePauliList.empty(1),
         QubitSparsePauliList.empty(10),
@@ -837,6 +836,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
         QubitSparsePauliList.from_label("X"),
         QubitSparsePauliList.from_list(["YIXZII"]),
         QubitSparsePauliList.from_list(["YIXZII", "ZZYYXX"]),
+        QubitSparsePauliList.from_list(["IIIIII", "ZZYYXX"]),
     )
     def test_repr(self, data):
         # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
