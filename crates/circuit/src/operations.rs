@@ -146,6 +146,7 @@ impl Param {
             Param::Obj(obj) => {
                 let obj = obj.bind(py);
                 if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                    panic!("object should not be circuit");
                     Ok(ParamParameterIter(Some(
                         obj.getattr(parameters_attr)?.try_iter()?,
                     )))
@@ -153,7 +154,16 @@ impl Param {
                     Ok(ParamParameterIter(None))
                 }
             }
-            Param::Circuit(circuit) => todo!(),
+            Param::Circuit(circuit) => {
+                let obj = circuit.bind(py);
+                if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                    Ok(ParamParameterIter(Some(
+                        obj.getattr(parameters_attr)?.try_iter()?,
+                    )))
+                } else {
+                    panic!("invalid Python type for circuit param")
+                }
+            }
             _ => Ok(ParamParameterIter(None)),
         }
     }
@@ -177,7 +187,11 @@ impl Param {
             Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
-            _ => todo!(),
+            Param::Circuit(c) => Param::Circuit(c.clone_ref(py)),
+            Param::Condition(c) => Param::Condition(c.clone()),
+            Param::Duration(d) => Param::Duration(d.clone()),
+            Param::Target(t) => Param::Target(t.clone()),
+            Param::Indexset(s) => Param::Indexset(s.clone()),
         }
     }
 }
@@ -345,18 +359,6 @@ impl<'a, T> InstructionRef<'a, T> {
             InstructionRef::Instruction(i) => i.definition(),
             _ => None,
         }
-    }
-
-    // TODO:
-    /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
-    pub fn is_parameterized(&self) -> bool {
-        todo!()
-        // match self {
-        //
-        // }
-        // self.params_view()
-        //     .iter()
-        //     .any(|x| matches!(x, Param::ParameterExpression(_)))
     }
 }
 
@@ -572,6 +574,7 @@ impl<'a, T> ControlFlowRef<'a, T> {
 impl<T: PyEq> PyEq for ControlFlowRef<'_, T> {
     fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
         match (self, other) {
+            // TODO: use structural equivalence for condition and target
             (ControlFlowRef::Box(duration_a, body_a), ControlFlowRef::Box(duration_b, body_b)) => {
                 Ok(duration_a == duration_b && body_a.py_eq(py, body_b)?)
             }

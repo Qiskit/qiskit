@@ -22,7 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, Instruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
-use crate::imports::ANNOTATED_OPERATION;
+use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, StandardGate};
@@ -1822,21 +1822,21 @@ impl CircuitData {
                                     }
                                 }
                                 Param::Circuit(block) => {
-                                    // let obj = obj.bind_borrowed(py);
-                                    // if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                                    //     return Err(inconsistent());
-                                    // }
-                                    // Param::extract_no_coerce(
-                                    //     &obj.call_method(
-                                    //         assign_parameters_attr,
-                                    //         ([(&param_ob, value.as_ref())].into_py_dict(py)?,),
-                                    //         Some(
-                                    //             &[("inplace", false), ("flat_input", true)]
-                                    //                 .into_py_dict(py)?,
-                                    //         ),
-                                    //     )?,
-                                    // )?
-                                    todo!()
+                                    let obj = block.bind_borrowed(py);
+                                    if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                                        return Err(inconsistent());
+                                    }
+                                    Param::extract_no_coerce(
+                                        &obj.call_method(
+                                            assign_parameters_attr,
+                                            ([(&param_ob, value.as_ref().clone_ref(py))]
+                                                .into_py_dict(py)?,),
+                                            Some(
+                                                &[("inplace", false), ("flat_input", true)]
+                                                    .into_py_dict(py)?,
+                                            ),
+                                        )?,
+                                    )?
                                 }
                                 _ => {
                                     return Err(inconsistent());

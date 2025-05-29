@@ -10,21 +10,22 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
+use itertools::Itertools;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
 use pyo3::prelude::*;
+#[cfg(feature = "cache_pygates")]
+use std::sync::OnceLock;
 
 use pyo3::types::{IntoPyDict, PyBool, PyDict, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
 use crate::imports::{
-    BARRIER, CONTROLLED_GATE, DELAY, GATE, INSTRUCTION, MEASURE, OPERATION, RESET, UNITARY_GATE,
-    WARNINGS_WARN,
+    BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, CONTROLLED_GATE, DELAY, FOR_LOOP_OP, GATE,
+    IF_ELSE_OP, INSTRUCTION, MEASURE, OPERATION, RESET, SWITCH_CASE_OP, UNITARY_GATE,
+    WARNINGS_WARN, WHILE_LOOP_OP,
 };
 use crate::operations::{
     ArrayType, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef, Param, PyGate,
@@ -131,7 +132,69 @@ pub trait Instruction {
     fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self.op() {
             OperationRef::ControlFlow(control) => {
-                todo!()
+                let kwargs = self
+                    .label()
+                    .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+                    .transpose()?;
+                let out = match control {
+                    ControlFlow::Box { duration, .. } => {
+                        let [Param::Circuit(body)] = self.params_view() else {
+                            panic!("invalid box params");
+                        };
+                        BOX_OP.get_bound(py).call(
+                            (body, duration.py_value(py)?, duration.unit()),
+                            kwargs.as_ref(),
+                        )?
+                    }
+                    ControlFlow::BreakLoop { qubits, clbits } => BREAK_LOOP_OP
+                        .get_bound(py)
+                        .call((qubits, clbits), kwargs.as_ref())?,
+                    ControlFlow::ContinueLoop { qubits, clbits } => CONTINUE_LOOP_OP
+                        .get_bound(py)
+                        .call((qubits, clbits), kwargs.as_ref())?,
+                    ControlFlow::ForLoop { .. } => {
+                        let [Param::Indexset(indexset), Param::ParameterExpression(loop_parameter), Param::Circuit(body)] =
+                            self.params_view()
+                        else {
+                            panic!("invalid for loop params");
+                        };
+                        FOR_LOOP_OP
+                            .get_bound(py)
+                            .call((indexset, loop_parameter, body), kwargs.as_ref())?
+                    }
+                    ControlFlow::IfElse { condition, .. } => {
+                        let [Param::Circuit(true_body), Param::Circuit(false_body)] =
+                            self.params_view()
+                        else {
+                            panic!("invalid if else params");
+                        };
+                        IF_ELSE_OP
+                            .get_bound(py)
+                            .call((condition.clone(), true_body, false_body), kwargs.as_ref())?
+                    }
+                    ControlFlow::Switch { target, .. } => {
+                        let cases = self
+                            .params_view()
+                            .iter()
+                            .map(|p| match p {
+                                Param::Circuit(body) => body,
+                                _ => panic!("invalid switch params"),
+                            })
+                            .collect_vec();
+                        SWITCH_CASE_OP
+                            .get_bound(py)
+                            .call((target.clone(), cases), kwargs.as_ref())?
+                    }
+                    ControlFlow::While { condition, .. } => {
+                        let [Param::Circuit(body)] = self.params_view() else {
+                            panic!("invalid while loop params");
+                        };
+                        WHILE_LOOP_OP
+                            .get_bound(py)
+                            .call((condition.clone(), body), kwargs.as_ref())?
+                    }
+                };
+                Ok(out.unbind())
             }
             OperationRef::StandardGate(standard) => {
                 standard.create_py_op(py, Some(self.params_view()), self.label())
@@ -322,17 +385,12 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
         };
         Some(match instruction {
             StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
-            StandardInstruction::Delay(u) => todo!(),
-            // StandardInstructionRef::Delay(
-            // match u {
-            // DelayUnit::NS => Duration::ns()
-            // DelayUnit::PS => {}
-            // DelayUnit::US => {}
-            // DelayUnit::MS => {}
-            // DelayUnit::S => {}
-            // DelayUnit::DT => {}
-            // DelayUnit::EXPR => {}
-            // })
+            StandardInstruction::Delay(unit) => {
+                let [duration] = self.params_view() else {
+                    panic!("invalid delay parameters");
+                };
+                StandardInstructionRef::Delay { duration, unit }
+            }
             StandardInstruction::Measure => StandardInstructionRef::Measure,
             StandardInstruction::Reset => StandardInstructionRef::Reset,
         })
