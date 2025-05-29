@@ -1225,19 +1225,16 @@ impl ParameterExpression {
 
         if let ParameterInner::Expression {
             expr,
-            qpy_replay,
+            qpy_replay: _,
             parameter_symbols,
         } = &self.inner
         {
-            let mut new_replay = qpy_replay.clone();
-            new_replay.push(replay);
-
             if let Some(parameter_symbols) = parameter_symbols {
                 if parameter_symbols.len() == 0 {
                     return Ok(ParameterExpression {
                         inner: ParameterInner::Expression {
                             expr: SymbolExpr::Value(Value::Int(0)),
-                            qpy_replay: new_replay,
+                            qpy_replay: Vec::from([replay]),
                             parameter_symbols: None,
                         },
                     });
@@ -1255,7 +1252,7 @@ impl ParameterExpression {
                     Some(v) => Ok(ParameterExpression {
                         inner: ParameterInner::Expression {
                             expr: SymbolExpr::Value(v),
-                            qpy_replay: new_replay,
+                            qpy_replay: Vec::from([replay]),
                             parameter_symbols: None,
                         },
                     }),
@@ -1271,7 +1268,7 @@ impl ParameterExpression {
                         Ok(ParameterExpression {
                             inner: ParameterInner::Expression {
                                 expr: expr_grad,
-                                qpy_replay: new_replay,
+                                qpy_replay: Vec::from([replay]),
                                 parameter_symbols: Some(new_map),
                             },
                         })
@@ -1281,7 +1278,7 @@ impl ParameterExpression {
                 return Ok(ParameterExpression {
                     inner: ParameterInner::Expression {
                         expr: SymbolExpr::Value(Value::Int(0)),
-                        qpy_replay: new_replay,
+                        qpy_replay: Vec::from([replay]),
                         parameter_symbols: None,
                     },
                 });
