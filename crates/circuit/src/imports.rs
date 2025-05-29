@@ -116,6 +116,8 @@ pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
 );
+pub static MCPHASE_GATE: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
 pub static QS_DECOMPOSITION: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
 pub static XX_DECOMPOSER: ImportOnceCell =
