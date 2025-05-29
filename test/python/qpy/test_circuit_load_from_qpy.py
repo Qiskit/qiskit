@@ -324,8 +324,4 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
                     file_obj.read(FILE_HEADER_V10_SIZE),
                 )
             )
-<<<<<<< HEAD
-            self.assertEqual(header_data.symbolic_encoding, b"e")
-=======
             self.assertEqual(header_data.symbolic_encoding, b"e" if use_symengine else b"p")
->>>>>>> faf7ba1da (Fix QPY test of `use_symengine` if Symengine is available (#14486))
