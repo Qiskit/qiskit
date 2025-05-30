@@ -25,6 +25,7 @@ use qiskit_circuit::{
     operations::{Operation, Param},
 };
 use smallvec::SmallVec;
+use qiskit_circuit::operations::ControlFlowRef;
 
 // Custom types
 pub type GateIdentifier = (String, u32);
@@ -148,21 +149,26 @@ fn get_gates_num_params(
     example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
 ) -> PyResult<()> {
     for (_, inst) in dag.op_nodes(true) {
-        example_gates.insert(
-            (inst.op.name().to_string(), inst.op.num_qubits()),
-            inst.params
-                .as_deref()
-                .map(|p| match p {
-                    Parameters::Params(p) => p.clone(),
-                    _ => panic!("unexpected parameter list"),
-                })
-                .unwrap_or_default()
-                .len(),
-        );
         if let Some(control_flow) = inst.control_flow() {
+            example_gates.insert(
+                (inst.op().name().to_string(), inst.op().num_qubits()),
+                inst.op.num_params() as usize
+            );
             for block in control_flow.blocks() {
                 get_gates_num_params(block, example_gates)?;
             }
+        } else {
+            example_gates.insert(
+                (inst.op.name().to_string(), inst.op.num_qubits()),
+                inst.params
+                    .as_deref()
+                    .map(|p| match p {
+                        Parameters::Params(p) => p.clone(),
+                        _ => panic!("unexpected parameter list"),
+                    })
+                    .unwrap_or_default()
+                    .len(),
+            );
         }
     }
     Ok(())

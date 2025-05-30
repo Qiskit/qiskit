@@ -99,7 +99,7 @@ pub enum Parameters {
     },
     IfElse {
         true_body: DAGCircuit,
-        false_body: DAGCircuit,
+        false_body: Option<DAGCircuit>,
     },
     Switch {
         cases: Vec<DAGCircuit>,
@@ -130,7 +130,9 @@ impl Parameters {
                 ..
             } => {
                 *true_body = replacements.next().expect("not enough blocks");
-                *false_body = replacements.next().expect("not enough blocks");
+                if false_body.is_some() {
+                    *false_body = Some(replacements.next().expect("not enough blocks"));
+                }
             }
             Parameters::Switch { cases, .. } => {
                 for case in cases {
@@ -230,12 +232,14 @@ impl DAGInstruction {
                     let Some(Param::Circuit(true_body)) = params.next() else {
                         panic!("invalid");
                     };
-                    let Some(Param::Circuit(false_body)) = params.next() else {
-                        panic!("invalid");
+                    let false_body = match params.next() {
+                        Some(Param::Circuit(body)) => Some(circuit_to_dag(py, body.extract(py)?, false, None, None)?),
+                        None => None,
+                        _ => panic!("invalid"),
                     };
                     Some(Parameters::IfElse {
                         true_body: circuit_to_dag(py, true_body.extract(py)?, false, None, None)?,
-                        false_body: circuit_to_dag(py, false_body.extract(py)?, false, None, None)?,
+                        false_body,
                     })
                 }
                 ControlFlow::Switch { .. } => {
@@ -491,7 +495,7 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
             ) => ControlFlowRef::IfElse {
                 condition,
                 true_body,
-                false_body,
+                false_body: false_body.as_ref(),
             },
             (ControlFlow::Switch { target, .. }, Some(Parameters::Switch { cases })) => {
                 ControlFlowRef::Switch {
@@ -2595,9 +2599,18 @@ impl DAGCircuit {
                                         true_body: true_body_b,
                                         false_body: false_body_b,
                                     },
-                                ) => Ok(condition_a == condition_b
+                                ) => {
+                                    let false_body_eq = || -> PyResult<bool> {
+                                        match (false_body_a, false_body_b) {
+                                            (Some(false_body_a), Some(false_body_b)) => false_body_a.__eq__(py, false_body_b),
+                                            (None, None) => Ok(true),
+                                            _ => Ok(false),
+                                        }
+                                    };
+                                    Ok(condition_a == condition_b
                                     && true_body_a.__eq__(py, true_body_b)?
-                                    && false_body_a.__eq__(py, false_body_b)?),
+                                    && false_body_eq()?)
+                                }
                                 (
                                     ControlFlowRef::Switch {
                                         target: target_a,
@@ -6976,16 +6989,11 @@ impl DAGCircuit {
                     let NodeType::Operation(node) = node else {
                         continue;
                     };
-                    if !node.op.try_control_flow().is_some() {
+                    let Some(control_flow) = node.control_flow() else {
                         continue;
-                    }
-                    let OperationRef::Instruction(inst) = node.op.view() else {
-                        panic!("control flow op must be an instruction")
                     };
-                    let blocks = inst.instruction.bind(py).getattr("blocks")?;
-                    for block in blocks.try_iter()? {
-                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
-                        inner(py, inner_dag, counts)?;
+                    for block in control_flow.blocks() {
+                        inner(py, block, counts)?;
                     }
                 }
                 Ok(())

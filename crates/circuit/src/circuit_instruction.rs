@@ -391,7 +391,8 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                 ControlFlowRef::IfElse {
                     condition,
                     true_body,
-                    false_body,
+                    // TODO: have this be None as applicable once circuits use param lists
+                    false_body: Some(false_body),
                 }
             }
             ControlFlow::Switch { target, .. } => {

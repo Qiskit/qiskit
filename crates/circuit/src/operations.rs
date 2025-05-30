@@ -155,12 +155,17 @@ impl Param {
             }
             Param::Circuit(circuit) => {
                 let obj = circuit.bind(py);
+                if obj.is_none() {
+                    // This is the case for the else block of an if-else without else,
+                    // for example.
+                    return Ok(ParamParameterIter(None));
+                }
                 if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
                     Ok(ParamParameterIter(Some(
                         obj.getattr(parameters_attr)?.try_iter()?,
                     )))
                 } else {
-                    panic!("invalid Python type for circuit param")
+                    panic!("invalid Python type for circuit param: {}", obj.get_type().name()?)
                 }
             }
             _ => Ok(ParamParameterIter(None)),
@@ -524,7 +529,7 @@ pub enum ControlFlowRef<'a, T> {
     IfElse {
         condition: &'a Condition,
         true_body: &'a T,
-        false_body: &'a T,
+        false_body: Option<&'a T>,
     },
     Switch {
         target: &'a Target,
@@ -547,7 +552,13 @@ impl<'a, T> ControlFlowRef<'a, T> {
                 true_body,
                 false_body,
                 ..
-            } => vec![*true_body, *false_body],
+            } => {
+                if let Some(false_body) = false_body {
+                    vec![*true_body, *false_body]
+                } else {
+                    vec![*true_body]
+                }
+            },
             ControlFlowRef::Switch { cases, .. } => cases.clone(),
             ControlFlowRef::While { body, .. } => vec![*body],
         }
