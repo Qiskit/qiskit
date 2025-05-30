@@ -317,7 +317,7 @@ def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
         apply_x: If True, apply X gate to the target qubit.
 
     Returns:
-        QuantumCircuit: The quantum circuit for creating n-condionally clean ancillae.
+        QuantumCircuit: The quantum circuit for creating n-conditionally clean ancillae.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
@@ -377,10 +377,10 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
         a, b, target = n - 1, n - 4, n - 5
 
     if target > 0:
-        qc.compose(relative_ccx_x.inverse(), [qreg[a], qreg[b], qreg[target]], inplace=True)
+        qc.compose(relative_ccx_x, [qreg[a], qreg[b], qreg[target]], inplace=True)
 
     for i in range(target, 2, -2):
-        qc.compose(relative_ccx_x.inverse(), [qreg[i], qreg[i - 1], qreg[i - 2]], inplace=True)
+        qc.compose(relative_ccx_x, [qreg[i], qreg[i - 1], qreg[i - 2]], inplace=True)
 
     mid_second_ctrl = 1 + max(0, 6 - n)
     final_ctrl = qreg[mid_second_ctrl] - 1
