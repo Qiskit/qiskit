@@ -528,11 +528,8 @@ def _build_logn_depth_ccx_ladder(
                 qc.compose(_n_parallel_ccx_x(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
             else:
                 if not skip_cond_clean:
-                    qc.compose(
-                        _n_parallel_ccx_x(1, apply_x=False),
-                        [ccx_x[0], ccx_y[0], ccx_t[0]],
-                        inplace=True,
-                    )  #                                     # create conditionally clean ancilla
+                    qc.rccx(ccx_x[0], ccx_y[0], ccx_t[0])  # # create conditionally clean ancilla
+
             new_anc += nxt_batch[st:]  #                     # newly created cond. clean ancilla
             nxt_batch = ccx_t + nxt_batch[:st]
             anc = anc[:-ccx_n]
