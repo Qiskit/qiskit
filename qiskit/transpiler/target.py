@@ -160,6 +160,14 @@ class Target(BaseTarget):
     parameterized :class:`~qiskit.circuit.library.RXGate`.
 
     .. note::
+        This class is designed to be strictly additive and can be queried via
+        indexing, using the instruction's name as a key. If a user desired to
+        modify any property for an instruction, they can do so via
+        :meth:`.Target.update_instruction_properties` as it is the primary option
+        for doing so. However, modification via indexing is not suppported and
+        doing so might invalidate some of the mappings contained by this class.
+
+    .. note::
 
         This class assumes that qubit indices start at 0 and are a contiguous
         set if you want a submapping the bits will need to be reindexed in
@@ -167,7 +175,7 @@ class Target(BaseTarget):
 
     .. note::
 
-        This class only supports additions of gates, qargs, and qubits.
+        This class only supports additions of gates, qargs, and properties.
         If you need to remove one of these the best option is to iterate over
         an existing object and create a new subset (or use one of the methods
         to do this). The object internally caches different views and these
@@ -373,7 +381,15 @@ class Target(BaseTarget):
         self._instruction_schedule_map = None
 
     def update_instruction_properties(self, instruction, qargs, properties):
-        """Update the property object for an instruction qarg pair already in the Target
+        """Update the property object for an instruction qarg pair already in the Target.
+
+        For ease of access, a user is able to obtain the mapping between an instruction's
+        applicable qargs and its instruction properties via indexing (using ``__getitem__``),
+        with the instruction's name as the key. However, due to the strictly additive nature
+        of the ``Target``'s mappings and their complexity, this method is the only way to
+        modify/update the properties of an instruction in the ``Target``. Usage of indexing
+        for modifications (via usage of ``__setitem__`` on this or any submaps of the ``Target``)
+        is not supported.
 
         Args:
             instruction (str): The instruction name to update
