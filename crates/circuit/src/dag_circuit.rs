@@ -35,6 +35,7 @@ use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
+use crate::variable_mapper::VariableMapper;
 use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var};
 
 use hashbrown::{HashMap, HashSet};
@@ -73,7 +74,6 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
-
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -249,59 +249,10 @@ fn node_resources(node: &Bound<PyAny>) -> PyResult<PyLegacyResources> {
     })
 }
 
-#[derive(IntoPyObject)]
-struct PyVariableMapper {
-    mapper: Py<PyAny>,
-}
-
-impl PyVariableMapper {
-    fn new(
-        py: Python,
-        target_cregs: Bound<PyAny>,
-        bit_map: Option<Bound<PyDict>>,
-        var_map: Option<Bound<PyDict>>,
-        add_register: Option<Py<PyAny>>,
-    ) -> PyResult<Self> {
-        let kwargs: HashMap<&str, Option<Py<PyAny>>> =
-            HashMap::from_iter([("add_register", add_register)]);
-        Ok(PyVariableMapper {
-            mapper: imports::VARIABLE_MAPPER
-                .get_bound(py)
-                .call(
-                    (target_cregs, bit_map, var_map),
-                    Some(&kwargs.into_py_dict(py)?),
-                )?
-                .unbind(),
-        })
-    }
-
-    fn map_condition<'py>(
-        &self,
-        condition: &Bound<'py, PyAny>,
-        allow_reorder: bool,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        let py = condition.py();
-        let kwargs: HashMap<&str, bool> = HashMap::from_iter([("allow_reorder", allow_reorder)]);
-        self.mapper.bind(py).call_method(
-            intern!(py, "map_condition"),
-            (condition,),
-            Some(&kwargs.into_py_dict(py)?),
-        )
-    }
-
-    fn map_target<'py>(&self, target: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        let py = target.py();
-        self.mapper
-            .bind(py)
-            .call_method1(intern!(py, "map_target"), (target,))
-    }
-}
-
-#[pyfunction]
-fn reject_new_register(reg: &Bound<PyAny>) -> PyResult<()> {
+fn reject_new_register(reg: &ClassicalRegister) -> PyResult<()> {
     Err(DAGCircuitError::new_err(format!(
         "No register with '{:?}' to map this expression onto.",
-        reg.getattr("bits")?
+        reg.bits().collect_vec()
     )))
 }
 
@@ -2479,7 +2430,11 @@ impl DAGCircuit {
             _ => return Err(DAGCircuitError::new_err("expected node")),
         };
 
-        type WireMapsTuple = (HashMap<Qubit, Qubit>, HashMap<Clbit, Clbit>, Py<PyDict>);
+        type WireMapsTuple = (
+            HashMap<Qubit, Qubit>,
+            HashMap<Clbit, Clbit>,
+            HashMap<expr::Var, expr::Var>,
+        );
 
         let build_wire_map = |wires: &Bound<PyList>| -> PyResult<WireMapsTuple> {
             let qargs_list = imports::BUILTIN_LIST
@@ -2492,7 +2447,7 @@ impl DAGCircuit {
             let cargs_list = cargs_list.downcast::<PyList>().unwrap();
             let cargs_set = imports::BUILTIN_SET.get_bound(py).call1((cargs_list,))?;
             let cargs_set = cargs_set.downcast::<PySet>().unwrap();
-            if self.may_have_additional_wires(&node) {
+            if self.may_have_additional_wires(node.op.view()) {
                 let (add_cargs, _add_vars) =
                     Python::with_gil(|py| self.additional_wires(py, node.op.view()))?;
                 for wire in add_cargs.iter() {
@@ -2514,7 +2469,7 @@ impl DAGCircuit {
             }
             let mut qubit_wire_map = HashMap::new();
             let mut clbit_wire_map = HashMap::new();
-            let var_map = PyDict::new(py);
+            let var_map = HashMap::new();
             for (index, wire) in wires.iter().enumerate() {
                 if wire.downcast::<PyQubit>().is_ok() {
                     if index >= qargs_len {
@@ -2552,19 +2507,19 @@ impl DAGCircuit {
                     ));
                 }
             }
-            Ok((qubit_wire_map, clbit_wire_map, var_map.unbind()))
+            Ok((qubit_wire_map, clbit_wire_map, var_map))
         };
 
-        let (qubit_wire_map, clbit_wire_map, var_map): (
+        let (qubit_wire_map, clbit_wire_map, mut var_map): (
             HashMap<Qubit, Qubit>,
             HashMap<Clbit, Clbit>,
-            Py<PyDict>,
+            HashMap<expr::Var, expr::Var>,
         ) = match wires {
             Some(wires) => match wires.downcast::<PyDict>() {
                 Ok(bound_wires) => {
                     let mut qubit_wire_map = HashMap::new();
                     let mut clbit_wire_map = HashMap::new();
-                    let var_map = PyDict::new(py);
+                    let mut var_map = HashMap::new();
                     for (source_wire, target_wire) in bound_wires.iter() {
                         if source_wire.downcast::<PyQubit>().is_ok() {
                             qubit_wire_map.insert(
@@ -2587,10 +2542,10 @@ impl DAGCircuit {
                                     .unwrap(),
                             );
                         } else {
-                            var_map.set_item(source_wire, target_wire)?;
+                            var_map.insert(source_wire.extract()?, target_wire.extract()?);
                         }
                     }
-                    (qubit_wire_map, clbit_wire_map, var_map.unbind())
+                    (qubit_wire_map, clbit_wire_map, var_map)
                 }
                 Err(_) => {
                     let wires: Bound<PyList> = match wires.downcast::<PyList>() {
@@ -2615,7 +2570,7 @@ impl DAGCircuit {
 
         let input_dag_var_set: HashSet<&expr::Var> = input_dag.vars.objects().iter().collect();
 
-        let node_vars = if self.may_have_additional_wires(&node) {
+        let node_vars = if self.may_have_additional_wires(node.op.view()) {
             let (_additional_clbits, additional_vars) =
                 Python::with_gil(|py| self.additional_wires(py, node.op.view()))?;
             let var_set: HashSet<&expr::Var> = additional_vars
@@ -2632,11 +2587,6 @@ impl DAGCircuit {
         } else {
             HashSet::default()
         };
-        let bound_var_map = var_map.bind(py);
-        for var in input_dag_var_set.iter() {
-            bound_var_map.set_item((*var).clone(), (*var).clone())?;
-        }
-
         for contracted_var in node_vars.difference(&input_dag_var_set) {
             let pred = self
                 .dag
@@ -2667,17 +2617,19 @@ impl DAGCircuit {
             );
         }
 
+        for var in input_dag_var_set {
+            var_map.insert(var.clone(), var.clone());
+        }
+
         // Now that we don't need these, we've got to drop them since they hold
         // references to variables owned by the DAG, which we'll need to mutate
         // when perform the substitution.
-        drop(input_dag_var_set);
         drop(node_vars);
 
         let new_input_dag: Option<DAGCircuit> = None;
         // It doesn't make sense to try and propagate a condition from a control-flow op; a
         // replacement for the control-flow op should implement the operation completely.
         let node_map = self.substitute_node_with_subgraph(
-            py,
             node_index,
             input_dag,
             &qubit_wire_map,
@@ -2686,38 +2638,22 @@ impl DAGCircuit {
         )?;
         self.global_phase = add_global_phase(&self.global_phase, &input_dag.global_phase)?;
 
-        let wire_map_dict = PyDict::new(py);
+        let mut wire_map_dict = HashMap::new();
         for (source, target) in clbit_wire_map.iter() {
             let source_bit = match new_input_dag {
                 Some(ref in_dag) => in_dag.clbits.get(*source),
                 None => input_dag.clbits.get(*source),
             };
             let target_bit = self.clbits.get(*target);
-            wire_map_dict.set_item(source_bit, target_bit)?;
+            wire_map_dict.insert(source_bit.cloned().unwrap(), target_bit.cloned().unwrap());
         }
-        let bound_var_map = var_map.bind(py);
 
-        // Note: creating this list to hold new registers created by the mapper is a temporary
-        // measure until qiskit.expr is ported to Rust. It is necessary because we cannot easily
-        // have Python call back to DAGCircuit::add_creg while we're currently borrowing
-        // the DAGCircuit.
-        let new_registers = PyList::empty(py);
-        let add_new_register = new_registers.getattr("append")?.unbind();
-        let flush_new_registers = |dag: &mut DAGCircuit| -> PyResult<()> {
-            for reg in &new_registers {
-                dag.add_creg(reg.extract()?)?;
-            }
-            new_registers.del_slice(0, new_registers.len())?;
-            Ok(())
-        };
-
-        let variable_mapper = PyVariableMapper::new(
-            py,
-            self.cregs.registers().to_vec().into_bound_py_any(py)?,
-            Some(wire_map_dict),
-            Some(bound_var_map.clone()),
-            Some(add_new_register),
-        )?;
+        let variable_mapper = VariableMapper::new(
+            self.cregs.registers().to_vec(),
+            wire_map_dict,
+            var_map,
+            HashMap::new(),
+        );
 
         for (old_node_index, new_node_index) in node_map.iter() {
             let old_node = match new_input_dag {
@@ -2727,8 +2663,7 @@ impl DAGCircuit {
             if let NodeType::Operation(old_inst) = old_node {
                 if let OperationRef::Instruction(old_op) = old_inst.op.view() {
                     if old_op.name() == "switch_case" {
-                        let raw_target = old_op.instruction.getattr(py, "target")?;
-                        let target = raw_target.bind(py);
+                        let target = old_op.instruction.bind(py).getattr("target")?.extract()?;
                         let kwargs = PyDict::new(py);
                         kwargs.set_item(
                             "label",
@@ -2738,14 +2673,15 @@ impl DAGCircuit {
                                 .map(|x| PyString::new(py, x.as_str())),
                         )?;
 
+                        let mapped_target = variable_mapper
+                            .map_target(&target, |new_reg| self.add_creg(new_reg.clone()))?;
                         let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
                             (
-                                variable_mapper.map_target(target)?,
+                                mapped_target,
                                 old_op.instruction.call_method0(py, "cases_specifier")?,
                             ),
                             Some(&kwargs),
                         )?;
-                        flush_new_registers(self)?;
 
                         if let NodeType::Operation(ref mut new_inst) =
                             &mut self.dag[*new_node_index]
@@ -2765,14 +2701,18 @@ impl DAGCircuit {
                             }
                         }
                     } else if old_inst.op.control_flow() {
-                        if let Ok(condition) =
-                            old_op.instruction.getattr(py, intern!(py, "condition"))
+                        if let Ok(condition) = old_op
+                            .instruction
+                            .bind(py)
+                            .getattr(intern!(py, "condition"))
+                            .and_then(|c| c.extract())
                         {
                             if old_inst.op.name() != "switch_case" {
-                                let new_condition: Option<PyObject> = variable_mapper
-                                    .map_condition(condition.bind(py), false)?
-                                    .extract()?;
-                                flush_new_registers(self)?;
+                                let new_condition = variable_mapper.map_condition(
+                                    &condition,
+                                    false,
+                                    |new_reg| self.add_creg(new_reg.clone()),
+                                )?;
 
                                 if let NodeType::Operation(ref mut new_inst) =
                                     &mut self.dag[*new_node_index]
@@ -5133,7 +5073,7 @@ impl DAGCircuit {
         instr: &PackedInstruction,
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(instr) {
+            if self.may_have_additional_wires(instr.op.view()) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
@@ -5161,7 +5101,7 @@ impl DAGCircuit {
     fn push_front(&mut self, inst: PackedInstruction) -> PyResult<NodeIndex> {
         let op_name = inst.op.name();
         let (all_cbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(&inst) {
+            if self.may_have_additional_wires(inst.op.view()) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(inst.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
@@ -5400,8 +5340,8 @@ impl DAGCircuit {
             == output_node
     }
 
-    fn may_have_additional_wires(&self, instr: &PackedInstruction) -> bool {
-        let OperationRef::Instruction(inst) = instr.op.view() else {
+    fn may_have_additional_wires(&self, op: OperationRef) -> bool {
+        let OperationRef::Instruction(inst) = op else {
             return false;
         };
         inst.control_flow() || inst.op_name == "store"
@@ -5862,12 +5802,11 @@ impl DAGCircuit {
 
     fn substitute_node_with_subgraph(
         &mut self,
-        py: Python,
         node: NodeIndex,
         other: &DAGCircuit,
         qubit_map: &HashMap<Qubit, Qubit>,
         clbit_map: &HashMap<Clbit, Clbit>,
-        var_map: &Py<PyDict>,
+        var_map: &HashMap<expr::Var, expr::Var>,
     ) -> PyResult<IndexMap<NodeIndex, NodeIndex, RandomState>> {
         if self.dag.node_weight(node).is_none() {
             return Err(PyIndexError::new_err(format!(
@@ -5936,7 +5875,6 @@ impl DAGCircuit {
             }
         }
 
-        let bound_var_map = var_map.bind(py);
         let node_filter = |node: NodeIndex| -> bool {
             match other.dag[node] {
                 NodeType::Operation(_) => !other
@@ -5945,9 +5883,7 @@ impl DAGCircuit {
                     .any(|edge| match edge.weight() {
                         Wire::Qubit(qubit) => !qubit_map.contains_key(qubit),
                         Wire::Clbit(clbit) => !clbit_map.contains_key(clbit),
-                        Wire::Var(var) => !bound_var_map
-                            .contains(other.vars.get(*var).cloned())
-                            .unwrap(),
+                        Wire::Var(var) => !var_map.contains_key(other.vars.get(*var).unwrap()),
                     }),
                 _ => false,
             }
@@ -5956,10 +5892,8 @@ impl DAGCircuit {
             qubit_map.iter().map(|(x, y)| (*y, *x)).collect();
         let reverse_clbit_map: HashMap<Clbit, Clbit> =
             clbit_map.iter().map(|(x, y)| (*y, *x)).collect();
-        let reverse_var_map = PyDict::new(py);
-        for (k, v) in bound_var_map.iter() {
-            reverse_var_map.set_item(v, k)?;
-        }
+        let reverse_var_map: HashMap<&expr::Var, &expr::Var> =
+            var_map.iter().map(|(x, y)| (y, x)).collect();
         // Copy nodes from other to self
         let mut out_map: IndexMap<NodeIndex, NodeIndex, RandomState> =
             IndexMap::with_capacity_and_hasher(other.dag.node_count(), RandomState::default());
@@ -6013,12 +5947,7 @@ impl DAGCircuit {
                     Wire::Clbit(clbit) => Wire::Clbit(clbit_map[clbit]),
                     Wire::Var(var) => Wire::Var(
                         self.vars
-                            .find(
-                                &bound_var_map
-                                    .get_item(other.vars.get(*var).unwrap().clone())?
-                                    .unwrap()
-                                    .extract()?,
-                            )
+                            .find(var_map.get(other.vars.get(*var).unwrap()).unwrap())
                             .unwrap(),
                     ),
                 },
@@ -6043,12 +5972,7 @@ impl DAGCircuit {
                 Wire::Var(var) => {
                     let index = other
                         .vars
-                        .find(
-                            &reverse_var_map
-                                .get_item(self.vars.get(var).unwrap().clone())?
-                                .unwrap()
-                                .extract()?,
-                        )
+                        .find(reverse_var_map[self.vars.get(var).unwrap()])
                         .unwrap()
                         .index();
                     other.var_io_map.get(index).map(|x| x[0])
@@ -6088,12 +6012,7 @@ impl DAGCircuit {
                 Wire::Var(var) => {
                     let index = other
                         .vars
-                        .find(
-                            &reverse_var_map
-                                .get_item(self.vars.get(var).unwrap().clone())?
-                                .unwrap()
-                                .extract()?,
-                        )
+                        .find(reverse_var_map[self.vars.get(var).unwrap()])
                         .unwrap()
                         .index();
                     other.var_io_map.get(index).map(|x| x[1])
@@ -6193,7 +6112,7 @@ impl DAGCircuit {
             }
         }
 
-        if self.may_have_additional_wires(inst) {
+        if self.may_have_additional_wires(inst.op.view()) {
             let (clbits, vars) = Python::with_gil(|py| self.additional_wires(py, inst.op.view()))?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
@@ -6931,40 +6850,26 @@ impl DAGCircuit {
         for stretch in &other.stretches_declare {
             self.add_declared_stretch(other.stretches.get(*stretch).unwrap().clone())?;
         }
-        let build_var_mapper =
-            |cregs: &RegisterData<ClassicalRegister>| -> PyResult<PyVariableMapper> {
-                Python::with_gil(|py| {
-                    let edge_map = if qubit_map.is_empty() && clbit_map.is_empty() {
-                        // try to ido a 1-1 mapping in order
-                        let out_dict = PyDict::new(py);
-                        for (a, b) in identity_qubit_map.iter() {
-                            out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                        }
-                        for (a, b) in identity_clbit_map.iter() {
-                            out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                        }
-                        out_dict
-                    } else {
-                        let out_dict = PyDict::new(py);
-                        for (a, b) in qubit_map.iter() {
-                            out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                        }
-                        for (a, b) in clbit_map.iter() {
-                            out_dict.set_item(a.into_py_any(py)?, b.into_pyobject(py)?)?;
-                        }
-                        out_dict
-                    };
-
-                    PyVariableMapper::new(
-                        py,
-                        PyList::new(py, cregs.registers())?.into_any(),
-                        Some(edge_map),
-                        None,
-                        Some(wrap_pyfunction!(reject_new_register, py)?.into_py_any(py)?),
-                    )
-                })
+        let build_var_mapper = |cregs: &RegisterData<ClassicalRegister>| -> VariableMapper {
+            let mut edge_map = HashMap::new();
+            if clbit_map.is_empty() {
+                // try to ido a 1-1 mapping in order
+                for (a, b) in identity_clbit_map.iter() {
+                    edge_map.insert(a.clone(), b.clone());
+                }
+            } else {
+                for (a, b) in clbit_map.iter() {
+                    edge_map.insert(a.clone(), b.clone());
+                }
             };
-        let mut variable_mapper: Option<PyVariableMapper> = None;
+            VariableMapper::new(
+                cregs.registers().to_vec(),
+                edge_map,
+                HashMap::default(),
+                HashMap::default(),
+            )
+        };
+        let mut variable_mapper: Option<VariableMapper> = None;
 
         for node in other.topological_nodes()? {
             match &other.dag[node] {
@@ -7014,23 +6919,32 @@ impl DAGCircuit {
                         let OperationRef::Instruction(op) = inst.op.view() else {
                             unreachable!("All control_flow ops should be PyInstruction");
                         };
-                        Python::with_gil(|py| -> PyResult<PackedInstruction> {
+                        let py_op = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
                             let py_op = op.instruction.bind(py);
                             let py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
                             if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
                                 || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
                             {
-                                if let Ok(condition) = py_op.getattr(intern!(py, "condition")) {
+                                if let Ok(condition) = py_op
+                                    .getattr(intern!(py, "condition"))
+                                    .and_then(|c| c.extract())
+                                {
                                     match variable_mapper {
                                         Some(ref variable_mapper) => {
-                                            let condition =
-                                                variable_mapper.map_condition(&condition, true)?;
+                                            let condition = variable_mapper.map_condition(
+                                                &condition,
+                                                true,
+                                                reject_new_register,
+                                            )?;
                                             py_op.setattr(intern!(py, "condition"), condition)?;
                                         }
                                         None => {
-                                            let var_mapper = build_var_mapper(&self.cregs)?;
-                                            let condition =
-                                                var_mapper.map_condition(&condition, true)?;
+                                            let var_mapper = build_var_mapper(&self.cregs);
+                                            let condition = var_mapper.map_condition(
+                                                &condition,
+                                                true,
+                                                reject_new_register,
+                                            )?;
                                             py_op.setattr(intern!(py, "condition"), condition)?;
                                             variable_mapper = Some(var_mapper);
                                         }
@@ -7042,42 +6956,45 @@ impl DAGCircuit {
                                         py_op.setattr(
                                             intern!(py, "target"),
                                             variable_mapper.map_target(
-                                                &py_op.getattr(intern!(py, "target"))?,
+                                                &py_op.getattr(intern!(py, "target"))?.extract()?,
+                                                reject_new_register,
                                             )?,
                                         )?;
                                     }
                                     None => {
-                                        let var_mapper = build_var_mapper(&self.cregs)?;
+                                        let var_mapper = build_var_mapper(&self.cregs);
                                         py_op.setattr(
                                             intern!(py, "target"),
                                             var_mapper.map_target(
-                                                &py_op.getattr(intern!(py, "target"))?,
+                                                &py_op.getattr(intern!(py, "target"))?.extract()?,
+                                                reject_new_register,
                                             )?,
                                         )?;
                                         variable_mapper = Some(var_mapper);
                                     }
                                 }
                             }
-                            Ok(PackedInstruction {
-                                op: PackedOperation::from_instruction(
-                                    PyInstruction {
-                                        qubits: op.qubits,
-                                        clbits: op.clbits,
-                                        params: op.params,
-                                        op_name: op.op_name.clone(),
-                                        control_flow: op.control_flow,
-                                        instruction: py_op.unbind(),
-                                    }
-                                    .into(),
-                                ),
-                                qubits: self.qargs_interner.insert_owned(mapped_qargs),
-                                clbits: self.cargs_interner.insert_owned(mapped_cargs),
-                                params: inst.params.clone(),
-                                label: inst.label.clone(),
-                                #[cfg(feature = "cache_pygates")]
-                                py_op: OnceLock::new(),
-                            })
-                        })?
+                            Ok(py_op.unbind())
+                        })?;
+                        PackedInstruction {
+                            op: PackedOperation::from_instruction(
+                                PyInstruction {
+                                    qubits: op.qubits,
+                                    clbits: op.clbits,
+                                    params: op.params,
+                                    op_name: op.op_name.clone(),
+                                    control_flow: op.control_flow,
+                                    instruction: py_op,
+                                }
+                                .into(),
+                            ),
+                            qubits: self.qargs_interner.insert_owned(mapped_qargs),
+                            clbits: self.cargs_interner.insert_owned(mapped_cargs),
+                            params: inst.params.clone(),
+                            label: inst.label.clone(),
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: OnceLock::new(),
+                        }
                     } else {
                         PackedInstruction {
                             op: inst.op.clone(),
