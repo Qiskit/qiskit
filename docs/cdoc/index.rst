@@ -44,3 +44,5 @@ Quantum information
    qk-bit-term
    qk-complex64
    qk-exit-code
+   qk-target
+   qk-target-entry
