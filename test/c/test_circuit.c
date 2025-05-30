@@ -38,7 +38,7 @@ int test_empty(void) {
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %lu is not 0", num_instructions);
+        printf("The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -62,7 +62,7 @@ int test_circuit_with_quantum_reg(void) {
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %lu is not 0", num_instructions);
+        printf("The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -85,7 +85,7 @@ int test_circuit_copy(void) {
     qk_circuit_free(qc);
     qk_circuit_free(copy);
     if (num_instructions == num_copy_instructions) {
-        printf("The number of instructions %lu is equal to the copied %lu", num_instructions,
+        printf("The number of instructions %zu is equal to the copied %zu", num_instructions,
                num_copy_instructions);
         return EqualityError;
     }
@@ -110,7 +110,7 @@ int test_circuit_with_classical_reg(void) {
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %lu is not 0", num_instructions);
+        printf("The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
     return Ok;
@@ -129,7 +129,7 @@ int test_circuit_copy_with_instructions(void) {
     size_t num_instructions = qk_circuit_num_instructions(qc);
     size_t num_copy_instructions = qk_circuit_num_instructions(copy);
     if (num_instructions != num_copy_instructions) {
-        printf("The number of instructions %lu does not equal the copied %lu", num_instructions,
+        printf("The number of instructions %zu does not equal the copied %zu", num_instructions,
                num_copy_instructions);
         return EqualityError;
     }
@@ -154,7 +154,7 @@ int test_circuit_copy_with_instructions(void) {
     qk_circuit_free(qc);
     qk_circuit_free(copy);
     if (num_instructions == num_copy_instructions) {
-        printf("The number of instructions %lu is equal to the copied %lu", num_instructions,
+        printf("The number of instructions %zu is equal to the copied %zu", num_instructions,
                num_copy_instructions);
         return EqualityError;
     }
@@ -177,7 +177,7 @@ int test_no_gate_1000_bits(void) {
         return EqualityError;
     }
     if (num_instructions != 0) {
-        printf("The number of instructions %lu is not 0", num_instructions);
+        printf("The number of instructions %zu is not 0", num_instructions);
         return EqualityError;
     }
 
@@ -373,7 +373,7 @@ cleanup:
     return result;
 }
 
-int test_get_gate_counts_bv_barrier_and_measures() {
+int test_get_gate_counts_bv_barrier_and_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
     uint32_t i = 0;
