@@ -64,7 +64,7 @@ impl ParameterValueType {
 fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
     if let Ok(e) = value.extract::<ParameterExpression>() {
         Some(e)
-    } else if let Ok(_) = value.extract::<String>() {
+    } else if value.extract::<String>().is_ok() {
         None
     } else if let Ok(i) = value.extract::<i64>() {
         Some(ParameterExpression {
@@ -250,14 +250,13 @@ impl PyParameter {
                     Some(u) => u,
                     None => Uuid::new_v4().as_u128(),
                 };
-                let ret = PyClassInitializer::from(ParameterExpression {
+                PyClassInitializer::from(ParameterExpression {
                     inner: ParameterInner::Symbol {
                         name: Box::new(name.clone()),
                         uuid: uuid,
                     },
                 })
-                .add_subclass(Self {});
-                ret
+                .add_subclass(Self {})
             }
             None => PyClassInitializer::from(ParameterExpression::default()).add_subclass(Self {}),
         }
@@ -285,7 +284,7 @@ impl PyParameterVectorElement {
             None => Uuid::new_v4().as_u128(),
         };
 
-        let ret = PyClassInitializer::from(ParameterExpression {
+        PyClassInitializer::from(ParameterExpression {
             inner: ParameterInner::VectorElement {
                 name: Box::new(vector.name.clone()),
                 index: index,
@@ -294,8 +293,7 @@ impl PyParameterVectorElement {
             },
         })
         .add_subclass(PyParameter {})
-        .add_subclass(Self {});
-        ret
+        .add_subclass(Self {})
     }
 }
 
@@ -319,13 +317,13 @@ impl ParameterExpression {
     /// get uuid for this symbol
     pub fn uuid(&self) -> u128 {
         match &self.inner {
-            ParameterInner::Symbol { name: _, uuid } => uuid.clone(),
+            ParameterInner::Symbol { name: _, uuid } => *uuid,
             ParameterInner::VectorElement {
                 name: _,
                 index: _,
                 uuid,
                 vector: _,
-            } => uuid.clone(),
+            } => *uuid,
             ParameterInner::Expression {
                 expr: _,
                 qpy_replay: _,
@@ -336,7 +334,7 @@ impl ParameterExpression {
                         return symbols.iter().next().unwrap().uuid();
                     }
                 }
-                0 as u128
+                0_u128
             }
         }
     }
@@ -405,10 +403,7 @@ impl ParameterExpression {
         match &self.inner {
             ParameterInner::Symbol { .. } => None,
             ParameterInner::VectorElement { .. } => None,
-            ParameterInner::Expression { expr, .. } => match expr.is_complex() {
-                Some(b) => Some(!b),
-                None => None,
-            },
+            ParameterInner::Expression { expr, .. } => expr.is_complex().map(|b| !b),
         }
     }
 
@@ -449,7 +444,7 @@ impl ParameterExpression {
                 ret.insert(Arc::new(other.clone()));
             }
         };
-        if ret.len() > 0 {
+        if !ret.is_empty() {
             Some(ret)
         } else {
             None
@@ -979,20 +974,22 @@ impl ParameterExpression {
 
         for (key, param) in &in_map {
             // check if value in map is valid
-            if let ParameterInner::Expression { expr, .. } = &param.inner {
-                if let SymbolExpr::Value(v) = &expr {
-                    if let symbol_expr::Value::Real(r) = v {
-                        if r.is_nan() || r.is_infinite() {
-                            return Err(CircuitError::new_err(
-                                "Expression cannot bind non-numeric values",
-                            ));
-                        }
-                    } else if let symbol_expr::Value::Complex(c) = v {
-                        if c.is_nan() || c.is_infinite() {
-                            return Err(CircuitError::new_err(
-                                "Expression cannot bind non-numeric values",
-                            ));
-                        }
+            if let ParameterInner::Expression {
+                expr: SymbolExpr::Value(v),
+                ..
+            } = &param.inner
+            {
+                if let symbol_expr::Value::Real(r) = v {
+                    if r.is_nan() || r.is_infinite() {
+                        return Err(CircuitError::new_err(
+                            "Expression cannot bind non-numeric values",
+                        ));
+                    }
+                } else if let symbol_expr::Value::Complex(c) = v {
+                    if c.is_nan() || c.is_infinite() {
+                        return Err(CircuitError::new_err(
+                            "Expression cannot bind non-numeric values",
+                        ));
                     }
                 }
             }
@@ -1003,7 +1000,7 @@ impl ParameterExpression {
             }
             subs_map.insert(
                 key.clone(),
-                ParameterValueType::clone_expr_for_replay(&param),
+                ParameterValueType::clone_expr_for_replay(param),
             );
             if symbols.contains(key) {
                 symbols.remove(key);
@@ -1033,7 +1030,7 @@ impl ParameterExpression {
                 }
             }
         }
-        if !allow_unknown_parameters && unknown_params.len() > 0 {
+        if !allow_unknown_parameters && !unknown_params.is_empty() {
             return Err(CircuitError::new_err(format!(
                 "Cannot bind Parameters ({:?}) not present in expression.",
                 unknown_params
@@ -1057,7 +1054,7 @@ impl ParameterExpression {
             binds: subs_map,
             op: _OPCode::SUBSTITUTE,
         });
-        if eval && symbols.len() == 0 {
+        if eval && symbols.is_empty() {
             let ret = match bound.eval(true) {
                 Some(v) => match &v {
                     symbol_expr::Value::Real(r) => {
@@ -1098,7 +1095,7 @@ impl ParameterExpression {
                 inner: ParameterInner::Expression {
                     expr: ret,
                     qpy_replay: replay,
-                    parameter_symbols: if symbols.len() > 0 {
+                    parameter_symbols: if !symbols.is_empty() {
                         Some(symbols)
                     } else {
                         None
@@ -1130,11 +1127,7 @@ impl ParameterExpression {
             ) => {
                 if self.to_string() == other.to_string() {
                     if check_uuid {
-                        if self.uuid() == other.uuid() {
-                            true
-                        } else {
-                            false
-                        }
+                        self.uuid() == other.uuid()
                     } else {
                         true
                     }
@@ -1151,8 +1144,8 @@ impl ParameterExpression {
                 if expr == other_expr {
                     if check_uuid {
                         // if there are some conflicts, the equation is not equal
-                        let conflicts = self.get_conflict_parameters(&other);
-                        conflicts.len() == 0
+                        let conflicts = self.get_conflict_parameters(other);
+                        conflicts.is_empty()
                     } else {
                         true
                     }
@@ -1164,8 +1157,8 @@ impl ParameterExpression {
                 if expr == &other.expr() {
                     if check_uuid {
                         // if there are some conflicts, the equation is not equal
-                        let conflicts = self.get_conflict_parameters(&other);
-                        conflicts.len() == 0
+                        let conflicts = self.get_conflict_parameters(other);
+                        conflicts.is_empty()
                     } else {
                         true
                     }
@@ -1182,8 +1175,8 @@ impl ParameterExpression {
                 if &self.expr() == other_expr {
                     if check_uuid {
                         // if there are some conflicts, the equation is not equal
-                        let conflicts = self.get_conflict_parameters(&other);
-                        conflicts.len() == 0
+                        let conflicts = self.get_conflict_parameters(other);
+                        conflicts.is_empty()
                     } else {
                         true
                     }
@@ -1230,7 +1223,7 @@ impl ParameterExpression {
         } = &self.inner
         {
             if let Some(parameter_symbols) = parameter_symbols {
-                if parameter_symbols.len() == 0 {
+                if parameter_symbols.is_empty() {
                     return Ok(ParameterExpression {
                         inner: ParameterInner::Expression {
                             expr: SymbolExpr::Value(Value::Int(0)),
@@ -1275,13 +1268,13 @@ impl ParameterExpression {
                     }
                 }
             } else {
-                return Ok(ParameterExpression {
+                Ok(ParameterExpression {
                     inner: ParameterInner::Expression {
                         expr: SymbolExpr::Value(Value::Int(0)),
                         qpy_replay: Vec::from([replay]),
                         parameter_symbols: None,
                     },
-                });
+                })
             }
         } else {
             if self.compare_eq(param, true) {
@@ -1569,10 +1562,7 @@ impl ParameterExpression {
                             "I".to_string(),
                             symbol_expr::Value::from(Complex64::i()),
                         )])),
-                        qpy_replay: match _qpy_replay {
-                            Some(r) => r,
-                            None => Vec::new(),
-                        },
+                        qpy_replay: _qpy_replay.unwrap_or_default(),
                         parameter_symbols: Some(parameter_symbols),
                     },
                 })
@@ -1643,7 +1633,7 @@ impl ParameterExpression {
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(format!(
                 "Expression is a symbol '{}', not numeric",
-                self.to_string()
+                self
             )))
         }
     }
@@ -1685,16 +1675,15 @@ impl ParameterExpression {
             name: _,
             index: _,
             uuid: _,
-            vector,
+            vector: Some(v),
         } = &self.inner
         {
-            if let Some(v) = vector {
-                return Ok(Arc::unwrap_or_clone(v.clone()));
-            }
+            Ok(Arc::unwrap_or_clone(v.clone()))
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err(
+                "Not a vector element",
+            ))
         }
-        Err(pyo3::exceptions::PyTypeError::new_err(
-            "Not a vector element",
-        ))
     }
     // backward compatibility, some code accesses _vector member directly
     #[getter("_vector")]
@@ -1706,7 +1695,7 @@ impl ParameterExpression {
     #[getter("index")]
     pub fn py_get_index(&self) -> usize {
         if let ParameterInner::VectorElement { name: _, index, .. } = &self.inner {
-            index.clone()
+            *index
         } else {
             0
         }
@@ -1739,7 +1728,7 @@ impl ParameterExpression {
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(format!(
                 "ParameterExpression is a symbol '{}' cannot be cast to a complex.",
-                self.to_string()
+                self
             )))
         }
     }
@@ -1776,7 +1765,7 @@ impl ParameterExpression {
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(format!(
                 "ParameterExpression is a symbol '{}' cannot be cast to a float.",
-                self.to_string()
+                self
             )))
         }
     }
@@ -1813,7 +1802,7 @@ impl ParameterExpression {
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(format!(
                 "ParameterExpression is a symbol '{}' cannot be cast to int.",
-                self.to_string()
+                self
             )))
         }
     }
@@ -1851,21 +1840,21 @@ impl ParameterExpression {
     pub fn py_gradient(&self, param: &Self, py: Python) -> PyResult<PyObject> {
         match self.gradient(param) {
             Ok(grad) => match &grad.inner {
-                ParameterInner::Expression { expr, .. } => match expr {
-                    SymbolExpr::Value(v) => match v {
-                        symbol_expr::Value::Real(r) => r.into_py_any(py),
-                        symbol_expr::Value::Int(i) => i.into_py_any(py),
-                        symbol_expr::Value::Complex(c) => {
-                            if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
-                                .contains(&c.im)
-                            {
-                                c.re.into_py_any(py)
-                            } else {
-                                c.into_py_any(py)
-                            }
+                ParameterInner::Expression {
+                    expr: SymbolExpr::Value(v),
+                    ..
+                } => match v {
+                    symbol_expr::Value::Real(r) => r.into_py_any(py),
+                    symbol_expr::Value::Int(i) => i.into_py_any(py),
+                    symbol_expr::Value::Complex(c) => {
+                        if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
+                            .contains(&c.im)
+                        {
+                            c.re.into_py_any(py)
+                        } else {
+                            c.into_py_any(py)
                         }
-                    },
-                    _ => grad.into_py_any(py),
+                    }
                 },
                 _ => grad.into_py_any(py),
             },
@@ -1966,21 +1955,21 @@ impl ParameterExpression {
     pub fn py_assign(&self, param: &ParameterExpression, value: &Bound<PyAny>) -> PyResult<Self> {
         if let Some(e) = _extract_value(value) {
             let eval = match &e.inner {
-                ParameterInner::Expression { expr, .. } => match expr {
-                    SymbolExpr::Value(_) => true,
-                    _ => false,
-                },
+                ParameterInner::Expression {
+                    expr: SymbolExpr::Value(_),
+                    ..
+                } => true,
                 _ => false,
             };
 
-            if &self == &param {
+            if self == param {
                 return Ok(e);
             }
             self.substitute(HashMap::from([(param.clone(), e)]), eval, false)
         } else {
-            return Err(pyo3::exceptions::PyRuntimeError::new_err(
+            Err(pyo3::exceptions::PyRuntimeError::new_err(
                 "unsupported data type is passed to assign parameter",
-            ));
+            ))
         }
     }
 
@@ -1992,17 +1981,12 @@ impl ParameterExpression {
         allow_unknown_parameters: Option<bool>,
     ) -> PyResult<Self> {
         let mut map: HashMap<ParameterExpression, ParameterExpression> = HashMap::new();
-        let allow_unknown_parameters = match allow_unknown_parameters {
-            Some(b) => b,
-            None => false,
-        };
-
         for (key, val) in in_map {
             if let Ok(e) = Self::Value(&val) {
                 map.insert(key.clone(), e);
             }
         }
-        self.substitute(map, true, allow_unknown_parameters)
+        self.substitute(map, true, allow_unknown_parameters.unwrap_or(false))
     }
 
     /// substitute symbols to expressions (or values) given by hash map
@@ -2012,16 +1996,12 @@ impl ParameterExpression {
         map: HashMap<ParameterExpression, ParameterExpression>,
         allow_unknown_parameters: Option<bool>,
     ) -> PyResult<Self> {
-        let allow_unknown_parameters = match allow_unknown_parameters {
-            Some(b) => b,
-            None => false,
-        };
-        self.substitute(map, false, allow_unknown_parameters)
+        self.substitute(map, false, allow_unknown_parameters.unwrap_or(false))
     }
 
     fn _raise_if_parameter_conflict(&self, other: &ParameterExpression) -> PyResult<bool> {
         let conflicts = self.get_conflict_parameters(other);
-        if conflicts.len() > 0 {
+        if !conflicts.is_empty() {
             Err(CircuitError::new_err(format!(
                 "Name conflict applying operation for parameters: {:?}",
                 conflicts
@@ -2196,18 +2176,20 @@ impl ParameterExpression {
     pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                if let ParameterInner::Expression { expr, .. } = &rhs.inner {
-                    if let SymbolExpr::Value(v) = &expr {
-                        let zero = match v {
-                            symbol_expr::Value::Int(i) => *i == 0,
-                            symbol_expr::Value::Real(r) => *r == 0.0,
-                            symbol_expr::Value::Complex(c) => c.re == 0.0 && c.im == 0.0,
-                        };
-                        if zero {
-                            return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                                "Division of a ParameterExpression by zero.",
-                            ));
-                        }
+                if let ParameterInner::Expression {
+                    expr: SymbolExpr::Value(v),
+                    ..
+                } = &rhs.inner
+                {
+                    let zero = match v {
+                        symbol_expr::Value::Int(i) => *i == 0,
+                        symbol_expr::Value::Real(r) => *r == 0.0,
+                        symbol_expr::Value::Complex(c) => c.re == 0.0 && c.im == 0.0,
+                    };
+                    if zero {
+                        return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
+                            "Division of a ParameterExpression by zero.",
+                        ));
                     }
                 }
                 self._raise_if_parameter_conflict(&rhs)?;
@@ -2302,7 +2284,7 @@ impl ParameterExpression {
     )> {
         match &self.inner {
             ParameterInner::Symbol { name, uuid } => {
-                Ok((name.as_ref().clone(), Some(uuid.clone()), None, None, None))
+                Ok((name.as_ref().clone(), Some(*uuid), None, None, None))
             }
             ParameterInner::VectorElement {
                 name,
@@ -2311,12 +2293,9 @@ impl ParameterExpression {
                 vector,
             } => Ok((
                 name.as_ref().clone(),
-                Some(uuid.clone()),
-                Some(index.clone()),
-                match vector {
-                    Some(v) => Some(Arc::unwrap_or_clone(v.clone())),
-                    None => None,
-                },
+                Some(*uuid),
+                Some(*index),
+                vector.as_ref().map(|v| Arc::unwrap_or_clone(v.clone())),
                 None,
             )),
             ParameterInner::Expression {
@@ -2396,12 +2375,12 @@ impl ParameterExpression {
 
     pub fn __repr__(&self) -> String {
         match &self.inner {
-            ParameterInner::Symbol { .. } => format!("Parameter({})", self.to_string()),
+            ParameterInner::Symbol { .. } => format!("Parameter({})", self),
             ParameterInner::VectorElement { .. } => {
-                format!("ParameterVectorElement({})", self.to_string())
+                format!("ParameterVectorElement({})", self)
             }
             ParameterInner::Expression { expr, .. } => {
-                format!("ParameterExpression({})", expr.optimize().to_string())
+                format!("ParameterExpression({})", expr.optimize())
             }
         }
     }
@@ -2688,7 +2667,7 @@ impl ParameterVector {
     }
 
     fn __getstate__(&self) -> PyResult<(String, usize, u128)> {
-        Ok((self.name.clone(), self.params.len(), self.root_uuid.clone()))
+        Ok((self.name.clone(), self.params.len(), self.root_uuid))
     }
     fn __setstate__(&mut self, state: (String, usize, u128)) -> PyResult<()> {
         self.name = state.0;
