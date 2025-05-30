@@ -18,18 +18,12 @@ numpy.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
 rand_distr.workspace = true
-ahash.workspace = true
-num-traits.workspace = true
 num-complex.workspace = true
 rustworkx-core.workspace = true
 num-bigint.workspace = true
-faer = "0.19.4"
 itertools.workspace = true
 qiskit-circuit.workspace = true
-thiserror.workspace = true
-ndarray-einsum = "0.8.0"
-rustiq-core = "0.0.11"
-bytemuck.workspace = true
+qiskit-transpiler.workspace = true
 nalgebra.workspace = true
 
 [dependencies.smallvec]
@@ -38,7 +32,7 @@ features = ["union"]
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
+features = ["hashbrown", "num-complex", "num-bigint", "smallvec"]
 
 [dependencies.ndarray]
 workspace = true
@@ -51,14 +45,6 @@ features = ["num-complex"]
 [dependencies.hashbrown]
 workspace = true
 features = ["rayon"]
-
-[dependencies.indexmap]
-workspace = true
-features = ["rayon"]
-
-[dependencies.faer-ext]
-version = "0.3.0"
-features = ["ndarray"]
 
 [dependencies.pulp]
 version = "0.21.5"

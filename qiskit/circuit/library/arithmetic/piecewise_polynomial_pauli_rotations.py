@@ -13,6 +13,7 @@
 """Piecewise-polynomially-controlled Pauli rotations."""
 
 from __future__ import annotations
+import warnings
 from typing import List, Optional
 import numpy as np
 
@@ -271,17 +272,22 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints[:-1]):
             if i == 0 and self.contains_zero_breakpoint:
-                # apply rotation
-                poly_r = PolynomialPauliRotations(
-                    num_state_qubits=self.num_state_qubits,
-                    coeffs=self.mapped_coeffs[i],
-                    basis=self.basis,
-                )
+                # the class itself is deprecated, no need to raise additional warnings during runtime
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    poly_r = PolynomialPauliRotations(
+                        num_state_qubits=self.num_state_qubits,
+                        coeffs=self.mapped_coeffs[i],
+                        basis=self.basis,
+                    )
                 circuit.append(poly_r.to_gate(), qr_state[:] + qr_target)
 
             else:
-                # apply Comparator
-                comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
+                # the class itself is deprecated, no need to raise additional warnings during runtime
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
+
                 qr_state_full = qr_state[:] + [qr_ancilla[0]]  # add compare qubit
                 qr_remaining_ancilla = qr_ancilla[1:]  # take remaining ancillas
 
@@ -289,12 +295,14 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                     comp.to_gate(), qr_state_full[:] + qr_remaining_ancilla[: comp.num_ancillas]
                 )
 
-                # apply controlled rotation
-                poly_r = PolynomialPauliRotations(
-                    num_state_qubits=self.num_state_qubits,
-                    coeffs=self.mapped_coeffs[i],
-                    basis=self.basis,
-                )
+                # the class itself is deprecated, no need to raise additional warnings during runtime
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    poly_r = PolynomialPauliRotations(
+                        num_state_qubits=self.num_state_qubits,
+                        coeffs=self.mapped_coeffs[i],
+                        basis=self.basis,
+                    )
                 circuit.append(
                     poly_r.to_gate().control(), [qr_ancilla[0]] + qr_state[:] + qr_target
                 )
