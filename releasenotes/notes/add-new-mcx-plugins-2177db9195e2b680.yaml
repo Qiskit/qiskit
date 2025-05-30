@@ -9,5 +9,5 @@ features_transpiler:
     * :class:`.MCXSynthesis2DirtyKG24`, based on :func:`.synth_mcx_2_dirty_kg24`.
 
     The :class:`.MCXSynthesisDefault` has also been updated to follow the following sequence of
-    MCX synthesizers: "mcx.n_clean_m15", "mcx.n_dirty_i15", "mcx.2_clean_kg24", "mcx.2_dirty_kg24",
-    "mcx.1_clean_kg24", "mcx.1_dirty_kg24" "mcx.1_clean_b95", "mcx.noaux_v24".
+    MCX synthesizers: "mcx.2_clean_kg24", "mcx.1_clean_kg24", "mcx.n_clean_m15", "mcx.n_dirty_i15",
+    "mcx.2_dirty_kg24", "mcx.1_dirty_kg24" "mcx.1_clean_b95", "mcx.noaux_v24".
