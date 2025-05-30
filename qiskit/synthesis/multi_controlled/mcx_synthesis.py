@@ -308,7 +308,9 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
 def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
     r"""
     Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
-    implements Fig. 4a of [1]. The order of returned qubits is qr_a, qr_b, qr_target.
+    implements Fig. 4a of [1]. The circuit applies n relative CCX (RCCX) gates . If apply_x is True,
+    each RCCX gate is preceded by an X gate on the target qubit. The order of returned qubits is
+    qr_a, qr_b, qr_target.
 
     Args:
         n: Number of conditionally clean ancillae to create.
