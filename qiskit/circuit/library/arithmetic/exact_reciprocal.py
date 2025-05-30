@@ -47,8 +47,7 @@ class ExactReciprocal(QuantumCircuit):
         """
         # Deprecation warning
         warnings.warn(
-            "The ExactReciprocal class is deprecated as of Qiskit 1.3 and will be "
-            "removed in a future release. Use ExactReciprocalGate instead.",
+            "The ExactReciprocal class is deprecated as of Qiskit 1.3 and will be removed in a future release. Use ExactReciprocalGate instead.",
             category = DeprecationWarning,
             stacklevel = 2,
         )

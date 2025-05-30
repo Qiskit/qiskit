@@ -106,8 +106,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
         # Deprecation warning
         warnings.warn(
-            "The LinearAmplitudeFunction class is deprecated as of Qiskit 1.3 and will be "
-            "removed in a future release. Use LinearAmplitudeFunctionGate instead.",
+            "The LinearAmplitudeFunction class is deprecated as of Qiskit 1.3 and will be removed in a future release. Use LinearAmplitudeFunctionGate instead.",
             category = DeprecationWarning,
             stacklevel = 2,
         )
