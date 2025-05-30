@@ -234,7 +234,6 @@ from qiskit.circuit import library
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.utils import optionals as _optionals
 
-
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter
 from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
