@@ -73,7 +73,7 @@ int test_circuit_copy(void) {
     QkCircuit *copy = qk_circuit_copy(qc);
     for (int i = 0; i < 10; i++) {
         qk_circuit_measure(qc, i, i);
-        int qubits[1] = {
+        uint32_t qubits[1] = {
             i,
         };
         if (i % 2 == 0) {
@@ -120,7 +120,7 @@ int test_circuit_copy_with_instructions(void) {
     QkCircuit *qc = qk_circuit_new(10, 10);
     for (int i = 0; i < 10; i++) {
         qk_circuit_measure(qc, i, i);
-        int qubits[1] = {
+        uint32_t qubits[1] = {
             i,
         };
         qk_circuit_gate(qc, QkGate_H, qubits, NULL);
@@ -136,14 +136,14 @@ int test_circuit_copy_with_instructions(void) {
 
     for (int i = 0; i < 10; i++) {
         qk_circuit_measure(qc, i, i);
-        int qubits[1] = {
+        uint32_t qubits[1] = {
             i,
         };
         qk_circuit_gate(qc, QkGate_Z, qubits, NULL);
     }
     for (int i = 0; i < 15; i++) {
         qk_circuit_measure(qc, i, i);
-        int qubits[1] = {
+        uint32_t qubits[1] = {
             i,
         };
         qk_circuit_gate(copy, QkGate_X, qubits, NULL);
@@ -459,7 +459,6 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
     uint32_t i = 0;
     uint32_t qubits[1] = {999};
     for (i = 0; i < 1000; i++) {
-        uint32_t qubits[1] = {i};
         qk_circuit_reset(qc, i);
     }
     qk_circuit_gate(qc, QkGate_X, qubits, params);
