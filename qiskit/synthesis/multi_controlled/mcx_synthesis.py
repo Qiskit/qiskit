@@ -330,15 +330,7 @@ def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
     if apply_x:
         qc.x(qr_target)
 
-    qc.h(qr_target)
-    qc.t(qr_target)
-    qc.cx(qr_a, qr_target)
-    qc.tdg(qr_target)
-    qc.cx(qr_b, qr_target)
-    qc.t(qr_target)
-    qc.cx(qr_a, qr_target)
-    qc.tdg(qr_target)
-    qc.h(qr_target)
+    qc.rccx(qr_a, qr_b, qr_target)
 
     return qc
 
@@ -371,10 +363,10 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
     qc = QuantumCircuit(n)
     qreg = list(range(n))
 
-    ccx_x_relative = _n_parallel_ccx_x(1)
+    relative_ccx_x = _n_parallel_ccx_x(1)
     # up-ladder
     for i in range(2, n - 2, 2):
-        qc.compose(ccx_x_relative, [qreg[i + 1], qreg[i + 2], qreg[i]], inplace=True)
+        qc.compose(relative_ccx_x, [qreg[i + 1], qreg[i + 2], qreg[i]], inplace=True)
 
     # down-ladder
     if n % 2 != 0:
@@ -383,10 +375,10 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
         a, b, target = n - 1, n - 4, n - 5
 
     if target > 0:
-        qc.compose(ccx_x_relative.inverse(), [qreg[a], qreg[b], qreg[target]], inplace=True)
+        qc.compose(relative_ccx_x.inverse(), [qreg[a], qreg[b], qreg[target]], inplace=True)
 
     for i in range(target, 2, -2):
-        qc.compose(ccx_x_relative.inverse(), [qreg[i], qreg[i - 1], qreg[i - 2]], inplace=True)
+        qc.compose(relative_ccx_x.inverse(), [qreg[i], qreg[i - 1], qreg[i - 2]], inplace=True)
 
     mid_second_ctrl = 1 + max(0, 6 - n)
     final_ctrl = qreg[mid_second_ctrl] - 1
@@ -422,11 +414,8 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     qc = QuantumCircuit(q_controls, q_target, q_ancilla, name="mcx_linear_depth")
 
     ladder_ops, final_ctrl = _linear_depth_ladder_ops(num_ctrl_qubits)
-    ccx_x_relative = _n_parallel_ccx_x(1, apply_x=False)
 
-    qc.compose(
-        ccx_x_relative, [q_controls[0], q_controls[1], q_ancilla[0]], inplace=True
-    )  #                                                                # create cond. clean ancilla
+    qc.rccx(q_controls[0], q_controls[1], q_ancilla[0])  #              # create cond. clean ancilla
     qc.compose(ladder_ops, q_ancilla[:] + q_controls[:], inplace=True)  # up-ladder
     qc.ccx(q_ancilla, q_controls[final_ctrl], q_target)  #              # target
     qc.compose(  #                                                      # down-ladder
@@ -434,9 +423,7 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
         q_ancilla[:] + q_controls[:],
         inplace=True,
     )
-    qc.compose(
-        ccx_x_relative.inverse(), [q_controls[0], q_controls[1], q_ancilla[0]], inplace=True
-    )  #                                                               # create cond. clean ancilla
+    qc.rccx(q_controls[0], q_controls[1], q_ancilla[0])  #              # undo cond. clean ancilla
 
     if not clean:
         # perform toggle-detection if ancilla is dirty
