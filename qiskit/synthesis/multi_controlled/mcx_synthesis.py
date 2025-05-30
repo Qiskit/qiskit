@@ -365,10 +365,10 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
     qc = QuantumCircuit(n)
     qreg = list(range(n))
 
-    relative_ccx_x = _n_parallel_ccx_x(1)
     # up-ladder
     for i in range(2, n - 2, 2):
-        qc.compose(relative_ccx_x, [qreg[i + 1], qreg[i + 2], qreg[i]], inplace=True)
+        qc.rccx(qreg[i + 1], qreg[i + 2], qreg[i])
+        qc.x(qreg[i])
 
     # down-ladder
     if n % 2 != 0:
@@ -377,10 +377,12 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
         a, b, target = n - 1, n - 4, n - 5
 
     if target > 0:
-        qc.compose(relative_ccx_x, [qreg[a], qreg[b], qreg[target]], inplace=True)
+        qc.rccx(qreg[a], qreg[b], qreg[target])
+        qc.x(qreg[target])
 
     for i in range(target, 2, -2):
-        qc.compose(relative_ccx_x, [qreg[i], qreg[i - 1], qreg[i - 2]], inplace=True)
+        qc.rccx(qreg[i], qreg[i - 1], qreg[i - 2])
+        qc.x(qreg[i - 2])
 
     mid_second_ctrl = 1 + max(0, 6 - n)
     final_ctrl = qreg[mid_second_ctrl] - 1
