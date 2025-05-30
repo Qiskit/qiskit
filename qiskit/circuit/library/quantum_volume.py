@@ -80,8 +80,7 @@ class QuantumVolume(QuantumCircuit):
                 the volume structure directly.
         """
         warnings.warn(
-            "QuantumVolume is deeprecated as of Qiskit 1.3 and will be "
-            "removed in a future release. Use quantum_volume instead.",
+            "QuantumVolume is deprecated as of Qiskit 1.3 and will be removed in a future release. Use quantum_volume instead.",
             category = DeprecationWarning,
             stacklevel = 2,
         )
