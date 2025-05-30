@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.generalized_gates import PermutationGate, UnitaryGate
 from qiskit._accelerate.circuit_library import quantum_volume as qv_rs
-
+import warnings
 
 class QuantumVolume(QuantumCircuit):
     """A quantum volume model circuit.
@@ -79,6 +79,13 @@ class QuantumVolume(QuantumCircuit):
                 instruction, which in turn has the actual volume structure.  If ``True``, construct
                 the volume structure directly.
         """
+        warnings.warn(
+            "QuantumVolume is deeprecated as of Qiskit 1.3 and will be "
+            "removed in a future release. Use quantum_volume instead.",
+            category = DeprecationWarning,
+            stacklevel = 2,
+        )
+
         import scipy.stats
 
         # Parameters

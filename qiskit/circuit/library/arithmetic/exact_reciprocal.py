@@ -15,6 +15,7 @@ from math import isclose
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
 from qiskit.circuit.library.generalized_gates import UCRYGate
+import warnings
 
 
 class ExactReciprocal(QuantumCircuit):
@@ -44,6 +45,14 @@ class ExactReciprocal(QuantumCircuit):
 
             It is assumed that the binary string :math:`x` represents a number < 1.
         """
+        # Deprecation warning
+        warnings.warn(
+            "The ExactReciprocal class is deprecated as of Qiskit 1.3 and will be "
+            "removed in a future release. Use ExactReciprocalGate instead.",
+            category = DeprecationWarning,
+            stacklevel = 2,
+        )
+
         qr_state = QuantumRegister(num_state_qubits, "state")
         qr_flag = QuantumRegister(1, "flag")
         super().__init__(qr_state, qr_flag, name=name)
