@@ -303,18 +303,20 @@ def dump(circuit, stream, **kwargs) -> None:
 
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
-def load(filename: str, num_physical_qubits: int | None = None):
+def load(filename: str, num_qubits: int | None = None):
     """Load an OpenQASM 3 program from the file ``filename``.
 
     Args:
         filename: the filename to load the program from.
-        num_physical_qubits: number of qubits in the backend.
+        num_qubits: number of physical/virtual qubits provided.
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
     Raises:
         QASM3ImporterError: if the OpenQASM 3 file is invalid, or cannot be represented by a
             :class:`.QuantumCircuit`.
+        TypeError: if num_qubits is not of type `int`.
+        ValueError: if number of qubits in qasm3_ckt is more than num_qubits.
     """
 
     import qiskit_qasm3_import
@@ -327,34 +329,34 @@ def load(filename: str, num_physical_qubits: int | None = None):
     except qiskit_qasm3_import.ConversionError as exc:
         raise QASM3ImporterError(str(exc)) from exc
 
-    if num_physical_qubits is not None:
-        if not isinstance(num_physical_qubits, int):
-            raise TypeError("`num_physical_qubits` has to be of type `int`")
-        if qasm3_ckt.num_qubits > num_physical_qubits:
+    if num_qubits is not None:
+        if not isinstance(num_qubits, int):
+            raise TypeError("`num_qubits` has to be of type `int`.")
+        if qasm3_ckt.num_qubits > num_qubits:
             raise ValueError(
-                "Number of physical qubits cannot be more than than backend maximum number of qubits"
+                "Number of qubits cannot be more than the provided number of physical/virtual qubits."
             )
-        if (difference := num_physical_qubits - qasm3_ckt.num_qubits) > 0:
+        if (difference := num_qubits - qasm3_ckt.num_qubits) > 0:
             qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
 
     return qasm3_ckt
 
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
-def loads(program: str, num_physical_qubits: int | None = None):
+def loads(program: str, num_qubits: int | None = None):
     """Load an OpenQASM 3 program from the given string.
 
     Args:
         program: the OpenQASM 3 program.
-        num_physical_qubits: number of qubits in the backend.
+        num_qubits: number of physical/virtual qubits provided.
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
     Raises:
         QASM3ImporterError: if the OpenQASM 3 file is invalid, or cannot be represented by a
             :class:`.QuantumCircuit`.
-        TypeError: if num_physical_qubits is not of type `int`
-        ValueError: if number of qubits in qasm3_ckt is more than num_physical_qubits
+        TypeError: if num_qubits is not of type `int`.
+        ValueError: if number of qubits in qasm3_ckt is more than num_qubits.
     """
 
     import qiskit_qasm3_import
@@ -365,14 +367,14 @@ def loads(program: str, num_physical_qubits: int | None = None):
     except qiskit_qasm3_import.ConversionError as exc:
         raise QASM3ImporterError(str(exc)) from exc
 
-    if num_physical_qubits is not None:
-        if not isinstance(num_physical_qubits, int):
-            raise TypeError("`num_physical_qubits` has to be of type `int`")
-        if qasm3_ckt.num_qubits > num_physical_qubits:
+    if num_qubits is not None:
+        if not isinstance(num_qubits, int):
+            raise TypeError("`num_qubits` has to be of type `int`.")
+        if qasm3_ckt.num_qubits > num_qubits:
             raise ValueError(
-                "Number of physical qubits cannot be more than than backend maximum number of qubits"
+                "Number of qubits cannot be more than the provided number of physical/virtual qubits."
             )
-        if (difference := num_physical_qubits - qasm3_ckt.num_qubits) > 0:
+        if (difference := num_qubits - qasm3_ckt.num_qubits) > 0:
             qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
 
     return qasm3_ckt
