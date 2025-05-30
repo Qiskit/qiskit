@@ -326,13 +326,13 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
             )
             self.assertEqual(header_data.symbolic_encoding, b"e" if use_symengine else b"p")
 
+
 class TestSymbolExpr(QpyCircuitTestCase):
     """Test QPY with SymbolExpr"""
+
     def test_back_slash(self):
         qc = QuantumCircuit(2)
         alpha = Parameter(r"\alpha")
         beta = Parameter(r"\beta")
         qc.rz(alpha + beta, 0)
         self.assert_roundtrip_equal(qc)
-
-
