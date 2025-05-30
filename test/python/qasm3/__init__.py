@@ -11,3 +11,19 @@
 # that they have been altered from the originals.
 
 """QASM3 tests."""
+import unittest
+from qiskit import qasm3
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+class TestQASM3load(QiskitTestCase):
+    """Test qasm3 load and loads."""
+
+    def test_num_qubits(self):
+        program = 'OPENQASM 3.0;\ninclude "stdgates.inc";\nh $0;\ncx $2, $1;\n'
+        out = qasm3.loads(program, num_qubits=5)
+        self.assertEqual(out.num_qubits, 5)
+
+
+if __name__ == "__main__":
+    unittest.main()

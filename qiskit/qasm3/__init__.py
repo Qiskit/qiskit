@@ -234,6 +234,7 @@ from qiskit.circuit import library
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.utils import optionals as _optionals
 
+
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter
 from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
@@ -320,7 +321,9 @@ def load(filename: str, num_qubits: int | None = None):
     """
 
     import qiskit_qasm3_import
-    from qiskit.circuit import Qubit
+
+    # from qiskit.circuit import Qubit
+    from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
     with open(filename, "r") as fptr:
         program = fptr.read()
@@ -336,8 +339,11 @@ def load(filename: str, num_qubits: int | None = None):
             raise ValueError(
                 "Number of qubits cannot be more than the provided number of physical/virtual qubits."
             )
-        if (difference := num_qubits - qasm3_ckt.num_qubits) > 0:
-            qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
+        if (num_qubits - qasm3_ckt.num_qubits) > 0:
+            qr = QuantumRegister(num_qubits, "q")
+            cr = ClassicalRegister(num_qubits, "c")
+            qc = QuantumCircuit(qr, cr)
+            qasm3_ckt = qc.compose(qasm3_ckt)
 
     return qasm3_ckt
 
@@ -360,7 +366,9 @@ def loads(program: str, num_qubits: int | None = None):
     """
 
     import qiskit_qasm3_import
-    from qiskit.circuit import Qubit
+
+    # from qiskit.circuit import Qubit
+    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
     try:
         qasm3_ckt = qiskit_qasm3_import.parse(program)
@@ -374,8 +382,11 @@ def loads(program: str, num_qubits: int | None = None):
             raise ValueError(
                 "Number of qubits cannot be more than the provided number of physical/virtual qubits."
             )
-        if (difference := num_qubits - qasm3_ckt.num_qubits) > 0:
-            qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
+        if (num_qubits - qasm3_ckt.num_qubits) > 0:
+            qr = QuantumRegister(num_qubits, "q")
+            cr = ClassicalRegister(num_qubits, "c")
+            qc = QuantumCircuit(qr, cr)
+            qasm3_ckt = qc.compose(qasm3_ckt)
 
     return qasm3_ckt
 
