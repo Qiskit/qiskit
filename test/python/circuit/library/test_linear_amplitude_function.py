@@ -112,10 +112,23 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
             constructor = LinearAmplitudeFunctionGate if use_gate else LinearAmplitudeFunction
             num_ancillas = int(len(breakpoints or [0]) > 1) if use_gate else None
 
-            with self.subTest(use_gate=use_gate):
+            if use_gate:
                 linear_f = constructor(
                     num_state_qubits, slope, offset, domain, image, rescaling_factor, breakpoints
                 )
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    linear_f = constructor(
+                        num_state_qubits,
+                        slope,
+                        offset,
+                        domain,
+                        image,
+                        rescaling_factor,
+                        breakpoints,
+                    )
+
+            with self.subTest(use_gate=use_gate):
                 self.assertFunctionIsCorrect(linear_f, reference, num_ancillas)
 
     def test_not_including_start_in_breakpoints(self):
@@ -139,9 +152,10 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
             breakpoints=breakpoints,
         )
 
-        linear_f = LinearAmplitudeFunction(
-            num_state_qubits, slope, offset, domain, image, rescaling_factor, breakpoints
-        )
+        with self.assertWarns(DeprecationWarning):
+            linear_f = LinearAmplitudeFunction(
+                num_state_qubits, slope, offset, domain, image, rescaling_factor, breakpoints
+            )
 
         self.assertFunctionIsCorrect(linear_f, reference)
 
@@ -158,33 +172,44 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
 
         with self.subTest("mismatching breakpoints size"):
             with self.assertRaises(ValueError):
-                _ = LinearAmplitudeFunction(
-                    num_state_qubits, slope, offset, domain, image, rescaling_factor, [0]
-                )
+                with self.assertWarns(DeprecationWarning):
+                    _ = LinearAmplitudeFunction(
+                        num_state_qubits, slope, offset, domain, image, rescaling_factor, [0]
+                    )
 
         with self.subTest("mismatching offsets"):
             with self.assertRaises(ValueError):
-                _ = LinearAmplitudeFunction(
-                    num_state_qubits, slope, [0], domain, image, rescaling_factor, breakpoints
-                )
+                with self.assertWarns(DeprecationWarning):
+                    _ = LinearAmplitudeFunction(
+                        num_state_qubits, slope, [0], domain, image, rescaling_factor, breakpoints
+                    )
 
         with self.subTest("mismatching slopes"):
             with self.assertRaises(ValueError):
-                _ = LinearAmplitudeFunction(
-                    num_state_qubits, [0], offset, domain, image, rescaling_factor, breakpoints
-                )
+                with self.assertWarns(DeprecationWarning):
+                    _ = LinearAmplitudeFunction(
+                        num_state_qubits, [0], offset, domain, image, rescaling_factor, breakpoints
+                    )
 
         with self.subTest("breakpoints outside of domain"):
             with self.assertRaises(ValueError):
-                _ = LinearAmplitudeFunction(
-                    num_state_qubits, slope, offset, (0, 0.2), image, rescaling_factor, breakpoints
-                )
+                with self.assertWarns(DeprecationWarning):
+                    _ = LinearAmplitudeFunction(
+                        num_state_qubits,
+                        slope,
+                        offset,
+                        (0, 0.2),
+                        image,
+                        rescaling_factor,
+                        breakpoints,
+                    )
 
         with self.subTest("breakpoints not sorted"):
             with self.assertRaises(ValueError):
-                _ = LinearAmplitudeFunction(
-                    num_state_qubits, slope, offset, domain, image, rescaling_factor, [1, 0]
-                )
+                with self.assertWarns(DeprecationWarning):
+                    _ = LinearAmplitudeFunction(
+                        num_state_qubits, slope, offset, domain, image, rescaling_factor, [1, 0]
+                    )
 
     def test_post_processing(self):
         """Test the ``post_processing`` method."""
@@ -195,9 +220,10 @@ class TestLinearAmplitudeFunctional(QiskitTestCase):
         image = (-2, 0)
         rescaling_factor = 0.1
 
-        circuit = LinearAmplitudeFunction(
-            num_state_qubits, slope, offset, domain, image, rescaling_factor
-        )
+        with self.assertWarns(DeprecationWarning):
+            circuit = LinearAmplitudeFunction(
+                num_state_qubits, slope, offset, domain, image, rescaling_factor
+            )
 
         values = [0, 0.2, 0.5, 0.9, 1]
 
