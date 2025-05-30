@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in the circuit functions :func:`~.evolved_operator_ansatz.evolved_operator_ansatz`,
+    :func:`~.qaoa_ansatz.qaoa_ansatz` and :func:`.hamiltonian_variational_ansatz`, where the
+    parameters had a zero complex component.  This mostly was no issue, unless
+    translated to SymPy using the :meth:`.ParameterExpression.sympify` method,
+    which would then raise an error.

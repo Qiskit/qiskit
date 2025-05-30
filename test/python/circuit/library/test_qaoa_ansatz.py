@@ -242,3 +242,12 @@ class TestQAOAAnsatz(QiskitTestCase):
                             )
                     target = reps if mixer is None else 0
                     self.assertEqual(circuit.num_parameters, target)
+
+    def test_sympify_is_real(self):
+        """Test converting the parameters to sympy is real."""
+        qaoa = qaoa_ansatz(SparsePauliOp(["Z"], coeffs=[1 + 0j]))
+        param = qaoa.parameters[1]  # get the gamma parameter
+
+        angle = qaoa.data[1].operation.params[0]
+        expected = (2.0 * param).sympify()
+        self.assertEqual(expected, angle.sympify())
