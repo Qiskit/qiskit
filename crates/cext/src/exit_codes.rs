@@ -41,6 +41,8 @@ pub enum ExitCode {
     ArithmeticError = 200,
     /// Mismatching number of qubits.
     MismatchedQubits = 201,
+    /// Matrix is not unitary.
+    ExpectedUnitary = 202,
 }
 
 impl From<ArithmeticError> for ExitCode {
