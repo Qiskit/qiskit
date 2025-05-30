@@ -337,8 +337,7 @@ impl Target {
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
-                "Instruction {} is already in the target",
-                name
+                "Instruction {name} is already in the target"
             )));
         }
         let props_map = if let Some(props_map) = properties {
@@ -674,8 +673,7 @@ impl Target {
             }
         }
         Err(PyIndexError::new_err(format!(
-            "Index: {:?} is out of range.",
-            index
+            "Index: {index:?} is out of range."
         )))
     }
 
@@ -977,7 +975,7 @@ impl Target {
                         if qarg_slice.len() != instruction.num_qubits() as usize {
                             return Err(TargetError::QargsMismatch {
                                 instruction: name,
-                                arguments: format!("{:?}", qarg),
+                                arguments: format!("{qarg:?}"),
                             });
                         }
                         self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
@@ -1056,7 +1054,7 @@ impl Target {
         if !prop_map.contains_key(&qargs) {
             return Err(TargetError::InvalidQargsKey {
                 instruction: instruction.to_string(),
-                arguments: format!("{:?}", qargs),
+                arguments: format!("{qargs:?}"),
             });
         }
         if let Some(e) = prop_map.get_mut(&qargs) {
@@ -1241,7 +1239,7 @@ impl Target {
                 .iter()
                 .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
             {
-                return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
+                return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
             }
         }
         if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
@@ -1258,7 +1256,7 @@ impl Target {
             }
         }
         if res.is_empty() {
-            return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
+            return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
         }
         Ok(res)
     }

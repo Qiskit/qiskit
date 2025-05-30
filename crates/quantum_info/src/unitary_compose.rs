@@ -116,7 +116,7 @@ fn _einsum_matmul(
         unsafe { String::from_utf8_unchecked(indices_mat.iter().map(|c| LOWERCASE[*c]).collect()) };
 
     einsum(
-        format!("{},{}", tensor_einsum, mat_einsum).as_str(),
+        format!("{tensor_einsum},{mat_einsum}").as_str(),
         &[tensor, mat],
     )
 }
@@ -146,10 +146,7 @@ fn _einsum_matmul_index(qubits: &[u32], num_qubits: usize) -> String {
 
     let tens_r = unsafe { String::from_utf8_unchecked(_UPPERCASE[..num_qubits].to_vec()) };
     let [mat_l, mat_r, tens_lin, tens_lout] = _einsum_matmul_helper(qubits, num_qubits);
-    format!(
-        "{}{}, {}{}->{}{}",
-        mat_l, mat_r, tens_lin, tens_r, tens_lout, tens_r
-    )
+    format!("{mat_l}{mat_r}, {tens_lin}{tens_r}->{tens_lout}{tens_r}")
 }
 
 #[inline]
