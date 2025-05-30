@@ -159,8 +159,8 @@ impl ::std::convert::TryFrom<u8> for Pauli {
 /// failures on entry to Rust from Python space will automatically raise `TypeError`.
 #[derive(Error, Debug)]
 pub enum CoherenceError {
-    #[error("`boundaries` ({boundaries}) must be one element longer than `rates` ({rates})")]
-    MismatchedTermCount { rates: usize, boundaries: usize },
+    #[error("`rates` ({rates}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
+    MismatchedTermCount { rates: usize, qspl: usize },
     #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
     MismatchedItemCount { paulis: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
@@ -438,6 +438,49 @@ impl QubitSparsePauliList {
     }
 }
 
+type RawParts = (Vec<Pauli>, Vec<u32>, Vec<usize>);
+
+pub fn raw_parts_from_sparse_list(
+    iter: Vec<(String, Vec<u32>)>,
+    num_qubits: u32,
+) -> Result<RawParts, LabelError> {
+    let mut boundaries = Vec::with_capacity(iter.len() + 1);
+    boundaries.push(0);
+    let mut indices = Vec::new();
+    let mut paulis = Vec::new();
+    // Insertions to the `BTreeMap` keep it sorted by keys, so we use this to do the termwise
+    // sorting on-the-fly.
+    let mut sorted = btree_map::BTreeMap::new();
+    for (label, qubits) in iter {
+        sorted.clear();
+        let label: &[u8] = label.as_ref();
+        if label.len() != qubits.len() {
+            return Err(LabelError::WrongLengthIndices {
+                label: label.len(),
+                indices: qubits.len(),
+            });
+        }
+        for (letter, index) in label.iter().zip(qubits) {
+            if index >= num_qubits {
+                return Err(LabelError::BadIndex { index, num_qubits });
+            }
+            let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
+                return Err(LabelError::DuplicateIndex { index });
+            };
+            entry.insert(Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
+        }
+        for (index, term) in sorted.iter() {
+            let Some(term) = term else {
+                continue;
+            };
+            indices.push(*index);
+            paulis.push(*term);
+        }
+        boundaries.push(paulis.len());
+    }
+    Ok((paulis, indices, boundaries))
+}
+
 /// A view object onto a single term of a `QubitSparsePauliList`.
 ///
 /// The lengths of `paulis` and `indices` are guaranteed to be created equal, but might be zero
@@ -507,6 +550,25 @@ impl QubitSparsePauli {
         })
     }
 
+    /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
+    ///
+    /// # Safety
+    ///
+    /// It is up to the caller to ensure that the data-coherence requirements, as enumerated in the
+    /// struct-level documentation, have been upheld.
+    #[inline(always)]
+    pub unsafe fn new_unchecked(
+        num_qubits: u32,
+        paulis: Box<[Pauli]>,
+        indices: Box<[u32]>,
+    ) -> Self {
+        Self {
+            num_qubits,
+            paulis,
+            indices,
+        }
+    }
+
     /// Get the number of qubits the paulis are defined on.
     #[inline]
     pub fn num_qubits(&self) -> u32 {
@@ -546,10 +608,10 @@ impl QubitSparsePauli {
 }
 
 #[derive(Error, Debug)]
-struct InnerReadError;
+pub struct InnerReadError;
 
 #[derive(Error, Debug)]
-struct InnerWriteError;
+pub struct InnerWriteError;
 
 impl ::std::fmt::Display for InnerReadError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
@@ -845,7 +907,7 @@ impl<'py> FromPyObject<'py> for Pauli {
 #[pyclass(name = "QubitSparsePauli", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
 pub struct PyQubitSparsePauli {
-    inner: QubitSparsePauli,
+    pub inner: QubitSparsePauli,
 }
 #[pymethods]
 impl PyQubitSparsePauli {
@@ -1320,7 +1382,7 @@ impl PyQubitSparsePauli {
 #[derive(Debug)]
 pub struct PyQubitSparsePauliList {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
-    inner: Arc<RwLock<QubitSparsePauliList>>,
+    pub inner: Arc<RwLock<QubitSparsePauliList>>,
 }
 #[pymethods]
 impl PyQubitSparsePauliList {
@@ -1680,41 +1742,7 @@ impl PyQubitSparsePauliList {
     #[staticmethod]
     #[pyo3(signature = (iter, /, num_qubits))]
     fn from_sparse_list(iter: Vec<(String, Vec<u32>)>, num_qubits: u32) -> PyResult<Self> {
-        let mut boundaries = Vec::with_capacity(iter.len() + 1);
-        boundaries.push(0);
-        let mut indices = Vec::new();
-        let mut paulis = Vec::new();
-        // Insertions to the `BTreeMap` keep it sorted by keys, so we use this to do the termwise
-        // sorting on-the-fly.
-        let mut sorted = btree_map::BTreeMap::new();
-        for (label, qubits) in iter {
-            sorted.clear();
-            let label: &[u8] = label.as_ref();
-            if label.len() != qubits.len() {
-                return Err(LabelError::WrongLengthIndices {
-                    label: label.len(),
-                    indices: qubits.len(),
-                }
-                .into());
-            }
-            for (letter, index) in label.iter().zip(qubits) {
-                if index >= num_qubits {
-                    return Err(LabelError::BadIndex { index, num_qubits }.into());
-                }
-                let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
-                    return Err(LabelError::DuplicateIndex { index }.into());
-                };
-                entry.insert(Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
-            }
-            for (index, term) in sorted.iter() {
-                let Some(term) = term else {
-                    continue;
-                };
-                indices.push(*index);
-                paulis.push(*term);
-            }
-            boundaries.push(paulis.len());
-        }
+        let (paulis, indices, boundaries) = raw_parts_from_sparse_list(iter, num_qubits)?;
         let inner = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
         Ok(inner.into())
     }
