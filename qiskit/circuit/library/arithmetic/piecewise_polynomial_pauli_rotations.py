@@ -28,6 +28,10 @@ from .integer_comparator import IntegerComparator, IntegerComparatorGate
 class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
     r"""Piecewise-polynomially-controlled Pauli rotations.
 
+    .. deprecated:: 2.1
+        The circuit-based class ``PiecewisePolynomialPauliRotations`` is deprecated.
+        Please use the gate class ``PiecewisePolynomialPauliRotationsGate`` directly for new code.
+
     This class implements a piecewise polynomial (not necessarily continuous) function,
     :math:`f(x)`, on qubit amplitudes, which is defined through breakpoints and coefficients as
     follows.
@@ -322,6 +326,11 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
     This class implements a piecewise polynomial (not necessarily continuous) function,
     :math:`f(x)`, on qubit amplitudes, which is defined through breakpoints and coefficients as
     follows.
+
+    .. note::
+        The circuit-based class ``PiecewisePolynomialPauliRotations`` is deprecated.
+        Please use the gate class ``PiecewisePolynomialPauliRotationsGate` directly for new code.
+
     Suppose the breakpoints :math:`(x_0, ..., x_J)` are a subset of :math:`[0, 2^n-1]`, where
     :math:`n` is the number of state qubits. Further on, denote the corresponding coefficients by
     :math:`[a_{j,1},...,a_{j,d}]`, where :math:`d` is the highest degree among all polynomials.

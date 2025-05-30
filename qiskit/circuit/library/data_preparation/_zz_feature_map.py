@@ -19,7 +19,13 @@ from .pauli_feature_map import PauliFeatureMap
 
 
 class ZZFeatureMap(PauliFeatureMap):
-    r"""Second-order Pauli-Z evolution circuit.
+    r"""DEPRECATED: Use the `zz_feature_map` function instead.
+
+    .. deprecated:: 2.1
+        The ``ZZFeatureMap`` class is deprecated as of Qiskit 2.1 and will be removed in Qiskit 3.0.
+        Use the :func:`~qiskit.circuit.library.zz_feature_map` function instead.
+    
+    Second-order Pauli-Z evolution circuit.
 
     For 3 qubits and 1 repetition and linear entanglement the circuit is represented by:
 
