@@ -1218,14 +1218,10 @@ impl SymbolExpr {
                                         || _neg(l_lhs.as_ref().clone()).expand().to_string()
                                             == r_lhs.expand().to_string()
                                     {
-                                        let tl = _mul(
-                                            SymbolExpr::Value(rv.clone()),
-                                            l_lhs.as_ref().clone(),
-                                        );
-                                        let tr = _mul(
-                                            SymbolExpr::Value(lv.clone()),
-                                            r_lhs.as_ref().clone(),
-                                        );
+                                        let tl =
+                                            _mul(SymbolExpr::Value(*rv), l_lhs.as_ref().clone());
+                                        let tr =
+                                            _mul(SymbolExpr::Value(*lv), r_lhs.as_ref().clone());
                                         let b = SymbolExpr::Value(lv * rv);
                                         return match tl.add_opt(&tr, recursive) {
                                             Some(e) => Some(_div(e, b)),
@@ -1244,9 +1240,8 @@ impl SymbolExpr {
                                             SymbolExpr::Value(Value::Real(1.0) / *rv),
                                             r_lhs.as_ref().clone(),
                                         );
-                                        match self.add_opt(&r, recursive) {
-                                            Some(e) => return Some(e),
-                                            None => (),
+                                        if let Some(e) = self.add_opt(&r, recursive) {
+                                            return Some(e);
                                         }
                                     }
                                 }
@@ -1261,9 +1256,8 @@ impl SymbolExpr {
                                             SymbolExpr::Value(Value::Real(1.0) / *lv),
                                             l_lhs.as_ref().clone(),
                                         );
-                                        match l.add_opt(rhs, recursive) {
-                                            Some(e) => return Some(e),
-                                            None => (),
+                                        if let Some(e) = l.add_opt(rhs, recursive) {
+                                            return Some(e);
                                         }
                                     }
                                 }
@@ -1589,14 +1583,10 @@ impl SymbolExpr {
                                         || _neg(l_lhs.as_ref().clone()).expand().to_string()
                                             == r_lhs.expand().to_string()
                                     {
-                                        let tl = _mul(
-                                            SymbolExpr::Value(rv.clone()),
-                                            l_lhs.as_ref().clone(),
-                                        );
-                                        let tr = _mul(
-                                            SymbolExpr::Value(lv.clone()),
-                                            r_lhs.as_ref().clone(),
-                                        );
+                                        let tl =
+                                            _mul(SymbolExpr::Value(*rv), l_lhs.as_ref().clone());
+                                        let tr =
+                                            _mul(SymbolExpr::Value(*lv), r_lhs.as_ref().clone());
                                         let b = SymbolExpr::Value(lv * rv);
                                         return match tl.sub_opt(&tr, recursive) {
                                             Some(e) => Some(_div(e, b)),
@@ -1615,9 +1605,8 @@ impl SymbolExpr {
                                             SymbolExpr::Value(Value::Real(1.0) / *rv),
                                             r_lhs.as_ref().clone(),
                                         );
-                                        match self.sub_opt(&r, recursive) {
-                                            Some(e) => return Some(e),
-                                            None => (),
+                                        if let Some(e) = self.sub_opt(&r, recursive) {
+                                            return Some(e);
                                         }
                                     }
                                 }
@@ -1632,9 +1621,8 @@ impl SymbolExpr {
                                             SymbolExpr::Value(Value::Real(1.0) / *lv),
                                             l_lhs.as_ref().clone(),
                                         );
-                                        match l.sub_opt(rhs, recursive) {
-                                            Some(e) => return Some(e),
-                                            None => (),
+                                        if let Some(e) = l.sub_opt(rhs, recursive) {
+                                            return Some(e);
                                         }
                                     }
                                 }
@@ -1642,10 +1630,8 @@ impl SymbolExpr {
                             (_, _, _, _) => (),
                         }
 
-                        if op == rop {
-                            if self.expand().to_string() == rhs.expand().to_string() {
-                                return Some(SymbolExpr::Value(Value::Int(0)));
-                            }
+                        if op == rop && self.expand().to_string() == rhs.expand().to_string() {
+                            return Some(SymbolExpr::Value(Value::Int(0)));
                         }
                     } else if let SymbolExpr::Symbol(r) = rhs {
                         if let (
@@ -2239,15 +2225,13 @@ impl SymbolExpr {
                 Some(SymbolExpr::Value(Value::Real(1.0)))
             }
         } else {
-            if let SymbolExpr::Value(v) = rhs {
-                if let Value::Real(r) = v {
-                    let t = 1.0 / r;
-                    if &(1.0 / t) == r {
-                        if recursive {
-                            return self.mul_opt(&SymbolExpr::Value(Value::Real(t)), recursive);
-                        } else {
-                            return Some(&SymbolExpr::Value(Value::Real(t)) * self);
-                        }
+            if let SymbolExpr::Value(Value::Real(r)) = rhs {
+                let t = 1.0 / r;
+                if &(1.0 / t) == r {
+                    if recursive {
+                        return self.mul_opt(&SymbolExpr::Value(Value::Real(t)), recursive);
+                    } else {
+                        return Some(&SymbolExpr::Value(Value::Real(t)) * self);
                     }
                 }
             }
@@ -2416,17 +2400,6 @@ impl SymbolExpr {
 
     /// expand with optimization for div operation
     fn div_expand(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
-        if let SymbolExpr::Value(v) = rhs {
-            if let Value::Real(r) = v {
-                let t = 1.0 / r;
-                if &(1.0 / t) == r {
-                    return match self.mul_expand(&SymbolExpr::Value(Value::Real(t))) {
-                        Some(e) => Some(e),
-                        None => Some(_mul(self.clone(), SymbolExpr::Value(Value::Real(t)))),
-                    };
-                }
-            }
-        }
         match self {
             SymbolExpr::Unary { op, expr } => match op {
                 UnaryOp::Neg => match expr.div_expand(rhs) {
@@ -3257,7 +3230,7 @@ impl Value {
                     SymbolExpr::Symbol(Box::new("I".to_string())),
                 ),
             ),
-            _ => SymbolExpr::Value(self.clone()),
+            _ => SymbolExpr::Value(*self),
         }
     }
 }
