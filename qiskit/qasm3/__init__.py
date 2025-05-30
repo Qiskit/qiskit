@@ -302,51 +302,91 @@ def dump(circuit, stream, **kwargs) -> None:
 
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
-def load(filename: str):
+def load(filename: str, num_qubits: int | None = None):
     """Load an OpenQASM 3 program from the file ``filename``.
 
     Args:
         filename: the filename to load the program from.
-
+        num_qubits: number of physical/virtual qubits provided.
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
     Raises:
         QASM3ImporterError: if the OpenQASM 3 file is invalid, or cannot be represented by a
             :class:`.QuantumCircuit`.
+        TypeError: if num_qubits is not of type `int`.
+        ValueError: if number of qubits in qasm3_ckt is more than num_qubits.
     """
 
     import qiskit_qasm3_import
+
+    # from qiskit.circuit import Qubit
+    from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
     with open(filename, "r") as fptr:
         program = fptr.read()
     try:
-        return qiskit_qasm3_import.parse(program)
+        qasm3_ckt = qiskit_qasm3_import.parse(program)
     except qiskit_qasm3_import.ConversionError as exc:
         raise QASM3ImporterError(str(exc)) from exc
 
+    if num_qubits is not None:
+        if not isinstance(num_qubits, int):
+            raise TypeError("`num_qubits` has to be of type `int`.")
+        if qasm3_ckt.num_qubits > num_qubits:
+            raise ValueError(
+                "Number of qubits cannot be more than the provided number of physical/virtual qubits."
+            )
+        if (num_qubits - qasm3_ckt.num_qubits) > 0:
+            qr = QuantumRegister(num_qubits, "q")
+            cr = ClassicalRegister(num_qubits, "c")
+            qc = QuantumCircuit(qr, cr)
+            qasm3_ckt = qc.compose(qasm3_ckt)
+
+    return qasm3_ckt
+
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
-def loads(program: str):
+def loads(program: str, num_qubits: int | None = None):
     """Load an OpenQASM 3 program from the given string.
 
     Args:
         program: the OpenQASM 3 program.
-
+        num_qubits: number of physical/virtual qubits provided.
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
     Raises:
         QASM3ImporterError: if the OpenQASM 3 file is invalid, or cannot be represented by a
             :class:`.QuantumCircuit`.
+        TypeError: if num_qubits is not of type `int`.
+        ValueError: if number of qubits in qasm3_ckt is more than num_qubits.
     """
 
     import qiskit_qasm3_import
 
+    # from qiskit.circuit import Qubit
+    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
     try:
-        return qiskit_qasm3_import.parse(program)
+        qasm3_ckt = qiskit_qasm3_import.parse(program)
     except qiskit_qasm3_import.ConversionError as exc:
         raise QASM3ImporterError(str(exc)) from exc
+
+    if num_qubits is not None:
+        if not isinstance(num_qubits, int):
+            raise TypeError("`num_qubits` has to be of type `int`.")
+        if qasm3_ckt.num_qubits > num_qubits:
+            raise ValueError(
+                "Number of qubits cannot be more than the provided number of physical/virtual qubits."
+            )
+        if (num_qubits - qasm3_ckt.num_qubits) > 0:
+            qr = QuantumRegister(num_qubits, "q")
+            cr = ClassicalRegister(num_qubits, "c")
+            qc = QuantumCircuit(qr, cr)
+            qasm3_ckt = qc.compose(qasm3_ckt)
+
+    return qasm3_ckt
 
 
 @functools.wraps(_qasm3.loads)
