@@ -34,9 +34,9 @@ use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
-use pyo3::{intern, Python};
+use pyo3::{intern, IntoPyObjectExt, Python};
 
-#[derive(Clone, Debug, IntoPyObject)]
+#[derive(Clone, Debug)]
 pub enum Param {
     ParameterExpression(PyObject),
     Float(f64),
@@ -46,6 +46,27 @@ pub enum Param {
     Target(Target),
     Indexset(Vec<usize>),
     Obj(PyObject),
+    None,
+}
+
+impl<'py> IntoPyObject<'py> for Param {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            Param::ParameterExpression(p) => Ok(p.into_bound(py)),
+            Param::Float(f) => f.into_bound_py_any(py),
+            Param::Circuit(c) => Ok(c.into_bound(py)),
+            Param::Condition(c) => c.into_bound_py_any(py),
+            Param::Duration(d) => d.into_bound_py_any(py),
+            Param::Target(t) => t.into_bound_py_any(py),
+            Param::Indexset(s) => s.into_bound_py_any(py),
+            Param::Obj(o) => Ok(o.into_bound(py)),
+            Param::None => None::<()>.into_bound_py_any(py),
+        }
+    }
 }
 
 /// Replace the blocks of a Params list with new ones.
@@ -74,24 +95,6 @@ pub fn replace_blocks(
     result
 }
 
-// impl<'a, 'py> IntoPyObject<'py> for &'a Param {
-//     type Target = PyAny;
-//     type Output = Borrowed<'a, 'py, Self::Target>;
-//     type Error = PyErr;
-//
-//     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-//         match self {
-//             Param::ParameterExpression(e) => Ok(e.bind_borrowed(py)),
-//             Param::Float(f) => f.into_bound_py_any(py),
-//             Param::Circuit(c) => c.un
-//             Param::Condition(_) => {}
-//             Param::Duration(_) => {}
-//             Param::Target(_) => {}
-//             Param::Obj(_) => {}
-//         }
-//     }
-// }
-
 impl Param {
     pub fn eq(&self, py: Python, other: &Param) -> PyResult<bool> {
         match [self, other] {
@@ -109,6 +112,7 @@ impl Param {
             [Self::Duration(a), Self::Duration(b)] => Ok(a == b),
             [Self::Circuit(a), Self::Circuit(b)] => a.bind(py).eq(b),
             [Self::Indexset(a), Self::Indexset(b)] => Ok(a == b),
+            [Self::None, Self::None] => Ok(true),
             _ => todo!(),
         }
     }
@@ -123,7 +127,9 @@ impl Param {
 
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
+        Ok(if b.is_none() {
+            Param::None
+        } else if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
             Param::ParameterExpression(b.clone().unbind())
         } else if b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))? {
             Param::Circuit(b.clone().unbind())
@@ -142,15 +148,10 @@ impl Param {
         match self {
             Param::Float(_) => Ok(ParamParameterIter(None)),
             Param::ParameterExpression(expr) => {
-                // TODO: this can only be None for loop_parameter of for loop ops.
                 let expr = expr.bind(py);
-                if expr.is_none() {
-                    Ok(ParamParameterIter(None))
-                } else {
-                    Ok(ParamParameterIter(Some(
-                        expr.getattr(parameters_attr)?.try_iter()?,
-                    )))
-                }
+                Ok(ParamParameterIter(Some(
+                    expr.getattr(parameters_attr)?.try_iter()?,
+                )))
             }
             Param::Obj(obj) => {
                 let obj = obj.bind(py);
@@ -165,11 +166,6 @@ impl Param {
             }
             Param::Circuit(circuit) => {
                 let obj = circuit.bind(py);
-                if obj.is_none() {
-                    // This is the case for the else block of an if-else without else,
-                    // for example.
-                    return Ok(ParamParameterIter(None));
-                }
                 if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
                     Ok(ParamParameterIter(Some(
                         obj.getattr(parameters_attr)?.try_iter()?,
@@ -189,7 +185,9 @@ impl Param {
     /// coerce integers into floats, but in things like `assign_parameters`, this is not always
     /// desirable.
     pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
-        Ok(if ob.is_instance_of::<PyFloat>() {
+        Ok(if ob.is_none() {
+            Param::None
+        } else if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
         } else if ob.is_instance(PARAMETER_EXPRESSION.get_bound(ob.py()))? {
             Param::ParameterExpression(ob.clone().unbind())
@@ -211,6 +209,7 @@ impl Param {
             Param::Duration(d) => Param::Duration(d.clone()),
             Param::Target(t) => Param::Target(t.clone()),
             Param::Indexset(s) => Param::Indexset(s.clone()),
+            Param::None => Param::None,
         }
     }
 }
@@ -538,7 +537,7 @@ pub enum ControlFlowRef<'a, T> {
     ContinueLoop,
     ForLoop {
         indexset: &'a [usize],
-        loop_param: &'a PyObject,
+        loop_param: Option<&'a PyObject>,
         body: &'a T,
     },
     IfElse {

@@ -117,24 +117,22 @@ pub trait Instruction {
                         .get_bound(py)
                         .call((qubits, clbits), kwargs.as_ref())?,
                     ControlFlow::ForLoop { .. } => {
-                        let [Param::Indexset(indexset), Param::ParameterExpression(loop_parameter), Param::Circuit(body)] =
-                            self.params_view()
-                        else {
+                        let [indexset, loop_parameter, body] = self.params_view() else {
                             panic!("invalid for loop params");
                         };
-                        FOR_LOOP_OP
-                            .get_bound(py)
-                            .call((indexset, loop_parameter, body), kwargs.as_ref())?
+                        FOR_LOOP_OP.get_bound(py).call(
+                            (indexset.clone(), loop_parameter.clone(), body.clone()),
+                            kwargs.as_ref(),
+                        )?
                     }
                     ControlFlow::IfElse { condition, .. } => {
-                        let [Param::Circuit(true_body), Param::Circuit(false_body)] =
-                            self.params_view()
-                        else {
+                        let [true_body, false_body] = self.params_view() else {
                             panic!("invalid if else params");
                         };
-                        IF_ELSE_OP
-                            .get_bound(py)
-                            .call((condition.clone(), true_body, false_body), kwargs.as_ref())?
+                        IF_ELSE_OP.get_bound(py).call(
+                            (condition.clone(), true_body.clone(), false_body.clone()),
+                            kwargs.as_ref(),
+                        )?
                     }
                     ControlFlow::Switch { target, .. } => {
                         let cases = self
@@ -375,27 +373,42 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
             ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
             ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
             ControlFlow::ForLoop { .. } => {
-                let [Param::Indexset(indexset), Param::ParameterExpression(loop_param), Param::Circuit(body)] =
+                if let [Param::Indexset(indexset), Param::ParameterExpression(loop_param), Param::Circuit(body)] =
                     &self.params_view()[0..3]
-                else {
+                {
+                    ControlFlowRef::ForLoop {
+                        indexset,
+                        loop_param: Some(loop_param),
+                        body,
+                    }
+                } else if let [Param::Indexset(indexset), Param::None, Param::Circuit(body)] =
+                    &self.params_view()[0..3]
+                {
+                    ControlFlowRef::ForLoop {
+                        indexset,
+                        loop_param: None,
+                        body,
+                    }
+                } else {
                     panic!("invalid");
-                };
-                ControlFlowRef::ForLoop {
-                    indexset,
-                    loop_param,
-                    body,
                 }
             }
             ControlFlow::IfElse { condition, .. } => {
-                let [Param::Circuit(true_body), Param::Circuit(false_body)] = &self.params_view()
-                else {
+                if let [Param::Circuit(true_body), Param::Circuit(false_body)] = &self.params_view()
+                {
+                    ControlFlowRef::IfElse {
+                        condition,
+                        true_body,
+                        false_body: Some(false_body),
+                    }
+                } else if let [Param::Circuit(true_body), Param::None] = &self.params_view() {
+                    ControlFlowRef::IfElse {
+                        condition,
+                        true_body,
+                        false_body: None,
+                    }
+                } else {
                     panic!("invalid");
-                };
-                ControlFlowRef::IfElse {
-                    condition,
-                    true_body,
-                    // TODO: have this be None as applicable once circuits use param lists
-                    false_body: Some(false_body),
                 }
             }
             ControlFlow::Switch { target, .. } => {
@@ -682,7 +695,8 @@ impl CircuitInstruction {
                         | Param::Condition(_)
                         | Param::Duration(_)
                         | Param::Target(_)
-                        | Param::Indexset(_) => false,
+                        | Param::Indexset(_)
+                        | Param::None => false,
                     },
                     Param::ParameterExpression(left) | Param::Obj(left) => match right {
                         Param::Float(right) => left.bind(py).eq(right)?,
@@ -693,7 +707,8 @@ impl CircuitInstruction {
                         | Param::Condition(_)
                         | Param::Duration(_)
                         | Param::Target(_)
-                        | Param::Indexset(_) => false,
+                        | Param::Indexset(_)
+                        | Param::None => false,
                     },
                     Param::Circuit(left) => match right {
                         Param::Circuit(right) => left.bind(py).eq(right)?,
@@ -713,6 +728,10 @@ impl CircuitInstruction {
                     },
                     Param::Indexset(left) => match right {
                         Param::Indexset(right) => left == right,
+                        _ => false,
+                    },
+                    Param::None => match right {
+                        Param::None => true,
                         _ => false,
                     },
                 };
@@ -1008,7 +1027,12 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                         },
                         smallvec![
                             Param::Indexset(params.next().unwrap()?.extract()?),
-                            Param::ParameterExpression(params.next().unwrap()?.unbind()),
+                            params
+                                .next()
+                                .unwrap()?
+                                .extract::<Option<Bound<PyAny>>>()?
+                                .map(|p| Param::ParameterExpression(p.unbind()))
+                                .unwrap_or(Param::None),
                             Param::Circuit(params.next().unwrap()?.unbind()),
                         ],
                     )
@@ -1023,7 +1047,12 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                         },
                         smallvec![
                             Param::Circuit(params.next().unwrap()?.unbind()),
-                            Param::Circuit(params.next().unwrap()?.unbind()),
+                            params
+                                .next()
+                                .unwrap()?
+                                .extract::<Option<Bound<PyAny>>>()?
+                                .map(|p| Param::Circuit(p.unbind()))
+                                .unwrap_or(Param::None),
                         ],
                     )
                 }

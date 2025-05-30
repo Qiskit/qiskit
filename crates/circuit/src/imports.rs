@@ -84,7 +84,7 @@ pub static BREAK_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit",
 pub static CONTINUE_LOOP_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ContinueLoopOp");
 pub static STORE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Store");
-pub static BOX_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Box");
+pub static BOX_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "BoxOp");
 pub static DAG_NODE: ImportOnceCell = ImportOnceCell::new("qiskit.dagcircuit", "DAGNode");
 pub static CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ControlledGate");

@@ -94,7 +94,7 @@ pub enum Parameters {
     },
     ForLoop {
         indexset: Vec<usize>,
-        loop_param: PyObject,
+        loop_param: Option<PyObject>,
         body: DAGCircuit,
     },
     IfElse {
@@ -204,7 +204,7 @@ impl DAGInstruction {
             OperationRef::ControlFlow(cf) => match cf {
                 ControlFlow::Box { .. } => {
                     let Some(Param::Circuit(body)) = params.next() else {
-                        panic!("invalid");
+                        panic!("invalid box params");
                     };
                     Some(Parameters::Box {
                         body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
@@ -214,13 +214,15 @@ impl DAGInstruction {
                 ControlFlow::ContinueLoop { .. } => None,
                 ControlFlow::ForLoop { .. } => {
                     let Some(Param::Indexset(indexset)) = params.next() else {
-                        panic!("invalid");
+                        panic!("invalid for loop index set");
                     };
-                    let Some(Param::ParameterExpression(loop_param)) = params.next() else {
-                        panic!("invalid");
+                    let loop_param = match params.next().unwrap() {
+                        Param::ParameterExpression(e) => Some(e),
+                        Param::None => None,
+                        _ => panic!("invalid for loop loop param"),
                     };
                     let Some(Param::Circuit(body)) = params.next() else {
-                        panic!("invalid");
+                        panic!("invalid for loop body");
                     };
                     Some(Parameters::ForLoop {
                         indexset,
@@ -230,14 +232,14 @@ impl DAGInstruction {
                 }
                 ControlFlow::IfElse { .. } => {
                     let Some(Param::Circuit(true_body)) = params.next() else {
-                        panic!("invalid");
+                        panic!("invalid ifelse true body");
                     };
-                    let false_body = match params.next() {
-                        Some(Param::Circuit(body)) => {
+                    let false_body = match params.next().unwrap() {
+                        Param::Circuit(body) => {
                             Some(circuit_to_dag(py, body.extract(py)?, false, None, None)?)
                         }
-                        None => None,
-                        _ => panic!("invalid"),
+                        Param::None => None,
+                        _ => panic!("invalid ifelse false body"),
                     };
                     Some(Parameters::IfElse {
                         true_body: circuit_to_dag(py, true_body.extract(py)?, false, None, None)?,
@@ -247,7 +249,7 @@ impl DAGInstruction {
                 ControlFlow::Switch { .. } => {
                     let cases = params.map(|p| match p {
                         Param::Circuit(case) => case,
-                        _ => panic!("invalid"),
+                        _ => panic!("invalid switch case"),
                     });
                     Some(Parameters::Switch {
                         cases: cases
@@ -257,7 +259,7 @@ impl DAGInstruction {
                 }
                 ControlFlow::While { .. } => {
                     let Some(Param::Circuit(body)) = params.next() else {
-                        panic!("invalid");
+                        panic!("invalid while loop body");
                     };
                     Some(Parameters::While {
                         body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
@@ -308,7 +310,11 @@ impl DAGInstruction {
                             panic!("invalid");
                         };
                         params.push(Param::Indexset(indexset));
-                        params.push(Param::ParameterExpression(loop_param));
+                        params.push(
+                            loop_param
+                                .map(|p| Param::ParameterExpression(p))
+                                .unwrap_or(Param::None),
+                        );
                         params.push(Param::Circuit(dag_to_circuit.call1((body,))?.unbind()));
                     }
                     ControlFlow::IfElse { .. } => {
@@ -319,10 +325,15 @@ impl DAGInstruction {
                         else {
                             panic!("invalid");
                         };
-                        params.push(Param::Circuit(dag_to_circuit.call1((true_body,))?.unbind()));
-                        params.push(Param::Circuit(
-                            dag_to_circuit.call1((false_body,))?.unbind(),
-                        ));
+                        let true_body =
+                            Param::Circuit(dag_to_circuit.call1((true_body,))?.unbind());
+                        let false_body = if let Some(false_body) = false_body {
+                            Param::Circuit(dag_to_circuit.call1((false_body,))?.unbind())
+                        } else {
+                            Param::None
+                        };
+                        params.push(true_body);
+                        params.push(false_body);
                     }
                     ControlFlow::Switch { .. } => {
                         let Some(Parameters::Switch { cases }) = self.params.map(|p| *p) else {
@@ -485,7 +496,7 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
                 }),
             ) => ControlFlowRef::ForLoop {
                 indexset,
-                loop_param,
+                loop_param: loop_param.as_ref(),
                 body,
             },
             (
@@ -2587,9 +2598,19 @@ impl DAGCircuit {
                                         loop_param: loop_param_b,
                                         body: body_b,
                                     },
-                                ) => Ok(indexset_a == indexset_b
-                                    && loop_param_a.bind(py).eq(loop_param_b)?
-                                    && body_a.__eq__(py, body_b)?),
+                                ) => {
+                                    let loop_param_eq = || -> PyResult<bool> {
+                                        match (loop_param_a, loop_param_b) {
+                                            (Some(loop_param_a), Some(loop_param_b)) => {
+                                                loop_param_a.bind(py).eq(loop_param_b)
+                                            }
+                                            _ => Ok(false),
+                                        }
+                                    };
+                                    Ok(indexset_a == indexset_b
+                                        && loop_param_eq()?
+                                        && body_a.__eq__(py, body_b)?)
+                                }
                                 (
                                     ControlFlowRef::IfElse {
                                         condition: condition_a,
