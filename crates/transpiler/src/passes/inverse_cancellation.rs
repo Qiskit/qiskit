@@ -16,20 +16,33 @@ use indexmap::IndexMap;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
-use qiskit_circuit::operations::{InstructionRef, Operation, PyEq};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType, Parameters};
+use qiskit_circuit::operations::Operation;
 
 fn gate_eq(py: Python, gate_a: &DAGInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
     if gate_a.op.name() != gate_b.operation.name() {
         return Ok(false);
     }
-    match (gate_a.view(), gate_b.view()) {
-        (InstructionRef::StandardGate(a), InstructionRef::StandardGate(b)) => a.py_eq(py, &b),
-        (InstructionRef::Gate(a), InstructionRef::Gate(b)) => a.py_eq(py, &b),
-        (InstructionRef::Unitary(a), InstructionRef::Unitary(b)) => a.py_eq(py, &b),
-        _ => panic!("not gates"),
+    let a_params = gate_a
+        .params
+        .as_deref()
+        .map(|p| match p {
+            Parameters::Params(p) => p.as_slice(),
+            _ => panic!("not gates"),
+        })
+        .unwrap_or(&[]);
+    if a_params.len() != gate_b.params.len() {
+        return Ok(false);
     }
+    let mut param_eq = true;
+    for (a, b) in a_params.iter().zip(&gate_b.params) {
+        if !a.is_close(py, b, 1e-10)? {
+            param_eq = false;
+            break;
+        }
+    }
+    Ok(param_eq)
 }
 
 fn run_on_self_inverse(

@@ -32,9 +32,9 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    Condition, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef, Param, PyEq,
-    PyInstruction, StandardGate, StandardGateRef, StandardInstruction, StandardInstructionRef,
-    Target,
+    ArrayType, Condition, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef,
+    Param, PyInstruction, StandardGate, StandardGateRef, StandardInstruction,
+    StandardInstructionRef, Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
@@ -79,6 +79,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
 
+use approx::relative_eq;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -366,7 +367,6 @@ impl DAGInstruction {
     }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
-    // TODO: remove this? I think we can do it via py_eq in the view instead
     fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
         match (self.op(), other.op()) {
             (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
@@ -390,49 +390,33 @@ impl DAGInstruction {
             // Handle the case we end up with a pygate for a standard gate
             // this typically only happens if it's a ControlledGate in python
             // and we have mutable state set.
-            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
-                self.clone()
-                    .into_packed(py)?
-                    .unpack_py_op(py)?
-                    .bind(py)
-                    .eq(&right.gate)
-                // self.unpack_py_op(py)?.bind(py).eq(&right.gate)
-            }
-            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
-                other
-                    .clone()
-                    .into_packed(py)?
-                    .unpack_py_op(py)?
-                    .bind(py)
-                    .eq(&left.gate)
-                // other.unpack_py_op(py)?.bind(py).eq(&left.gate)
-            }
+            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => self
+                .clone()
+                .into_packed(py)?
+                .unpack_py_op(py)?
+                .bind(py)
+                .eq(&right.gate),
+            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => other
+                .clone()
+                .into_packed(py)?
+                .unpack_py_op(py)?
+                .bind(py)
+                .eq(&left.gate),
             // Handle the case we end up with a pyinstruction for a standard instruction
-            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
-                self.clone()
-                    .into_packed(py)?
-                    .unpack_py_op(py)?
-                    .bind(py)
-                    .eq(&right.instruction)
-                // self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
-            }
-            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => {
-                other
-                    .clone()
-                    .into_packed(py)?
-                    .unpack_py_op(py)?
-                    .bind(py)
-                    .eq(&left.instruction)
-                // other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
-            }
+            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => self
+                .clone()
+                .into_packed(py)?
+                .unpack_py_op(py)?
+                .bind(py)
+                .eq(&right.instruction),
+            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => other
+                .clone()
+                .into_packed(py)?
+                .unpack_py_op(py)?
+                .bind(py)
+                .eq(&left.instruction),
             _ => Ok(false),
         }
-    }
-}
-
-impl PyEq for DAGCircuit {
-    fn py_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
-        self.__eq__(py, other)
     }
 }
 
@@ -2545,22 +2529,182 @@ impl DAGCircuit {
                         }
                         true
                     };
-                    if !inst1.view().py_eq(py, &inst2.view())? {
-                        return Ok(false);
-                    }
-                    // TODO: do this in InstructionRef.py_eq by converting python to Rust type
-                    match [inst1.op.view(), inst2.op.view()] {
+                    match [inst1.view(), inst2.view()] {
+                        [InstructionRef::StandardGate(StandardGateRef(gate1, params1)), InstructionRef::StandardGate(StandardGateRef(gate2, params2))] => {
+                            Ok(gate1 == gate2
+                                && check_args()
+                                && params1
+                                    .iter()
+                                    .zip(params2)
+                                    .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
+                        }
+                        [InstructionRef::StandardInstruction(inst1), InstructionRef::StandardInstruction(inst2)] => {
+                            Ok(match [inst1, inst2] {
+                                [StandardInstructionRef::Barrier(n1), StandardInstructionRef::Barrier(n2)] => {
+                                    n1 == n2
+                                }
+                                [StandardInstructionRef::Delay {
+                                    duration: duration1,
+                                    unit: unit1,
+                                }, StandardInstructionRef::Delay {
+                                    duration: duration2,
+                                    unit: unit2,
+                                }] => unit1 == unit2 && duration1.is_close(py, duration2, 1e-10)?,
+                                [StandardInstructionRef::Measure, StandardInstructionRef::Measure] => {
+                                    true
+                                }
+                                [StandardInstructionRef::Reset, StandardInstructionRef::Reset] => {
+                                    true
+                                }
+                                _ => false,
+                            } && check_args())
+                        }
+                        [InstructionRef::ControlFlow(inst1), InstructionRef::ControlFlow(inst2)] => {
+                            match (inst1, inst2) {
+                                // TODO: use structural equivalence for condition and target
+                                (
+                                    ControlFlowRef::Box(duration_a, body_a),
+                                    ControlFlowRef::Box(duration_b, body_b),
+                                ) => Ok(duration_a == duration_b && body_a.__eq__(py, body_b)?),
+                                (ControlFlowRef::BreakLoop, ControlFlowRef::BreakLoop) => Ok(true),
+                                (ControlFlowRef::ContinueLoop, ControlFlowRef::ContinueLoop) => {
+                                    Ok(true)
+                                }
+                                (
+                                    ControlFlowRef::ForLoop {
+                                        indexset: indexset_a,
+                                        loop_param: loop_param_a,
+                                        body: body_a,
+                                    },
+                                    ControlFlowRef::ForLoop {
+                                        indexset: indexset_b,
+                                        loop_param: loop_param_b,
+                                        body: body_b,
+                                    },
+                                ) => Ok(indexset_a == indexset_b
+                                    && loop_param_a.bind(py).eq(loop_param_b)?
+                                    && body_a.__eq__(py, body_b)?),
+                                (
+                                    ControlFlowRef::IfElse {
+                                        condition: condition_a,
+                                        true_body: true_body_a,
+                                        false_body: false_body_a,
+                                    },
+                                    ControlFlowRef::IfElse {
+                                        condition: condition_b,
+                                        true_body: true_body_b,
+                                        false_body: false_body_b,
+                                    },
+                                ) => Ok(condition_a == condition_b
+                                    && true_body_a.__eq__(py, true_body_b)?
+                                    && false_body_a.__eq__(py, false_body_b)?),
+                                (
+                                    ControlFlowRef::Switch {
+                                        target: target_a,
+                                        cases: cases_a,
+                                    },
+                                    ControlFlowRef::Switch {
+                                        target: target_b,
+                                        cases: cases_b,
+                                    },
+                                ) => {
+                                    if target_a != target_b || cases_a.len() != cases_b.len() {
+                                        return Ok(false);
+                                    }
+                                    for (a, b) in cases_a.iter().zip(cases_b.iter()) {
+                                        if !a.__eq__(py, b)? {
+                                            return Ok(false);
+                                        }
+                                    }
+                                    Ok(true)
+                                }
+                                (
+                                    ControlFlowRef::While {
+                                        condition: condition_a,
+                                        body: body_a,
+                                    },
+                                    ControlFlowRef::While {
+                                        condition: condition_b,
+                                        body: body_b,
+                                    },
+                                ) => Ok(condition_a == condition_b && body_a.__eq__(py, body_b)?),
+                                _ => Ok(false),
+                            }
+                        }
+                        [InstructionRef::Instruction(_op1), InstructionRef::Instruction(_op2)] => {
+                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                        }
+                        [InstructionRef::Gate(_op1), InstructionRef::Gate(_op2)] => {
+                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                        }
+                        [InstructionRef::Operation(_op1), InstructionRef::Operation(_op2)] => {
+                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                        }
                         // Handle the edge case where we end up with a Python object and a standard
                         // gate/instruction.
                         // This typically only happens if we have a ControlledGate in Python
                         // and we have mutable state set.
-                        [OperationRef::StandardGate(_), OperationRef::Gate(_)]
-                        | [OperationRef::Gate(_), OperationRef::StandardGate(_)]
-                        | [OperationRef::StandardInstruction(_), OperationRef::Instruction(_)]
-                        | [OperationRef::Instruction(_), OperationRef::StandardInstruction(_)] => {
+                        [InstructionRef::StandardGate(_), InstructionRef::Gate(_)]
+                        | [InstructionRef::Gate(_), InstructionRef::StandardGate(_)]
+                        | [InstructionRef::StandardInstruction(_), InstructionRef::Instruction(_)]
+                        | [InstructionRef::Instruction(_), InstructionRef::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
-                        _ => Ok(check_args()),
+                        [InstructionRef::Unitary(op_a), InstructionRef::Unitary(op_b)] => {
+                            match [&op_a.array, &op_b.array] {
+                                [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                                    if b.shape()[0] == 2 {
+                                        for i in 0..2 {
+                                            for j in 0..2 {
+                                                if !relative_eq!(
+                                                    b[[i, j]],
+                                                    a[(i, j)],
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ) {
+                                                    return Ok(false);
+                                                }
+                                            }
+                                        }
+                                        Ok(true)
+                                    } else {
+                                        Ok(false)
+                                    }
+                                }
+                                [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                                    if b.shape()[0] == 4 {
+                                        for i in 0..4 {
+                                            for j in 0..4 {
+                                                if !relative_eq!(
+                                                    b[[i, j]],
+                                                    a[(i, j)],
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ) {
+                                                    return Ok(false);
+                                                }
+                                            }
+                                        }
+                                        Ok(true)
+                                    } else {
+                                        Ok(false)
+                                    }
+                                }
+                                [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
+                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                }
+                                _ => Ok(false),
+                            }
+                        }
+                        _ => Ok(false),
                     }
                 }
                 [NodeType::QubitIn(bit1), NodeType::QubitIn(bit2)] => Ok(bit1 == bit2),

@@ -22,20 +22,22 @@ use pyo3::types::{IntoPyDict, PyBool, PyDict, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
+use crate::duration::Duration;
 use crate::imports::{
     BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, CONTROLLED_GATE, DELAY, FOR_LOOP_OP, GATE,
     IF_ELSE_OP, INSTRUCTION, MEASURE, OPERATION, RESET, SWITCH_CASE_OP, UNITARY_GATE,
     WARNINGS_WARN, WHILE_LOOP_OP,
 };
 use crate::operations::{
-    ArrayType, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef, Param, PyGate,
-    PyInstruction, PyOperation, StandardGate, StandardGateRef, StandardInstruction,
-    StandardInstructionRef, StandardInstructionType, UnitaryGate, UnitaryGateRef,
+    ArrayType, ControlFlow, ControlFlowRef, ControlFlowType, InstructionRef, Operation,
+    OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate, StandardGateRef,
+    StandardInstruction, StandardInstructionRef, StandardInstructionType, UnitaryGate,
+    UnitaryGateRef,
 };
 use crate::packed_instruction::PackedOperation;
 use nalgebra::{MatrixView2, MatrixView4};
 use num_complex::Complex64;
-use smallvec::SmallVec;
+use smallvec::{smallvec, SmallVec};
 
 pub trait IntoInstructionRef<'a> {
     type Block;
@@ -86,47 +88,6 @@ pub trait Instruction {
     fn py_op(&self) -> Option<&OnceLock<Py<PyAny>>> {
         // Disable caching by default.
         None
-    }
-
-    /// Check equality of the operation, including Python-space checks, if appropriate.
-    fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
-        match (self.op(), other.op()) {
-            (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
-                Ok(left == right)
-            }
-            (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
-                Ok(left == right)
-            }
-            (OperationRef::StandardInstruction(left), OperationRef::StandardInstruction(right)) => {
-                Ok(left == right)
-            }
-            (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                left.gate.bind(py).eq(&right.gate)
-            }
-            (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
-                left.instruction.bind(py).eq(&right.instruction)
-            }
-            (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                left.operation.bind(py).eq(&right.operation)
-            }
-            // Handle the case we end up with a pygate for a standard gate
-            // this typically only happens if it's a ControlledGate in python
-            // and we have mutable state set.
-            (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => {
-                self.unpack_py_op(py)?.bind(py).eq(&right.gate)
-            }
-            (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => {
-                other.unpack_py_op(py)?.bind(py).eq(&left.gate)
-            }
-            // Handle the case we end up with a pyinstruction for a standard instruction
-            (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => {
-                self.unpack_py_op(py)?.bind(py).eq(&right.instruction)
-            }
-            (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => {
-                other.unpack_py_op(py)?.bind(py).eq(&left.instruction)
-            }
-            _ => Ok(false),
-        }
     }
 
     fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -976,6 +937,117 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_standard_instruction(standard),
                 params: extract_params()?,
+                label: extract_label()?,
+            });
+        }
+        'control_flow: {
+            // Our Python control flow instructions have a `_control_flow_type` field at the
+            // class level so we can quickly identify them here without an `isinstance` check.
+            // Once we know the type, we query the object for any type-specific fields we need to
+            // read to build the Rust representation.
+            let Some(control_flow_type) = ob_type
+                .getattr(intern!(py, "_control_flow_type"))
+                .and_then(|cf| cf.extract::<ControlFlowType>())
+                .ok()
+            else {
+                break 'control_flow;
+            };
+            let (control_flow, params) = match control_flow_type {
+                ControlFlowType::Box => {
+                    let py_duration = ob.getattr(intern!(py, "duration"))?;
+                    let unit: Option<String> = ob.getattr(intern!(py, "unit"))?.extract()?;
+                    let duration = match unit.as_deref().unwrap_or("dt") {
+                        "dt" => Duration::dt(py_duration.extract()?),
+                        "s" => Duration::s(py_duration.extract()?),
+                        "ms" => Duration::ms(py_duration.extract()?),
+                        "us" => Duration::us(py_duration.extract()?),
+                        "ns" => Duration::ns(py_duration.extract()?),
+                        // TODO: handle "ps"
+                        _ => panic!("invalid duration"), // TODO: return Err
+                    };
+                    (
+                        ControlFlow::Box {
+                            duration,
+                            qubits: ob.getattr("num_qubits")?.extract()?,
+                            clbits: ob.getattr("num_clbits")?.extract()?,
+                        },
+                        smallvec![Param::Circuit(
+                            ob.getattr("params")?.try_iter()?.next().unwrap()?.unbind()
+                        )],
+                    )
+                }
+                ControlFlowType::BreakLoop => (
+                    ControlFlow::BreakLoop {
+                        qubits: ob.getattr("num_qubits")?.extract()?,
+                        clbits: ob.getattr("num_clbits")?.extract()?,
+                    },
+                    smallvec![],
+                ),
+                ControlFlowType::ContinueLoop => (
+                    ControlFlow::ContinueLoop {
+                        qubits: ob.getattr("num_qubits")?.extract()?,
+                        clbits: ob.getattr("num_clbits")?.extract()?,
+                    },
+                    smallvec![],
+                ),
+                ControlFlowType::ForLoop => {
+                    let mut params = ob.getattr("params")?.try_iter()?;
+                    (
+                        ControlFlow::ForLoop {
+                            qubits: ob.getattr("num_qubits")?.extract()?,
+                            clbits: ob.getattr("num_clbits")?.extract()?,
+                        },
+                        smallvec![
+                            Param::Indexset(params.next().unwrap()?.extract()?),
+                            Param::ParameterExpression(params.next().unwrap()?.unbind()),
+                            Param::Circuit(params.next().unwrap()?.unbind()),
+                        ],
+                    )
+                }
+                ControlFlowType::IfElse => {
+                    let mut params = ob.getattr("params")?.try_iter()?;
+                    (
+                        ControlFlow::IfElse {
+                            condition: ob.getattr(intern!(py, "condition"))?.extract()?,
+                            qubits: ob.getattr("num_qubits")?.extract()?,
+                            clbits: ob.getattr("num_clbits")?.extract()?,
+                        },
+                        smallvec![
+                            Param::Circuit(params.next().unwrap()?.unbind()),
+                            Param::Circuit(params.next().unwrap()?.unbind()),
+                        ],
+                    )
+                }
+                ControlFlowType::SwitchCase => {
+                    let params: SmallVec<[Param; 3]> = ob
+                        .getattr("params")?
+                        .try_iter()?
+                        .map(|p| p.map(|p| Param::Circuit(p.unbind())))
+                        .collect::<PyResult<_>>()?;
+                    (
+                        ControlFlow::Switch {
+                            target: ob.getattr(intern!(py, "target"))?.extract()?,
+                            qubits: ob.getattr("num_qubits")?.extract()?,
+                            clbits: ob.getattr("num_clbits")?.extract()?,
+                            cases: params.len() as u32,
+                        },
+                        params,
+                    )
+                }
+                ControlFlowType::WhileLoop => (
+                    ControlFlow::While {
+                        condition: ob.getattr(intern!(py, "condition"))?.extract()?,
+                        qubits: ob.getattr("num_qubits")?.extract()?,
+                        clbits: ob.getattr("num_clbits")?.extract()?,
+                    },
+                    smallvec![Param::Circuit(
+                        ob.getattr("params")?.try_iter()?.next().unwrap()?.unbind()
+                    )],
+                ),
+            };
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_control_flow(control_flow.into()),
+                params,
                 label: extract_label()?,
             });
         }
