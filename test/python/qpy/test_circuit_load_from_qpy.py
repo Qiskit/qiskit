@@ -331,6 +331,7 @@ class TestSymbolExpr(QpyCircuitTestCase):
     """Test QPY with SymbolExpr"""
 
     def test_back_slash(self):
+        """Test Parameter with back slash"""
         qc = QuantumCircuit(2)
         alpha = Parameter(r"\alpha")
         beta = Parameter(r"\beta")
