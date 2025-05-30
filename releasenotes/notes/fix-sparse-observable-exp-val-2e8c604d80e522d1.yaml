@@ -3,8 +3,3 @@ features:
   - |
     Added ability to compute the expectation value of a `SparseObservable`
     by using the `sampled_expectation_value` function.
-fixes:
-  - |
-    This fixes the issue where the `sampled_expectation_value` function does not
-    accept a `SparseObservable` as an argument. 
-    Refer to `#13446 <https://github.com/Qiskit/qiskit/issues/13446>` for more details.
