@@ -99,6 +99,32 @@ class SamplerPubTestCase(QiskitTestCase):
         with self.assertRaises(ValueError):
             SamplerPub(circuit, parameter_values=parameter_values)
 
+    @ddt.data([(), (18, 2)], [(3,), (4, 3)], [(2, 3), (2, 3)])
+    @ddt.unpack
+    def test_shape_argument(self, params_shape, shape):
+        """Test the shape argument."""
+        circuit = QuantumCircuit(2)
+        parameter_values = BindingsArray({(): np.zeros((*params_shape, 0))}, shape=params_shape)
+        pub = SamplerPub(circuit, parameter_values=parameter_values, shape=shape)
+        self.assertEqual(pub.shape, shape)
+
+    def test_invalid_shape_argument(self):
+        """Test the shape argument causes an exception when incorrect."""
+
+        with self.assertRaisesRegex(ValueError, "must be a tuple of integers, found 15 instead"):
+            SamplerPub(QuantumCircuit(2), shape=15)
+
+        with self.assertRaisesRegex(ValueError, r"found \[15\] instead"):
+            SamplerPub(QuantumCircuit(2), shape=[15])
+
+        parameter_values = BindingsArray({(): np.zeros((3, 2, 0))}, shape=(3, 2))
+        with self.assertRaisesRegex(ValueError, r"\(3, 2\), is not compatible with .* \(5, 2\)"):
+            SamplerPub(QuantumCircuit(2), parameter_values, shape=(5, 2))
+
+        parameter_values = BindingsArray({(): np.zeros((3, 2, 0))}, shape=(3, 2))
+        with self.assertRaisesRegex(ValueError, r"\(3, 2\), exceeds the shape of the pub, \(1, 2"):
+            SamplerPub(QuantumCircuit(2), parameter_values, shape=(1, 2))
+
     @ddt.data((), (3,), (2, 3))
     def test_shaped_zero_parameter_values(self, shape):
         """Test Passing in a shaped array with no parameters works"""
@@ -345,3 +371,25 @@ class SamplerPubTestCase(QiskitTestCase):
         pub = SamplerPub.coerce((circuit, params))
         self.assertIs(pub.circuit, circuit)
         self.assertIs(pub.parameter_values, params)
+
+    @ddt.data([(), (18, 2)], [(3,), (4, 3)], [(2, 3), (2, 3)])
+    @ddt.unpack
+    def test_coerce_tuple_with_shape(self, params_shape, shape):
+        """Test coercing circuit and parameter values"""
+        circuit = QuantumCircuit(2)
+        parameter_values = np.zeros((*params_shape, 0))
+
+        pub = SamplerPub.coerce((circuit, parameter_values, None, shape))
+        self.assertEqual(pub.circuit, circuit, msg="incorrect value for `circuit` property")
+        self.assertEqual(pub.shots, None, msg="incorrect value for `shots` property")
+        self.assertEqual(pub.shape, shape, msg="incorect value for `shape` property")
+
+        pub = SamplerPub.coerce((circuit, parameter_values, 123, shape))
+        self.assertEqual(pub.circuit, circuit, msg="incorrect value for `circuit` property")
+        self.assertEqual(pub.shots, 123, msg="incorrect value for `shots` property")
+        self.assertEqual(pub.shape, shape, msg="incorect value for `shape` property")
+
+        pub = SamplerPub.coerce((circuit, parameter_values, None, None))
+        self.assertEqual(pub.circuit, circuit, msg="incorrect value for `circuit` property")
+        self.assertEqual(pub.shots, None, msg="incorrect value for `shots` property")
+        self.assertEqual(pub.shape, params_shape, msg="incorect value for `shape` property")
