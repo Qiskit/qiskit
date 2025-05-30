@@ -233,7 +233,9 @@ impl DAGInstruction {
                         panic!("invalid");
                     };
                     let false_body = match params.next() {
-                        Some(Param::Circuit(body)) => Some(circuit_to_dag(py, body.extract(py)?, false, None, None)?),
+                        Some(Param::Circuit(body)) => {
+                            Some(circuit_to_dag(py, body.extract(py)?, false, None, None)?)
+                        }
                         None => None,
                         _ => panic!("invalid"),
                     };
@@ -470,7 +472,7 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
         };
         Some(match (control, self.params.as_deref()) {
             (ControlFlow::Box { duration, .. }, Some(Parameters::Box { body })) => {
-                ControlFlowRef::Box(duration, body)
+                ControlFlowRef::Box(duration.as_ref(), body)
             }
             (ControlFlow::BreakLoop { .. }, _) => ControlFlowRef::BreakLoop,
             (ControlFlow::ContinueLoop { .. }, _) => ControlFlowRef::ContinueLoop,
@@ -2602,14 +2604,16 @@ impl DAGCircuit {
                                 ) => {
                                     let false_body_eq = || -> PyResult<bool> {
                                         match (false_body_a, false_body_b) {
-                                            (Some(false_body_a), Some(false_body_b)) => false_body_a.__eq__(py, false_body_b),
+                                            (Some(false_body_a), Some(false_body_b)) => {
+                                                false_body_a.__eq__(py, false_body_b)
+                                            }
                                             (None, None) => Ok(true),
                                             _ => Ok(false),
                                         }
                                     };
                                     Ok(condition_a == condition_b
-                                    && true_body_a.__eq__(py, true_body_b)?
-                                    && false_body_eq()?)
+                                        && true_body_a.__eq__(py, true_body_b)?
+                                        && false_body_eq()?)
                                 }
                                 (
                                     ControlFlowRef::Switch {

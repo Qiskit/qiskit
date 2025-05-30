@@ -125,6 +125,8 @@ impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
         Ok(if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
             Param::ParameterExpression(b.clone().unbind())
+        } else if b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))? {
+            Param::Circuit(b.clone().unbind())
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
@@ -139,9 +141,17 @@ impl Param {
         let parameters_attr = intern!(py, "parameters");
         match self {
             Param::Float(_) => Ok(ParamParameterIter(None)),
-            Param::ParameterExpression(expr) => Ok(ParamParameterIter(Some(
-                expr.bind(py).getattr(parameters_attr)?.try_iter()?,
-            ))),
+            Param::ParameterExpression(expr) => {
+                // TODO: this can only be None for loop_parameter of for loop ops.
+                let expr = expr.bind(py);
+                if expr.is_none() {
+                    Ok(ParamParameterIter(None))
+                } else {
+                    Ok(ParamParameterIter(Some(
+                        expr.getattr(parameters_attr)?.try_iter()?,
+                    )))
+                }
+            }
             Param::Obj(obj) => {
                 let obj = obj.bind(py);
                 if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
@@ -165,7 +175,10 @@ impl Param {
                         obj.getattr(parameters_attr)?.try_iter()?,
                     )))
                 } else {
-                    panic!("invalid Python type for circuit param: {}", obj.get_type().name()?)
+                    panic!(
+                        "invalid Python type for circuit param: {}",
+                        obj.get_type().name()?
+                    )
                 }
             }
             _ => Ok(ParamParameterIter(None)),
@@ -180,6 +193,8 @@ impl Param {
             Param::Float(ob.extract()?)
         } else if ob.is_instance(PARAMETER_EXPRESSION.get_bound(ob.py()))? {
             Param::ParameterExpression(ob.clone().unbind())
+        } else if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
+            Param::Circuit(ob.clone().unbind())
         } else {
             Param::Obj(ob.clone().unbind())
         })
@@ -384,7 +399,7 @@ pub(crate) enum ControlFlowType {
 #[repr(align(8))]
 pub enum ControlFlow {
     Box {
-        duration: Duration,
+        duration: Option<Duration>,
         qubits: u32,
         clbits: u32,
     },
@@ -518,7 +533,7 @@ impl<'py> FromPyObject<'py> for Target {
 
 #[derive(Clone, Debug)]
 pub enum ControlFlowRef<'a, T> {
-    Box(&'a Duration, &'a T),
+    Box(Option<&'a Duration>, &'a T),
     BreakLoop,
     ContinueLoop,
     ForLoop {
@@ -558,7 +573,7 @@ impl<'a, T> ControlFlowRef<'a, T> {
                 } else {
                     vec![*true_body]
                 }
-            },
+            }
             ControlFlowRef::Switch { cases, .. } => cases.clone(),
             ControlFlowRef::While { body, .. } => vec![*body],
         }

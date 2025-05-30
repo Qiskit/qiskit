@@ -17,6 +17,7 @@ use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
 use qiskit_circuit::dag_circuit::{DAGInstruction, Parameters};
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
+use qiskit_circuit::operations::ControlFlowRef;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
@@ -25,7 +26,6 @@ use qiskit_circuit::{
     operations::{Operation, Param},
 };
 use smallvec::SmallVec;
-use qiskit_circuit::operations::ControlFlowRef;
 
 // Custom types
 pub type GateIdentifier = (String, u32);
@@ -152,7 +152,7 @@ fn get_gates_num_params(
         if let Some(control_flow) = inst.control_flow() {
             example_gates.insert(
                 (inst.op().name().to_string(), inst.op().num_qubits()),
-                inst.op.num_params() as usize
+                inst.op.num_params() as usize,
             );
             for block in control_flow.blocks() {
                 get_gates_num_params(block, example_gates)?;

@@ -102,10 +102,13 @@ pub trait Instruction {
                         let [Param::Circuit(body)] = self.params_view() else {
                             panic!("invalid box params");
                         };
-                        BOX_OP.get_bound(py).call(
-                            (body, duration.py_value(py)?, duration.unit()),
-                            kwargs.as_ref(),
-                        )?
+                        let (duration, unit) = match duration {
+                            Some(duration) => (Some(duration.py_value(py)?), duration.unit()),
+                            None => (None, "dt"),
+                        };
+                        BOX_OP
+                            .get_bound(py)
+                            .call((body, duration, unit), kwargs.as_ref())?
                     }
                     ControlFlow::BreakLoop { qubits, clbits } => BREAK_LOOP_OP
                         .get_bound(py)
@@ -367,7 +370,7 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                 let Param::Circuit(body) = &self.params_view()[0] else {
                     panic!("invalid");
                 };
-                ControlFlowRef::Box(duration, body)
+                ControlFlowRef::Box(duration.as_ref(), body)
             }
             ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
             ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
@@ -955,16 +958,21 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             };
             let (control_flow, params) = match control_flow_type {
                 ControlFlowType::Box => {
-                    let py_duration = ob.getattr(intern!(py, "duration"))?;
+                    let py_duration: Option<Bound<PyAny>> =
+                        ob.getattr(intern!(py, "duration"))?.extract()?;
                     let unit: Option<String> = ob.getattr(intern!(py, "unit"))?.extract()?;
-                    let duration = match unit.as_deref().unwrap_or("dt") {
-                        "dt" => Duration::dt(py_duration.extract()?),
-                        "s" => Duration::s(py_duration.extract()?),
-                        "ms" => Duration::ms(py_duration.extract()?),
-                        "us" => Duration::us(py_duration.extract()?),
-                        "ns" => Duration::ns(py_duration.extract()?),
-                        // TODO: handle "ps"
-                        _ => panic!("invalid duration"), // TODO: return Err
+                    let duration = if let Some(py_duration) = py_duration {
+                        Some(match unit.as_deref().unwrap_or("dt") {
+                            "dt" => Duration::dt(py_duration.extract()?),
+                            "s" => Duration::s(py_duration.extract()?),
+                            "ms" => Duration::ms(py_duration.extract()?),
+                            "us" => Duration::us(py_duration.extract()?),
+                            "ns" => Duration::ns(py_duration.extract()?),
+                            // TODO: handle "ps"
+                            _ => panic!("invalid duration"), // TODO: return Err
+                        })
+                    } else {
+                        None
                     };
                     (
                         ControlFlow::Box {
