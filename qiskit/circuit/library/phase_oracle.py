@@ -62,8 +62,7 @@ class PhaseOracle(QuantumCircuit):
         """
         # Deprecation warning
         warnings.warn(
-            "PhaseOracle is deprecated as of Qiskit 1.3 and will be removed in a future release",
-            "Use the PhaseOracleGate class instead.",
+            "PhaseOracle is deprecated as of Qiskit 1.3 and will be removed in a future release. Use the PhaseOracleGate class instead.",
             category = DeprecationWarning,
             stacklevel = 2,
         )
