@@ -1,0 +1,13 @@
+---
+other:
+  - |
+    The relative weights of the "basic" and "lookahead" components of the :class:`.SabreSwap` and
+    :class:`.SabreLayout` heuristics have been modified when extended-set tracking is active (as it
+    always is in :class:`.SabreLayout`, and is by default in :class:`.SabreSwap`).  The heuristic
+    component relating to the distance between qubits in an individual gate in the front layer now
+    no longer weakens proportional to the number of gates in the front layer; this behavior was a
+    historical choice, but at large circuit sizes, has the accidental effect of causing the front
+    layer to be nearly ignored, which is disastrous for efficiency.
+
+    The resulting routing improvements should be most noticeable for circuits that can frequently be
+    stratified into layers of more than 20 parallel two-qubit gates.

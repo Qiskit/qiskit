@@ -585,7 +585,7 @@ class TestCircuitCompose(QiskitTestCase):
         qc_a.compose(qc_b, wrap=True, inplace=True)
 
         self.assertDictEqual(qc_a.count_ops(), {"B": 1, "x": 1})
-        self.assertDictEqual(qc_a.decompose().count_ops(), {"h": 1, "u3": 1})
+        self.assertDictEqual(qc_a.decompose().count_ops(), {"h": 1, "u": 1})
 
     def test_wrapping_unitary_circuit(self):
         """Test a unitary circuit will be wrapped as Gate, else as Instruction."""

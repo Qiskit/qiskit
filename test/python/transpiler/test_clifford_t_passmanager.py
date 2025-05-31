@@ -48,6 +48,8 @@ class TestCliffordTPassManager(QiskitTestCase):
         )
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        # The resulting circuit should not have any T/Tdg-gates.
+        self.assertEqual(_get_t_count(transpiled), 0)
 
     @data(0, 1, 2, 3)
     def test_complex_clifford(self, optimization_level):
@@ -67,6 +69,8 @@ class TestCliffordTPassManager(QiskitTestCase):
         )
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        # The resulting circuit should not have any T/Tdg-gates.
+        self.assertEqual(_get_t_count(transpiled), 0)
 
     @data(0, 1, 2, 3)
     def test_rx(self, optimization_level):
@@ -82,6 +86,23 @@ class TestCliffordTPassManager(QiskitTestCase):
         )
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+    @data(0, 1, 2, 3)
+    def test_rx_pi2(self, optimization_level):
+        """Clifford+T transpilation of a circuit with a single-qubit rotation gate
+        that corresponds to a Clifford gate.
+        """
+        qc = QuantumCircuit(1)
+        qc.rx(np.pi / 2, 0)
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        pm = generate_preset_pass_manager(
+            basis_gates=basis_gates, optimization_level=optimization_level
+        )
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        # The resulting circuit should not have any T/Tdg-gates.
+        self.assertEqual(_get_t_count(transpiled), 0)
 
     @data(0, 1, 2, 3)
     def test_rx_pi4(self, optimization_level):
@@ -132,9 +153,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         # and 3 powers of T-gates, each leading to at most 4 T/Tdg gates.
         # Importantly, the transpilation should not make this worse.
         max_t_size = 3 * 9 + 3 * 4
-        transpiled_ops = transpiled.count_ops()
-        t_size = transpiled_ops.get("t", 0) + transpiled_ops.get("tdg", 0)
-        self.assertLessEqual(t_size, max_t_size)
+        self.assertLessEqual(_get_t_count(transpiled), max_t_size)
 
     @data(0, 1, 2, 3)
     def test_graph_state(self, optimization_level):
@@ -158,10 +177,8 @@ class TestCliffordTPassManager(QiskitTestCase):
         transpiled = pm.run(qc)
         transpiled_ops = transpiled.count_ops()
         self.assertLessEqual(set(transpiled_ops), set(basis_gates))
-
         # The resulting circuit should not have any T/Tdg-gates.
-        t_size = transpiled_ops.get("t", 0) + transpiled_ops.get("tdg", 0)
-        self.assertEqual(t_size, 0)
+        self.assertEqual(_get_t_count(transpiled), 0)
 
     @data(0, 1, 2, 3)
     def test_ccx(self, optimization_level):
@@ -247,3 +264,9 @@ class TestCliffordTPassManager(QiskitTestCase):
         pm = generate_preset_pass_manager(basis_gates=basis_gates)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+
+def _get_t_count(qc):
+    """Returns the number of T/Tdg gates in a circuit."""
+    ops = qc.count_ops()
+    return ops.get("t", 0) + ops.get("tdg", 0)

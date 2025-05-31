@@ -210,6 +210,8 @@ class SabreSwap(TransformationPass):
                 " This circuit cannot be routed to this device."
             )
 
+        # In our defaults, the basic heuristic shouldn't scale by size; if it does, it's liable to
+        # get the algorithm stuck.  See https://github.com/Qiskit/qiskit/pull/14458 for more.
         if isinstance(self.heuristic, Heuristic):
             heuristic = self.heuristic
         elif self.heuristic == "basic":
@@ -219,13 +221,13 @@ class SabreSwap(TransformationPass):
         elif self.heuristic == "lookahead":
             heuristic = (
                 Heuristic(attempt_limit=10 * num_dag_qubits)
-                .with_basic(1.0, SetScaling.Size)
+                .with_basic(1.0, SetScaling.Constant)
                 .with_lookahead(0.5, 20, SetScaling.Size)
             )
         elif self.heuristic == "decay":
             heuristic = (
                 Heuristic(attempt_limit=10 * num_dag_qubits)
-                .with_basic(1.0, SetScaling.Size)
+                .with_basic(1.0, SetScaling.Constant)
                 .with_lookahead(0.5, 20, SetScaling.Size)
                 .with_decay(0.001, 5)
             )
@@ -374,6 +376,14 @@ def _apply_sabre_result(
         empty.add_clbits(block.clbits)
         for creg in block.cregs:
             empty.add_creg(creg)
+        for var_ in block.iter_declared_vars():
+            empty.add_declared_var(var_)
+        for var_ in block.iter_captured_vars():
+            empty.add_captured_var(var_)
+        for stretch in block.iter_declared_stretches():
+            empty.add_declared_stretch(stretch)
+        for stretch in block.iter_captured_stretches():
+            empty.add_captured_stretch(stretch)
         empty.global_phase = block.global_phase
         return empty
 

@@ -80,3 +80,7 @@ jobs:
       python-version: ${{ matrix.python_version }}
       install-optionals: ${{ matrix.python_version == '3.9'}}
       runner: ${{ matrix.runner }}
+  c-tests:
+    if: github.repository_owner == 'Qiskit'
+    name: C API Unit Tests
+    uses: ./.github/workflows/ctests.yml

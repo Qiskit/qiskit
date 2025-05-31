@@ -14,7 +14,6 @@
 
 import math
 from cmath import exp
-from math import pi
 from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
@@ -62,22 +61,17 @@ class RGate(Gate):
         super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
-        """
-        gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u3 import U3Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        theta = self.params[0]
-        phi = self.params[1]
-        rules = [(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌───────────────────────┐
+        # q: ┤ U(θ,-π/2 + φ,π/2 - φ) ├
+        #    └───────────────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.R._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Invert this gate as: :math:`R(θ, φ)^{\dagger} = R(-θ, φ)`

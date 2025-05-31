@@ -430,9 +430,11 @@ class SabreLayout(TransformationPass):
             coupling_map.size(),
             original_qubit_indices,
         )
+        # In our defaults, the basic heuristic shouldn't scale by size; if it does, it's liable to
+        # get the algorithm stuck.  See https://github.com/Qiskit/qiskit/pull/14458 for more.
         heuristic = (
             Heuristic(attempt_limit=10 * coupling_map.size())
-            .with_basic(1.0, SetScaling.Size)
+            .with_basic(1.0, SetScaling.Constant)
             .with_lookahead(0.5, 20, SetScaling.Size)
             .with_decay(0.001, 5)
         )

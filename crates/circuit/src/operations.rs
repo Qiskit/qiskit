@@ -20,7 +20,7 @@ use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use nalgebra::{Matrix2, Matrix4};
-use ndarray::{array, aview2, Array2};
+use ndarray::{array, aview2, Array2, ArrayView2, Dim, ShapeBuilder};
 use num_complex::Complex64;
 use smallvec::{smallvec, SmallVec};
 
@@ -1361,7 +1361,7 @@ impl Operation for StandardGate {
                             (Self::H, smallvec![], smallvec![Qubit(0)]),
                             (Self::Sdg, smallvec![], smallvec![Qubit(0)]),
                         ],
-                        FLOAT_ZERO,
+                        Param::Float(PI / 4.),
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
@@ -1376,7 +1376,7 @@ impl Operation for StandardGate {
                             (Self::H, smallvec![], smallvec![Qubit(0)]),
                             (Self::S, smallvec![], smallvec![Qubit(0)]),
                         ],
-                        FLOAT_ZERO,
+                        Param::Float(-PI / 4.),
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
@@ -1534,19 +1534,12 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (
-                                Self::RZX,
-                                smallvec![Param::Float(PI / 4.)],
-                                smallvec![Qubit(0), Qubit(1)],
-                            ),
+                            (Self::S, smallvec![], smallvec![Qubit(0)]),
+                            (Self::SX, smallvec![], smallvec![Qubit(1)]),
+                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (Self::X, smallvec![], smallvec![Qubit(0)]),
-                            (
-                                Self::RZX,
-                                smallvec![Param::Float(-PI / 4.)],
-                                smallvec![Qubit(0), Qubit(1)],
-                            ),
                         ],
-                        FLOAT_ZERO,
+                        Param::Float(-PI / 4.),
                     )
                     .expect("Unexpected Qiskit python bug"),
                 )
@@ -1623,31 +1616,20 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
+                            (Self::S, smallvec![], smallvec![Qubit(1)]),
+                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::Phase,
-                                smallvec![Param::Float(PI / 2.)],
+                                Self::RY,
+                                smallvec![multiply_param(theta, -0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U,
-                                smallvec![
-                                    multiply_param(theta, -0.5, py),
-                                    Param::Float(0.0),
-                                    Param::Float(0.0)
-                                ],
+                                Self::RY,
+                                smallvec![multiply_param(theta, 0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
-                            (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
-                            (
-                                Self::U,
-                                smallvec![
-                                    multiply_param(theta, 0.5, py),
-                                    Param::Float(-PI / 2.),
-                                    Param::Float(0.0)
-                                ],
-                                smallvec![Qubit(1)],
-                            ),
+                            (Self::Sdg, smallvec![], smallvec![Qubit(1)]),
                         ],
                         Param::Float(0.0),
                     )
@@ -1713,11 +1695,11 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::Phase, smallvec![Param::Float(PI / 4.)], q0),
+                            (Self::T, smallvec![], q0),
                             (Self::CX, smallvec![], q0_1.clone()),
-                            (Self::Phase, smallvec![Param::Float(-PI / 4.)], q1.clone()),
+                            (Self::Tdg, smallvec![], q1.clone()),
                             (Self::CX, smallvec![], q0_1),
-                            (Self::Phase, smallvec![Param::Float(PI / 4.)], q1),
+                            (Self::T, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
@@ -1733,11 +1715,11 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::Phase, smallvec![Param::Float(-PI / 4.)], q0),
+                            (Self::Tdg, smallvec![], q0),
                             (Self::CX, smallvec![], q0_1.clone()),
-                            (Self::Phase, smallvec![Param::Float(PI / 4.)], q1.clone()),
+                            (Self::T, smallvec![], q1.clone()),
                             (Self::CX, smallvec![], q0_1),
-                            (Self::Phase, smallvec![Param::Float(-PI / 4.)], q1),
+                            (Self::Tdg, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
@@ -1753,7 +1735,7 @@ impl Operation for StandardGate {
                         2,
                         [
                             (Self::H, smallvec![], q1.clone()),
-                            (Self::CPhase, smallvec![Param::Float(PI / 2.)], q0_1),
+                            (Self::CS, smallvec![], q0_1),
                             (Self::H, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
@@ -1822,19 +1804,19 @@ impl Operation for StandardGate {
                         2,
                         [
                             (
-                                Self::U1,
+                                Self::Phase,
                                 smallvec![multiply_param(&params[0], 0.5, py)],
                                 smallvec![Qubit(0)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U1,
+                                Self::Phase,
                                 smallvec![multiply_param(&params[0], -0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U1,
+                                Self::Phase,
                                 smallvec![multiply_param(&params[0], 0.5, py)],
                                 smallvec![Qubit(1)],
                             ),
@@ -1865,11 +1847,11 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::U1, smallvec![param_first_u1], smallvec![Qubit(0)]),
-                            (Self::U1, smallvec![param_second_u1], smallvec![Qubit(1)]),
+                            (Self::Phase, smallvec![param_first_u1], smallvec![Qubit(0)]),
+                            (Self::Phase, smallvec![param_second_u1], smallvec![Qubit(1)]),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U3,
+                                Self::U,
                                 smallvec![
                                     multiply_param(&params[0], -0.5, py),
                                     FLOAT_ZERO,
@@ -1879,7 +1861,7 @@ impl Operation for StandardGate {
                             ),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (
-                                Self::U3,
+                                Self::U,
                                 smallvec![
                                     multiply_param(&params[0], 0.5, py),
                                     params[1].clone(),
@@ -1926,13 +1908,13 @@ impl Operation for StandardGate {
                         py,
                         2,
                         [
-                            (Self::RX, smallvec![Param::Float(PI / 2.)], q0.clone()),
-                            (Self::RX, smallvec![Param::Float(PI / 2.)], q1.clone()),
+                            (Self::SXdg, smallvec![], q0.clone()),
+                            (Self::SXdg, smallvec![], q1.clone()),
                             (Self::CX, smallvec![], q0_q1.clone()),
                             (Self::RZ, smallvec![theta.clone()], q1.clone()),
                             (Self::CX, smallvec![], q0_q1),
-                            (Self::RX, smallvec![Param::Float(-PI / 2.)], q0),
-                            (Self::RX, smallvec![Param::Float(-PI / 2.)], q1),
+                            (Self::SX, smallvec![], q0),
+                            (Self::SX, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
@@ -1993,9 +1975,9 @@ impl Operation for StandardGate {
                                 smallvec![multiply_param(beta, -1.0, py)],
                                 q1.clone(),
                             ),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q0.clone()),
+                            (Self::Sdg, smallvec![], q0.clone()),
                             (Self::SX, smallvec![], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q0.clone()),
+                            (Self::S, smallvec![], q0.clone()),
                             (Self::S, smallvec![], q1.clone()),
                             (Self::CX, smallvec![], q0_1.clone()),
                             (
@@ -2010,9 +1992,9 @@ impl Operation for StandardGate {
                             ),
                             (Self::CX, smallvec![], q0_1),
                             (Self::Sdg, smallvec![], q1.clone()),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q0.clone()),
+                            (Self::Sdg, smallvec![], q0.clone()),
                             (Self::SXdg, smallvec![], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q0),
+                            (Self::S, smallvec![], q0),
                             (Self::RZ, smallvec![beta.clone()], q1),
                         ],
                         FLOAT_ZERO,
@@ -2032,9 +2014,9 @@ impl Operation for StandardGate {
                         2,
                         [
                             (Self::RZ, smallvec![beta.clone()], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q1.clone()),
+                            (Self::Sdg, smallvec![], q1.clone()),
                             (Self::SX, smallvec![], q1.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q1.clone()),
+                            (Self::S, smallvec![], q1.clone()),
                             (Self::S, smallvec![], q0.clone()),
                             (Self::CX, smallvec![], q1_0.clone()),
                             (
@@ -2049,9 +2031,9 @@ impl Operation for StandardGate {
                             ),
                             (Self::CX, smallvec![], q1_0),
                             (Self::Sdg, smallvec![], q0.clone()),
-                            (Self::RZ, smallvec![Param::Float(-PI / 2.)], q1.clone()),
+                            (Self::Sdg, smallvec![], q1.clone()),
                             (Self::SXdg, smallvec![], q1.clone()),
-                            (Self::RZ, smallvec![Param::Float(PI / 2.)], q1),
+                            (Self::S, smallvec![], q1),
                             (Self::RZ, smallvec![multiply_param(beta, -1.0, py)], q0),
                         ],
                         FLOAT_ZERO,
@@ -2141,19 +2123,15 @@ impl Operation for StandardGate {
                         py,
                         3,
                         [
-                            (
-                                Self::U2,
-                                smallvec![FLOAT_ZERO, Param::Float(PI)],
-                                q2.clone(),
-                            ),
-                            (Self::U1, smallvec![Param::Float(PI / 4.)], q2.clone()),
+                            (Self::H, smallvec![], q2.clone()),
+                            (Self::T, smallvec![], q2.clone()),
                             (Self::CX, smallvec![], q1_2.clone()),
-                            (Self::U1, smallvec![Param::Float(-PI / 4.)], q2.clone()),
+                            (Self::Tdg, smallvec![], q2.clone()),
                             (Self::CX, smallvec![], q0_2),
-                            (Self::U1, smallvec![Param::Float(PI / 4.)], q2.clone()),
+                            (Self::T, smallvec![], q2.clone()),
                             (Self::CX, smallvec![], q1_2),
-                            (Self::U1, smallvec![Param::Float(-PI / 4.)], q2.clone()),
-                            (Self::U2, smallvec![FLOAT_ZERO, Param::Float(PI)], q2),
+                            (Self::Tdg, smallvec![], q2.clone()),
+                            (Self::H, smallvec![], q2),
                         ],
                         FLOAT_ZERO,
                     )
@@ -2272,7 +2250,7 @@ impl Operation for StandardGate {
                         [
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(0), Qubit(3)],
                             ),
@@ -2280,7 +2258,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(1), Qubit(3)],
                             ),
@@ -2288,7 +2266,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(1), Qubit(3)],
                             ),
@@ -2296,7 +2274,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
@@ -2304,7 +2282,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
@@ -2312,7 +2290,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(2)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(-PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
@@ -2320,7 +2298,7 @@ impl Operation for StandardGate {
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(2)]),
                             (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (
-                                Self::CU1,
+                                Self::CPhase,
                                 smallvec![Param::Float(PI / 8.)],
                                 smallvec![Qubit(2), Qubit(3)],
                             ),
@@ -2337,72 +2315,24 @@ impl Operation for StandardGate {
                         py,
                         4,
                         [
-                            (
-                                Self::U2,
-                                smallvec![FLOAT_ZERO, Param::Float(PI)],
-                                smallvec![Qubit(3)],
-                            ),
-                            (
-                                Self::U1,
-                                smallvec![Param::Float(PI / 4.)],
-                                smallvec![Qubit(3)],
-                            ),
+                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (Self::T, smallvec![], smallvec![Qubit(3)]),
                             (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
-                            (
-                                Self::U1,
-                                smallvec![Param::Float(-PI / 4.)],
-                                smallvec![Qubit(3)],
-                            ),
-                            (
-                                Self::U2,
-                                smallvec![FLOAT_ZERO, Param::Float(PI)],
-                                smallvec![Qubit(3)],
-                            ),
+                            (Self::Tdg, smallvec![], smallvec![Qubit(3)]),
+                            (Self::H, smallvec![], smallvec![Qubit(3)]),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
-                            (
-                                Self::U1,
-                                smallvec![Param::Float(PI / 4.)],
-                                smallvec![Qubit(3)],
-                            ),
+                            (Self::T, smallvec![], smallvec![Qubit(3)]),
                             (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
-                            (
-                                Self::U1,
-                                smallvec![Param::Float(-PI / 4.)],
-                                smallvec![Qubit(3)],
-                            ),
+                            (Self::Tdg, smallvec![], smallvec![Qubit(3)]),
                             (Self::CX, smallvec![], smallvec![Qubit(0), Qubit(3)]),
-                            (
-                                Self::U1,
-                                smallvec![Param::Float(PI / 4.)],
-                                smallvec![Qubit(3)],
-                            ),
+                            (Self::T, smallvec![], smallvec![Qubit(3)]),
                             (Self::CX, smallvec![], smallvec![Qubit(1), Qubit(3)]),
-                            (
-                                Self::U1,
-                                smallvec![Param::Float(-PI / 4.)],
-                                smallvec![Qubit(3)],
-                            ),
-                            (
-                                Self::U2,
-                                smallvec![FLOAT_ZERO, Param::Float(PI)],
-                                smallvec![Qubit(3)],
-                            ),
-                            (
-                                Self::U1,
-                                smallvec![Param::Float(PI / 4.)],
-                                smallvec![Qubit(3)],
-                            ),
+                            (Self::Tdg, smallvec![], smallvec![Qubit(3)]),
+                            (Self::H, smallvec![], smallvec![Qubit(3)]),
+                            (Self::T, smallvec![], smallvec![Qubit(3)]),
                             (Self::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
-                            (
-                                Self::U1,
-                                smallvec![Param::Float(-PI / 4.)],
-                                smallvec![Qubit(3)],
-                            ),
-                            (
-                                Self::U2,
-                                smallvec![FLOAT_ZERO, Param::Float(PI)],
-                                smallvec![Qubit(3)],
-                            ),
+                            (Self::Tdg, smallvec![], smallvec![Qubit(3)]),
+                            (Self::H, smallvec![], smallvec![Qubit(3)]),
                         ],
                         FLOAT_ZERO,
                     )
@@ -2977,5 +2907,30 @@ impl UnitaryGate {
             .get_bound(py)
             .call((out_array,), Some(&kwargs))?;
         Ok(gate.unbind())
+    }
+
+    /// Get a read-only ndarray view of the matrix stored in the `UnitaryGate`
+    ///
+    /// Regardless of the underlying array type `Matrix2`, `Matrix4`, or `Array2` it returns
+    /// a read-only an ndarray `ArrayView2` view to the underlying matrix by reference.
+    #[inline]
+    pub fn matrix_view(&self) -> ArrayView2<Complex64> {
+        match &self.array {
+            ArrayType::NDArray(arr) => arr.view(),
+            ArrayType::OneQ(mat) => {
+                let dim = Dim(mat.shape());
+                let strides = Dim(mat.strides());
+                // SAFETY: We know the array is a 2x2 and contiguous block so we don't need to
+                // check for invalid format
+                unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) }
+            }
+            ArrayType::TwoQ(mat) => {
+                let dim = Dim(mat.shape());
+                let strides = Dim(mat.strides());
+                // SAFETY: We know the array is a 4x4 and contiguous block so we don't need to
+                // check for invalid format
+                unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) }
+            }
+        }
     }
 }

@@ -642,6 +642,12 @@ impl CircuitData {
         Ok(())
     }
 
+    /// Checks whether the circuit has an instance of :class:`.ControlFlowOp`
+    /// present amongst its operations.
+    pub fn has_control_flow_op(&self) -> bool {
+        self.data.iter().any(|inst| inst.op.control_flow())
+    }
+
     /// Replaces the bits of this container with the given ``qubits``
     /// and/or ``clbits``.
     ///
@@ -1371,19 +1377,12 @@ impl CircuitData {
         let mut res =
             Self::with_capacity(num_qubits, 0, instruction_iter.size_hint().0, global_phase)?;
 
-        let no_clbit_index = res.cargs_interner.get_default();
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
-            res.data.push(PackedInstruction {
-                op: operation.into(),
-                qubits,
-                clbits: no_clbit_index,
-                params,
-                label: None,
-                #[cfg(feature = "cache_pygates")]
-                py_op: OnceLock::new(),
-            });
+            res.data.push(PackedInstruction::from_standard_gate(
+                operation, params, qubits,
+            ));
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
         Ok(res)
@@ -1436,18 +1435,11 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) {
-        let no_clbit_index = self.cargs_interner.get_default();
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
-        self.data.push(PackedInstruction {
-            op: operation.into(),
-            qubits,
-            clbits: no_clbit_index,
-            params,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        });
+        self.data.push(PackedInstruction::from_standard_gate(
+            operation, params, qubits,
+        ));
     }
 
     /// Append a packed operation to this CircuitData
