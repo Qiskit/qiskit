@@ -506,7 +506,10 @@ impl<'py> FromPyObject<'py> for Condition {
         } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, usize)>() {
             Ok(Condition::Register(register, value))
         } else {
-            Ok(Condition::Expr(ob.extract()?))
+            let Ok(condition) = ob.extract() else {
+                panic!("failed to extract condition! {}", ob);
+            };
+            Ok(Condition::Expr(condition))
         }
     }
 }
