@@ -5947,10 +5947,13 @@ impl DAGCircuit {
     }
 
     fn may_have_additional_wires(&self, instr: &DAGInstruction) -> bool {
+        if instr.op.try_control_flow().is_some() {
+            return true;
+        }
         let OperationRef::Instruction(inst) = instr.op.view() else {
             return false;
         };
-        instr.op.try_control_flow().is_some() || inst.op_name == "store"
+        inst.op_name == "store"
     }
 
     fn additional_wires(
