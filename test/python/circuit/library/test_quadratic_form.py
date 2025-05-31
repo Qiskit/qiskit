@@ -53,7 +53,9 @@ class TestQuadraticForm(QiskitTestCase):
     @data(True, False)
     def test_endian(self, little_endian):
         """Test the outcome for different endianness."""
-        qform = QuadraticForm(2, linear=[0, 1], little_endian=little_endian)
+        with self.assertWarns(DeprecationWarning):
+            qform = QuadraticForm(2, linear=[0, 1], little_endian=little_endian)
+
         circuit = QuantumCircuit(4)
         circuit.x(1)
         circuit.compose(qform, inplace=True)
@@ -99,7 +101,12 @@ class TestQuadraticForm(QiskitTestCase):
         constructor = QuadraticFormGate if use_gate else QuadraticForm
 
         with self.subTest("empty"):
-            circuit = constructor()
+            if use_gate:
+                circuit = constructor()
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    circuit = constructor()
+
             self.assertQuadraticFormIsCorrect(1, [[0]], [0], 0, circuit)
 
         with self.subTest("1d case"):
@@ -107,7 +114,11 @@ class TestQuadraticForm(QiskitTestCase):
             linear = np.array([2])
             offset = -1
 
-            circuit = constructor(quadratic=quadratic, linear=linear, offset=offset)
+            if use_gate:
+                circuit = constructor(quadratic=quadratic, linear=linear, offset=offset)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    circuit = constructor(quadratic=quadratic, linear=linear, offset=offset)
 
             self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
 
@@ -117,7 +128,11 @@ class TestQuadraticForm(QiskitTestCase):
             offset = -1
             m = 2
 
-            circuit = constructor(m, quadratic, linear, offset)
+            if use_gate:
+                circuit = constructor(m, quadratic, linear, offset)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    circuit = constructor(m, quadratic, linear, offset)
 
             self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
@@ -126,7 +141,12 @@ class TestQuadraticForm(QiskitTestCase):
             linear = np.array([-2, 0, 1])
             offset = -1
 
-            circuit = constructor(linear=linear, offset=offset)
+            if use_gate:
+                circuit = constructor(linear=linear, offset=offset)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    circuit = constructor(linear=linear, offset=offset)
+
             self.assertQuadraticFormIsCorrect(3, quadratic, linear, offset, circuit)
 
         with self.subTest("missing linear"):
@@ -135,7 +155,12 @@ class TestQuadraticForm(QiskitTestCase):
             offset = -1
             m = 2
 
-            circuit = constructor(m, quadratic, None, offset)
+            if use_gate:
+                circuit = constructor(m, quadratic, None, offset)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    circuit = constructor(m, quadratic, None, offset)
+
             self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
         with self.subTest("missing offset"):
@@ -144,7 +169,12 @@ class TestQuadraticForm(QiskitTestCase):
             offset = 0
             m = 2
 
-            circuit = constructor(m, quadratic, linear)
+            if use_gate:
+                circuit = constructor(m, quadratic, linear)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    circuit = constructor(m, quadratic, linear)
+
             self.assertQuadraticFormIsCorrect(m, quadratic, linear, offset, circuit)
 
     def test_quadratic_form_parameterized(self):
@@ -161,7 +191,8 @@ class TestQuadraticForm(QiskitTestCase):
         offset = 0
         m = 2
 
-        circuit = QuadraticForm(m, p_quadratic, p_linear, p_offset)
+        with self.assertWarns(DeprecationWarning):
+            circuit = QuadraticForm(m, p_quadratic, p_linear, p_offset)
         param_dict = dict(zip(theta, [*quadratic[0]] + [*quadratic[1]] + [*linear] + [offset]))
 
         circuit.assign_parameters(param_dict, inplace=True)

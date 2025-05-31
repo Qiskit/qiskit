@@ -4,7 +4,7 @@ upgrade:
     The deprecated function :func:`.pauli_group` has been removed.
     It was originally deprecated in Qiskit Terra 0.17.
   - |
-    Several deprecated methods on :class:`.Pauli` have been removed, which were
+    Several deprecated methods on :class:`~.quantum_info.Pauli` have been removed, which were
     originally deprecated in Qiskit Terra 0.17.  These were:
 
     ``sgn_prod``
@@ -39,7 +39,7 @@ upgrade:
 deprecations:
   - |
     The arguments ``x``, ``z`` and ``label`` to the initializer of
-    :class:`.Pauli` were documented as deprecated in Qiskit Terra 0.17, but a bug
+    :class:`~.quantum_info.Pauli` were documented as deprecated in Qiskit Terra 0.17, but a bug
     prevented the expected warning from being shown at runtime.  The warning will
     now correctly show, and the arguments will be removed in Qiskit Terra 0.23 or
     later.  A pair of ``x`` and ``z`` should be passed positionally as a single

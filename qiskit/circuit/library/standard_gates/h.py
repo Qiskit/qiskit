@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from math import sqrt, pi
+from math import sqrt
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
@@ -63,20 +63,17 @@ class HGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate h a { u2(0,pi) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .u2 import U2Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U2Gate(0, pi), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌────────────┐
+        # q: ┤ U(π/2,0,π) ├
+        #    └────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.H._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,
@@ -212,38 +209,18 @@ class CHGate(SingletonControlledGate):
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate ch a,b {
-            s b;
-            h b;
-            t b;
-            cx a, b;
-            tdg b;
-            h b;
-            sdg b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .x import CXGate  # pylint: disable=cyclic-import
-        from .t import TGate, TdgGate
-        from .s import SGate, SdgGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (SGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
-            (TGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (TdgGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
-            (SdgGate(), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # q_0: ─────────────────■─────────────────────
+        #      ┌───┐┌───┐┌───┐┌─┴─┐┌─────┐┌───┐┌─────┐
+        # q_1: ┤ S ├┤ H ├┤ T ├┤ X ├┤ Tdg ├┤ H ├┤ Sdg ├
+        #      └───┘└───┘└───┘└───┘└─────┘└───┘└─────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CH._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverted CH gate (itself)."""

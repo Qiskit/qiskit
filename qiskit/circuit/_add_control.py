@@ -170,9 +170,6 @@ def control(
 
             apply_basic_controlled_gate(controlled_circ, gate, q_control, target)
 
-            if gate.definition is not None and gate.definition.global_phase and gate.name != "rz":
-                global_phase += gate.definition.global_phase
-
     # apply controlled global phase
     if global_phase:
         if len(q_control) < 2:

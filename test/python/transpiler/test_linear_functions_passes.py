@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.transpiler.passes.optimization import CollectLinearFunctions
 from qiskit.transpiler.passes.synthesis import HighLevelSynthesis, LinearFunctionsToPermutations
 from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -238,7 +238,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         extracting linear functions produces the expected number of linear blocks,
         and synthesizing these blocks produces an expected number of CNOTs.
         """
-        ansatz = RealAmplitudes(4, reps=2)
+        ansatz = real_amplitudes(4, reps=2)
         circuit1 = ansatz.decompose()
 
         # collect linear functions
@@ -257,7 +257,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         extracting linear functions produces the expected number of linear blocks,
         and synthesizing these blocks produces an expected number of CNOTs.
         """
-        ansatz = RealAmplitudes(5, reps=2)
+        ansatz = real_amplitudes(5, reps=2)
         circuit1 = ansatz.decompose()
 
         # collect linear functions

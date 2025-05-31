@@ -1,0 +1,60 @@
+---
+name: Image Tests
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: >
+          Python version to currently test
+        type: string
+        required: true
+
+      runner:
+        description: >
+          Describes the system this workflow should run on.
+        type: string
+        required: true
+jobs:
+  image-tests:
+    name: Test-images-${{ inputs.python-version }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Install Image dependencies
+        run: |
+          set -e
+          python -m venv image_tests
+          image_tests/bin/python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            -r requirements-optional.txt \
+            -e .
+          sudo apt-get update
+          sudo apt-get install -y graphviz pandoc
+          image_tests/bin/pip check
+      - name: Run image tests
+        run: |
+          image_tests/bin/python -m unittest discover -v test/visual
+        env:
+          # Needed to suppress a warning in jupyter-core 5.x by eagerly migrating to
+          # a new internal interface that will be the default in jupyter-core 6.x.
+          # This variable should become redundant on release of jupyter-core 6.
+          JUPYTER_PLATFORM_DIRS: 1
+      - name: Store image tests diff
+        uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: image-test-failure-img-diffs
+          path: |
+            ./test/visual/mpl/graph/graph_results
+            ./test/visual/mpl/circuit/circuit_results
+            ./test/visual/mpl/visual_test_failures
+          if-no-files-found: error

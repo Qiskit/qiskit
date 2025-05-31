@@ -13,6 +13,7 @@
 """Piecewise polynomial Chebyshev approximation to a given f(x)."""
 
 from __future__ import annotations
+import warnings
 from typing import Callable
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
@@ -345,9 +346,12 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         super()._build()
 
-        poly_r = PiecewisePolynomialPauliRotations(
-            self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
-        )
+        # the class itself is deprecated, no need to raise additional warnings during runtime
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            poly_r = PiecewisePolynomialPauliRotations(
+                self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
+            )
 
         # Apply polynomial approximation
         self.append(poly_r.to_gate(), self.qubits)

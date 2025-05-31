@@ -63,8 +63,9 @@ jobs:
       - name: Generate ctest coverage report
         run: |
           cargo rustc --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
-          mkdir -p dist/c/include
+          mkdir -p dist/c/include/qiskit
           cp target/qiskit.h dist/c/include/.
+          cp crates/cext/include/complex.h dist/c/include/qiskit/.
           cmake -S. -Btest/c/build
           cmake --build test/c/build
           ctest -V --test-dir test/c/build

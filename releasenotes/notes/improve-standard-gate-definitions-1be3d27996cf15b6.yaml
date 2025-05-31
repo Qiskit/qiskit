@@ -1,0 +1,16 @@
+---
+upgrade_circuits:
+  - |
+    The definitions of certain standard gates have been updated
+    according to the following principles:
+
+    * When available, a definition using Clifford gates is preferred over
+      one that includes non-Clifford gates.
+    * When available, a definition using Clifford+T gates is preferred over
+      one that includes ``UGate``.
+    * The use of ``PhaseGate`` is preferred over ``U1Gate``.
+    * The use of ``UGate`` is preferred over ``U2Gate`` and ``U3Gate``.
+
+    Crucially, the following invariant still holds: by recursively expanding
+    gate definitions, any gate can be ultimately expressed using only the
+    ``["cx", "u"]`` basis.

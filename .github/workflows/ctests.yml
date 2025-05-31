@@ -1,11 +1,7 @@
 ---
-name: Tests
+name: C API Tests
 on:
-  push:
-    branches: [ main, 'stable/*' ]
-  pull_request:
-    branches: [ main, 'stable/*' ]
-  merge_group:
+  workflow_call:
 
 jobs:
   tests:

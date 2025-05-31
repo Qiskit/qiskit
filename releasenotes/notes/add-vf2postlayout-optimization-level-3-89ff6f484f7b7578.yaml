@@ -1,0 +1,4 @@
+---
+features_transpiler:
+  - |
+    :class:`.VF2PostLayout` has been added at the end of the default optimization stage when using optimization level 3.

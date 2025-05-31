@@ -991,8 +991,8 @@ class QASM3Builder:
                 measurement = ast.QuantumMeasurement(
                     [self._lookup_bit(operand) for operand in instruction.qubits]
                 )
-                qubit = self._lookup_bit(instruction.clbits[0])
-                nodes = [ast.QuantumMeasurementAssignment(qubit, measurement)]
+                clbit = self._lookup_bit(instruction.clbits[0])
+                nodes = [ast.QuantumMeasurementAssignment(clbit, measurement)]
             elif isinstance(instruction.operation, Reset):
                 nodes = [
                     ast.QuantumReset(self._lookup_bit(operand)) for operand in instruction.qubits

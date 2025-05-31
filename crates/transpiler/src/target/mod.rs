@@ -902,7 +902,7 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::Target;
+    /// use qiskit_transpiler::target::Target;
     /// use qiskit_circuit::operations::StandardGate;
     ///
     /// let mut target = Target::default();
@@ -1010,9 +1010,9 @@ impl Target {
     /// # Examples
     ///
     /// ```rust
-    /// use qiskit_accelerate::target_transpiler::{Target, InstructionProperties, Qargs};
+    /// use qiskit_transpiler::target::{Target, InstructionProperties, Qargs};
     /// use qiskit_circuit::operations::StandardGate;
-    /// use qiskit_accelerate::nlayout::PhysicalQubit;
+    /// use qiskit_circuit::PhysicalQubit;
     /// use indexmap::IndexMap;
     ///
     /// let mut target = Target::default();

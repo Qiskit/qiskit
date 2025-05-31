@@ -15,6 +15,7 @@
 """Test Qiskit's QuantumCircuit class."""
 import copy
 import pickle
+from itertools import combinations
 
 import numpy as np
 from ddt import data, ddt
@@ -23,6 +24,10 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier, AnnotatedOperation
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit import Clbit
+from qiskit.circuit.controlflow.box import BoxOp
+from qiskit.circuit.controlflow.for_loop import ForLoopOp
+from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+from qiskit.circuit.controlflow.while_loop import WhileLoopOp
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit.library import CXGate, HGate
@@ -1575,6 +1580,55 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")
+
+    def test_circuit_has_control_flow_op(self):
+        """Test `has_control_flow_op` method"""
+        circuit_1 = QuantumCircuit(2, 1)
+        circuit_1.x(0)
+        circuit_2 = QuantumCircuit(2, 1)
+        circuit_2.y(0)
+
+        # Build a circuit
+        circ = QuantumCircuit(2, 2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure(0, 0)
+        circ.measure(1, 1)
+
+        # Check if circuit has any control flow operations
+        self.assertFalse(circ.has_control_flow_op())
+
+        # Create examples of all control flow operations
+        control_flow_ops = [
+            IfElseOp((circ.clbits[1], 1), circuit_1, circuit_2),
+            WhileLoopOp((circ.clbits[1], 1), circuit_1),
+            ForLoopOp((circ.clbits[1], 1), None, body=circuit_1),
+            SwitchCaseOp(circ.clbits[1], [(0, circuit_1), (1, circuit_2)]),
+            BoxOp(circuit_1),
+        ]
+
+        # Create combinations of all control flow operations for the
+        # circuit.
+        op_combinations = [
+            comb_list
+            for comb_n in range(5)
+            for comb_list in combinations(control_flow_ops, comb_n + 1)
+        ]
+
+        # Use combinatorics to test all combinations of control flow operations
+        # to see if we can detect all of them.
+        for op_combination in op_combinations:
+            # Build a circuit
+            circ = QuantumCircuit(2, 2)
+            circ.h(0)
+            circ.cx(0, 1)
+            circ.measure(0, 0)
+            circ.measure(1, 1)
+            self.assertFalse(circ.has_control_flow_op())
+            for op in op_combination:
+                circ.append(op, [0, 1], [1])
+            # Check if circuit has any control flow operation
+            self.assertTrue(circ.has_control_flow_op())
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):

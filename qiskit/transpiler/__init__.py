@@ -673,6 +673,9 @@ At a high level, this starts from the set of gates requested by the circuit, and
 given :class:`.EquivalenceLibrary` (typically the :data:`.SessionEquivalenceLibrary`) to move
 towards the ISA.
 
+For a Clifford+T basis set, the single-qubit rotation gates are approximated using the
+:class:`.SolovayKitaevDecomposition` algorithm.
+
 This is the default translation method.
 
 The optimization level has no effect on this plugin.
@@ -700,7 +703,7 @@ as a fix-up pipeline.
 
 Qiskit's built-in optimization plugins are general, and apply well to most real-world ISAs for
 non-error-corrected devices.  The built-in plugins are less well-suited to ISAs that have no
-continuously parametrized single-qubit gate, such as a Clifford+T basis set.
+continuously parametrized single-qubit gate.
 
 When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry point for
 ``optimization`` is ``qiskit.transpiler.optimization``.  The built-in plugins are:
@@ -720,10 +723,12 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
 Built-in ``default`` plugin
 ...........................
 
-This varies significantly between optimization levels.
+This varies significantly depending on the optimization level and whether the basis set is of the
+form Clifford+T.
 
 The specifics of this pipeline are subject to change between Qiskit versions. The broad principles
-are described below.
+are described below. First, consider the more common case that the basis set is not of the form
+Clifford+T.
 
 At optimization level 0, the stage is empty.
 
@@ -739,6 +744,8 @@ At optimization level 3, the two-qubit matrix-based resynthesis runs inside the 
 The optimization loop condition also tries multiple runs and chooses the minimum point in the case
 of fluctuating output; this is necessary because matrix-based resynthesis is relatively unstable in
 terms of concrete gates.
+
+For a Clifford+T basis set, two-qubit matrix based resynthesis is not applied.
 
 Optimization level 3 is typically very expensive for large circuits.
 

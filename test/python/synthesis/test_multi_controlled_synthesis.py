@@ -282,9 +282,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_mcx_1_clean_kg24(num_ctrl_qubits)
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming Toffoli decomposition
-        # requires 6 CX gates.
-        self.assertLessEqual(cx_count, 12 * num_ctrl_qubits - 18)
+        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
+        # decomposition
+        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
 
     @data(3, 5, 10, 15)
     def test_mcx_1_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
@@ -292,9 +292,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        ## Based on the bound from the Sec 5.3 of arXiv:2407.17966, assuming Toffoli decomposition
-        # requires 6 CX gates.
-        self.assertLessEqual(cx_count, 24 * num_ctrl_qubits - 48)
+        ## Based on the bound from the Sec 5.3 of arXiv:2407.17966, assuming relative-phase Toffoli
+        # decomposition
+        self.assertLessEqual(cx_count, 12 * num_ctrl_qubits - 18)
 
     @data(3, 5, 10, 15)
     def test_mcx_2_clean_kg24_cx_count(self, num_ctrl_qubits: int):
@@ -302,9 +302,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # Based on the bound from the Sec 5.2 of arXiv:2407.17966, assuming Toffoli decomposition
-        # requires 6 CX gates.
-        self.assertLessEqual(cx_count, 12 * num_ctrl_qubits - 18)
+        # Based on the bound from the Sec 5.2 of arXiv:2407.17966, assuming relative-phase Toffoli
+        # decomposition
+        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
 
     @data(3, 5, 10, 15)
     def test_mcx_2_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
@@ -312,9 +312,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # Based on the bound from the Sec 5.4 of arXiv:2407.17966, assuming Toffoli decomposition
-        # requires 6 CX gates.
-        self.assertLessEqual(cx_count, 24 * num_ctrl_qubits - 48)
+        # Based on the bound from the Sec 5.4 of arXiv:2407.17966, assuming relative-phase Toffoli
+        # decomposition
+        self.assertLessEqual(cx_count, 12 * num_ctrl_qubits - 18)
 
     def test_c3x_cx_count(self):
         """Test synth_c3x bound on CX count."""

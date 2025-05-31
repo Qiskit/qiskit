@@ -23,6 +23,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
 use crate::duration::Duration;
+use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use crate::imports::{
     BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, CONTROLLED_GATE, DELAY, FOR_LOOP_OP, GATE,
     IF_ELSE_OP, INSTRUCTION, MEASURE, OPERATION, RESET, SWITCH_CASE_OP, UNITARY_GATE,
@@ -1102,7 +1103,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             let params = extract_params()?;
             if let Some(Param::Obj(data)) = params.first() {
                 let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
-                let matrix: Option<MatrixView2<Complex64>> = py_matrix.try_as_matrix();
+                let matrix: Option<MatrixView2<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
                     let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::OneQ(x.into_owned()),
@@ -1113,7 +1114,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                         label: extract_label()?,
                     });
                 }
-                let matrix: Option<MatrixView4<Complex64>> = py_matrix.try_as_matrix();
+                let matrix: Option<MatrixView4<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
                     let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::TwoQ(x.into_owned()),

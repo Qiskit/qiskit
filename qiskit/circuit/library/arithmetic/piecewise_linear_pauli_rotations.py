@@ -14,6 +14,7 @@
 """Piecewise-linearly-controlled rotation."""
 
 from __future__ import annotations
+import warnings
 from collections.abc import Sequence
 import numpy as np
 
@@ -244,32 +245,39 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints):
             if i == 0 and self.contains_zero_breakpoint:
-                # apply rotation
-                lin_r = LinearPauliRotations(
-                    num_state_qubits=self.num_state_qubits,
-                    slope=self.mapped_slopes[i],
-                    offset=self.mapped_offsets[i],
-                    basis=self.basis,
-                )
+                # deprecation warning is already triggered upon init, filter the rest
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    # apply rotation
+                    lin_r = LinearPauliRotations(
+                        num_state_qubits=self.num_state_qubits,
+                        slope=self.mapped_slopes[i],
+                        offset=self.mapped_offsets[i],
+                        basis=self.basis,
+                    )
                 circuit.append(lin_r.to_gate(), qr_state[:] + qr_target)
 
             else:
                 qr_compare = [qr_ancilla[0]]
                 qr_helper = qr_ancilla[1:]
 
-                # apply Comparator
-                comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    # apply Comparator
+                    comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
                 qr = qr_state[:] + qr_compare[:]  # add ancilla as compare qubit
 
                 circuit.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
 
                 # apply controlled rotation
-                lin_r = LinearPauliRotations(
-                    num_state_qubits=self.num_state_qubits,
-                    slope=self.mapped_slopes[i],
-                    offset=self.mapped_offsets[i],
-                    basis=self.basis,
-                )
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    lin_r = LinearPauliRotations(
+                        num_state_qubits=self.num_state_qubits,
+                        slope=self.mapped_slopes[i],
+                        offset=self.mapped_offsets[i],
+                        basis=self.basis,
+                    )
                 circuit.append(lin_r.to_gate().control(), qr_compare[:] + qr_state[:] + qr_target)
 
                 # uncompute comparator

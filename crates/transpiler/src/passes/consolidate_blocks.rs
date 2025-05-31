@@ -27,8 +27,8 @@ use qiskit_circuit::Qubit;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
-use qiskit_accelerate::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
-use qiskit_accelerate::two_qubit_decompose::{
+use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
+use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
 };
 

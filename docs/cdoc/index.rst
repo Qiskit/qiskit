@@ -29,6 +29,8 @@ Quantum Circuit
    :maxdepth: 1
 
    qk-circuit
+   qk-quantum-register
+   qk-classical-register
 
 -------------------
 Quantum information
@@ -40,4 +42,5 @@ Quantum information
    qk-obs
    qk-obs-term
    qk-bit-term
+   qk-complex64
    qk-exit-code

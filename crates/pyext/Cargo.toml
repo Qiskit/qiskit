@@ -30,3 +30,5 @@ qiskit-qasm2.workspace = true
 qiskit-qasm3.workspace = true
 qiskit-cext = { workspace = true, features = ["python_binding"] }
 qiskit-transpiler.workspace = true
+qiskit-quantum-info.workspace = true
+qiskit-synthesis.workspace = true

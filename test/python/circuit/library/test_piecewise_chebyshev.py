@@ -96,9 +96,10 @@ class TestPiecewiseChebyshev(QiskitTestCase):
                     )
                     num_ancillas = 0 if breakpoints is None else int(len(breakpoints) > 1)
                 else:
-                    pw_approximation = PiecewiseChebyshev(
-                        f_x, degree, breakpoints, num_state_qubits
-                    )
+                    with self.assertWarns(DeprecationWarning):
+                        pw_approximation = PiecewiseChebyshev(
+                            f_x, degree, breakpoints, num_state_qubits
+                        )
                     num_ancillas = None
 
         self.assertFunctionIsCorrect(pw_approximation, pw_poly, num_ancillas)
@@ -114,7 +115,8 @@ class TestPiecewiseChebyshev(QiskitTestCase):
         def f_x_1(x):
             return x / 2
 
-        pw_approximation = PiecewiseChebyshev(f_x_1)
+        with self.assertWarns(DeprecationWarning):
+            pw_approximation = PiecewiseChebyshev(f_x_1)
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set

@@ -76,12 +76,12 @@ class ZFeatureMap(PauliFeatureMap):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg=(
             "Use the z_feature_map function as a replacement. Note that this will no longer "
             "return a BlueprintCircuit, but just a plain QuantumCircuit."
         ),
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,

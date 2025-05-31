@@ -272,7 +272,7 @@ ccz q[0],q[1],q[2];"""
         expected = """\
 OPENQASM 2.0;
 include "qelib1.inc";
-gate cs q0,q1 { p(pi/4) q0; cx q0,q1; p(-pi/4) q1; cx q0,q1; p(pi/4) q1; }
+gate cs q0,q1 { t q0; cx q0,q1; tdg q1; cx q0,q1; t q1; }
 qreg q[2];
 cs q[0],q[1];"""
         self.assertEqual(qasm, expected)
@@ -285,7 +285,7 @@ cs q[0],q[1];"""
         expected = """\
 OPENQASM 2.0;
 include "qelib1.inc";
-gate csdg q0,q1 { p(-pi/4) q0; cx q0,q1; p(pi/4) q1; cx q0,q1; p(-pi/4) q1; }
+gate csdg q0,q1 { tdg q0; cx q0,q1; t q1; cx q0,q1; tdg q1; }
 qreg q[2];
 csdg q[0],q[1];"""
         self.assertEqual(qasm, expected)
@@ -314,8 +314,7 @@ rzx(pi/2) q[1],q[0];"""
         expected = """\
 OPENQASM 2.0;
 include "qelib1.inc";
-gate rzx(param0) q0,q1 { h q1; cx q0,q1; rz(param0) q1; cx q0,q1; h q1; }
-gate ecr q0,q1 { rzx(pi/4) q0,q1; x q0; rzx(-pi/4) q0,q1; }
+gate ecr q0,q1 { s q0; sx q1; cx q0,q1; x q0; }
 qreg q[2];
 ecr q[0],q[1];
 ecr q[1],q[0];"""
@@ -393,9 +392,13 @@ mcx q[0],q[1],q[2],q[3];"""
         # pylint: disable=line-too-long
         n = 5
         qc = QuantumCircuit(2 * n - 1)
-        qc.append(lib.MCXGrayCode(n), range(n + 1))
-        qc.append(lib.MCXRecursive(n), range(n + 2))
-        qc.append(lib.MCXVChain(n), range(2 * n - 1))
+        with self.assertWarns(DeprecationWarning):
+            gray = lib.MCXGrayCode(n)
+            recursive = lib.MCXRecursive(n)
+            vchain = lib.MCXVChain(n)
+        qc.append(gray, range(n + 1))
+        qc.append(recursive, range(n + 2))
+        qc.append(vchain, range(2 * n - 1))
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";

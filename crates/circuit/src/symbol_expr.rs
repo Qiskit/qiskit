@@ -2284,23 +2284,6 @@ impl SymbolExpr {
             }
         }
     }
-
-    // convert sympy compatible format
-    pub fn sympify(&self) -> SymbolExpr {
-        match self {
-            SymbolExpr::Symbol(_) => self.clone(),
-            SymbolExpr::Value(e) => e.sympify(),
-            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
-                op: op.clone(),
-                expr: Box::new(expr.sympify()),
-            },
-            SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
-                op: op.clone(),
-                lhs: Box::new(lhs.sympify()),
-                rhs: Box::new(rhs.sympify()),
-            },
-        }
-    }
 }
 
 impl Add for SymbolExpr {
@@ -2956,21 +2939,6 @@ impl Value {
                 }
             }
             _ => None,
-        }
-    }
-
-    // convert sympy compatible format
-    pub fn sympify(&self) -> SymbolExpr {
-        match self {
-            // imaginary number is comverted to value * symbol 'I'
-            Value::Complex(c) => _add(
-                SymbolExpr::Value(Value::Real(c.re)),
-                _mul(
-                    SymbolExpr::Value(Value::Real(c.im)),
-                    SymbolExpr::Symbol(Box::new("I".to_string())),
-                ),
-            ),
-            _ => SymbolExpr::Value(*self),
         }
     }
 }

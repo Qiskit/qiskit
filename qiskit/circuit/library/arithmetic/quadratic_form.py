@@ -21,6 +21,7 @@ from collections.abc import Sequence
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterExpression, Gate, CircuitError
+from qiskit.utils.deprecation import deprecate_func
 from ..basis_change import QFT, QFTGate
 
 _ValueType = Union[int, float, np.integer, np.floating, ParameterExpression]
@@ -64,6 +65,11 @@ class QuadraticForm(QuantumCircuit):
 
     """
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use the QuadraticFormGate instead.",
+        removal_timeline="Qiskit 3.0",
+    )
     def __init__(
         self,
         num_result_qubits: Optional[int] = None,

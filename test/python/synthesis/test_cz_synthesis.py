@@ -17,7 +17,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
-from qiskit.circuit.library import Permutation
+from qiskit.circuit.library import PermutationGate
 from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
 from qiskit.quantum_info import Clifford
@@ -58,7 +58,9 @@ class TestCZSynth(QiskitTestCase):
             # Check that the output circuit has LNN connectivity
             self.assertTrue(check_lnn_connectivity(qc))
             # Assert that we get the same element, up to reverse order of qubits
-            perm = Permutation(num_qubits=num_qubits, pattern=range(num_qubits)[::-1])
+
+            perm = QuantumCircuit(num_qubits)
+            perm.append(PermutationGate(pattern=range(num_qubits)[::-1]), range(num_qubits))
             qctest = qctest.compose(perm)
             self.assertEqual(Clifford(qc), Clifford(qctest))
 

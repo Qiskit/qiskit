@@ -15,12 +15,7 @@ pub mod equivalence;
 pub mod passes;
 pub mod target;
 
-// TODO: Move these to qiskit-accelerate (or another crate) after the
-// qiskit-transpiler dependencies in qiskit-accelerate are separated into
-// crates for quantum_info and/or synthesis and we can remove qiskit-accelerate
-// from the dependencies list.
-pub mod circuit_duration;
-pub mod twirling;
+mod gate_metrics;
 
 use pyo3::import_exception_bound;
 

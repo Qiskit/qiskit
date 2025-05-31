@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_accelerate::sparse_observable::ArithmeticError;
+use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use thiserror::Error;
 
 /// Errors related to C input.

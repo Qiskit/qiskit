@@ -14,8 +14,8 @@ use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
-use qiskit_accelerate::gate_metrics::rotation_trace_and_dim;
 use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::operations::Param;

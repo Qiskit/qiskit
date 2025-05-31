@@ -1,0 +1,66 @@
+---
+# Nightly cromplete matrix tests.
+
+# This job only runs on the default branch `main` on the
+# specified schedule below.
+name: Nightly Main tests
+on:
+  schedule:
+    - cron: "20 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  nightly-linux:
+    if: ${{ github.repository_owner == 'Qiskit'}}
+    uses: ./.github/workflows/test-linux.yml
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
+    with:
+      python-version: ${{ matrix.python-version }}
+      install-optionals: true
+      runner: ${{ matrix.runner }}
+  nightly-mac:
+    if: ${{ github.repository_owner == 'Qiskit'}}
+    uses: ./.github/workflows/test-mac.yml
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        runner: ["macos-13", "macos-14"]
+
+    with:
+      python-version: ${{ matrix.python-version }}
+      install-optionals: true
+      runner: ${{ matrix.runner }}
+  nightly-windows:
+    if: ${{ github.repository_owner == 'Qiskit'}}
+    uses: ./.github/workflows/test-windows.yml
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        runner: ["windows-latest"]
+    with:
+      python-version: ${{ matrix.python-version }}
+      install-optionals: true
+      runner: ${{ matrix.runner }}
+  nightly-failure:
+    name: Create comment on failed test run
+    if: ${{ github.repository_owner == 'Qiskit' && failure() }}
+    runs-on: ubuntu-latest
+    needs: [nightly-linux, nightly-mac, nightly-linux]
+    steps:
+      - name: "Create comment on failed test run"
+        run: gh issue comment "$NUMBER" --body "$BODY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: 7864
+          BODY: >
+            Randomized tests failed at commit ${{ github.sha }}.
+
+            _Logs_: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

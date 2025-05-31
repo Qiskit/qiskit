@@ -1431,11 +1431,11 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
         # Iteratively run other synthesis methods available
 
         for synthesis_method in [
+            MCXSynthesis2CleanKG24,
+            MCXSynthesis1CleanKG24,
             MCXSynthesisNCleanM15,
             MCXSynthesisNDirtyI15,
-            MCXSynthesis2CleanKG24,
             MCXSynthesis2DirtyKG24,
-            MCXSynthesis1CleanKG24,
             MCXSynthesis1DirtyKG24,
             MCXSynthesis1CleanB95,
         ]:

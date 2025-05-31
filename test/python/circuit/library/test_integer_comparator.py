@@ -63,19 +63,25 @@ class TestIntegerComparator(QiskitTestCase):
     def test_fixed_value_comparator(self, num_state_qubits, value, geq):
         """Test the fixed value comparator circuit."""
         # build the circuit with the comparator
-        for constructor in [
-            IntegerComparator,
-            synth_integer_comparator_2s,
-            synth_integer_comparator_greedy,
+        for constructor, warn in [
+            (IntegerComparator, True),
+            (synth_integer_comparator_2s, False),
+            (synth_integer_comparator_greedy, False),
         ]:
             with self.subTest(constructor=constructor):
-                comp = constructor(num_state_qubits, value, geq=geq)
+                if warn:
+                    with self.assertWarns(DeprecationWarning):
+                        comp = constructor(num_state_qubits, value, geq=geq)
+                else:
+                    comp = constructor(num_state_qubits, value, geq=geq)
+
                 self.assertComparisonIsCorrect(comp, num_state_qubits, value, geq)
 
     def test_mutability(self):
         """Test changing the arguments of the comparator."""
 
-        comp = IntegerComparator()
+        with self.assertWarns(DeprecationWarning):
+            comp = IntegerComparator()
 
         with self.subTest(msg="missing num state qubits and value"):
             with self.assertRaises(AttributeError):

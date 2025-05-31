@@ -260,10 +260,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             param_vector = param_vector[:-1]
             gate = gate_class(*param_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 2
             param_vector = param_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *param_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 2
+            param_vector = param_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *param_vector)
         elif class_name == "MSGate":
             num_qubits = 2
             param_vector = param_vector[:-1]
@@ -291,10 +296,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             float_vector = float_vector[:-1]
             gate = gate_class(*float_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 3
+            float_vector = float_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)

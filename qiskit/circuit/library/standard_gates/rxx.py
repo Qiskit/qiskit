@@ -82,34 +82,19 @@ class RXXGate(Gate):
         super().__init__("rxx", 2, [theta], label=label)
 
     def _define(self):
-        """Calculate a subcircuit that implements this unitary."""
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
-        from .x import CXGate
-        from .h import HGate
-        from .rz import RZGate
+        from qiskit.circuit import QuantumCircuit
 
         #      ┌───┐                   ┌───┐
         # q_0: ┤ H ├──■─────────────■──┤ H ├
         #      ├───┤┌─┴─┐┌───────┐┌─┴─┐├───┤
         # q_1: ┤ H ├┤ X ├┤ Rz(0) ├┤ X ├┤ H ├
         #      └───┘└───┘└───────┘└───┘└───┘
-        theta = self.params[0]
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (HGate(), [q[0]], []),
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], []),
-            (HGate(), [q[0]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RXX._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,

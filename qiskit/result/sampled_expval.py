@@ -23,6 +23,7 @@ from .distributions import QuasiDistribution, ProbDistribution
 OPERS = {"Z", "I", "0", "1"}
 
 
+# pylint: disable=missing-param-doc,missing-type-doc
 def sampled_expectation_value(dist, oper):
     """Computes expectation value from a sampled distribution
 
@@ -30,7 +31,8 @@ def sampled_expectation_value(dist, oper):
 
     Parameters:
         dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
-        oper (str or Pauli or SparsePauliOp): The operator for the observable
+        oper (str or :class:`~.quantum_info.Pauli` or SparsePauliOp): The operator for the
+            observable
 
     Returns:
         float: The expectation value

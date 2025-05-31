@@ -48,7 +48,7 @@ Values
 * ``QkBitTerm_Left``
    The projector :math:`\lvert l\rangle\langle l\rvert` to the negative :math:`Y` eigenstate.
   
-   Value: 7 (``0b1011``)
+   Value: 7 (``0b0111``)
 
 * ``QkBitTerm_Zero``
    The projector :math:`\lvert 0\rangle\langle 0\rvert` to the positive :math:`Z` eigenstate.

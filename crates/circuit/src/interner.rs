@@ -41,6 +41,17 @@ impl<T: ?Sized> Clone for Interned<T> {
     }
 }
 impl<T: ?Sized> Copy for Interned<T> {}
+impl<T: ?Sized> Default for Interned<T>
+where
+    T: ToOwned<Owned: Default>,
+{
+    fn default() -> Self {
+        Self {
+            index: 0,
+            _type: PhantomData,
+        }
+    }
+}
 unsafe impl<T: ?Sized> Send for Interned<T> {}
 unsafe impl<T: ?Sized> Sync for Interned<T> {}
 

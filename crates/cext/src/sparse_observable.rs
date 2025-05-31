@@ -16,14 +16,14 @@ use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use num_complex::Complex64;
 
-use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
+use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
 
 #[cfg(feature = "python_binding")]
 use pyo3::ffi::PyObject;
 #[cfg(feature = "python_binding")]
 use pyo3::{Py, Python};
 #[cfg(feature = "python_binding")]
-use qiskit_accelerate::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 /// A term in a ``QkObs``.
 ///
@@ -442,12 +442,14 @@ pub unsafe extern "C" fn qk_obs_coeffs(obs: *mut SparseObservable) -> *mut Compl
 ///     QkObsTerm term = {&coeff, 3, bit_terms, indices, num_qubits};
 ///     qk_obs_add_term(obs, &term);
 ///
-///     size_T len = qk_obs_len(obs);
+///     size_t len = qk_obs_len(obs);
 ///     uint32_t *indices = qk_obs_indices(obs);
 ///
 ///     for (size_t i = 0; i < len; i++) {
 ///         printf("index %i: %i\n", i, indices[i]);
 ///     }
+///
+///     qk_obs_free(obs);
 ///
 /// # Safety
 ///
@@ -531,6 +533,8 @@ pub unsafe extern "C" fn qk_obs_boundaries(obs: *mut SparseObservable) -> *mut u
 ///     for (size_t i = 0; i < len; i++) {
 ///         printf("bit term %i: %i\n", i, bits[i]);
 ///     }
+///
+///     qk_obs_free(obs);
 ///
 /// # Safety
 ///

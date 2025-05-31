@@ -1,7 +1,9 @@
-INPUT = docs/cdoc/ dist/c/include/qiskit.h
+INPUT = docs/cdoc/ dist/c/include/qiskit.h dist/c/include/qiskit/
 
-
+OPTIMIZE_OUTPUT_FOR_C = YES
 EXTRACT_ALL = YES
+ENABLE_PREPROCESSING = YES
+MACRO_EXPANSION = YES
 
 GENERATE_XML = YES
 XML_OUTPUT = docs/xml
