@@ -79,6 +79,8 @@ pub static VARIABLE_MAPPER: ImportOnceCell =
 pub static IF_ELSE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "IfElseOp");
 pub static FOR_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "ForLoopOp");
 pub static SWITCH_CASE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "SwitchCaseOp");
+pub static SWITCH_CASE_DEFAULT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit", "CASE_DEFAULT");
 pub static WHILE_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "WhileLoopOp");
 pub static BREAK_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "BreakLoopOp");
 pub static CONTINUE_LOOP_OP: ImportOnceCell =

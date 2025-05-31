@@ -13,7 +13,7 @@
 use crate::circuit_data::CircuitData;
 use crate::imports::get_std_gate_class;
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
-use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
+use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, imports, Qubit};
 use approx::relative_eq;
 use std::f64::consts::PI;
 use std::fmt::Debug;
@@ -421,6 +421,7 @@ pub enum ControlFlow {
     },
     Switch {
         target: Target,
+        label_spec: Vec<Vec<CaseSpecifier>>,
         qubits: u32,
         clbits: u32,
         cases: u32,
@@ -530,6 +531,41 @@ impl<'py> FromPyObject<'py> for Target {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CaseSpecifier {
+    Bool(bool),
+    Uint(usize),
+    Default,
+}
+
+impl<'py> FromPyObject<'py> for CaseSpecifier {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(b) = ob.extract::<bool>() {
+            Ok(CaseSpecifier::Bool(b))
+        } else if let Ok(i) = ob.extract::<usize>() {
+            Ok(CaseSpecifier::Uint(i))
+        } else if ob.is(imports::SWITCH_CASE_DEFAULT.get_bound(ob.py())) {
+            Ok(CaseSpecifier::Default)
+        } else {
+            Err(PyValueError::new_err("invalid case specifier"))
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for CaseSpecifier {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            CaseSpecifier::Bool(b) => b.into_bound_py_any(py),
+            CaseSpecifier::Uint(u) => u.into_bound_py_any(py),
+            CaseSpecifier::Default => Ok(imports::SWITCH_CASE_DEFAULT.get_bound(py).clone()),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum ControlFlowRef<'a, T> {
     Box(Option<&'a Duration>, &'a T),
@@ -547,7 +583,7 @@ pub enum ControlFlowRef<'a, T> {
     },
     Switch {
         target: &'a Target,
-        cases: Vec<&'a T>,
+        cases_specifier: Vec<(&'a Vec<CaseSpecifier>, &'a T)>,
     },
     While {
         condition: &'a Condition,
@@ -573,7 +609,9 @@ impl<'a, T> ControlFlowRef<'a, T> {
                     vec![*true_body]
                 }
             }
-            ControlFlowRef::Switch { cases, .. } => cases.clone(),
+            ControlFlowRef::Switch {
+                cases_specifier, ..
+            } => cases_specifier.iter().map(|(_, block)| *block).collect(),
             ControlFlowRef::While { body, .. } => vec![*body],
         }
         .into_iter()

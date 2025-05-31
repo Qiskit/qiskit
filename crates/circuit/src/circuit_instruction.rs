@@ -134,14 +134,16 @@ pub trait Instruction {
                             kwargs.as_ref(),
                         )?
                     }
-                    ControlFlow::Switch { target, .. } => {
-                        let cases = self
-                            .params_view()
+                    ControlFlow::Switch {
+                        target, label_spec, ..
+                    } => {
+                        let cases = label_spec
                             .iter()
-                            .map(|p| match p {
+                            .cloned()
+                            .zip(self.params_view().iter().map(|p| match p {
                                 Param::Circuit(body) => body,
                                 _ => panic!("invalid switch params"),
-                            })
+                            }))
                             .collect_vec();
                         SWITCH_CASE_OP
                             .get_bound(py)
@@ -411,16 +413,20 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                     panic!("invalid");
                 }
             }
-            ControlFlow::Switch { target, .. } => {
-                let xs = self
-                    .params_view()
+            ControlFlow::Switch {
+                target, label_spec, ..
+            } => {
+                let xs = label_spec
                     .iter()
-                    .map(|p| match p {
+                    .zip(self.params_view().iter().map(|p| match p {
                         Param::Circuit(c) => c,
                         _ => panic!("invalid"),
-                    })
+                    }))
                     .collect();
-                ControlFlowRef::Switch { target, cases: xs }
+                ControlFlowRef::Switch {
+                    target,
+                    cases_specifier: xs,
+                }
             }
             ControlFlow::While { condition, .. } => {
                 let Param::Circuit(body) = &self.params_view()[0] else {
@@ -1065,6 +1071,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     (
                         ControlFlow::Switch {
                             target: ob.getattr(intern!(py, "target"))?.extract()?,
+                            label_spec: ob.getattr(intern!(py, "_label_spec"))?.extract()?,
                             qubits: ob.getattr("num_qubits")?.extract()?,
                             clbits: ob.getattr("num_clbits")?.extract()?,
                             cases: params.len() as u32,

@@ -510,12 +510,15 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
                 true_body,
                 false_body: false_body.as_ref(),
             },
-            (ControlFlow::Switch { target, .. }, Some(Parameters::Switch { cases })) => {
-                ControlFlowRef::Switch {
-                    target,
-                    cases: cases.iter().collect(),
-                }
-            }
+            (
+                ControlFlow::Switch {
+                    target, label_spec, ..
+                },
+                Some(Parameters::Switch { cases }),
+            ) => ControlFlowRef::Switch {
+                target,
+                cases_specifier: label_spec.iter().zip(cases).collect(),
+            },
             (ControlFlow::While { condition, .. }, Some(Parameters::While { body })) => {
                 ControlFlowRef::While { condition, body }
             }
@@ -2639,18 +2642,23 @@ impl DAGCircuit {
                                 (
                                     ControlFlowRef::Switch {
                                         target: target_a,
-                                        cases: cases_a,
+                                        cases_specifier: cases_a,
                                     },
                                     ControlFlowRef::Switch {
                                         target: target_b,
-                                        cases: cases_b,
+                                        cases_specifier: cases_b,
                                     },
                                 ) => {
                                     if target_a != target_b || cases_a.len() != cases_b.len() {
                                         return Ok(false);
                                     }
-                                    for (a, b) in cases_a.iter().zip(cases_b.iter()) {
-                                        if !a.__eq__(py, b)? {
+                                    for ((a_label_spec, a_block), (b_label_spec, b_block)) in
+                                        cases_a.iter().zip(cases_b.iter())
+                                    {
+                                        if a_label_spec != b_label_spec {
+                                            return Ok(false);
+                                        }
+                                        if !a_block.__eq__(py, b_block)? {
                                             return Ok(false);
                                         }
                                     }
@@ -7009,7 +7017,6 @@ impl DAGCircuit {
                         .and_modify(|count| *count += value)
                         .or_insert(*value);
                 }
-                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
                 for node in dag.dag.node_weights() {
                     let NodeType::Operation(node) = node else {
                         continue;
