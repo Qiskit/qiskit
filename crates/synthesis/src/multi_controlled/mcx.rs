@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::prelude::*;
 use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
@@ -33,6 +34,7 @@ pub fn ccx() -> PyResult<CircuitData> {
 }
 
 /// Definition circuit for C3X.
+#[pyfunction]
 pub fn c3x() -> PyResult<CircuitData> {
     StandardGate::C3X
         .definition(&[])
@@ -72,7 +74,7 @@ fn c3sx() -> PyResult<CircuitData> {
 ///
 /// This trait is **not** intended to be user-facing. It defines utility functions
 /// that make the code easier to read and that are used only for synthesis.
-trait CircuitDataAdder {
+trait CircuitDataForSynthesis {
     /// Appends H to the circuit.
     fn h(&mut self, q: u32);
 
@@ -104,7 +106,7 @@ trait CircuitDataAdder {
     fn inverse(&self) -> PyResult<CircuitData>;
 }
 
-impl CircuitDataAdder for CircuitData {
+impl CircuitDataForSynthesis for CircuitData {
     /// Appends H to the circuit.
     #[inline]
     fn h(&mut self, q: u32) {
@@ -217,6 +219,7 @@ impl CircuitDataAdder for CircuitData {
 }
 
 /// Efficient synthesis for 4-controlled X-gate.
+#[pyfunction]
 pub fn c4x() -> PyResult<CircuitData> {
     let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
     circuit.h(4);
@@ -411,9 +414,7 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
         circuit.h(target);
 
         let mcphase_cls = imports::MCPHASE_GATE.get_bound(py);
-        let mcphase_gate = mcphase_cls
-            .call1((PI, num_controls))
-            .expect("Could not create MCPhaseGate Python-side");
+        let mcphase_gate = mcphase_cls.call1((PI, num_controls))?;
 
         let as_py_gate = PyGate {
             qubits: num_qubits,

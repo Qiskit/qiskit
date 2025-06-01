@@ -53,6 +53,7 @@ class TestDecompose(QiskitTestCase):
         circ3 = QuantumCircuit(2)
         circ3.x(0)
         q_bits = QuantumRegister(5)
+
         qc = QuantumCircuit(q_bits)
         qc.append(my_gate, q_bits[:3])
         qc.append(my_gate2, q_bits[2:])
@@ -60,6 +61,19 @@ class TestDecompose(QiskitTestCase):
         qc.h(0)
         qc.append(circ3, [0, 1])
         self.complex_circuit = qc
+
+        # same circuit but with barriers around the MCX-gate
+        # (to make sure that the nodes before/after the MCX-gate remain
+        # before/after the gates of the expanded MCX-gate).
+        qc = QuantumCircuit(q_bits)
+        qc.append(my_gate, q_bits[:3])
+        qc.append(my_gate2, q_bits[2:])
+        qc.barrier(label="barrier1")
+        qc.mcx(q_bits[:4], q_bits[4])
+        qc.barrier(label="barrier2")
+        qc.h(0)
+        qc.append(circ3, [0, 1])
+        self.complex_circuit_with_barriers = qc
 
     def test_basic(self):
         """Test decompose a single H into u2."""
@@ -199,31 +213,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_only_given_name(self):
         """Test decomposition parameters so that only given name is decomposed."""
-        # same circuit but with barriers, otherwise the order of nodes before and
-        # after expanding the MCX gate might not be preserved
-        circ1 = QuantumCircuit(3)
-        circ1.h(0)
-        circ1.t(1)
-        circ1.x(2)
-        my_gate = circ1.to_gate(label="gate1")
-        circ2 = QuantumCircuit(3)
-        circ2.h(0)
-        circ2.cx(0, 1)
-        circ2.x(2)
-        my_gate2 = circ2.to_gate(label="gate2")
-        circ3 = QuantumCircuit(2)
-        circ3.x(0)
-        q_bits = QuantumRegister(5)
-        qc = QuantumCircuit(q_bits)
-        qc.append(my_gate, q_bits[:3])
-        qc.append(my_gate2, q_bits[2:])
-        qc.barrier(label="barrier1")
-        qc.mcx(q_bits[:4], q_bits[4])
-        qc.barrier(label="barrier2")
-        qc.h(0)
-        qc.append(circ3, [0, 1])
-
-        decom_circ = qc.decompose(["mcx"], reps=2)
+        decom_circ = self.complex_circuit_with_barriers.decompose(["mcx"], reps=2)
         dag = circuit_to_dag(decom_circ)
         self.assertEqual(len(dag.op_nodes()), 75)
         self.assertEqual(dag.op_nodes()[0].op.label, "gate1")
@@ -235,31 +225,7 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_mixture_of_names_and_labels(self):
         """Test decomposition parameters so that mixture of names and labels is decomposed"""
-        # same circuit but with barriers, otherwise the order of nodes before and
-        # after expanding the MCX gate might not be preserved
-        circ1 = QuantumCircuit(3)
-        circ1.h(0)
-        circ1.t(1)
-        circ1.x(2)
-        my_gate = circ1.to_gate(label="gate1")
-        circ2 = QuantumCircuit(3)
-        circ2.h(0)
-        circ2.cx(0, 1)
-        circ2.x(2)
-        my_gate2 = circ2.to_gate(label="gate2")
-        circ3 = QuantumCircuit(2)
-        circ3.x(0)
-        q_bits = QuantumRegister(5)
-        qc = QuantumCircuit(q_bits)
-        qc.append(my_gate, q_bits[:3])
-        qc.append(my_gate2, q_bits[2:])
-        qc.barrier(label="barrier1")
-        qc.mcx(q_bits[:4], q_bits[4])
-        qc.barrier(label="barrier2")
-        qc.h(0)
-        qc.append(circ3, [0, 1])
-
-        decom_circ = qc.decompose(["mcx", "gate2"], reps=2)
+        decom_circ = self.complex_circuit_with_barriers.decompose(["mcx", "gate2"], reps=2)
         dag = circuit_to_dag(decom_circ)
 
         self.assertEqual(len(dag.op_nodes()), 77)
