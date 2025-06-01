@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::circuit_data::CircuitData;
-use crate::imports::get_std_gate_class;
+use crate::imports::{get_std_gate_class, UNITARY_GATE};
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, imports, Qubit};
 use approx::relative_eq;
@@ -28,12 +28,12 @@ use smallvec::{smallvec, SmallVec};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::classical::expr;
 use crate::duration::Duration;
-use numpy::IntoPyArray;
+use numpy::{IntoPyArray, ToPyArray};
 use numpy::PyArray2;
 use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyFloat, PyIterator, PyList, PyTuple};
+use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
 
 #[derive(Clone, Debug)]
@@ -249,12 +249,6 @@ pub trait Operation {
     fn num_params(&self) -> u32;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
-    fn matrix_as_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
-        // default implementation
-        self.matrix_as_static_1q(params)
-            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
-    }
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -346,18 +340,6 @@ impl Operation for OperationRef<'_> {
         }
     }
 
-    /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.
-    #[inline]
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        match self {
-            Self::StandardGate(standard) => standard.matrix_as_static_1q(params),
-            Self::StandardInstruction(instruction) => instruction.matrix_as_static_1q(params),
-            Self::Gate(gate) => gate.matrix_as_static_1q(params),
-            Self::Instruction(instruction) => instruction.matrix_as_static_1q(params),
-            Self::Operation(operation) => operation.matrix_as_static_1q(params),
-            Self::Unitary(unitary) => unitary.matrix_as_static_1q(params),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -385,6 +367,26 @@ impl<'a, T> InstructionRef<'a, T> {
             InstructionRef::Gate(g) => g.matrix(),
             InstructionRef::Unitary(u) => u.matrix(),
             _ => None,
+        }
+    }
+
+    /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.
+    #[inline]
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+        match self {
+            Self::StandardGate(standard) => standard.matrix_as_static_1q(),
+            Self::Gate(gate) => gate.matrix_as_static_1q(),
+            Self::Unitary(unitary) => unitary.matrix_as_static_1q(),
+            _ => None,
+        }
+    }
+
+    pub fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
+        match self {
+            InstructionRef::Unitary(u) => u.matrix_as_nalgebra_1q(),
+            // default implementation
+            _ => self.matrix_as_static_1q()
+                .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
         }
     }
 
@@ -782,10 +784,6 @@ impl Operation for StandardInstruction {
             StandardInstruction::Measure => false,
             StandardInstruction::Reset => false,
         }
-    }
-
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
     }
 }
 
@@ -1212,6 +1210,127 @@ impl StandardGate {
                 [] => Some(aview2(&gate_matrix::RC3X_GATE).to_owned()),
                 _ => None,
             },
+        }
+    }
+
+    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        match self {
+            Self::GlobalPhase => None,
+            Self::H => match params {
+                [] => Some(gate_matrix::H_GATE),
+                _ => None,
+            },
+            Self::I => match params {
+                [] => Some(gate_matrix::ONE_QUBIT_IDENTITY),
+                _ => None,
+            },
+            Self::X => match params {
+                [] => Some(gate_matrix::X_GATE),
+                _ => None,
+            },
+            Self::Y => match params {
+                [] => Some(gate_matrix::Y_GATE),
+                _ => None,
+            },
+            Self::Z => match params {
+                [] => Some(gate_matrix::Z_GATE),
+                _ => None,
+            },
+            Self::Phase => match params {
+                [Param::Float(theta)] => Some(gate_matrix::phase_gate(*theta)),
+                _ => None,
+            },
+            Self::R => match params {
+                [Param::Float(theta), Param::Float(phi)] => Some(gate_matrix::r_gate(*theta, *phi)),
+                _ => None,
+            },
+            Self::RX => match params {
+                [Param::Float(theta)] => Some(gate_matrix::rx_gate(*theta)),
+                _ => None,
+            },
+            Self::RY => match params {
+                [Param::Float(theta)] => Some(gate_matrix::ry_gate(*theta)),
+                _ => None,
+            },
+            Self::RZ => match params {
+                [Param::Float(theta)] => Some(gate_matrix::rz_gate(*theta)),
+                _ => None,
+            },
+            Self::S => match params {
+                [] => Some(gate_matrix::S_GATE),
+                _ => None,
+            },
+            Self::Sdg => match params {
+                [] => Some(gate_matrix::SDG_GATE),
+                _ => None,
+            },
+            Self::SX => match params {
+                [] => Some(gate_matrix::SX_GATE),
+                _ => None,
+            },
+            Self::SXdg => match params {
+                [] => Some(gate_matrix::SXDG_GATE),
+                _ => None,
+            },
+            Self::T => match params {
+                [] => Some(gate_matrix::T_GATE),
+                _ => None,
+            },
+            Self::Tdg => match params {
+                [] => Some(gate_matrix::TDG_GATE),
+                _ => None,
+            },
+            Self::U => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(gate_matrix::u_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::U1 => match params[0] {
+                Param::Float(val) => Some(gate_matrix::u1_gate(val)),
+                _ => None,
+            },
+            Self::U2 => match params {
+                [Param::Float(phi), Param::Float(lam)] => Some(gate_matrix::u2_gate(*phi, *lam)),
+                _ => None,
+            },
+            Self::U3 => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(gate_matrix::u3_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::CH => None,
+            Self::CX => None,
+            Self::CY => None,
+            Self::CZ => None,
+            Self::DCX => None,
+            Self::ECR => None,
+            Self::Swap => None,
+            Self::ISwap => None,
+            Self::CPhase => None,
+            Self::CRX => None,
+            Self::CRY => None,
+            Self::CRZ => None,
+            Self::CS => None,
+            Self::CSdg => None,
+            Self::CSX => None,
+            Self::CU => None,
+            Self::CU1 => None,
+            Self::CU3 => None,
+            Self::RXX => None,
+            Self::RYY => None,
+            Self::RZZ => None,
+            Self::RZX => None,
+            Self::XXMinusYY => None,
+            Self::XXPlusYY => None,
+            Self::CCX => None,
+            Self::CCZ => None,
+            Self::CSwap => None,
+            Self::RCCX => None,
+            Self::C3X => None,
+            Self::C3SX => None,
+            Self::RC3X => None,
         }
     }
 
@@ -2640,125 +2759,6 @@ impl Operation for StandardGate {
         false
     }
 
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        match self {
-            Self::GlobalPhase => None,
-            Self::H => match params {
-                [] => Some(gate_matrix::H_GATE),
-                _ => None,
-            },
-            Self::I => match params {
-                [] => Some(gate_matrix::ONE_QUBIT_IDENTITY),
-                _ => None,
-            },
-            Self::X => match params {
-                [] => Some(gate_matrix::X_GATE),
-                _ => None,
-            },
-            Self::Y => match params {
-                [] => Some(gate_matrix::Y_GATE),
-                _ => None,
-            },
-            Self::Z => match params {
-                [] => Some(gate_matrix::Z_GATE),
-                _ => None,
-            },
-            Self::Phase => match params {
-                [Param::Float(theta)] => Some(gate_matrix::phase_gate(*theta)),
-                _ => None,
-            },
-            Self::R => match params {
-                [Param::Float(theta), Param::Float(phi)] => Some(gate_matrix::r_gate(*theta, *phi)),
-                _ => None,
-            },
-            Self::RX => match params {
-                [Param::Float(theta)] => Some(gate_matrix::rx_gate(*theta)),
-                _ => None,
-            },
-            Self::RY => match params {
-                [Param::Float(theta)] => Some(gate_matrix::ry_gate(*theta)),
-                _ => None,
-            },
-            Self::RZ => match params {
-                [Param::Float(theta)] => Some(gate_matrix::rz_gate(*theta)),
-                _ => None,
-            },
-            Self::S => match params {
-                [] => Some(gate_matrix::S_GATE),
-                _ => None,
-            },
-            Self::Sdg => match params {
-                [] => Some(gate_matrix::SDG_GATE),
-                _ => None,
-            },
-            Self::SX => match params {
-                [] => Some(gate_matrix::SX_GATE),
-                _ => None,
-            },
-            Self::SXdg => match params {
-                [] => Some(gate_matrix::SXDG_GATE),
-                _ => None,
-            },
-            Self::T => match params {
-                [] => Some(gate_matrix::T_GATE),
-                _ => None,
-            },
-            Self::Tdg => match params {
-                [] => Some(gate_matrix::TDG_GATE),
-                _ => None,
-            },
-            Self::U => match params {
-                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
-                    Some(gate_matrix::u_gate(*theta, *phi, *lam))
-                }
-                _ => None,
-            },
-            Self::U1 => match params[0] {
-                Param::Float(val) => Some(gate_matrix::u1_gate(val)),
-                _ => None,
-            },
-            Self::U2 => match params {
-                [Param::Float(phi), Param::Float(lam)] => Some(gate_matrix::u2_gate(*phi, *lam)),
-                _ => None,
-            },
-            Self::U3 => match params {
-                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
-                    Some(gate_matrix::u3_gate(*theta, *phi, *lam))
-                }
-                _ => None,
-            },
-            Self::CH => None,
-            Self::CX => None,
-            Self::CY => None,
-            Self::CZ => None,
-            Self::DCX => None,
-            Self::ECR => None,
-            Self::Swap => None,
-            Self::ISwap => None,
-            Self::CPhase => None,
-            Self::CRX => None,
-            Self::CRY => None,
-            Self::CRZ => None,
-            Self::CS => None,
-            Self::CSdg => None,
-            Self::CSX => None,
-            Self::CU => None,
-            Self::CU1 => None,
-            Self::CU3 => None,
-            Self::RXX => None,
-            Self::RYY => None,
-            Self::RZZ => None,
-            Self::RZX => None,
-            Self::XXMinusYY => None,
-            Self::XXPlusYY => None,
-            Self::CCX => None,
-            Self::CCZ => None,
-            Self::CSwap => None,
-            Self::RCCX => None,
-            Self::C3X => None,
-            Self::C3SX => None,
-            Self::RC3X => None,
-        }
 }
 
 #[derive(Clone, Debug)]
@@ -2777,6 +2777,10 @@ impl<'a> StandardGateRef<'a> {
 
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         self.0.matrix(self.1)
+    }
+
+    fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+        self.0.matrix_as_static_1q(self.1)
     }
 
     pub fn definition(&self) -> Option<CircuitData> {
@@ -2915,9 +2919,6 @@ impl PyInstruction {
             }
         })
     }
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
-    }
 }
 
 /// This class is used to wrap a Python side Gate that is not in the standard library
@@ -2990,7 +2991,7 @@ impl PyGate {
         })
     }
 
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         if self.num_qubits() != 1 {
             return None;
         }
@@ -3045,10 +3046,6 @@ impl Operation for PyOperation {
                 Err(_) => false,
             }
         })
-    }
-
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
     }
 }
 
@@ -3121,7 +3118,7 @@ impl UnitaryGate {
         }
     }
 
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         match &self.array {
             ArrayType::OneQ(mat) => Some([[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]]),
             ArrayType::NDArray(arr) => {
@@ -3135,7 +3132,7 @@ impl UnitaryGate {
         }
     }
 
-    fn matrix_as_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+    fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
         match &self.array {
             ArrayType::OneQ(mat) => Some(*mat),
             ArrayType::NDArray(arr) => {
@@ -3198,7 +3195,6 @@ impl UnitaryGate {
             }
         }
     }
-}
 }
 
 #[derive(Clone, Debug)]

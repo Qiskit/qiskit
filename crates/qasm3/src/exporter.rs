@@ -29,13 +29,14 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
+use qiskit_circuit::operations::{DelayUnit, StandardInstruction, StandardInstructionRef};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
 use regex::Regex;
+use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef};
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
 
@@ -1037,7 +1038,7 @@ impl<'a> QASM3Builder {
     ) -> ExporterResult<()> {
         let name = instruction.op.name();
 
-        if instruction.op.control_flow() {
+        if instruction.op.try_control_flow().is_some() {
             Err(QASM3ExporterError::Error(format!(
                 "Control flow {} is not supported",
                 name
@@ -1182,15 +1183,21 @@ impl<'a> QASM3Builder {
     }
 
     fn build_delay(&self, instr: &PackedInstruction) -> ExporterResult<Delay> {
-        let standard_instr = instr.op.standard_instruction();
-        let delay_unit = if let StandardInstruction::Delay(delay) = standard_instr {
-            delay
-        } else {
+        let Some(StandardInstructionRef::Delay { duration: param, unit: delay_unit}) = instr.standard_instruction() else {
             return Err(QASM3ExporterError::Error(
                 "Expected Delay instruction, but got wrong instruction".to_string(),
             ));
         };
-        let param = &instr.params_view()[0];
+
+        // let standard_instr = instr.op.standard_instruction();
+        // let delay_unit = if let StandardInstruction::Delay(delay) = standard_instr {
+        //     delay
+        // } else {
+        //     return Err(QASM3ExporterError::Error(
+        //         "Expected Delay instruction, but got wrong instruction".to_string(),
+        //     ));
+        // };
+        // let param = &instr.params_view()[0];
         let duration: f64 = Python::with_gil(|py| match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {
@@ -1217,6 +1224,7 @@ impl<'a> QASM3Builder {
                     Err(_) => panic!("Failed to parse parameter value"),
                 }
             }
+            _ => panic!("Unexpected duration type for delay")
         });
 
         let mut map = HashMap::new();
@@ -1297,7 +1305,7 @@ impl<'a> QASM3Builder {
                             });
                             Expression::Parameter(Parameter { obj: name })
                         }
-                        Param::Obj(_) => panic!("Objects not supported yet"),
+                        _ => panic!("Objects not supported yet"),
                     })
                     .collect::<Vec<_>>()
             })
@@ -1350,7 +1358,7 @@ impl<'a> QASM3Builder {
                 })
                 .collect()
         });
-        if let Some(instruction) = operation.definition(&params) {
+        if let Some(instruction) = instr.view().definition() {
             let params_def = params
                 .iter()
                 .enumerate()

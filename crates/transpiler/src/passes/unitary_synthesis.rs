@@ -315,7 +315,7 @@ pub fn run_unitary_synthesis(
                         true,
                         None,
                     ),
-                    _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                    _ => match packed_instr.view().matrix() {
                         Some(matrix) => unitary_to_gate_sequence_inner(
                             matrix.view(),
                             &target_basis_set,
@@ -379,7 +379,7 @@ pub fn run_unitary_synthesis(
                             apply_original_op,
                         )?;
                     }
-                    _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                    _ => match packed_instr.view().matrix() {
                         Some(matrix) => {
                             run_2q_unitary_synthesis(
                                 py,
@@ -411,7 +411,7 @@ pub fn run_unitary_synthesis(
                         OperationRef::Unitary(gate) => {
                             qs_decomposition.call1((gate.matrix_view().to_pyarray(py),))?
                         }
-                        _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                        _ => match packed_instr.view().matrix() {
                             Some(matrix) => qs_decomposition.call1((matrix.into_pyarray(py),))?,
                             _ => return Err(QiskitError::new_err("Unitary not found")),
                         },

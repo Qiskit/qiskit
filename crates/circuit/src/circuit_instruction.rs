@@ -23,7 +23,6 @@ use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
 use crate::duration::Duration;
-use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use crate::imports::{
     BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, CONTROLLED_GATE, DELAY, FOR_LOOP_OP, GATE,
     IF_ELSE_OP, INSTRUCTION, MEASURE, OPERATION, RESET, SWITCH_CASE_OP, UNITARY_GATE,
@@ -36,7 +35,7 @@ use crate::operations::{
     UnitaryGateRef,
 };
 use crate::packed_instruction::PackedOperation;
-use nalgebra::{MatrixView2, MatrixView4};
+use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::{smallvec, SmallVec};
 

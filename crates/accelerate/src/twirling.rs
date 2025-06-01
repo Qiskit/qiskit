@@ -37,7 +37,6 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::QiskitError;
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
 use qiskit_transpiler::target::Target;
-use qiskit_accelerate::QiskitError;
 use qiskit_circuit::operations;
 
 static ECR_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
