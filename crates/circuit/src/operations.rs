@@ -15,7 +15,7 @@ use std::f64::consts::PI;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
+use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, QI_OPERATOR, RESET};
 use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
@@ -2549,6 +2549,22 @@ pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
     }
 }
 
+fn matrix_from_python(operation: &Bound<'_, PyAny>) -> Option<Array2<Complex64>> {
+    let py = operation.py();
+    Some(
+        QI_OPERATOR
+            .get_bound(py)
+            .call1((operation,))
+            .ok()?
+            .getattr(intern!(py, "data"))
+            .ok()?
+            .extract::<PyReadonlyArray2<Complex64>>()
+            .ok()?
+            .as_array()
+            .to_owned(),
+    )
+}
+
 /// This class is used to wrap a Python side Instruction that is not in the standard library
 #[derive(Clone, Debug)]
 // We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
@@ -2645,6 +2661,28 @@ pub struct PyGate {
     pub gate: PyObject,
 }
 
+impl PyGate {
+    /// Query the pre-defined matrix, accessible via Python's Gate.to_matrix().
+    /// This differs to [PyGate::matrix], which uses Python's Operator class to compute
+    /// the matrix if it is not available.
+    fn predefined_matrix(&self, py: Python<'_>) -> Option<Array2<Complex64>> {
+        match self.gate.getattr(py, intern!(py, "to_matrix")) {
+            Ok(to_matrix) => {
+                let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
+                match res {
+                    Some(x) => {
+                        println!("-- standard path");
+                        let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
+                        Some(array.as_array().to_owned())
+                    }
+                    None => None,
+                }
+            }
+            Err(_) => None,
+        }
+    }
+}
+
 impl Operation for PyGate {
     fn name(&self) -> &str {
         self.op_name.as_str()
@@ -2666,18 +2704,10 @@ impl Operation for PyGate {
     }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         Python::with_gil(|py| -> Option<Array2<Complex64>> {
-            match self.gate.getattr(py, intern!(py, "to_matrix")) {
-                Ok(to_matrix) => {
-                    let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
-                    match res {
-                        Some(x) => {
-                            let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
-                            Some(array.as_array().to_owned())
-                        }
-                        None => None,
-                    }
-                }
-                Err(_) => None,
+            // if the matrix is not defined, use the quantum_info.Operator to obtain it
+            match self.predefined_matrix(py) {
+                Some(matrix) => Some(matrix),
+                None => matrix_from_python(self.gate.bind(py)),
             }
         })
     }
@@ -2709,16 +2739,8 @@ impl Operation for PyGate {
         if self.num_qubits() != 1 {
             return None;
         }
-        Python::with_gil(|py| -> Option<[[Complex64; 2]; 2]> {
-            let array = self
-                .gate
-                .call_method0(py, intern!(py, "to_matrix"))
-                .ok()?
-                .extract::<PyReadonlyArray2<Complex64>>(py)
-                .ok()?;
-            let arr = array.as_array();
-            Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
-        })
+        let arr = self.matrix(_params)?;
+        Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
     }
 }
 
@@ -2754,7 +2776,7 @@ impl Operation for PyOperation {
         vec![]
     }
     fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
+        Python::with_gil(|py| matrix_from_python(self.operation.bind(py)))
     }
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         None
@@ -2776,7 +2798,11 @@ impl Operation for PyOperation {
     }
 
     fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
+        if self.num_qubits() != 1 {
+            return None;
+        }
+        let arr = self.matrix(_params)?;
+        Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
     }
 }
 

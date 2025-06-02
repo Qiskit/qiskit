@@ -19,16 +19,13 @@ use qiskit_circuit::object_registry::PyObjectAsKey;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
-use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyRuntimeError;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
-use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{
@@ -478,12 +475,12 @@ impl CommutationChecker {
                 "first instructions must have at most as many qubits as the second instruction",
             ));
         };
-        let first_mat = match get_matrix(py, first_op, first_params)? {
+        let first_mat = match get_matrix(first_op, first_params)? {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(py, second_op, second_params)? {
+        let second_mat = match get_matrix(second_op, second_params)? {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -589,29 +586,15 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(
-    py: Python,
-    operation: &OperationRef,
-    params: &[Param],
-) -> PyResult<Option<Array2<Complex64>>> {
+fn get_matrix(operation: &OperationRef, params: &[Param]) -> PyResult<Option<Array2<Complex64>>> {
     match operation.matrix(params) {
         Some(matrix) => Ok(Some(matrix)),
         None => match operation {
-            PyGateType(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
-            PyOperationType(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
+            PyGateType(gate) => Ok(gate.matrix(&[])),
+            PyOperationType(op) => Ok(op.matrix(&[])),
             _ => Ok(None),
         },
     }
-}
-
-fn matrix_via_operator(py: Python, py_obj: &PyObject) -> PyResult<Array2<Complex64>> {
-    Ok(QI_OPERATOR
-        .get_bound(py)
-        .call1((py_obj,))?
-        .getattr(intern!(py, "data"))?
-        .extract::<PyReadonlyArray2<Complex64>>()?
-        .as_array()
-        .to_owned())
 }
 
 fn is_parameterized(params: &[Param]) -> bool {

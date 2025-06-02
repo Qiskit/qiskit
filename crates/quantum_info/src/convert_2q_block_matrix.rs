@@ -21,7 +21,6 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
-use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::Qubit;
@@ -38,13 +37,8 @@ pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Ar
             "Parameterized gates can't be consolidated",
         ))
     } else if let OperationRef::Gate(gate) = inst.op.view() {
-        Ok(QI_OPERATOR
-            .get_bound(py)
-            .call1((gate.gate.clone_ref(py),))?
-            .getattr(intern!(py, "data"))?
-            .extract::<PyReadonlyArray2<Complex64>>()?
-            .as_array()
-            .to_owned())
+        gate.matrix(&[])
+            .ok_or(QiskitError::new_err("Failed getting the matrix."))
     } else {
         Err(QiskitError::new_err(
             "Can't compute matrix of non-unitary op",
