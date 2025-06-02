@@ -20,7 +20,7 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
+from qiskit.qpy import dump, load, formats, get_qpy_version, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
 from qiskit.transpiler import TranspileLayout, CouplingMap
 from qiskit.compiler import transpile
@@ -65,6 +65,33 @@ class TestVersions(QpyCircuitTestCase):
             buf.seek(0)
             with self.assertRaisesRegex(QiskitError, str(QPY_VERSION + 4)):
                 load(buf)
+
+    def test_get_qpy_version(self):
+        """Test the get_qpy_version function."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        for version in range(QPY_COMPATIBILITY_VERSION, QPY_VERSION + 1):
+            with io.BytesIO() as qpy_file:
+                dump(qc, qpy_file, version=version)
+                qpy_file.seek(0)
+                file_version = get_qpy_version(qpy_file)
+            self.assertEqual(version, file_version)
+
+    def test_get_qpy_version_read(self):
+        """Ensure we don't advance the cursor exiting the get_qpy_version() function."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            file_version = get_qpy_version(qpy_file)
+            self.assertEqual(file_version, QPY_VERSION)
+            res = load(qpy_file)[0]
+        self.assertEqual(res, qc)
 
 
 @ddt
