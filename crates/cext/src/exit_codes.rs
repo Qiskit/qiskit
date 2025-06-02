@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_accelerate::sparse_observable::ArithmeticError;
+use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use thiserror::Error;
 
 /// Errors related to C input.
@@ -41,6 +41,8 @@ pub enum ExitCode {
     ArithmeticError = 200,
     /// Mismatching number of qubits.
     MismatchedQubits = 201,
+    /// Matrix is not unitary.
+    ExpectedUnitary = 202,
 }
 
 impl From<ArithmeticError> for ExitCode {

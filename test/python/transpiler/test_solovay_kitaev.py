@@ -24,7 +24,7 @@ from ddt import ddt, data
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit import ClassicalRegister
-from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFT
+from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFTGate
 from qiskit.circuit import QuantumRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -99,7 +99,7 @@ class TestSolovayKitaev(QiskitTestCase):
         passes = PassManager([_1q, _cons, _synth])
         compiled = passes.run(circuit)
 
-        self.assertLessEqual(set(compiled.count_ops().keys()), {"h", "s", "sdg", "cx"})
+        self.assertLessEqual(set(compiled.count_ops().keys()), {"h", "s", "cx"})
 
     def test_plugin(self):
         """Test calling the plugin directly."""
@@ -111,7 +111,7 @@ class TestSolovayKitaev(QiskitTestCase):
         plugin = SolovayKitaevSynthesis()
         out = plugin.run(unitary, basis_gates=["h", "s"])
 
-        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "sdg", "cx"})
+        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "cx"})
 
     def test_multiple_plugins(self):
         """Test calling the plugins directly but with different instances of basis set."""
@@ -188,7 +188,8 @@ class TestSolovayKitaev(QiskitTestCase):
 
     def test_approximation_on_qft(self):
         """Test the Solovay-Kitaev decomposition on the QFT circuit."""
-        qft = QFT(3)
+        qft = QuantumCircuit(3)
+        qft.append(QFTGate(3), [0, 1, 2], [])
         transpiled = transpile(
             qft, basis_gates=["u1", "u2", "u3", "u", "cx", "id"], optimization_level=1
         )

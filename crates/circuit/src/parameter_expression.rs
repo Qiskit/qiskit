@@ -120,14 +120,6 @@ impl ParameterExpression {
         }
     }
 
-    // return string to pass to sympify
-    pub fn expr_for_sympy(&self) -> String {
-        // using altenate format for sympify
-        let ret = self.expr.optimize().sympify().to_string();
-        ret.replace("$\\", "__begin_sympy_replace__")
-            .replace('$', "__end_sympy_replace__")
-    }
-
     // unary functions
     pub fn sin(&self) -> Self {
         Self {
