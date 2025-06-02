@@ -27,3 +27,8 @@ deprecations_circuits:
       * :class:`.MCXGrayCode` ``-->``  :func:`.synth_mcx_gray_code`
       * :class:`.MCXRecursive` ``-->``  :func:`.synth_mcx_n_dirty_i15`
       * :class:`.MCXVChain` ``-->`` :func:`.synth_mcx_n_clean_m15`
+      * :class:`.ExactReciprocal` ``-->`` :class:`.ExactReciprocalGate`
+      * :class:`.LinearAmplitudeFunction` ``-->`` :class:`.LinearAmplitudeFunctionGate`
+      * :class:`.PhaseOracle` ``-->`` :class:`.PhaseOracleGate`
+      * :class:`.PiecewisePolynomialPauliRotations` ``-->`` :class:`.PiecewisePolynomialPauliRotationsGate`
+      * :class:`.ZFeatureMap` ``-->`` :func:`.z_feature_map`
