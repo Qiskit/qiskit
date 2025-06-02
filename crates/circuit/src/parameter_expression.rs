@@ -52,6 +52,10 @@ impl ParameterValueType {
                         symbol_expr::Value::Int(i) => ParameterValueType::Int(i),
                         symbol_expr::Value::Real(r) => ParameterValueType::Float(r),
                         symbol_expr::Value::Complex(c) => ParameterValueType::Complex(c),
+                        symbol_expr::Value::Fraction {
+                            numerator,
+                            denominator,
+                        } => ParameterValueType::Float(numerator as f64 / denominator as f64),
                     };
                 }
             }
@@ -253,7 +257,7 @@ impl PyParameter {
                 PyClassInitializer::from(ParameterExpression {
                     inner: ParameterInner::Symbol {
                         name: Box::new(name.clone()),
-                        uuid: uuid,
+                        uuid,
                     },
                 })
                 .add_subclass(Self {})
@@ -287,8 +291,8 @@ impl PyParameterVectorElement {
         PyClassInitializer::from(ParameterExpression {
             inner: ParameterInner::VectorElement {
                 name: Box::new(vector.name.clone()),
-                index: index,
-                uuid: uuid,
+                index,
+                uuid,
                 vector: Some(Arc::new(vector.clone())),
             },
         })
@@ -1070,7 +1074,6 @@ impl ParameterExpression {
                             SymbolExpr::Value(v)
                         }
                     }
-                    symbol_expr::Value::Int(_) => SymbolExpr::Value(v),
                     symbol_expr::Value::Complex(c) => {
                         if c.re.is_infinite() || c.im.is_infinite() {
                             return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
@@ -1088,6 +1091,7 @@ impl ParameterExpression {
                             SymbolExpr::Value(v)
                         }
                     }
+                    _ => SymbolExpr::Value(v),
                 },
                 None => bound,
             };
@@ -1107,7 +1111,7 @@ impl ParameterExpression {
                 inner: ParameterInner::Expression {
                     expr: bound,
                     qpy_replay: replay,
-                    parameter_symbols: if symbols.len() > 0 {
+                    parameter_symbols: if !symbols.is_empty() {
                         Some(symbols)
                     } else {
                         None
@@ -1276,24 +1280,22 @@ impl ParameterExpression {
                     },
                 })
             }
+        } else if self.compare_eq(param, true) {
+            Ok(ParameterExpression {
+                inner: ParameterInner::Expression {
+                    expr: SymbolExpr::Value(Value::Int(1)),
+                    qpy_replay: Vec::from([replay]),
+                    parameter_symbols: None,
+                },
+            })
         } else {
-            if self.compare_eq(param, true) {
-                Ok(ParameterExpression {
-                    inner: ParameterInner::Expression {
-                        expr: SymbolExpr::Value(Value::Int(1)),
-                        qpy_replay: Vec::from([replay]),
-                        parameter_symbols: None,
-                    },
-                })
-            } else {
-                Ok(ParameterExpression {
-                    inner: ParameterInner::Expression {
-                        expr: SymbolExpr::Value(Value::Int(0)),
-                        qpy_replay: Vec::from([replay]),
-                        parameter_symbols: None,
-                    },
-                })
-            }
+            Ok(ParameterExpression {
+                inner: ParameterInner::Expression {
+                    expr: SymbolExpr::Value(Value::Int(0)),
+                    qpy_replay: Vec::from([replay]),
+                    parameter_symbols: None,
+                },
+            })
         }
     }
 
@@ -1624,6 +1626,10 @@ impl ParameterExpression {
                             c.into_py_any(py)
                         }
                     }
+                    symbol_expr::Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => (numerator as f64 / denominator as f64).into_py_any(py),
                 },
                 None => Err(pyo3::exceptions::PyTypeError::new_err(format!(
                     "Expression with unbound parameters '{:?}' is not numeric",
@@ -1719,6 +1725,7 @@ impl ParameterExpression {
                     symbol_expr::Value::Real(r) => Ok(Complex64::from(r)),
                     symbol_expr::Value::Int(i) => Ok(Complex64::from(i as f64)),
                     symbol_expr::Value::Complex(c) => Ok(c),
+                    symbol_expr::Value::Fraction { numerator, denominator } => Ok(Complex64::from(numerator as f64 / denominator as f64)),
                 },
                 None => Err(pyo3::exceptions::PyTypeError::new_err(format!(
                     "ParameterExpression with unbound parameters ({:?}) cannot be cast to a complex.",
@@ -1756,6 +1763,10 @@ impl ParameterExpression {
                             ))
                         }
                     }
+                    symbol_expr::Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => Ok(numerator as f64 / denominator as f64),
                 },
                 None => Err(pyo3::exceptions::PyTypeError::new_err(format!(
                     "ParameterExpression with unbound parameters ({:?}) cannot be cast to a float.",
@@ -1793,6 +1804,10 @@ impl ParameterExpression {
                             ))
                         }
                     }
+                    symbol_expr::Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => Ok(numerator / denominator),
                 },
                 None => Err(pyo3::exceptions::PyTypeError::new_err(format!(
                     "ParameterExpression with unbound parameters ({:?}) cannot be cast to int.",
@@ -1855,6 +1870,10 @@ impl ParameterExpression {
                             c.into_py_any(py)
                         }
                     }
+                    symbol_expr::Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => (*numerator as f64 / *denominator as f64).into_py_any(py),
                 },
                 _ => grad.into_py_any(py),
             },
@@ -1939,6 +1958,10 @@ impl ParameterExpression {
                     symbol_expr::Value::Real(r) => r.into_py_any(py),
                     symbol_expr::Value::Int(i) => i.into_py_any(py),
                     symbol_expr::Value::Complex(c) => c.into_py_any(py),
+                    symbol_expr::Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => (*numerator as f64 / *denominator as f64).into_py_any(py),
                 })
                 .collect(),
             _ => Ok(Vec::new()),
@@ -1954,14 +1977,13 @@ impl ParameterExpression {
     #[pyo3(name = "assign")]
     pub fn py_assign(&self, param: &ParameterExpression, value: &Bound<PyAny>) -> PyResult<Self> {
         if let Some(e) = _extract_value(value) {
-            let eval = match &e.inner {
+            let eval = matches!(
+                &e.inner,
                 ParameterInner::Expression {
                     expr: SymbolExpr::Value(_),
                     ..
-                } => true,
-                _ => false,
-            };
-
+                }
+            );
             if self == param {
                 return Ok(e);
             }
@@ -2185,6 +2207,7 @@ impl ParameterExpression {
                         symbol_expr::Value::Int(i) => *i == 0,
                         symbol_expr::Value::Real(r) => *r == 0.0,
                         symbol_expr::Value::Complex(c) => c.re == 0.0 && c.im == 0.0,
+                        symbol_expr::Value::Fraction { numerator, .. } => *numerator == 0,
                     };
                     if zero {
                         return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
@@ -2265,6 +2288,12 @@ impl ParameterExpression {
                     symbol_expr::Value::Int(i) => i.into_pyobject(py)?.hash(),
                     symbol_expr::Value::Real(r) => r.into_pyobject(py)?.hash(),
                     symbol_expr::Value::Complex(c) => c.into_pyobject(py)?.hash(),
+                    symbol_expr::Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => (numerator as f64 / denominator as f64)
+                        .into_pyobject(py)?
+                        .hash(),
                 },
                 None => expr.to_string().into_pyobject(py)?.hash(),
             },
@@ -2273,6 +2302,7 @@ impl ParameterExpression {
     }
 
     // for pickle, we can reproduce equation from expression string
+    #[allow(clippy::type_complexity)]
     fn __getstate__(
         &self,
     ) -> PyResult<(
@@ -2314,6 +2344,8 @@ impl ParameterExpression {
             }
         }
     }
+
+    #[allow(clippy::type_complexity)]
     fn __setstate__(
         &mut self,
         state: (
@@ -2343,29 +2375,27 @@ impl ParameterExpression {
                     } else {
                         self.inner = ParameterInner::Symbol {
                             name: Box::new(expr.to_string()),
-                            uuid: uuid,
+                            uuid,
                         };
                     }
+                } else if let Some(symbols) = state.4 {
+                    let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
+                    for (name, uuid) in symbols {
+                        parameter_symbols.insert(Arc::<ParameterExpression>::new(
+                            ParameterExpression::new(name, Some(uuid)),
+                        ));
+                    }
+                    self.inner = ParameterInner::Expression {
+                        expr,
+                        qpy_replay: Vec::new(),
+                        parameter_symbols: Some(parameter_symbols),
+                    };
                 } else {
-                    if let Some(symbols) = state.4 {
-                        let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
-                        for (name, uuid) in symbols {
-                            parameter_symbols.insert(Arc::<ParameterExpression>::new(
-                                ParameterExpression::new(name, Some(uuid)),
-                            ));
-                        }
-                        self.inner = ParameterInner::Expression {
-                            expr,
-                            qpy_replay: Vec::new(),
-                            parameter_symbols: Some(parameter_symbols),
-                        };
-                    } else {
-                        self.inner = ParameterInner::Expression {
-                            expr,
-                            qpy_replay: Vec::new(),
-                            parameter_symbols: None,
-                        };
-                    }
+                    self.inner = ParameterInner::Expression {
+                        expr,
+                        qpy_replay: Vec::new(),
+                        parameter_symbols: None,
+                    };
                 }
                 Ok(())
             }
@@ -2470,7 +2500,7 @@ impl ParameterVector {
         };
         let mut ret = ParameterVector {
             name: name.clone(),
-            root_uuid: root_uuid,
+            root_uuid,
             params: Vec::with_capacity(length),
         };
 
