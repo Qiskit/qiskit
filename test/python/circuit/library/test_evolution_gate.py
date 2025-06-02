@@ -27,6 +27,7 @@ from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, SparseObservable
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
+from qiskit.utils import optionals
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
@@ -527,6 +528,7 @@ class TestEvolutionGate(QiskitTestCase):
         with self.subTest(msg="check correctness"):
             self.assertEqual(Operator(exact), Operator(bound))
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_sympify_is_real(self):
         """Test converting the parameters to sympy is real.
 
