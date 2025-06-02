@@ -24,7 +24,7 @@ use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, VarsCopyMode};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::converters::dag_to_circuit;
+use qiskit_circuit::converters::{dag_to_circuit, circuit_to_dag};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
@@ -980,37 +980,10 @@ pub fn run_high_level_synthesis(
         let (output_circuit, _) =
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
-        let new_dag = convert_circuit_to_dag_with_data(dag, &output_circuit)?;
+        let new_dag = DAGCircuit::from_circuit_data(py, output_circuit, false)?;
 
         Ok(Some(new_dag))
     }
-}
-
-/// Converts circuit to DAGCircuit, while taking the missing python data from dag.
-fn convert_circuit_to_dag_with_data(
-    dag: &DAGCircuit,
-    circuit: &CircuitData,
-) -> PyResult<DAGCircuit> {
-    // Calling copy_empty_like makes sure that all the python-space information (qregs, cregs, input variables)
-    // get copied correctly.
-    let mut new_dag = dag.copy_empty_like("alike")?;
-    new_dag.set_global_phase(circuit.global_phase().clone())?;
-    let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
-    let carg_map = new_dag.merge_cargs(circuit.cargs_interner(), |bit: &Clbit| Some(*bit));
-
-    new_dag.try_extend(circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
-        Ok(PackedInstruction {
-            // SHould this be: op: instr.op.py_deepcopy(py, None)?,
-            op: instr.op.clone(),
-            qubits: qarg_map[instr.qubits],
-            clbits: carg_map[instr.clbits],
-            params: instr.params.clone(),
-            label: instr.label.clone(),
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        })
-    }))?;
-    Ok(new_dag)
 }
 
 pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {

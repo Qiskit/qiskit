@@ -33,6 +33,7 @@ use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::{Clbit, Qubit, Var, Stretch};
 use crate::classical::expr;
 
+use nom::InputTakeAtPosition;
 use numpy::PyReadonlyArray1;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
@@ -1367,11 +1368,6 @@ impl CircuitData {
     ///     var: the variable to add.
     #[pyo3(name = "add_input_var")]
     fn py_add_input_var(&mut self, var: expr::Var) -> PyResult<()> {
-        // if !self.vars_captured.is_empty() { // TODO: || !self.stretches_capture.is_empty() { // TODO: take all this logic (and in the other add_ functions) to the Rust function
-        //     return Err(CircuitError::new_err(
-        //         "cannot add inputs to a circuit with captures",
-        //     ));
-        // }
         self.add_var(var, CircuitVarType::Input)?;
         Ok(())
     }
@@ -1382,11 +1378,6 @@ impl CircuitData {
     ///     var: the variable to add.
     #[pyo3(name = "add_captured_var")]
     fn py_add_captured_var(&mut self, var: expr::Var) -> PyResult<()> {
-        // if !self.vars_input.is_empty() { // TODO: || !self.stretches_capture.is_empty() {
-        //     return Err(CircuitError::new_err(
-        //         "cannot add inputs to a circuit with captures",
-        //     ));
-        // }
         self.add_var(var, CircuitVarType::Capture)?;
         Ok(())
     }
@@ -1417,7 +1408,7 @@ impl CircuitData {
                 self.identifier_info.get(&name),
                 Some(CircuitIdentifierInfo::Var(_))
             ))
-        } else {
+        } else { // TODO: do we really need this path? why not staying with name input only?
             let var = var.extract::<expr::Var>()?;
             let expr::Var::Standalone { name, .. } = &var else {
                 return Ok(false);
@@ -1429,9 +1420,30 @@ impl CircuitData {
         }
     }
 
-    #[pyo3(name="get_var")]
+    #[pyo3(name = "has_input_var")] // TODO: add signature that name is str
+    fn py_has_input_var(&self, name: &str) -> PyResult<bool> {
+        Ok(matches!(
+            self.identifier_info.get(name),
+            Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Input)))
+    }
+
+    #[pyo3(name = "has_declared_var")] // TODO: add signature that name is str
+    fn py_has_declared_var(&self, name: &str) -> PyResult<bool> {
+        Ok(matches!(
+            self.identifier_info.get(name),
+            Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Declare)))
+    }
+
+    #[pyo3(name = "has_captured_var")] // TODO: add signature that name is str
+    fn py_has_captured_var(&self, name: &str) -> PyResult<bool> {
+        Ok(matches!(
+            self.identifier_info.get(name),
+            Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Capture)))
+    }
+
+    #[pyo3(name="get_var")] // TODO: do we really need this??
     pub fn py_get_var(&self, py: Python, name: &str) -> PyResult<PyObject> {
-        if let Some(CircuitIdentifierInfo::Var(var_info)) = self.identifier_info.get(name) {
+        if let Some(CircuitIdentifierInfo::Var(var_info)) = self.identifier_info.get(name) { // TODO: use map_or
             let var = self.vars.get(var_info.var).unwrap().clone();
             return var.into_py_any(py);
         }
@@ -1504,6 +1516,22 @@ impl CircuitData {
             Ok(false)
         }
     }
+
+    #[pyo3(name = "has_captured_stretch")] // TODO: add signature that name is str
+    fn py_has_captured_stretch(&self, name: &str) -> PyResult<bool> {
+        Ok(matches!(
+            self.identifier_info.get(name),
+            Some(CircuitIdentifierInfo::Stretch(stretch_info)) if matches!(stretch_info.type_, CircuitStretchType::Capture)))
+    }
+
+
+    #[pyo3(name = "has_declared_stretch")] // TODO: add signature that name is str
+    fn py_has_declared_stretch(&self, name: &str) -> PyResult<bool> {
+        Ok(matches!(
+            self.identifier_info.get(name),
+            Some(CircuitIdentifierInfo::Stretch(stretch_info)) if matches!(stretch_info.type_, CircuitStretchType::Declare)))
+    }
+
 
     #[pyo3(name="get_stretch")]
     pub fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<PyObject> {
@@ -2337,11 +2365,10 @@ impl CircuitData {
     }
 
     pub fn add_var(&mut self, var: expr::Var, type_: CircuitVarType) -> PyResult<Var> {
-        // TODO: implement logic for checking var shadowing rules in this function
         let name = {
             let expr::Var::Standalone { name, .. } = &var else {
                 return Err(CircuitError::new_err(
-                    "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances", // TODO: check this logic
+                    "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances",
                 ));
             };
             name.clone()
@@ -2358,6 +2385,11 @@ impl CircuitData {
             }
             _ => {}
         }
+
+        // TODO: implement checking logic rules here
+        // * cannot add captures to circuits with inputs
+        // * cannot add inputs to circuit with captures
+
 
         let var_idx = self.vars.add(var, true)?;
         match type_ {
@@ -2447,6 +2479,9 @@ impl CircuitData {
             0,
             self.global_phase.clone(),
         )?;
+
+        res.qargs_interner = self.qargs_interner.clone();
+        res.cargs_interner = self.cargs_interner.clone();
 
         // After initialization, copy register info.
         res.qregs = self.qregs.clone();
