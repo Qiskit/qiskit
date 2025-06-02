@@ -125,6 +125,17 @@ pub fn sampled_expval_sparse_observable(
             full_op[(n - 1 - index) as usize] = char;
         }
 
+        // Validating that all operators are diagonal
+        let allowed_diagonal_ops = ['I', 'Z', '0', '1'];
+
+        for op in &oper_strs {
+            if !op.chars().all(|c| allowed_diagonal_ops.contains(&c)) {
+                return Err(PyValueError::new_err(format!(
+                    "Operator string '{}' contains non-diagonal terms",
+                    op
+                )));
+            }
+        }
         oper_strs.push(full_op.join(""));
         coeffs.push(term.coeff);
     }
