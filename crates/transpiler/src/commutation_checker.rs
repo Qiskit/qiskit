@@ -32,10 +32,35 @@ use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
 };
 use qiskit_circuit::{Clbit, Qubit};
+use qiskit_quantum_info::unitary_compose;
+use thiserror::Error;
 
 use crate::gate_metrics;
 use crate::QiskitError;
-use qiskit_quantum_info::unitary_compose;
+
+#[derive(Error, Debug)]
+pub enum CommutationError {
+    #[error("Einsum error: {0}")]
+    EinsumError(&'static str),
+    #[error("First instruction must have at most as many qubits as the second instruction")]
+    FirstInstructionTooLarge,
+    #[error("Invalid hash value: NaN or inf")]
+    HashingNaN,
+    #[error("Invalid hash type: parameterized")]
+    HashingParameter,
+}
+
+impl From<CommutationError> for PyErr {
+    fn from(value: CommutationError) -> Self {
+        match value {
+            // For backward compatibility we keep these two errors as QiskitErrors
+            CommutationError::HashingParameter | CommutationError::FirstInstructionTooLarge => {
+                QiskitError::new_err(value.to_string())
+            }
+            _ => PyRuntimeError::new_err(value.to_string()),
+        }
+    }
+}
 
 const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
     let mut lut = [false; STANDARD_GATE_SIZE];
@@ -170,7 +195,7 @@ impl CommutationChecker {
             op2.instruction.clbits.bind(py),
         )?;
 
-        self.commute(
+        Ok(self.commute(
             &op1.instruction.operation.view(),
             &op1.instruction.params,
             &qargs1,
@@ -181,7 +206,7 @@ impl CommutationChecker {
             &cargs2,
             max_num_qubits,
             approximation_degree,
-        )
+        )?)
     }
 
     #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=3, approximation_degree=1.))]
@@ -200,7 +225,7 @@ impl CommutationChecker {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(qargs1, qargs2)?;
         let (cargs1, cargs2) = get_bits_from_py::<Clbit>(cargs1, cargs2)?;
 
-        self.commute(
+        Ok(self.commute(
             &op1.operation.view(),
             &op1.params,
             &qargs1,
@@ -211,7 +236,7 @@ impl CommutationChecker {
             &cargs2,
             max_num_qubits,
             approximation_degree,
-        )
+        )?)
     }
 
     /// Return the current number of cache entries
@@ -279,7 +304,7 @@ impl CommutationChecker {
         cargs2: &[Clbit],
         max_num_qubits: u32,
         approximation_degree: f64,
-    ) -> PyResult<bool> {
+    ) -> Result<bool, CommutationError> {
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
@@ -436,7 +461,7 @@ impl CommutationChecker {
         second_params: &[Param],
         second_qargs: &[Qubit],
         tol: f64,
-    ) -> PyResult<bool> {
+    ) -> Result<bool, CommutationError> {
         // Compute relative positioning of qargs of the second gate to the first gate.
         // Since the qargs come out the same BitData, we already know there are no accidential
         // bit-duplications, but this code additionally maps first_qargs to [0..n] and then
@@ -462,16 +487,14 @@ impl CommutationChecker {
         let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
 
         if first_qarg.len() > second_qarg.len() {
-            return Err(QiskitError::new_err(
-                "first instructions must have at most as many qubits as the second instruction",
-            ));
+            return Err(CommutationError::FirstInstructionTooLarge);
         };
-        let first_mat = match get_matrix(first_op, first_params)? {
+        let first_mat = match get_matrix(first_op, first_params) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(second_op, second_params)? {
+        let second_mat = match get_matrix(second_op, second_params) {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -500,7 +523,7 @@ impl CommutationChecker {
             false,
         ) {
             Ok(matrix) => matrix,
-            Err(e) => return Err(PyRuntimeError::new_err(e)),
+            Err(e) => return Err(CommutationError::EinsumError(e)),
         };
         let op21 = match unitary_compose::compose(
             &first_mat.view(),
@@ -509,7 +532,7 @@ impl CommutationChecker {
             true,
         ) {
             Ok(matrix) => matrix,
-            Err(e) => return Err(PyRuntimeError::new_err(e)),
+            Err(e) => return Err(CommutationError::EinsumError(e)),
         };
         let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view(), None);
 
@@ -577,13 +600,13 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(operation: &OperationRef, params: &[Param]) -> PyResult<Option<Array2<Complex64>>> {
+fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
     match operation.matrix(params) {
-        Some(matrix) => Ok(Some(matrix)),
+        Some(matrix) => Some(matrix),
         None => match operation {
-            PyGateType(gate) => Ok(gate.matrix(&[])),
-            PyOperationType(op) => Ok(op.matrix(&[])),
-            _ => Ok(None),
+            PyGateType(gate) => gate.matrix(&[]),
+            PyOperationType(op) => op.matrix(&[]),
+            _ => None,
         },
     }
 }
@@ -817,7 +840,7 @@ impl std::hash::Hash for ParameterKey {
 
 impl Eq for ParameterKey {}
 
-fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
+fn hashable_params(params: &[Param]) -> Result<SmallVec<[ParameterKey; 3]>, CommutationError> {
     params
         .iter()
         .map(|x| {
@@ -827,16 +850,12 @@ fn hashable_params(params: &[Param]) -> PyResult<SmallVec<[ParameterKey; 3]>> {
                 // the cache HashMap don't take these into account. So return
                 // an error to Python if we encounter these values.
                 if x.is_nan() || x.is_infinite() {
-                    Err(PyRuntimeError::new_err(
-                        "Can't hash parameters that are infinite or NaN",
-                    ))
+                    Err(CommutationError::HashingNaN)
                 } else {
                     Ok(ParameterKey(*x))
                 }
             } else {
-                Err(QiskitError::new_err(
-                    "Unable to hash a non-float instruction parameter.",
-                ))
+                Err(CommutationError::HashingParameter)
             }
         })
         .collect()

@@ -2671,7 +2671,6 @@ impl PyGate {
                 let res: Option<PyObject> = to_matrix.call0(py).ok()?.extract(py).ok();
                 match res {
                     Some(x) => {
-                        println!("-- standard path");
                         let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
                         Some(array.as_array().to_owned())
                     }
