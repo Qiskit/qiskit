@@ -14,7 +14,6 @@
 
 import os
 import unittest
-import math
 import tempfile
 import numpy as np
 import scipy
@@ -45,31 +44,13 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis, Collect1qRuns, ConsolidateBlocks
 from qiskit.transpiler.passes.synthesis import SolovayKitaev, SolovayKitaevSynthesis
 from qiskit.synthesis.discrete_basis import SolovayKitaevDecomposition
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 
 def _trace_distance(circuit1, circuit2):
     """Return the trace distance of the two input circuits."""
     op1, op2 = Operator(circuit1), Operator(circuit2)
     return 0.5 * np.trace(scipy.linalg.sqrtm(np.conj(op1 - op2).T.dot(op1 - op2))).real
-
-
-def _generate_x_rotation(angle: float) -> np.ndarray:
-    return np.array(
-        [[1, 0, 0], [0, math.cos(angle), -math.sin(angle)], [0, math.sin(angle), math.cos(angle)]]
-    )
-
-
-def _generate_y_rotation(angle: float) -> np.ndarray:
-    return np.array(
-        [[math.cos(angle), 0, math.sin(angle)], [0, 1, 0], [-math.sin(angle), 0, math.cos(angle)]]
-    )
-
-
-def _generate_z_rotation(angle: float) -> np.ndarray:
-    return np.array(
-        [[math.cos(angle), -math.sin(angle), 0], [math.sin(angle), math.cos(angle), 0], [0, 0, 1]]
-    )
 
 
 def is_so3_matrix(array: np.ndarray) -> bool:
@@ -134,15 +115,15 @@ class TestSolovayKitaev(QiskitTestCase):
 
         # First, use the ["h", "t", "tdg"] set
         out = plugin.run(unitary, basis_gates=["h", "t", "tdg"])
-        self.assertLessEqual(set(out.count_ops().keys()), {"h", "t", "tdg"})
+        self.assertTrue(set(out.count_ops().keys()).issubset({"h", "t", "tdg"}))
 
         # Second, use the ["h", "s"] set
         out = plugin.run(unitary, basis_gates=["h", "s", "sdg"])
-        self.assertLessEqual(set(out.count_ops().keys()), {"h", "s", "sdg"})
+        self.assertTrue(set(out.count_ops().keys()).issubset({"h", "s", "sdg"}))
 
         # Third, use the ["h", "t", "tdg"] set again
         out = plugin.run(unitary, basis_gates=["h", "t", "tdg"])
-        self.assertLessEqual(set(out.count_ops().keys()), {"h", "t", "tdg"})
+        self.assertTrue(set(out.count_ops().keys()).issubset({"h", "t", "tdg"}))
 
     def test_i_returns_empty_circuit(self):
         """Test that ``SolovayKitaev`` returns an empty circuit when
@@ -234,7 +215,7 @@ class TestSolovayKitaev(QiskitTestCase):
         discretized = skd(circuit)
 
         included_gates = set(discretized.count_ops().keys())
-        self.assertLessEqual(included_gates, set(basis_gates))
+        self.assertTrue(included_gates.issubset(basis_gates))
 
     def test_load_from_file(self):
         """Test loading basic approximations from a file works.
@@ -343,7 +324,7 @@ class TestSolovayKitaev(QiskitTestCase):
         # have been recursively synthesized
         self.assertEqual(transpiled[0].name, "if_else")
         for block in transpiled[0].operation.blocks:
-            self.assertLessEqual(set(block.count_ops()), {"h", "t", "tdg"})
+            self.assertTrue(set(block.count_ops()).issubset({"h", "t", "tdg"}))
 
     def test_no_to_matrix(self):
         """Test the Solovay-Kitaev transpiler pass ignores gates without to_matrix."""
@@ -401,13 +382,13 @@ class TestSolovayKitaevDecomposition(QiskitTestCase):
         super().setUp()
         self.default_sk = SolovayKitaevDecomposition()
 
-    @data(True, False)
-    def test_approximation(self, use_matrix):
+    @combine(use_matrix=[True, False], gate_cls=[RXGate, RYGate, RZGate])
+    def test_approximation(self, use_matrix, gate_cls):
         """Test the approximation works."""
         recursion = 4
         for angle in np.pi / np.arange(1, 10, 2):
             with self.subTest(angle=angle):
-                gate = RZGate(angle)
+                gate = gate_cls(angle)
                 if use_matrix:
                     gate = gate.to_matrix()
                 synth = self.default_sk.run(gate, recursion)

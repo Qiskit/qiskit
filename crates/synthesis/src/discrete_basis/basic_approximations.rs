@@ -12,7 +12,6 @@
 
 use hashbrown::HashMap;
 use nalgebra::{Matrix2, Matrix3};
-use ndarray::ArrayView2;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::FloatConst;
 use numpy::{Complex64, PyReadonlyArray2};
@@ -25,7 +24,6 @@ use qiskit_circuit::{
 };
 use rstar::{Point, RTree};
 use serde::{Deserialize, Serialize};
-use std::f64::consts::FRAC_1_SQRT_2;
 use std::fmt::Debug;
 use thiserror::Error;
 
@@ -55,8 +53,7 @@ impl From<DiscreteBasisError> for PyErr {
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct GateSequence {
-    // The sequence of standard gates. Can be None if the sequence is only specified by the
-    // SO(3) matrix and phase, which is useful for lookup of matrices.
+    // The sequence of standard gates.
     pub gates: Vec<StandardGate>,
     // The SO(3) representation of the sequence. Note that this is only equal to SU(2) up to a sign.
     pub matrix_so3: Matrix3<f64>,
@@ -127,17 +124,6 @@ impl GateSequence {
         self.gates.iter().map(|gate| gate.name()).collect()
     }
 
-    /// Initialize from a [StandardGate] plus parameters.
-    pub fn from_std(gate: &StandardGate, params: &[Param]) -> Result<Self, DiscreteBasisError> {
-        let (matrix_so3, phase) = standard_gates_to_so3(gate, params)?;
-
-        Ok(Self {
-            gates: vec![*gate],
-            matrix_so3,
-            phase,
-        })
-    }
-
     /// Merge two [GateSequence]s.
     ///
     /// ``self.dot(other)`` results in a sequence where the gates are ``other.gates + self.gates``.
@@ -181,7 +167,7 @@ impl GateSequence {
     /// Remove gate-inverse pairs in-place.
     pub fn inverse_cancellation(&mut self) {
         if self.gates.len() < 2 {
-            return; // if there is only 1 gate, there is nothing to cancel
+            return; // there is nothing to cancel for 0 or 1 gate(s)
         }
 
         let mut reduced_gates: Vec<StandardGate> = Vec::with_capacity(self.gates.len());
@@ -206,7 +192,7 @@ impl GateSequence {
     pub fn u2(&self) -> Result<Matrix2<Complex<f64>>, DiscreteBasisError> {
         let mut out = Matrix2::identity();
         for gate in &self.gates {
-            let matrix = standard_gates_to_u2(gate, &[])?;
+            let matrix = math::standard_gates_to_u2(gate, &[])?;
             out = matrix * out;
         }
         Ok(out)
@@ -268,7 +254,7 @@ impl GateSequence {
     /// Push a new standard gate onto [self].
     fn push(&mut self, gate: StandardGate) -> Result<(), DiscreteBasisError> {
         // turn into a SU(2) matrix and compute SO(3) representation from it
-        let (so3_matrix, phase) = standard_gates_to_so3(&gate, &[])?;
+        let (so3_matrix, phase) = math::standard_gates_to_so3(&gate, &[])?;
 
         // update matrix representations and keep track of the gate
         self.matrix_so3 = so3_matrix * self.matrix_so3;
@@ -363,96 +349,6 @@ impl Point for BasicPoint {
 
     fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
         &mut self.point[index]
-    }
-}
-
-/// Get the U(2) representation of a standard gate.
-pub fn standard_gates_to_u2(
-    gate: &StandardGate,
-    params: &[Param],
-) -> Result<Matrix2<Complex<f64>>, DiscreteBasisError> {
-    let matrix_c64 = gate.matrix(params).expect("Failed to get matrix.");
-    Ok(array2_to_matrix2(&matrix_c64.view()))
-}
-
-/// Get the SO(3) representation of a standard gate.
-///
-/// Attempts to directly construct the matrix using [f64] accuracy, otherwise falls back
-/// to matrix construction and conversion.
-fn standard_gates_to_so3(
-    gate: &StandardGate,
-    params: &[Param],
-) -> Result<(Matrix3<f64>, f64), DiscreteBasisError> {
-    match gate {
-        StandardGate::T => {
-            let so3 = Matrix3::new(
-                FRAC_1_SQRT_2,
-                -FRAC_1_SQRT_2,
-                0.,
-                FRAC_1_SQRT_2,
-                FRAC_1_SQRT_2,
-                0.,
-                0.,
-                0.,
-                1.,
-            );
-            let phase = -f64::FRAC_PI_8();
-            Ok((so3, phase))
-        }
-        StandardGate::Tdg => {
-            let so3 = Matrix3::new(
-                FRAC_1_SQRT_2,
-                FRAC_1_SQRT_2,
-                0.,
-                -FRAC_1_SQRT_2,
-                FRAC_1_SQRT_2,
-                0.,
-                0.,
-                0.,
-                1.,
-            );
-            let phase = f64::FRAC_PI_8();
-            Ok((so3, phase))
-        }
-        StandardGate::S => {
-            let so3 = Matrix3::new(0., -1., 0., 1., 0., 0., 0., 0., 1.);
-            let phase = -f64::FRAC_PI_4();
-            Ok((so3, phase))
-        }
-        StandardGate::Sdg => {
-            let so3 = Matrix3::new(0., 1., 0., -1., 0., 0., 0., 0., 1.);
-            let phase = f64::FRAC_PI_4();
-            Ok((so3, phase))
-        }
-        StandardGate::H => {
-            let so3 = Matrix3::new(0., 0., -1., 0., -1., 0., -1., 0., 0.);
-            let phase = f64::FRAC_PI_2();
-            Ok((so3, phase))
-        }
-        StandardGate::RX | StandardGate::RY | StandardGate::RZ => {
-            let angle = match params[0] {
-                Param::Float(angle) => angle,
-                _ => return Err(DiscreteBasisError::ParameterizedGate),
-            };
-            let cos = angle.cos();
-            let sin = angle.sin();
-            let so3 = match gate {
-                StandardGate::RX => Matrix3::new(1., 0., 0., 0., cos, sin, 0., -sin, cos),
-                StandardGate::RY => Matrix3::new(cos, 0., sin, 0., 1., 0., -sin, 0., cos),
-                StandardGate::RZ => Matrix3::new(cos, sin, 0., -sin, cos, 0., 0., 0., 1.),
-                _ => unreachable!(),
-            };
-            Ok((so3, 0.))
-        }
-        _ => {
-            let array_u2 = gate
-                .matrix(params)
-                .expect("Failed to get matrix representation.");
-            let matrix_u2 = array2_to_matrix2(&array_u2.view());
-            let (so3, phase) = math::u2_to_so3(&matrix_u2);
-
-            Ok((so3, phase))
-        }
     }
 }
 
@@ -607,11 +503,6 @@ impl BasicApproximations {
             approximations,
         })
     }
-}
-
-#[inline]
-fn array2_to_matrix2<T: Copy>(view: &ArrayView2<T>) -> Matrix2<T> {
-    Matrix2::new(view[[0, 0]], view[(0, 1)], view[(1, 0)], view[(1, 1)])
 }
 
 #[inline]

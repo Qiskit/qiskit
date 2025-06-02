@@ -149,9 +149,9 @@ class SolovayKitaev(TransformationPass):
                 decomposition at the root of the recursion. If a string, it specifies the
                 file to load the approximations from. If a dictionary, it contains
                 ``{label: SO(3)-matrix}`` pairs. If ``None``, a default based on the :math:`H`,
-                 :math:`T` and :math:`T^\dagger` gates up to depth 16 is generated.
-                 Note that if ``basic_approximations`` is passed, ``basis_gates`` and
-                 ``depth`` cannot be set.
+                :math:`T` and :math:`T^\dagger` gates up to depth 16 is generated.
+                Note that if ``basic_approximations`` is passed, ``basis_gates`` and
+                ``depth`` cannot be set.
             basis_gates: The basis gates used to build the net of basic approximations.
                 Defaults to ``["h", "t", "tdg"]``. This argument cannot be set if
                 ``basic_approximations`` is provided.
@@ -190,12 +190,9 @@ class SolovayKitaev(TransformationPass):
             # we know it will generate a valid SU(2) matrix
             check_input = not isinstance(node.op, Gate)
 
-            # possible improvement: pass the Gate directly, instead of converting to matrix
-            matrix = node.op.to_matrix()
-
             # call solovay kitaev
             approximation = self._sk.run(
-                matrix, self.recursion_degree, return_dag=True, check_input=check_input
+                node.op, self.recursion_degree, return_dag=True, check_input=check_input
             )
 
             # convert to a dag and replace the gate by the approximation

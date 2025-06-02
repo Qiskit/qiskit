@@ -86,17 +86,18 @@ impl SolovayKitaevSynthesis {
         params: &[Param],
         recursion_degree: usize,
     ) -> Result<CircuitData, DiscreteBasisError> {
+        let (matrix_so3, phase) = math::standard_gates_to_so3(gate, params)?;
+        let mut output = self.recurse(&matrix_so3, recursion_degree);
+
+        output.inverse_cancellation();
+
+        // Compute the error in the SO(3) representation to return with the circuit.
         let array_u2 = gate
             .matrix(params)
             .expect("StandardGate::matrix() should return a matrix.");
-        let matrix_u2 = Matrix2::new(
-            array_u2[(0, 0)],
-            array_u2[(0, 1)],
-            array_u2[(1, 0)],
-            array_u2[(1, 1)],
-        );
-
-        self.synthesize_matrix(&matrix_u2, recursion_degree)
+        let matrix_u2 = math::array2_to_matrix2(&array_u2.view());
+        let circuit = output.to_circuit(Some((&matrix_u2, phase)))?;
+        Ok(circuit)
     }
 
     /// Run a recursion step for a gate sequence, given a recursion degree.
@@ -135,10 +136,12 @@ impl SolovayKitaevSynthesis {
             .dot(&u_n1)
     }
 
+    /// Store the basic approximations into a file.
     fn save(&self, filename: &str) -> ::std::io::Result<()> {
         self.basic_approximations.save(filename)
     }
 
+    /// Load basic approximation from a file to instantiate this class.
     fn from_basic_approximations(filename: &str, do_checks: bool) -> ::std::io::Result<Self> {
         let basic_approximations = BasicApproximations::load(filename)?;
         Ok(Self {

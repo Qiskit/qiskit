@@ -42,7 +42,7 @@ class SolovayKitaevDecomposition:
         basic_approximations: str | dict[str, np.ndarray] | list[GateSequence] | None = None,
         *,
         basis_gates: list[str | Gate] | None = None,
-        depth: int = 16,
+        depth: int = 12,
         check_input: bool = False,
     ) -> None:
         """
