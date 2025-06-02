@@ -713,12 +713,14 @@ int test_unitary_gate(void) {
     }
     qk_opcounts_free(op_counts);
 
-    QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
-    if (strcmp(inst.name, "unitary") != 0 || inst.num_clbits != 0 || inst.num_params != 0 ||
-        inst.num_qubits != 2) {
+    QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
+    qk_circuit_get_instruction(qc, 0, inst);
+    if (strcmp(inst->name, "unitary") != 0 || inst->num_clbits != 0 || inst->num_params != 0 ||
+        inst->num_qubits != 2) {
         result = EqualityError;
     }
     qk_circuit_instruction_free(inst);
+    free(inst);
 
 cleanup:
     qk_circuit_free(qc);
@@ -760,12 +762,14 @@ int test_unitary_gate_1q(void) {
     }
     qk_opcounts_free(op_counts);
 
-    QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
-    if (strcmp(inst.name, "unitary") != 0 || inst.num_clbits != 0 || inst.num_params != 0 ||
-        inst.num_qubits != 1) {
+    QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
+    qk_circuit_get_instruction(qc, 0, inst);
+    if (strcmp(inst->name, "unitary") != 0 || inst->num_clbits != 0 || inst->num_params != 0 ||
+        inst->num_qubits != 1) {
         result = EqualityError;
     }
     qk_circuit_instruction_free(inst);
+    free(inst);
 
 cleanup:
     qk_circuit_free(qc);
@@ -812,13 +816,14 @@ int test_unitary_gate_3q(void) {
         goto cleanup;
     }
     qk_opcounts_free(op_counts);
-
-    QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
-    if (strcmp(inst.name, "unitary") != 0 || inst.num_clbits != 0 || inst.num_params != 0 ||
-        inst.num_qubits != 3) {
+    QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
+    qk_circuit_get_instruction(qc, 0, inst);
+    if (strcmp(inst->name, "unitary") != 0 || inst->num_clbits != 0 || inst->num_params != 0 ||
+        inst->num_qubits != 3) {
         result = EqualityError;
     }
     qk_circuit_instruction_free(inst);
+    free(inst);
 
 cleanup:
     qk_circuit_free(qc);
