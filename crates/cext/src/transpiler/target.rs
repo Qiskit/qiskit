@@ -481,7 +481,7 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
 ///
 /// @param entry The pointer to the mapping object.
 ///
-/// @return The length of the TargetEntry.
+/// @return The length of the ``QkTargetEntry``.
 ///
 /// # Example
 ///

@@ -16,7 +16,7 @@ Here's an example of how this structure works:
 .. code-block:: C
 
     #include <qiskit.h>
-    #include "math.h"
+    #include <math.h>
 
     // Create a Target Entry for a CX Gate
     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
