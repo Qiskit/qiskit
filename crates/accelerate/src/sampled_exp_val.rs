@@ -102,8 +102,8 @@ pub fn sampled_expval_sparse_observable(
     let sparse_obs_guard = sparse_obs.inner.read().unwrap();
     let sparse_obs: &SparseObservable = &*sparse_obs_guard;
 
-    let mut oper_strs: Vec<T> = Vec::new();
-    let mut coeffs: Vec<T> = Vec::new();
+    let mut oper_strs: Vec<String> = Vec::new();
+    let mut coeffs = Vec::new();
     let n = sparse_obs.num_qubits();
 
     // Convert SparseObservable to operator strings and coefficients
