@@ -19,6 +19,9 @@ use pyo3::wrap_pyfunction;
 
 use crate::pauli_exp_val::fast_sum;
 use qiskit_circuit::util::c64;
+use qiskit_quantum_info::sparse_observable::BitTerm;
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 
 const OPER_TABLE_SIZE: usize = (b'Z' as usize) + 1;
 const fn generate_oper_table() -> [[f64; 2]; OPER_TABLE_SIZE] {
@@ -87,8 +90,68 @@ pub fn sampled_expval_complex(
     Ok(out.re)
 }
 
+// Compute the expectation value from a sampled distribution for SparseObservable objects
+#[pyfunction]
+#[pyo3(text_signature = "(sparse_obs, dist, /)")]
+pub fn sampled_expval_sparse_observable(
+    sparse_obs: PyRef<PySparseObservable>,
+    dist: HashMap<String, f64>,
+) -> PyResult<f64> {
+    // Access the inner SparseObservable through the RwLock
+    let sparse_obs_guard = sparse_obs.inner.read().unwrap();
+    let sparse_obs: &SparseObservable = &*sparse_obs_guard;
+
+    let mut oper_strs = Vec::new();
+    let mut coeffs = Vec::new();
+    let n = sparse_obs.num_qubits();
+
+    // Convert SparseObservable to operator strings and coefficients
+    for term in sparse_obs.iter() {
+        let mut full_op = vec!["I"; n as usize];
+
+        // Build the full operator string
+        for (bit_term, &index) in term.bit_terms.iter().zip(term.indices.iter()) {
+            let char = match bit_term {
+                BitTerm::X => "X",
+                BitTerm::Y => "Y",
+                BitTerm::Z => "Z",
+                BitTerm::Plus => "+",
+                BitTerm::Minus => "-",
+                BitTerm::Right => "r",
+                BitTerm::Left => "l",
+                BitTerm::Zero => "0",
+                BitTerm::One => "1",
+            };
+            full_op[(n - 1 - index) as usize] = char;
+        }
+
+        oper_strs.push(full_op.join(""));
+        coeffs.push(term.coeff);
+    }
+
+    // Dispatch to existing Rust routines based on coefficient types
+    let has_complex_coeffs = coeffs.iter().any(|c| c.im != 0.0);
+
+    if has_complex_coeffs {
+        let result: Complex64 = oper_strs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, string)| coeffs[idx] * Complex64::new(bitstring_expval(&dist, string), 0.0))
+            .sum();
+        Ok(result.re)
+    } else {
+        let result: f64 = oper_strs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, string)| coeffs[idx].re * bitstring_expval(&dist, string))
+            .sum();
+        Ok(result)
+    }
+}
+
 pub fn sampled_exp_val(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(sampled_expval_float))?;
     m.add_wrapped(wrap_pyfunction!(sampled_expval_complex))?;
+    m.add_wrapped(wrap_pyfunction!(sampled_expval_sparse_observable))?;
     Ok(())
 }

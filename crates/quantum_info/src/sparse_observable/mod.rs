@@ -2411,7 +2411,7 @@ impl PySparseTerm {
 #[derive(Debug)]
 pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
-    inner: Arc<RwLock<SparseObservable>>,
+    pub inner: Arc<RwLock<SparseObservable>>,
 }
 #[pymethods]
 impl PySparseObservable {

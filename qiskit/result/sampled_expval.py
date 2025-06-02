@@ -14,7 +14,11 @@
 """Routines for computing expectation values from sampled distributions"""
 import numpy as np
 
-from qiskit._accelerate.sampled_exp_val import sampled_expval_float, sampled_expval_complex
+from qiskit._accelerate.sampled_exp_val import (
+    sampled_expval_float,
+    sampled_expval_complex,
+    sampled_expval_sparse_observable,
+)
 from qiskit.exceptions import QiskitError
 from .distributions import QuasiDistribution, ProbDistribution
 
@@ -56,16 +60,7 @@ def sampled_expectation_value(dist, oper):
         oper_strs = oper.paulis.to_labels()
         coeffs = np.asarray(oper.coeffs)
     elif isinstance(oper, SparseObservable):
-        oper_strs = []
-        coeffs = []
-        n = oper.num_qubits
-        for op, indxs, coeff in oper.to_sparse_list():
-            full_op = ["I"] * n
-            for char, i in zip(op, indxs):
-                full_op[n - 1 - i] = char
-            oper_strs.append("".join(full_op))
-            coeffs.append(coeff)
-        coeffs = np.asarray(coeffs)
+        return sampled_expval_sparse_observable(oper, dist)
     else:
         raise QiskitError("Invalid operator type")
 

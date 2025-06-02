@@ -1441,6 +1441,7 @@ dependencies = [
  "pulp 0.21.5",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-quantum-info",
  "qiskit-transpiler",
  "rand 0.9.1",
  "rand_distr 0.5.1",
