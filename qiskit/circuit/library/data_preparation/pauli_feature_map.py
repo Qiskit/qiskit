@@ -199,7 +199,7 @@ def z_feature_map(
 
     Examples:
 
-        >>> from qiskit.circuit.library.data_preparation import z_feature_map
+        >>> from qiskit.circuit.library import z_feature_map
         >>> prep = z_feature_map(3, reps=3, insert_barriers=True)
         >>> print(prep)
              ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐
