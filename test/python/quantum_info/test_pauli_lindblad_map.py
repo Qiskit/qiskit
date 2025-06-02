@@ -664,7 +664,8 @@ class TestPauliLindbladMap(QiskitTestCase):
             [1.0, 2.0], QubitSparsePauliList(["II", "XX"])
         )
         self.assertEqual(
-            pauli_lindblad_map.get_qubit_sparse_pauli_list_copy(), QubitSparsePauliList.from_list(["II", "XX"])
+            pauli_lindblad_map.get_qubit_sparse_pauli_list_copy(),
+            QubitSparsePauliList.from_list(["II", "XX"]),
         )
 
     def test_derived_properties(self):
