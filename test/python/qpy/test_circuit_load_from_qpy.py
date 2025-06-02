@@ -74,11 +74,24 @@ class TestVersions(QpyCircuitTestCase):
         qc.cx(0, 1)
 
         for version in range(QPY_COMPATIBILITY_VERSION, QPY_VERSION + 1):
-            qpy_file = io.BytesIO()
-            dump(qc, qpy_file, version=version)
+            with io.BytesIO() as qpy_file:
+                dump(qc, qpy_file, version=version)
+                qpy_file.seek(0)
+                file_version = get_qpy_version(qpy_file)
+            self.assertEqual(version, file_version)
+
+    def test_get_qpy_version_read(self):
+        """Ensure we don't advance the cursor exiting the get_qpy_version() function."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
             qpy_file.seek(0)
             file_version = get_qpy_version(qpy_file)
-            self.assertEqual(version, file_version)
+            self.assertEqual(file_version, QPY_VERSION)
+            res = load(qpy_file)[0]
+        self.assertEqual(res, qc)
 
 
 @ddt
