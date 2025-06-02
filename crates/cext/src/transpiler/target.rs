@@ -487,7 +487,7 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
 ///
 ///     // Create an entry for an H gate
 ///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
-///     size_t props_size = qk_target_entry_len(entry);
+///     size_t props_size = qk_target_entry_num_properties(entry);
 ///
 /// # Safety
 ///
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
 /// non-null pointer to a ``QkTargetEntry`` object.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_entry_len(entry: *const TargetEntry) -> usize {
+pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntry) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let prop_map = unsafe { const_ptr_as_ref(entry) };
     prop_map.map.len()
@@ -718,14 +718,14 @@ pub unsafe extern "C" fn qk_target_update_property(
 ///     QkTargetEntry *target_enty = qk_target_entry_new(QkGate_H);
 ///     qk_target_add_instruction(target, target_entry);
 ///
-///     qk_target_len(target)
+///     qk_target_num_instructions(target)
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_len(target: *const Target) -> usize {
+pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 

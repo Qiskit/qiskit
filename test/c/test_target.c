@@ -129,7 +129,7 @@ int test_property_map_construction(void) {
     QkTargetEntry *property_map = qk_target_entry_new(QkGate_H);
 
     // Test length
-    const size_t length = qk_target_entry_len(property_map);
+    const size_t length = qk_target_entry_num_properties(property_map);
     if (length != 0) {
         printf("The initial length of the provided property map was not zero: %zu", length);
         return EqualityError;
@@ -140,7 +140,7 @@ int test_property_map_construction(void) {
 
     qk_target_entry_add_property(property_map, qargs, 2, 0.00018, 0.00002);
     // Test length
-    const size_t new_length = qk_target_entry_len(property_map);
+    const size_t new_length = qk_target_entry_num_properties(property_map);
     if (new_length != 1) {
         printf("The initial length of the provided property map was not 1: %zu", length);
         return EqualityError;
@@ -170,7 +170,7 @@ int test_target_add_instruction(void) {
                current_num_qubits);
         return EqualityError;
     }
-    size_t current_size = qk_target_len(target);
+    size_t current_size = qk_target_num_instructions(target);
     if (current_num_qubits != 1) {
         printf("The size of this target is not correct: Expected 1, got %zu", current_size);
         return EqualityError;
@@ -195,7 +195,7 @@ int test_target_add_instruction(void) {
         result = EqualityError;
         goto cleanup;
     }
-    current_size = qk_target_len(target);
+    current_size = qk_target_num_instructions(target);
     if (current_num_qubits != 2) {
         printf("The size of this target is not correct: Expected 2, got %zu", current_size);
         return EqualityError;
@@ -222,7 +222,7 @@ int test_target_add_instruction(void) {
         result = EqualityError;
         goto cleanup;
     }
-    current_size = qk_target_len(target);
+    current_size = qk_target_num_instructions(target);
     if (current_num_qubits != 3) {
         printf("The size of this target is not correct: Expected 3, got %zu", current_size);
         return EqualityError;
