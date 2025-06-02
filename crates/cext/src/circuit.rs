@@ -584,7 +584,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// responsible for allocating and freeing the actual allocation used to store a
 /// ``QkCircuitInstruction``.
 ///
-/// @param inst The instruction to free.
+/// @param inst A pointer to the instruction to free.
 ///
 /// # Example
 ///
