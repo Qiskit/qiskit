@@ -514,7 +514,7 @@ pub struct CInstruction {
 ///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
-/// @param instruction A pointer to where to write out the ``QKCircuitInstruction``
+/// @param instruction A pointer to where to write out the ``QkCircuitInstruction``
 ///
 ///
 /// # Example
@@ -579,9 +579,9 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// @ingroup QkCircuit
 /// Free a circuit instruction object.
 ///
-/// This function doesn't free the allocation for the provided ``QkInstruction`` pointer, it
+/// This function doesn't free the allocation for the provided ``QkCircuitInstruction`` pointer, it
 /// only free the internal allocations for the data contained in the instruction. You are
-/// responsible for allocating and freeing the actually allocation used to store a
+/// responsible for allocating and freeing the actual allocation used to store a
 /// ``QkCircuitInstruction``.
 ///
 /// @param inst The instruction to free.
@@ -590,10 +590,11 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ///
 ///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_gate(qc, QkGate_H, *[0], *[]);
+///     qk_circuit_gate(qc, QkGate_H, *[0], NULL);
 ///     qk_circuit_get_instruction(qc, 0, inst);
-///     qk_circuit_free(inst);
-///     free(inst)
+///     qk_circuit_instruction_free(inst); // free the data
+///     free(inst); // free the pointer
+///     qk_circuit_free(qc); // free the circuit
 ///
 /// # Safety
 ///
