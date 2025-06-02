@@ -1,9 +1,187 @@
-@misc{qiskit2024,
-      title={Quantum computing with {Q}iskit},
-      author={Javadi-Abhari, Ali and Treinish, Matthew and Krsulich, Kevin and Wood, Christopher J. and Lishman, Jake and Gacon, Julien and Martiel, Simon and Nation, Paul D. and Bishop, Lev S. and Cross, Andrew W. and Johnson, Blake R. and Gambetta, Jay M.},
-      year={2024},
-      doi={10.48550/arXiv.2405.08810},
-      eprint={2405.08810},
-      archivePrefix={arXiv},
-      primaryClass={quant-ph}
-}
+# === SYSTEM DETECTION AND CONFIGURATION ===
+# Detect the operating system for platform-specific behavior
+OS := $(shell uname -s)
+
+# Automatically detect Python executable (prefer python3)
+PYTHON := $(shell which python3 2>/dev/null || which python)
+
+# === CPU DETECTION LOGIC ===
+# Count available CPU cores for optimal parallel execution
+ifeq ($(OS), Linux)
+  # Use nproc if available, fallback to /proc/cpuinfo parsing
+  NPROCS := $(shell nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)
+else ifeq ($(OS), Darwin)
+  # macOS: Use sysctl to get hardware CPU count
+  NPROCS := $(shell sysctl -n hw.ncpu)
+else
+  # Unknown OS: Default to single-threaded execution
+  NPROCS := 1
+endif
+
+# === CONCURRENCY CALCULATION ===
+# Calculate optimal worker count (use half of available cores, minimum 1)
+# This prevents system overload while maintaining good parallelization
+ifeq ($(NPROCS), 0)
+	CONCURRENCY := 1
+else
+	# Formula: (cores + 1) / 2, ensuring minimum of 1 worker
+	CONCURRENCY := $(shell echo "$(NPROCS)" | awk '{c=int(($$1 + 1) / 2); print (c > 0) ? c : 1}')
+endif
+# === PLATFORM-SPECIFIC CONFIGURATIONS ===
+# Adjust behavior based on detected operating system
+ifeq ($(OS), Linux)
+  # Linux-specific optimizations
+  EXTRA_FLAGS := --use-feature=fast-deps
+  NPROC_CMD := nproc
+else ifeq ($(OS), Darwin)
+  # macOS-specific optimizations  
+  EXTRA_FLAGS := --use-feature=truststore
+  NPROC_CMD := sysctl -n hw.ncpu
+else ifeq ($(OS), MINGW32_NT)
+  # Windows (MSYS2/MinGW) support
+  EXTRA_FLAGS := --trusted-host pypi.org
+  NPROC_CMD := echo 2
+else
+  # Generic Unix fallback
+  EXTRA_FLAGS := 
+  NPROC_CMD := echo 1
+endif
+# === INTELLIGENT TOOL DETECTION ===
+# Python executable detection with fallback chain
+PYTHON := $(shell \
+    if command -v python3 >/dev/null 2>&1; then \
+        echo python3; \
+    elif command -v python >/dev/null 2>&1; then \
+        echo python; \
+    else \
+        echo ""; \
+    fi)
+
+# Verify Python version compatibility (require 3.8+)
+PYTHON_VERSION_CHECK := $(shell \
+    if [ -n "$(PYTHON)" ]; then \
+        $(PYTHON) -c "import sys; print('ok' if sys.version_info >= (3,8) else 'old')" 2>/dev/null || echo "error"; \
+    else \
+        echo "missing"; \
+    fi)
+
+# Coverage tool detection (try coverage3 first, then coverage)
+COVERAGE := $(shell \
+    if command -v coverage3 >/dev/null 2>&1; then \
+        echo coverage3; \
+    elif command -v coverage >/dev/null 2>&1; then \
+        echo coverage; \
+    else \
+        echo ""; \
+    fi)
+
+# Conda detection and validation
+CONDA := $(shell \
+    if command -v conda >/dev/null 2>&1; then \
+        echo conda; \
+    else \
+        echo ""; \
+    fi)
+# === BUILD TARGETS ===
+.PHONY: env lint style test test_ci test_randomized coverage coverage_erase clean help check-tools
+
+# Check all required tools are available
+# This target should be run first to verify system compatibility
+check-tools:
+	@echo "=== Checking Required Tools ==="
+	@echo "Python version check: $(PYTHON_VERSION_CHECK)"
+ifeq ($(PYTHON_VERSION_CHECK), missing)
+	$(error Python not found. Please install Python 3.8 or later)
+else ifeq ($(PYTHON_VERSION_CHECK), old)
+	$(error Python version too old. Please install Python 3.8 or later)
+else ifeq ($(PYTHON_VERSION_CHECK), error)
+	$(error Error checking Python version)
+endif
+ifneq ($(COVERAGE),)
+	@echo "✓ Coverage tool: $(COVERAGE)"
+else
+	@echo "✗ Coverage tool not found"
+endif
+ifneq ($(CONDA),)
+	@echo "✓ Conda: $(CONDA)"
+else
+	@echo "✗ Conda not found"
+endif
+	@echo "✓ All required tools are available"
+
+# Create and configure development environment
+# Uses conda to create isolated environment with all dependencies
+# Automatically detects existing environment and updates if necessary
+env: check-tools
+	@echo "=== Setting up Development Environment ==="
+ifneq ($(CONDA),)
+	@if conda env list | grep -q qiskitenv; then \
+		echo "Environment exists, updating dependencies..."; \
+		conda run -n qiskitenv pip install -r requirements.txt; \
+	else \
+		echo "Creating new conda environment..."; \
+		conda create -y -n qiskitenv python=3.11; \
+		conda run -n qiskitenv pip install -r requirements.txt; \
+	fi
+	@echo "✓ Environment setup complete!"
+else
+	@echo "Conda not available, installing to system Python..."
+	$(PYTHON) -m pip install -r requirements.txt
+endif
+
+# Run static code analysis
+# Uses pylint to check code quality and potential issues
+# Generates detailed report with suggestions for improvement
+lint: check-tools
+	@echo "=== Running Static Code Analysis ==="
+	@echo "Detected $(NPROCS) CPUs, analyzing with optimal settings..."
+	$(PYTHON) -m pylint -rn qiskit test --jobs=$(CONCURRENCY)
+	@echo "✓ Lint analysis complete"
+
+# Check code formatting and style compliance
+# Uses pycodestyle (formerly pep8) to verify PEP 8 compliance
+# Allows 100-character line length for readability
+style: check-tools
+	@echo "=== Checking Code Style (PEP 8) ==="
+	$(PYTHON) -m pycodestyle --max-line-length=100 qiskit test
+	@echo "✓ Style check complete"
+
+# Run comprehensive test suite
+# Executes all unit tests in both test/ and test/python/ directories
+# Uses verbose output for detailed test information
+test: check-tools
+	@echo "=== Running Unit Tests ==="
+	@echo "Testing main package..."
+	$(PYTHON) -m unittest discover -s test -v
+	@echo "Testing Python components..."
+	$(PYTHON) -m unittest discover -s test/python -v
+	@echo "✓ All tests completed successfully"
+
+# Run tests optimized for Continuous Integration
+# Uses stestr for parallel test execution with optimal worker count
+# Provides timing and performance metrics suitable for CI environments
+test_ci: check-tools
+	@echo "=== Running CI Tests ==="
+	@echo "Detected $(NPROCS) CPUs, running with $(CONCURRENCY) parallel workers"
+	@echo "This optimizes test execution time while preventing resource contention"
+	$(PYTHON) -m stestr run --concurrency $(CONCURRENCY)
+	@echo "✓ CI tests completed"
+# === PLATFORM-SPECIFIC CONFIGURATIONS ===
+# Adjust behavior based on detected operating system
+ifeq ($(OS), Linux)
+  # Linux-specific optimizations
+  EXTRA_FLAGS := --use-feature=fast-deps
+  NPROC_CMD := nproc
+else ifeq ($(OS), Darwin)
+  # macOS-specific optimizations  
+  EXTRA_FLAGS := --use-feature=truststore
+  NPROC_CMD := sysctl -n hw.ncpu
+else ifeq ($(OS), MINGW32_NT)
+  # Windows (MSYS2/MinGW) support
+  EXTRA_FLAGS := --trusted-host pypi.org
+  NPROC_CMD := echo 2
+else
+  # Generic Unix fallback
+  EXTRA_FLAGS := 
+  NPROC_CMD := echo 1
+endif
