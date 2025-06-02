@@ -160,11 +160,13 @@ class Target(BaseTarget):
     parameterized :class:`~qiskit.circuit.library.RXGate`.
 
     .. note::
-        This class is designed to be strictly additive and can be queried via
-        the mapping protocol, using the instruction's name as a key. You can modify any 
-        property for an instruction via the :meth:`.Target.update_instruction_properties` method.
-        Modification via the mapping protocol or mutating the attributes of a :class:`.InstructionProperties`
-        object is **not** supported and doing so will invalidate the internal state of the object.
+
+        This class can be queried via the mapping protocol, using the
+        instruction's name as a key. You can modify any property for an
+        instruction via the :meth:`.Target.update_instruction_properties` method.
+        Modification via the mapping protocol or mutating the attributes of
+        a :class:`.InstructionProperties` object is **not** supported and
+        doing so will invalidate the internal state of the object.
 
     .. note::
 
