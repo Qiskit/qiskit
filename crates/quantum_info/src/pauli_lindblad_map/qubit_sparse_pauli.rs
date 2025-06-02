@@ -907,8 +907,15 @@ impl<'py> FromPyObject<'py> for Pauli {
 #[pyclass(name = "QubitSparsePauli", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
 pub struct PyQubitSparsePauli {
-    pub inner: QubitSparsePauli,
+    inner: QubitSparsePauli,
 }
+
+impl PyQubitSparsePauli {
+    pub fn get_inner(&self) -> &QubitSparsePauli {
+        &self.inner
+    }
+}
+
 #[pymethods]
 impl PyQubitSparsePauli {
     #[new]

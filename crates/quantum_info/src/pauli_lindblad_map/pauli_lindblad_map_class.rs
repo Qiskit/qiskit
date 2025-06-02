@@ -345,7 +345,7 @@ impl PyGeneratorTerm {
     fn py_new(rate: f64, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<Self> {
         let inner = GeneratorTerm {
             rate,
-            qubit_sparse_pauli: qubit_sparse_pauli.inner.clone(),
+            qubit_sparse_pauli: qubit_sparse_pauli.get_inner().clone(),
         };
         Ok(PyGeneratorTerm { inner })
     }
