@@ -354,7 +354,7 @@ def get_qpy_version(
             data for a circuit.
 
     Returns:
-        The current QPY version.
+        The QPY version of the specified file.
     """
 
     version = struct.unpack("!6sB", file_obj.read(7))[1]
