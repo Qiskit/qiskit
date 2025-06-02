@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod convert_2q_block_matrix;
+pub mod pauli_lindblad_map;
 pub mod sparse_observable;
 pub mod sparse_pauli_op;
 pub mod unitary_compose;

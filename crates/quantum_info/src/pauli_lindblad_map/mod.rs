@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2024
+// (C) Copyright IBM 2025
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,9 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Quantum-information and linear-algebra related functionality, typically used as drivers for
-//! numeric compiler routines.
+use pyo3::prelude::*;
+use qubit_sparse_pauli::{PyQubitSparsePauli, PyQubitSparsePauliList};
 
-mod versor_u2;
+pub mod qubit_sparse_pauli;
 
-pub use self::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
+pub fn pauli_lindblad_map(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<PyQubitSparsePauli>()?;
+    m.add_class::<PyQubitSparsePauliList>()?;
+    Ok(())
+}
