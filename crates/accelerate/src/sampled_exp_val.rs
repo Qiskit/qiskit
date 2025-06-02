@@ -100,7 +100,7 @@ pub fn sampled_expval_sparse_observable(
 ) -> PyResult<f64> {
     // Access the inner SparseObservable through the RwLock
     let sparse_obs_guard = sparse_obs.inner.read().unwrap();
-    let sparse_obs: &SparseObservable = &*sparse_obs_guard;
+    let sparse_obs: &SparseObservable = &sparse_obs_guard;
 
     let mut oper_strs: Vec<String> = Vec::new();
     let mut coeffs = Vec::new();
