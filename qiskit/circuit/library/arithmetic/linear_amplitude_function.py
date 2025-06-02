@@ -15,7 +15,7 @@
 from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
-import warnings
+from qiskit.utils.deprecation import deprecate_func
 
 from .piecewise_linear_pauli_rotations import (
     PiecewiseLinearPauliRotations,
@@ -76,7 +76,11 @@ class LinearAmplitudeFunction(QuantumCircuit):
              Quantum-Enhanced Simulation-Based Optimization.
              `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
     """
-
+    @deprecate_func(
+        since="2.2",
+        additional_msg="Use the class qiskit.circuit.library.LinearAmplitudeFunctionGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         num_state_qubits: int,
@@ -103,13 +107,6 @@ class LinearAmplitudeFunction(QuantumCircuit):
                 is not piecewise.
             name: Name of the circuit.
         """
-
-        # Deprecation warning
-        warnings.warn(
-            "The LinearAmplitudeFunction class is deprecated as of Qiskit 1.3 and will be removed in a future release. Use LinearAmplitudeFunctionGate instead.",
-            category = DeprecationWarning,
-            stacklevel = 2,
-        )
 
         if not hasattr(slope, "__len__"):
             slope = [slope]

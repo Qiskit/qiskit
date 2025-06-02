@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.generalized_gates import PermutationGate, UnitaryGate
 from qiskit._accelerate.circuit_library import quantum_volume as qv_rs
-import warnings
+from qiskit.utils.deprecation import deprecate_func
 
 class QuantumVolume(QuantumCircuit):
     """A quantum volume model circuit.
@@ -57,7 +57,11 @@ class QuantumVolume(QuantumCircuit):
     randomized model circuits, Phys. Rev. A 100, 032328 (2019).
     [`arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`_]
     """
-
+    @deprecate_func(
+        since="2.2",
+        additional_msg="Use the function qiskit.circuit.library.quantum_volume instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         num_qubits: int,
@@ -79,12 +83,6 @@ class QuantumVolume(QuantumCircuit):
                 instruction, which in turn has the actual volume structure.  If ``True``, construct
                 the volume structure directly.
         """
-        warnings.warn(
-            "QuantumVolume is deprecated as of Qiskit 1.3 and will be removed in a future release. Use quantum_volume instead.",
-            category = DeprecationWarning,
-            stacklevel = 2,
-        )
-
         import scipy.stats
 
         # Parameters

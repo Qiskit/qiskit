@@ -20,13 +20,7 @@ from .pauli_feature_map import PauliFeatureMap
 
 
 class ZFeatureMap(PauliFeatureMap):
-    """DEPRECATED: Use the `z_feature_map` function instead.
-
-    .. deprecated:: 2.1
-        The ``ZFeatureMap`` class is deprecated as of Qiskit 2.1 and will be removed in Qiskit 3.0.
-        Use the :func:`~qiskit.circuit.library.z_feature_map` function instead.
-     
-     The first order Pauli Z-evolution circuit.
+    """The first order Pauli Z-evolution circuit.
 
     On 3 qubits and with 2 repetitions the circuit is represented by:
 
