@@ -29,7 +29,7 @@ use super::qubit_sparse_pauli::{
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
-/// probabilities, and non_negative_rates is
+/// probabilities, and non_negative_rates are quantities derived from rates.
 ///
 /// See [PyPauliLindbladMap] for detailed docs.
 #[derive(Clone, Debug, PartialEq)]
@@ -71,58 +71,14 @@ impl PauliLindbladMap {
         })
     }
 
-    /// Create a new Pauli Lindblad map from the raw components that make it up.
-    pub fn new_from_raw_parts(
-        num_qubits: u32,
-        rates: Vec<f64>,
-        paulis: Vec<Pauli>,
-        indices: Vec<u32>,
-        boundaries: Vec<usize>,
-    ) -> Result<Self, CoherenceError> {
-        if rates.len() + 1 != boundaries.len() {
-            return Err(CoherenceError::MismatchedTermCount {
-                rates: rates.len(),
-                qspl: boundaries.len() - 1,
-            });
-        }
-        let qubit_sparse_pauli_list: QubitSparsePauliList =
-            QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
-        Self::new(rates, qubit_sparse_pauli_list)
-    }
-
-    /// Create a new [PauliLindbladMap] without checking data coherence.
-    ///
-    /// # Safety
-    ///
-    /// It is up to the caller to ensure that the data-coherence requirements, as enumerated in the
-    /// struct-level documentation, have been upheld.
-    #[inline(always)]
-    pub unsafe fn new_unchecked(
-        rates: Vec<f64>,
-        qubit_sparse_pauli_list: QubitSparsePauliList,
-    ) -> Self {
-        let (gamma, probabilities, non_negative_rates) = derived_values_from_rates(&rates);
-        Self {
-            rates,
-            qubit_sparse_pauli_list,
-            gamma,
-            probabilities,
-            non_negative_rates,
-        }
-    }
-
     /// Get an iterator over the individual generator terms of the map.
     ///
     /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = GeneratorTermView<'_>> + '_ {
-        self.rates
-            .iter()
-            .enumerate()
-            .map(|(i, rate)| GeneratorTermView {
-                rate: *rate,
-                qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(i),
-            })
+        self.rates.iter().zip(self.qubit_sparse_pauli_list.iter()).map(|(&rate, qubit_sparse_pauli)| {
+            GeneratorTermView { rate, qubit_sparse_pauli }
+        })
     }
 
     /// Get the number of qubits the map is defined on.
@@ -186,7 +142,7 @@ impl PauliLindbladMap {
     ) -> Result<(), LabelError> {
         self.qubit_sparse_pauli_list.add_dense_label(label)?;
 
-        let (g, p, pr) = derived_values_from_rate(&rate);
+        let (g, p, pr) = derived_values_from_rate(rate);
         self.rates.push(rate);
         self.gamma *= g;
         self.probabilities.push(p);
@@ -230,22 +186,21 @@ impl PauliLindbladMap {
                 right: term.num_qubits(),
             });
         }
-        let (g, p, pr) = derived_values_from_rate(&term.rate);
+        let (g, p, pr) = derived_values_from_rate(term.rate);
         self.rates.push(term.rate);
         self.gamma *= g;
         self.probabilities.push(p);
         self.non_negative_rates.push(pr);
-        unsafe {
-            // at this point we already know the term needs to be valid
-            let new_pauli = QubitSparsePauli::new_unchecked(
+        // SAFETY: at this point we already know the term needs to be valid.
+        let new_pauli = unsafe {
+            QubitSparsePauli::new_unchecked(
                 self.num_qubits(),
                 term.qubit_sparse_pauli.paulis().to_vec().into_boxed_slice(),
                 term.indices().to_vec().into_boxed_slice(),
-            );
-            self.qubit_sparse_pauli_list
-                .add_qubit_sparse_pauli(new_pauli.view())?;
-            Ok(())
-        }
+            )
+        };
+        self.qubit_sparse_pauli_list.add_qubit_sparse_pauli(new_pauli.view())?;
+        Ok(())
     }
 
     /// Get a view onto a representation of a single sparse term.
@@ -268,8 +223,7 @@ impl PauliLindbladMap {
 
 /// Given a rate, return the corresponding gamma, probability, and boolean for whether the rate is
 /// non-negative.
-fn derived_values_from_rate(rate: &f64) -> (f64, f64, bool) {
-    let rate = *rate;
+fn derived_values_from_rate(rate: f64) -> (f64, f64, bool) {
     let w: f64 = 0.5 * (1.0 + (-2.0 * rate).exp());
     let g: f64 = w.abs() + (1.0 - w).abs();
     let p: f64 = w / g;
@@ -278,13 +232,13 @@ fn derived_values_from_rate(rate: &f64) -> (f64, f64, bool) {
 }
 
 /// Return the gamma, probabilities, and non-negative rates bools for a vector of rates.
-fn derived_values_from_rates(rates: &Vec<f64>) -> (f64, Vec<f64>, Vec<bool>) {
+fn derived_values_from_rates(rates: &[f64]) -> (f64, Vec<f64>, Vec<bool>) {
     let mut gamma = 1.0;
-    let mut probabilities = Vec::new();
-    let mut non_negative_rates = Vec::new();
+    let mut probabilities = Vec::with_capacity(rates.len());
+    let mut non_negative_rates = Vec::with_capacity(rates.len());
 
     for rate in rates {
-        let (g, p, nnr) = derived_values_from_rate(rate);
+        let (g, p, nnr) = derived_values_from_rate(*rate);
         gamma *= g;
         probabilities.push(p);
         non_negative_rates.push(nnr);
@@ -293,9 +247,6 @@ fn derived_values_from_rates(rates: &Vec<f64>) -> (f64, Vec<f64>, Vec<bool>) {
 }
 
 /// A view object onto a single generator term of a `PauliLindbladMap`.
-///
-/// The lengths of `paulis` and `indices` are guaranteed to be created equal, but might be zero
-/// (in the case that the term is proportional to the identity).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct GeneratorTermView<'a> {
     pub rate: f64,
@@ -325,9 +276,9 @@ impl GeneratorTermView<'_> {
     }
 }
 
-/// A single term from a complete :class:`PauliLindbladMap`.
+/// A single term from a complete `PauliLindbladMap`.
 ///
-/// These are typically created by indexing into or iterating through a :class:`PauliLindbladMap`.
+/// These are typically created by indexing into or iterating through a `PauliLindbladMap`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GeneratorTerm {
     /// The real rate of the term.
@@ -335,12 +286,6 @@ pub struct GeneratorTerm {
     qubit_sparse_pauli: QubitSparsePauli,
 }
 impl GeneratorTerm {
-    pub fn new(rate: f64, qubit_sparse_pauli: QubitSparsePauli) -> Self {
-        Self {
-            rate,
-            qubit_sparse_pauli,
-        }
-    }
 
     pub fn num_qubits(&self) -> u32 {
         self.qubit_sparse_pauli.num_qubits()
@@ -367,13 +312,7 @@ impl GeneratorTerm {
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
     pub fn to_pauli_lindblad_map(&self) -> Result<PauliLindbladMap, CoherenceError> {
-        let qubit_sparse_pauli_list = QubitSparsePauliList::new(
-            self.num_qubits(),
-            self.paulis().to_vec(),
-            self.indices().to_vec(),
-            vec![0, self.paulis().len()],
-        )?;
-        PauliLindbladMap::new(vec![self.rate], qubit_sparse_pauli_list)
+        PauliLindbladMap::new(vec![self.rate], self.qubit_sparse_pauli.to_qubit_sparse_pauli_list())
     }
 }
 
@@ -397,24 +336,14 @@ impl PyGeneratorTerm {
     #[new]
     #[pyo3(signature = (/, rate, qubit_sparse_pauli))]
     fn py_new(rate: f64, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<Self> {
-        let inner = GeneratorTerm::new(rate, qubit_sparse_pauli.inner.clone());
+        let inner = GeneratorTerm {rate: rate, qubit_sparse_pauli: qubit_sparse_pauli.inner.clone()};
         Ok(PyGeneratorTerm { inner })
     }
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
     fn to_pauli_lindblad_map(&self) -> PyResult<PyPauliLindbladMap> {
-        let pauli_lindblad_map = PauliLindbladMap::new_from_raw_parts(
-            self.inner.num_qubits(),
-            vec![self.inner.rate()],
-            self.inner.paulis().to_vec(),
-            self.inner.indices().to_vec(),
-            vec![0, self.inner.paulis().len()],
-        )?;
+        let pauli_lindblad_map = PauliLindbladMap::new(vec![self.inner.rate()], self.inner.qubit_sparse_pauli.to_qubit_sparse_pauli_list())?;
         Ok(pauli_lindblad_map.into())
-    }
-
-    fn to_label(&self) -> PyResult<String> {
-        Ok(self.inner.view().to_sparse_str())
     }
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
@@ -501,23 +430,6 @@ impl PyGeneratorTerm {
         out
     }
 
-    /// Return the pauli labels of the term as string.
-    ///
-    /// The pauli labels will match the order of :attr:`.GeneratorTerm.indices`, such that the
-    /// i-th character in the string is applied to the qubit index at ``term.indices[i]``.
-    ///
-    /// Returns:
-    ///     The non-identity bit terms as concatenated string.
-    fn pauli_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
-        let string: String = self
-            .inner
-            .paulis()
-            .iter()
-            .map(|bit| bit.py_label())
-            .collect();
-        PyString::new(py, string.as_str())
-    }
-
     fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
         let py = slf_.py();
         let borrowed = slf_.borrow();
@@ -538,13 +450,13 @@ impl PyGeneratorTerm {
 ///
 /// .. math::
 ///
-///     \Lambda = \exp\left(\sum_{P \in K} \lambda_P (P \cdot P - \cdot)\right)
+///     \Lambda\bigl[\circ\bigr] = \exp\left(\sum_{P \in K} \lambda_P (P \circ P - \circ)\right)
 ///
 /// where :math:`K` is a subset of :math:`n`-qubit Pauli operators, and the rates, or coefficients,
-/// :math:`\lambda_P` are real numbers. When all the rates :math:`\lambda_P` are
-/// non-negative, this corresponds to a completely positive and trace preserving map. The sum in the
-/// exponential is called the generator, and each individual term the generators. To simplify
-/// notation in the rest of the documention, we denote :math:`L(P) = P \cdot P - \cdot`.
+/// :math:`\lambda_P` are real numbers. When all the rates :math:`\lambda_P` are non-negative, this
+/// corresponds to a completely positive and trace preserving map. The sum in the exponential is
+/// called the generator, and each individual term the generators. To simplify notation in the rest
+/// of the documention, we denote :math:`L(P)\bigl[\circ\bigr] = P \circ P - \circ`.
 ///
 /// Quasi-probability representation
 /// ================================
@@ -553,13 +465,13 @@ impl PyGeneratorTerm {
 ///
 /// .. math::
 ///
-///     \Lambda = \prod_{P \in K}\exp\left(\lambda_P(P \cdot P - \cdot)\right).
+///     \Lambda\bigl[\circ\bigr] = \prod_{P \in K}\exp\left(\lambda_P(P \circ P - \circ)\right).
 ///
 /// For each :math:`P`, it holds that
 ///
 /// .. math::
 ///
-///     \exp\left(\lambda_P(P \cdot P - \cdot)\right) = \omega(\lambda_P) \cdot + (1 - \omega(\lambda_P)) P \cdot P,
+///     \exp\left(\lambda_P(P \circ P - \circ)\right) = \omega(\lambda_P) \circ + (1 - \omega(\lambda_P)) P \circ P,
 ///
 /// where :math:`\omega(x) = \frac{1}{2}(1 + e^{-2 x})`. Observe that if :math:`\lambda_P \geq 0`,
 /// then :math:`\omega(\lambda_P) \in (\frac{1}{2}, 1]`, and this term is a completely-positive and
@@ -571,7 +483,7 @@ impl PyGeneratorTerm {
 ///
 /// .. math::
 ///
-///     \omega(\lambda_P) \cdot + (1 - \omega(\lambda_P)) P \cdot P = \gamma_P \left(p_P \cdot + (-1)^{b_P}(1 - p_P) P \cdot P\right).
+///     \omega(\lambda_P) \circ + (1 - \omega(\lambda_P)) P \circ P = \gamma_P \left(p_P \circ + (-1)^{b_P}(1 - p_P) P \circ P\right).
 ///
 /// If :math:`\lambda_P \geq 0`, :math:`\gamma_P = 1` and the expression reduces to the standard
 /// mixture of the identity map and conjugation by :math:`P`. If :math:`\lambda_P < 0`,
@@ -743,7 +655,7 @@ impl PyPauliLindbladMap {
             .inner
             .read()
             .map_err(|_| InnerReadError)?;
-        let inner = PauliLindbladMap::new(rates.clone(), qubit_sparse_pauli_list.clone())?;
+        let inner = PauliLindbladMap::new(rates, qubit_sparse_pauli_list.clone())?;
 
         Ok(inner.into())
     }
@@ -1023,9 +935,8 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// The map's qubit sparse pauli list.
-    #[getter]
-    fn get_qubit_sparse_pauli_list(&self) -> PyQubitSparsePauliList {
+    /// Get a copy of the map's qubit sparse pauli list.
+    fn get_qubit_sparse_pauli_list_copy(&self) -> PyQubitSparsePauliList {
         let inner = self.inner.read().unwrap();
         inner.qubit_sparse_pauli_list.clone().into()
     }
