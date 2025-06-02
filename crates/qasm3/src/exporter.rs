@@ -1035,9 +1035,9 @@ impl<'a> QASM3Builder {
         instruction: &PackedInstruction,
         stmts: &mut Vec<Statement>,
     ) -> ExporterResult<()> {
-        let name = instruction.op.name();
+        let name = instruction.op().name();
 
-        if instruction.op.control_flow() {
+        if instruction.op().control_flow() {
             Err(QASM3ExporterError::Error(format!(
                 "Control flow {} is not supported",
                 name
@@ -1169,7 +1169,7 @@ impl<'a> QASM3Builder {
         instr: &PackedInstruction,
         stmts: &mut Vec<Statement>,
     ) -> ExporterResult<()> {
-        if instr.op.num_clbits() > 0 {
+        if instr.op().num_clbits() > 0 {
             return Err(QASM3ExporterError::Error(
                 "Delay cannot have classical bits".to_string(),
             ));
@@ -1182,7 +1182,7 @@ impl<'a> QASM3Builder {
     }
 
     fn build_delay(&self, instr: &PackedInstruction) -> ExporterResult<Delay> {
-        let standard_instr = instr.op.standard_instruction();
+        let standard_instr = instr.op().standard_instruction();
         let delay_unit = if let StandardInstruction::Delay(delay) = standard_instr {
             delay
         } else {
@@ -1267,7 +1267,7 @@ impl<'a> QASM3Builder {
     }
 
     fn build_gate_call(&mut self, instr: &PackedInstruction) -> ExporterResult<GateCall> {
-        let mut op_name = instr.op.name();
+        let mut op_name = instr.op().name();
         if op_name == "u" {
             op_name = "U";
         }
@@ -1332,7 +1332,7 @@ impl<'a> QASM3Builder {
 
     #[allow(dead_code)]
     fn define_gate(&mut self, instr: &PackedInstruction) -> ExporterResult<()> {
-        let operation = &instr.op;
+        let operation = &instr.op();
         let params: Vec<Param> = Python::with_gil(|py| {
             let qiskit_circuit =
                 PyModule::import(py, "qiskit.circuit").expect("Failed to import qiskit.circuit");
