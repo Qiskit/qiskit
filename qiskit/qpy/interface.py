@@ -26,6 +26,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
+from qiskit.user_config import get_config
+from packaging.version import parse as parse_version
 
 
 # pylint: disable=invalid-name
@@ -262,6 +264,20 @@ def load(
     # identify file header version
     version = struct.unpack("!6sB", file_obj.read(7))[1]
     file_obj.seek(0)
+    
+    # Enforce min_qpy_version if set in user config
+    qpy_version = _read_qpy_version(file_obj)
+    user_config = get_config()
+    min_qpy_version = user_config.get("min_qpy_version")
+    if min_qpy_version is not None:
+        current_version = parse_version(str(qpy_version))
+        if current_version < min_qpy_version:
+            filename = getattr(file_obj, 'name', str(file_obj))
+            raise QiskitError(
+                f"Refusing to load QPY file with version {qpy_version}. "
+                f"This is below the minimum version set in your config: {min_qpy_version}. "
+                f"Update the QPY file or relax the 'min_qpy_version' in ~/.qiskit/settings.conf."
+            )
 
     if version > common.QPY_VERSION:
         raise QiskitError(
