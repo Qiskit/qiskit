@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fix for #14467, SymbolExpr accepts back slash when parsing string for `ParameterExpression.init`.
-    Remove an optimization when dividing by integer value and keep as is, for example `a/2` was
-    optimized as `0.5*a` before, but this broke some test cases.
-    Instead add some optimizations when adding/subtracting 2 binary ops with division by integer,
-    for example, `a/2 + a/2` is optimized as `a` or `a/2 - 0.5*a` is optimized as `0`.
-    Fix displaying conjugate op as `conjugate` as similar to sympy instead of `conj` output before.
