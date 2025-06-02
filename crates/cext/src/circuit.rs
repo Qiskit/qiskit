@@ -877,16 +877,21 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     let out_params = params_vec.as_mut_ptr();
     std::mem::forget(params_vec);
 
+    // SAFETY: The pointer must point to a CInstruction size allocation
+    // per the docstring.
     unsafe {
-        *instruction = CInstruction {
-            name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
-            num_qubits: qargs.len() as u32,
-            qubits: out_qargs,
-            num_clbits: cargs.len() as u32,
-            clbits: out_cargs,
-            num_params: params.len() as u32,
-            params: out_params,
-        }
+        std::ptr::write(
+            instruction,
+            CInstruction {
+                name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
+                num_qubits: qargs.len() as u32,
+                qubits: out_qargs,
+                num_clbits: cargs.len() as u32,
+                clbits: out_cargs,
+                num_params: params.len() as u32,
+                params: out_params,
+            },
+        );
     }
 }
 
