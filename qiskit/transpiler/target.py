@@ -161,11 +161,10 @@ class Target(BaseTarget):
 
     .. note::
         This class is designed to be strictly additive and can be queried via
-        indexing, using the instruction's name as a key. If a user desired to
-        modify any property for an instruction, they can do so via
-        :meth:`.Target.update_instruction_properties` as it is the primary option
-        for doing so. However, modification via indexing is not suppported and
-        doing so might invalidate some of the mappings contained by this class.
+        the mapping protocol, using the instruction's name as a key. You can modify any 
+        property for an instruction via the :meth:`.Target.update_instruction_properties` method.
+        Modification via the mapping protocol or mutating the attributes of a :class:`.InstructionProperties`
+        object is **not** supported and doing so will invalidate the internal state of the object.
 
     .. note::
 
@@ -384,12 +383,10 @@ class Target(BaseTarget):
         """Update the property object for an instruction qarg pair already in the Target.
 
         For ease of access, a user is able to obtain the mapping between an instruction's
-        applicable qargs and its instruction properties via indexing (using ``__getitem__``),
-        with the instruction's name as the key. However, due to the strictly additive nature
-        of the ``Target``'s mappings and their complexity, this method is the only way to
-        modify/update the properties of an instruction in the ``Target``. Usage of indexing
-        for modifications (via usage of ``__setitem__`` on this or any submaps of the ``Target``)
-        is not supported.
+        applicable qargs and its instruction properties via the mapping protocol (using ``__getitem__``),
+        with the instruction's name as the key. This method is the only way to
+        modify/update the properties of an instruction in the ``Target``. Usage of the mapping protocol
+        for modifications is not supported.
 
         Args:
             instruction (str): The instruction name to update
