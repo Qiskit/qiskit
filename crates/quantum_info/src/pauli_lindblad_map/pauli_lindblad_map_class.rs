@@ -76,9 +76,13 @@ impl PauliLindbladMap {
     /// Recall that two [PauliLindbladMap]s that have different term orders can still represent the
     /// same object.  Use [canonicalize] to apply a canonical ordering to the terms.
     pub fn iter(&'_ self) -> impl ExactSizeIterator<Item = GeneratorTermView<'_>> + '_ {
-        self.rates.iter().zip(self.qubit_sparse_pauli_list.iter()).map(|(&rate, qubit_sparse_pauli)| {
-            GeneratorTermView { rate, qubit_sparse_pauli }
-        })
+        self.rates
+            .iter()
+            .zip(self.qubit_sparse_pauli_list.iter())
+            .map(|(&rate, qubit_sparse_pauli)| GeneratorTermView {
+                rate,
+                qubit_sparse_pauli,
+            })
     }
 
     /// Get the number of qubits the map is defined on.
@@ -199,7 +203,8 @@ impl PauliLindbladMap {
                 term.indices().to_vec().into_boxed_slice(),
             )
         };
-        self.qubit_sparse_pauli_list.add_qubit_sparse_pauli(new_pauli.view())?;
+        self.qubit_sparse_pauli_list
+            .add_qubit_sparse_pauli(new_pauli.view())?;
         Ok(())
     }
 
@@ -286,7 +291,6 @@ pub struct GeneratorTerm {
     qubit_sparse_pauli: QubitSparsePauli,
 }
 impl GeneratorTerm {
-
     pub fn num_qubits(&self) -> u32 {
         self.qubit_sparse_pauli.num_qubits()
     }
@@ -312,7 +316,10 @@ impl GeneratorTerm {
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
     pub fn to_pauli_lindblad_map(&self) -> Result<PauliLindbladMap, CoherenceError> {
-        PauliLindbladMap::new(vec![self.rate], self.qubit_sparse_pauli.to_qubit_sparse_pauli_list())
+        PauliLindbladMap::new(
+            vec![self.rate],
+            self.qubit_sparse_pauli.to_qubit_sparse_pauli_list(),
+        )
     }
 }
 
@@ -336,13 +343,19 @@ impl PyGeneratorTerm {
     #[new]
     #[pyo3(signature = (/, rate, qubit_sparse_pauli))]
     fn py_new(rate: f64, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<Self> {
-        let inner = GeneratorTerm {rate: rate, qubit_sparse_pauli: qubit_sparse_pauli.inner.clone()};
+        let inner = GeneratorTerm {
+            rate,
+            qubit_sparse_pauli: qubit_sparse_pauli.inner.clone(),
+        };
         Ok(PyGeneratorTerm { inner })
     }
 
     /// Convert this term to a complete :class:`PauliLindbladMap`.
     fn to_pauli_lindblad_map(&self) -> PyResult<PyPauliLindbladMap> {
-        let pauli_lindblad_map = PauliLindbladMap::new(vec![self.inner.rate()], self.inner.qubit_sparse_pauli.to_qubit_sparse_pauli_list())?;
+        let pauli_lindblad_map = PauliLindbladMap::new(
+            vec![self.inner.rate()],
+            self.inner.qubit_sparse_pauli.to_qubit_sparse_pauli_list(),
+        )?;
         Ok(pauli_lindblad_map.into())
     }
 
@@ -439,6 +452,25 @@ impl PyGeneratorTerm {
         )
             .into_pyobject(py)
     }
+
+    /// Return the pauli labels of the term as a string.
+    ///
+    /// The pauli labels will match the order of :attr:`.GeneratorTerm.indices`, such that the
+    /// i-th character in the string is applied to the qubit index at ``term.indices[i]``. E.g. the
+    /// term with operator ``X`` acting on qubit 0 and ``Y`` acting on qubit ``3`` will have
+    /// ``term.indices == np.array([0, 3])`` and ``term.pauli_labels == "XY"``.
+    ///
+    /// Returns:
+    ///     The non-identity bit terms as a concatenated string.
+    fn pauli_labels<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        let string: String = self
+            .inner
+            .paulis()
+            .iter()
+            .map(|bit| bit.py_label())
+            .collect();
+        PyString::new(py, string.as_str())
+    }
 }
 
 /// A Pauli Lindblad map stored in a qubit-sparse format.
@@ -505,9 +537,9 @@ impl PyGeneratorTerm {
 ///
 /// Internally, :class:`.PauliLindbladMap` stores an array of rates and a
 /// :class:`.QubitSparsePauliList` containing the corresponding sparse Pauli operators.
-/// Additionally, :class:`.PauliLindbladMap` stores the overall channel :math:`\gamma` in the
-/// :attr:`gamma` attribute, as well as probabilities corresponding probabilities (or
-/// quasi-probabilities) in the :attr:`probabilities` attribute.
+/// Additionally, :class:`.PauliLindbladMap` can compute the overall channel :math:`\gamma` in the
+/// :meth:`get_gamma` method, as well as the corresponding probabilities (or quasi-probabilities)
+/// via the :meth:`get_probabilities` method.
 ///
 /// Indexing
 /// --------
@@ -895,8 +927,7 @@ impl PyPauliLindbladMap {
         Ok(inner.num_terms())
     }
 
-    /// The gamma for the map.
-    #[getter]
+    /// Get the gamma for the map.
     #[inline]
     fn get_gamma(&self) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
@@ -919,8 +950,7 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// The probabilities for the map.
-    #[getter]
+    /// Get the probabilities for the map.
     fn get_probabilities(slf_: Bound<Self>) -> Bound<PyArray1<f64>> {
         let borrowed = &slf_.borrow();
         let inner = borrowed.inner.read().unwrap();

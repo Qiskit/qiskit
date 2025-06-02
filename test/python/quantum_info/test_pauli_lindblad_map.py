@@ -343,17 +343,17 @@ class TestPauliLindbladMap(QiskitTestCase):
     def test_identity(self):
         identity_5 = PauliLindbladMap.identity(5)
         self.assertEqual(identity_5.num_qubits, 5)
-        self.assertEqual(identity_5.gamma, 1.0)
+        self.assertEqual(identity_5.get_gamma(), 1.0)
         self.assertEqual(identity_5.num_terms, 0.0)
         np.testing.assert_equal(identity_5.rates, np.array([], dtype=float))
-        np.testing.assert_equal(identity_5.probabilities, np.array([], dtype=float))
+        np.testing.assert_equal(identity_5.get_probabilities(), np.array([], dtype=float))
 
         identity_0 = PauliLindbladMap.identity(0)
         self.assertEqual(identity_0.num_qubits, 0)
-        self.assertEqual(identity_0.gamma, 1.0)
+        self.assertEqual(identity_0.get_gamma(), 1.0)
         self.assertEqual(identity_0.num_terms, 0.0)
         np.testing.assert_equal(identity_0.rates, np.array([], dtype=float))
-        np.testing.assert_equal(identity_0.probabilities, np.array([], dtype=float))
+        np.testing.assert_equal(identity_0.get_probabilities(), np.array([], dtype=float))
 
     def test_len(self):
         self.assertEqual(len(PauliLindbladMap.identity(0)), 0)
@@ -451,14 +451,10 @@ class TestPauliLindbladMap(QiskitTestCase):
         pauli_lindblad_map = PauliLindbladMap.from_list([("XZY", 1.5), ("XXY", -0.5)])
         with self.assertRaisesRegex(AttributeError, "attribute 'rates'"):
             pauli_lindblad_map.rates = 1.0
-        with self.assertRaisesRegex(AttributeError, "attribute 'gamma'"):
-            pauli_lindblad_map.gamma = 1.0
-        with self.assertRaisesRegex(AttributeError, "attribute 'probabilities'"):
-            pauli_lindblad_map.probabilities = 1.0
         with self.assertRaisesRegex(ValueError, "assignment destination is read-only"):
             pauli_lindblad_map.rates[0] = 1.0
         with self.assertRaisesRegex(ValueError, "assignment destination is read-only"):
-            pauli_lindblad_map.probabilities[0] = 1.0
+            pauli_lindblad_map.get_probabilities()[0] = 1.0
 
     @ddt.idata(single_cases())
     def test_clear(self, pauli_lindblad_map):
@@ -668,7 +664,7 @@ class TestPauliLindbladMap(QiskitTestCase):
             [1.0, 2.0], QubitSparsePauliList(["II", "XX"])
         )
         self.assertEqual(
-            pauli_lindblad_map.qubit_sparse_pauli_list, QubitSparsePauliList.from_list(["II", "XX"])
+            pauli_lindblad_map.get_qubit_sparse_pauli_list_copy(), QubitSparsePauliList.from_list(["II", "XX"])
         )
 
     def test_derived_properties(self):
@@ -676,22 +672,22 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
         w = 0.5 * (1 + np.exp(-2 * 1.0))
-        self.assertTrue(np.allclose(w, pauli_lindblad_map.probabilities[0]))
-        self.assertTrue(np.allclose(1.0, pauli_lindblad_map.gamma))
+        self.assertTrue(np.allclose(w, pauli_lindblad_map.get_probabilities()[0]))
+        self.assertTrue(np.allclose(1.0, pauli_lindblad_map.get_gamma()))
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -1.0)])
         w = 0.5 * (1 + np.exp(-2 * -1.0))
         gamma = w + np.abs(1 - w)
         prob = w / gamma
-        self.assertTrue(np.allclose(prob, pauli_lindblad_map.probabilities[0]))
-        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.gamma))
+        self.assertTrue(np.allclose(prob, pauli_lindblad_map.get_probabilities()[0]))
+        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.get_gamma()))
 
         pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", -0.5)])
         w = 0.5 * (1 + np.exp(-2 * -0.5))
         gamma = w + np.abs(1 - w)
         prob = w / gamma
-        self.assertTrue(np.allclose(prob, pauli_lindblad_map.probabilities[0]))
-        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.gamma))
+        self.assertTrue(np.allclose(prob, pauli_lindblad_map.get_probabilities()[0]))
+        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.get_gamma()))
 
         pauli_lindblad_map = PauliLindbladMap(
             [("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)]
@@ -701,8 +697,8 @@ class TestPauliLindbladMap(QiskitTestCase):
         gammas = w + np.abs(1 - w)
         probs = w / gammas
         gamma = np.prod(gammas)
-        self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities))
-        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.gamma))
+        self.assertTrue(np.allclose(probs, pauli_lindblad_map.get_probabilities()))
+        self.assertTrue(np.allclose(gamma, pauli_lindblad_map.get_gamma()))
 
 
 def canonicalize_term(pauli, indices, rate):
