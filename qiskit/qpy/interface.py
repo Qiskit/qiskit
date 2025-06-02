@@ -342,3 +342,33 @@ def load(
             )
         )
     return programs
+
+
+def get_qpy_version(
+    file_obj: BinaryIO,
+) -> int:
+    """This function identifies the QPY version of the file.
+
+    This function will read the header of ``file_obj`` and will
+    return the QPY format version. It will **not** advance the
+    cursor of ``file_obj``. If you are using this for a subsequent
+    read, such as to call :func:`.load`, you can pass ``file_obj``
+    directly. For example::
+
+        from qiskit import qpy
+
+        qpy_version = qpy.get_qpy_version(qpy_file)
+        if qpy_version > 12:
+            qpy.load(qpy_file)
+
+    Args:
+        file_obj: A file like object that contains the QPY binary
+            data for a circuit.
+
+    Returns:
+        The QPY version of the specified file.
+    """
+
+    version = struct.unpack("!6sB", file_obj.read(7))[1]
+    file_obj.seek(-7, 1)
+    return version
