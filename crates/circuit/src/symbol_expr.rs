@@ -283,14 +283,12 @@ impl fmt::Display for SymbolExpr {
                                         } else {
                                             format!("({})/{}", s_rhs, *denominator)
                                         }
+                                    } else if *denominator == 1 {
+                                        s_rhs.to_string()
+                                    } else if *denominator < 0 {
+                                        format!("{}/({})", s_rhs, *denominator)
                                     } else {
-                                        if *denominator == 1 {
-                                            format!("{}", s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}/({})", s_rhs, *denominator)
-                                        } else {
-                                            format!("{}/{}", s_rhs, *denominator)
-                                        }
+                                        format!("{}/{}", s_rhs, *denominator)
                                     }
                                 } else if *numerator < 0 {
                                     if op_rhs {
@@ -304,46 +302,38 @@ impl fmt::Display for SymbolExpr {
                                         } else {
                                             format!("({})*({})/{}", *numerator, s_rhs, *denominator)
                                         }
+                                    } else if *denominator == 1 {
+                                        format!("({})*{}", *numerator, s_rhs)
+                                    } else if *denominator < 0 {
+                                        format!("({})*{}/({})", *numerator, s_rhs, *denominator)
                                     } else {
-                                        if *denominator == 1 {
-                                            format!("({})*{}", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("({})*{}/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("({})*{}/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    }
-                                } else {
-                                    if op_rhs {
-                                        if *denominator == 1 {
-                                            format!("{}*({})", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}*({})/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("{}*({})/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    } else {
-                                        if *denominator == 1 {
-                                            format!("{}*{}", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}*{}/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("{}*{}/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    }
-                                }
-                            } else {
-                                if op_lhs {
-                                    if op_rhs {
-                                        format!("({})*({})", s_lhs, s_rhs)
-                                    } else {
-                                        format!("({})*{}", s_lhs, s_rhs)
+                                        format!("({})*{}/{}", *numerator, s_rhs, *denominator)
                                     }
                                 } else if op_rhs {
-                                    format!("{}*({})", s_lhs, s_rhs)
+                                    if *denominator == 1 {
+                                        format!("{}*({})", *numerator, s_rhs)
+                                    } else if *denominator < 0 {
+                                        format!("{}*({})/({})", *numerator, s_rhs, *denominator)
+                                    } else {
+                                        format!("{}*({})/{}", *numerator, s_rhs, *denominator)
+                                    }
+                                } else if *denominator == 1 {
+                                    format!("{}*{}", *numerator, s_rhs)
+                                } else if *denominator < 0 {
+                                    format!("{}*{}/({})", *numerator, s_rhs, *denominator)
                                 } else {
-                                    format!("{}*{}", s_lhs, s_rhs)
+                                    format!("{}*{}/{}", *numerator, s_rhs, *denominator)
                                 }
+                            } else if op_lhs {
+                                if op_rhs {
+                                    format!("({})*({})", s_lhs, s_rhs)
+                                } else {
+                                    format!("({})*{}", s_lhs, s_rhs)
+                                }
+                            } else if op_rhs {
+                                format!("{}*({})", s_lhs, s_rhs)
+                            } else {
+                                format!("{}*{}", s_lhs, s_rhs)
                             }
                         }
                         BinaryOp::Div => {
@@ -364,46 +354,38 @@ impl fmt::Display for SymbolExpr {
                                         } else {
                                             format!("({})/({})/{}", *numerator, s_rhs, *denominator)
                                         }
+                                    } else if *denominator == 1 {
+                                        format!("({})/{}", *numerator, s_rhs)
+                                    } else if *denominator < 0 {
+                                        format!("({})/{}/({})", *numerator, s_rhs, *denominator)
                                     } else {
-                                        if *denominator == 1 {
-                                            format!("({})/{}", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("({})/{}/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("({})/{}/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    }
-                                } else {
-                                    if op_rhs {
-                                        if *denominator == 1 {
-                                            format!("{}/({})", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}/({})/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("{}/({})/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    } else {
-                                        if *denominator == 1 {
-                                            format!("{}/{}", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}/{}/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("{}/{}/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    }
-                                }
-                            } else {
-                                if op_lhs {
-                                    if op_rhs {
-                                        format!("({})/({})", s_lhs, s_rhs)
-                                    } else {
-                                        format!("({})/{}", s_lhs, s_rhs)
+                                        format!("({})/{}/{}", *numerator, s_rhs, *denominator)
                                     }
                                 } else if op_rhs {
-                                    format!("{}/({})", s_lhs, s_rhs)
+                                    if *denominator == 1 {
+                                        format!("{}/({})", *numerator, s_rhs)
+                                    } else if *denominator < 0 {
+                                        format!("{}/({})/({})", *numerator, s_rhs, *denominator)
+                                    } else {
+                                        format!("{}/({})/{}", *numerator, s_rhs, *denominator)
+                                    }
+                                } else if *denominator == 1 {
+                                    format!("{}/{}", *numerator, s_rhs)
+                                } else if *denominator < 0 {
+                                    format!("{}/{}/({})", *numerator, s_rhs, *denominator)
                                 } else {
-                                    format!("{}/{}", s_lhs, s_rhs)
+                                    format!("{}/{}/{}", *numerator, s_rhs, *denominator)
                                 }
+                            } else if op_lhs {
+                                if op_rhs {
+                                    format!("({})/({})", s_lhs, s_rhs)
+                                } else {
+                                    format!("({})/{}", s_lhs, s_rhs)
+                                }
+                            } else if op_rhs {
+                                format!("{}/({})", s_lhs, s_rhs)
+                            } else {
+                                format!("{}/{}", s_lhs, s_rhs)
                             }
                         }
                         BinaryOp::Pow => match lhs.as_ref() {
@@ -575,8 +557,8 @@ impl SymbolExpr {
                         } else if numerator == denominator {
                             Some(Value::Int(1))
                         } else {
-                            let gcd = _gcd(numerator.abs() as u64, denominator.abs() as u64);
-                            if gcd == denominator.abs() as u64 {
+                            let gcd = _gcd(numerator.unsigned_abs(), denominator.unsigned_abs());
+                            if gcd == denominator.unsigned_abs() {
                                 Some(Value::Int(numerator / denominator))
                             } else {
                                 Some(Value::Real(numerator as f64 / denominator as f64))
@@ -635,8 +617,8 @@ impl SymbolExpr {
                         } else if numerator == denominator {
                             Some(Value::Int(1))
                         } else {
-                            let gcd = _gcd(numerator.abs() as u64, denominator.abs() as u64);
-                            if gcd == denominator.abs() as u64 {
+                            let gcd = _gcd(numerator.unsigned_abs(), denominator.unsigned_abs());
+                            if gcd == denominator.unsigned_abs() {
                                 Some(Value::Int(numerator / denominator))
                             } else {
                                 Some(Value::Real(numerator as f64 / denominator as f64))
@@ -3961,12 +3943,12 @@ fn _fraction(numerator: i64, denominator: i64) -> Value {
     }
     let mut ret_n = numerator;
     let mut ret_d = denominator;
-    let gcd = _gcd(numerator.abs() as u64, denominator.abs() as u64);
+    let gcd = _gcd(numerator.unsigned_abs(), denominator.unsigned_abs());
     if gcd > 1 {
         ret_n /= gcd as i64;
         ret_d /= gcd as i64;
     }
-    if numerator < 0 && denominator < 0 || numerator > 0 && denominator < 0 {
+    if numerator != 0 && denominator < 0 {
         ret_n = -ret_n;
         ret_d = -ret_d;
     }
