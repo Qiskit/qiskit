@@ -221,10 +221,10 @@ def z_feature_map(
         q_2: ┤ H ├┤ P(2.0*x[2]**2 + 2.0) ├
              └───┘└──────────────────────┘
 
-        >>> from qiskit.circuit.library import TwoLocal
-        >>> ry = TwoLocal(3, "ry", "cz", reps=1).decompose()
+        >>> from qiskit.circuit.library import n_local
+        >>> circuit = n_local(3, "ry", "cz", reps=1).decompose()
         >>> classifier = z_feature_map(3, reps=1)
-        >>> classifier.append(ry, list(range(classifier.num_qubits)))
+        >>> classifier.append(circuit, list(range(classifier.num_qubits)))
         >>> print(classifier)
              ┌───┐┌─────────────┐┌──────────┐      ┌──────────┐
         q_0: ┤ H ├┤ P(2.0*x[0]) ├┤ RY(θ[0]) ├─■──■─┤ RY(θ[3]) ├────────────
