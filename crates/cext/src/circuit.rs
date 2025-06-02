@@ -896,10 +896,10 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 }
 
 /// @ingroup QkCircuit
-/// Free a circuit instruction object.
+/// Clear the data in circuit instruction object.
 ///
 /// This function doesn't free the allocation for the provided ``QkCircuitInstruction`` pointer, it
-/// only free the internal allocations for the data contained in the instruction. You are
+/// only frees the internal allocations for the data contained in the instruction. You are
 /// responsible for allocating and freeing the actual allocation used to store a
 /// ``QkCircuitInstruction``.
 ///
@@ -911,7 +911,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ///     QkCircuit *qc = qk_circuit_new(100);
 ///     qk_circuit_gate(qc, QkGate_H, *[0], NULL);
 ///     qk_circuit_get_instruction(qc, 0, inst);
-///     qk_circuit_instruction_free(inst); // free the data
+///     qk_circuit_instruction_clear(inst); // free the data
 ///     free(inst); // free the pointer
 ///     qk_circuit_free(qc); // free the circuit
 ///
@@ -920,7 +920,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// Behavior is undefined if ``inst`` is not an object returned by ``qk_circuit_get_instruction``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_instruction_free(inst: *const CInstruction) {
+pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *const CInstruction) {
     // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
     // created by rust code and are constructed from Vecs internally or CStrings.
     unsafe {

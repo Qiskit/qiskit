@@ -664,7 +664,7 @@ int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
             }
         }
     loop_exit:
-        qk_circuit_instruction_free(inst);
+        qk_circuit_instruction_clear(inst);
         if (result != 0) {
             break;
         }
@@ -719,7 +719,7 @@ int test_unitary_gate(void) {
         inst->num_qubits != 2) {
         result = EqualityError;
     }
-    qk_circuit_instruction_free(inst);
+    qk_circuit_instruction_clear(inst);
     free(inst);
 
 cleanup:
@@ -768,7 +768,7 @@ int test_unitary_gate_1q(void) {
         inst->num_qubits != 1) {
         result = EqualityError;
     }
-    qk_circuit_instruction_free(inst);
+    qk_circuit_instruction_clear(inst);
     free(inst);
 
 cleanup:
@@ -822,7 +822,7 @@ int test_unitary_gate_3q(void) {
         inst->num_qubits != 3) {
         result = EqualityError;
     }
-    qk_circuit_instruction_free(inst);
+    qk_circuit_instruction_clear(inst);
     free(inst);
 
 cleanup:
