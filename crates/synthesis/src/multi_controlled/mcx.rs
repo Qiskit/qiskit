@@ -254,36 +254,22 @@ pub fn c4x() -> PyResult<CircuitData> {
     Ok(circuit)
 }
 
-/// A block in the `action part`, see Iten et al.
-fn action_gadget() -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(3, 0, 5, Param::Float(0.0))?;
-    circuit.h(2);
-    circuit.t(2);
-    circuit.cx(0, 2);
-    circuit.tdg(2);
-    circuit.cx(1, 2);
-    Ok(circuit)
-}
-
 /// Adds gates of the "action gadget" to the circuit
-fn add_action_gadget(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
-    circuit.compose(&action_gadget()?, &[Qubit(q1), Qubit(q2), Qubit(q3)], &[])
-}
-
-/// A block in the `reset part`, see Iten et al.
-fn reset_gadget() -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(3, 0, 5, Param::Float(0.0))?;
-    circuit.cx(1, 2);
-    circuit.t(2);
-    circuit.cx(0, 2);
-    circuit.tdg(2);
-    circuit.h(2);
-    Ok(circuit)
+fn add_action_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) {
+    circuit.h(q2);
+    circuit.t(q2);
+    circuit.cx(q0, q2);
+    circuit.tdg(q2);
+    circuit.cx(q1, q2);
 }
 
 /// Adds gates of the "rest gadget" to the circuit
-fn add_reset_gadget(circuit: &mut CircuitData, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
-    circuit.compose(&reset_gadget()?, &[Qubit(q1), Qubit(q2), Qubit(q3)], &[])
+fn add_reset_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) {
+    circuit.cx(q1, q2);
+    circuit.t(q2);
+    circuit.cx(q0, q2);
+    circuit.tdg(q2);
+    circuit.h(q2);
 }
 
 /// Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
@@ -339,26 +325,26 @@ pub fn synth_mcx_n_dirty_i15(
                     controls[num_controls - 1],
                     ancillas[num_controls - 3],
                     target,
-                )?;
+                );
             } else if j == 1 {
                 add_reset_gadget(
                     &mut circuit,
                     controls[num_controls - 1],
                     ancillas[num_controls - 3],
                     target,
-                )?;
+                );
             }
 
             // action part
             for i in (0..num_controls - 3).rev() {
-                add_action_gadget(&mut circuit, controls[i + 2], ancillas[i], ancillas[i + 1])?;
+                add_action_gadget(&mut circuit, controls[i + 2], ancillas[i], ancillas[i + 1]);
             }
 
             circuit.rccx(controls[0], controls[1], ancillas[0])?;
 
             // reset part
             for i in 0..num_controls - 3 {
-                add_reset_gadget(&mut circuit, controls[i + 2], ancillas[i], ancillas[i + 1])?;
+                add_reset_gadget(&mut circuit, controls[i + 2], ancillas[i], ancillas[i + 1]);
             }
 
             if action_only {
