@@ -747,7 +747,11 @@ class MatplotlibDrawer:
                 # increment by if/switch width. If more cases increment by width of previous cases.
                 if flow_parent is not None:
                     node_data[node].inside_flow = True
-                    node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
+                    front_space = 0 if isinstance(flow_parent.op, BoxOp) else 1
+                    node_data[node].x_index = (
+                        node_data[flow_parent].x_index + curr_x_index + front_space
+                    )
+
                     # If an else or case
                     if node_data[node].circ_num > 0:
                         for width in node_data[flow_parent].width[: node_data[node].circ_num]:
@@ -1555,7 +1559,7 @@ class MatplotlibDrawer:
         ypos = min(y[1] for y in xy)
         ypos_max = max(y[1] for y in xy)
 
-        if_width = node_data[node].width[0] + WID
+        if_width = node_data[node].width[0] + (WID if not isinstance(node.op, BoxOp) else -0.19)
         box_width = if_width
         # Add the else and case widths to the if_width
         for ewidth in node_data[node].width[1:]:
@@ -1592,6 +1596,7 @@ class MatplotlibDrawer:
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
             elif isinstance(node.op, BoxOp):
+                xpos -= 0.15
                 flow_text = ""
             else:
                 raise RuntimeError(f"unhandled control-flow op: {node.name}")
