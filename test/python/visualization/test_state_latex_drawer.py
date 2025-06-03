@@ -16,12 +16,14 @@ import unittest
 
 from qiskit.quantum_info import Statevector
 from qiskit.visualization.state_visualization import state_drawer
+from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 
 
 class TestLatexStateDrawer(QiskitVisualizationTestCase):
     """Qiskit state and unitary latex drawer."""
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state(self):
         """Test latex state vector drawer works with default settings."""
 
@@ -35,6 +37,7 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         )
         self.assertEqual(output, expected_output)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_max_size(self):
         """Test `max_size` parameter for latex ket notation."""
 
