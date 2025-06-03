@@ -377,7 +377,7 @@ impl BasicApproximations {
     /// - ``basis_gates`` - A slice of [StandardGate]s to use in basic approximation.
     /// - ``depth`` - The maximum gate depth of the basic approximations.
     /// - ``tol`` - Control the granularity of the tree; new sequences are accepted if they
-    ///     are further than ``sqrt(tol)`` from an existing element.
+    ///   are further than ``sqrt(tol)`` from an existing element.
     pub fn generate_from(
         basis_gates: &[StandardGate],
         depth: usize,
@@ -469,8 +469,7 @@ impl BasicApproximations {
 
         // store the now serializable HashMap
         let file = ::std::fs::File::create(filename)?;
-        bincode::serialize_into(file, &serializable_approx)
-            .map_err(|e| ::std::io::Error::new(::std::io::ErrorKind::Other, e))?;
+        bincode::serialize_into(file, &serializable_approx).map_err(::std::io::Error::other)?;
         Ok(())
     }
 
@@ -479,8 +478,7 @@ impl BasicApproximations {
         // store the now serializable HashMap
         let file = ::std::fs::File::open(filename)?;
         let serializable_approx: HashMap<usize, SerializableGateSequence> =
-            bincode::deserialize_from(file)
-                .map_err(|e| ::std::io::Error::new(::std::io::ErrorKind::Other, e))?;
+            bincode::deserialize_from(file).map_err(::std::io::Error::other)?;
 
         // construct the GateSequence from it's serializable version
         let approximations = serializable_approx
