@@ -459,75 +459,67 @@ class SparsePauliOp(LinearOp):
         )
 
     def simplify(self, atol: float | None = None, rtol: float | None = None) -> SparsePauliOp:
-        """Simplify PauliList by combining duplicates and removing zeros.
+      """Simplify PauliList by combining duplicates and removing zeros.
 
-        Args:
+      Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
             rtol (float): Optional. relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
-        Returns:
+      Returns:
             SparsePauliOp: the simplified SparsePauliOp operator.
-        """
-        # Get default atol and rtol
-        if atol is None:
-            atol = self.atol
-        if rtol is None:
-            rtol = self.rtol
+      """
+      # Get default atol and rtol
+      if atol is None:
+        atol = self.atol
+      if rtol is None:
+        rtol = self.rtol
+      # ----- STEP 1: KEEP all terms (do NOT remove near-zero yet) -----
+      paulis_x = self.paulis.x
+      paulis_z = self.paulis.z
+      all_coeffs = self.coeffs
 
-        # Filter non-zero coefficients
-        if self.coeffs.dtype == object:
+      # Identify duplicate Paulis
+      array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
+        paulis_z, axis=1
+      )
+      indexes, inverses = unordered_unique(array)
 
-            def to_complex(coeff):
-                if not hasattr(coeff, "sympify"):
-                    return coeff
-                sympified = coeff.sympify()
-                return complex(sympified) if sympified.is_Number else np.nan
+      # Sum coefficients of duplicate Paulis
+      coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
+      np.add.at(coeffs, inverses, all_coeffs)
+  
+      # ----- STEP 2: NOW remove near-zero coefficients -----
+      if self.coeffs.dtype == object:
+        def to_complex(coeff):
+            if not hasattr(coeff, "sympify"):
+                return coeff
+            sympified = coeff.sympify()
+            return complex(sympified) if sympified.is_Number else np.nan
 
-            non_zero = np.logical_not(
-                np.isclose([to_complex(x) for x in self.coeffs], 0, atol=atol, rtol=rtol)
-            )
-        else:
-            non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
-        paulis_x = self.paulis.x[non_zero]
-        paulis_z = self.paulis.z[non_zero]
-        nz_coeffs = self.coeffs[non_zero]
-
-        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
-            paulis_z, axis=1
+        is_zero = np.array(
+            [np.isclose(to_complex(c), 0, atol=atol, rtol=rtol) for c in coeffs]
         )
-        indexes, inverses = unordered_unique(array)
+      else:
+        is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
 
-        if np.all(non_zero) and indexes.shape[0] == array.shape[0]:
-            # No zero operator or duplicate operator
-            return self.copy()
+      if np.all(is_zero):
+       x = np.zeros((0, self.num_qubits), dtype=bool)
+       z = np.zeros((0, self.num_qubits), dtype=bool)
+       coeffs = np.array([], dtype=self.coeffs.dtype)
 
-        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
-        np.add.at(coeffs, inverses, nz_coeffs)
-        # Delete zero coefficient rows
-        if self.coeffs.dtype == object:
-            is_zero = np.array(
-                [np.isclose(to_complex(coeff), 0, atol=atol, rtol=rtol) for coeff in coeffs]
-            )
-        else:
-            is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
-        # Check edge case that we deleted all Paulis
-        # In this case we return an identity Pauli with a zero coefficient
-        if np.all(is_zero):
-            x = np.zeros((1, self.num_qubits), dtype=bool)
-            z = np.zeros((1, self.num_qubits), dtype=bool)
-            coeffs = np.array([0j], dtype=self.coeffs.dtype)
-        else:
-            non_zero = np.logical_not(is_zero)
-            non_zero_indexes = indexes[non_zero]
-            x = paulis_x[non_zero_indexes]
-            z = paulis_z[non_zero_indexes]
-            coeffs = coeffs[non_zero]
+      else:
+        non_zero = np.logical_not(is_zero)
+        non_zero_indexes = indexes[non_zero]
+        x = paulis_x[non_zero_indexes]
+        z = paulis_z[non_zero_indexes]
+        coeffs = coeffs[non_zero]
 
-        return SparsePauliOp(
-            PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
-        )
+     
+      return SparsePauliOp(
+        PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
+       )
 
     def argsort(self, weight: bool = False):
         """Return indices for sorting the rows of the table.
