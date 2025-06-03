@@ -31,10 +31,6 @@ use super::math;
 
 #[derive(Error, Debug)]
 pub enum DiscreteBasisError {
-    #[error("Expected discrete (parameter-free) gate.")]
-    ExpectDiscreteGate,
-    #[error("Expected an initialized gate sequence.")]
-    UninitializedSequence,
     #[error("Parameterized gates cannot be decomposed.")]
     ParameterizedGate,
 }
@@ -507,15 +503,5 @@ impl BasicApproximations {
 
 #[inline]
 fn matrix3_from_pyreadonly(array: &PyReadonlyArray2<f64>) -> Matrix3<f64> {
-    Matrix3::new(
-        *array.get((0, 0)).unwrap(),
-        *array.get((0, 1)).unwrap(),
-        *array.get((0, 2)).unwrap(),
-        *array.get((1, 0)).unwrap(),
-        *array.get((1, 1)).unwrap(),
-        *array.get((1, 2)).unwrap(),
-        *array.get((2, 0)).unwrap(),
-        *array.get((2, 1)).unwrap(),
-        *array.get((2, 2)).unwrap(),
-    )
+    Matrix3::from_fn(|i, j| *array.get((i, j)).unwrap())
 }

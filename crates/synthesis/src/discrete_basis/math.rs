@@ -55,17 +55,17 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, do_checks: bool) -> Matrix3x1<f
     // Try to obtain the matrix via Rodrigues formula. If the matrix is diagonal (or the Rodrigues
     // approach fails, likely because the matrix was diagonal up to numerical error), determine
     // the axis from the diagonal.
-    let tol = 1e-15;
-    if trace >= 3. - tol {
+    let eps = 1e-15;
+    if trace >= 3. - eps {
         // matrix is the identity, ie. no rotation
         return Matrix3x1::identity();
     }
 
-    if trace >= tol - 1. {
+    if trace >= eps - 1. {
         // there's a skew symmetric part which we can use to get the rotation axis
         let theta = ((trace - 1.) / 2.).acos();
 
-        if theta.sin() > tol {
+        if theta.sin() > eps {
             let coeff = 1. / 2. / theta.sin();
             let axis = Matrix3x1::new(
                 coeff * (matrix[(2, 1)] - matrix[(1, 2)]),
@@ -94,7 +94,7 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, do_checks: bool) -> Matrix3x1<f
     let index = axis
         .iter()
         .enumerate()
-        .find(|(_, &el)| el.abs() > tol)
+        .find(|(_, &el)| el.abs() > eps)
         .expect("At least one element must be nonzero.")
         .0;
     match index {
@@ -188,7 +188,7 @@ pub(super) fn assert_so3(name: &str, matrix: &Matrix3<f64>) {
     if matrix.iter().any(|el| el.is_nan()) {
         panic!("{} has NaN value.", name);
     }
-    if (1. - matrix.determinant()) > (1e-5) {
+    if (1. - matrix.determinant()) > 1e-5 {
         panic!(
             "{} is not SO(3): Determinant is {}, not 1.",
             name,
@@ -196,8 +196,7 @@ pub(super) fn assert_so3(name: &str, matrix: &Matrix3<f64>) {
         );
     }
     let diff = matrix * matrix.transpose() - Matrix3::<f64>::identity();
-    let tol = 1e-5;
-    if diff.iter().any(|el| el.abs() > tol) {
+    if diff.iter().any(|el| el.abs() > 1e-5) {
         panic!("{} is not SO(3): Matrix is not orthogonal.", name)
     }
 }
