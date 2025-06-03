@@ -539,7 +539,6 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            # If a parameter vector is used within an expression, initialize all elements.
             symbol = _read_parameter_vec(file_obj, vectors)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
@@ -588,11 +587,9 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
         if symbol_key == type_keys.Value.PARAMETER:
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
-            # If a parameter vector is used within an expression, initialize all elements.
             symbol = _read_parameter_vec(file_obj, vectors)
         elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
             symbol = _read_parameter_expression_v13(file_obj, vectors, version)
-
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
@@ -651,8 +648,6 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             size = struct.unpack_from("!QQ", expression_data.LHS)[0]
             subs_map_data = buf.read(size)
             with io.BytesIO(subs_map_data) as mapping_buf:
-                # If a parameter vector is used within the replay of a
-                # substitution operation, initialize all elements.
                 mapping = common.read_mapping(
                     mapping_buf,
                     deserializer=loads_value,
