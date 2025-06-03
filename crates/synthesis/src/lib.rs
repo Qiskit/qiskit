@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod clifford;
+mod discrete_basis;
 pub mod euler_one_qubit_decomposer;
 mod evolution;
 pub mod linalg;
@@ -50,6 +51,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let evolution_mod = PyModule::new(m.py(), "evolution")?;
     evolution::evolution(&evolution_mod)?;
     m.add_submodule(&evolution_mod)?;
+
+    let discrete_basis_mod = PyModule::new(m.py(), "discrete_basis")?;
+    discrete_basis::discrete_basis(&discrete_basis_mod)?;
+    m.add_submodule(&discrete_basis_mod)?;
 
     let qft_mod = PyModule::new(m.py(), "qft")?;
     qft::qft(&qft_mod)?;
