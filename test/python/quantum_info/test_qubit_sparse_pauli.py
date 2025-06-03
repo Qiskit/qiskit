@@ -399,6 +399,17 @@ class TestQubitSparsePauli(QiskitTestCase):
             strict=True,
         )
     
+    def test_identity(self):
+        identity_5 = QubitSparsePauli.identity(5)
+        self.assertEqual(identity_5.num_qubits, 5)
+        self.assertEqual(len(identity_5.paulis), 0)
+        self.assertEqual(len(identity_5.indices), 0)
+
+        identity_0 = QubitSparsePauli.identity(0)
+        self.assertEqual(identity_0.num_qubits, 0)
+        self.assertEqual(len(identity_0.paulis), 0)
+        self.assertEqual(len(identity_0.indices), 0)
+    
     def test_compose(self):
         p0 = QubitSparsePauli.from_label("XZY")
         p1 = QubitSparsePauli.from_label("ZIY")

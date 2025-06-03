@@ -663,6 +663,11 @@ impl QubitSparsePauli {
         &self.paulis
     }
 
+    /// Create the identity [QubitSparsePauli] on ``num_qubits`` qubits.
+    pub fn identity(num_qubits: u32) -> Self {
+        Self {num_qubits: num_qubits, paulis: Box::new([]), indices: Box::new([])}
+    }
+
     // Phaseless composition of two pauli operators.
     pub fn compose(&self, other: &QubitSparsePauli) -> Result<QubitSparsePauli, ArithmeticError> {
         if self.num_qubits != other.num_qubits {
@@ -1356,6 +1361,20 @@ impl PyQubitSparsePauli {
             sorted_indices.into_boxed_slice(),
         )?;
         Ok(inner.into())
+    }
+
+    /// Get the identity operator for a given number of qubits.
+    ///
+    /// Examples:
+    ///
+    ///     Get the identity on 100 qubits::
+    ///
+    ///         >>> QubitSparsePauli.identity(100)
+    ///         <QubitSparsePauli on 100 qubits: >
+    #[pyo3(signature = (/, num_qubits))]
+    #[staticmethod]
+    pub fn identity(num_qubits: u32) -> Self {
+        QubitSparsePauli::identity(num_qubits).into()
     }
 
     /// Convert this Pauli into a single element :class:`QubitSparsePauliList`.

@@ -324,10 +324,8 @@ impl PauliLindbladMap {
 
         Self::new(
             self.rates().to_vec(),
-            QubitSparsePauliList::new(self.num_qubits(),
-            new_paulis,
-            new_indices,
-            new_boundaries).unwrap()
+            QubitSparsePauliList::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
+                .unwrap(),
         )
     }
 
@@ -364,7 +362,7 @@ impl PauliLindbladMap {
         for _ in 0..n_samples {
             let mut random_sign = true;
             let mut random_pauli =
-                QubitSparsePauli::new(self.num_qubits(), Box::new([]), Box::new([]))?;
+                QubitSparsePauli::identity(self.num_qubits());
 
             for ((probability, generator), non_negative_rate) in self
                 .probabilities
@@ -424,11 +422,10 @@ impl PauliLindbladMap {
         }
         Self::new(
             new_rates,
-            QubitSparsePauliList::new(self.num_qubits(),
-            new_paulis,
-            new_indices,
-            new_boundaries).unwrap()
-        ).unwrap()
+            QubitSparsePauliList::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
+                .unwrap(),
+        )
+        .unwrap()
     }
 }
 
@@ -1283,10 +1280,8 @@ impl PyPauliLindbladMap {
         scale_factor: f64,
     ) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        unsafe {
-            let scaled = inner.clone().scale_rates(scale_factor);
-            scaled.into_pyobject(py)
-        }
+        let scaled = inner.clone().scale_rates(scale_factor);
+        scaled.into_pyobject(py)
     }
 
     /// Return a new :class:`PauliLindbladMap` that is the mathematical inverse of `self`.
