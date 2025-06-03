@@ -98,6 +98,12 @@ trait CircuitDataForSynthesis {
     /// Appends CPhase to the circuit.
     fn cp(&mut self, theta: f64, q1: u32, q2: u32);
 
+    /// Appends CCX to the circuit.
+    fn ccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()>;
+
+    /// Appends RCCX to the circuit.
+    fn rccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()>;
+
     /// Compose ``other`` into ``self``, while remapping the qubits
     /// over which ``other`` is defined. The operations are added in-place.
     fn compose(&mut self, other: &Self, qargs_map: &[Qubit], cargs_map: &[Clbit]) -> PyResult<()>;
@@ -151,6 +157,16 @@ impl CircuitDataForSynthesis for CircuitData {
             &[Param::Float(theta)],
             &[Qubit(q1), Qubit(q2)],
         );
+    }
+
+    /// Appends the decomposition of the CCX to the circuit.
+    fn ccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
+        self.compose(&ccx()?, &[Qubit(q1), Qubit(q2), Qubit(q3)], &[])
+    }
+
+    /// Appends RCCX to the circuit.
+    fn rccx(&mut self, q1: u32, q2: u32, q3: u32) -> PyResult<()> {
+        self.compose(&rccx()?, &[Qubit(q1), Qubit(q2), Qubit(q3)], &[])
     }
 
     /// Compose ``other`` into ``self``, while remapping the qubits over which ``other`` is defined.
@@ -302,14 +318,10 @@ pub fn synth_mcx_n_dirty_i15(
 
         for j in 0..2 {
             if !relative_phase {
-                circuit.compose(
-                    &ccx()?,
-                    &[
-                        Qubit(controls[num_controls - 1]),
-                        Qubit(ancillas[num_controls - 3]),
-                        Qubit(target),
-                    ],
-                    &[],
+                circuit.ccx(
+                    controls[num_controls - 1],
+                    ancillas[num_controls - 3],
+                    target,
                 )?;
             } else if j == 0 {
                 circuit.compose(
@@ -346,11 +358,7 @@ pub fn synth_mcx_n_dirty_i15(
                 )?;
             }
 
-            circuit.compose(
-                &rccx()?,
-                &[Qubit(controls[0]), Qubit(controls[1]), Qubit(ancillas[0])],
-                &[],
-            )?;
+            circuit.rccx(controls[0], controls[1], ancillas[0])?;
 
             // reset part
             for i in 0..num_controls - 3 {
@@ -366,14 +374,10 @@ pub fn synth_mcx_n_dirty_i15(
             }
 
             if action_only {
-                circuit.compose(
-                    &ccx()?,
-                    &[
-                        Qubit(controls[num_controls - 1]),
-                        Qubit(ancillas[num_controls - 3]),
-                        Qubit(target),
-                    ],
-                    &[],
+                circuit.ccx(
+                    controls[num_controls - 1],
+                    ancillas[num_controls - 3],
+                    target,
                 )?;
                 break;
             }
