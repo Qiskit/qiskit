@@ -4830,7 +4830,7 @@ class QuantumCircuit:
         return self._data.has_control_flow_op()
 
     def _unroll_param_dict(
-        self, parameter_binds: Mapping[Parameter, ParameterValueType], strict: bool
+        self, parameter_binds: Mapping[Parameter, ParameterValueType], strict: bool = True
     ) -> Mapping[Parameter, ParameterValueType]:
         out = {}
         for parameter, value in parameter_binds.items():
