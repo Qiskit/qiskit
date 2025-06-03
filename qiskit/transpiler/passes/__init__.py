@@ -101,6 +101,7 @@ Scheduling
    TimeUnitConversion
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
+   ContextAwareDynamicalDecoupling
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
@@ -257,6 +258,7 @@ from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
+from .scheduling import ContextAwareDynamicalDecoupling
 
 # additional utility passes
 from .utils import CheckMap
