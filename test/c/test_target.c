@@ -25,7 +25,7 @@
  */
 int test_empty_target(void) {
     QkTarget *target = qk_target_new(0);
-    size_t num_qubits = qk_target_num_qubits(target);
+    uint32_t num_qubits = qk_target_num_qubits(target);
 
     if (num_qubits != 0) {
         printf("The number of qubits %lu is not 0.", num_qubits);
@@ -44,7 +44,7 @@ int test_empty_target(void) {
         return EqualityError;
     }
 
-    size_t retrieved_min_length = qk_target_min_length(target);
+    uint32_t retrieved_min_length = qk_target_min_length(target);
     if (retrieved_min_length != 1) {
         printf("The min_length %lu is not 1.", retrieved_min_length);
         return EqualityError;
@@ -68,10 +68,10 @@ int test_empty_target(void) {
  * Test constructor for Target
  */
 int test_target_construct(void) {
-    const size_t num_qubits = 2;
+    const uint32_t num_qubits = 2;
     const double dt = 10e-9;
     const uint32_t granularity = 2;
-    const size_t min_length = 3;
+    const uint32_t min_length = 3;
     const uint32_t p_alignment = 4;
     const uint32_t a_alignment = 1;
 
@@ -83,7 +83,7 @@ int test_target_construct(void) {
     qk_target_set_pulse_alignment(target, p_alignment);
     qk_target_set_acquire_alignment(target, a_alignment);
 
-    size_t retrieved_num_qubits = qk_target_num_qubits(target);
+    uint32_t retrieved_num_qubits = qk_target_num_qubits(target);
     if (retrieved_num_qubits != 2) {
         printf("The number of qubits %lu is not 0.", num_qubits);
         return EqualityError;
@@ -101,7 +101,7 @@ int test_target_construct(void) {
         return EqualityError;
     }
 
-    size_t retrieved_min_length = qk_target_min_length(target);
+    uint32_t retrieved_min_length = qk_target_min_length(target);
     if (retrieved_min_length != 3) {
         printf("The min_length %lu is not 3.", retrieved_min_length);
         return EqualityError;
@@ -123,7 +123,7 @@ int test_target_construct(void) {
 }
 
 /**
- * Test construction of PropsMap
+ * Test construction of a QkTargetEntry
  */
 int test_property_map_construction(void) {
     QkTargetEntry *property_map = qk_target_entry_new(QkGate_H);
@@ -154,7 +154,7 @@ int test_property_map_construction(void) {
  * Test adding an instruction to the Target.
  */
 int test_target_add_instruction(void) {
-    const size_t num_qubits = 1;
+    const uint32_t num_qubits = 1;
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -164,7 +164,7 @@ int test_target_add_instruction(void) {
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
 
     // Number of qubits of the target should not change.
-    size_t current_num_qubits = qk_target_num_qubits(target);
+    uint32_t current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 1) {
         printf("The number of qubits this target is compatible with is not 1: %zu",
                current_num_qubits);
@@ -238,7 +238,7 @@ cleanup:
  * `update_instruction_property`.
  */
 int test_target_update_instruction(void) {
-    const size_t num_qubits = 1;
+    const uint32_t num_qubits = 1;
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;

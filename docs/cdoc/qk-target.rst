@@ -9,7 +9,7 @@ QkTarget
 A mapping of instructions and properties representing the partiucular constraints
 of a backend. Its purpose is to provide the compiler with information that allows it
 to compile an input circuit into another that is optimized taking in consideration the
-``Target``'s specifications. This structure represents a low level interface to the main
+``QkTarget``'s specifications. This structure represents a low level interface to the main
 Target data structure in Rust, which represents the base class for its Python
 counterpart, :class:`.Target`.
 
@@ -38,9 +38,10 @@ Here's an example of how this structure works:
     // Free the created target.
     qk_target_free(target);
 
-The Target C API currently only supports additions of ``StandardGate`` instances as
-``NormalOperation``. The functionality will be expanded over time as we improve our
-Rust data model capabilities.
+The Target C API currently only supports additions of ``QkGate`` instances
+with either no parameters or fixed parameters. Support for regular parameters
+will be added in the future. The functionality will keep expanding over time
+as we improve our Rust data model capabilities.
 
 Functions
 =========

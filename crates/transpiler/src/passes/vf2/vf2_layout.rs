@@ -254,7 +254,7 @@ fn build_interaction_graph<Ty: EdgeType>(
 fn build_coupling_map<Ty: EdgeType>(
     target: &Target,
 ) -> Option<StableGraph<HashSet<String>, HashSet<String>, Ty>> {
-    let num_qubits = target.num_qubits.unwrap_or_default();
+    let num_qubits = target.num_qubits.unwrap_or_default() as usize;
     if target.num_qargs() == 0 {
         return None;
     }

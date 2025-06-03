@@ -7,9 +7,9 @@ QkTargetEntry
 
     typedef struct QkTargetEntry QkTargetEntry
 
-A mapping of qargs and instruction properties representing gate map of the 
-Target. This feature is used due to not having valid native mappings available from
-C.
+A mapping of qubit arguments and properties representing gate map of the 
+Target. This feature is used due to not having valid native mappings available
+from C.
 
 Here's an example of how this structure works:
 
@@ -21,11 +21,11 @@ Here's an example of how this structure works:
     // Create a Target Entry for a CX Gate
     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
 
-    // Add mapping between (0,1) and InstructionProperties(10e-9, NAN)
+    // Add mapping between (0,1) and properties duration of 10e-9 and no error.
     uint32_t qargs[2] = {0, 1};
     qk_target_entry_add(entry, qargs, 2, 10e-9, NAN);
 
-    // Add mapping between Global, and InstructionProperties(NAN, 0.003)
+    // Add mapping between Global, and no set duration NAN and error of 0.003)
     qk_target_entry_add(entry, NULL, 0, NAN, 0.003);
 
 
