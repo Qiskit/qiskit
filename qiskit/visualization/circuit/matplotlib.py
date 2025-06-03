@@ -615,6 +615,8 @@ class MatplotlibDrawer:
                         for width, layer_num, flow_parent in flow_widths.values():
                             if layer_num != -1 and flow_parent == flow_drawer._flow_parent:
                                 raw_gate_width += width
+                                if isinstance(node.op, BoxOp):
+                                    raw_gate_width -= 0.001
 
                         # Need extra incr of 1.0 for else and case boxes
                         gate_width += raw_gate_width + (1.0 if circ_num > 0 else 0.0)

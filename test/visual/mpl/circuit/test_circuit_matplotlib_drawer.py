@@ -1168,11 +1168,12 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         qc = QuantumCircuit(5)
         with qc.box():
             qc.x(0)
+        qc.x(1)
         with qc.box():
             qc.cx(2, 3)
             with qc.box():
                 qc.noop(4)
-        fname = "basic_box.png"
+        qc.draw("mpl")        fname = "basic_box.png"
         self.circuit_drawer(qc, output="mpl", filename=fname)
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
