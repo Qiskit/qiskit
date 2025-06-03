@@ -1072,7 +1072,7 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         # test all negative rates
         pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -1.0)])
-        probs = pauli_lindblad_map.probabilities
+        probs = pauli_lindblad_map.get_probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
             "X": probs[0] * (1 - probs[1]),
@@ -1096,7 +1096,7 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         # test all positive rates
         pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
-        probs = pauli_lindblad_map.probabilities
+        probs = pauli_lindblad_map.get_probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
             "X": probs[0] * (1 - probs[1]),
@@ -1119,7 +1119,7 @@ class TestPauliLindbladMap(QiskitTestCase):
 
         # test mix of positive and negative rates
         pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
-        probs = pauli_lindblad_map.probabilities
+        probs = pauli_lindblad_map.get_probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
             "X": probs[0] * (1 - probs[1]),
@@ -1149,7 +1149,7 @@ class TestPauliLindbladMap(QiskitTestCase):
 
     def test_sample(self):
         pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
-        probs = pauli_lindblad_map.probabilities
+        probs = pauli_lindblad_map.get_probabilities()
         probs_dict = {
             "I": probs[0] * probs[1],
             "X": probs[0] * (1 - probs[1]),

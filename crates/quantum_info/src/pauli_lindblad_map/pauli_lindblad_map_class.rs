@@ -246,24 +246,14 @@ impl PauliLindbladMap {
     }
 
     /// Scale the rates by a set factor.
-    ///
-    /// # Safety
-    ///
-    /// The coherence of the result is equivalent to the coherence fo Self, and as such there is no
-    /// need to construct the map with the safe PauliLindbladMap::new.
-    pub unsafe fn scale_rates(self, scale_factor: f64) -> Self {
+    pub fn scale_rates(self, scale_factor: f64) -> Self {
         let new_rates = self.rates.iter().map(|r| scale_factor * r).collect();
-        unsafe { PauliLindbladMap::new_unchecked(new_rates, self.qubit_sparse_pauli_list.clone()) }
+        PauliLindbladMap::new(new_rates, self.qubit_sparse_pauli_list.clone()).unwrap()
     }
 
     /// Invert the map.
-    ///
-    /// # Safety
-    ///
-    /// The coherence of the result is equivalent to the coherence fo Self, and as such there is no
-    /// need to construct the map with the safe PauliLindbladMap::new.
-    pub unsafe fn inverse(self) -> Self {
-        unsafe { self.scale_rates(-1.) }
+    pub fn inverse(self) -> Self {
+        self.scale_rates(-1.)
     }
 
     // Compose with another PauliLindbladMap
@@ -296,15 +286,10 @@ impl PauliLindbladMap {
                 .map(|boundary| offset + boundary),
         );
 
-        unsafe {
-            let qubit_sparse_pauli_list =
-                QubitSparsePauliList::new_unchecked(self.num_qubits(), paulis, indices, boundaries);
-
-            Ok(PauliLindbladMap::new_unchecked(
-                rates,
-                qubit_sparse_pauli_list,
-            ))
-        }
+        let qubit_sparse_pauli_list = unsafe {
+            QubitSparsePauliList::new_unchecked(self.num_qubits(), paulis, indices, boundaries)
+        };
+        Ok(PauliLindbladMap::new(rates, qubit_sparse_pauli_list).unwrap())
     }
 
     /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
@@ -337,19 +322,19 @@ impl PauliLindbladMap {
         }
         new_boundaries.push(current_boundary - num_dropped_paulis);
 
-        Self::new_from_raw_parts(
-            self.num_qubits(),
+        Self::new(
             self.rates().to_vec(),
+            QubitSparsePauliList::new(self.num_qubits(),
             new_paulis,
             new_indices,
-            new_boundaries,
+            new_boundaries).unwrap()
         )
     }
 
     /// Compute the fidelity of the map for a single pauli
     pub fn pauli_fidelity(
         &self,
-        qubit_sparse_pauli: QubitSparsePauli,
+        qubit_sparse_pauli: &QubitSparsePauli,
     ) -> Result<f64, ArithmeticError> {
         let mut fid = 1.0;
 
@@ -437,14 +422,13 @@ impl PauliLindbladMap {
             new_indices.extend_from_slice(indices);
             new_boundaries.push(new_indices.len());
         }
-        Self::new_from_raw_parts(
-            self.num_qubits(),
+        Self::new(
             new_rates,
+            QubitSparsePauliList::new(self.num_qubits(),
             new_paulis,
             new_indices,
-            new_boundaries,
-        )
-        .unwrap()
+            new_boundaries).unwrap()
+        ).unwrap()
     }
 }
 
@@ -1572,7 +1556,7 @@ impl PyPauliLindbladMap {
     ///     fidelity of.
     fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let result = inner.pauli_fidelity(qubit_sparse_pauli.inner)?;
+        let result = inner.pauli_fidelity(qubit_sparse_pauli.get_inner())?;
         Ok(result)
     }
 
