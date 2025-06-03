@@ -14,6 +14,7 @@
 import unittest
 from qiskit import qasm3
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+import qiskit_qasm3_import
 
 
 class TestQASM3load(QiskitTestCase):
