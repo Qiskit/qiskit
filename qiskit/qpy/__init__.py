@@ -406,8 +406,8 @@ circuits in the data.
 Version 15
 ----------
 
-Version 15 improves the native Qiskit serialization of ParameterExpressions to support parameter
-re-assignments with the same name. This is achieved by modifying the PARAM_EXPR_ELEM_V13 payload 
+Version 15 improves the native Qiskit serialization of :class:`.ParameterExpression`\ s to support parameter
+re-assignments with the same name. This is achieved by modifying the ``PARAM_EXPR_ELEM_V13`` payload 
 for the substitution operation. In version 15, the type value
 of ``u`` is still used to represent a substitution call. This is only used for ``lhs_type``
 and is always paired with an ``rhs_type`` of ``n``. However, the data value is the size in bytes of
