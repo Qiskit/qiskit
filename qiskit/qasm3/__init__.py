@@ -225,7 +225,7 @@ available on this module, if you wish to build on top of it:
     A tuple of :class:`CustomGate` objects specifying the Qiskit constructors to use for the
     ``stdgates.inc`` include file.
 """
-
+from __future__ import annotations
 import functools
 import warnings
 

@@ -20,6 +20,7 @@ class TestQASM3load(QiskitTestCase):
     """Test qasm3 load and loads."""
 
     def test_num_qubits(self):
+        """Test num_qubits equal the loaded circuit number of qubits"""
         program = 'OPENQASM 3.0;\ninclude "stdgates.inc";\nh $0;\ncx $2, $1;\n'
         out = qasm3.loads(program, num_qubits=5)
         self.assertEqual(out.num_qubits, 5)
