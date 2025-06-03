@@ -909,7 +909,8 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ///
 ///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
 ///     QkCircuit *qc = qk_circuit_new(100);
-///     qk_circuit_gate(qc, QkGate_H, *[0], NULL);
+///     uint32_t q0 = {0};
+///     qk_circuit_gate(qc, QkGate_H, q0, NULL);
 ///     qk_circuit_get_instruction(qc, 0, inst);
 ///     qk_circuit_instruction_clear(inst); // free the data
 ///     free(inst); // free the pointer
@@ -917,7 +918,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``inst`` is not an object returned by ``qk_circuit_get_instruction``.
+/// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a ``QkCircuitInstruction``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *const CInstruction) {
