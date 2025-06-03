@@ -407,9 +407,11 @@ circuits in the data.
 Version 15
 ----------
 
-Version 15 improves the native serialization of :class:`.ParameterExpression`\ s by encoding the :ref:`qpy_mapping`
-data in the ``PARAM_EXPR_ELEM_V13`` payload using uuids instead of :class:`.Parameter` names. This adds support for
-serializing parameter re-assignments where the parameter name is the same but the uuid is different.
+Version 15 improves the native serialization of :class:`.ParameterExpression` by encoding 
+the :ref:`qpy_mapping` data in the ``PARAM_EXPR_ELEM_V13`` payload using uuids instead 
+of :class:`.Parameter` names. 
+This adds support for serializing parameter re-assignments where the parameter name is 
+the same but the uuid is different.
 
 .. _qpy_version_14:
 

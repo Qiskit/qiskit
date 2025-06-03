@@ -890,26 +890,6 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertIsInstance(new_evo, PauliEvolutionGate)
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_pauli_feature_map_new(self):
-        """Regression test for
-        https://github.com/Qiskit/qiskit/issues/13720."""
-        # new construction
-        qc = pauli_feature_map(feature_dimension=5, reps=1)
-        qpy_file = io.BytesIO()
-        dump(qc, qpy_file)
-        qpy_file.seek(0)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            new_circuit = load(qpy_file)[0]
-            for warning in w:
-                self.assertFalse(
-                    re.search(
-                        r"is not fully identical to its pre-serialization state",
-                        str(warning.message),
-                    )
-                )
-        self.assertEqual(qc, new_circuit)
-
     def test_pauli_feature_map_legacy(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/13720."""
@@ -931,10 +911,11 @@ class TestLoadFromQPY(QiskitTestCase):
                 )
         self.assertEqual(qc, new_circuit)
 
-    def test_zz_feature_map_new(self):
+    def test_pauli_feature_map_new(self):
         """Regression test for
-        https://github.com/Qiskit/qiskit/issues/14088."""
-        qc = zz_feature_map(2, reps=1)
+        https://github.com/Qiskit/qiskit/issues/13720."""
+        # new construction
+        qc = pauli_feature_map(feature_dimension=5, reps=1)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
@@ -953,6 +934,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_zz_feature_map_legacy(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/14088."""
+        # legacy construction
         with self.assertWarns(DeprecationWarning):
             qc = ZZFeatureMap(2, reps=1)
         qpy_file = io.BytesIO()
@@ -973,6 +955,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_zz_feature_map_new(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/14088."""
+        # new construction
         qc = zz_feature_map(2, reps=1)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -992,6 +975,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_real_amplitudes_legacy(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/14088."""
+        # legacy construction
         with self.assertWarns(DeprecationWarning):
             qc = RealAmplitudes(2, reps=1)
         qpy_file = io.BytesIO()
@@ -1012,6 +996,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_real_amplitudes_new(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/14088."""
+        # new construction
         qc = real_amplitudes(2, reps=1)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1033,7 +1018,6 @@ class TestLoadFromQPY(QiskitTestCase):
         https://github.com/Qiskit/qiskit/issues/14089."""
         op = SparsePauliOp(["ZIZI", "IZIZ", "ZIIZ"])
         x = ParameterVector("γ", 1)
-
         # legacy construction
         with self.assertWarns(DeprecationWarning):
             ansatz = QAOAAnsatz(op, reps=1)
