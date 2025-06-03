@@ -176,15 +176,16 @@ class UserConfig:
             )
             if sabre_all_threads is not None:
                 self.settings["sabre_all_threads"] = sabre_all_threads
-            
+
             # Parse min_qpy_version
             min_qpy_version = self.config_parser.getint("default", "min_qpy_version", fallback=None)
             if min_qpy_version:
                 if min_qpy_version < 0:
                     raise exceptions.QiskitUserConfigError(
-                        f"{min_qpy_version} is not a valid QPY version. Must be greater than or equal to 0."
+                        f"{min_qpy_version} is not a valid QPY version."
                     )
                 self.settings["min_qpy_version"] = min_qpy_version
+
 
 def set_config(key, value, section=None, file_path=None):
     """Adds or modifies a user configuration
