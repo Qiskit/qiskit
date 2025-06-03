@@ -65,6 +65,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
     Example::
 
+        from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import QFTGate
         from qiskit.transpiler import PassManager
         from qiskit.transpiler.passes import ALAPScheduleAnalysis, ContextAwareDynamicalDecoupling
@@ -722,7 +723,7 @@ class AdjacentDelayBlock:
         q1: ------███████---  |  operations, since the delay operations
         q2: --█████████-----  |  all overlap
         q3: -----------████-  -> this delay starts when delay on q2 ends, so they have no overlap
-        q4: ----████--------  -> this clearly has no overlap with someting else
+        q4: ----████--------  -> this clearly has no overlap with something else
 
     """
 
