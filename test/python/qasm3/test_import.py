@@ -119,6 +119,12 @@ class TestQASM3Import(QiskitTestCase):
         expected.measure(1, 1)
         self.assertEqual(parsed, expected)
 
+    def test_num_qubits(self):
+        """Test num_qubits equal the loaded circuit number of qubits"""
+        program = 'OPENQASM 3.0;\ninclude "stdgates.inc";\nh $0;\ncx $2, $1;\n'
+        out = qasm3.loads(program, num_qubits=5)
+        self.assertEqual(out.num_qubits, 5)
+
     def test_simple_loose_bits(self):
         program = """
             OPENQASM 3.0;
