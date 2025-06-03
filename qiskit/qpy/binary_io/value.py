@@ -453,28 +453,28 @@ def _read_parameter(file_obj):
     return Parameter(name, uuid=param_uuid)
 
 
-def _read_parameter_vec(file_obj, vectors, initialize_full_vec):
+def _read_parameter_vec(file_obj, vectors):
     data = formats.PARAMETER_VECTOR_ELEMENT(
         *struct.unpack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
             file_obj.read(formats.PARAMETER_VECTOR_ELEMENT_SIZE),
         ),
     )
-    # Starting in version 15, the parameter uuid is used instead of the
-    # parameter name.
-    param_uuid = uuid.UUID(bytes=data.uuid)
+    # Starting in version 15, the parameter vector root uuid
+    # is used as a key instead of the parameter name.
+    root_uuid_int = uuid.UUID(bytes=data.uuid).int - data.index
+    root_uuid = uuid.UUID(int=root_uuid_int)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
 
-    if param_uuid not in vectors:
-        vectors[param_uuid] = (ParameterVector(name, data.vector_size), set())
-    vector = vectors[param_uuid][0]
-    if initialize_full_vec:
-        for index in range(data.vector_size):
-            vectors[param_uuid][1].add(index)
-            vector._params[index] = ParameterVectorElement(vector, index, uuid=param_uuid)
-    elif vector[data.index].uuid != param_uuid:
-        vectors[param_uuid][1].add(data.index)
-        vector._params[data.index] = ParameterVectorElement(vector, data.index, uuid=param_uuid)
+    if root_uuid not in vectors:
+        vectors[root_uuid] = (ParameterVector(name, data.vector_size), set())
+    vector = vectors[root_uuid][0]
+
+    if vector[data.index].uuid != root_uuid:
+        vectors[root_uuid][1].add(data.index)
+        vector._params[data.index] = ParameterVectorElement(
+            vector, data.index, uuid=uuid.UUID(int=root_uuid_int + data.index)
+        )
     return vector[data.index]
 
 
@@ -540,7 +540,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
             # If a parameter vector is used within an expression, initialize all elements.
-            symbol = _read_parameter_vec(file_obj, vectors, initialize_full_vec=True)
+            symbol = _read_parameter_vec(file_obj, vectors)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {symbol_key}")
 
@@ -589,7 +589,7 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
             symbol = _read_parameter(file_obj)
         elif symbol_key == type_keys.Value.PARAMETER_VECTOR:
             # If a parameter vector is used within an expression, initialize all elements.
-            symbol = _read_parameter_vec(file_obj, vectors, initialize_full_vec=True)
+            symbol = _read_parameter_vec(file_obj, vectors)
         elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
             symbol = _read_parameter_expression_v13(file_obj, vectors, version)
 
@@ -658,7 +658,6 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
                     deserializer=loads_value,
                     version=version,
                     vectors=vectors,
-                    initialize_full_vec=True,
                 )
             # Starting in version 15, the uuid is used instead of the name
             if version < 15:
@@ -1072,7 +1071,6 @@ def loads_value(
     cregs=None,
     use_symengine=False,
     standalone_vars=(),
-    initialize_full_vec=False,
 ):
     """Deserialize input binary data to value object.
 
@@ -1089,11 +1087,6 @@ def loads_value(
             before setting this option, as it will be required by qpy to deserialize the payload.
         standalone_vars (Sequence[Var]): standalone :class:`.expr.Var` nodes in the order that they
             were declared by the circuit header.
-        initialize_full_vec (bool): If True, de-serialized parameter vectors will be considered
-            fully initialized independently of whether all elements are currently used the
-            circuit or not. This flag is set to True when loading parameter expressions to avoid
-            raising unnecessary user warnings.
-
     Returns:
         any: Deserialized value object.
 
@@ -1124,7 +1117,6 @@ def loads_value(
             binary_data,
             _read_parameter_vec,
             vectors=vectors,
-            initialize_full_vec=initialize_full_vec,
         )
     if type_key == type_keys.Value.PARAMETER:
         return common.data_from_binary(binary_data, _read_parameter)

@@ -53,9 +53,11 @@ from qiskit.circuit.library import (
     DiagonalGate,
     PauliFeatureMap,
     ZZFeatureMap,
+    RealAmplitudes,
     pauli_feature_map,
     zz_feature_map,
     qaoa_ansatz,
+    real_amplitudes,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -888,23 +890,45 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertIsInstance(new_evo, PauliEvolutionGate)
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_pauli_feature_map(self):
+    def test_pauli_feature_map_new(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/13720."""
-        # legacy construction
-        qc = PauliFeatureMap(feature_dimension=5, reps=1)
-        qpy_file = io.BytesIO()
-        dump(qc, qpy_file)
-        qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
-        self.assertEqual(qc, new_circuit)
-
         # new construction
         qc = pauli_feature_map(feature_dimension=5, reps=1)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_pauli_feature_map_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/13720."""
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            qc = PauliFeatureMap(feature_dimension=5, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
         self.assertEqual(qc, new_circuit)
 
     def test_zz_feature_map_new(self):
@@ -929,7 +953,66 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_zz_feature_map_legacy(self):
         """Regression test for
         https://github.com/Qiskit/qiskit/issues/14088."""
-        qc = ZZFeatureMap(2, reps=1)
+        with self.assertWarns(DeprecationWarning):
+            qc = ZZFeatureMap(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_zz_feature_map_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        qc = zz_feature_map(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_real_amplitudes_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        with self.assertWarns(DeprecationWarning):
+            qc = RealAmplitudes(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_real_amplitudes_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        qc = real_amplitudes(2, reps=1)
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
@@ -952,7 +1035,8 @@ class TestLoadFromQPY(QiskitTestCase):
         x = ParameterVector("γ", 1)
 
         # legacy construction
-        ansatz = QAOAAnsatz(op, reps=1)
+        with self.assertWarns(DeprecationWarning):
+            ansatz = QAOAAnsatz(op, reps=1)
         ansatz = ansatz.assign_parameters({ansatz.parameters[1]: x[0]})
         qc = QuantumCircuit(4)
         qc.append(ansatz, range(4))
