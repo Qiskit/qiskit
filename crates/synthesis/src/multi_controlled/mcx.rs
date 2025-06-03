@@ -289,7 +289,7 @@ fn add_reset_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) {
 /// # References
 ///
 /// 1. Iten et al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-/// [arXiv:1501.06911] (http://arxiv.org/abs/1501.06911).
+///    [arXiv:1501.06911] (http://arxiv.org/abs/1501.06911).
 pub fn synth_mcx_n_dirty_i15(
     num_controls: usize,
     relative_phase: bool,
@@ -377,8 +377,8 @@ pub fn synth_mcx_n_dirty_i15(
 /// # References
 ///
 /// 1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
-/// Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
-/// [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
+///    Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
+///    [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
 pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
     if num_controls == 3 {
         c3x()

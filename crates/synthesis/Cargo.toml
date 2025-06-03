@@ -56,7 +56,7 @@ features = ["num-complex"]
 
 [dependencies.hashbrown]
 workspace = true
-features = ["rayon"]
+features = ["rayon", "serde"]
 
 [dependencies.indexmap]
 workspace = true
