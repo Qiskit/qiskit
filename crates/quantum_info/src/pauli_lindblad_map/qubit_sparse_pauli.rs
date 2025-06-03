@@ -665,7 +665,11 @@ impl QubitSparsePauli {
 
     /// Create the identity [QubitSparsePauli] on ``num_qubits`` qubits.
     pub fn identity(num_qubits: u32) -> Self {
-        Self {num_qubits: num_qubits, paulis: Box::new([]), indices: Box::new([])}
+        Self {
+            num_qubits,
+            paulis: Box::new([]),
+            indices: Box::new([]),
+        }
     }
 
     // Phaseless composition of two pauli operators.
