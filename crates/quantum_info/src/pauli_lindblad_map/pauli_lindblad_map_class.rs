@@ -348,7 +348,7 @@ impl PauliLindbladMap {
     /// Sample sign and Pauli operator pairs from the map.
     pub fn sample(
         &self,
-        n_samples: u64,
+        num_samples: u64,
         seed: Option<u64>,
     ) -> Result<(Vec<bool>, QubitSparsePauliList), CoherenceError> {
         let mut rng = match seed {
@@ -356,13 +356,12 @@ impl PauliLindbladMap {
             None => Pcg64Mcg::from_os_rng(),
         };
 
-        let mut random_signs = Vec::with_capacity(n_samples as usize);
+        let mut random_signs = Vec::with_capacity(num_samples as usize);
         let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
 
-        for _ in 0..n_samples {
+        for _ in 0..num_samples {
             let mut random_sign = true;
-            let mut random_pauli =
-                QubitSparsePauli::identity(self.num_qubits());
+            let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
 
             for ((probability, generator), non_negative_rate) in self
                 .probabilities
@@ -1383,20 +1382,20 @@ impl PyPauliLindbladMap {
     /// sparse paulis in the form of a :class:`~.QubitSparsePauliList`.
     ///
     /// Args:
-    ///     n_samples (int): Number of samples to draw.
+    ///     num_samples (int): Number of samples to draw.
     ///     seed (int): Random seed.
     /// Returns:
     ///     signs, qubit_sparse_pauli_list: The boolean array of signs and the list of qubit sparse
     ///     paulis.
-    #[pyo3(signature = (n_samples, seed=None))]
+    #[pyo3(signature = (num_samples, seed=None))]
     pub fn signed_sample<'py>(
         &self,
         py: Python<'py>,
-        n_samples: u64,
+        num_samples: u64,
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) = py.allow_threads(|| inner.sample(n_samples, seed))?;
+        let (signs, paulis) = py.allow_threads(|| inner.sample(num_samples, seed))?;
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1420,17 +1419,17 @@ impl PyPauliLindbladMap {
     /// :class:`~.QubitSparsePauliList`.
     ///
     /// Args:
-    ///     n_samples (int): Number of samples to draw.
+    ///     num_samples (int): Number of samples to draw.
     ///     seed (int): Random seed. Defaults to ``None``.
     /// Returns:
     ///     qubit_sparse_pauli_list: The list of qubit sparse paulis.
     /// Raises:
     ///     TypeError: If any of the rates in the map are negative.
-    #[pyo3(signature = (n_samples, seed=None))]
+    #[pyo3(signature = (num_samples, seed=None))]
     pub fn sample<'py>(
         &self,
         py: Python<'py>,
-        n_samples: u64,
+        num_samples: u64,
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyQubitSparsePauliList>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
@@ -1443,7 +1442,7 @@ impl PyPauliLindbladMap {
             }
         }
 
-        let (_, paulis) = py.allow_threads(|| inner.sample(n_samples, seed))?;
+        let (_, paulis) = py.allow_threads(|| inner.sample(num_samples, seed))?;
 
         paulis.into_pyobject(py)
     }
