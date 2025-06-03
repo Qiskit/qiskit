@@ -43,7 +43,7 @@ pub fn c3x() -> PyResult<CircuitData> {
         ))
 }
 
-/// Definition circuit for RC3X.
+/// Definition circuit for RCCX.
 fn rccx() -> PyResult<CircuitData> {
     StandardGate::RCCX
         .definition(&[])
@@ -263,7 +263,7 @@ fn add_action_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) {
     circuit.cx(q1, q2);
 }
 
-/// Adds gates of the "rest gadget" to the circuit
+/// Adds gates of the "reset gadget" to the circuit
 fn add_reset_gadget(circuit: &mut CircuitData, q0: u32, q1: u32, q2: u32) {
     circuit.cx(q1, q2);
     circuit.t(q2);
