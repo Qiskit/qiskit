@@ -17,8 +17,6 @@ import numpy as np
 from qiskit.circuit._utils import with_gate_array
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit._accelerate.circuit import StandardGate
-from .rzx import RZXGate
-from .x import XGate
 
 
 @with_gate_array(
@@ -39,11 +37,13 @@ class ECRGate(SingletonGate):
 
     .. code-block:: text
 
-             ┌─────────┐            ┌────────────┐┌────────┐┌─────────────┐
-        q_0: ┤0        ├       q_0: ┤0           ├┤ RX(pi) ├┤0            ├
-             │   ECR   │   =        │  RZX(pi/4) │└────────┘│  RZX(-pi/4) │
-        q_1: ┤1        ├       q_1: ┤1           ├──────────┤1            ├
-             └─────────┘            └────────────┘          └─────────────┘
+                               global phase: 7π/4
+             ┌─────────┐            ┌───┐      ┌───┐
+        q_0: ┤0        ├       q_0: ┤ S ├───■──┤ X ├
+             │   ECR   │   =        ├───┴┐┌─┴─┐└───┘
+        q_1: ┤1        ├       q_1: ┤ √X ├┤ X ├─────
+             └─────────┘            └────┘└───┘
+
 
     **Matrix Representation:**
 
@@ -93,23 +93,20 @@ class ECRGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate ecr a, b { rzx(pi/4) a, b; x a; rzx(-pi/4) a, b;}
-        """
+        """Default definition (in terms of simpler Clifford gates)"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RZXGate(np.pi / 4), [q[0], q[1]], []),
-            (XGate(), [q[0]], []),
-            (RZXGate(-np.pi / 4), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # global phase: 7π/4
+        #      ┌───┐      ┌───┐
+        # q_0: ┤ S ├───■──┤ X ├
+        #      ├───┴┐┌─┴─┐└───┘
+        # q_1: ┤ √X ├┤ X ├─────
+        #      └────┘└───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.ECR._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse ECR gate (itself).
