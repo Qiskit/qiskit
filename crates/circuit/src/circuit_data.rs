@@ -145,18 +145,25 @@ impl CircuitData {
         reserve: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
+        let qubit_size = qubits.as_ref().map_or(0, |bits| bits.len());
+        let clbit_size = clbits.as_ref().map_or(0, |bits| bits.len());
+        let qubits_registry = ObjectRegistry::with_capacity(qubit_size);
+        let clbits_registry = ObjectRegistry::with_capacity(clbit_size);
+        let qubit_indices = BitLocator::with_capacity(qubit_size);
+        let clbit_indices = BitLocator::with_capacity(clbit_size);
+
         let mut self_ = CircuitData {
             data: Vec::new(),
             qargs_interner: Interner::new(),
             cargs_interner: Interner::new(),
-            qubits: ObjectRegistry::new(),
-            clbits: ObjectRegistry::new(),
+            qubits: qubits_registry,
+            clbits: clbits_registry,
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
             cregs: RegisterData::new(),
-            qubit_indices: BitLocator::new(),
-            clbit_indices: BitLocator::new(),
+            qubit_indices,
+            clbit_indices,
         };
         self_.set_global_phase(global_phase)?;
         if let Some(qubits) = qubits {
@@ -633,6 +640,12 @@ impl CircuitData {
             }
         }
         Ok(())
+    }
+
+    /// Checks whether the circuit has an instance of :class:`.ControlFlowOp`
+    /// present amongst its operations.
+    pub fn has_control_flow_op(&self) -> bool {
+        self.data.iter().any(|inst| inst.op.control_flow())
     }
 
     /// Replaces the bits of this container with the given ``qubits``
@@ -1208,11 +1221,11 @@ impl CircuitData {
     ///
     /// * py: A GIL handle this is needed to instantiate Qubits in Python space
     /// * num_qubits: The number of qubits in the circuit. These will be created
-    ///     in Python as loose bits without a register.
+    ///   in Python as loose bits without a register.
     /// * num_clbits: The number of classical bits in the circuit. These will be created
-    ///     in Python as loose bits without a register.
+    ///   in Python as loose bits without a register.
     /// * instructions: An iterator of the (packed operation, params, qubits, clbits) to
-    ///     add to the circuit
+    ///   add to the circuit
     /// * global_phase: The global phase to use for the circuit
     pub fn from_packed_operations<I>(
         py: Python,
@@ -1273,23 +1286,23 @@ impl CircuitData {
     /// * qubits: The BitData to use for the new circuit's qubits
     /// * clbits: The BitData to use for the new circuit's clbits
     /// * qargs_interner: The interner for Qubit objects in the circuit. This must
-    ///     contain all the Interned<Qubit> indices stored in the
-    ///     PackedInstructions from `instructions`
+    ///   contain all the Interned<Qubit> indices stored in the
+    ///   PackedInstructions from `instructions`
     /// * cargs_interner: The interner for Clbit objects in the circuit. This must
-    ///     contain all the Interned<Clbit> indices stored in the
-    ///     PackedInstructions from `instructions`
+    ///   contain all the Interned<Clbit> indices stored in the
+    ///   PackedInstructions from `instructions`
     /// * qregs: The internal QuantumRegister data stored within the circuit.
     /// * cregs: The internal ClassicalRegister data stored within the circuit.
     /// * qubit_indices: The Mapping between qubit instances and their locations within
-    ///     registers in the circuit.
+    ///   registers in the circuit.
     /// * clbit_indices: The Mapping between clbit instances and their locations within
-    ///     registers in the circuit.
+    ///   registers in the circuit.
     /// * Instructions: An iterator with items of type: `PyResult<PackedInstruction>`
-    ///     that contais the instructions to insert in iterator order to the new
-    ///     CircuitData. This returns a `PyResult` to facilitate the case where
-    ///     you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
-    ///     of the operation while iterating for constructing the new `CircuitData`. An
-    ///     example of this use case is in `qiskit_circuit::converters::dag_to_circuit`.
+    ///   that contais the instructions to insert in iterator order to the new
+    ///   CircuitData. This returns a `PyResult` to facilitate the case where
+    ///   you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
+    ///   of the operation while iterating for constructing the new `CircuitData`. An
+    ///   example of this use case is in `qiskit_circuit::converters::dag_to_circuit`.
     /// * global_phase: The global phase value to use for the new circuit.
     #[allow(clippy::too_many_arguments)]
     pub fn from_packed_instructions<I>(
@@ -1347,9 +1360,9 @@ impl CircuitData {
     ///
     /// * py: A GIL handle this is needed to instantiate Qubits in Python space
     /// * num_qubits: The number of qubits in the circuit. These will be created
-    ///     in Python as loose bits without a register.
+    ///   in Python as loose bits without a register.
     /// * instructions: An iterator of the standard gate params and qubits to
-    ///     add to the circuit
+    ///   add to the circuit
     /// * global_phase: The global phase to use for the circuit
     pub fn from_standard_gates<I>(
         py: Python,
@@ -1364,19 +1377,12 @@ impl CircuitData {
         let mut res =
             Self::with_capacity(num_qubits, 0, instruction_iter.size_hint().0, global_phase)?;
 
-        let no_clbit_index = res.cargs_interner.get_default();
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
-            res.data.push(PackedInstruction {
-                op: operation.into(),
-                qubits,
-                clbits: no_clbit_index,
-                params,
-                label: None,
-                #[cfg(feature = "cache_pygates")]
-                py_op: OnceLock::new(),
-            });
+            res.data.push(PackedInstruction::from_standard_gate(
+                operation, params, qubits,
+            ));
             res.track_instruction_parameters(py, res.data.len() - 1)?;
         }
         Ok(res)
@@ -1428,20 +1434,12 @@ impl CircuitData {
         operation: StandardGate,
         params: &[Param],
         qargs: &[Qubit],
-    ) -> PyResult<()> {
-        let no_clbit_index = self.cargs_interner.get_default();
+    ) {
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
-        self.data.push(PackedInstruction {
-            op: operation.into(),
-            qubits,
-            clbits: no_clbit_index,
-            params,
-            label: None,
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        });
-        Ok(())
+        self.data.push(PackedInstruction::from_standard_gate(
+            operation, params, qubits,
+        ));
     }
 
     /// Append a packed operation to this CircuitData
@@ -1451,7 +1449,7 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
         cargs: &[Clbit],
-    ) -> PyResult<()> {
+    ) {
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
@@ -1464,7 +1462,6 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         });
-        Ok(())
     }
 
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
@@ -1918,8 +1915,8 @@ impl CircuitData {
     ///
     /// * other - The other `CircuitData` to clone an empty `CircuitData` from.
     /// * capacity - The capacity for instructions to use in the output `CircuitData`
-    ///     If `None` the length of `other` will be used, if `Some` the integer
-    ///     value will be used as the capacity.
+    ///   If `None` the length of `other` will be used, if `Some` the integer
+    ///   value will be used as the capacity.
     pub fn clone_empty_like(other: &Self, capacity: Option<usize>) -> PyResult<Self> {
         let mut empty = CircuitData {
             data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
@@ -1943,8 +1940,8 @@ impl CircuitData {
     /// # Arguments
     ///
     /// * packed: The new packed instruction to insert to the end of the CircuitData
-    ///     The qubits and clbits **must** already be present in the interner for this
-    ///     function to work. If they are not this will corrupt the circuit.
+    ///   The qubits and clbits **must** already be present in the interner for this
+    ///   function to work. If they are not this will corrupt the circuit.
     pub fn push(&mut self, py: Python, packed: PackedInstruction) -> PyResult<()> {
         let new_index = self.data.len();
         self.data.push(packed);

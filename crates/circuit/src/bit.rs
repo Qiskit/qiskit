@@ -63,6 +63,14 @@ impl<R: Register + PartialEq> BitLocations<R> {
         }
         None
     }
+
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+
+    pub fn registers(&self) -> &[(R, usize)] {
+        &self.registers
+    }
 }
 
 impl<'py, R> IntoPyObject<'py> for BitLocations<R>
@@ -297,20 +305,20 @@ pub trait Register {
 ///
 /// * `bit_struct` - Identifier for new bit struct, for example, `ShareableQubit`.
 /// * `subclass_ty` - Subclass type used for determining parent bit type, typically an enum to
-///     select between different bit types (for qubit this is Qubit vs AncillaQubit). See
-///     [QubitSubclass] and [ClbitSubclass] for typical types used here.
+///   select between different bit types (for qubit this is Qubit vs AncillaQubit). See
+///   [QubitSubclass] and [ClbitSubclass] for typical types used here.
 /// * `pybit_struct` - Identifier for python bit struct name, for example `PyQubit`.
 /// * `pybit_name` - Python space class name for `pybit_struct`, for example `"Qubit"`.
 /// * `bit_desc` - &'static str used as a name for describing bits, typically only used in error
-///     messages to describe the bit. For example,   "qubit",
+///   messages to describe the bit. For example,   "qubit",
 /// * `reg_struct` - Identifier for rust register struct name, for example `QuantumRegister`
 /// * `pyreg_struct` - Identifier for python register struct, for example `PyQuantumRegister`
 /// * `pyreg_name` - Python space class name for `pyreg_struct. For example, `"QuantumRegister"`.
 /// * `pyreg_prefix` - String prefix for python space registers. Normally only `"q"` or `"c"`.
 /// * `bit_counter_name` - Identifier to use for global static atomic counter of anonymous bits
-///     created. For example, `QUBIT_INSTANCES`.
+///   created. For example, `QUBIT_INSTANCES`.
 /// * `reg_counter_name` - Identifier to use for global static atomic counter of anonymous
-///     registers create. For example, `QUANTUM_REGISTER_INSTANCES`.
+///   registers create. For example, `QUANTUM_REGISTER_INSTANCES`.
 macro_rules! create_bit_object {
     (
         $bit_struct:ident,

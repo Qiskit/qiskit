@@ -22,7 +22,7 @@ use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
-use nalgebra::{MatrixView2, MatrixView4};
+use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
@@ -578,9 +578,9 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         // We need to check by name here to avoid a circular import during initial loading
         if ob.getattr(intern!(py, "name"))?.extract::<String>()? == "unitary" {
             let params = extract_params()?;
-            if let Param::Obj(data) = &params[0] {
+            if let Some(Param::Obj(data)) = params.first() {
                 let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
-                let matrix: Option<MatrixView2<Complex64>> = py_matrix.try_as_matrix();
+                let matrix: Option<MatrixView2<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
                     let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::OneQ(x.into_owned()),
@@ -591,7 +591,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                         label: extract_label()?,
                     });
                 }
-                let matrix: Option<MatrixView4<Complex64>> = py_matrix.try_as_matrix();
+                let matrix: Option<MatrixView4<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
                 if let Some(x) = matrix {
                     let unitary_gate = Box::new(UnitaryGate {
                         array: ArrayType::TwoQ(x.into_owned()),

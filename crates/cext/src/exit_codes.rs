@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_accelerate::sparse_observable::ArithmeticError;
+use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use thiserror::Error;
 
 /// Errors related to C input.
@@ -27,13 +27,22 @@ pub enum CInputError {
 /// Integer exit codes returned to C.
 #[repr(u32)]
 pub enum ExitCode {
-    Success = 0, // these need to be fixed for backward compat
+    /// Success.
+    Success = 0,
+    /// Error related to data input.
     CInputError = 100,
+    /// Unexpected null pointer.
     NullPointerError = 101,
+    /// Pointer is not aligned to expected data.
     AlignmentError = 102,
+    /// Index out of bounds.
     IndexError = 103,
+    /// Error related to arithmetic operations or similar.
     ArithmeticError = 200,
+    /// Mismatching number of qubits.
     MismatchedQubits = 201,
+    /// Matrix is not unitary.
+    ExpectedUnitary = 202,
 }
 
 impl From<ArithmeticError> for ExitCode {

@@ -99,6 +99,7 @@ API documentation
 
 .. autofunction:: load
 .. autofunction:: dump
+.. autofunction:: get_qpy_version
 
 These functions will raise a custom subclass of :exc:`.QiskitError` if they encounter problems
 during serialization or deserialization.
@@ -1969,7 +1970,7 @@ References
 """
 
 from .exceptions import QpyError, UnsupportedFeatureForVersion, QPYLoadingDeprecatedFeatureWarning
-from .interface import dump, load
+from .interface import dump, load, get_qpy_version
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.
 from .binary_io import (

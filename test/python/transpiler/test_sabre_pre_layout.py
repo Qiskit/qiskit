@@ -46,7 +46,7 @@ class TestSabrePreLayout(QiskitTestCase):
         layouts = pm.property_set["sabre_starting_layouts"]
         self.assertEqual(len(layouts), 1)
         layout = layouts[0]
-        self.assertEqual([layout[q] for q in qc.qubits], [2, 1, 0, 4])
+        self.assertEqual([layout[q] for q in qc.qubits], [0, 1, 2, 3])
 
     def test_perfect_layout_exists(self):
         """Test the case that a perfect layout exists."""
