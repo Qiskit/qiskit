@@ -22,6 +22,9 @@ use pyo3::types::PyString;
 ///     functionality of this and its first-class support within the transpiler to expand as we
 ///     get more evidence of how it is used.
 ///
+/// This base class alone has very little prescribed behavior or semantics.  The primary interaction
+/// is by user- or library subclassing.  See :ref:`circuit-annotation-subclassing` for more detail.
+///
 /// This is a framework for structuring additional metadata that can be attached to :class:`.BoxOp`
 /// instructions within a :class:`.QuantumCircuit` and :class:`.DAGCircuit` in ways that can be
 /// tracked and consumed by arbitrary transpiler passes, including custom passes that are not in
@@ -44,35 +47,6 @@ use pyo3::types::PyString;
 /// :func:`.transpile` or :func:`.generate_preset_pass_manager` to ensure that the compiler passes
 /// selected will not invalidate the annotation.  We expect to have more first-class support for
 /// annotations to declare their validity requirements in the future.
-///
-///
-/// .. _circuit-annotation-subclassing:
-///
-/// Subclassing
-/// ===========
-///
-/// This class is intended to be subclassed.  Subclasses must set the :attr:`.namespace` field.
-/// The namespace is used as part of the dispatch mechanism, as described in
-/// :ref:`circuit-annotation-namespacing`.
-///
-/// If you intend your annotation to be able to be serialized via :ref:`QPY <qiskit-qpy>` or :ref:`
-/// OpenQASM 3 <qiskit-qasm3>`, you must provide separate implementations of the serialization and
-/// deserialization methods as discussed in :ref:`circuit-annotation-serialization`.
-///
-///
-/// .. _circuit-annotation-namespacing:
-///
-/// Namespacing
-/// -----------
-///
-/// TODO.
-///
-/// .. _circuit-annotation-serialization:
-///
-/// Serialization and deserialization
-/// ---------------------------------
-///
-/// Annotations represent completely custom data, that may persist after compilation.  TODO.
 #[pyclass(module = "qiskit.circuit", name = "Annotation", subclass, frozen)]
 pub struct PyAnnotation;
 #[pymethods]
@@ -86,17 +60,19 @@ impl PyAnnotation {
 
     /// The "namespace" the annotation belongs to.
     ///
+    /// This can be standard Python identifier (e.g. ``my_namespace``), or a dot-separated list of
+    /// identifiers (e.g. ``my_namespace.subnamespace``).  The namespace is used by all consumers of
+    /// annotations to determine what handler should be invoked.
+    ///
     /// This must be overridden by subclasses.
     ///
-    /// This can be standard Python identifier (e.g. ``my_namespace``), or a dot-separated list of
-    /// identifiers (e.g. ``my_namespace.subnamespace``).  The namespace is primarily used to
-    /// dispatch to the correct custom handler in serialization/deserialization contexts, such as
-    /// QPY and OpenQASM 3.  The concept of the namespace corresponds to the `same concept in
-    /// OpenQASM 3 <https://openqasm.com/language/directives.html#annotations>`__.
+    /// The concept of the namespace corresponds to the `same concept in OpenQASM 3
+    /// <https://openqasm.com/language/directives.html#annotations>`__.
     ///
-    /// During dispatch operations, first the entire :attr:`namespace` will be looked up, and
-    /// dispatched if there is a match.  Failing that, each "parent" namespace (formed by removing
-    /// everything from the last ``.`` onwards) will be tried.
+    /// Typically during dispatch operations, first the entire :attr:`namespace` will be looked up,
+    /// and dispatched if there is a match.  Failing that, each "parent" namespace (formed by
+    /// removing everything from the last ``.`` onwards) will be tried.  See
+    /// :func:`~.annotation.iter_namespaces` for access to the dispatch ordering.
     #[classattr]
     fn namespace(py: Python) -> Py<PyString> {
         intern!(py, "").clone().unbind()

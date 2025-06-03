@@ -19,16 +19,64 @@ Circuit annotations (:mod:`qiskit.circuit.annotation`)
 
 This module contains the infrastructure for working with custom circuit annotations.
 
-The main user-facing class is the base-class :class:`qiskit.circuit.Annotation`, which is also
+The main user-facing class is the base class :class:`qiskit.circuit.Annotation`, which is also
 re-exported from this module.
+
+.. _circuit-annotation-subclassing:
+
+Custom annotation subclasses
+============================
+
+The :class:`.Annotation` class is intended to be subclassed.  Subclasses must set their
+:attr:`~.Annotation.namespace` field.  This can be specific to an instance, or static for an entire
+subclass.  The namespace is used as part of the dispatch mechanism, as described in
+:ref:`circuit-annotation-namespacing`.
+
+If you intend your annotation to be able to be serialized via :ref:`QPY <qiskit-qpy>` or :ref:`
+OpenQASM 3 <qiskit-qasm3>`, you must provide separate implementations of the serialization and
+deserialization methods as discussed in :ref:`circuit-annotation-serialization`.
+
+.. _circuit-annotation-namespacing:
+
+Namespacing
+-----------
+
+The "namespace" of an annotation is used as a look-up key when any consumer is deciding which
+handler to invoke.  This includes in QPY and OpenQASM 3 serialization contexts, but in general,
+transpiler passes will also look at annotations' namespaces to determine if they are relevant, and
+so on.
+
+This can be standard Python identifier (e.g. ``my_namespace``), or a dot-separated list of
+identifiers (e.g. ``my_namespace.subnamespace``).  The namespace is used by all consumers of
+annotations to determine what handler should be invoked.
 
 A stand-alone function allows iterating through namespaces and parent namespaces in priority order
 from most specific to least specific.
 
 .. autofunction:: iter_namespaces
 
-The rest of this module defines interfaces for handling the serialization and deserialization of
-these objects with QPY (see :mod:`qiskit.qpy`) and OpenQASM 3 (see :mod:`qiskit.qasm3`).
+
+.. _circuit-annotation-serialization:
+
+Serialization and deserialization
+---------------------------------
+
+Annotations represent completely custom data, that may persist after compilation.  This may include
+data that should be serialized for later consumption, such as additional data that is interpreted by
+a backend-compiler.  Qiskit's native binary QPY format (see :mod:`qiskit.qpy`) supports the concept
+of arbitrary annotations in its payloads from version 15 onwards.  In OpenQASM 3 (see
+:mod:`qiskit.qasm3`), annotations are a core language feature, and Qiskit's import/export support
+for OpenQASM 3 includes serialization of annotations.
+
+However, since annotations are generally custom subclasses and unknown to Qiskit, we cannot have
+built-in support for serialization.  On the deserialization front, Qiskit will not, in general, have
+an existing :class:`~.Annotation` object to call deserialization methods from.  It is also expected
+that annotations may relate to some unknown-to-Qiskit shared state within a given circuit context.
+
+For all of these reasons, serialization and deserialization of annotations is handled by custom
+objects, which must be passed at the interface points of the relevant serialization functions.  For
+example in QPY, the ``annotation_factories`` argument in :func:`.qpy.dump` and :func:`.qpy.load` are
+used to pass serializers.
 
 .. autoclass:: QPYSerializer
 .. autoclass:: QPYFromOpenQASM3Serializer
@@ -81,9 +129,9 @@ class QPYSerializer(abc.ABC):
     This interface-definition class is designed to be subclassed.  The individual methods describe
     their contracts, and how they will be called.
 
-    During QPY serialization and deserialization, the main QPY logic will create instances of user
-    subclasses of this class, using factory functions.  Each instance will be used in *either* a
-    serialization or deserialization context.
+    During QPY serialization and deserialization, the main QPY logic will call a factory function to
+    create instances of subclasses of this class.  The return value from a given factory function
+    will be used in *either* a serialization or deserialization context, but not both.
 
     The structure of calls during serialization of a single circuit is:
 
