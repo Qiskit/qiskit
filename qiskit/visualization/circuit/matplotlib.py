@@ -615,6 +615,8 @@ class MatplotlibDrawer:
                         for width, layer_num, flow_parent in flow_widths.values():
                             if layer_num != -1 and flow_parent == flow_drawer._flow_parent:
                                 raw_gate_width += width
+                                # This is necessary to prevent 1 being added to the width of a
+                                # BoxOp in layer_widths at the end of this method
                                 if isinstance(node.op, BoxOp):
                                     raw_gate_width -= 0.001
 
@@ -749,6 +751,8 @@ class MatplotlibDrawer:
                 # increment by if/switch width. If more cases increment by width of previous cases.
                 if flow_parent is not None:
                     node_data[node].inside_flow = True
+                    # front_space provides a space for 'If', 'While', etc. which is not
+                    # necessary for a BoxOp
                     front_space = 0 if isinstance(flow_parent.op, BoxOp) else 1
                     node_data[node].x_index = (
                         node_data[flow_parent].x_index + curr_x_index + front_space
@@ -1561,6 +1565,8 @@ class MatplotlibDrawer:
         ypos = min(y[1] for y in xy)
         ypos_max = max(y[1] for y in xy)
 
+        # If a BoxOp, bring the right side back tight against the gates to allow for
+        # better spacing
         if_width = node_data[node].width[0] + (WID if not isinstance(node.op, BoxOp) else -0.19)
         box_width = if_width
         # Add the else and case widths to the if_width
@@ -1598,7 +1604,6 @@ class MatplotlibDrawer:
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
             elif isinstance(node.op, BoxOp):
-                xpos -= 0.15
                 flow_text = ""
             else:
                 raise RuntimeError(f"unhandled control-flow op: {node.name}")
@@ -1612,6 +1617,9 @@ class MatplotlibDrawer:
                 expr_spacer = 0.0
                 empty_default_spacer = 0.3 if len(node.op.blocks[-1]) == 0 else 0.0
             elif isinstance(node.op, BoxOp):
+                # Move the X start position back for a BoxOp, since there is no
+                # leading text. This tightens the BoxOp with other ops.
+                xpos -= 0.15
                 op_spacer = 0.0
                 expr_spacer = 0.0
                 empty_default_spacer = 0.0
