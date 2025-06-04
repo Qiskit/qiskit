@@ -138,7 +138,7 @@ class Exporter:
         allow_aliasing: bool = None,
         indent: str = "  ",
         experimental: ExperimentalFeatures = ExperimentalFeatures(0),
-        annotation_serializers: dict[str, OpenQASM3Serializer] | None = None,
+        annotation_handlers: dict[str, OpenQASM3Serializer] | None = None,
     ):
         """
         Args:
@@ -188,9 +188,7 @@ class Exporter:
         self.includes = list(includes)
         self.indent = indent
         self.experimental = experimental
-        self.annotation_serializers = (
-            {} if annotation_serializers is None else annotation_serializers
-        )
+        self.annotation_handlers = {} if annotation_handlers is None else annotation_handlers
 
     def dumps(self, circuit):
         """Convert the circuit to OpenQASM 3, returning the result as a string."""
@@ -207,7 +205,7 @@ class Exporter:
             disable_constants=self.disable_constants,
             allow_aliasing=self.allow_aliasing,
             experimental=self.experimental,
-            annotation_serializers=self.annotation_serializers,
+            annotation_handlers=self.annotation_handlers,
         )
         BasicPrinter(stream, indent=self.indent, experimental=self.experimental).visit(
             builder.build_program()
@@ -574,7 +572,7 @@ class QASM3Builder:
         disable_constants,
         allow_aliasing,
         experimental=ExperimentalFeatures(0),
-        annotation_serializers=None,
+        annotation_handlers=None,
     ):
         self.scope = BuildScope(
             quantumcircuit,
@@ -594,9 +592,7 @@ class QASM3Builder:
         self.includes = includeslist
         self.basis_gates = basis_gates
         self.experimental = experimental
-        self.annotation_serializers = (
-            {} if annotation_serializers is None else annotation_serializers
-        )
+        self.annotation_handlers = {} if annotation_handlers is None else annotation_handlers
 
     @contextlib.contextmanager
     def new_scope(self, circuit: QuantumCircuit, qubits: Iterable[Qubit], clbits: Iterable[Clbit]):
@@ -1150,7 +1146,7 @@ class QASM3Builder:
     def build_annotation(self, annotation: Annotation) -> ast.Annotation:
         """Use the custom serializers to construct an annotation object."""
         for namespace in iter_namespaces(annotation.namespace):
-            if (serializer := self.annotation_serializers.get(namespace, None)) is not None and (
+            if (serializer := self.annotation_handlers.get(namespace, None)) is not None and (
                 payload := serializer.dump(annotation)
             ) is not NotImplemented:
                 return ast.Annotation(annotation.namespace, payload)
