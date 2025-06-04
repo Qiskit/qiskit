@@ -334,23 +334,19 @@ impl PauliLindbladMap {
         &self,
         qubit_sparse_pauli: &QubitSparsePauli,
     ) -> Result<f64, ArithmeticError> {
-        let mut fid = 1.0;
+        let mut log_fid = 0.0;
 
         for generator_term in self.iter() {
             if !qubit_sparse_pauli.commutes(&generator_term.qubit_sparse_pauli.to_term())? {
-                fid *= (-2.0 * generator_term.rate).exp();
+                log_fid += -2.0 * generator_term.rate;
             }
         }
 
-        Ok(fid)
+        Ok(log_fid.exp())
     }
 
     /// Sample sign and Pauli operator pairs from the map.
-    pub fn sample(
-        &self,
-        num_samples: u64,
-        seed: Option<u64>,
-    ) -> Result<(Vec<bool>, QubitSparsePauliList), CoherenceError> {
+    pub fn sample(&self, num_samples: u64, seed: Option<u64>) -> (Vec<bool>, QubitSparsePauliList) {
         let mut rng = match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
             None => Pcg64Mcg::from_os_rng(),
@@ -383,7 +379,7 @@ impl PauliLindbladMap {
                 .unwrap();
         }
 
-        Ok((random_signs, random_paulis))
+        (random_signs, random_paulis)
     }
 
     /// Reduce the map to its canonical form.
@@ -1401,7 +1397,7 @@ impl PyPauliLindbladMap {
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) = py.allow_threads(|| inner.sample(num_samples, seed))?;
+        let (signs, paulis) = py.allow_threads(|| inner.sample(num_samples, seed));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1453,7 +1449,7 @@ impl PyPauliLindbladMap {
             }
         }
 
-        let (_, paulis) = py.allow_threads(|| inner.sample(num_samples, seed))?;
+        let (_, paulis) = py.allow_threads(|| inner.sample(num_samples, seed));
 
         paulis.into_pyobject(py)
     }
