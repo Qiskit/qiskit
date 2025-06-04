@@ -10,10 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::circuit::QkDelayUnit;
 use crate::exit_codes::CInputError;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
+use qiskit_circuit::operations::DelayUnit;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -399,14 +401,14 @@ pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
 #[derive(Debug)]
 enum StandardOperation {
     Gate(StandardGate),
-    Directive(StandardInstruction),
+    Instruction(StandardInstruction),
 }
 
 impl StandardOperation {
     pub fn num_qubits(&self) -> u32 {
         match &self {
             Self::Gate(gate) => gate.num_qubits(),
-            Self::Directive(inst) => inst.num_qubits(),
+            Self::Instruction(inst) => inst.num_qubits(),
         }
     }
 }
@@ -415,7 +417,7 @@ impl From<StandardOperation> for PackedOperation {
     fn from(value: StandardOperation) -> Self {
         match value {
             StandardOperation::Gate(gate) => gate.into(),
-            StandardOperation::Directive(inst) => inst.into(),
+            StandardOperation::Instruction(inst) => inst.into(),
         }
     }
 }
@@ -447,7 +449,23 @@ impl TargetEntry {
 
     pub fn measure() -> Self {
         Self {
-            operation: StandardOperation::Directive(StandardInstruction::Measure),
+            operation: StandardOperation::Instruction(StandardInstruction::Measure),
+            params: None,
+            map: Default::default(),
+        }
+    }
+
+    pub fn reset() -> Self {
+        Self {
+            operation: StandardOperation::Instruction(StandardInstruction::Reset),
+            params: None,
+            map: Default::default(),
+        }
+    }
+
+    pub fn delay(unit: DelayUnit) -> Self {
+        Self {
+            operation: StandardOperation::Instruction(StandardInstruction::Delay(unit)),
             params: None,
             map: Default::default(),
         }
@@ -478,10 +496,47 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
     Box::into_raw(Box::new(TargetEntry::new(operation)))
 }
 
+/// @ingroup QkTargetEntry
+/// Creates a measurement entry for a ``QkTarget``.
+///
+/// @return A pointer to the new ``QkTargetEntry`` for a measurement instruction.
+///
+/// # Example
+///
+///     QkTargetEntry *entry = qk_target_entry_measure();
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_measure() -> *mut TargetEntry {
     Box::into_raw(Box::new(TargetEntry::measure()))
+}
+
+/// @ingroup QkTargetEntry
+/// Creates a reset entry for a ``QkTarget``.
+///
+/// @return A pointer to the new ``QkTargetEntry`` for a reset instruction.
+///
+/// # Example
+///
+///     QkTargetEntry *entry = qk_target_entry_reset();
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_target_entry_reset() -> *mut TargetEntry {
+    Box::into_raw(Box::new(TargetEntry::reset()))
+}
+
+/// @ingroup QkTargetEntry
+/// Creates a delay entry for a ``QkTarget``.
+///
+/// @param unit The delay unit.
+/// @return A pointer to the new ``QkTargetEntry`` for a delay instruction.
+///
+/// # Example
+///
+///     QkTargetEntry *entry = qk_target_entry_delay(QkDelayUnit::NS);
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_target_entry_delay(unit: QkDelayUnit) -> *mut TargetEntry {
+    Box::into_raw(Box::new(TargetEntry::delay(unit.into())))
 }
 
 /// @ingroup QkTargetEntry
