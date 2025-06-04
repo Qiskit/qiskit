@@ -48,7 +48,6 @@ from qiskit.circuit.library import (
     UCRZGate,
     UnitaryGate,
     DiagonalGate,
-    evolved_operator_ansatz,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,

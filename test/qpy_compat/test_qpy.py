@@ -37,7 +37,6 @@ from qiskit.circuit.library import (
     QFT,
     DCXGate,
     PauliGate,
-    evolved_operator_ansatz,
 )
 from qiskit.circuit.gate import Gate
 from qiskit.version import VERSION as current_version_str
@@ -856,6 +855,8 @@ def generate_replay_with_expression_substitutions():
 
 def generate_param_expression_with_complex_coeff():
     """Test that parameter expressions stay real after QPY round trip."""
+    from qiskit.circuit.library import evolved_operator_ansatz
+
     qc = evolved_operator_ansatz(SparsePauliOp(["Z"], coeffs=[1 + 0j]))
     return [qc]
 
