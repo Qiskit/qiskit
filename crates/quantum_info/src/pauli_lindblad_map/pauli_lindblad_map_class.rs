@@ -613,12 +613,12 @@ impl PyGeneratorTerm {
 ///
 /// An existing :class:`PauliLindbladMap` can be converted into other formats.
 ///
-/// .. table:: Conversion methods to other observable forms.
+/// .. table:: Conversion methods to other forms.
 ///
 ///   ===========================  =================================================================
 ///   Method                       Summary
 ///   ===========================  =================================================================
-///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
+///   :meth:`to_sparse_list`       Express the map in a sparse list format with elements
 ///                                ``(paulis, indices, rate)``.
 ///   ===========================  =================================================================
 #[pyclass(name = "PauliLindbladMap", module = "qiskit.quantum_info", sequence)]
