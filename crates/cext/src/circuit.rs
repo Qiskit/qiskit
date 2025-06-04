@@ -806,18 +806,18 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
 pub struct CInstruction {
     /// The instruction name
     name: *const c_char,
-    /// The number of qubits for this instruction.
-    num_qubits: u32,
     /// A pointer to an array of qubit indices this instruction operates on.
     qubits: *mut u32,
-    /// The number of clbits for this instruction.
-    num_clbits: u32,
     /// A pointer to an array of clbit indices this instruction operates on.
     clbits: *mut u32,
-    /// The number of parameters for this instruction.
-    num_params: u32,
     /// A pointer to an array of parameter values for this instruction.
     params: *mut f64,
+    /// The number of qubits for this instruction.
+    num_qubits: u32,
+    /// The number of clbits for this instruction.
+    num_clbits: u32,
+    /// The number of parameters for this instruction.
+    num_params: u32,
 }
 
 /// @ingroup QkCircuit
@@ -828,11 +828,12 @@ pub struct CInstruction {
 ///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
+/// @param instruction A pointer to where to write out the ``QkCircuitInstruction``
 ///
-/// @return The instruction details for the specified instructions.
 ///
 /// # Example
 ///
+///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
 ///     QkCircuit *qc = qk_circuit_new(100);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
@@ -842,13 +843,15 @@ pub struct CInstruction {
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
 /// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
-/// otherwise this function will panic.
+/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
+/// non-null pointer to a memory allocation with sufficient space for a ``QkCircuitInstruction``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_get_instruction(
     circuit: *const CircuitData,
     index: usize,
-) -> CInstruction {
+    instruction: *mut CInstruction,
+) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     if index >= circuit.__len__() {
@@ -874,31 +877,55 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     let out_params = params_vec.as_mut_ptr();
     std::mem::forget(params_vec);
 
-    CInstruction {
-        name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
-        num_qubits: qargs.len() as u32,
-        qubits: out_qargs,
-        num_clbits: cargs.len() as u32,
-        clbits: out_cargs,
-        num_params: params.len() as u32,
-        params: out_params,
+    // SAFETY: The pointer must point to a CInstruction size allocation
+    // per the docstring.
+    unsafe {
+        std::ptr::write(
+            instruction,
+            CInstruction {
+                name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
+                num_qubits: qargs.len() as u32,
+                qubits: out_qargs,
+                num_clbits: cargs.len() as u32,
+                clbits: out_cargs,
+                num_params: params.len() as u32,
+                params: out_params,
+            },
+        );
     }
 }
 
 /// @ingroup QkCircuit
-/// Free a circuit instruction object.
+/// Clear the data in circuit instruction object.
 ///
-/// @param inst The instruction to free.
+/// This function doesn't free the allocation for the provided ``QkCircuitInstruction`` pointer, it
+/// only frees the internal allocations for the data contained in the instruction. You are
+/// responsible for allocating and freeing the actual allocation used to store a
+/// ``QkCircuitInstruction``.
+///
+/// @param inst A pointer to the instruction to free.
+///
+/// # Example
+///
+///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
+///     QkCircuit *qc = qk_circuit_new(100);
+///     uint32_t q0 = {0};
+///     qk_circuit_gate(qc, QkGate_H, q0, NULL);
+///     qk_circuit_get_instruction(qc, 0, inst);
+///     qk_circuit_instruction_clear(inst); // free the data
+///     free(inst); // free the pointer
+///     qk_circuit_free(qc); // free the circuit
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``inst`` is not an object returned by ``qk_circuit_get_instruction``.
+/// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a ``QkCircuitInstruction``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_instruction_free(inst: CInstruction) {
+pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *const CInstruction) {
     // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
     // created by rust code and are constructed from Vecs internally or CStrings.
     unsafe {
+        let inst = const_ptr_as_ref(inst);
         if inst.num_qubits > 0 {
             let qubits = std::slice::from_raw_parts_mut(inst.qubits, inst.num_qubits as usize);
             let _ = Box::from_raw(qubits.as_mut_ptr());

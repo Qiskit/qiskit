@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    ``sympy`` is no longer a requirement for installing Qiskit. After the migration to
+    a Rust based symbolic engine for the :class:`.ParameterExpression` class the uses
+    of SymPy are isolated to some visualization utilities, the :class:`.TemplateOptimization`
+    transpiler pass, :meth:`.ParameterExpression.sympify` (which is explicitly for SymPy interoperability)
+    and :meth:`.SparsePauliOp.simplify` if using parameterized coefficients. This functionality is
+    not the most commonly used so SymPy is now treated as an optional dependency and those functions
+    will raise a :class:`.MissingOptionalLibrary` exception if they're used and SymPy is not
+    installed.
