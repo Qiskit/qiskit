@@ -54,10 +54,6 @@ pub enum ExitCode {
     TargetInvalidQargsKey = 303,
     /// Querying an operation that doesn't exist in the Target.
     TargetInvalidInstKey = 304,
-    /// An attempt to add a parametric gate without fixed parameters.
-    TargetNonFixedParametricGate = 305,
-    /// An attempt to add a non-parametric gate with parametric methods
-    TargetNonParametricError = 306,
 }
 
 impl From<ArithmeticError> for ExitCode {
