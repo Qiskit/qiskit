@@ -36,7 +36,7 @@ rand = "0.9"
 rand_pcg = "0.9"
 rand_distr = "0.5"
 num-traits = "0.2"
-uuid = { version = "1.16", features = ["v4", "fast-rng"] }
+uuid = { version = "1.17", features = ["v4", "fast-rng"], default-features = false }
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python

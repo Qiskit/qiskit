@@ -20,11 +20,10 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
+from qiskit.qpy import dump, load, formats, get_qpy_version, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
-from qiskit.transpiler import TranspileLayout
+from qiskit.transpiler import TranspileLayout, CouplingMap
 from qiskit.compiler import transpile
-from qiskit.utils import optionals
 from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -67,6 +66,33 @@ class TestVersions(QpyCircuitTestCase):
             with self.assertRaisesRegex(QiskitError, str(QPY_VERSION + 4)):
                 load(buf)
 
+    def test_get_qpy_version(self):
+        """Test the get_qpy_version function."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        for version in range(QPY_COMPATIBILITY_VERSION, QPY_VERSION + 1):
+            with io.BytesIO() as qpy_file:
+                dump(qc, qpy_file, version=version)
+                qpy_file.seek(0)
+                file_version = get_qpy_version(qpy_file)
+            self.assertEqual(version, file_version)
+
+    def test_get_qpy_version_read(self):
+        """Ensure we don't advance the cursor exiting the get_qpy_version() function."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            file_version = get_qpy_version(qpy_file)
+            self.assertEqual(file_version, QPY_VERSION)
+            res = load(qpy_file)[0]
+        self.assertEqual(res, qc)
+
 
 @ddt
 class TestLayout(QpyCircuitTestCase):
@@ -79,7 +105,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
+        backend = GenericBackendV2(num_qubits=127, coupling_map=CouplingMap.from_line(127), seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -93,7 +119,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
+        backend = GenericBackendV2(num_qubits=127, coupling_map=CouplingMap.from_line(127), seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -104,7 +130,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
+        backend = GenericBackendV2(num_qubits=127, coupling_map=CouplingMap.from_line(127), seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         tqc.layout.final_layout = None
         self.assert_roundtrip_equal(tqc)
@@ -168,7 +194,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
+        backend = GenericBackendV2(num_qubits=127, coupling_map=CouplingMap.from_line(127), seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -180,7 +206,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(num_qubits=127, seed=42)
+        backend = GenericBackendV2(num_qubits=127, coupling_map=CouplingMap.from_line(127), seed=42)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         # Manually validate to deal with qubit equality needing exact objects
         qpy_file = io.BytesIO()
@@ -289,22 +315,35 @@ class TestVersionArg(QpyCircuitTestCase):
         self.assert_roundtrip_equal(qc)
 
 
+@ddt
 class TestUseSymengineFlag(QpyCircuitTestCase):
     """Test that the symengine flag works correctly."""
 
-    def test_use_symengine_with_bool_like(self):
+    @data(True, False)
+    def test_use_symengine_with_bool_like(self, use_symengine):
         """Test that the use_symengine flag is set correctly with a bool-like input."""
+
+        class Booly:  # pylint: disable=missing-class-docstring,missing-function-docstring
+            def __init__(self, value):
+                self.value = value
+
+            def __bool__(self):
+                return self.value
+
         theta = Parameter("theta")
         two_theta = 2 * theta
         qc = QuantumCircuit(1)
         qc.rx(two_theta, 0)
         qc.measure_all()
         # Assert Roundtrip works
-        self.assert_roundtrip_equal(qc, use_symengine=optionals.HAS_SYMENGINE, version=13)
+        # `use_symengine` is near-completely ignored with QPY versions 13+; it doesn't actually
+        # matter if we _have_ symengine installed or not, because those QPYs don't ever use it
+        # (except for setting a single byte in the header, which is promptly ignored).
+        self.assert_roundtrip_equal(qc, use_symengine=Booly(use_symengine), version=13)
         # Also check the qpy symbolic expression encoding is correct in the
         # payload
         with io.BytesIO() as file_obj:
-            dump(qc, file_obj, use_symengine=optionals.HAS_SYMENGINE)
+            dump(qc, file_obj, use_symengine=Booly(use_symengine))
             file_obj.seek(0)
             header_data = FILE_HEADER_V10._make(
                 struct.unpack(
@@ -312,4 +351,4 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
                     file_obj.read(FILE_HEADER_V10_SIZE),
                 )
             )
-            self.assertEqual(header_data.symbolic_encoding, b"p")
+            self.assertEqual(header_data.symbolic_encoding, b"e" if use_symengine else b"p")

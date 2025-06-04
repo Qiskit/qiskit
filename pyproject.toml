@@ -49,6 +49,7 @@ visualization = [
     "Pillow >= 4.2.1",
     "pylatexenc >= 1.4",
     "seaborn >= 0.9.0",
+    "sympy>=1.3",
 ]
 crosstalk-pass = [
     "z3-solver >= 4.7",
@@ -77,6 +78,7 @@ Changelog = "https://docs.quantum.ibm.com/api/qiskit/release-notes"
 default = "qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin:DefaultUnitarySynthesis"
 aqc = "qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin"
 sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis"
+clifford = "qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin:CliffordUnitarySynthesis"
 
 [project.entry-points."qiskit.synthesis"]
 "clifford.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:DefaultSynthesisClifford"
