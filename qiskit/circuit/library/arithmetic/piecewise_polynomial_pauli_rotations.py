@@ -88,6 +88,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
              Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
              `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
+
     @deprecate_func(
         since="2.2",
         additional_msg="Use the class PiecewisePolynomialPauliRotationsGate instead.",

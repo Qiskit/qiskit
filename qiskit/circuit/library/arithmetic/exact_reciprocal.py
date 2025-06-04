@@ -25,6 +25,7 @@ class ExactReciprocal(QuantumCircuit):
 
         |x\rangle |0\rangle \mapsto \cos(1/x)|x\rangle|0\rangle + \sin(1/x)|x\rangle |1\rangle
     """
+
     @deprecate_func(
         since="2.2",
         additional_msg="Use the class qiskit.circuit.library.ExactReciprocalGate instead.",
