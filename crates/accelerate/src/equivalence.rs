@@ -300,7 +300,7 @@ impl<'py> FromPyObject<'py> for GateOper {
 /// called from Python, or once the API is able to seamlessly accept instances
 /// of [CircuitData].
 ///
-/// [`QuantumCircuit`]: https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.QuantumCircuit
+/// [`QuantumCircuit`]: https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.QuantumCircuit
 #[derive(Debug, Clone)]
 pub struct CircuitFromPython(pub CircuitData);
 

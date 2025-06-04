@@ -1,7 +1,7 @@
 # Deprecation Policy
 
 Starting from the 1.0 release, Qiskit follows semantic versioning, with a yearly release cycle for major releases.
-[Full details of the scheduling are hosted with the external public documentation](https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy).
+[Full details of the scheduling are hosted with the external public documentation](https://quantum.cloud.ibm.com/docs/open-source/qiskit-sdk-version-strategy).
 
 This document is primarily intended for developers of Qiskit themselves.
 
@@ -42,19 +42,19 @@ Similarly, while it is permissible where necessary for behavior to change with n
 ## What is the public interface?
 
 > [!NOTE]
-> This section should be in sync with [the release schedule documentation of Qiskit](https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy).
+> This section should be in sync with [the release schedule documentation of Qiskit](https://quantum.cloud.ibm.com/docs/open-source/qiskit-sdk-version-strategy).
 > Please [open an issue against Qiskit](https://github.com/Qiskit/qiskit/issues/new/choose) if there are discrepancies so we can clarify them.
 
 For the purposes of semantic versioning, the Qiskit public API comprises all *publicly documented* packages, modules, classes, functions, methods, and attributes.
 
-An object is *publicly documented* if and only if it appears in [the hosted API documentation](https://docs.quantum.ibm.com/api/qiskit) for Qiskit.
+An object is *publicly documented* if and only if it appears in [the hosted API documentation](https://quantum.cloud.ibm.com/docs/api/qiskit) for Qiskit.
 The presence of a docstring in the Python source (or a `__doc__` attribute) is not sufficient to make an object publicly documented; this documentation must also be rendered in the public API documentation.
 
-As well as the objects themselves needing to be publicly documented, the only public-API *import locations* for a given object is the location it is documented at in [the public API documentation](https://docs.quantum.ibm.com/api/qiskit), and parent modules or packages that re-export the object (if any).
+As well as the objects themselves needing to be publicly documented, the only public-API *import locations* for a given object is the location it is documented at in [the public API documentation](https://quantum.cloud.ibm.com/docs/api/qiskit), and parent modules or packages that re-export the object (if any).
 For example, while it is possible to import `Measure` from `qiskit.circuit.measure`, this is not a supported part of the public API for two reasons:
 
 1. The module `qiskit.circuit.measure` is not publicly documented, so is not part of the public interface.
-2. The [`Measure` object is documented as being in `qiskit.circuit.library`](https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.library.Measure), and is re-exported by `qiskit.circuit`, so the public import paths are `from qiskit.circuit.library import Measure` and `from qiskit.circuit import Measure`.
+2. The [`Measure` object is documented as being in `qiskit.circuit.library`](https://quantum.cloud.ibm.com/docs/api/qiskit/circuit_library#standard-operations), and [is re-exported by `qiskit.circuit`](https://quantum.cloud.ibm.com/docs/api/qiskit/circuit#qiskit.circuit.Measure), so the public import paths are `from qiskit.circuit.library import Measure` and `from qiskit.circuit import Measure`.
 
 As a rule of thumb, if you are using Qiskit, you should import objects from the highest-level package that exports that object.
 
