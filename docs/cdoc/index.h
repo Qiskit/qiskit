@@ -25,3 +25,11 @@
 /**
  * @defgroup QkClassicalRegister QkClassicalRegister
  */
+
+/**
+ * @defgroup QkTarget QkTarget
+ */
+
+/**
+ * @defgroup QkTargetEntry QkTargetEntry
+ */
