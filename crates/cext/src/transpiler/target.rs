@@ -10,9 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::circuit::QkDelayUnit;
-use crate::exit_codes::CInputError;
-use crate::exit_codes::ExitCode;
+use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::operations::StandardInstruction;
@@ -486,7 +484,7 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 ///
 /// # Example
 ///
-///     QkTargetEntry *entry = qk_target_entry_measure();
+///     QkTargetEntry *entry = qk_target_entry_new_measure()();
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
@@ -502,29 +500,12 @@ pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
 ///
 /// # Example
 ///
-///     QkTargetEntry *entry = qk_target_entry_reset();
+///     QkTargetEntry *entry = qk_target_entry_new_reset();
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_target_entry_reset() -> *mut TargetEntry {
+pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
     Box::into_raw(Box::new(TargetEntry::new_instruction(
         StandardInstruction::Reset,
-    )))
-}
-
-/// @ingroup QkTargetEntry
-/// Creates a delay entry for a ``QkTarget``.
-///
-/// @param unit The delay unit.
-/// @return A pointer to the new ``QkTargetEntry`` for a delay instruction.
-///
-/// # Example
-///
-///     QkTargetEntry *entry = qk_target_entry_delay(QkDelayUnit::NS);
-#[no_mangle]
-#[cfg(feature = "cbinding")]
-pub extern "C" fn qk_target_entry_delay(unit: QkDelayUnit) -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new_instruction(
-        StandardInstruction::Delay(unit.into()),
     )))
 }
 

@@ -304,7 +304,7 @@ int test_target_add_instruction(void) {
     }
 
     // Add a measurement
-    QkTargetEntry *meas = qk_target_entry_measure();
+    QkTargetEntry *meas = qk_target_entry_new_measure();
     for (uint32_t i = 0; i < 3; i++) {
         uint32_t q[1] = {i};
         qk_target_entry_add_property(meas, q, 1, 1e-6, 1e-4);
@@ -335,7 +335,7 @@ int test_target_add_instruction(void) {
     }
 
     // Add a reset
-    QkTargetEntry *reset = qk_target_entry_reset();
+    QkTargetEntry *reset = qk_target_entry_new_reset();
     for (uint32_t i = 0; i < 3; i++) {
         uint32_t q[1] = {i};
         qk_target_entry_add_property(meas, q, 1, 2e-6, 2e-4);
@@ -352,28 +352,6 @@ int test_target_add_instruction(void) {
     current_size = qk_target_num_instructions(target);
     if (current_size != 5) {
         printf("The size of this target is not correct: Expected 5, got %zu", current_size);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    // Add a delay
-    QkTargetEntry *delay = qk_target_entry_delay(QkDelayUnit_NS);
-    for (uint32_t i = 0; i < 3; i++) {
-        uint32_t q[1] = {i};
-        qk_target_entry_add_property(meas, q, 1, NAN, 0.0);
-    }
-    uint32_t num_delays = qk_target_entry_num_properties(delay);
-    if (num_delays != 3) {
-        printf("Expected 3 reset entries but got: %u", num_delays);
-        result = EqualityError;
-        qk_target_entry_free(delay);
-        goto cleanup;
-    }
-
-    qk_target_add_instruction(target, delay);
-    current_size = qk_target_num_instructions(target);
-    if (current_size != 6) {
-        printf("The size of this target is not correct: Expected 6, got %zu", current_size);
         result = EqualityError;
         goto cleanup;
     }
