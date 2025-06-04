@@ -22,6 +22,7 @@ from .piecewise_linear_pauli_rotations import (
     PiecewiseLinearPauliRotationsGate,
 )
 
+
 class LinearAmplitudeFunction(QuantumCircuit):
     r"""A circuit implementing a (piecewise) linear function on qubit amplitudes.
 
@@ -76,6 +77,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
              Quantum-Enhanced Simulation-Based Optimization.
              `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
     """
+
     @deprecate_func(
         since="2.2",
         additional_msg="Use the class qiskit.circuit.library.LinearAmplitudeFunctionGate instead.",
