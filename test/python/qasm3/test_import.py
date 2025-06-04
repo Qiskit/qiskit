@@ -129,7 +129,7 @@ class TestOldQASM3Import(QiskitTestCase):
                 return MyStr(payload)
 
             def dump(self, annotation):  # pylint: disable=redefined-outer-name
-                return NotImplemented  # Unused in test.
+                raise NotImplementedError("unused in test")
 
         skip_triggered = False
 
@@ -145,7 +145,7 @@ class TestOldQASM3Import(QiskitTestCase):
                 return Static()
 
             def dump(self, annotation):  # pylint: disable=redefined-outer-name
-                return NotImplemented  # Unused in test.
+                raise NotImplementedError("unused in test")
 
         class GlobalHandler(annotation.OpenQASM3Serializer):
             def load(self, namespace, payload):
@@ -156,7 +156,7 @@ class TestOldQASM3Import(QiskitTestCase):
                 return StaticGlobal()
 
             def dump(self, annotation):  # pylint: disable=redefined-outer-name
-                return NotImplemented  # Unused in test.
+                raise NotImplementedError("unused in test")
 
         program = """
             OPENQASM 3.0;

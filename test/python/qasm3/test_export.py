@@ -3178,7 +3178,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
 
         class MyHandler(annotation.OpenQASM3Serializer):
             def load(self, namespace, payload):
-                return NotImplemented  # Unused in test
+                raise NotImplementedError("unused in test")
 
             def dump(self, annotation):  # pylint: disable=redefined-outer-name
                 base, sub = annotation.namespace.split(".", 1)
@@ -3192,7 +3192,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
 
         class ExactStaticHandler(annotation.OpenQASM3Serializer):
             def load(self, namespace, payload):
-                return NotImplemented  # Unused in test
+                raise NotImplementedError("unused in test")
 
             def dump(self, annotation):  # pylint: disable=redefined-outer-name
                 if annotation.namespace == "static.global":
@@ -3204,7 +3204,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
 
         class GlobalHandler(annotation.OpenQASM3Serializer):
             def load(self, namespace, payload):
-                return NotImplemented  # Unused in test
+                raise NotImplementedError("unused in test")
 
             def dump(self, annotation):  # pylint: disable=redefined-outer-name
                 # This is registered as the global handler, but should only be called when handling
