@@ -478,13 +478,13 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 }
 
 /// @ingroup QkTargetEntry
-/// Creates a measurement entry for a ``QkTarget``.
+/// Creates a new entry for adding a measurement instruction to a ``QkTarget``.
 ///
 /// @return A pointer to the new ``QkTargetEntry`` for a measurement instruction.
 ///
 /// # Example
 ///
-///     QkTargetEntry *entry = qk_target_entry_new_measure()();
+///     QkTargetEntry *entry = qk_target_entry_new_measure();
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
@@ -494,7 +494,7 @@ pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
 }
 
 /// @ingroup QkTargetEntry
-/// Creates a reset entry for a ``QkTarget``.
+/// Creates a new entry for adding a reset instruction to a ``QkTarget``.
 ///
 /// @return A pointer to the new ``QkTargetEntry`` for a reset instruction.
 ///
