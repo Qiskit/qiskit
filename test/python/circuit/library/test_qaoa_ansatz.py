@@ -12,6 +12,7 @@
 
 """Test QAOA ansatz from the library."""
 
+import unittest
 import numpy as np
 from ddt import ddt, data
 

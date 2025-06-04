@@ -12,6 +12,7 @@
 
 """Test the evolved operator ansatz."""
 
+import unittest
 from ddt import ddt, data
 import numpy as np
 
