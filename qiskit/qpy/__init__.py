@@ -953,7 +953,7 @@ In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping`
 
 With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
 serialized together with :attr:`~.QuantumCircuit.calibrations`, or
-`Pulse Gates <https://docs.quantum.ibm.com/guides/pulse>`_.
+`Pulse Gates <https://quantum.cloud.ibm.com/docs/guides/pulse>`_.
 In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
 packed after the :ref:`qpy_instructions` block.
 

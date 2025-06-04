@@ -17,7 +17,7 @@ It also contains a transpiler that supports optimizing quantum circuits, and a q
 
 For more details on how to use Qiskit, refer to the documentation located here:
 
-<https://docs.quantum.ibm.com/>
+<https://quantum.cloud.ibm.com/docs/>
 
 
 ## Installation
@@ -30,7 +30,7 @@ pip install qiskit
 
 Pip will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [documentation](https://docs.quantum.ibm.com/guides/install-qiskit-source).
+To install from source, follow the instructions in the [documentation](https://quantum.cloud.ibm.com/docs/guides/install-qiskit-source).
 
 ## Create your first quantum program in Qiskit
 
@@ -91,7 +91,7 @@ and see if you can achieve this outcome. (Spoiler alert: this is not possible!)
 Using the Qiskit-provided `qiskit.primitives.StatevectorSampler` and `qiskit.primitives.StatevectorEstimator` will not take you very far.
 The power of quantum computing cannot be simulated on classical computers and you need to use real quantum hardware to scale to larger quantum circuits.
 However, running a quantum circuit on hardware requires rewriting to the basis gates and connectivity of the quantum hardware.
-The tool that does this is the [transpiler](https://docs.quantum.ibm.com/api/qiskit/transpiler), and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling.
+The tool that does this is the [transpiler](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler), and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling.
 However, it also includes a default compiler, which works very well in most examples.
 The following code will map the example circuit to the `basis_gates = ["cz", "sx", "rz"]` and a linear chain of qubits $0 \rightarrow 1 \rightarrow 2$ with the `coupling_map = [[0, 1], [1, 2]]`.
 
@@ -154,7 +154,7 @@ release.
 
 Additionally, as part of each release, detailed release notes are written to
 document in detail what has changed as part of a release. This includes any
-documentation on potential breaking changes on upgrade and new features. See [all release notes here](https://docs.quantum.ibm.com/api/qiskit/release-notes).
+documentation on potential breaking changes on upgrade and new features. See [all release notes here](https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes).
 
 ## Acknowledgements
 
