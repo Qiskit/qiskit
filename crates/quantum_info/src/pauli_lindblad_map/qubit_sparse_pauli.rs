@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashSet;
+
 use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
@@ -200,6 +202,8 @@ pub enum LabelError {
 pub enum ArithmeticError {
     #[error("mismatched numbers of qubits: {left}, {right}")]
     MismatchedQubits { left: u32, right: u32 },
+    #[error("multiplying single qubit paulis resulted in bit value: {b}")]
+    PauliMultiplication { b: u8 },
 }
 
 /// A list of Pauli operators stored in a qubit-sparse format.
@@ -436,6 +440,78 @@ impl QubitSparsePauliList {
         self.boundaries.push(self.paulis.len());
         Ok(())
     }
+
+    /// Relabel the `indices` in the map to new values.
+    ///
+    /// This fails if any of the new indices are too large, or if any mapping would cause a term to
+    /// contain duplicates of the same index.  It may not detect if multiple qubits are mapped to
+    /// the same index, if those qubits never appear together in the same term.  Such a mapping
+    /// would not cause data-coherence problems (the output map will be valid), but is
+    /// unlikely to be what you intended.
+    ///
+    /// *Panics* if `new_qubits` is not long enough to map every index used in the map.
+    pub fn relabel_qubits_from_slice(&mut self, new_qubits: &[u32]) -> Result<(), CoherenceError> {
+        for qubit in new_qubits {
+            if *qubit >= self.num_qubits {
+                return Err(CoherenceError::BitIndexTooHigh);
+            }
+        }
+        let mut order = btree_map::BTreeMap::new();
+        for i in 0..self.num_terms() {
+            let start = self.boundaries[i];
+            let end = self.boundaries[i + 1];
+            for j in start..end {
+                order.insert(new_qubits[self.indices[j] as usize], self.paulis[j]);
+            }
+            if order.len() != end - start {
+                return Err(CoherenceError::DuplicateIndices);
+            }
+            for (index, dest) in order.keys().zip(&mut self.indices[start..end]) {
+                *dest = *index;
+            }
+            for (pauli, dest) in order.values().zip(&mut self.paulis[start..end]) {
+                *dest = *pauli;
+            }
+            order.clear();
+        }
+        Ok(())
+    }
+
+    /// Apply a transpiler layout.
+    pub fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        match layout {
+            None => {
+                let mut out = self.clone();
+                if num_qubits < self.num_qubits {
+                    return Err(CoherenceError::NotEnoughQubits {
+                        current: self.num_qubits as usize,
+                        target: num_qubits as usize,
+                    });
+                }
+                out.num_qubits = num_qubits;
+                Ok(out)
+            }
+            Some(layout) => {
+                if layout.len() < self.num_qubits as usize {
+                    return Err(CoherenceError::IndexMapTooSmall);
+                }
+                if layout.iter().any(|qubit| *qubit >= num_qubits) {
+                    return Err(CoherenceError::BitIndexTooHigh);
+                }
+                if layout.iter().collect::<HashSet<_>>().len() != layout.len() {
+                    return Err(CoherenceError::DuplicateIndices);
+                }
+                let mut out = self.clone();
+                out.num_qubits = num_qubits;
+                out.relabel_qubits_from_slice(layout)?;
+                Ok(out)
+            }
+        }
+    }
 }
 
 type RawParts = (Vec<Pauli>, Vec<u32>, Vec<usize>);
@@ -587,6 +663,85 @@ impl QubitSparsePauli {
         &self.paulis
     }
 
+    /// Create the identity [QubitSparsePauli] on ``num_qubits`` qubits.
+    pub fn identity(num_qubits: u32) -> Self {
+        Self {
+            num_qubits,
+            paulis: Box::new([]),
+            indices: Box::new([]),
+        }
+    }
+
+    // Phaseless composition of two pauli operators.
+    pub fn compose(&self, other: &QubitSparsePauli) -> Result<QubitSparsePauli, ArithmeticError> {
+        if self.num_qubits != other.num_qubits {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits,
+                right: other.num_qubits,
+            });
+        }
+
+        // if either are the identity, return a clone of the other
+        if self.indices.is_empty() {
+            return Ok(other.clone());
+        }
+
+        if other.indices.is_empty() {
+            return Ok(self.clone());
+        }
+
+        let mut paulis = Vec::new();
+        let mut indices = Vec::new();
+
+        let mut self_idx = 0;
+        let mut other_idx = 0;
+
+        // iterate through each entry of self and other one time, incrementing based on the ordering
+        // or equality of self_idx and other_idx, until one of them runs out of entries
+        while self_idx < self.indices.len() && other_idx < other.indices.len() {
+            if self.indices[self_idx] < other.indices[other_idx] {
+                // if the current qubit index of self is strictly less than other, append the pauli
+                paulis.push(self.paulis[self_idx]);
+                indices.push(self.indices[self_idx]);
+                self_idx += 1;
+            } else if self.indices[self_idx] == other.indices[other_idx] {
+                // if the indices are the same, perform multiplication and append if non-identity
+                let new_pauli = (self.paulis[self_idx] as u8) ^ (other.paulis[other_idx] as u8);
+                if new_pauli != 0 {
+                    paulis.push(match new_pauli {
+                        0b01 => Ok(Pauli::Z),
+                        0b10 => Ok(Pauli::X),
+                        0b11 => Ok(Pauli::Y),
+                        _ => Err(ArithmeticError::PauliMultiplication { b: new_pauli }),
+                    }?);
+                    indices.push(self.indices[self_idx])
+                }
+                self_idx += 1;
+                other_idx += 1;
+            } else {
+                // same as the first if block but with roles of self and other reversed
+                paulis.push(other.paulis[other_idx]);
+                indices.push(other.indices[other_idx]);
+                other_idx += 1;
+            }
+        }
+
+        // if any entries remain in either pauli, append them
+        if other_idx != other.indices.len() {
+            paulis.append(&mut other.paulis[other_idx..].to_vec());
+            indices.append(&mut other.indices[other_idx..].to_vec());
+        } else if self_idx != self.indices.len() {
+            paulis.append(&mut self.paulis[self_idx..].to_vec());
+            indices.append(&mut self.indices[self_idx..].to_vec());
+        }
+
+        Ok(QubitSparsePauli {
+            num_qubits: self.num_qubits,
+            paulis: paulis.into_boxed_slice(),
+            indices: indices.into_boxed_slice(),
+        })
+    }
+
     /// Get a view version of this object.
     pub fn view(&self) -> QubitSparsePauliView {
         QubitSparsePauliView {
@@ -604,6 +759,37 @@ impl QubitSparsePauli {
             indices: self.indices.to_vec(),
             boundaries: vec![0, self.paulis.len()],
         }
+    }
+
+    // Check if `self` commutes with `other`
+    pub fn commutes(&self, other: &QubitSparsePauli) -> Result<bool, ArithmeticError> {
+        if self.num_qubits != other.num_qubits {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits,
+                right: other.num_qubits,
+            });
+        }
+
+        let mut commutes = true;
+        let mut self_idx = 0;
+        let mut other_idx = 0;
+
+        // iterate through each entry of self and other one time, incrementing based on the ordering
+        // or equality of self_idx and other_idx, until one of them runs out of entries
+        while self_idx < self.indices.len() && other_idx < other.indices.len() {
+            if self.indices[self_idx] < other.indices[other_idx] {
+                self_idx += 1;
+            } else if self.indices[self_idx] == other.indices[other_idx] {
+                // if the indices are the same, check commutation
+                commutes = commutes == (self.paulis[self_idx] == other.paulis[other_idx]);
+                self_idx += 1;
+                other_idx += 1;
+            } else {
+                other_idx += 1;
+            }
+        }
+
+        Ok(commutes)
     }
 }
 
@@ -1181,6 +1367,20 @@ impl PyQubitSparsePauli {
         Ok(inner.into())
     }
 
+    /// Get the identity operator for a given number of qubits.
+    ///
+    /// Examples:
+    ///
+    ///     Get the identity on 100 qubits::
+    ///
+    ///         >>> QubitSparsePauli.identity(100)
+    ///         <QubitSparsePauli on 100 qubits: >
+    #[pyo3(signature = (/, num_qubits))]
+    #[staticmethod]
+    pub fn identity(num_qubits: u32) -> Self {
+        QubitSparsePauli::identity(num_qubits).into()
+    }
+
     /// Convert this Pauli into a single element :class:`QubitSparsePauliList`.
     fn to_qubit_sparse_pauli_list(&self) -> PyResult<PyQubitSparsePauliList> {
         let qubit_sparse_pauli_list = QubitSparsePauliList::new(
@@ -1190,6 +1390,28 @@ impl PyQubitSparsePauli {
             vec![0, self.inner.paulis().len()],
         )?;
         Ok(qubit_sparse_pauli_list.into())
+    }
+
+    /// Phaseless composition with another :class:`QubitSparsePauli`.
+    ///
+    /// Args:
+    ///     other (QubitSparsePauli): the qubit sparse Pauli to compose with.
+    fn compose(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+        Ok(PyQubitSparsePauli {
+            inner: self.inner.compose(&other.inner)?,
+        })
+    }
+
+    fn __matmul__(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+        self.compose(other)
+    }
+
+    /// Check if `self`` commutes with another qubit sparse pauli.
+    ///
+    /// Args:
+    ///     other (QubitSparsePauli): the qubit sparse Pauli to check for commutation with.
+    fn commutes(&self, other: PyQubitSparsePauli) -> PyResult<bool> {
+        Ok(self.inner.commutes(&other.inner)?)
     }
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
@@ -1790,6 +2012,69 @@ impl PyQubitSparsePauliList {
             out.append(to_py_tuple(view)?)?;
         }
         Ok(out.unbind())
+    }
+
+    /// Apply a transpiler layout to this qubit sparse Pauli list.
+    ///
+    /// This enables remapping of qubit indices, e.g. if the list is defined in terms of virtual
+    /// qubit labels.
+    ///
+    /// Args:
+    ///     layout (TranspileLayout | list[int] | None): The layout to apply.  Most uses of this
+    ///         function should pass the :attr:`.QuantumCircuit.layout` field from a circuit that
+    ///         was transpiled for hardware.  In addition, you can pass a list of new qubit indices.
+    ///         If given as explicitly ``None``, no remapping is applied (but you can still use
+    ///         ``num_qubits`` to expand the qubits in the list).
+    ///     num_qubits (int | None): The number of qubits to expand the list elements to.  If not
+    ///         supplied, the output will be as wide as the given :class:`.TranspileLayout`, or the
+    ///         same width as the input if the ``layout`` is given in another form.
+    ///
+    /// Returns:
+    ///     A new :class:`QubitSparsePauli` with the provided layout applied.
+    #[pyo3(signature = (/, layout, num_qubits=None))]
+    fn apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+        let py = layout.py();
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        // A utility to check the number of qubits is compatible with the map.
+        let check_inferred_qubits = |inferred: u32| -> PyResult<u32> {
+            if inferred < inner.num_qubits() {
+                return Err(CoherenceError::NotEnoughQubits {
+                    current: inner.num_qubits() as usize,
+                    target: inferred as usize,
+                }
+                .into());
+            }
+            Ok(inferred)
+        };
+
+        // Normalize the number of qubits in the layout and the layout itself, depending on the
+        // input types, before calling PauliLindbladMap.apply_layout to do the actual work.
+        let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
+            (num_qubits.unwrap_or(inner.num_qubits()), None)
+        } else if layout.is_instance(
+            &py.import(intern!(py, "qiskit.transpiler"))?
+                .getattr(intern!(py, "TranspileLayout"))?,
+        )? {
+            (
+                check_inferred_qubits(
+                    layout.getattr(intern!(py, "_output_qubit_list"))?.len()? as u32
+                )?,
+                Some(
+                    layout
+                        .call_method0(intern!(py, "final_index_layout"))?
+                        .extract::<Vec<u32>>()?,
+                ),
+            )
+        } else {
+            (
+                check_inferred_qubits(num_qubits.unwrap_or(inner.num_qubits()))?,
+                Some(layout.extract()?),
+            )
+        };
+
+        let out = inner.apply_layout(layout.as_deref(), num_qubits)?;
+        Ok(out.into())
     }
 
     fn __len__(&self) -> PyResult<usize> {

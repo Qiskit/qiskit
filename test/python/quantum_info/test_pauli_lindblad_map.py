@@ -14,11 +14,16 @@
 
 import copy
 import pickle
+import itertools
+import random
 
 import ddt
 import numpy as np
 
+from qiskit import transpile
+from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
 from qiskit.quantum_info import QubitSparsePauli, QubitSparsePauliList, PauliLindbladMap
+from qiskit.transpiler import Target
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -483,6 +488,169 @@ class TestPauliLindbladMap(QiskitTestCase):
         ]
         self.assertEqual(list(pauli_lindblad_map), expected)
 
+    def test_apply_layout_list(self):
+        self.assertEqual(
+            PauliLindbladMap.identity(5).apply_layout([4, 3, 2, 1, 0]), PauliLindbladMap.identity(5)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(3).apply_layout([0, 2, 1], 8), PauliLindbladMap.identity(8)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(2).apply_layout([1, 0]), PauliLindbladMap.identity(2)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(3).apply_layout([100, 10_000, 3], 100_000_000),
+            PauliLindbladMap.identity(100_000_000),
+        )
+
+        terms = [
+            ("ZYX", (4, 2, 1), 1),
+            ("", (), -0.5),
+            ("XXYYZZ", (10, 8, 6, 4, 2, 0), 2.0),
+        ]
+
+        def map_indices(terms, layout):
+            return [
+                (terms, tuple(layout[bit] for bit in bits), coeff) for terms, bits, coeff in terms
+            ]
+
+        identity = list(range(12))
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(identity),
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12),
+        )
+        # We've already tested elsewhere that `PauliLindbladMap.from_sparse_list` produces termwise
+        # sorted indices, so these tests also ensure `apply_layout` is maintaining that invariant.
+        backwards = list(range(12))[::-1]
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(backwards),
+            PauliLindbladMap.from_sparse_list(map_indices(terms, backwards), num_qubits=12),
+        )
+        shuffled = [4, 7, 1, 10, 0, 11, 3, 2, 8, 5, 6, 9]
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled),
+            PauliLindbladMap.from_sparse_list(map_indices(terms, shuffled), num_qubits=12),
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(shuffled, 100),
+            PauliLindbladMap.from_sparse_list(map_indices(terms, shuffled), num_qubits=100),
+        )
+        expanded = [78, 69, 82, 68, 32, 97, 108, 101, 114, 116, 33]
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=11).apply_layout(expanded, 120),
+            PauliLindbladMap.from_sparse_list(map_indices(terms, expanded), num_qubits=120),
+        )
+
+    def test_apply_layout_transpiled(self):
+        base = PauliLindbladMap.from_sparse_list(
+            [
+                ("ZYX", (4, 2, 1), 1),
+                ("", (), -0.5),
+                ("XXY", (3, 2, 0), 2.0),
+            ],
+            num_qubits=5,
+        )
+
+        qc = QuantumCircuit(5)
+        initial_list = [3, 4, 0, 2, 1]
+        no_routing = transpile(
+            qc, target=lnn_target(5), initial_layout=initial_list, seed_transpiler=2024_10_25_0
+        ).layout
+        # It's easiest here to test against the `list` form, which we verify separately and
+        # explicitly.
+        self.assertEqual(base.apply_layout(no_routing), base.apply_layout(initial_list))
+
+        expanded = transpile(
+            qc, target=lnn_target(100), initial_layout=initial_list, seed_transpiler=2024_10_25_1
+        ).layout
+        self.assertEqual(
+            base.apply_layout(expanded), base.apply_layout(initial_list, num_qubits=100)
+        )
+
+        qc = QuantumCircuit(5)
+        qargs = list(itertools.permutations(range(5), 2))
+        random.Random(2024_10_25_2).shuffle(qargs)
+        for pair in qargs:
+            qc.cx(*pair)
+
+        routed = transpile(qc, target=lnn_target(5), seed_transpiler=2024_10_25_3).layout
+        self.assertEqual(
+            base.apply_layout(routed),
+            base.apply_layout(routed.final_index_layout(filter_ancillas=True)),
+        )
+
+        routed_expanded = transpile(qc, target=lnn_target(20), seed_transpiler=2024_10_25_3).layout
+        self.assertEqual(
+            base.apply_layout(routed_expanded),
+            base.apply_layout(
+                routed_expanded.final_index_layout(filter_ancillas=True), num_qubits=20
+            ),
+        )
+
+    def test_apply_layout_none(self):
+        self.assertEqual(
+            PauliLindbladMap.identity(0).apply_layout(None), PauliLindbladMap.identity(0)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(0).apply_layout(None, 3), PauliLindbladMap.identity(3)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(5).apply_layout(None), PauliLindbladMap.identity(5)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(3).apply_layout(None, 8), PauliLindbladMap.identity(8)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(0).apply_layout(None), PauliLindbladMap.identity(0)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(0).apply_layout(None, 8), PauliLindbladMap.identity(8)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(2).apply_layout(None), PauliLindbladMap.identity(2)
+        )
+        self.assertEqual(
+            PauliLindbladMap.identity(3).apply_layout(None, 100_000_000),
+            PauliLindbladMap.identity(100_000_000),
+        )
+
+        terms = [
+            ("ZYX", (2, 1, 0), 1),
+            ("", (), -0.5),
+            ("XXYYZZ", (10, 8, 6, 4, 2, 0), 2.0),
+        ]
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(None),
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12),
+        )
+        self.assertEqual(
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=12).apply_layout(
+                None, num_qubits=200
+            ),
+            PauliLindbladMap.from_sparse_list(terms, num_qubits=200),
+        )
+
+    def test_apply_layout_failures(self):
+        obs = PauliLindbladMap.from_list([("IIYI", 2.0), ("IIIX", -1)])
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            obs.apply_layout([0, 0, 1, 2])
+        with self.assertRaisesRegex(ValueError, "does not account for all contained qubits"):
+            obs.apply_layout([0, 1])
+        with self.assertRaisesRegex(ValueError, "less than the number of qubits"):
+            obs.apply_layout([0, 2, 4, 6])
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout([0, 1], num_qubits=2)
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout(None, num_qubits=2)
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+        layout = transpile(qc, target=lnn_target(3), seed_transpiler=2024_10_25).layout
+        with self.assertRaisesRegex(ValueError, "cannot shrink"):
+            obs.apply_layout(layout, num_qubits=2)
+
     def test_indexing(self):
         pauli_lindblad_map = PauliLindbladMap.from_sparse_list(
             [
@@ -699,6 +867,320 @@ class TestPauliLindbladMap(QiskitTestCase):
         self.assertTrue(np.allclose(probs, pauli_lindblad_map.probabilities()))
         self.assertTrue(np.allclose(gamma, pauli_lindblad_map.gamma()))
 
+    def test_drop_paulis(self):
+        """Test the `drop_paulis` method."""
+        pauli_map_in = PauliLindbladMap.from_list(
+            [("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)]
+        )
+        self.assertEqual(pauli_map_in, pauli_map_in.drop_paulis([]))
+
+        pauli_map_out = pauli_map_in.drop_paulis([0])
+        expected = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYI", 0.5), ("ZIIXI", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+        pauli_map_out = pauli_map_in.drop_paulis([0, 3])
+        expected = PauliLindbladMap.from_list([("XIIZI", 2.0), ("IIIYI", 0.5), ("ZIIXI", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+        pauli_map_out = pauli_map_in.drop_paulis([0, 4])
+        expected = PauliLindbladMap.from_list([("IXIZI", 2.0), ("IIIYI", 0.5), ("IIIXI", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+    def test_drop_paulis_raises(self):
+        """Test that `drop_paulis` raises."""
+        pauli_map_in = PauliLindbladMap.from_list(
+            [("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)]
+        )
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot drop Paulis for index 5 in a 5-qubit PauliLindbladMap"
+        ):
+            pauli_map_in.drop_paulis([0, 5])
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot drop Paulis for index 8 in a 5-qubit PauliLindbladMap"
+        ):
+            pauli_map_in.drop_paulis([0, 8])
+
+    def test_keep_paulis(self):
+        """Test the `keep_paulis` method."""
+        pauli_map_in = PauliLindbladMap.from_list(
+            [("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)]
+        )
+        self.assertEqual(pauli_map_in, pauli_map_in.keep_paulis(range(5)))
+
+        pauli_map_out = pauli_map_in.keep_paulis(range(1, 5))
+        expected = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYI", 0.5), ("ZIIXI", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+        pauli_map_out = pauli_map_in.keep_paulis([4, 1, 2])
+        expected = PauliLindbladMap.from_list([("XIIZI", 2.0), ("IIIYI", 0.5), ("ZIIXI", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+        pauli_map_out = pauli_map_in.keep_paulis([1, 2, 3])
+        expected = PauliLindbladMap.from_list([("IXIZI", 2.0), ("IIIYI", 0.5), ("IIIXI", -0.25)])
+        self.assertEqual(pauli_map_out, expected)
+
+    def test_keep_paulis_raises(self):
+        """Test that `keep_paulis` raises."""
+        pauli_map_in = PauliLindbladMap.from_list(
+            [("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)]
+        )
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot keep Paulis for index 5 in a 5-qubit PauliLindbladMap"
+        ):
+            pauli_map_in.keep_paulis([5])
+
+        with self.assertRaisesRegex(
+            ValueError, "cannot keep Paulis for index 8 in a 5-qubit PauliLindbladMap"
+        ):
+            pauli_map_in.keep_paulis([0, 8])
+
+    def test_simplify(self):
+        duplicate = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", 2.0)])
+        self.assertEqual(duplicate.simplify(), PauliLindbladMap([("IXYZXYZXYZ", 3.0)]))
+
+        cancel = PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -1.0)])
+        self.assertEqual(cancel.simplify(), PauliLindbladMap.identity(10))
+
+        drop_identities = PauliLindbladMap([("IXY", 1.0), ("III", -1.0)])
+        self.assertEqual(drop_identities.simplify(), PauliLindbladMap([("IXY", 1.0)]))
+
+        # note: some calls to simplify() are to enforce canonical ordering
+        threshold = PauliLindbladMap([("X", 1e-9), ("Z", -2), ("Y", 1.0)]).simplify(1e-10)
+        self.assertEqual(threshold.simplify(), PauliLindbladMap([("Y", 1.0), ("Z", -2)]).simplify())
+        self.assertEqual(threshold.simplify(1e-10), threshold)
+        self.assertEqual(threshold.simplify(1.1), PauliLindbladMap([("Z", -2)]))
+
+    def test_scale_rates(self):
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
+        self.assertEqual(
+            pauli_lindblad_map.scale_rates(12.32), PauliLindbladMap([("IXYZXYZXYZ", 12.32)])
+        )
+
+        pauli_lindblad_map = PauliLindbladMap(
+            [("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)]
+        )
+        self.assertEqual(
+            pauli_lindblad_map.scale_rates(3.2),
+            PauliLindbladMap([("IXYZXYZXYZ", -3.2), ("IXYZXYZXYZ", 3.2), ("IXYZXYZXYZ", -1.6)]),
+        )
+
+        self.assertEqual(
+            PauliLindbladMap.identity(5).scale_rates(5.0), PauliLindbladMap.identity(5)
+        )
+
+    def test_inverse(self):
+
+        pauli_lindblad_map = PauliLindbladMap([("IXYZXYZXYZ", 1.0)])
+        self.assertEqual(pauli_lindblad_map.inverse(), PauliLindbladMap([("IXYZXYZXYZ", -1.0)]))
+
+        pauli_lindblad_map = PauliLindbladMap(
+            [("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -0.5)]
+        )
+        self.assertEqual(
+            pauli_lindblad_map.inverse(),
+            PauliLindbladMap([("IXYZXYZXYZ", 1.0), ("IXYZXYZXYZ", -1.0), ("IXYZXYZXYZ", 0.5)]),
+        )
+
+        self.assertEqual(PauliLindbladMap.identity(5).inverse(), PauliLindbladMap.identity(5))
+
+    def test_compose(self):
+        """Test compose method."""
+        p0 = PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1)], 4)
+        expected = PauliLindbladMap.from_sparse_list(
+            [("XYZ", [3, 2, 1], 2.1), ("XYZ", [3, 2, 1], 2.1)], 4
+        )
+        self.assertEqual(p0.compose(p0), expected)
+
+        # validate original object unchanged
+        self.assertEqual(p0, PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1)], 4))
+
+        p0 = PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1), ("Y", [0], 0.1)], 4)
+        p1 = PauliLindbladMap.from_sparse_list([("X", [3], 0.2), ("Z", [1], 0.1)], 4)
+        expected = PauliLindbladMap.from_sparse_list(
+            [("XYZ", [3, 2, 1], 2.1), ("Y", [0], 0.1), ("X", [3], 0.2), ("Z", [1], 0.1)], 4
+        )
+        self.assertEqual(p0 @ p1, expected)
+
+        # validate original objects unchanged
+        self.assertEqual(
+            p0, PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1), ("Y", [0], 0.1)], 4)
+        )
+        self.assertEqual(
+            p1, PauliLindbladMap.from_sparse_list([("X", [3], 0.2), ("Z", [1], 0.1)], 4)
+        )
+
+        # test composition with identity map
+        p0 = PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1)], 4)
+        p1 = PauliLindbladMap.identity(4)
+        self.assertEqual(p0 @ p1, p0)
+        self.assertEqual(p1 @ p0, p0)
+
+        p0 = PauliLindbladMap.identity(20)
+        self.assertEqual(p0 @ p0, p0)
+
+    def test_compose_errors(self):
+
+        p0 = PauliLindbladMap.from_sparse_list([("XYZ", [3, 2, 1], 2.1)], 4)
+        p1 = PauliLindbladMap.identity(3)
+
+        with self.assertRaisesRegex(ValueError, r"mismatched numbers of qubits: 4, 3"):
+            p0.compose(p1)
+
+        with self.assertRaisesRegex(TypeError, r"unknown type for compose"):
+            p0.compose(1.0)
+
+    def test_pauli_fidelity(self):
+
+        pauli_lindblad_map = PauliLindbladMap(
+            [("XY", [0, 1], 1.23), ("Z", [1], -0.23), ("X", [2], 0.3)], num_qubits=4
+        )
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 4)), 1.0)
+        self.assertEqual(
+            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Y", [0]), 4)), np.exp(-2 * 1.23)
+        )
+        self.assertEqual(
+            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [1]), 4)), np.exp(-2 * 1.0)
+        )
+        self.assertEqual(pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("Z", [3]), 4)), 1.0)
+        # np.allclose needed for machine precision
+        self.assertTrue(
+            np.allclose(
+                pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("ZXY", [0, 1, 2]), 4)),
+                np.exp(-2 * 0.07),
+                atol=1e-12,
+                rtol=1e-12,
+            )
+        )
+
+        self.assertEqual(
+            PauliLindbladMap.identity(5).pauli_fidelity(QubitSparsePauli("IXXYZ")), 1.0
+        )
+
+    def test_pauli_fidelity_errors(self):
+
+        pauli_lindblad_map = PauliLindbladMap(
+            [("XY", [0, 1], 1.23), ("Z", [1], -0.23), ("X", [2], 0.3)], num_qubits=4
+        )
+
+        with self.assertRaisesRegex(ValueError, r"mismatched numbers of qubits: 5, 4"):
+            pauli_lindblad_map.pauli_fidelity(QubitSparsePauli(("X", [0]), 5))
+
+    def test_signed_sample(self):
+
+        # test all negative rates
+        pauli_lindblad_map = PauliLindbladMap([("X", -1.0), ("Y", -1.0)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": True, "X": False, "Y": False, "Z": True}
+
+        num_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.signed_sample(num_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+
+        # test all positive rates
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": True, "X": True, "Y": True, "Z": True}
+
+        num_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.signed_sample(num_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+
+        # test mix of positive and negative rates
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+        expected_signs = {"I": True, "X": True, "Y": False, "Z": False}
+
+        num_samples = 10000
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.signed_sample(num_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for sign, q in zip(signs, qubit_sparse_pauli_list):
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+                    self.assertEqual(expected_signs[symbol], sign)
+
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+
+        # test callable without seed
+        signs, qubit_sparse_pauli_list = pauli_lindblad_map.signed_sample(5)
+        self.assertTrue(isinstance(qubit_sparse_pauli_list, QubitSparsePauliList))
+        self.assertEqual(len(qubit_sparse_pauli_list), 5)
+        self.assertEqual(len(signs), 5)
+
+    def test_sample(self):
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", 1.0)])
+        probs = pauli_lindblad_map.probabilities()
+        probs_dict = {
+            "I": probs[0] * probs[1],
+            "X": probs[0] * (1 - probs[1]),
+            "Y": (1 - probs[0]) * probs[1],
+            "Z": (1 - probs[0]) * (1 - probs[1]),
+        }
+
+        num_samples = 10000
+        qubit_sparse_pauli_list = pauli_lindblad_map.sample(num_samples, 12312)
+
+        counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
+        for q in qubit_sparse_pauli_list:
+            for symbol in counts:
+                if q == QubitSparsePauli(symbol):
+                    counts[symbol] += 1
+        for symbol, count in counts.items():
+            self.assertTrue(np.abs(count / num_samples - probs_dict[symbol]) < 1e-2)
+
+        # test callable without seed
+        qubit_sparse_pauli_list = pauli_lindblad_map.sample(5)
+        self.assertTrue(isinstance(qubit_sparse_pauli_list, QubitSparsePauliList))
+        self.assertEqual(len(qubit_sparse_pauli_list), 5)
+
+    def test_sample_errors(self):
+        pauli_lindblad_map = PauliLindbladMap([("X", 1.0), ("Y", -1.0)])
+
+        with self.assertRaisesRegex(
+            ValueError, "PauliLindbladMap.sample called for a map with negative rates"
+        ):
+            pauli_lindblad_map.sample(1)
+
 
 def canonicalize_term(pauli, indices, rate):
     # canonicalize a sparse list term by sorting by indices (which is unique as
@@ -713,3 +1195,21 @@ def canonicalize_sparse_list(sparse_list):
     # Python's built-in sort
     canonicalized_terms = [canonicalize_term(*term) for term in sparse_list]
     return sorted(canonicalized_terms)
+
+
+def lnn_target(num_qubits):
+    """Create a simple `Target` object with an arbitrary basis-gate set, and open-path
+    connectivity."""
+    out = Target()
+    out.add_instruction(library.RZGate(Parameter("a")), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(library.SXGate(), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(Measure(), {(q,): None for q in range(num_qubits)})
+    out.add_instruction(
+        library.CXGate(),
+        {
+            pair: None
+            for lower in range(num_qubits - 1)
+            for pair in [(lower, lower + 1), (lower + 1, lower)]
+        },
+    )
+    return out
