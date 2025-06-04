@@ -426,16 +426,11 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
-<<<<<<< HEAD
-.. _apy_version_15:
-=======
 .. _qpy_version_15:
->>>>>>> ibm/main
 
 Version 15
 ----------
 
-<<<<<<< HEAD
 Version 15 adds the concept of custom annotations to the payload format.  QPY itself does not
 specify how annotations are serialized or deserialized, as they are custom user objects.  The format
 does co-operate with sub-serializers, however.
@@ -567,13 +562,16 @@ The format of the ``ANNOTATION_PAYLOAD`` object is not specified by QPY.  It is 
 external serialization object associated with the namespace referred to by the ``namespace_index``
 and its associated serializer state in the ``ANNOTATION_HEADER``.
 
-=======
-Version 15 improves the native serialization of :class:`.ParameterExpression` by encoding 
-the :ref:`qpy_mapping` data in the ``PARAM_EXPR_ELEM_V13`` payload using uuids instead 
-of :class:`.Parameter` names. 
-This adds support for serializing parameter re-assignments where the parameter name is 
-the same but the uuid is different.
->>>>>>> ibm/main
+
+Changes within PARAM_EXPR_ELEM_V13
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The struct itself is unchanged.  However, for a ``PARAM_EXPR_ELEM_V13`` representing a
+:meth:`.ParameterExpression.subs` call (with ``op_code = 15``, and therefore ``lhs_type = 'p'`` and
+``rhs_type = 'n'``), the trailing :ref:`qpy_mapping` now maps keys of the raw bytes of the
+:class:`.Parameter` UUIDs to the substituted values.  Previously (in QPY versions 13 and 14), this
+mapping stored the parameter names as the keys.
+
 
 .. _qpy_version_14:
 
