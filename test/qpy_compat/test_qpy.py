@@ -1028,17 +1028,14 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         qpy = qpy.assign_parameters(bind)
 
     if sympify is not None:
-        for i, data in enumerate(qpy.data):
-            for j, param in enumerate(data.params):
-                print("param", param)
-                print("reference", reference.data[i].params[j])
-                if not param.sympify() == reference.data[i].params[j].sympify():
-                    msg = (
-                        f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
-                        f"qpy loaded circuit {count}:\n{qpy}\n"
-                    )
-                    sys.stderr.write(msg)
-                    sys.exit(1)
+        for qpy_param, ref_param in zip(qpy.parameters, reference.parameters):
+            if not qpy_param.sympify() == ref_param.sympify():
+                msg = (
+                    f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+                    f"qpy loaded circuit {count}:\n{qpy}\n"
+                )
+                sys.stderr.write(msg)
+                sys.exit(1)
 
     if equivalent:
         if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
