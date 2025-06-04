@@ -291,7 +291,7 @@ fn map_components(
 }
 
 fn build_coupling_map(target: &Target) -> Option<UnGraph<PhysicalQubit, ()>> {
-    let num_qubits = target.num_qubits.unwrap_or_default();
+    let num_qubits = target.num_qubits.unwrap_or_default() as usize;
     if target.num_qargs() == 0 {
         return None;
     }

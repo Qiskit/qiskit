@@ -32,7 +32,7 @@ typedef struct QkClassicalRegister QkClassicalRegister;
 
 [parse]
 parse_deps = true
-include = ["qiskit-quantum-info", "qiskit-circuit"]
+include = ["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"]
 
 [enum]
 prefix_with_name = true
@@ -50,3 +50,5 @@ prefix_with_name = true
 "ExitCode" = "QkExitCode"
 "QuantumRegister" = "QkQuantumRegister"
 "ClassicalRegister" = "QkClassicalRegister"
+"Target" = "QkTarget"
+"TargetEntry" = "QkTargetEntry"
