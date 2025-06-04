@@ -736,7 +736,7 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 /// # Arguments
 ///
 /// * `qargs` - The pointer to the array of ``uint32_t`` values to use as
-/// qargs. Can be ``NULL`` if global.
+///   qargs. Can be ``NULL`` if global.
 /// * `num_qubits` - The length of the array.
 ///
 /// # Returns

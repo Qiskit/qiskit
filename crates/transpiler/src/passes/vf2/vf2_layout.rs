@@ -330,7 +330,7 @@ fn map_free_qubits(
     if free_nodes.is_empty() {
         return Some(partial_layout);
     }
-    let num_physical_qubits = target.num_qubits.unwrap() as u32;
+    let num_physical_qubits = target.num_qubits.unwrap();
     let mut free_qubits_set: HashSet<u32> = (0..num_physical_qubits).collect();
     for phys in partial_layout.values() {
         let qubit = phys.index() as u32;
