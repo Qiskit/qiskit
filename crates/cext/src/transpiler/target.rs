@@ -485,6 +485,16 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 /// # Example
 ///
 ///     QkTargetEntry *entry = qk_target_entry_new_measure();
+///     // Add fixed duration and error rates from qubits at index 0 to 4.
+///     for (uint32_t i = 0; i < 5; i++) {
+///         // Measure is a single qubit instruction
+///         uint32_t qargs[1] = {i};
+///         qk_target_entry_add_property(entry, qargs, 1, 1.928e-10, 7.9829e-11);
+///     }
+///     
+///     // Add the entry to a target with 5 qubits
+///     QkTarget *measure_target = qk_target_new(5);
+///     qk_target_add_instruction(measure_target, entry);
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
@@ -501,6 +511,16 @@ pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
 /// # Example
 ///
 ///     QkTargetEntry *entry = qk_target_entry_new_reset();
+///     // Add fixed duration and error rates from qubits at index 0 to 2.
+///     for (uint32_t i = 0; i < 3; i++) {
+///         // Reset is a single qubit instruction
+///         uint32_t qargs[1] = {i};
+///         qk_target_entry_add_property(entry, qargs, 1, 1.2e-11, 5.9e-13);
+///     }
+///     
+///     // Add the entry to a target with 3 qubits
+///     QkTarget *reset_target = qk_target_new(3);
+///     qk_target_add_instruction(reset_target, entry);
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
