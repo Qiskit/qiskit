@@ -1038,14 +1038,6 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
                     sys.stderr.write(msg)
                     sys.exit(1)
 
-        if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
-            msg = (
-                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
-                f"qpy loaded circuit {count}:\n{qpy}\n"
-            )
-            sys.stderr.write(msg)
-            sys.exit(1)
-
     if equivalent:
         if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
             msg = (

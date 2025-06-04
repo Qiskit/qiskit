@@ -18,6 +18,7 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate, QAOAAnsatz, qaoa_ansatz
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -243,6 +244,7 @@ class TestQAOAAnsatz(QiskitTestCase):
                     target = reps if mixer is None else 0
                     self.assertEqual(circuit.num_parameters, target)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_sympify_is_real(self):
         """Test converting the parameters to sympy is real."""
         qaoa = qaoa_ansatz(SparsePauliOp(["Z"], coeffs=[1 + 0j]))
