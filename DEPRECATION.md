@@ -54,7 +54,7 @@ As well as the objects themselves needing to be publicly documented, the only pu
 For example, while it is possible to import `Measure` from `qiskit.circuit.measure`, this is not a supported part of the public API for two reasons:
 
 1. The module `qiskit.circuit.measure` is not publicly documented, so is not part of the public interface.
-2. The [`Measure` object is documented as being in `qiskit.circuit.library`](https://quantum.cloud.ibm.com/docs/api/qiskit/circuit#qiskit.circuit.Measure), and is re-exported by `qiskit.circuit`, so the public import paths are `from qiskit.circuit.library import Measure` and `from qiskit.circuit import Measure`.
+2. The [`Measure` object is documented as being in `qiskit.circuit.library`](https://quantum.cloud.ibm.com/docs/api/qiskit/circuit_library#standard-operations), and [is re-exported by `qiskit.circuit`](https://quantum.cloud.ibm.com/docs/api/qiskit/circuit#qiskit.circuit.Measure), so the public import paths are `from qiskit.circuit.library import Measure` and `from qiskit.circuit import Measure`.
 
 As a rule of thumb, if you are using Qiskit, you should import objects from the highest-level package that exports that object.
 
