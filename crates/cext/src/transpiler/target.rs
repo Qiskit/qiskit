@@ -15,7 +15,6 @@ use crate::exit_codes::CInputError;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
-use qiskit_circuit::operations::DelayUnit;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -447,25 +446,9 @@ impl TargetEntry {
         }
     }
 
-    pub fn measure() -> Self {
+    pub fn new_instruction(instruction: StandardInstruction) -> Self {
         Self {
-            operation: StandardOperation::Instruction(StandardInstruction::Measure),
-            params: None,
-            map: Default::default(),
-        }
-    }
-
-    pub fn reset() -> Self {
-        Self {
-            operation: StandardOperation::Instruction(StandardInstruction::Reset),
-            params: None,
-            map: Default::default(),
-        }
-    }
-
-    pub fn delay(unit: DelayUnit) -> Self {
-        Self {
-            operation: StandardOperation::Instruction(StandardInstruction::Delay(unit)),
+            operation: StandardOperation::Instruction(instruction),
             params: None,
             map: Default::default(),
         }
@@ -506,8 +489,10 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 ///     QkTargetEntry *entry = qk_target_entry_measure();
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub extern "C" fn qk_target_entry_measure() -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::measure()))
+pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
+    Box::into_raw(Box::new(TargetEntry::new_instruction(
+        StandardInstruction::Measure,
+    )))
 }
 
 /// @ingroup QkTargetEntry
@@ -521,7 +506,9 @@ pub extern "C" fn qk_target_entry_measure() -> *mut TargetEntry {
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_reset() -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::reset()))
+    Box::into_raw(Box::new(TargetEntry::new_instruction(
+        StandardInstruction::Reset,
+    )))
 }
 
 /// @ingroup QkTargetEntry
@@ -536,7 +523,9 @@ pub extern "C" fn qk_target_entry_reset() -> *mut TargetEntry {
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_delay(unit: QkDelayUnit) -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::delay(unit.into())))
+    Box::into_raw(Box::new(TargetEntry::new_instruction(
+        StandardInstruction::Delay(unit.into()),
+    )))
 }
 
 /// @ingroup QkTargetEntry
