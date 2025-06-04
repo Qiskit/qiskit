@@ -14,7 +14,9 @@ use crate::exit_codes::CInputError;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
+use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
 use smallvec::{smallvec, SmallVec};
@@ -394,10 +396,34 @@ pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
     }
 }
 
+#[derive(Debug)]
+enum StandardOperation {
+    Gate(StandardGate),
+    Directive(StandardInstruction),
+}
+
+impl StandardOperation {
+    pub fn num_qubits(&self) -> u32 {
+        match &self {
+            Self::Gate(gate) => gate.num_qubits(),
+            Self::Directive(inst) => inst.num_qubits(),
+        }
+    }
+}
+
+impl From<StandardOperation> for PackedOperation {
+    fn from(value: StandardOperation) -> Self {
+        match value {
+            StandardOperation::Gate(gate) => gate.into(),
+            StandardOperation::Directive(inst) => inst.into(),
+        }
+    }
+}
+
 /// Represents the mapping between qargs and ``InstructionProperties``
 #[derive(Debug)]
 pub struct TargetEntry {
-    operation: StandardGate,
+    operation: StandardOperation,
     params: Option<SmallVec<[Param; 3]>>,
     map: IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
 }
@@ -405,7 +431,7 @@ pub struct TargetEntry {
 impl TargetEntry {
     pub fn new(operation: StandardGate) -> Self {
         Self {
-            operation,
+            operation: StandardOperation::Gate(operation),
             params: None,
             map: Default::default(),
         }
@@ -413,8 +439,16 @@ impl TargetEntry {
 
     pub fn new_fixed(operation: StandardGate, params: SmallVec<[Param; 3]>) -> Self {
         Self {
-            operation,
+            operation: StandardOperation::Gate(operation),
             params: Some(params),
+            map: Default::default(),
+        }
+    }
+
+    pub fn measure() -> Self {
+        Self {
+            operation: StandardOperation::Directive(StandardInstruction::Measure),
+            params: None,
             map: Default::default(),
         }
     }
@@ -442,6 +476,12 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
         panic!("Tried to create an non-parametric entry with a parametric gate.")
     }
     Box::into_raw(Box::new(TargetEntry::new(operation)))
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_target_entry_measure() -> *mut TargetEntry {
+    Box::into_raw(Box::new(TargetEntry::measure()))
 }
 
 /// @ingroup QkTargetEntry
