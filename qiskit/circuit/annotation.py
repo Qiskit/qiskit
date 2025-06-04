@@ -32,6 +32,9 @@ The :class:`.Annotation` class is intended to be subclassed.  Subclasses must se
 subclass.  The namespace is used as part of the dispatch mechanism, as described in
 :ref:`circuit-annotation-namespacing`.
 
+Circuit equality checks also compare annotations on objects in an order-dependent manner.  You will
+likely want to implement the :meth:`~object.__eq__` magic method on any subclasses.
+
 If you intend your annotation to be able to be serialized via :ref:`QPY <qiskit-qpy>` or :ref:`
 OpenQASM 3 <qiskit-qasm3>`, you must provide separate implementations of the serialization and
 deserialization methods as discussed in :ref:`circuit-annotation-serialization`.
