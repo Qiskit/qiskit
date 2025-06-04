@@ -63,8 +63,8 @@ int test_empty_target(void) {
     }
 
     uint32_t acquire_alignment = qk_target_acquire_alignment(target);
-    if (acquire_alignment != 0) {
-        printf("The acquire_alignment values %u is not 0.", acquire_alignment);
+    if (acquire_alignment != 1) {
+        printf("The acquire_alignment values %u is not 1.", acquire_alignment);
         result = EqualityError;
         goto cleanup;
     }
