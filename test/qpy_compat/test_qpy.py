@@ -1030,6 +1030,8 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
     if sympify is not None:
         for i, data in enumerate(qpy.data):
             for j, param in enumerate(data.params):
+                print("param", param)
+                print("reference", reference.data[i].params[j])
                 if not param.sympify() == reference.data[i].params[j].sympify():
                     msg = (
                         f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
