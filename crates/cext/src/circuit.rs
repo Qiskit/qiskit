@@ -1014,6 +1014,18 @@ pub enum QkDelayUnit {
     PS = 4,
 }
 
+impl From<QkDelayUnit> for DelayUnit {
+    fn from(value: QkDelayUnit) -> Self {
+        match value {
+            QkDelayUnit::S => DelayUnit::S,
+            QkDelayUnit::MS => DelayUnit::MS,
+            QkDelayUnit::US => DelayUnit::US,
+            QkDelayUnit::NS => DelayUnit::NS,
+            QkDelayUnit::PS => DelayUnit::PS,
+        }
+    }
+}
+
 /// @ingroup QkCircuit
 /// Append a delay instruction to the circuit.
 ///
@@ -1043,13 +1055,7 @@ pub unsafe extern "C" fn qk_circuit_delay(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
-    let delay_unit_variant = match unit {
-        QkDelayUnit::S => DelayUnit::S,
-        QkDelayUnit::MS => DelayUnit::MS,
-        QkDelayUnit::US => DelayUnit::US,
-        QkDelayUnit::NS => DelayUnit::NS,
-        QkDelayUnit::PS => DelayUnit::PS,
-    };
+    let delay_unit_variant = unit.into();
 
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);

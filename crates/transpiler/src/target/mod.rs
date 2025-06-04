@@ -305,7 +305,7 @@ impl Target {
             granularity: granularity.unwrap_or(1),
             min_length: min_length.unwrap_or(1),
             pulse_alignment: pulse_alignment.unwrap_or(1),
-            acquire_alignment: acquire_alignment.unwrap_or(0),
+            acquire_alignment: acquire_alignment.unwrap_or(1),
             qubit_properties,
             concurrent_measurements,
             gate_map: GateMap::default(),
