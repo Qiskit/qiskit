@@ -205,6 +205,13 @@ class BasicPrinter:
     def _visit_Pragma(self, node: ast.Pragma) -> None:
         self._write_statement(f"#pragma {node.content}")
 
+    def _visit_Annotation(self, node: ast.Annotation) -> None:
+        self._start_line()
+        self.stream.write(f"@{node.namespace}")
+        if node.payload:
+            self.stream.write(f" {node.payload}")
+        self._end_line()
+
     def _visit_CalibrationGrammarDeclaration(self, node: ast.CalibrationGrammarDeclaration) -> None:
         self._write_statement(f'defcalgrammar "{node.name}"')
 
@@ -597,6 +604,11 @@ class BasicPrinter:
         self.stream.write("default")
 
     def _visit_BoxStatement(self, node: ast.BoxStatement) -> None:
+        # The OpenQASM 3 spec doesn't specify any ordering between annotations.  We choose to
+        # write and interpret them like Python decorators, where the "first" annotation is written
+        # closest to the box itself.
+        for annotation in reversed(node.annotations):
+            self.visit(annotation)
         self._start_line()
         self.stream.write("box")
         if node.duration is not None:
