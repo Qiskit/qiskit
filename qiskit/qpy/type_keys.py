@@ -35,9 +35,7 @@ from qiskit.circuit import (
 from qiskit.circuit.annotated_operation import AnnotatedOperation, Modifier
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.parametervector import ParameterVectorElement
 from qiskit.qpy import exceptions
 
 
@@ -98,12 +96,13 @@ class Value(TypeKeyBase):
             return cls.COMPLEX
         if isinstance(obj, (np.integer, np.floating, np.complexfloating, np.ndarray)):
             return cls.NUMPY_OBJ
-        if isinstance(obj, ParameterVectorElement):
-            return cls.PARAMETER_VECTOR
-        if isinstance(obj, Parameter):
-            return cls.PARAMETER
         if isinstance(obj, ParameterExpression):
-            return cls.PARAMETER_EXPRESSION
+            if obj.is_vector_element:
+                return cls.PARAMETER_VECTOR
+            elif obj.is_symbol:
+                return cls.PARAMETER
+            else:
+                return cls.PARAMETER_EXPRESSION
         if isinstance(obj, str):
             return cls.STRING
         if isinstance(obj, (Clbit, ClassicalRegister)):

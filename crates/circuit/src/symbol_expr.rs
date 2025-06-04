@@ -47,6 +47,7 @@ pub enum Value {
     Real(f64),
     Int(i64),
     Complex(Complex64),
+    Fraction { numerator: i64, denominator: i64 },
 }
 
 /// definition of unary operations
@@ -197,7 +198,7 @@ impl fmt::Display for SymbolExpr {
                         UnaryOp::Exp => format!("exp({})", s),
                         UnaryOp::Log => format!("log({})", s),
                         UnaryOp::Sign => format!("sign({})", s),
-                        UnaryOp::Conj => format!("conj({})", s),
+                        UnaryOp::Conj => format!("conjugate({})", s),
                     }
                 }
                 SymbolExpr::Binary { op, lhs, rhs } => {
@@ -211,6 +212,7 @@ impl fmt::Display for SymbolExpr {
                             Value::Real(v) => *v < 0.0,
                             Value::Int(v) => *v < 0,
                             Value::Complex(_) => true,
+                            Value::Fraction { .. } => e.is_negative(),
                         },
                         _ => false,
                     };
@@ -223,6 +225,7 @@ impl fmt::Display for SymbolExpr {
                             Value::Real(v) => *v < 0.0,
                             Value::Int(v) => *v < 0,
                             Value::Complex(_) => true,
+                            Value::Fraction { .. } => true,
                         },
                         _ => false,
                     };
@@ -266,7 +269,62 @@ impl fmt::Display for SymbolExpr {
                             }
                         },
                         BinaryOp::Mul => {
-                            if op_lhs {
+                            if let SymbolExpr::Value(Value::Fraction {
+                                numerator,
+                                denominator,
+                            }) = lhs.as_ref()
+                            {
+                                if *numerator == 1 {
+                                    if op_rhs {
+                                        if *denominator == 1 {
+                                            format!("({})", s_rhs)
+                                        } else if *denominator < 0 {
+                                            format!("({})/({})", s_rhs, *denominator)
+                                        } else {
+                                            format!("({})/{}", s_rhs, *denominator)
+                                        }
+                                    } else if *denominator == 1 {
+                                        s_rhs.to_string()
+                                    } else if *denominator < 0 {
+                                        format!("{}/({})", s_rhs, *denominator)
+                                    } else {
+                                        format!("{}/{}", s_rhs, *denominator)
+                                    }
+                                } else if *numerator < 0 {
+                                    if op_rhs {
+                                        if *denominator == 1 {
+                                            format!("({})*({})", *numerator, s_rhs)
+                                        } else if *denominator < 0 {
+                                            format!(
+                                                "({})*({})/({})",
+                                                *numerator, s_rhs, *denominator
+                                            )
+                                        } else {
+                                            format!("({})*({})/{}", *numerator, s_rhs, *denominator)
+                                        }
+                                    } else if *denominator == 1 {
+                                        format!("({})*{}", *numerator, s_rhs)
+                                    } else if *denominator < 0 {
+                                        format!("({})*{}/({})", *numerator, s_rhs, *denominator)
+                                    } else {
+                                        format!("({})*{}/{}", *numerator, s_rhs, *denominator)
+                                    }
+                                } else if op_rhs {
+                                    if *denominator == 1 {
+                                        format!("{}*({})", *numerator, s_rhs)
+                                    } else if *denominator < 0 {
+                                        format!("{}*({})/({})", *numerator, s_rhs, *denominator)
+                                    } else {
+                                        format!("{}*({})/{}", *numerator, s_rhs, *denominator)
+                                    }
+                                } else if *denominator == 1 {
+                                    format!("{}*{}", *numerator, s_rhs)
+                                } else if *denominator < 0 {
+                                    format!("{}*{}/({})", *numerator, s_rhs, *denominator)
+                                } else {
+                                    format!("{}*{}/{}", *numerator, s_rhs, *denominator)
+                                }
+                            } else if op_lhs {
                                 if op_rhs {
                                     format!("({})*({})", s_lhs, s_rhs)
                                 } else {
@@ -279,7 +337,46 @@ impl fmt::Display for SymbolExpr {
                             }
                         }
                         BinaryOp::Div => {
-                            if op_lhs {
+                            if let SymbolExpr::Value(Value::Fraction {
+                                numerator,
+                                denominator,
+                            }) = lhs.as_ref()
+                            {
+                                if *numerator < 0 {
+                                    if op_rhs {
+                                        if *denominator == 1 {
+                                            format!("({})/({})", *numerator, s_rhs)
+                                        } else if *denominator < 0 {
+                                            format!(
+                                                "({})/({})/({})",
+                                                *numerator, s_rhs, *denominator
+                                            )
+                                        } else {
+                                            format!("({})/({})/{}", *numerator, s_rhs, *denominator)
+                                        }
+                                    } else if *denominator == 1 {
+                                        format!("({})/{}", *numerator, s_rhs)
+                                    } else if *denominator < 0 {
+                                        format!("({})/{}/({})", *numerator, s_rhs, *denominator)
+                                    } else {
+                                        format!("({})/{}/{}", *numerator, s_rhs, *denominator)
+                                    }
+                                } else if op_rhs {
+                                    if *denominator == 1 {
+                                        format!("{}/({})", *numerator, s_rhs)
+                                    } else if *denominator < 0 {
+                                        format!("{}/({})/({})", *numerator, s_rhs, *denominator)
+                                    } else {
+                                        format!("{}/({})/{}", *numerator, s_rhs, *denominator)
+                                    }
+                                } else if *denominator == 1 {
+                                    format!("{}/{}", *numerator, s_rhs)
+                                } else if *denominator < 0 {
+                                    format!("{}/{}/({})", *numerator, s_rhs, *denominator)
+                                } else {
+                                    format!("{}/{}/{}", *numerator, s_rhs, *denominator)
+                                }
+                            } else if op_lhs {
                                 if op_rhs {
                                     format!("({})/({})", s_lhs, s_rhs)
                                 } else {
@@ -447,6 +544,27 @@ impl SymbolExpr {
                             Some(ret)
                         }
                     }
+                    Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => {
+                        if denominator == 1 {
+                            Some(Value::Int(numerator))
+                        } else if denominator == -1 {
+                            Some(Value::Int(-numerator))
+                        } else if numerator == 0 {
+                            Some(Value::Int(0))
+                        } else if numerator == denominator {
+                            Some(Value::Int(1))
+                        } else {
+                            let gcd = _gcd(numerator.unsigned_abs(), denominator.unsigned_abs());
+                            if gcd == denominator.unsigned_abs() {
+                                Some(Value::Int(numerator / denominator))
+                            } else {
+                                Some(Value::Real(numerator as f64 / denominator as f64))
+                            }
+                        }
+                    }
                 }
             }
             SymbolExpr::Binary { op, lhs, rhs } => {
@@ -484,6 +602,27 @@ impl SymbolExpr {
                             Some(Value::Real(c.re))
                         } else {
                             Some(ret)
+                        }
+                    }
+                    Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => {
+                        if denominator == 1 {
+                            Some(Value::Int(numerator))
+                        } else if denominator == -1 {
+                            Some(Value::Int(-numerator))
+                        } else if numerator == 0 {
+                            Some(Value::Int(0))
+                        } else if numerator == denominator {
+                            Some(Value::Int(1))
+                        } else {
+                            let gcd = _gcd(numerator.unsigned_abs(), denominator.unsigned_abs());
+                            if gcd == denominator.unsigned_abs() {
+                                Some(Value::Int(numerator / denominator))
+                            } else {
+                                Some(Value::Real(numerator as f64 / denominator as f64))
+                            }
                         }
                     }
                 }
@@ -682,6 +821,10 @@ impl SymbolExpr {
                 Value::Real(r) => Some(r),
                 Value::Int(r) => Some(r as f64),
                 Value::Complex(c) => Some(c.re),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => Some(numerator as f64 / denominator as f64),
             },
             None => None,
         }
@@ -693,6 +836,7 @@ impl SymbolExpr {
                 Value::Real(_) => Some(0.0),
                 Value::Int(_) => Some(0.0),
                 Value::Complex(c) => Some(c.im),
+                Value::Fraction { .. } => Some(0.0),
             },
             None => None,
         }
@@ -704,6 +848,10 @@ impl SymbolExpr {
                 Value::Real(r) => Some(r.into()),
                 Value::Int(i) => Some((i as f64).into()),
                 Value::Complex(c) => Some(c),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => Some((numerator as f64 / denominator as f64).into()),
             },
             None => None,
         }
@@ -718,6 +866,22 @@ impl SymbolExpr {
             SymbolExpr::Binary { op: _, lhs, rhs } => {
                 let mut symbols = HashSet::<String>::new();
                 for s in lhs.symbols().union(&rhs.symbols()) {
+                    symbols.insert(s.to_string());
+                }
+                symbols
+            }
+        }
+    }
+
+    /// return hashset of all symbols this equation contains
+    pub fn symbols_in_string(&self) -> HashSet<String> {
+        match self {
+            SymbolExpr::Symbol(s) => HashSet::<String>::from([s.as_ref().clone()]),
+            SymbolExpr::Value(_) => HashSet::<String>::new(),
+            SymbolExpr::Unary { op: _, expr } => expr.symbols_in_string(),
+            SymbolExpr::Binary { op: _, lhs, rhs } => {
+                let mut symbols = HashSet::<String>::new();
+                for s in lhs.symbols_in_string().union(&rhs.symbols_in_string()) {
                     symbols.insert(s.to_string());
                 }
                 symbols
@@ -818,6 +982,7 @@ impl SymbolExpr {
                 Value::Real(_) => Some(true),
                 Value::Int(_) => Some(false),
                 Value::Complex(c) => Some((-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)),
+                Value::Fraction { .. } => Some(false),
             },
             None => None,
         }
@@ -1161,28 +1326,98 @@ impl SymbolExpr {
                         rhs: r_rhs,
                     } = rhs
                     {
-                        if op == rop {
-                            if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
-                                if let (SymbolExpr::Value(rv), SymbolExpr::Value(lv)) =
-                                    (l_lhs.as_ref(), r_lhs.as_ref())
-                                {
-                                    if l_rhs.expand().to_string() == r_rhs.expand().to_string() {
-                                        return match SymbolExpr::Value(rv + lv)
-                                            .mul_opt(l_rhs, recursive)
-                                        {
-                                            Some(e) => Some(e),
-                                            None => Some(_mul(
-                                                SymbolExpr::Value(rv + lv),
-                                                l_rhs.as_ref().clone(),
-                                            )),
+                        match (
+                            l_lhs.as_ref(),
+                            l_rhs.as_ref(),
+                            r_lhs.as_ref(),
+                            r_rhs.as_ref(),
+                        ) {
+                            (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
+                                if l_rhs.expand().to_string() == r_rhs.expand().to_string() {
+                                    let t = SymbolExpr::Value(lv + rv);
+                                    if t.is_zero() {
+                                        return Some(SymbolExpr::Value(Value::Int(0)));
+                                    }
+                                    match (op, rop) {
+                                        (BinaryOp::Mul, BinaryOp::Mul) => {
+                                            return match t.mul_opt(l_rhs, recursive) {
+                                                Some(e) => Some(e),
+                                                None => Some(_mul(t, l_rhs.as_ref().clone())),
+                                            }
+                                        }
+                                        (BinaryOp::Div, BinaryOp::Div) => {
+                                            return match t.div_opt(l_rhs, recursive) {
+                                                Some(e) => Some(e),
+                                                None => Some(_div(t, l_rhs.as_ref().clone())),
+                                            }
+                                        }
+                                        (BinaryOp::Pow, BinaryOp::Pow) => {
+                                            return match t.pow_opt(l_rhs) {
+                                                Some(e) => Some(e),
+                                                None => Some(_pow(t, l_rhs.as_ref().clone())),
+                                            }
+                                        }
+                                        (_, _) => (),
+                                    }
+                                }
+                            }
+                            (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
+                                if let (BinaryOp::Div, BinaryOp::Div) = (op, rop) {
+                                    if l_lhs.expand().to_string() == r_lhs.expand().to_string()
+                                        || _neg(l_lhs.as_ref().clone()).expand().to_string()
+                                            == r_lhs.expand().to_string()
+                                    {
+                                        let tl =
+                                            _mul(SymbolExpr::Value(*rv), l_lhs.as_ref().clone());
+                                        let tr =
+                                            _mul(SymbolExpr::Value(*lv), r_lhs.as_ref().clone());
+                                        let b = SymbolExpr::Value(lv * rv);
+                                        return match tl.add_opt(&tr, recursive) {
+                                            Some(e) => Some(_div(e, b)),
+                                            None => Some(_div(_add(tl, tr), b)),
                                         };
                                     }
                                 }
-
-                                if let Some(e) = rhs.neg_opt() {
-                                    if self.expand().to_string() == e.expand().to_string() {
-                                        return Some(SymbolExpr::Value(Value::Int(0)));
+                            }
+                            (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
+                                if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop) {
+                                    if l_rhs.expand().to_string() == r_lhs.expand().to_string()
+                                        || _neg(l_rhs.as_ref().clone()).expand().to_string()
+                                            == r_lhs.expand().to_string()
+                                    {
+                                        let r = _mul(
+                                            SymbolExpr::Value(Value::Real(1.0) / *rv),
+                                            r_lhs.as_ref().clone(),
+                                        );
+                                        if let Some(e) = self.add_opt(&r, recursive) {
+                                            return Some(e);
+                                        }
                                     }
+                                }
+                            }
+                            (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
+                                if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop) {
+                                    if l_lhs.expand().to_string() == r_rhs.expand().to_string()
+                                        || _neg(l_lhs.as_ref().clone()).expand().to_string()
+                                            == r_rhs.expand().to_string()
+                                    {
+                                        let l = _mul(
+                                            SymbolExpr::Value(Value::Real(1.0) / *lv),
+                                            l_lhs.as_ref().clone(),
+                                        );
+                                        if let Some(e) = l.add_opt(rhs, recursive) {
+                                            return Some(e);
+                                        }
+                                    }
+                                }
+                            }
+                            (_, _, _, _) => (),
+                        }
+
+                        if op == rop {
+                            if let Some(e) = rhs.neg_opt() {
+                                if self.expand().to_string() == e.expand().to_string() {
+                                    return Some(SymbolExpr::Value(Value::Int(0)));
                                 }
                             }
                         }
@@ -1456,27 +1691,96 @@ impl SymbolExpr {
                         rhs: r_rhs,
                     } = rhs
                     {
-                        if op == rop {
-                            if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
-                                if let (SymbolExpr::Value(rv), SymbolExpr::Value(lv)) =
-                                    (l_lhs.as_ref(), r_lhs.as_ref())
-                                {
-                                    if l_rhs.expand().to_string() == r_rhs.expand().to_string() {
-                                        return match SymbolExpr::Value(rv - lv)
-                                            .mul_opt(l_rhs, recursive)
-                                        {
-                                            Some(e) => Some(e),
-                                            None => Some(_mul(
-                                                SymbolExpr::Value(rv - lv),
-                                                l_rhs.as_ref().clone(),
-                                            )),
+                        match (
+                            l_lhs.as_ref(),
+                            l_rhs.as_ref(),
+                            r_lhs.as_ref(),
+                            r_rhs.as_ref(),
+                        ) {
+                            (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
+                                if l_rhs.expand().to_string() == r_rhs.expand().to_string() {
+                                    let t = SymbolExpr::Value(lv - rv);
+                                    if t.is_zero() {
+                                        return Some(SymbolExpr::Value(Value::Int(0)));
+                                    }
+                                    match (op, rop) {
+                                        (BinaryOp::Mul, BinaryOp::Mul) => {
+                                            return match t.mul_opt(l_rhs, recursive) {
+                                                Some(e) => Some(e),
+                                                None => Some(_mul(t, l_rhs.as_ref().clone())),
+                                            }
+                                        }
+                                        (BinaryOp::Div, BinaryOp::Div) => {
+                                            return match t.div_opt(l_rhs, recursive) {
+                                                Some(e) => Some(e),
+                                                None => Some(_div(t, l_rhs.as_ref().clone())),
+                                            }
+                                        }
+                                        (BinaryOp::Pow, BinaryOp::Pow) => {
+                                            return match t.pow_opt(l_rhs) {
+                                                Some(e) => Some(e),
+                                                None => Some(_pow(t, l_rhs.as_ref().clone())),
+                                            }
+                                        }
+                                        (_, _) => (),
+                                    }
+                                }
+                            }
+                            (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
+                                if let (BinaryOp::Div, BinaryOp::Div) = (op, rop) {
+                                    if l_lhs.expand().to_string() == r_lhs.expand().to_string()
+                                        || _neg(l_lhs.as_ref().clone()).expand().to_string()
+                                            == r_lhs.expand().to_string()
+                                    {
+                                        let tl =
+                                            _mul(SymbolExpr::Value(*rv), l_lhs.as_ref().clone());
+                                        let tr =
+                                            _mul(SymbolExpr::Value(*lv), r_lhs.as_ref().clone());
+                                        let b = SymbolExpr::Value(lv * rv);
+                                        return match tl.sub_opt(&tr, recursive) {
+                                            Some(e) => Some(_div(e, b)),
+                                            None => Some(_div(_sub(tl, tr), b)),
                                         };
                                     }
                                 }
-                                if self.expand().to_string() == rhs.expand().to_string() {
-                                    return Some(SymbolExpr::Value(Value::Int(0)));
+                            }
+                            (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
+                                if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop) {
+                                    if l_rhs.expand().to_string() == r_lhs.expand().to_string()
+                                        || _neg(l_rhs.as_ref().clone()).expand().to_string()
+                                            == r_lhs.expand().to_string()
+                                    {
+                                        let r = _mul(
+                                            SymbolExpr::Value(Value::Real(1.0) / *rv),
+                                            r_lhs.as_ref().clone(),
+                                        );
+                                        if let Some(e) = self.sub_opt(&r, recursive) {
+                                            return Some(e);
+                                        }
+                                    }
                                 }
                             }
+                            (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
+                                if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop) {
+                                    if l_lhs.expand().to_string() == r_rhs.expand().to_string()
+                                        || _neg(l_lhs.as_ref().clone()).expand().to_string()
+                                            == r_rhs.expand().to_string()
+                                    {
+                                        let l = _mul(
+                                            SymbolExpr::Value(Value::Real(1.0) / *lv),
+                                            l_lhs.as_ref().clone(),
+                                        );
+                                        if let Some(e) = l.sub_opt(rhs, recursive) {
+                                            return Some(e);
+                                        }
+                                    }
+                                }
+                            }
+                            (_, _, _, _) => (),
+                        }
+
+                        if op == rop && self.expand().to_string() == rhs.expand().to_string() {
+                            return Some(SymbolExpr::Value(Value::Int(0)));
                         }
                     } else if let SymbolExpr::Symbol(r) = rhs {
                         if let (
@@ -1755,25 +2059,134 @@ impl SymbolExpr {
                                 op: rop,
                                 lhs: r_lhs,
                                 rhs: r_rhs,
-                            } => match (l_lhs.as_ref(), r_lhs.as_ref()) {
-                                (SymbolExpr::Value(lv), SymbolExpr::Value(rv)) => match (op, rop) {
-                                    (BinaryOp::Mul, BinaryOp::Mul) => Some(_mul(
-                                        SymbolExpr::Value(lv * rv),
-                                        _mul(l_rhs.as_ref().clone(), r_rhs.as_ref().clone()),
-                                    )),
-                                    (BinaryOp::Mul, BinaryOp::Div) => Some(_mul(
-                                        SymbolExpr::Value(lv * rv),
-                                        _div(l_rhs.as_ref().clone(), r_rhs.as_ref().clone()),
-                                    )),
-                                    (BinaryOp::Div, BinaryOp::Mul) => Some(_mul(
-                                        SymbolExpr::Value(lv * rv),
-                                        _div(r_rhs.as_ref().clone(), l_rhs.as_ref().clone()),
-                                    )),
-                                    (BinaryOp::Div, BinaryOp::Div) => Some(_div(
-                                        SymbolExpr::Value(lv * rv),
-                                        _mul(l_rhs.as_ref().clone(), r_rhs.as_ref().clone()),
-                                    )),
-                                    (_, _) => None,
+                            } => match (op, rop) {
+                                (BinaryOp::Mul, BinaryOp::Mul) => match (
+                                    l_lhs.as_ref(),
+                                    l_rhs.as_ref(),
+                                    r_lhs.as_ref(),
+                                    r_rhs.as_ref(),
+                                ) {
+                                    (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv * rv),
+                                            _mul(l_rhs.as_ref().clone(), r_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (SymbolExpr::Value(lv), _, _, SymbolExpr::Value(rv)) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv * rv),
+                                            _mul(l_rhs.as_ref().clone(), r_lhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, SymbolExpr::Value(lv), SymbolExpr::Value(rv), _) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv * rv),
+                                            _mul(l_lhs.as_ref().clone(), r_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv * rv),
+                                            _mul(l_lhs.as_ref().clone(), r_lhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, _, _, _) => None,
+                                },
+                                (BinaryOp::Mul, BinaryOp::Div) => match (
+                                    l_lhs.as_ref(),
+                                    l_rhs.as_ref(),
+                                    r_lhs.as_ref(),
+                                    r_rhs.as_ref(),
+                                ) {
+                                    (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv * rv),
+                                            _div(l_rhs.as_ref().clone(), r_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (SymbolExpr::Value(lv), _, _, SymbolExpr::Value(rv)) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv / rv),
+                                            _mul(l_rhs.as_ref().clone(), r_lhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, SymbolExpr::Value(lv), SymbolExpr::Value(rv), _) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv * rv),
+                                            _div(l_lhs.as_ref().clone(), r_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv / rv),
+                                            _mul(l_lhs.as_ref().clone(), r_lhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, _, _, _) => None,
+                                },
+                                (BinaryOp::Div, BinaryOp::Mul) => match (
+                                    l_lhs.as_ref(),
+                                    l_rhs.as_ref(),
+                                    r_lhs.as_ref(),
+                                    r_rhs.as_ref(),
+                                ) {
+                                    (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv * rv),
+                                            _div(r_rhs.as_ref().clone(), l_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (SymbolExpr::Value(lv), _, _, SymbolExpr::Value(rv)) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv * rv),
+                                            _div(r_lhs.as_ref().clone(), l_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, SymbolExpr::Value(lv), SymbolExpr::Value(rv), _) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(rv / lv),
+                                            _mul(l_lhs.as_ref().clone(), r_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(rv / lv),
+                                            _mul(l_lhs.as_ref().clone(), r_lhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, _, _, _) => None,
+                                },
+                                (BinaryOp::Div, BinaryOp::Div) => match (
+                                    l_lhs.as_ref(),
+                                    l_rhs.as_ref(),
+                                    r_lhs.as_ref(),
+                                    r_rhs.as_ref(),
+                                ) {
+                                    (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
+                                        Some(_div(
+                                            SymbolExpr::Value(lv * rv),
+                                            _mul(l_rhs.as_ref().clone(), r_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (SymbolExpr::Value(lv), _, _, SymbolExpr::Value(rv)) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(lv / rv),
+                                            _div(r_lhs.as_ref().clone(), l_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, SymbolExpr::Value(lv), SymbolExpr::Value(rv), _) => {
+                                        Some(_mul(
+                                            SymbolExpr::Value(rv / lv),
+                                            _div(l_lhs.as_ref().clone(), r_rhs.as_ref().clone()),
+                                        ))
+                                    }
+                                    (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
+                                        Some(_div(
+                                            _mul(l_lhs.as_ref().clone(), r_lhs.as_ref().clone()),
+                                            SymbolExpr::Value(lv * rv),
+                                        ))
+                                    }
+                                    (_, _, _, _) => None,
                                 },
                                 (_, _) => None,
                             },
@@ -1961,29 +2374,26 @@ impl SymbolExpr {
                 Some(SymbolExpr::Value(Value::Real(1.0)))
             }
         } else {
-            if let SymbolExpr::Value(v) = rhs {
-                if let Value::Real(r) = v {
-                    let t = 1.0 / r;
-                    if &(1.0 / t) == r {
-                        if recursive {
-                            return self.mul_opt(&SymbolExpr::Value(Value::Real(t)), recursive);
-                        } else {
-                            return Some(&SymbolExpr::Value(Value::Real(t)) * self);
-                        }
-                    }
-                } else if let Value::Int(i) = v {
-                    let a = i.unsigned_abs();
-                    if ((a - 1) & a) == 0 {
-                        if recursive {
-                            return self.mul_opt(
-                                &SymbolExpr::Value(Value::Real(1.0 / (*i as f64))),
-                                recursive,
-                            );
-                        } else {
-                            return Some(&SymbolExpr::Value(Value::Real(1.0 / (*i as f64))) * self);
-                        }
+            if let SymbolExpr::Value(Value::Real(r)) = rhs {
+                let t = 1.0 / r;
+                if &(1.0 / t) == r {
+                    if recursive {
+                        return self.mul_opt(&SymbolExpr::Value(Value::Real(t)), recursive);
+                    } else {
+                        return Some(&SymbolExpr::Value(Value::Real(t)) * self);
                     }
                 }
+            } else if let SymbolExpr::Value(Value::Int(i)) = rhs {
+                return self.mul_opt(&SymbolExpr::Value(_fraction(1, *i)), recursive);
+            } else if let SymbolExpr::Value(Value::Fraction {
+                numerator,
+                denominator,
+            }) = rhs
+            {
+                return self.mul_opt(
+                    &SymbolExpr::Value(_fraction(*denominator, *numerator)),
+                    recursive,
+                );
             }
 
             match self {
@@ -2204,6 +2614,16 @@ impl SymbolExpr {
         }
     }
 
+    /// pow with heuristic optimization
+    fn pow_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
+        if self.is_zero() || rhs.is_one() {
+            return Some(self.clone());
+        } else if rhs.is_zero() {
+            return Some(SymbolExpr::Value(Value::Int(1)));
+        }
+        None
+    }
+
     /// optimization for neg
     fn neg_opt(&self) -> Option<SymbolExpr> {
         match self {
@@ -2282,6 +2702,23 @@ impl SymbolExpr {
                     BinaryOp::Pow => _pow(opt_lhs, opt_rhs),
                 }
             }
+        }
+    }
+
+    // convert sympy compatible format
+    pub fn sympify(&self) -> SymbolExpr {
+        match self {
+            SymbolExpr::Symbol { .. } => self.clone(),
+            SymbolExpr::Value(e) => e.sympify(),
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
+                op: op.clone(),
+                expr: Box::new(expr.sympify()),
+            },
+            SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
+                op: op.clone(),
+                lhs: Box::new(lhs.sympify()),
+                rhs: Box::new(rhs.sympify()),
+            },
         }
     }
 }
@@ -2534,6 +2971,10 @@ impl fmt::Display for Value {
                         e.to_string()
                     }
                 }
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => format!("{}/{}", numerator, denominator),
             }
         )
     }
@@ -2548,6 +2989,10 @@ impl Value {
             Value::Real(e) => *e,
             Value::Int(e) => *e as f64,
             Value::Complex(e) => e.re,
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => *numerator as f64 / *denominator as f64,
         }
     }
 
@@ -2556,6 +3001,10 @@ impl Value {
             Value::Real(e) => Value::Real(e.abs()),
             Value::Int(e) => Value::Int(e.abs()),
             Value::Complex(e) => Value::Real((e.re * e.re + e.im * e.im).sqrt()),
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => _fraction(numerator.abs(), denominator.abs()),
         }
     }
 
@@ -2570,6 +3019,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real().sin()),
         }
     }
     pub fn asin(&self) -> Value {
@@ -2583,6 +3033,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real().asin()),
         }
     }
     pub fn cos(&self) -> Value {
@@ -2596,6 +3047,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real().cos()),
         }
     }
     pub fn acos(&self) -> Value {
@@ -2609,6 +3061,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real().acos()),
         }
     }
     pub fn tan(&self) -> Value {
@@ -2622,6 +3075,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real().tan()),
         }
     }
     pub fn atan(&self) -> Value {
@@ -2635,6 +3089,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real().atan()),
         }
     }
     pub fn exp(&self) -> Value {
@@ -2648,6 +3103,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real().exp()),
         }
     }
     pub fn log(&self) -> Value {
@@ -2667,6 +3123,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real()).log(),
         }
     }
     pub fn sqrt(&self) -> Value {
@@ -2698,6 +3155,7 @@ impl Value {
                     None => t,
                 }
             }
+            Value::Fraction { .. } => Value::Real(self.as_real().sqrt()),
         }
     }
     pub fn pow(&self, p: &Value) -> Value {
@@ -2712,6 +3170,7 @@ impl Value {
                 }
                 Value::Int(i) => Value::Real(e.powf(*i as f64)),
                 Value::Complex(_) => Value::Complex(Complex64::from(e)).pow(p),
+                Value::Fraction { .. } => self.pow(&Value::Real(p.as_real())),
             },
             Value::Int(e) => match p {
                 Value::Real(r) => {
@@ -2735,17 +3194,30 @@ impl Value {
                     }
                 }
                 Value::Complex(_) => Value::Complex(Complex64::from(*e as f64)).pow(p),
+                Value::Fraction { .. } => self.pow(&Value::Real(p.as_real())),
             },
             Value::Complex(e) => {
                 let t = match p {
                     Value::Real(r) => Value::Complex(e.powf(*r)),
                     Value::Int(r) => Value::Complex(e.powf(*r as f64)),
                     Value::Complex(r) => Value::Complex(e.powc(*r)),
+                    Value::Fraction { .. } => self.pow(&Value::Real(p.as_real())),
                 };
                 match t.opt_complex() {
                     Some(v) => v,
                     None => t,
                 }
+            }
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => {
+                if let Value::Int(i) = p {
+                    if *i >= 0 {
+                        return _fraction(numerator.pow(*i as u32), denominator.pow(*i as u32));
+                    }
+                }
+                Value::Real(self.as_real()).pow(p)
             }
         }
     }
@@ -2762,6 +3234,10 @@ impl Value {
                 }
             }
             Value::Complex(e) => Value::Complex(1.0 / e),
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => _fraction(*denominator, *numerator),
         }
     }
     pub fn sign(&self) -> Value {
@@ -2785,6 +3261,24 @@ impl Value {
                 }
             }
             Value::Complex(_) => *self,
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => {
+                if *numerator > 0 {
+                    if *denominator > 0 {
+                        Value::Int(1)
+                    } else {
+                        Value::Int(-1)
+                    }
+                } else if *numerator == 0 {
+                    Value::Int(0)
+                } else if *denominator > 0 {
+                    Value::Int(-1)
+                } else {
+                    Value::Int(1)
+                }
+            }
         }
     }
 
@@ -2796,6 +3290,7 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
+            Value::Fraction { numerator, .. } => *numerator == 0,
         }
     }
     pub fn is_one(&self) -> bool {
@@ -2806,6 +3301,10 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re - 1.0))
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => *numerator == *denominator,
         }
     }
     pub fn is_minus_one(&self) -> bool {
@@ -2816,6 +3315,10 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re + 1.0))
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => *numerator == -denominator,
         }
     }
 
@@ -2827,6 +3330,7 @@ impl Value {
                 (c.re < 0.0 && c.im < SYMEXPR_EPSILON && c.im > -SYMEXPR_EPSILON)
                     || (c.im < 0.0 && c.re < SYMEXPR_EPSILON && c.re > -SYMEXPR_EPSILON)
             }
+            Value::Fraction { .. } => self.sign() == Value::Int(-1),
         }
     }
 
@@ -2941,6 +3445,21 @@ impl Value {
             _ => None,
         }
     }
+
+    // convert sympy compatible format
+    pub fn sympify(&self) -> SymbolExpr {
+        match self {
+            // imaginary number is comverted to value * symbol 'I'
+            Value::Complex(c) => _add(
+                SymbolExpr::Value(Value::Real(c.re)),
+                _mul(
+                    SymbolExpr::Value(Value::Real(c.im)),
+                    SymbolExpr::Symbol(Box::new("I".to_string())),
+                ),
+            ),
+            _ => SymbolExpr::Value(*self),
+        }
+    }
 }
 
 impl From<f64> for Value {
@@ -2980,16 +3499,46 @@ impl Add for Value {
                 Value::Real(r) => Value::Real(l + r),
                 Value::Int(r) => Value::Real(l + r as f64),
                 Value::Complex(r) => Value::Complex(l + r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => Value::Real((l * denominator as f64 + numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 + r),
                 Value::Int(r) => Value::Int(l + r),
                 Value::Complex(r) => Value::Complex(l as f64 + r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => _fraction(l * denominator + numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l + r),
                 Value::Int(r) => Value::Complex(l + r as f64),
                 Value::Complex(r) => Value::Complex(l + r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => {
+                    Value::Complex((l * denominator as f64 + numerator as f64) / denominator as f64)
+                }
+            },
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => {
+                    Value::Real((numerator as f64 + r * denominator as f64) / denominator as f64)
+                }
+                Value::Int(r) => _fraction(numerator + r * denominator, denominator),
+                Value::Complex(r) => {
+                    Value::Complex((numerator as f64 + r * denominator as f64) / denominator as f64)
+                }
+                Value::Fraction {
+                    numerator: rn,
+                    denominator: rd,
+                } => _fraction(rd * numerator + denominator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -3014,16 +3563,46 @@ impl Sub for Value {
                 Value::Real(r) => Value::Real(l - r),
                 Value::Int(r) => Value::Real(l - r as f64),
                 Value::Complex(r) => Value::Complex(l - r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => Value::Real((l * denominator as f64 - numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 - r),
                 Value::Int(r) => Value::Int(l - r),
                 Value::Complex(r) => Value::Complex(l as f64 - r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => _fraction(l * denominator - numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l - r),
                 Value::Int(r) => Value::Complex(l - r as f64),
                 Value::Complex(r) => Value::Complex(l - r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => {
+                    Value::Complex((l * denominator as f64 - numerator as f64) / denominator as f64)
+                }
+            },
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => {
+                    Value::Real((numerator as f64 - r * denominator as f64) / denominator as f64)
+                }
+                Value::Int(r) => _fraction(numerator - r * denominator, denominator),
+                Value::Complex(r) => {
+                    Value::Complex((numerator as f64 - r * denominator as f64) / denominator as f64)
+                }
+                Value::Fraction {
+                    numerator: rn,
+                    denominator: rd,
+                } => _fraction(rd * numerator - denominator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -3048,16 +3627,40 @@ impl Mul for Value {
                 Value::Real(r) => Value::Real(l * r),
                 Value::Int(r) => Value::Real(l * r as f64),
                 Value::Complex(r) => Value::Complex(l * r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => Value::Real((l * numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 * r),
                 Value::Int(r) => Value::Int(l * r),
                 Value::Complex(r) => Value::Complex(l as f64 * r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => _fraction(l * numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l * r),
                 Value::Int(r) => Value::Complex(l * r as f64),
                 Value::Complex(r) => Value::Complex(l * r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => Value::Complex((l * numerator as f64) / denominator as f64),
+            },
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => Value::Real((numerator as f64 * r) / denominator as f64),
+                Value::Int(r) => _fraction(numerator * r, denominator),
+                Value::Complex(r) => Value::Complex((numerator as f64 * r) / denominator as f64),
+                Value::Fraction {
+                    numerator: rn,
+                    denominator: rd,
+                } => _fraction(numerator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -3082,9 +3685,13 @@ impl Div for Value {
                 Value::Real(r) => Value::Real(l / r),
                 Value::Int(r) => Value::Real(l / r as f64),
                 Value::Complex(r) => Value::Complex(l / r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => Value::Real(l * denominator as f64 / numerator as f64),
             },
             Value::Int(l) => {
-                if rhs == 0.0 {
+                if rhs.is_zero() {
                     return Value::Real(f64::INFINITY);
                 }
                 match rhs {
@@ -3099,12 +3706,32 @@ impl Div for Value {
                         }
                     }
                     Value::Complex(r) => Value::Complex(l as f64 / r),
+                    Value::Fraction {
+                        numerator,
+                        denominator,
+                    } => _fraction(l * denominator, numerator),
                 }
             }
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l / r),
                 Value::Int(r) => Value::Complex(l / r as f64),
                 Value::Complex(r) => Value::Complex(l / r),
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => Value::Complex((l * denominator as f64) / numerator as f64),
+            },
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => Value::Real(numerator as f64 / (denominator as f64 * r)),
+                Value::Int(r) => _fraction(numerator, denominator * r),
+                Value::Complex(r) => Value::Complex(numerator as f64 / (denominator as f64 * r)),
+                Value::Fraction {
+                    numerator: rn,
+                    denominator: rd,
+                } => _fraction(numerator * rd, denominator * rn),
             },
         };
         match t.opt_complex() {
@@ -3128,6 +3755,10 @@ impl Neg for Value {
             Value::Real(v) => Value::Real(-v),
             Value::Int(v) => Value::Int(-v),
             Value::Complex(v) => Value::Complex(-v),
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => _fraction(-numerator, denominator),
         }
     }
 }
@@ -3143,6 +3774,11 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
+                    .contains(&(e * *denominator as f64 - *numerator as f64)),
             },
             Value::Int(e) => match r {
                 Value::Int(rv) => e == rv,
@@ -3152,6 +3788,10 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => e * *denominator == *numerator,
             },
             Value::Complex(e) => match r {
                 Value::Real(rv) => {
@@ -3169,6 +3809,31 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => {
+                    let t = *e * *denominator as f64 - *numerator as f64;
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
+                }
+            },
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => match r {
+                Value::Int(rv) => *numerator == rv * *denominator,
+                Value::Real(rv) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
+                    .contains(&(*numerator as f64 - rv * *denominator as f64)),
+                Value::Complex(rv) => {
+                    let t = rv * *denominator as f64 - *numerator as f64;
+                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
+                }
+                Value::Fraction {
+                    numerator: rn,
+                    denominator: rd,
+                } => *denominator * *rn == *numerator * *rd,
             },
         }
     }
@@ -3184,6 +3849,11 @@ impl PartialEq<f64> for Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
+                .contains(&(*numerator as f64 - r * *denominator as f64)),
         }
     }
 }
@@ -3206,6 +3876,14 @@ impl PartialEq<Complex64> for Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => {
+                let t = r * *denominator as f64 - *numerator as f64;
+                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
+                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
+            }
         }
     }
 }
@@ -3217,13 +3895,65 @@ impl PartialOrd for Value {
                 Value::Real(r) => l.partial_cmp(r),
                 Value::Int(r) => l.partial_cmp(&(*r as f64)),
                 Value::Complex(_) => None,
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => (l * *denominator as f64).partial_cmp(&(*numerator as f64)),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => (*l as f64).partial_cmp(r),
                 Value::Int(r) => l.partial_cmp(r),
                 Value::Complex(_) => None,
+                Value::Fraction {
+                    numerator,
+                    denominator,
+                } => (l * *denominator).partial_cmp(numerator),
             },
             Value::Complex(_) => None,
+            Value::Fraction {
+                numerator,
+                denominator,
+            } => match rhs {
+                Value::Real(r) => (*numerator as f64).partial_cmp(&(r * *denominator as f64)),
+                Value::Int(r) => numerator.partial_cmp(&(r * *denominator)),
+                Value::Complex(_) => None,
+                Value::Fraction {
+                    numerator: rn,
+                    denominator: rd,
+                } => (rd * *numerator).partial_cmp(&(rn * *denominator)),
+            },
         }
+    }
+}
+
+fn _gcd(a: u64, b: u64) -> u64 {
+    if b > a {
+        return _gcd(b, a);
+    }
+    if b == 0 {
+        a
+    } else {
+        _gcd(b, a % b)
+    }
+}
+
+fn _fraction(numerator: i64, denominator: i64) -> Value {
+    if numerator == 0 {
+        return Value::Int(0);
+    }
+    let mut ret_n = numerator;
+    let mut ret_d = denominator;
+    let gcd = _gcd(numerator.unsigned_abs(), denominator.unsigned_abs());
+    if gcd > 1 {
+        ret_n /= gcd as i64;
+        ret_d /= gcd as i64;
+    }
+    if numerator != 0 && denominator < 0 {
+        ret_n = -ret_n;
+        ret_d = -ret_d;
+    }
+    Value::Fraction {
+        numerator: ret_n,
+        denominator: ret_d,
     }
 }

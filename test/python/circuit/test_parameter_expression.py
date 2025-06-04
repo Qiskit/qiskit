@@ -487,7 +487,7 @@ class TestParameterExpression(QiskitTestCase):
         )
         final_expr = final_expr.abs()
         final_expr = final_expr.subs({c: a})
-        result = final_expr.sympify()
+        result = sympy.sympify(final_expr.sympify())
 
         a = sympy.Symbol("a")
         b = sympy.Symbol("b")
