@@ -1121,6 +1121,45 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_parameter_vector_equality(self):
+        """Test parameter vector equality after serialization."""
+
+        def dump_load_param_vec(qc):
+            params = qc.parameters
+            vector = qc.parameters[0].vector
+            qpy_file = io.BytesIO()
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circuit = load(qpy_file)[0]
+            new_params = new_circuit.parameters
+            new_vector = new_circuit.parameters[0].vector
+            return params, new_params, vector, new_vector
+
+        with self.subTest("manual"):
+            x = ParameterVector("γ", 2)
+            qc = QuantumCircuit(3)
+            qc.rzz(x[0], 0, 1)
+            with self.assertWarns(UserWarning):
+                params, new_params, vector, new_vector = dump_load_param_vec(qc)
+
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            # vector[0] is part of the circuit
+            self.assertTrue(vector[0] == new_vector[0])
+            # vector[1] is not part of the circuit
+            self.assertTrue(vector[1] != new_vector[1])
+
+        with self.subTest("real_amplitudes"):
+            qc = real_amplitudes(2, reps=1)
+            params, new_params, vector, new_vector = dump_load_param_vec(qc)
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            self.assertTrue(all(p == q for p, q in zip(vector, new_vector)))
+
+        with self.subTest("zz_feature_map"):
+            qc = zz_feature_map(2, reps=1)
+            params, new_params, vector, new_vector = dump_load_param_vec(qc)
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            self.assertTrue(all(p == q for p, q in zip(vector, new_vector)))
+
     def test_parameter_vector_element_in_expression(self):
         """Test a circuit with a parameter vector used in a parameter expression."""
         qc = QuantumCircuit(7)
