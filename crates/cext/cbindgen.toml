@@ -22,7 +22,7 @@ after_includes = """
 
 [parse]
 parse_deps = true
-include = ["qiskit-quantum-info", "qiskit-circuit"]
+include = ["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"]
 
 [enum]
 prefix_with_name = true
@@ -38,3 +38,4 @@ prefix_with_name = true
 "OpCount" = "QkOpCount"
 "CInstruction" = "QkCircuitInstruction"
 "ExitCode" = "QkExitCode"
+"CommutationChecker" = "QkCommutationCache"

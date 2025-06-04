@@ -167,14 +167,8 @@ impl CommutationChecker {
         cache_max_entries: usize,
         gates: Option<HashSet<String>>,
     ) -> Self {
-        // Initialize sets before they are used in the commutation checker
-        CommutationChecker {
-            library: CommutationLibrary::new(standard_gate_commutations),
-            cache: HashMap::new(),
-            cache_max_entries,
-            current_cache_entries: 0,
-            gates,
-        }
+        let library = CommutationLibrary::py_new(standard_gate_commutations);
+        CommutationChecker::new(Some(library), cache_max_entries, gates)
     }
 
     #[pyo3(signature=(op1, op2, max_num_qubits=3, approximation_degree=1.))]
@@ -291,6 +285,29 @@ impl CommutationChecker {
 }
 
 impl CommutationChecker {
+    /// Create a new commutation checker.
+    ///
+    /// # Arguments
+    ///
+    /// - `library`: An optional existing [CommutationLibrary] with cached entries.
+    /// - `cache_max_entries`: The maximum size of the cache.
+    /// - `gates`: An optional set of gates (by name) to check commutations for. If `None`,
+    ///     commutation is cached and checked for all gates.
+    pub fn new(
+        library: Option<CommutationLibrary>,
+        cache_max_entries: usize,
+        gates: Option<HashSet<String>>,
+    ) -> Self {
+        // Initialize sets before they are used in the commutation checker
+        CommutationChecker {
+            library: library.unwrap_or(CommutationLibrary { library: None }),
+            cache: HashMap::new(),
+            cache_max_entries,
+            current_cache_entries: 0,
+            gates,
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn commute(
         &mut self,
@@ -708,7 +725,7 @@ impl CommutationLibrary {
 impl CommutationLibrary {
     #[new]
     #[pyo3(signature=(py_any=None))]
-    fn new(py_any: Option<Bound<PyAny>>) -> Self {
+    fn py_new(py_any: Option<Bound<PyAny>>) -> Self {
         match py_any {
             Some(pyob) => CommutationLibrary {
                 library: pyob

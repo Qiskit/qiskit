@@ -16,7 +16,6 @@ workspace = true
 rayon.workspace = true
 ahash.workspace = true
 rustworkx-core.workspace = true
-bytemuck.workspace = true
 bitfield-struct.workspace = true
 num-complex.workspace = true
 thiserror.workspace = true
@@ -28,7 +27,14 @@ nom-unicode.workspace = true
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
+features = [
+    "hashbrown",
+    "indexmap",
+    "num-complex",
+    "num-bigint",
+    "smallvec",
+    "py-clone",
+]
 
 [dependencies.approx]
 workspace = true
@@ -53,6 +59,10 @@ features = ["union", "const_generics"]
 [dependencies.numpy]
 workspace = true
 features = ["nalgebra"]
+
+[dependencies.bytemuck]
+workspace = true
+features = ["derive"]
 
 [features]
 cache_pygates = []
