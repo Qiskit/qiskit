@@ -13,18 +13,23 @@
 # pylint: disable=invalid-name
 
 """Binary IO for circuit objects."""
+
+from __future__ import annotations
+
 import itertools
 from collections import defaultdict
 import io
 import json
 import struct
 import uuid
+import typing
 import warnings
 
 import numpy as np
 
 from qiskit import circuit as circuit_mod
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
+from qiskit.circuit.annotation import iter_namespaces
 from qiskit.circuit.classical import expr
 from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -41,10 +46,80 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.qpy import common, formats, type_keys
+from qiskit.qpy.exceptions import QpyError, UnsupportedFeatureForVersion
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.annotation import QPYSerializer, Annotation
+
+
+class _AnnotationSerializationState:
+    def __init__(self, factories: dict[str, typing.Callable[[], QPYSerializer]]):
+        self.factories = factories
+        self.serializers = {}
+        self.potential_serializers = {}
+
+    @property
+    def num_serializers(self) -> int:
+        """The number of constructed serializers."""
+        return len(self.serializers)
+
+    def serialize(self, annotation: Annotation) -> (int, bytes):
+        """Serialize an annotation using a known serializer (initializing one, if necessary).
+
+        Returns the index of the serializer used, and the serialized annotation."""
+        for namespace in iter_namespaces(annotation.namespace):
+            if (existing := self.serializers.get(namespace, None)) is not None:
+                index, serializer = existing
+                if (out := serializer.dump_annotation(namespace, annotation)) is not NotImplemented:
+                    return index, out
+            if (serializer := self.potential_serializers.get(namespace, None)) is not None:
+                if (out := serializer.dump_annotation(namespace, annotation)) is not NotImplemented:
+                    del self.potential_serializers[namespace]
+                    index = len(self.serializers)
+                    self.serializers[namespace] = (index, serializer)
+                    return index, out
+            if (factory := self.factories.get(namespace, None)) is not None:
+                serializer = factory()
+                if (out := serializer.dump_annotation(namespace, annotation)) is NotImplemented:
+                    self.potential_serializers[namespace] = serializer
+                else:
+                    index = len(self.serializers)
+                    self.serializers[namespace] = (index, serializer)
+                    return index, out
+        raise QpyError(f"No configured annotation serializer could handle {annotation}")
+
+    def iter_serializers(self) -> typing.Iterator[tuple[str, QPYSerializer]]:
+        """Iterate over the namespaces and serializers that have had at least one successful use, in
+        order of first use."""
+        return (
+            # Python dictionaries are insertion ordered, and we assign indices in insertion order.
+            (namespace, serializer)
+            for (namespace, (_, serializer)) in self.serializers.items()
+        )
+
+
+class _AnnotationDeserializationState:
+    def __init__(self, factories: dict[str, typing.Callable[[], QPYSerializer]]):
+        self.factories = factories
+        self.deserializers = []
+
+    def initialize(self, namespace: str, payload: bytes):
+        """Initialize a suitable deserializer using the given state payload."""
+        for parent_namespace in iter_namespaces(namespace):
+            if (factory := self.factories.get(parent_namespace, None)) is not None:
+                deserializer = factory()
+                deserializer.load_state(namespace, payload)
+                self.deserializers.append(deserializer)
+                return
+        raise QpyError(f"No configured annotation deserializer matched namespace '{namespace}'")
+
+    def load(self, index: int, payload: bytes) -> Annotation:
+        """Load a payload using the deserializer of a given index."""
+        return self.deserializers[index].load_annotation(payload)
 
 
 def _read_header_v12(file_obj, version, vectors, metadata_deserializer=None):
@@ -158,6 +233,50 @@ def _read_registers(file_obj, num_registers):
     return registers
 
 
+def _read_annotation_states(file_obj, annotation_factories) -> _AnnotationDeserializationState:
+    state = _AnnotationDeserializationState(annotation_factories)
+    static_payload = formats.ANNOTATION_HEADER_STATIC._make(
+        struct.unpack(
+            formats.ANNOTATION_HEADER_STATIC_PACK,
+            file_obj.read(formats.ANNOTATION_HEADER_STATIC_SIZE),
+        )
+    )
+    for _ in range(static_payload.num_namespaces):
+        payload = formats.ANNOTATION_STATE_HEADER._make(
+            struct.unpack(
+                formats.ANNOTATION_STATE_HEADER_PACK,
+                file_obj.read(formats.ANNOTATION_STATE_HEADER_SIZE),
+            )
+        )
+        state.initialize(
+            file_obj.read(payload.namespace_size).decode("utf-8"), file_obj.read(payload.state_size)
+        )
+    return state
+
+
+def _read_instruction_annotation(file_obj, annotation_state):
+    header = formats.INSTRUCTION_ANNOTATION._make(
+        struct.unpack(
+            formats.INSTRUCTION_ANNOTATION_PACK,
+            file_obj.read(formats.INSTRUCTION_ANNOTATION_SIZE),
+        )
+    )
+    return annotation_state.load(header.namespace_index, file_obj.read(header.payload_size))
+
+
+def _read_instruction_annotations(file_obj, annotation_state):
+    header = formats.INSTRUCTION_ANNOTATIONS_HEADER._make(
+        struct.unpack(
+            formats.INSTRUCTION_ANNOTATIONS_HEADER_PACK,
+            file_obj.read(formats.INSTRUCTION_ANNOTATIONS_HEADER_SIZE),
+        )
+    )
+    return [
+        _read_instruction_annotation(file_obj, annotation_state)
+        for _ in range(header.num_annotations)
+    ]
+
+
 def _loads_instruction_parameter(
     type_key,
     data_bytes,
@@ -167,9 +286,12 @@ def _loads_instruction_parameter(
     circuit,
     use_symengine,
     standalone_vars,
+    annotation_factories,
 ):
     if type_key == type_keys.Program.CIRCUIT:
-        param = common.data_from_binary(data_bytes, read_circuit, version=version)
+        param = common.data_from_binary(
+            data_bytes, read_circuit, version=version, annotation_factories=annotation_factories
+        )
     elif type_key == type_keys.Value.MODIFIER:
         param = common.data_from_binary(data_bytes, _read_modifier)
     elif type_key == type_keys.Container.RANGE:
@@ -186,6 +308,7 @@ def _loads_instruction_parameter(
                 circuit=circuit,
                 use_symengine=use_symengine,
                 standalone_vars=standalone_vars,
+                annotation_factories=annotation_factories,
             )
         )
     elif type_key == type_keys.Value.INTEGER:
@@ -229,6 +352,7 @@ def _read_instruction(
     vectors,
     use_symengine,
     standalone_vars,
+    annotation_state,
 ):
     if version < 5:
         instruction = formats.CIRCUIT_INSTRUCTION._make(
@@ -237,6 +361,10 @@ def _read_instruction(
                 file_obj.read(formats.CIRCUIT_INSTRUCTION_SIZE),
             )
         )
+        conditional_key = (
+            type_keys.Condition.TWO_TUPLE if instruction.has_condition else type_keys.Condition.NONE
+        )
+        has_annotations = False
     else:
         instruction = formats.CIRCUIT_INSTRUCTION_V2._make(
             struct.unpack(
@@ -244,6 +372,11 @@ def _read_instruction(
                 file_obj.read(formats.CIRCUIT_INSTRUCTION_V2_SIZE),
             )
         )
+        conditional_key = type_keys.Condition(instruction.extras_key & 0b11)
+        has_annotations = bool(
+            instruction.extras_key & type_keys.InstructionExtraFlags.HAS_ANNOTATIONS
+        )
+
     gate_name = file_obj.read(instruction.name_size).decode(common.ENCODE)
     label = file_obj.read(instruction.label_size).decode(common.ENCODE)
     condition_register = file_obj.read(instruction.condition_register_size).decode(common.ENCODE)
@@ -251,14 +384,12 @@ def _read_instruction(
     cargs = []
     params = []
     condition = None
-    if (version < 5 and instruction.has_condition) or (
-        version >= 5 and instruction.conditional_key == type_keys.Condition.TWO_TUPLE
-    ):
+    if conditional_key == type_keys.Condition.TWO_TUPLE:
         condition = (
             _loads_register_param(condition_register, circuit, registers),
             instruction.condition_value,
         )
-    elif version >= 5 and instruction.conditional_key == type_keys.Condition.EXPRESSION:
+    elif conditional_key == type_keys.Condition.EXPRESSION:
         condition = value.read_value(
             file_obj,
             version,
@@ -268,6 +399,7 @@ def _read_instruction(
             use_symengine=use_symengine,
             standalone_vars=standalone_vars,
         )
+
     # Load Arguments
     if circuit is not None:
         for _qarg in range(instruction.num_qargs):
@@ -303,8 +435,14 @@ def _read_instruction(
             circuit,
             use_symengine,
             standalone_vars,
+            annotation_factories=annotation_state.factories,
         )
         params.append(param)
+
+    # Load annotations.
+    annotations = (
+        _read_instruction_annotations(file_obj, annotation_state) if has_annotations else None
+    )
 
     # Load Gate object
     if gate_name in {"Gate", "Instruction", "ControlledGate"}:
@@ -317,6 +455,7 @@ def _read_instruction(
             registers,
             use_symengine,
             standalone_vars,
+            annotation_state=annotation_state,
         )
         if condition is not None:
             warnings.warn(
@@ -346,6 +485,7 @@ def _read_instruction(
             registers,
             use_symengine,
             standalone_vars,
+            annotation_state=annotation_state,
         )
         inst_obj.condition = condition
         if instruction.label_size > 0:
@@ -371,7 +511,9 @@ def _read_instruction(
         gate = gate_class(condition, *params, label=label)
     elif gate_name == "BoxOp":
         *params, duration, unit = params
-        gate = gate_class(*params, label=label, duration=duration, unit=unit)
+        gate = gate_class(
+            *params, label=label, duration=duration, unit=unit, annotations=annotations or ()
+        )
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -460,6 +602,7 @@ def _parse_custom_operation(
     registers,
     use_symengine,
     standalone_vars,
+    annotation_state,
 ):
     if version >= 5:
         (
@@ -501,6 +644,7 @@ def _parse_custom_operation(
                 vectors,
                 use_symengine,
                 standalone_vars,
+                annotation_state=annotation_state,
             )
         if ctrl_state < 2**num_ctrl_qubits - 1:
             # If open controls, we need to discard the control suffix when setting the name.
@@ -527,6 +671,7 @@ def _parse_custom_operation(
                 vectors,
                 use_symengine,
                 standalone_vars,
+                annotation_state=annotation_state,
             )
         inst_obj = AnnotatedOperation(base_op=base_gate, modifiers=params)
         return inst_obj
@@ -595,7 +740,7 @@ def _read_modifier(file_obj):
         raise TypeError("Unsupported modifier.")
 
 
-def _read_custom_operations(file_obj, version, vectors):
+def _read_custom_operations(file_obj, version, vectors, annotation_state):
     custom_operations = {}
     custom_definition_header = formats.CUSTOM_CIRCUIT_DEF_HEADER._make(
         struct.unpack(
@@ -627,7 +772,10 @@ def _read_custom_operations(file_obj, version, vectors):
                 def_binary = file_obj.read(data.size)
                 if version < 3 or not name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = common.data_from_binary(
-                        def_binary, read_circuit, version=version
+                        def_binary,
+                        read_circuit,
+                        version=version,
+                        annotation_factories=annotation_state.factories,
                     )
                 elif name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = common.data_from_binary(
@@ -684,11 +832,13 @@ def _dumps_register(register, index_map):
 
 
 def _dumps_instruction_parameter(
-    param, index_map, use_symengine, *, version, standalone_var_indices
+    param, index_map, use_symengine, *, version, standalone_var_indices, annotation_factories
 ):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
-        data_bytes = common.data_to_binary(param, write_circuit, version=version)
+        data_bytes = common.data_to_binary(
+            param, write_circuit, version=version, annotation_factories=annotation_factories
+        )
     elif isinstance(param, Modifier):
         type_key = type_keys.Value.MODIFIER
         data_bytes = common.data_to_binary(param, _write_modifier)
@@ -704,6 +854,7 @@ def _dumps_instruction_parameter(
             use_symengine=use_symengine,
             version=version,
             standalone_var_indices=standalone_var_indices,
+            annotation_factories=annotation_factories,
         )
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
@@ -736,6 +887,7 @@ def _write_instruction(
     index_map,
     use_symengine,
     version,
+    annotation_state,
     standalone_var_indices=None,
 ):
     if isinstance(instruction.operation, Instruction):
@@ -788,14 +940,14 @@ def _write_instruction(
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)
 
-    condition_type = type_keys.Condition.NONE
+    extra_type = type_keys.Condition.NONE
     condition_register = b""
     condition_value = 0
     if (op_condition := getattr(instruction.operation, "_condition", None)) is not None:
         if isinstance(op_condition, expr.Expr):
-            condition_type = type_keys.Condition.EXPRESSION
+            extra_type = type_keys.Condition.EXPRESSION
         else:
-            condition_type = type_keys.Condition.TWO_TUPLE
+            extra_type = type_keys.Condition.TWO_TUPLE
             condition_register = _dumps_register(instruction.operation._condition[0], index_map)
             condition_value = int(instruction.operation._condition[1])
 
@@ -806,6 +958,7 @@ def _write_instruction(
     else:
         label_raw = b""
 
+    annotations = []
     # The instruction params we store are about being able to reconstruct the objects; they don't
     # necessarily need to match one-to-one to the `params` field.
     if isinstance(instruction.operation, controlflow.SwitchCaseOp):
@@ -819,12 +972,19 @@ def _write_instruction(
             instruction.operation.duration,
             instruction.operation.unit,
         ]
+        annotations = [
+            annotation_state.serialize(annotation)
+            for annotation in instruction.operation.annotations
+        ]
     elif isinstance(instruction.operation, Clifford):
         instruction_params = [instruction.operation.tableau]
     elif isinstance(instruction.operation, AnnotatedOperation):
         instruction_params = instruction.operation.modifiers
     else:
         instruction_params = getattr(instruction.operation, "params", [])
+
+    if annotations:
+        extra_type |= type_keys.InstructionExtraFlags.HAS_ANNOTATIONS
 
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
@@ -835,7 +995,7 @@ def _write_instruction(
         len(instruction_params),
         instruction.operation.num_qubits,
         instruction.operation.num_clbits,
-        condition_type.value,
+        int(extra_type),
         len(condition_register),
         condition_value,
         num_ctrl_qubits,
@@ -844,6 +1004,7 @@ def _write_instruction(
     file_obj.write(instruction_raw)
     file_obj.write(gate_class_name)
     file_obj.write(label_raw)
+    condition_type = type_keys.Condition(extra_type & 0b11)
     if condition_type is type_keys.Condition.EXPRESSION:
         value.write_value(
             file_obj,
@@ -854,6 +1015,7 @@ def _write_instruction(
         )
     else:
         file_obj.write(condition_register)
+
     # Encode instruction args
     for qbit in instruction.qubits:
         instruction_arg_raw = struct.pack(
@@ -873,8 +1035,20 @@ def _write_instruction(
             use_symengine,
             version=version,
             standalone_var_indices=standalone_var_indices,
+            annotation_factories=annotation_state.factories,
         )
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
+    if annotations:
+        if version < 15:
+            raise UnsupportedFeatureForVersion("annotations", 15, version)
+        file_obj.write(struct.pack(formats.INSTRUCTION_ANNOTATIONS_HEADER_PACK, len(annotations)))
+        for serializer_index, annotation_payload in annotations:
+            file_obj.write(
+                struct.pack(
+                    formats.INSTRUCTION_ANNOTATION_PACK, serializer_index, len(annotation_payload)
+                )
+            )
+            file_obj.write(annotation_payload)
     return custom_operations_list
 
 
@@ -944,7 +1118,15 @@ def _write_modifier(file_obj, modifier):
 
 
 def _write_custom_operation(
-    file_obj, name, operation, custom_operations, use_symengine, version, *, standalone_var_indices
+    file_obj,
+    name,
+    operation,
+    custom_operations,
+    use_symengine,
+    version,
+    *,
+    standalone_var_indices,
+    annotation_state,
 ):
     type_key = type_keys.CircuitInstruction.assign(operation)
     has_definition = False
@@ -970,7 +1152,12 @@ def _write_custom_operation(
         # Build internal definition to support overloaded subclasses by
         # calling definition getter on object
         operation.definition  # pylint: disable=pointless-statement
-        data = common.data_to_binary(operation._definition, write_circuit, version=version)
+        data = common.data_to_binary(
+            operation._definition,
+            write_circuit,
+            version=version,
+            annotation_factories=annotation_state.factories,
+        )
         size = len(data)
         num_ctrl_qubits = operation.num_ctrl_qubits
         ctrl_state = operation.ctrl_state
@@ -980,7 +1167,12 @@ def _write_custom_operation(
         base_gate = operation.base_op
     elif operation.definition is not None:
         has_definition = True
-        data = common.data_to_binary(operation.definition, write_circuit, version=version)
+        data = common.data_to_binary(
+            operation.definition,
+            write_circuit,
+            version=version,
+            annotation_factories=annotation_state.factories,
+        )
         size = len(data)
     if base_gate is None:
         base_gate_raw = b""
@@ -994,6 +1186,7 @@ def _write_custom_operation(
                 use_symengine,
                 version,
                 standalone_var_indices=standalone_var_indices,
+                annotation_state=annotation_state,
             )
             base_gate_raw = base_gate_buffer.getvalue()
     name_raw = name.encode(common.ENCODE)
@@ -1203,7 +1396,12 @@ def _read_layout_v2(file_obj, circuit):
 
 
 def write_circuit(
-    file_obj, circuit, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION
+    file_obj,
+    circuit,
+    metadata_serializer=None,
+    use_symengine=False,
+    version=common.QPY_VERSION,
+    annotation_factories=None,
 ):
     """Write a single QuantumCircuit object in the file like object.
 
@@ -1219,7 +1417,10 @@ def write_circuit(
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
         version (int): The QPY format version to use for serializing this circuit
+        annotation_factories (dict): a mapping of namespaces to zero-argument factory functions that
+            produce instances of :class:`.annotation.QPYSerializer`.
     """
+    annotation_state = _AnnotationSerializationState(annotation_factories or {})
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
     ).encode(common.ENCODE)
@@ -1269,6 +1470,7 @@ def write_circuit(
             use_symengine,
             version,
             standalone_var_indices=standalone_var_indices,
+            annotation_state=annotation_state,
         )
 
     with io.BytesIO() as custom_operations_buffer:
@@ -1287,12 +1489,33 @@ def write_circuit(
                         use_symengine,
                         version,
                         standalone_var_indices=standalone_var_indices,
+                        annotation_state=annotation_state,
                     )
                 )
+        # We only write this out after we've done the annotations.
+        custom_operations_payload = custom_operations_buffer.getvalue()
 
-        file_obj.write(struct.pack(formats.CUSTOM_CIRCUIT_DEF_HEADER_PACK, len(custom_operations)))
-        file_obj.write(custom_operations_buffer.getvalue())
+    if version >= 15:
+        file_obj.write(
+            struct.pack(formats.ANNOTATION_HEADER_STATIC_PACK, annotation_state.num_serializers)
+        )
+        for namespace, serializer in annotation_state.iter_serializers():
+            namespace_bytes = namespace.encode("utf-8")
+            serializer_state = serializer.dump_state()
+            file_obj.write(
+                struct.pack(
+                    formats.ANNOTATION_STATE_HEADER_PACK,
+                    len(namespace_bytes),
+                    len(serializer_state),
+                )
+            )
+            file_obj.write(namespace_bytes)
+            file_obj.write(serializer_state)
+    elif annotation_state.num_serializers:
+        raise UnsupportedFeatureForVersion(annotations, 15, version)
 
+    file_obj.write(struct.pack(formats.CUSTOM_CIRCUIT_DEF_HEADER_PACK, len(custom_operations)))
+    file_obj.write(custom_operations_payload)
     file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
 
@@ -1304,7 +1527,9 @@ def write_circuit(
     _write_layout(file_obj, circuit)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=False):
+def read_circuit(
+    file_obj, version, metadata_deserializer=None, use_symengine=False, annotation_factories=None
+):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -1322,6 +1547,8 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             supported in all platforms. Please check that your target platform is supported by
             the symengine library before setting this option, as it will be required by qpy to
             deserialize the payload.
+        annotation_factories (dict): mapping of namespaces to factory functions for custom
+            annotation deserializer objects.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
@@ -1420,7 +1647,11 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
         circ.add_uninitialized_var(declaration)
     for stretch in var_segments[type_keys.ExprVarDeclaration.STRETCH_LOCAL]:
         circ.add_stretch(stretch)
-    custom_operations = _read_custom_operations(file_obj, version, vectors)
+    if version >= 15:
+        annotation_state = _read_annotation_states(file_obj, annotation_factories or {})
+    else:
+        annotation_state = _AnnotationDeserializationState(annotation_factories or {})
+    custom_operations = _read_custom_operations(file_obj, version, vectors, annotation_state)
     for _instruction in range(num_instructions):
         _read_instruction(
             file_obj,
@@ -1431,6 +1662,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
             vectors,
             use_symengine,
             standalone_var_indices,
+            annotation_state=annotation_state,
         )
 
     # Consume calibrations, but don't use them since pulse gates are not supported as of Qiskit 2.0
