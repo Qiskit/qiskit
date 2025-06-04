@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use numpy::{PyArray1, PyArrayMethods};
+use numpy::{PyArray1, PyArrayMethods, ToPyArray};
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
     intern,
@@ -345,7 +345,7 @@ impl PyGeneratorTerm {
     fn py_new(rate: f64, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<Self> {
         let inner = GeneratorTerm {
             rate,
-            qubit_sparse_pauli: qubit_sparse_pauli.get_inner().clone(),
+            qubit_sparse_pauli: qubit_sparse_pauli.inner().clone(),
         };
         Ok(PyGeneratorTerm { inner })
     }
@@ -927,9 +927,9 @@ impl PyPauliLindbladMap {
         Ok(inner.num_terms())
     }
 
-    /// Get the gamma for the map.
+    /// Calculate the :math:`\gamma` for the map.
     #[inline]
-    fn get_gamma(&self) -> PyResult<f64> {
+    fn gamma(&self) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.gamma)
     }
@@ -950,19 +950,10 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// Get the probabilities for the map.
-    fn get_probabilities(slf_: Bound<Self>) -> Bound<PyArray1<f64>> {
-        let borrowed = &slf_.borrow();
-        let inner = borrowed.inner.read().unwrap();
-        let probabilities = inner.probabilities();
-        let arr = ::ndarray::aview1(probabilities);
-        // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
-        // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
-        // `Box<[u32]>` allocation (including dropping or reallocating it) other than the entire
-        // object getting dropped, which Python will keep safe.
-        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
-        out.readwrite().make_nonwriteable();
-        out
+    /// Calculate the probabilities for the map.
+    fn probabilities<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f64>> {
+        let inner = self.inner.read().unwrap();
+        inner.probabilities().to_pyarray(py)
     }
 
     /// Get a copy of the map's qubit sparse pauli list.

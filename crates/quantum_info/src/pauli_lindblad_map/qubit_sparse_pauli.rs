@@ -911,7 +911,7 @@ pub struct PyQubitSparsePauli {
 }
 
 impl PyQubitSparsePauli {
-    pub fn get_inner(&self) -> &QubitSparsePauli {
+    pub fn inner(&self) -> &QubitSparsePauli {
         &self.inner
     }
 }
