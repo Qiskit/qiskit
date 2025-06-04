@@ -122,7 +122,10 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
 
 def _encode_replay_subs(subs, file_obj, version):
     with io.BytesIO() as mapping_buf:
-        subs_dict = {k.name: v for k, v in subs.binds.items()}
+        if version < 15:
+            subs_dict = {k.name: v for k, v in subs.binds.items()}
+        else:
+            subs_dict = {k.uuid.bytes: v for k, v in subs.binds.items()}
         common.write_mapping(
             mapping_buf, mapping=subs_dict, serializer=dumps_value, version=version
         )
@@ -457,14 +460,21 @@ def _read_parameter_vec(file_obj, vectors):
             file_obj.read(formats.PARAMETER_VECTOR_ELEMENT_SIZE),
         ),
     )
-    param_uuid = uuid.UUID(bytes=data.uuid)
+    # Starting in version 15, the parameter vector root uuid
+    # is used as a key instead of the parameter name.
+    root_uuid_int = uuid.UUID(bytes=data.uuid).int - data.index
+    root_uuid = uuid.UUID(int=root_uuid_int)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
-    if name not in vectors:
-        vectors[name] = (ParameterVector(name, data.vector_size), set())
-    vector = vectors[name][0]
-    if vector[data.index].uuid != param_uuid:
-        vectors[name][1].add(data.index)
-        vector._params[data.index] = ParameterVectorElement(vector, data.index, uuid=param_uuid)
+
+    if root_uuid not in vectors:
+        vectors[root_uuid] = (ParameterVector(name, data.vector_size), set())
+    vector = vectors[root_uuid][0]
+
+    if vector[data.index].uuid != root_uuid:
+        vectors[root_uuid][1].add(data.index)
+        vector._params[data.index] = ParameterVectorElement(
+            vector, data.index, uuid=uuid.UUID(int=root_uuid_int + data.index)
+        )
     return vector[data.index]
 
 
@@ -639,9 +649,16 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             subs_map_data = buf.read(size)
             with io.BytesIO(subs_map_data) as mapping_buf:
                 mapping = common.read_mapping(
-                    mapping_buf, deserializer=loads_value, version=version, vectors=vectors
+                    mapping_buf,
+                    deserializer=loads_value,
+                    version=version,
+                    vectors=vectors,
                 )
-            stack.append({name_map[k]: v for k, v in mapping.items()})
+            # Starting in version 15, the uuid is used instead of the name
+            if version < 15:
+                stack.append({name_map[k]: v for k, v in mapping.items()})
+            else:
+                stack.append({param_uuid_map[k]: v for k, v in mapping.items()})
         else:
             raise exceptions.QpyError(
                 "Unknown ParameterExpression operation type {expression_data.LHS_TYPE}"
@@ -1065,7 +1082,6 @@ def loads_value(
             before setting this option, as it will be required by qpy to deserialize the payload.
         standalone_vars (Sequence[Var]): standalone :class:`.expr.Var` nodes in the order that they
             were declared by the circuit header.
-
     Returns:
         any: Deserialized value object.
 
@@ -1092,7 +1108,11 @@ def loads_value(
     if type_key == type_keys.Value.CASE_DEFAULT:
         return CASE_DEFAULT
     if type_key == type_keys.Value.PARAMETER_VECTOR:
-        return common.data_from_binary(binary_data, _read_parameter_vec, vectors=vectors)
+        return common.data_from_binary(
+            binary_data,
+            _read_parameter_vec,
+            vectors=vectors,
+        )
     if type_key == type_keys.Value.PARAMETER:
         return common.data_from_binary(binary_data, _read_parameter)
     if type_key == type_keys.Value.PARAMETER_EXPRESSION:
