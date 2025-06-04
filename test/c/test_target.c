@@ -24,50 +24,60 @@
  * Test empty constructor for Target
  */
 int test_empty_target(void) {
+    int result = Ok;
     QkTarget *target = qk_target_new(0);
     uint32_t num_qubits = qk_target_num_qubits(target);
 
     if (num_qubits != 0) {
         printf("The number of qubits %u is not 0.", num_qubits);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     double retrieved_dt = qk_target_dt(target);
     if (!isnan(retrieved_dt)) {
         printf("The dt value of this target %f is not %f.", retrieved_dt, NAN);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t retrieved_granularity = qk_target_granularity(target);
     if (retrieved_granularity != 1) {
         printf("The granularity %u is not 1.", retrieved_granularity);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t retrieved_min_length = qk_target_min_length(target);
     if (retrieved_min_length != 1) {
         printf("The min_length %u is not 1.", retrieved_min_length);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t pulse_alignment = qk_target_pulse_alignment(target);
     if (pulse_alignment != 1) {
         printf("The pulse_alignment values %u is not 1.", pulse_alignment);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t acquire_alignment = qk_target_acquire_alignment(target);
     if (acquire_alignment != 0) {
         printf("The acquire_alignment values %u is not 0.", acquire_alignment);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
-    return Ok;
+cleanup:
+    qk_target_free(target);
+    return result;
 }
 
 /**
  * Test constructor for Target
  */
 int test_target_construct(void) {
+    int result = Ok;
     const uint32_t num_qubits = 2;
     const double dt = 10e-9;
     const uint32_t granularity = 2;
@@ -86,60 +96,70 @@ int test_target_construct(void) {
     uint32_t retrieved_num_qubits = qk_target_num_qubits(target);
     if (retrieved_num_qubits != 2) {
         printf("The number of qubits %u is not 0.", num_qubits);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     double retrieved_dt = qk_target_dt(target);
     if (retrieved_dt != dt) {
         printf("The dt value of this target %f is not %f.", retrieved_dt, dt);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t retrieved_granularity = qk_target_granularity(target);
     if (retrieved_granularity != 2) {
         printf("The granularity %u is not 2.", retrieved_granularity);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t retrieved_min_length = qk_target_min_length(target);
     if (retrieved_min_length != 3) {
         printf("The min_length %u is not 3.", retrieved_min_length);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t pulse_alignment = qk_target_pulse_alignment(target);
     if (pulse_alignment != 4) {
         printf("The pulse_alignment values %u is not 4.", pulse_alignment);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     uint32_t acquire_alignment = qk_target_acquire_alignment(target);
     if (acquire_alignment != 1) {
         printf("The acquire_alignment values %u is not 1.", acquire_alignment);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
-    return Ok;
+cleanup:
+    qk_target_free(target);
+    return result;
 }
 
 /**
  * Test construction of a QkTargetEntry
  */
-int test_property_map_construction(void) {
+int test_target_entry_construction(void) {
+    int result = Ok;
     QkTargetEntry *property_map = qk_target_entry_new(QkGate_CX);
 
     // Test length
     const size_t length = qk_target_entry_num_properties(property_map);
     if (length != 0) {
         printf("The initial length of the provided property map was not zero: %zu", length);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     // Add some qargs and properties
     uint32_t qargs[2] = {0, 1};
 
-    QkExitCode result = qk_target_entry_add_property(property_map, qargs, 2, 0.00018, 0.00002);
-    if (result != QkExitCode_Success) {
+    QkExitCode result_prop = qk_target_entry_add_property(property_map, qargs, 2, 0.00018, 0.00002);
+    if (result_prop != QkExitCode_Success) {
         printf("Unexpected error occurred when adding entry.");
     }
 
@@ -147,7 +167,8 @@ int test_property_map_construction(void) {
     const size_t new_length = qk_target_entry_num_properties(property_map);
     if (new_length != 1) {
         printf("The initial length of the provided property map was not 1: %zu", length);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     // Add invalid qargs
@@ -160,8 +181,9 @@ int test_property_map_construction(void) {
         printf("The operation did not fail as expected for invalid qargs.");
     }
 
+cleanup:
     qk_target_entry_free(property_map);
-    return Ok;
+    return result;
 }
 
 /**
@@ -217,14 +239,14 @@ int test_target_add_instruction(void) {
         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
     if (result_cx_props != QkExitCode_Success) {
         printf("Unexpected error occurred when adding property to a CX gate entry.");
-        return EqualityError;
+        result = EqualityError;
         goto cleanup;
     }
 
     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
     if (result_cx != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a CX gate.");
-        return EqualityError;
+        result = EqualityError;
         goto cleanup;
     }
 
@@ -255,7 +277,7 @@ int test_target_add_instruction(void) {
         qk_target_entry_add_property(crx_entry, crx_qargs, 2, crx_inst_duration, crx_inst_error);
     if (result_crx_props != QkExitCode_Success) {
         printf("Unexpected error occurred when adding property to a CX gate entry.");
-        return EqualityError;
+        result = EqualityError;
         goto cleanup;
     }
     // CX Gate is not paramtric.
@@ -263,7 +285,7 @@ int test_target_add_instruction(void) {
     QkExitCode result_crx = qk_target_add_instruction(target, crx_entry);
     if (result_crx != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a CX gate.");
-        return EqualityError;
+        result = EqualityError;
         goto cleanup;
     }
 
@@ -346,7 +368,7 @@ int test_target(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty_target);
     num_failed += RUN_TEST(test_target_construct);
-    num_failed += RUN_TEST(test_property_map_construction);
+    num_failed += RUN_TEST(test_target_entry_construction);
     num_failed += RUN_TEST(test_target_add_instruction);
     num_failed += RUN_TEST(test_target_update_instruction);
 
