@@ -568,9 +568,12 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
     num_qubits: u32,
     duration: f64,
     error: f64,
-) {
+) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let prop_map = unsafe { mut_ptr_as_ref(entry) };
+    let entry = unsafe { mut_ptr_as_ref(entry) };
+    if num_qubits != entry.operation.num_qubits() {
+        return ExitCode::TargetQargMismatch;
+    }
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
     let qubits: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -580,9 +583,10 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
         Some(duration)
     };
     let error = if error.is_nan() { None } else { Some(error) };
-    prop_map
+    entry
         .map
         .insert(qubits, Some(InstructionProperties::new(duration, error)));
+    ExitCode::Success
 }
 
 /// @ingroup QkTarget

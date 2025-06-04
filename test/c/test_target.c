@@ -28,7 +28,7 @@ int test_empty_target(void) {
     uint32_t num_qubits = qk_target_num_qubits(target);
 
     if (num_qubits != 0) {
-        printf("The number of qubits %lu is not 0.", num_qubits);
+        printf("The number of qubits %u is not 0.", num_qubits);
         return EqualityError;
     }
 
@@ -46,7 +46,7 @@ int test_empty_target(void) {
 
     uint32_t retrieved_min_length = qk_target_min_length(target);
     if (retrieved_min_length != 1) {
-        printf("The min_length %lu is not 1.", retrieved_min_length);
+        printf("The min_length %u is not 1.", retrieved_min_length);
         return EqualityError;
     }
 
@@ -85,7 +85,7 @@ int test_target_construct(void) {
 
     uint32_t retrieved_num_qubits = qk_target_num_qubits(target);
     if (retrieved_num_qubits != 2) {
-        printf("The number of qubits %lu is not 0.", num_qubits);
+        printf("The number of qubits %u is not 0.", num_qubits);
         return EqualityError;
     }
 
@@ -103,7 +103,7 @@ int test_target_construct(void) {
 
     uint32_t retrieved_min_length = qk_target_min_length(target);
     if (retrieved_min_length != 3) {
-        printf("The min_length %lu is not 3.", retrieved_min_length);
+        printf("The min_length %u is not 3.", retrieved_min_length);
         return EqualityError;
     }
 
@@ -126,7 +126,7 @@ int test_target_construct(void) {
  * Test construction of a QkTargetEntry
  */
 int test_property_map_construction(void) {
-    QkTargetEntry *property_map = qk_target_entry_new(QkGate_H);
+    QkTargetEntry *property_map = qk_target_entry_new(QkGate_CX);
 
     // Test length
     const size_t length = qk_target_entry_num_properties(property_map);
@@ -138,12 +138,26 @@ int test_property_map_construction(void) {
     // Add some qargs and properties
     uint32_t qargs[2] = {0, 1};
 
-    qk_target_entry_add_property(property_map, qargs, 2, 0.00018, 0.00002);
+    QkExitCode result = qk_target_entry_add_property(property_map, qargs, 2, 0.00018, 0.00002);
+    if (result != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding entry.");
+    }
+
     // Test length
     const size_t new_length = qk_target_entry_num_properties(property_map);
     if (new_length != 1) {
         printf("The initial length of the provided property map was not 1: %zu", length);
         return EqualityError;
+    }
+
+    // Add invalid qargs
+    // Add some qargs and properties
+    uint32_t invalid_qargs[3] = {0, 1, 2};
+
+    QkExitCode error_result =
+        qk_target_entry_add_property(property_map, invalid_qargs, 3, 0.00018, 0.00002);
+    if (error_result != QkExitCode_TargetQargMismatch) {
+        printf("The operation did not fail as expected for invalid qargs.");
     }
 
     qk_target_entry_free(property_map);
@@ -161,19 +175,34 @@ int test_target_add_instruction(void) {
     // Add an X Gate.
 
     // This operation is global, no property map is provided
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
+    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
+    if (result_x != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a global X gate.");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Re-add same gate, check if it fails
+    QkExitCode result_x_readded = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
+    if (result_x_readded != QkExitCode_TargetInstAlreadyExists) {
+        printf("The addition of a repeated gate did not fail as expected.");
+        result = EqualityError;
+        goto cleanup;
+    }
 
     // Number of qubits of the target should not change.
     uint32_t current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 1) {
-        printf("The number of qubits this target is compatible with is not 1: %zu",
+        printf("The number of qubits this target is compatible with is not 1: %u",
                current_num_qubits);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
     size_t current_size = qk_target_num_instructions(target);
     if (current_num_qubits != 1) {
         printf("The size of this target is not correct: Expected 1, got %zu", current_size);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     // Add a CX Gate.
@@ -183,14 +212,26 @@ int test_target_add_instruction(void) {
     uint32_t qargs[2] = {0, 1};
     double inst_error = 0.0090393;
     double inst_duration = 0.020039;
-    qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
 
-    qk_target_add_instruction(target, cx_entry);
+    QkExitCode result_cx_props =
+        qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+    if (result_cx_props != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding property to a CX gate entry.");
+        return EqualityError;
+        goto cleanup;
+    }
+
+    QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+    if (result_cx != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a CX gate.");
+        return EqualityError;
+        goto cleanup;
+    }
 
     // Number of qubits of the target should change to 2.
     current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 2) {
-        printf("The number of qubits this target is compatible with is not 2: %zu",
+        printf("The number of qubits this target is compatible with is not 2: %u",
                current_num_qubits);
         result = EqualityError;
         goto cleanup;
@@ -198,7 +239,8 @@ int test_target_add_instruction(void) {
     current_size = qk_target_num_instructions(target);
     if (current_num_qubits != 2) {
         printf("The size of this target is not correct: Expected 2, got %zu", current_size);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
     // Add a CRX Gate.
@@ -209,15 +251,26 @@ int test_target_add_instruction(void) {
     uint32_t crx_qargs[2] = {1, 2};
     double crx_inst_error = 0.0129023;
     double crx_inst_duration = 0.92939;
-    qk_target_entry_add_property(crx_entry, crx_qargs, 2, crx_inst_duration, crx_inst_error);
+    QkExitCode result_crx_props =
+        qk_target_entry_add_property(crx_entry, crx_qargs, 2, crx_inst_duration, crx_inst_error);
+    if (result_crx_props != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding property to a CX gate entry.");
+        return EqualityError;
+        goto cleanup;
+    }
     // CX Gate is not paramtric.
 
-    qk_target_add_instruction(target, crx_entry);
+    QkExitCode result_crx = qk_target_add_instruction(target, crx_entry);
+    if (result_crx != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a CX gate.");
+        return EqualityError;
+        goto cleanup;
+    }
 
     // Number of qubits of the target should change to 3.
     current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 3) {
-        printf("The number of qubits this target is compatible with is not 3: %ld",
+        printf("The number of qubits this target is compatible with is not 3: %d",
                current_num_qubits);
         result = EqualityError;
         goto cleanup;
@@ -225,7 +278,8 @@ int test_target_add_instruction(void) {
     current_size = qk_target_num_instructions(target);
     if (current_num_qubits != 3) {
         printf("The size of this target is not correct: Expected 3, got %zu", current_size);
-        return EqualityError;
+        result = EqualityError;
+        goto cleanup;
     }
 
 cleanup:
