@@ -10,8 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::exit_codes::CInputError;
 use crate::exit_codes::ExitCode;
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::PhysicalQubit;
@@ -618,6 +619,14 @@ pub unsafe extern "C" fn qk_target_add_instruction(
     target_entry: *mut TargetEntry,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let pointer_check = check_ptr(target_entry);
+    if pointer_check.is_err() {
+        match pointer_check {
+            Err(CInputError::AlignmentError) => return ExitCode::AlignmentError,
+            Err(CInputError::NullPointerError) => return ExitCode::NullPointerError,
+            _ => (),
+        }
+    }
     let entry = unsafe { Box::from_raw(target_entry) };
     let instruction = entry.operation;
 
