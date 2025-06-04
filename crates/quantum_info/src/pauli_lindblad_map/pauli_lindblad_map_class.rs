@@ -1561,7 +1561,7 @@ impl PyPauliLindbladMap {
     ///     fidelity of.
     fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let result = inner.pauli_fidelity(qubit_sparse_pauli.get_inner())?;
+        let result = inner.pauli_fidelity(qubit_sparse_pauli.inner())?;
         Ok(result)
     }
 
