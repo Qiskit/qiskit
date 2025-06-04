@@ -947,7 +947,7 @@ impl PyQubitSparsePauli {
                     label.len(),
                 )));
             }
-            return Self::from_label(&label).map_err(PyErr::from);
+            return Self::from_label(&label);
         }
         if let Ok(sparse_label) = data.extract() {
             let Some(num_qubits) = num_qubits else {
