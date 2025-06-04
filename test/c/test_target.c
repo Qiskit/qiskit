@@ -259,7 +259,7 @@ int test_target_add_instruction(void) {
         goto cleanup;
     }
     current_size = qk_target_num_instructions(target);
-    if (current_num_qubits != 2) {
+    if (current_size != 2) {
         printf("The size of this target is not correct: Expected 2, got %zu", current_size);
         result = EqualityError;
         goto cleanup;
@@ -280,7 +280,6 @@ int test_target_add_instruction(void) {
         result = EqualityError;
         goto cleanup;
     }
-    // CX Gate is not paramtric.
 
     QkExitCode result_crx = qk_target_add_instruction(target, crx_entry);
     if (result_crx != QkExitCode_Success) {
@@ -298,7 +297,7 @@ int test_target_add_instruction(void) {
         goto cleanup;
     }
     current_size = qk_target_num_instructions(target);
-    if (current_num_qubits != 3) {
+    if (current_size != 3) {
         printf("The size of this target is not correct: Expected 3, got %zu", current_size);
         result = EqualityError;
         goto cleanup;
