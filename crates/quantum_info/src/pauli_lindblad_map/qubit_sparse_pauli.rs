@@ -682,11 +682,11 @@ impl QubitSparsePauli {
         }
 
         // if either are the identity, return a clone of the other
-        if self.indices.len() == 0 {
+        if self.indices.is_empty() {
             return Ok(other.clone());
         }
 
-        if other.indices.len() == 0 {
+        if other.indices.is_empty() {
             return Ok(self.clone());
         }
 
