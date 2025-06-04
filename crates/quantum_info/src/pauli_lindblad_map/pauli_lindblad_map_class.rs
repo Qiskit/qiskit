@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashSet;
 use numpy::{PyArray1, PyArrayMethods, ToPyArray};
 use pyo3::{
     exceptions::{PyTypeError, PyValueError},
@@ -18,7 +19,14 @@ use pyo3::{
     types::{PyList, PyString, PyTuple, PyType},
     IntoPyObjectExt, PyErr,
 };
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::btree_map,
+    sync::{Arc, RwLock},
+};
+
+use rand::prelude::*;
+use rand_distr::Bernoulli;
+use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
@@ -154,6 +162,18 @@ impl PauliLindbladMap {
         Ok(())
     }
 
+    /// Apply a transpiler layout.
+    pub fn apply_layout(
+        &self,
+        layout: Option<&[u32]>,
+        num_qubits: u32,
+    ) -> Result<Self, CoherenceError> {
+        let qubit_sparse_pauli_list = self
+            .qubit_sparse_pauli_list
+            .apply_layout(layout, num_qubits)?;
+        PauliLindbladMap::new(self.rates.clone(), qubit_sparse_pauli_list)
+    }
+
     /// Create a new identity map (with zero generator) with pre-allocated space for the given
     /// number of summands and single-qubit bit terms.
     #[inline]
@@ -223,6 +243,184 @@ impl PauliLindbladMap {
             rate: self.rates[index],
             qubit_sparse_pauli: self.qubit_sparse_pauli_list.term(index),
         }
+    }
+
+    /// Scale the rates by a set factor.
+    pub fn scale_rates(self, scale_factor: f64) -> Self {
+        let new_rates = self.rates.iter().map(|r| scale_factor * r).collect();
+        PauliLindbladMap::new(new_rates, self.qubit_sparse_pauli_list.clone()).unwrap()
+    }
+
+    /// Invert the map.
+    pub fn inverse(self) -> Self {
+        self.scale_rates(-1.)
+    }
+
+    // Compose with another PauliLindbladMap
+    pub fn compose(&self, other: &PauliLindbladMap) -> Result<PauliLindbladMap, ArithmeticError> {
+        if self.num_qubits() != other.num_qubits() {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits(),
+                right: other.num_qubits(),
+            });
+        }
+
+        let mut rates: Vec<f64> = Vec::with_capacity(self.num_terms() + other.num_terms());
+        rates.extend_from_slice(&self.rates);
+        rates.extend_from_slice(&other.rates);
+
+        let mut paulis = Vec::with_capacity(self.num_terms() + other.num_terms());
+        paulis.extend_from_slice(self.paulis());
+        paulis.extend_from_slice(other.paulis());
+
+        let mut indices: Vec<u32> = Vec::with_capacity(self.num_terms() + other.num_terms());
+        indices.extend_from_slice(self.indices());
+        indices.extend_from_slice(other.indices());
+
+        let mut boundaries: Vec<usize> = Vec::with_capacity(self.num_terms() + other.num_terms());
+        boundaries.extend_from_slice(self.boundaries());
+        let offset = self.boundaries()[self.boundaries().len() - 1];
+        boundaries.extend(
+            other.boundaries()[1..]
+                .iter()
+                .map(|boundary| offset + boundary),
+        );
+
+        let qubit_sparse_pauli_list = unsafe {
+            QubitSparsePauliList::new_unchecked(self.num_qubits(), paulis, indices, boundaries)
+        };
+        Ok(PauliLindbladMap::new(rates, qubit_sparse_pauli_list).unwrap())
+    }
+
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// It ignores all the indices that are larger than `self.num_qubits`.
+    pub fn drop_paulis(&self, indices: HashSet<u32>) -> Result<Self, CoherenceError> {
+        let mut new_paulis: Vec<Pauli> = Vec::with_capacity(self.paulis().len());
+        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices().len());
+        let mut new_boundaries: Vec<usize> = Vec::with_capacity(self.boundaries().len());
+
+        new_boundaries.push(0);
+        let mut boundaries_idx = 1;
+        let mut current_boundary = self.boundaries()[boundaries_idx];
+
+        let mut num_dropped_paulis = 0;
+        for (i, (&pauli, &index)) in self.paulis().iter().zip(self.indices().iter()).enumerate() {
+            if current_boundary == i {
+                new_boundaries.push(current_boundary - num_dropped_paulis);
+
+                boundaries_idx += 1;
+                current_boundary = self.boundaries()[boundaries_idx]
+            }
+
+            if indices.contains(&index) {
+                num_dropped_paulis += 1;
+            } else {
+                new_indices.push(index);
+                new_paulis.push(pauli);
+            }
+        }
+        new_boundaries.push(current_boundary - num_dropped_paulis);
+
+        Self::new(
+            self.rates().to_vec(),
+            QubitSparsePauliList::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
+                .unwrap(),
+        )
+    }
+
+    /// Compute the fidelity of the map for a single pauli
+    pub fn pauli_fidelity(
+        &self,
+        qubit_sparse_pauli: &QubitSparsePauli,
+    ) -> Result<f64, ArithmeticError> {
+        let mut log_fid = 0.0;
+
+        for generator_term in self.iter() {
+            if !qubit_sparse_pauli.commutes(&generator_term.qubit_sparse_pauli.to_term())? {
+                log_fid += -2.0 * generator_term.rate;
+            }
+        }
+
+        Ok(log_fid.exp())
+    }
+
+    /// Sample sign and Pauli operator pairs from the map.
+    pub fn sample(&self, num_samples: u64, seed: Option<u64>) -> (Vec<bool>, QubitSparsePauliList) {
+        let mut rng = match seed {
+            Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+            None => Pcg64Mcg::from_os_rng(),
+        };
+
+        let mut random_signs = Vec::with_capacity(num_samples as usize);
+        let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
+
+        for _ in 0..num_samples {
+            let mut random_sign = true;
+            let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
+
+            for ((probability, generator), non_negative_rate) in self
+                .probabilities
+                .iter()
+                .zip(self.qubit_sparse_pauli_list.iter())
+                .zip(self.non_negative_rates.iter())
+            {
+                // Sample true or false with given probability. If false, apply the Pauli
+                if !Bernoulli::new(*probability).unwrap().sample(&mut rng) {
+                    random_pauli = random_pauli.compose(&generator.to_term()).unwrap();
+                    // if rate is negative, flip random_sign
+                    random_sign = random_sign == *non_negative_rate;
+                }
+            }
+
+            random_signs.push(random_sign);
+            random_paulis
+                .add_qubit_sparse_pauli(random_pauli.view())
+                .unwrap();
+        }
+
+        (random_signs, random_paulis)
+    }
+
+    /// Reduce the map to its canonical form.
+    ///
+    /// This sums like terms, removing them if the final rate's absolute value is less than or equal
+    /// to the tolerance.  The terms are reordered to some canonical ordering.
+    ///
+    /// This function is idempotent.
+    pub fn simplify(&self, tol: f64) -> PauliLindbladMap {
+        let mut terms = btree_map::BTreeMap::new();
+        for term in self.iter() {
+            terms
+                .entry((
+                    term.qubit_sparse_pauli.indices,
+                    term.qubit_sparse_pauli.paulis,
+                ))
+                .and_modify(|r| *r += term.rate)
+                .or_insert(term.rate);
+        }
+
+        let mut new_rates = Vec::with_capacity(self.num_terms());
+        let mut new_paulis = Vec::with_capacity(self.num_terms());
+        let mut new_indices = Vec::with_capacity(self.num_terms());
+        let mut new_boundaries = Vec::with_capacity(self.num_terms());
+        new_boundaries.push(0);
+        for ((indices, paulis), r) in terms {
+            // Don't add terms with zero coefficient or are pure identity
+            if r.abs() <= tol || paulis.is_empty() {
+                continue;
+            }
+            new_rates.push(r);
+            new_paulis.extend_from_slice(paulis);
+            new_indices.extend_from_slice(indices);
+            new_boundaries.push(new_indices.len());
+        }
+        Self::new(
+            new_rates,
+            QubitSparsePauliList::new(self.num_qubits(), new_paulis, new_indices, new_boundaries)
+                .unwrap(),
+        )
+        .unwrap()
     }
 }
 
@@ -524,6 +722,8 @@ impl PyGeneratorTerm {
 /// different presentation than in the literature, but this notation allows us to handle both
 /// non-negative and negative rates simultaneously. The overall :math:`\gamma` of the channel is the
 /// product :math:`\gamma = \prod_{P \in K} \gamma_P`.
+///
+/// See the :meth:`.PauliLindbladMap.sample` method for the sampling procedure for this map.
 ///
 /// Representation
 /// ==============
@@ -1001,6 +1201,308 @@ impl PyPauliLindbladMap {
         Ok(out.unbind())
     }
 
+    /// Apply a transpiler layout to this Pauli Lindblad map.
+    ///
+    /// This enables remapping of qubit indices, e.g. if the map is defined in terms of virtual
+    /// qubit labels.
+    ///
+    /// Args:
+    ///     layout (TranspileLayout | list[int] | None): The layout to apply.  Most uses of this
+    ///         function should pass the :attr:`.QuantumCircuit.layout` field from a circuit that
+    ///         was transpiled for hardware.  In addition, you can pass a list of new qubit indices.
+    ///         If given as explicitly ``None``, no remapping is applied (but you can still use
+    ///         ``num_qubits`` to expand the map).
+    ///     num_qubits (int | None): The number of qubits to expand the map to.  If not
+    ///         supplied, the output will be as wide as the given :class:`.TranspileLayout`, or the
+    ///         same width as the input if the ``layout`` is given in another form.
+    ///
+    /// Returns:
+    ///     A new :class:`PauliLindbladMap` with the provided layout applied.
+    #[pyo3(signature = (/, layout, num_qubits=None))]
+    fn apply_layout(&self, layout: Bound<PyAny>, num_qubits: Option<u32>) -> PyResult<Self> {
+        let py = layout.py();
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        // A utility to check the number of qubits is compatible with the map.
+        let check_inferred_qubits = |inferred: u32| -> PyResult<u32> {
+            if inferred < inner.num_qubits() {
+                return Err(CoherenceError::NotEnoughQubits {
+                    current: inner.num_qubits() as usize,
+                    target: inferred as usize,
+                }
+                .into());
+            }
+            Ok(inferred)
+        };
+
+        // Normalize the number of qubits in the layout and the layout itself, depending on the
+        // input types, before calling PauliLindbladMap.apply_layout to do the actual work.
+        let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
+            (num_qubits.unwrap_or(inner.num_qubits()), None)
+        } else if layout.is_instance(
+            &py.import(intern!(py, "qiskit.transpiler"))?
+                .getattr(intern!(py, "TranspileLayout"))?,
+        )? {
+            (
+                check_inferred_qubits(
+                    layout.getattr(intern!(py, "_output_qubit_list"))?.len()? as u32
+                )?,
+                Some(
+                    layout
+                        .call_method0(intern!(py, "final_index_layout"))?
+                        .extract::<Vec<u32>>()?,
+                ),
+            )
+        } else {
+            (
+                check_inferred_qubits(num_qubits.unwrap_or(inner.num_qubits()))?,
+                Some(layout.extract()?),
+            )
+        };
+
+        let out = inner.apply_layout(layout.as_deref(), num_qubits)?;
+        Ok(out.into())
+    }
+
+    /// Return a new :class:`PauliLindbladMap` with rates scaled by `scale_factor`.
+    ///
+    /// Args:
+    ///     scale_factor (float): the scaling coefficient.
+    #[pyo3(signature = (scale_factor))]
+    fn scale_rates<'py>(
+        &self,
+        py: Python<'py>,
+        scale_factor: f64,
+    ) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let scaled = inner.clone().scale_rates(scale_factor);
+        scaled.into_pyobject(py)
+    }
+
+    /// Return a new :class:`PauliLindbladMap` that is the mathematical inverse of `self`.
+    #[pyo3(signature = ())]
+    fn inverse<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
+        self.scale_rates(py, -1.)
+    }
+
+    /// Drop Paulis out of this Pauli Lindblad map.
+    ///
+    /// Drop every Pauli on the given `indices`, effectively replacing them with an identity.
+    ///
+    /// Args:
+    ///     indices (Sequence[int]): The indices for which Paulis must be dropped.
+    ///
+    /// Returns:
+    ///     A new Pauli Lindblad map where every Pauli on the given `indices` has been dropped.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> pauli_map_in = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)])
+    ///         >>> pauli_map_out = pauli_map_in.keep_paulis([1, 2, 4])
+    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("XIIZI", 2.0), ("IIIYI", 0.5), ("ZIIXI", -0.25)])
+    #[pyo3(signature = (/, indices))]
+    pub fn drop_paulis(&self, indices: Vec<u32>) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        let max_index = match indices.iter().max() {
+            Some(&index) => index,
+            None => 0,
+        };
+        if max_index >= inner.num_qubits() {
+            let num_qubits = inner.num_qubits();
+            return Err(PyValueError::new_err(format!(
+                "cannot drop Paulis for index {max_index} in a {num_qubits}-qubit PauliLindbladMap"
+            )));
+        }
+
+        Ok(inner.drop_paulis(indices.into_iter().collect())?.into())
+    }
+
+    /// Keep every Pauli on the given `indices` and drop all others.
+    ///
+    /// This is equivalent to using :meth:`PauliLindbladMap.drop_paulis` on the complement set of indices.
+    ///
+    /// Args:
+    ///     indices (Sequence[int]): The indices for which Paulis must be kept.
+    ///
+    /// Returns:
+    ///     A new Pauli Lindblad map where every Pauli on the given `indices` has been kept and all other
+    ///     Paulis have been dropped.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> pauli_map_in = PauliLindbladMap.from_list([("XXIZI", 2.0), ("IIIYZ", 0.5), ("ZIIXY", -0.25)])
+    ///         >>> pauli_map_out = pauli_map_in.keep_paulis([1, 2, 4])
+    ///         >>> assert pauli_map_out == PauliLindbladMap.from_list([("XIIZI", 2.0), ("IIIYI", 0.5), ("ZIIXI", -0.25)])
+    #[pyo3(signature = (/, indices))]
+    pub fn keep_paulis(&self, indices: Vec<u32>) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        let max_index = match indices.iter().max() {
+            Some(&index) => index,
+            None => 0,
+        };
+        if max_index >= inner.num_qubits() {
+            let num_qubits = inner.num_qubits();
+            return Err(PyValueError::new_err(format!(
+                "cannot keep Paulis for index {max_index} in a {num_qubits}-qubit PauliLindbladMap"
+            )));
+        }
+
+        Ok(inner
+            .drop_paulis(
+                (0..self.num_qubits()?)
+                    .filter(|index| !indices.contains(index))
+                    .collect(),
+            )?
+            .into())
+    }
+
+    /// Sample sign and Pauli operator pairs from the map.
+    ///
+    /// Each sign is represented by a boolean, with ``True`` representing ``+1``, and ``False``
+    /// representing ``-1``.
+    ///
+    /// Given the quasi-probability representation given in the class-level documentation, each
+    /// sample is drawn via the following process:
+    ///
+    /// * Initialize the sign boolean, and a :class:`~.QubitSparsePauli` instance to the identity
+    ///   operator.
+    ///
+    /// * Iterate through each Pauli in the map. Using the pseudo-probability associated with
+    ///   each operator, randomly choose between applying the operator or not.
+    ///
+    /// * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
+    ///   the Pauli. If the rate associated with the Pauli is negative, flip the sign boolean.
+    ///
+    /// The results are returned as a 1d array of booleans, and the corresponding sampled qubit
+    /// sparse Paulis in the form of a :class:`~.QubitSparsePauliList`.
+    ///
+    /// Args:
+    ///     num_samples (int): Number of samples to draw.
+    ///     seed (int): Random seed.
+    ///
+    /// Returns:
+    ///     signs, qubit_sparse_pauli_list: The boolean array of signs and the list of qubit sparse
+    ///     paulis.
+    #[pyo3(signature = (num_samples, seed=None))]
+    pub fn signed_sample<'py>(
+        &self,
+        py: Python<'py>,
+        num_samples: u64,
+        seed: Option<u64>,
+    ) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let (signs, paulis) = py.allow_threads(|| inner.sample(num_samples, seed));
+
+        let signs = PyArray1::from_vec(py, signs);
+        let paulis = paulis.into_pyobject(py).unwrap();
+
+        (signs, paulis).into_pyobject(py)
+    }
+
+    /// For :class:`.PauliLindbladMap` instances with purely non-negative rates, sample Pauli
+    /// operators from the map. If the map has negative rates, use
+    /// :meth:`.PauliLindbladMap.signed_sample`.
+    ///
+    /// Given the quasi-probability representation given in the class-level documentation, each
+    /// sample is drawn via the following process:
+    ///
+    /// * Initialize a :class`~.QubitSparsePauli` instance to the identity operator.
+    ///
+    /// * Iterate through each Pauli in the map. Using the pseudo-probability associated with
+    ///   each operator, randomly choose between applying the operator or not.
+    ///
+    /// * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
+    ///   the Pauli.
+    ///
+    /// The sampled qubit sparse Paulis are returned in the form of a
+    /// :class:`~.QubitSparsePauliList`.
+    ///
+    /// Args:
+    ///     num_samples (int): Number of samples to draw.
+    ///     seed (int): Random seed. Defaults to ``None``.
+    ///
+    /// Returns:
+    ///     qubit_sparse_pauli_list: The list of qubit sparse paulis.
+    ///
+    /// Raises:
+    ///     ValueError: If any of the rates in the map are negative.
+    #[pyo3(signature = (num_samples, seed=None))]
+    pub fn sample<'py>(
+        &self,
+        py: Python<'py>,
+        num_samples: u64,
+        seed: Option<u64>,
+    ) -> PyResult<Bound<'py, PyQubitSparsePauliList>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+
+        for non_negative in inner.non_negative_rates.iter() {
+            if !non_negative {
+                return Err(PyValueError::new_err(
+                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.signed_sample"
+                ));
+            }
+        }
+
+        let (_, paulis) = py.allow_threads(|| inner.sample(num_samples, seed));
+
+        paulis.into_pyobject(py)
+    }
+
+    /// Sum any like terms in the generator, removing them if the resulting rate has an absolute
+    /// value within tolerance of zero. This also removes terms whose Pauli operator is proportional
+    /// to the identity, as the correponding generator is actually the zero map.
+    ///
+    /// As a side effect, this sorts the generators into a fixed canonical order.
+    ///
+    /// .. note::
+    ///
+    ///     When using this for equality comparisons, note that floating-point rounding and the
+    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
+    ///     compare the canonicalized difference of the two observables to zero.
+    ///
+    /// Args:
+    ///     tol (float): after summing like terms, any rates whose absolute value is less
+    ///         than the given absolute tolerance will be suppressed from the output.
+    ///
+    /// Examples:
+    ///
+    ///     Using :meth:`simplify` to compare two operators that represent the same map, but
+    ///     would compare unequal due to the structural tests by default::
+    ///
+    ///         >>> base = PauliLindbladMap.from_sparse_list([
+    ///         ...     ("XZ", (2, 1), 1e-10),  # value too small
+    ///         ...     ("XX", (3, 1), 2),
+    ///         ...     ("XX", (3, 1), 2),      # can be combined with the above
+    ///         ...     ("ZZ", (3, 1), 0.5),    # out of order compared to `expected`
+    ///         ... ], num_qubits=5)
+    ///         >>> expected = PauliLindbladMap.from_list([("IZIZI", 0.5), ("IXIXI", 4)])
+    ///         >>> assert base != expected  # non-canonical comparison
+    ///         >>> assert base.simplify() == expected.simplify()
+    ///
+    ///     Note that in the above example, the coefficients are chosen such that all floating-point
+    ///     calculations are exact, and there are no intermediate rounding or associativity
+    ///     concerns.  If this cannot be guaranteed to be the case, the safer form is::
+    ///
+    ///         >>> left = PauliLindbladMap.from_list([("XYZ", 1.0/3.0)] * 3)   # sums to 1.0
+    ///         >>> right = PauliLindbladMap.from_list([("XYZ", 1.0/7.0)] * 7)  # doesn't sum to 1.0
+    ///         >>> assert left.simplify() != right.simplify()
+    ///         >>> assert left.compose(right.inverse()).simplify() == PauliLindbladMap.identity(left.num_qubits)
+    #[pyo3(
+        signature = (/, tol=1e-8),
+    )]
+    fn simplify(&self, tol: f64) -> PyResult<Self> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let simplified = inner.simplify(tol);
+        Ok(simplified.into())
+    }
+
     fn __len__(&self) -> PyResult<usize> {
         self.num_terms()
     }
@@ -1012,6 +1514,58 @@ impl PyPauliLindbladMap {
             (self.to_sparse_list(py)?, inner.num_qubits()),
         )
             .into_pyobject(py)
+    }
+
+    /// Compose with another :class:`PauliLindbladMap`.
+    ///
+    /// This appends the internal arrays of self and other, and therefore results in a map with
+    /// whose enumerated terms are those of self followed by those of other.
+    ///
+    /// Args:
+    ///     other (PauliLindbladMap): the Pauli Lindblad map to compose with.
+    fn compose<'py>(&self, other: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
+        let py = other.py();
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let Some(other) = coerce_to_map(other)? else {
+            return Err(PyTypeError::new_err(format!(
+                "unknown type for compose: {}",
+                other.get_type().repr()?
+            )));
+        };
+        let other = other.borrow();
+        let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
+        let composed = inner.compose(&other_inner)?;
+        composed.into_pyobject(py)
+    }
+
+    /// Compute the Pauli fidelity of this map for a qubit sparse Pauli.
+    ///
+    /// For a Pauli :math:`Q`, the fidelity with respect to the Pauli Lindblad map
+    /// :math:`\Lambda` is the real number :math:`f(Q)` for which :math:`\Lambda(Q) = f(Q) Q`. I.e.
+    /// every Pauli is an eigenvector of the linear map :math:`\Lambda`, and the fidelity is the
+    /// corresponding eigenvalue. For a Pauli Lindblad map with generator set :math:`K` and rate
+    /// function :math:`\lambda : K \rightarrow \mathbb{R}`, the pauli fidelity mathematically is
+    ///
+    /// .. math::
+    ///     
+    ///     f(Q) = \exp\left(-2 \sum_{P \in K} \lambda(P) \langle P, Q\rangle_{sp}),
+    ///
+    /// where :math:`\langle P, Q\rangle_{sp}` is :math:`0` if :math:`P` and :math:`Q` commute, and
+    /// :math:`1` if they anti-commute.
+    ///
+    /// Args: qubit_sparse_pauli (QubitSparsePauli): the qubit sparse Pauli to compute the Pauli
+    ///     fidelity of.
+    fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let result = inner.pauli_fidelity(qubit_sparse_pauli.inner())?;
+        Ok(result)
+    }
+
+    fn __matmul__<'py>(
+        &self,
+        other: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyPauliLindbladMap>> {
+        self.compose(other)
     }
 
     fn __getitem__<'py>(
@@ -1105,5 +1659,36 @@ impl<'py> IntoPyObject<'py> for PauliLindbladMap {
 
     fn into_pyobject(self, py: Python<'py>) -> PyResult<Self::Output> {
         PyPauliLindbladMap::from(self).into_pyobject(py)
+    }
+}
+
+/// Attempt to coerce an arbitrary Python object to a [PyPauliLindbladMap].
+///
+/// This returns:
+///
+/// * `Ok(Some(obs))` if the coercion was completely successful.
+/// * `Ok(None)` if the input value was just completely the wrong type and no coercion could be
+///   attempted.
+/// * `Err` if the input was a valid type for coercion, but the coercion failed with a Python
+///   exception.
+///
+/// The purpose of this is for conversion the arithmetic operations, which should return
+/// [PyNotImplemented] if the type is not valid for coercion.
+fn coerce_to_map<'py>(
+    value: &Bound<'py, PyAny>,
+) -> PyResult<Option<Bound<'py, PyPauliLindbladMap>>> {
+    let py = value.py();
+    if let Ok(obs) = value.downcast_exact::<PyPauliLindbladMap>() {
+        return Ok(Some(obs.clone()));
+    }
+    match PyPauliLindbladMap::py_new(value, None) {
+        Ok(obs) => Ok(Some(Bound::new(py, obs)?)),
+        Err(e) => {
+            if e.is_instance_of::<PyTypeError>(py) {
+                Ok(None)
+            } else {
+                Err(e)
+            }
+        }
     }
 }
