@@ -186,10 +186,6 @@ impl ParameterExpression {
                         c.into_py_any(py)
                     }
                 }
-                symbol_expr::Value::Fraction {
-                    numerator,
-                    denominator,
-                } => (numerator as f64 / denominator as f64).into_py_any(py),
             },
             None => Err(pyo3::exceptions::PyRuntimeError::new_err(
                 "Expression has some undefined symbols.",
@@ -238,10 +234,6 @@ impl ParameterExpression {
                 symbol_expr::Value::Real(r) => r.into_py_any(py),
                 symbol_expr::Value::Int(i) => i.into_py_any(py),
                 symbol_expr::Value::Complex(c) => c.into_py_any(py),
-                symbol_expr::Value::Fraction {
-                    numerator,
-                    denominator,
-                } => (*numerator as f64 / *denominator as f64).into_py_any(py),
             })
             .collect()
     }
@@ -288,6 +280,9 @@ impl ParameterExpression {
                         })
                     }
                 }
+                symbol_expr::Value::Int(_) => Ok(Self {
+                    expr: SymbolExpr::Value(v),
+                }),
                 symbol_expr::Value::Complex(c) => {
                     if c.re.is_infinite() || c.im.is_infinite() {
                         Err(pyo3::exceptions::PyZeroDivisionError::new_err(
@@ -309,9 +304,6 @@ impl ParameterExpression {
                         })
                     }
                 }
-                _ => Ok(Self {
-                    expr: SymbolExpr::Value(v),
-                }),
             },
             None => Ok(Self { expr: bound }),
         }

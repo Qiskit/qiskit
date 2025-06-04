@@ -47,7 +47,6 @@ pub enum Value {
     Real(f64),
     Int(i64),
     Complex(Complex64),
-    Fraction { numerator: i64, denominator: i64 },
 }
 
 /// definition of unary operations
@@ -212,7 +211,6 @@ impl fmt::Display for SymbolExpr {
                             Value::Real(v) => *v < 0.0,
                             Value::Int(v) => *v < 0,
                             Value::Complex(_) => true,
-                            Value::Fraction { .. } => e.is_negative(),
                         },
                         _ => false,
                     };
@@ -225,7 +223,6 @@ impl fmt::Display for SymbolExpr {
                             Value::Real(v) => *v < 0.0,
                             Value::Int(v) => *v < 0,
                             Value::Complex(_) => true,
-                            Value::Fraction { .. } => true,
                         },
                         _ => false,
                     };
@@ -269,141 +266,29 @@ impl fmt::Display for SymbolExpr {
                             }
                         },
                         BinaryOp::Mul => {
-                            if let SymbolExpr::Value(Value::Fraction {
-                                numerator,
-                                denominator,
-                            }) = lhs.as_ref()
-                            {
-                                if *numerator == 1 {
-                                    if op_rhs {
-                                        if *denominator == 1 {
-                                            format!("({})", s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("({})/({})", s_rhs, *denominator)
-                                        } else {
-                                            format!("({})/{}", s_rhs, *denominator)
-                                        }
-                                    } else {
-                                        if *denominator == 1 {
-                                            format!("{}", s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}/({})", s_rhs, *denominator)
-                                        } else {
-                                            format!("{}/{}", s_rhs, *denominator)
-                                        }
-                                    }
-                                } else if *numerator < 0 {
-                                    if op_rhs {
-                                        if *denominator == 1 {
-                                            format!("({})*({})", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!(
-                                                "({})*({})/({})",
-                                                *numerator, s_rhs, *denominator
-                                            )
-                                        } else {
-                                            format!("({})*({})/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    } else {
-                                        if *denominator == 1 {
-                                            format!("({})*{}", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("({})*{}/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("({})*{}/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    }
+                            if op_lhs {
+                                if op_rhs {
+                                    format!("({})*({})", s_lhs, s_rhs)
                                 } else {
-                                    if op_rhs {
-                                        if *denominator == 1 {
-                                            format!("{}*({})", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}*({})/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("{}*({})/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    } else {
-                                        if *denominator == 1 {
-                                            format!("{}*{}", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}*{}/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("{}*{}/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    }
+                                    format!("({})*{}", s_lhs, s_rhs)
                                 }
+                            } else if op_rhs {
+                                format!("{}*({})", s_lhs, s_rhs)
                             } else {
-                                if op_lhs {
-                                    if op_rhs {
-                                        format!("({})*({})", s_lhs, s_rhs)
-                                    } else {
-                                        format!("({})*{}", s_lhs, s_rhs)
-                                    }
-                                } else if op_rhs {
-                                    format!("{}*({})", s_lhs, s_rhs)
-                                } else {
-                                    format!("{}*{}", s_lhs, s_rhs)
-                                }
+                                format!("{}*{}", s_lhs, s_rhs)
                             }
                         }
                         BinaryOp::Div => {
-                            if let SymbolExpr::Value(Value::Fraction {
-                                numerator,
-                                denominator,
-                            }) = lhs.as_ref()
-                            {
-                                if *numerator < 0 {
-                                    if op_rhs {
-                                        if *denominator == 1 {
-                                            format!("({})/({})", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!(
-                                                "({})/({})/({})",
-                                                *numerator, s_rhs, *denominator
-                                            )
-                                        } else {
-                                            format!("({})/({})/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    } else {
-                                        if *denominator == 1 {
-                                            format!("({})/{}", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("({})/{}/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("({})/{}/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    }
+                            if op_lhs {
+                                if op_rhs {
+                                    format!("({})/({})", s_lhs, s_rhs)
                                 } else {
-                                    if op_rhs {
-                                        if *denominator == 1 {
-                                            format!("{}/({})", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}/({})/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("{}/({})/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    } else {
-                                        if *denominator == 1 {
-                                            format!("{}/{}", *numerator, s_rhs)
-                                        } else if *denominator < 0 {
-                                            format!("{}/{}/({})", *numerator, s_rhs, *denominator)
-                                        } else {
-                                            format!("{}/{}/{}", *numerator, s_rhs, *denominator)
-                                        }
-                                    }
+                                    format!("({})/{}", s_lhs, s_rhs)
                                 }
+                            } else if op_rhs {
+                                format!("{}/({})", s_lhs, s_rhs)
                             } else {
-                                if op_lhs {
-                                    if op_rhs {
-                                        format!("({})/({})", s_lhs, s_rhs)
-                                    } else {
-                                        format!("({})/{}", s_lhs, s_rhs)
-                                    }
-                                } else if op_rhs {
-                                    format!("{}/({})", s_lhs, s_rhs)
-                                } else {
-                                    format!("{}/{}", s_lhs, s_rhs)
-                                }
+                                format!("{}/{}", s_lhs, s_rhs)
                             }
                         }
                         BinaryOp::Pow => match lhs.as_ref() {
@@ -562,27 +447,6 @@ impl SymbolExpr {
                             Some(ret)
                         }
                     }
-                    Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => {
-                        if denominator == 1 {
-                            Some(Value::Int(numerator))
-                        } else if denominator == -1 {
-                            Some(Value::Int(-numerator))
-                        } else if numerator == 0 {
-                            Some(Value::Int(0))
-                        } else if numerator == denominator {
-                            Some(Value::Int(1))
-                        } else {
-                            let gcd = _gcd(numerator.abs() as u64, denominator.abs() as u64);
-                            if gcd == denominator.abs() as u64 {
-                                Some(Value::Int(numerator / denominator))
-                            } else {
-                                Some(Value::Real(numerator as f64 / denominator as f64))
-                            }
-                        }
-                    }
                 }
             }
             SymbolExpr::Binary { op, lhs, rhs } => {
@@ -620,27 +484,6 @@ impl SymbolExpr {
                             Some(Value::Real(c.re))
                         } else {
                             Some(ret)
-                        }
-                    }
-                    Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => {
-                        if denominator == 1 {
-                            Some(Value::Int(numerator))
-                        } else if denominator == -1 {
-                            Some(Value::Int(-numerator))
-                        } else if numerator == 0 {
-                            Some(Value::Int(0))
-                        } else if numerator == denominator {
-                            Some(Value::Int(1))
-                        } else {
-                            let gcd = _gcd(numerator.abs() as u64, denominator.abs() as u64);
-                            if gcd == denominator.abs() as u64 {
-                                Some(Value::Int(numerator / denominator))
-                            } else {
-                                Some(Value::Real(numerator as f64 / denominator as f64))
-                            }
                         }
                     }
                 }
@@ -839,10 +682,6 @@ impl SymbolExpr {
                 Value::Real(r) => Some(r),
                 Value::Int(r) => Some(r as f64),
                 Value::Complex(c) => Some(c.re),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => Some(numerator as f64 / denominator as f64),
             },
             None => None,
         }
@@ -854,7 +693,6 @@ impl SymbolExpr {
                 Value::Real(_) => Some(0.0),
                 Value::Int(_) => Some(0.0),
                 Value::Complex(c) => Some(c.im),
-                Value::Fraction { .. } => Some(0.0),
             },
             None => None,
         }
@@ -866,10 +704,6 @@ impl SymbolExpr {
                 Value::Real(r) => Some(r.into()),
                 Value::Int(i) => Some((i as f64).into()),
                 Value::Complex(c) => Some(c),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => Some((numerator as f64 / denominator as f64).into()),
             },
             None => None,
         }
@@ -1000,7 +834,6 @@ impl SymbolExpr {
                 Value::Real(_) => Some(true),
                 Value::Int(_) => Some(false),
                 Value::Complex(c) => Some((-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)),
-                Value::Fraction { .. } => Some(false),
             },
             None => None,
         }
@@ -2401,17 +2234,6 @@ impl SymbolExpr {
                         return Some(&SymbolExpr::Value(Value::Real(t)) * self);
                     }
                 }
-            } else if let SymbolExpr::Value(Value::Int(i)) = rhs {
-                return self.mul_opt(&SymbolExpr::Value(_fraction(1, *i)), recursive);
-            } else if let SymbolExpr::Value(Value::Fraction {
-                numerator,
-                denominator,
-            }) = rhs
-            {
-                return self.mul_opt(
-                    &SymbolExpr::Value(_fraction(*denominator, *numerator)),
-                    recursive,
-                );
             }
 
             match self {
@@ -2989,10 +2811,6 @@ impl fmt::Display for Value {
                         e.to_string()
                     }
                 }
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => format!("{}/{}", numerator, denominator),
             }
         )
     }
@@ -3007,10 +2825,6 @@ impl Value {
             Value::Real(e) => *e,
             Value::Int(e) => *e as f64,
             Value::Complex(e) => e.re,
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => *numerator as f64 / *denominator as f64,
         }
     }
 
@@ -3019,10 +2833,6 @@ impl Value {
             Value::Real(e) => Value::Real(e.abs()),
             Value::Int(e) => Value::Int(e.abs()),
             Value::Complex(e) => Value::Real((e.re * e.re + e.im * e.im).sqrt()),
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => _fraction(numerator.abs(), denominator.abs()),
         }
     }
 
@@ -3037,7 +2847,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real().sin()),
         }
     }
     pub fn asin(&self) -> Value {
@@ -3051,7 +2860,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real().asin()),
         }
     }
     pub fn cos(&self) -> Value {
@@ -3065,7 +2873,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real().cos()),
         }
     }
     pub fn acos(&self) -> Value {
@@ -3079,7 +2886,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real().acos()),
         }
     }
     pub fn tan(&self) -> Value {
@@ -3093,7 +2899,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real().tan()),
         }
     }
     pub fn atan(&self) -> Value {
@@ -3107,7 +2912,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real().atan()),
         }
     }
     pub fn exp(&self) -> Value {
@@ -3121,7 +2925,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real().exp()),
         }
     }
     pub fn log(&self) -> Value {
@@ -3141,7 +2944,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real()).log(),
         }
     }
     pub fn sqrt(&self) -> Value {
@@ -3173,7 +2975,6 @@ impl Value {
                     None => t,
                 }
             }
-            Value::Fraction { .. } => Value::Real(self.as_real().sqrt()),
         }
     }
     pub fn pow(&self, p: &Value) -> Value {
@@ -3188,7 +2989,6 @@ impl Value {
                 }
                 Value::Int(i) => Value::Real(e.powf(*i as f64)),
                 Value::Complex(_) => Value::Complex(Complex64::from(e)).pow(p),
-                Value::Fraction { .. } => self.pow(&Value::Real(p.as_real())),
             },
             Value::Int(e) => match p {
                 Value::Real(r) => {
@@ -3212,30 +3012,17 @@ impl Value {
                     }
                 }
                 Value::Complex(_) => Value::Complex(Complex64::from(*e as f64)).pow(p),
-                Value::Fraction { .. } => self.pow(&Value::Real(p.as_real())),
             },
             Value::Complex(e) => {
                 let t = match p {
                     Value::Real(r) => Value::Complex(e.powf(*r)),
                     Value::Int(r) => Value::Complex(e.powf(*r as f64)),
                     Value::Complex(r) => Value::Complex(e.powc(*r)),
-                    Value::Fraction { .. } => self.pow(&Value::Real(p.as_real())),
                 };
                 match t.opt_complex() {
                     Some(v) => v,
                     None => t,
                 }
-            }
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => {
-                if let Value::Int(i) = p {
-                    if *i >= 0 {
-                        return _fraction(numerator.pow(*i as u32), denominator.pow(*i as u32));
-                    }
-                }
-                Value::Real(self.as_real()).pow(p)
             }
         }
     }
@@ -3252,10 +3039,6 @@ impl Value {
                 }
             }
             Value::Complex(e) => Value::Complex(1.0 / e),
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => _fraction(*denominator, *numerator),
         }
     }
     pub fn sign(&self) -> Value {
@@ -3279,24 +3062,6 @@ impl Value {
                 }
             }
             Value::Complex(_) => *self,
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => {
-                if *numerator > 0 {
-                    if *denominator > 0 {
-                        Value::Int(1)
-                    } else {
-                        Value::Int(-1)
-                    }
-                } else if *numerator == 0 {
-                    Value::Int(0)
-                } else if *denominator > 0 {
-                    Value::Int(-1)
-                } else {
-                    Value::Int(1)
-                }
-            }
         }
     }
 
@@ -3308,7 +3073,6 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
-            Value::Fraction { numerator, .. } => *numerator == 0,
         }
     }
     pub fn is_one(&self) -> bool {
@@ -3319,10 +3083,6 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re - 1.0))
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => *numerator == *denominator,
         }
     }
     pub fn is_minus_one(&self) -> bool {
@@ -3333,10 +3093,6 @@ impl Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re + 1.0))
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
             }
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => *numerator == -denominator,
         }
     }
 
@@ -3348,7 +3104,6 @@ impl Value {
                 (c.re < 0.0 && c.im < SYMEXPR_EPSILON && c.im > -SYMEXPR_EPSILON)
                     || (c.im < 0.0 && c.re < SYMEXPR_EPSILON && c.re > -SYMEXPR_EPSILON)
             }
-            Value::Fraction { .. } => self.sign() == Value::Int(-1),
         }
     }
 
@@ -3517,46 +3272,16 @@ impl Add for Value {
                 Value::Real(r) => Value::Real(l + r),
                 Value::Int(r) => Value::Real(l + r as f64),
                 Value::Complex(r) => Value::Complex(l + r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => Value::Real((l * denominator as f64 + numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 + r),
                 Value::Int(r) => Value::Int(l + r),
                 Value::Complex(r) => Value::Complex(l as f64 + r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => _fraction(l * denominator + numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l + r),
                 Value::Int(r) => Value::Complex(l + r as f64),
                 Value::Complex(r) => Value::Complex(l + r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => {
-                    Value::Complex((l * denominator as f64 + numerator as f64) / denominator as f64)
-                }
-            },
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => match rhs {
-                Value::Real(r) => {
-                    Value::Real((numerator as f64 + r * denominator as f64) / denominator as f64)
-                }
-                Value::Int(r) => _fraction(numerator + r * denominator, denominator),
-                Value::Complex(r) => {
-                    Value::Complex((numerator as f64 + r * denominator as f64) / denominator as f64)
-                }
-                Value::Fraction {
-                    numerator: rn,
-                    denominator: rd,
-                } => _fraction(rd * numerator + denominator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -3581,46 +3306,16 @@ impl Sub for Value {
                 Value::Real(r) => Value::Real(l - r),
                 Value::Int(r) => Value::Real(l - r as f64),
                 Value::Complex(r) => Value::Complex(l - r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => Value::Real((l * denominator as f64 - numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 - r),
                 Value::Int(r) => Value::Int(l - r),
                 Value::Complex(r) => Value::Complex(l as f64 - r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => _fraction(l * denominator - numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l - r),
                 Value::Int(r) => Value::Complex(l - r as f64),
                 Value::Complex(r) => Value::Complex(l - r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => {
-                    Value::Complex((l * denominator as f64 - numerator as f64) / denominator as f64)
-                }
-            },
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => match rhs {
-                Value::Real(r) => {
-                    Value::Real((numerator as f64 - r * denominator as f64) / denominator as f64)
-                }
-                Value::Int(r) => _fraction(numerator - r * denominator, denominator),
-                Value::Complex(r) => {
-                    Value::Complex((numerator as f64 - r * denominator as f64) / denominator as f64)
-                }
-                Value::Fraction {
-                    numerator: rn,
-                    denominator: rd,
-                } => _fraction(rd * numerator - denominator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -3645,40 +3340,16 @@ impl Mul for Value {
                 Value::Real(r) => Value::Real(l * r),
                 Value::Int(r) => Value::Real(l * r as f64),
                 Value::Complex(r) => Value::Complex(l * r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => Value::Real((l * numerator as f64) / denominator as f64),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => Value::Real(l as f64 * r),
                 Value::Int(r) => Value::Int(l * r),
                 Value::Complex(r) => Value::Complex(l as f64 * r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => _fraction(l * numerator, denominator),
             },
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l * r),
                 Value::Int(r) => Value::Complex(l * r as f64),
                 Value::Complex(r) => Value::Complex(l * r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => Value::Complex((l * numerator as f64) / denominator as f64),
-            },
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => match rhs {
-                Value::Real(r) => Value::Real((numerator as f64 * r) / denominator as f64),
-                Value::Int(r) => _fraction(numerator * r, denominator),
-                Value::Complex(r) => Value::Complex((numerator as f64 * r) / denominator as f64),
-                Value::Fraction {
-                    numerator: rn,
-                    denominator: rd,
-                } => _fraction(numerator * rn, denominator * rd),
             },
         };
         match t.opt_complex() {
@@ -3703,13 +3374,9 @@ impl Div for Value {
                 Value::Real(r) => Value::Real(l / r),
                 Value::Int(r) => Value::Real(l / r as f64),
                 Value::Complex(r) => Value::Complex(l / r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => Value::Real(l * denominator as f64 / numerator as f64),
             },
             Value::Int(l) => {
-                if rhs.is_zero() {
+                if rhs == 0.0 {
                     return Value::Real(f64::INFINITY);
                 }
                 match rhs {
@@ -3724,32 +3391,12 @@ impl Div for Value {
                         }
                     }
                     Value::Complex(r) => Value::Complex(l as f64 / r),
-                    Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => _fraction(l * denominator, numerator),
                 }
             }
             Value::Complex(l) => match rhs {
                 Value::Real(r) => Value::Complex(l / r),
                 Value::Int(r) => Value::Complex(l / r as f64),
                 Value::Complex(r) => Value::Complex(l / r),
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => Value::Complex((l * denominator as f64) / numerator as f64),
-            },
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => match rhs {
-                Value::Real(r) => Value::Real(numerator as f64 / (denominator as f64 * r)),
-                Value::Int(r) => _fraction(numerator, denominator * r),
-                Value::Complex(r) => Value::Complex(numerator as f64 / (denominator as f64 * r)),
-                Value::Fraction {
-                    numerator: rn,
-                    denominator: rd,
-                } => _fraction(numerator * rd, denominator * rn),
             },
         };
         match t.opt_complex() {
@@ -3773,10 +3420,6 @@ impl Neg for Value {
             Value::Real(v) => Value::Real(-v),
             Value::Int(v) => Value::Int(-v),
             Value::Complex(v) => Value::Complex(-v),
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => _fraction(-numerator, denominator),
         }
     }
 }
@@ -3792,11 +3435,6 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
-                    .contains(&(e * *denominator as f64 - *numerator as f64)),
             },
             Value::Int(e) => match r {
                 Value::Int(rv) => e == rv,
@@ -3806,10 +3444,6 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => e * *denominator == *numerator,
             },
             Value::Complex(e) => match r {
                 Value::Real(rv) => {
@@ -3827,31 +3461,6 @@ impl PartialEq for Value {
                     (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                         && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
                 }
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => {
-                    let t = *e * *denominator as f64 - *numerator as f64;
-                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
-                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
-                }
-            },
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => match r {
-                Value::Int(rv) => *numerator == rv * *denominator,
-                Value::Real(rv) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
-                    .contains(&(*numerator as f64 - rv * *denominator as f64)),
-                Value::Complex(rv) => {
-                    let t = rv * *denominator as f64 - *numerator as f64;
-                    (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
-                        && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
-                }
-                Value::Fraction {
-                    numerator: rn,
-                    denominator: rd,
-                } => *denominator * *rn == *numerator * *rd,
             },
         }
     }
@@ -3867,11 +3476,6 @@ impl PartialEq<f64> for Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON)
-                .contains(&(*numerator as f64 - r * *denominator as f64)),
         }
     }
 }
@@ -3894,14 +3498,6 @@ impl PartialEq<Complex64> for Value {
                 (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
                     && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
             }
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => {
-                let t = r * *denominator as f64 - *numerator as f64;
-                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.re)
-                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&t.im)
-            }
         }
     }
 }
@@ -3913,65 +3509,13 @@ impl PartialOrd for Value {
                 Value::Real(r) => l.partial_cmp(r),
                 Value::Int(r) => l.partial_cmp(&(*r as f64)),
                 Value::Complex(_) => None,
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => (l * *denominator as f64).partial_cmp(&(*numerator as f64)),
             },
             Value::Int(l) => match rhs {
                 Value::Real(r) => (*l as f64).partial_cmp(r),
                 Value::Int(r) => l.partial_cmp(r),
                 Value::Complex(_) => None,
-                Value::Fraction {
-                    numerator,
-                    denominator,
-                } => (l * *denominator).partial_cmp(numerator),
             },
             Value::Complex(_) => None,
-            Value::Fraction {
-                numerator,
-                denominator,
-            } => match rhs {
-                Value::Real(r) => (*numerator as f64).partial_cmp(&(r * *denominator as f64)),
-                Value::Int(r) => numerator.partial_cmp(&(r * *denominator)),
-                Value::Complex(_) => None,
-                Value::Fraction {
-                    numerator: rn,
-                    denominator: rd,
-                } => (rd * *numerator).partial_cmp(&(rn * *denominator)),
-            },
         }
-    }
-}
-
-fn _gcd(a: u64, b: u64) -> u64 {
-    if b > a {
-        return _gcd(b, a);
-    }
-    if b == 0 {
-        a
-    } else {
-        _gcd(b, a % b)
-    }
-}
-
-fn _fraction(numerator: i64, denominator: i64) -> Value {
-    if numerator == 0 {
-        return Value::Int(0);
-    }
-    let mut ret_n = numerator;
-    let mut ret_d = denominator;
-    let gcd = _gcd(numerator.abs() as u64, denominator.abs() as u64);
-    if gcd > 1 {
-        ret_n /= gcd as i64;
-        ret_d /= gcd as i64;
-    }
-    if numerator < 0 && denominator < 0 || numerator > 0 && denominator < 0 {
-        ret_n = -ret_n;
-        ret_d = -ret_d;
-    }
-    Value::Fraction {
-        numerator: ret_n,
-        denominator: ret_d,
     }
 }
