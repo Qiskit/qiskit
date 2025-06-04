@@ -1366,24 +1366,30 @@ impl PyPauliLindbladMap {
             .into())
     }
 
-    /// Sample sign and Pauli operator pairs from the map. Each sign is represented by a boolean,
-    /// with `True` representing `+1`, and False representing `-1`.
+    /// Sample sign and Pauli operator pairs from the map.
     ///
-    /// Given the quasi-probability representation given in the class level documentation, each
+    /// Each sign is represented by a boolean, with ``True`` representing ``+1``, and ``False``
+    /// representing ``-1``.
+    ///
+    /// Given the quasi-probability representation given in the class-level documentation, each
     /// sample is drawn via the following process:
-    ///     * Initialize the sign boolean, and a :class`~.QubitSparsePauli` instance to the identity
-    ///     operator.
-    ///     * Iterate through each Pauli in the map. Using the pseudo-probability associated with
-    ///     each operator, randomly choose between applying the operator or not.
-    ///     * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
-    ///     the Pauli. If the rate associated with the Pauli is negative, flip the sign boolean.
+    ///
+    /// * Initialize the sign boolean, and a :class:`~.QubitSparsePauli` instance to the identity
+    ///   operator.
+    ///
+    /// * Iterate through each Pauli in the map. Using the pseudo-probability associated with
+    ///   each operator, randomly choose between applying the operator or not.
+    ///
+    /// * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
+    ///   the Pauli. If the rate associated with the Pauli is negative, flip the sign boolean.
     ///
     /// The results are returned as a 1d array of booleans, and the corresponding sampled qubit
-    /// sparse paulis in the form of a :class:`~.QubitSparsePauliList`.
+    /// sparse Paulis in the form of a :class:`~.QubitSparsePauliList`.
     ///
     /// Args:
     ///     num_samples (int): Number of samples to draw.
     ///     seed (int): Random seed.
+    ///
     /// Returns:
     ///     signs, qubit_sparse_pauli_list: The boolean array of signs and the list of qubit sparse
     ///     paulis.
@@ -1407,13 +1413,16 @@ impl PyPauliLindbladMap {
     /// operators from the map. If the map has negative rates, use
     /// :meth:`.PauliLindbladMap.signed_sample`.
     ///
-    /// Given the quasi-probability representation given in the class level documentation, each
+    /// Given the quasi-probability representation given in the class-level documentation, each
     /// sample is drawn via the following process:
-    ///     * Initialize a :class`~.QubitSparsePauli` instance to the identity operator.
-    ///     * Iterate through each Pauli in the map. Using the pseudo-probability associated with
-    ///     each operator, randomly choose between applying the operator or not.
-    ///     * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
-    ///     the Pauli.
+    ///
+    /// * Initialize a :class`~.QubitSparsePauli` instance to the identity operator.
+    ///
+    /// * Iterate through each Pauli in the map. Using the pseudo-probability associated with
+    ///   each operator, randomly choose between applying the operator or not.
+    ///
+    /// * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
+    ///   the Pauli.
     ///
     /// The sampled qubit sparse Paulis are returned in the form of a
     /// :class:`~.QubitSparsePauliList`.
@@ -1421,10 +1430,12 @@ impl PyPauliLindbladMap {
     /// Args:
     ///     num_samples (int): Number of samples to draw.
     ///     seed (int): Random seed. Defaults to ``None``.
+    ///
     /// Returns:
     ///     qubit_sparse_pauli_list: The list of qubit sparse paulis.
+    ///
     /// Raises:
-    ///     TypeError: If any of the rates in the map are negative.
+    ///     ValueError: If any of the rates in the map are negative.
     #[pyo3(signature = (num_samples, seed=None))]
     pub fn sample<'py>(
         &self,
