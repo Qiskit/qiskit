@@ -10,11 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::exit_codes::CInputError;
-use crate::exit_codes::ExitCode;
+use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
+use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
 use smallvec::{smallvec, SmallVec};
@@ -394,10 +395,34 @@ pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
     }
 }
 
+#[derive(Debug)]
+enum StandardOperation {
+    Gate(StandardGate),
+    Instruction(StandardInstruction),
+}
+
+impl StandardOperation {
+    pub fn num_qubits(&self) -> u32 {
+        match &self {
+            Self::Gate(gate) => gate.num_qubits(),
+            Self::Instruction(inst) => inst.num_qubits(),
+        }
+    }
+}
+
+impl From<StandardOperation> for PackedOperation {
+    fn from(value: StandardOperation) -> Self {
+        match value {
+            StandardOperation::Gate(gate) => gate.into(),
+            StandardOperation::Instruction(inst) => inst.into(),
+        }
+    }
+}
+
 /// Represents the mapping between qargs and ``InstructionProperties``
 #[derive(Debug)]
 pub struct TargetEntry {
-    operation: StandardGate,
+    operation: StandardOperation,
     params: Option<SmallVec<[Param; 3]>>,
     map: IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
 }
@@ -405,7 +430,7 @@ pub struct TargetEntry {
 impl TargetEntry {
     pub fn new(operation: StandardGate) -> Self {
         Self {
-            operation,
+            operation: StandardOperation::Gate(operation),
             params: None,
             map: Default::default(),
         }
@@ -413,8 +438,16 @@ impl TargetEntry {
 
     pub fn new_fixed(operation: StandardGate, params: SmallVec<[Param; 3]>) -> Self {
         Self {
-            operation,
+            operation: StandardOperation::Gate(operation),
             params: Some(params),
+            map: Default::default(),
+        }
+    }
+
+    pub fn new_instruction(instruction: StandardInstruction) -> Self {
+        Self {
+            operation: StandardOperation::Instruction(instruction),
+            params: None,
             map: Default::default(),
         }
     }
@@ -442,6 +475,58 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
         panic!("Tried to create an non-parametric entry with a parametric gate.")
     }
     Box::into_raw(Box::new(TargetEntry::new(operation)))
+}
+
+/// @ingroup QkTargetEntry
+/// Creates a new entry for adding a measurement instruction to a ``QkTarget``.
+///
+/// @return A pointer to the new ``QkTargetEntry`` for a measurement instruction.
+///
+/// # Example
+///
+///     QkTargetEntry *entry = qk_target_entry_new_measure();
+///     // Add fixed duration and error rates from qubits at index 0 to 4.
+///     for (uint32_t i = 0; i < 5; i++) {
+///         // Measure is a single qubit instruction
+///         uint32_t qargs[1] = {i};
+///         qk_target_entry_add_property(entry, qargs, 1, 1.928e-10, 7.9829e-11);
+///     }
+///     
+///     // Add the entry to a target with 5 qubits
+///     QkTarget *measure_target = qk_target_new(5);
+///     qk_target_add_instruction(measure_target, entry);
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
+    Box::into_raw(Box::new(TargetEntry::new_instruction(
+        StandardInstruction::Measure,
+    )))
+}
+
+/// @ingroup QkTargetEntry
+/// Creates a new entry for adding a reset instruction to a ``QkTarget``.
+///
+/// @return A pointer to the new ``QkTargetEntry`` for a reset instruction.
+///
+/// # Example
+///
+///     QkTargetEntry *entry = qk_target_entry_new_reset();
+///     // Add fixed duration and error rates from qubits at index 0 to 2.
+///     for (uint32_t i = 0; i < 3; i++) {
+///         // Reset is a single qubit instruction
+///         uint32_t qargs[1] = {i};
+///         qk_target_entry_add_property(entry, qargs, 1, 1.2e-11, 5.9e-13);
+///     }
+///     
+///     // Add the entry to a target with 3 qubits
+///     QkTarget *reset_target = qk_target_new(3);
+///     qk_target_add_instruction(reset_target, entry);
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
+    Box::into_raw(Box::new(TargetEntry::new_instruction(
+        StandardInstruction::Reset,
+    )))
 }
 
 /// @ingroup QkTargetEntry

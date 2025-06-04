@@ -63,8 +63,8 @@ int test_empty_target(void) {
     }
 
     uint32_t acquire_alignment = qk_target_acquire_alignment(target);
-    if (acquire_alignment != 0) {
-        printf("The acquire_alignment values %u is not 0.", acquire_alignment);
+    if (acquire_alignment != 1) {
+        printf("The acquire_alignment values %u is not 1.", acquire_alignment);
         result = EqualityError;
         goto cleanup;
     }
@@ -194,8 +194,8 @@ int test_target_add_instruction(void) {
     // Let's create a target with one qubit for now
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
-    // Add an X Gate.
 
+    // Add an X Gate.
     // This operation is global, no property map is provided
     QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
@@ -299,6 +299,59 @@ int test_target_add_instruction(void) {
     current_size = qk_target_num_instructions(target);
     if (current_size != 3) {
         printf("The size of this target is not correct: Expected 3, got %zu", current_size);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Add a measurement
+    QkTargetEntry *meas = qk_target_entry_new_measure();
+    for (uint32_t i = 0; i < 3; i++) {
+        uint32_t q[1] = {i};
+        qk_target_entry_add_property(meas, q, 1, 1e-6, 1e-4);
+    }
+    uint32_t num_meas = qk_target_entry_num_properties(meas);
+    if (num_meas != 3) {
+        printf("Expected 3 measurement entries but got: %u", num_meas);
+        result = EqualityError;
+        qk_target_entry_free(meas);
+        goto cleanup;
+    }
+
+    QkExitCode result_meas_props = qk_target_add_instruction(target, meas);
+    // Number of qubits of the target should remain 3.
+    current_num_qubits = qk_target_num_qubits(target);
+    if (current_num_qubits != 3) {
+        printf("The number of qubits this target is compatible with is not 3: %d",
+               current_num_qubits);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    current_size = qk_target_num_instructions(target);
+    if (current_size != 4) {
+        printf("The size of this target is not correct: Expected 4, got %zu", current_size);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Add a reset
+    QkTargetEntry *reset = qk_target_entry_new_reset();
+    for (uint32_t i = 0; i < 3; i++) {
+        uint32_t q[1] = {i};
+        qk_target_entry_add_property(meas, q, 1, 2e-6, 2e-4);
+    }
+    uint32_t num_reset = qk_target_entry_num_properties(reset);
+    if (num_meas != 3) {
+        printf("Expected 3 reset entries but got: %u", num_reset);
+        result = EqualityError;
+        qk_target_entry_free(reset);
+        goto cleanup;
+    }
+
+    qk_target_add_instruction(target, reset);
+    current_size = qk_target_num_instructions(target);
+    if (current_size != 5) {
+        printf("The size of this target is not correct: Expected 5, got %zu", current_size);
         result = EqualityError;
         goto cleanup;
     }
