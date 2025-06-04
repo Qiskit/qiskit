@@ -140,6 +140,10 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
+Note that circuit metadata and custom :class:`.Annotation` objects are serialized and deserialized
+by user-supplied classes, as the objects themselves are completely user-custom, so the forwards- and
+backwards-compatibility of these is limited by what the user provides.
+
 If a feature being loaded is deprecated in the corresponding qiskit release, QPY will
 raise a :exc:`~.QPYLoadingDeprecatedFeatureWarning` informing of the deprecation period
 and how the feature will be internally handled.
@@ -198,9 +202,18 @@ of QPY in qiskit-terra 0.18.0.
    * - 2.1.0
      - 13, 14, 15
      - 15
+   * - 2.0.2
+     - 13, 14
+     - 14
+   * - 2.0.1
+     - 13, 14
+     - 14
    * - 2.0.0
      - 13, 14
      - 14
+   * - 1.4.3
+     - 10, 11, 12, 13
+     - 13
    * - 1.4.2
      - 10, 11, 12, 13
      - 13
@@ -391,12 +404,23 @@ All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
 
 The file header is immediately followed by the circuit payloads.
-Each individual circuit is composed of the following parts:
+Each individual circuit is composed of the following parts in order from top to bottom:
 
-``HEADER | METADATA | REGISTERS | STANDALONE_VARS | CUSTOM_DEFINITIONS | INSTRUCTIONS``
+.. code-block:: text
 
-The ``STANDALONE_VARS`` are new in QPY version 12; before that, there was no data between
-``REGISTERS`` and ``CUSTOM_DEFINITIONS``.
+    HEADER
+    METADATA
+    REGISTERS
+    ANNOTATION_HEADER
+    STANDALONE_VARS
+    CUSTOM_DEFINITIONS
+    INSTRUCTIONS
+
+.. versionchanged:: QPY 15
+    ``ANNOTATION_HEADER`` was added between ``REGISTERS`` and ``STANDALONE_VARS``.
+
+.. versionchanged:: QPY 12
+    ``STANDALONE_VARS`` was added between ``REGISTERS`` and ``CUSTOM_DEFINITIONS``.
 
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
@@ -407,11 +431,147 @@ circuits in the data.
 Version 15
 ----------
 
-Version 15 improves the native serialization of :class:`.ParameterExpression` by encoding 
-the :ref:`qpy_mapping` data in the ``PARAM_EXPR_ELEM_V13`` payload using uuids instead 
-of :class:`.Parameter` names. 
-This adds support for serializing parameter re-assignments where the parameter name is 
-the same but the uuid is different.
+Version 15 adds the concept of custom annotations to the payload format.  QPY itself does not
+specify how annotations are serialized or deserialized, as they are custom user objects.  The format
+does co-operate with sub-serializers, however.
+
+Version 15 adds the ``ANNOTATION_HEADER`` field between the ``STANDALONE_VARS`` and
+``CUSTOM_DEFINITIONS`` fields in the top level of a single circuit payload.  It modifies the
+interpretation of one field of the ``INSTRUCTION`` struct in an ABI-compatible manner, and adds a
+``INSTRUCTION_ANNOTATIONS`` trailer to ``INSTRUCTION`` which is present conditional on a set bit in
+the ``INSTRUCTION`` payload.
+
+New ANNOTATION_HEADER
+~~~~~~~~~~~~~~~~~~~~~
+
+The ``ANNOTATION_HEADER`` field is a variable-size payload in the header.  It begins with an
+instance of ``ANNOTATION_HEADER_STATIC``, which is the C struct:
+
+.. code-block:: c
+
+    struct ANNOTATION_HEADER_STATIC {
+        uint32_t num_namespaces;
+    }
+
+This is immediately followed by ``num_namespaces`` instances of the ``ANNOTATION_STATE`` payload.
+The order of these is important and should be retained during the deserialization process, as
+subsequent ``INSTRUCTION_ANNOTATION`` payloads will index into it.
+
+The ``ANNOTATION_STATE`` payload begins with the fixed C struct:
+
+.. code-block:: c
+
+    struct ANNOTATION_STATE_HEADER {
+        uint32_t namespace_size;
+        uint64_t state_size;
+    }
+
+This header is immediately followed by ``namespace_size`` bytes of UTF-8 encoded text, which
+comprise the namespace.  Those bytes are immediately followed by ``state_size`` bytes of arbitrary
+data.  The format of this "state" payload is not defined by QPY.  Instead, it is the responsibility
+of an external object associated with the stored namespace.  The format does not dictate how to
+produce these objects; as annotations are entirely custom, the user must supply the serialization
+and deserialization methods.
+
+
+.. _qpy_instruction_v15:
+
+Changes to INSTRUCTION
+~~~~~~~~~~~~~~~~~~~~~~
+
+The ``INSTRUCTION`` struct is modified in an ABI compatible manner to :ref:`its previous definition
+in version 9 <qpy_instruction_v9>`.  The new struct is the C struct (recall that there is no padding
+between any fields, nor at the end of the struct):
+
+.. code-block:: c
+
+    struct INSTRUCTION {
+        uint16_t name_size;
+        uint16_t label_size;
+        uint16_t num_parameters;
+        uint32_t num_qargs;
+        uint32_t num_cargs;
+        uint8_t extras_key;
+        uint16_t conditional_reg_name_size;
+        int64_t conditional_value;
+        uint32_t num_ctrl_qubits;
+        uint32_t ctrl_state;
+    }
+
+where the field ``uint8_t extras_key`` replaces the previous ``uint8_t conditional_key``.  The
+difference is purely in interpretation.  The low two bits of the byte are still interpreted as
+defining the condition and its type.  The high bit of the byte is now a flag, indicated whether an
+``INSTRUCTION_ANNOTATIONS_HEADER`` field is present (if the bit is set) in the trailing data of the
+``INSTRUCTION`` struct.
+
+A complete instruction payload appears in the data stream, including trailing objects and without
+any padding bytes inbetween elements, as:
+
+.. code-block:: text
+
+    struct INSTRUCTION;
+    uint8_t name[name_size];
+    uint8_t label[label_size];
+    uint8_t register[conditional_reg_name_size]; (1)
+    struct INSTRUCTION_PARAM;                    (2)
+    struct INSTRUCTION_ARG[num_qargs];
+    struct INSTRUCTION_ARG[num_cargs];
+    struct INSTRUCTION_PARAM[num_parameters];
+    INSTRUCTION_ANNOTATIONS;                     (3)
+
+The following notes apply:
+
+1. if the two low bits of the ``extras_key`` have the value ``2``, indicating the condition is an
+   ``EXPRESSION``, the ``conditional_reg_name_size`` is always zero.
+2. this field is present if and only if the two low bits of the ``extras_key`` have the value ``2``,
+   indicating the condition is an ``EXPRESSION``.
+3. this field is present if and only if the high bit of the ``extras_key`` is set.  This field has
+   a variable size; see :ref:`qpy_instruction_annotations_v15`.
+
+.. _qpy_instruction_annotations_v15:
+
+New INSTRUCTION_ANNOTATIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``INSTRUCTION_ANNOTATIONS`` payload begins with the C struct:
+
+.. code-block:: c
+
+    struct INSTRUCTION_ANNOTATIONS_HEADER {
+        uint32_t num_annotations;
+    }
+
+This payload is immediately followed by ``num_annotations`` instances of the
+``INSTRUCTION_ANNOTATION`` payload, which is of a variable size.
+
+The ``INSRTUCTION_ANNOTATION`` payload is defined by the following C struct plus a trailing number
+of bytes equal to the ``payload_size``, called ``ANNOTATION_PAYLOAD``.
+
+.. code-block:: c
+
+    struct INSTRUCTION_ANNOTATION {
+        uint32_t namespace_index;
+        uint32_t payload_size;
+    }
+
+The ``namespace_index`` is an integer index into the list of defined ``ANNOTATION_NAMESPACE``
+objects in the ``ANNOTATION_HEADER``.  The serialization namespace for an annotation is the UTF-8
+encoded string in the relevant payload.
+
+The format of the ``ANNOTATION_PAYLOAD`` object is not specified by QPY.  It is defined by an
+external serialization object associated with the namespace referred to by the ``namespace_index``
+and its associated serializer state in the ``ANNOTATION_HEADER``.
+
+
+Changes within PARAM_EXPR_ELEM_V13
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The struct itself is unchanged.  However, for a ``PARAM_EXPR_ELEM_V13`` representing a
+:meth:`.ParameterExpression.subs` call (with ``op_code = 15``, and therefore ``lhs_type = 'p'`` and
+``rhs_type = 'n'``), the trailing :ref:`qpy_mapping` now maps keys of the raw bytes of the
+:class:`.Parameter` UUIDs to the substituted values.  Previously (in QPY versions 13 and 14), this
+mapping stored the parameter names as the keys.
+
 
 .. _qpy_version_14:
 
@@ -915,6 +1075,7 @@ Python type  Type code  Payload
 ===========  =========  ============================================================================
 
 
+.. _qpy_instruction_v9:
 
 Changes to INSTRUCTION
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -956,7 +1117,7 @@ Value  Effects
 
 2      The instruction has its ``.condition`` field set to a :class:`~.expr.Expr` node.  The
        ``conditional_reg_name_size`` and ``conditional_value`` fields should be ignored.  The data
-       following the struct is followed (as in QPY versions less than 8) by ``name_size`` bytes of
+       following the struct is followed (as in QPY versions less than 9) by ``name_size`` bytes of
        UTF-8 string data for the class name and ``label_size`` bytes of UTF-8 string data for the
        label (if any). Then, there is one INSTRUCTION_PARAM, which will contain an EXPRESSION. After
        that, parsing continues with the INSTRUCTION_ARG structs, as in previous versions of QPY.
