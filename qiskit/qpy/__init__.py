@@ -195,6 +195,9 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.1.0
+     - 13, 14, 15
+     - 15
    * - 2.0.0
      - 13, 14
      - 14
@@ -398,6 +401,17 @@ The ``STANDALONE_VARS`` are new in QPY version 12; before that, there was no dat
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_15:
+
+Version 15
+----------
+
+Version 15 improves the native serialization of :class:`.ParameterExpression` by encoding 
+the :ref:`qpy_mapping` data in the ``PARAM_EXPR_ELEM_V13`` payload using uuids instead 
+of :class:`.Parameter` names. 
+This adds support for serializing parameter re-assignments where the parameter name is 
+the same but the uuid is different.
 
 .. _qpy_version_14:
 
