@@ -110,7 +110,13 @@ class BoxOp(ControlFlowOp):
 
     def replace_blocks(self, blocks):
         (body,) = blocks
-        return BoxOp(body, duration=self.duration, unit=self.unit, label=self.label)
+        return BoxOp(
+            body,
+            duration=self.duration,
+            unit=self.unit,
+            label=self.label,
+            annotations=self.annotations,
+        )
 
     def __eq__(self, other):
         return (
