@@ -99,6 +99,7 @@ API documentation
 
 .. autofunction:: load
 .. autofunction:: dump
+.. autofunction:: get_qpy_version
 
 These functions will raise a custom subclass of :exc:`.QiskitError` if they encounter problems
 during serialization or deserialization.
@@ -425,11 +426,16 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+<<<<<<< HEAD
 .. _apy_version_15:
+=======
+.. _qpy_version_15:
+>>>>>>> ibm/main
 
 Version 15
 ----------
 
+<<<<<<< HEAD
 Version 15 adds the concept of custom annotations to the payload format.  QPY itself does not
 specify how annotations are serialized or deserialized, as they are custom user objects.  The format
 does co-operate with sub-serializers, however.
@@ -561,6 +567,13 @@ The format of the ``ANNOTATION_PAYLOAD`` object is not specified by QPY.  It is 
 external serialization object associated with the namespace referred to by the ``namespace_index``
 and its associated serializer state in the ``ANNOTATION_HEADER``.
 
+=======
+Version 15 improves the native serialization of :class:`.ParameterExpression` by encoding 
+the :ref:`qpy_mapping` data in the ``PARAM_EXPR_ELEM_V13`` payload using uuids instead 
+of :class:`.Parameter` names. 
+This adds support for serializing parameter re-assignments where the parameter name is 
+the same but the uuid is different.
+>>>>>>> ibm/main
 
 .. _qpy_version_14:
 
@@ -1261,7 +1274,7 @@ In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping`
 
 With the support of ``ScheduleBlock``, now :class:`~.QuantumCircuit` can be
 serialized together with :attr:`~.QuantumCircuit.calibrations`, or
-`Pulse Gates <https://docs.quantum.ibm.com/guides/pulse>`_.
+`Pulse Gates <https://quantum.cloud.ibm.com/docs/guides/pulse>`_.
 In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
 packed after the :ref:`qpy_instructions` block.
 
@@ -2117,7 +2130,7 @@ References
 """
 
 from .exceptions import QpyError, UnsupportedFeatureForVersion, QPYLoadingDeprecatedFeatureWarning
-from .interface import dump, load
+from .interface import dump, load, get_qpy_version
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.
 from .binary_io import (
