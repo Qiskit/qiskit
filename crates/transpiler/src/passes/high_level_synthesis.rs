@@ -24,7 +24,7 @@ use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, VarsCopyMode};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::converters::{dag_to_circuit, circuit_to_dag};
+use qiskit_circuit::converters::{dag_to_circuit};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
