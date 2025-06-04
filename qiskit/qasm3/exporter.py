@@ -175,7 +175,7 @@ class Exporter:
                 set to the empty string to disable indentation.
             experimental: any experimental features to enable during the export.  See
                 :class:`ExperimentalFeatures` for more details.
-            annotation_serializers: a mapping of namespaces to annotation serializers.  When an
+            annotation_handlers: a mapping of namespaces to annotation serializers.  When an
                 :class:`.Annotation` object is encountered, the most specific namespace in this
                 mapping that matches the annotation's :attr:`~.Annotation.namespace` attribute will
                 be used to serialize it.
