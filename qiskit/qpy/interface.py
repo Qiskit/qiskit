@@ -15,8 +15,8 @@
 from __future__ import annotations
 
 from json import JSONEncoder, JSONDecoder
-from typing import Union, List, BinaryIO, Type, Optional
-from collections.abc import Iterable
+from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
+from collections.abc import Iterable, Mapping
 import struct
 import warnings
 import re
@@ -26,6 +26,9 @@ from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
+
+if TYPE_CHECKING:
+    from qiskit.circuit import annotation
 
 
 # pylint: disable=invalid-name
@@ -78,6 +81,7 @@ def dump(
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
+    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
 ):
     """Write QPY binary data to a file
 
@@ -152,6 +156,11 @@ def dump(
                 QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
                 unless the version of ``symengine`` used between the loading and generating
                 environments matches.
+        annotation_factories: Mapping of namespaces to functions that create new instances of
+            :class:`.annotation.QPUSerializer`, for handling the dumping of custom
+            :class:`.Annotation` objects.  The subsequent call to :func:`load` will need to use
+            similar serializer objects, that understand the custom output format of those
+            serializers.
 
 
     Raises:
@@ -165,9 +174,6 @@ def dump(
     for program in programs:
         if not issubclass(type(program), QuantumCircuit):
             raise TypeError(f"'{type(program)}' is not a supported data type.")
-
-    type_key = type_keys.Program.CIRCUIT
-    writer = binary_io.write_circuit
 
     if version is None:
         version = common.QPY_VERSION
@@ -192,21 +198,23 @@ def dump(
         encoding,
     )
     file_obj.write(header)
-    common.write_type_key(file_obj, type_key)
+    common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
 
     for program in programs:
-        writer(
+        binary_io.write_circuit(
             file_obj,
             program,
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
+            annotation_factories=annotation_factories,
         )
 
 
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
+    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
@@ -244,6 +252,9 @@ def load(
             If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
+        annotation_factories: Mapping of namespaces to functions that create new instances of
+            :class:`.annotation.QPUSerializer`, for handling the loading of custom
+            :class:`.Annotation` objects.
 
     Returns:
         The list of Qiskit programs contained in the QPY data.
@@ -316,14 +327,12 @@ def load(
     else:
         type_key = common.read_type_key(file_obj)
 
-    if type_key == type_keys.Program.CIRCUIT:
-        loader = binary_io.read_circuit
-    elif type_key == type_keys.Program.SCHEDULE_BLOCK:
+    if type_key == type_keys.Program.SCHEDULE_BLOCK:
         raise QpyError(
             "Payloads of type `ScheduleBlock` cannot be loaded as of Qiskit 2.0. "
             "Use an earlier version of Qiskit if you want to load `ScheduleBlock` payloads."
         )
-    else:
+    if type_key != type_keys.Program.CIRCUIT:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 
     if data.qpy_version < 10:
@@ -334,11 +343,12 @@ def load(
     programs = []
     for _ in range(data.num_programs):
         programs.append(
-            loader(
+            binary_io.read_circuit(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
                 use_symengine=use_symengine,
+                annotation_factories=annotation_factories,
             )
         )
     return programs
