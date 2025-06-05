@@ -492,13 +492,18 @@ class EstimatorPubTestCase(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "exceeds the shape of the pub"):
             EstimatorPub(circuit, obs, params, shape=shape)
 
-    @ddt.data([(1,), (), (18, 2)], [(1, 4, 1), (3,), (1, 4, 3)], [(2, 3), (2, 3), (2, 3)])
+    @ddt.data(
+        [(1,), (), (18, 2)],
+        [(1, 4, 1), None, (1, 4, 3)],
+        [(1, 4, 1), (3,), (1, 4, 3)],
+        [(2, 3), (2, 3), (2, 3)],
+    )
     @ddt.unpack
     def test_coerce_tuple_with_shape(self, obs_shape, params_shape, shape):
         """Test coercing circuit and parameter values"""
         circuit = QuantumCircuit(2)
         obs = ObservablesArray(np.full(obs_shape, {"XX": 1}))
-        parameter_values = np.zeros((*params_shape, 0))
+        parameter_values = None if params_shape is None else np.zeros((*params_shape, 0))
 
         pub = EstimatorPub.coerce((circuit, obs, parameter_values, None, shape))
         self.assertEqual(pub.circuit, circuit, msg="incorrect value for `circuit` property")

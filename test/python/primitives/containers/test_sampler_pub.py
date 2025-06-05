@@ -372,12 +372,12 @@ class SamplerPubTestCase(QiskitTestCase):
         self.assertIs(pub.circuit, circuit)
         self.assertIs(pub.parameter_values, params)
 
-    @ddt.data([(), (18, 2)], [(3,), (4, 3)], [(2, 3), (2, 3)])
+    @ddt.data([(), (18, 2)], [(3,), (4, 3)], [(2, 3), (2, 3)], [None, (2, 3)])
     @ddt.unpack
     def test_coerce_tuple_with_shape(self, params_shape, shape):
         """Test coercing circuit and parameter values"""
         circuit = QuantumCircuit(2)
-        parameter_values = np.zeros((*params_shape, 0))
+        parameter_values = None if params_shape is None else np.zeros((*params_shape, 0))
 
         pub = SamplerPub.coerce((circuit, parameter_values, None, shape))
         self.assertEqual(pub.circuit, circuit, msg="incorrect value for `circuit` property")
