@@ -19,16 +19,36 @@ use std::cmp::PartialOrd;
 use std::convert::From;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Neg, Sub};
+use uuid::Uuid;
 
 use num_complex::Complex64;
 
 // epsilon for SymbolExpr is hearistically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
+pub struct Parameter {
+    name: Box<String>,
+    uuid: Uuid,
+}
+
+impl Parameter {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: Box::new(name.to_string()),
+            uuid: Uuid::new_v4(),
+        }
+    }
+
+    pub fn name(&self) -> String {
+        self.name.as_ref().clone()
+    }
+}
+
 /// node types of expression tree
 #[derive(Debug, Clone)]
 pub enum SymbolExpr {
-    Symbol(Box<String>),
+    Symbol(Parameter),
     Value(Value),
     Unary {
         op: UnaryOp,
@@ -174,7 +194,7 @@ impl fmt::Display for SymbolExpr {
             f,
             "{}",
             match self {
-                SymbolExpr::Symbol(e) => e.to_string(),
+                SymbolExpr::Symbol(e) => e.name(),
                 SymbolExpr::Value(e) => e.to_string(),
                 SymbolExpr::Unary { op, expr } => {
                     let s = expr.to_string();
@@ -352,7 +372,7 @@ impl SymbolExpr {
     /// bind value to symbol node
     pub fn bind(&self, maps: &HashMap<String, Value>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
+            SymbolExpr::Symbol(e) => match maps.get(e.name.as_ref()) {
                 Some(v) => SymbolExpr::Value(*v),
                 None => self.clone(),
             },
@@ -378,7 +398,7 @@ impl SymbolExpr {
     /// substitute symbol node to other expression
     pub fn subs(&self, maps: &HashMap<String, SymbolExpr>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
+            SymbolExpr::Symbol(e) => match maps.get(e.name.as_ref()) {
                 Some(v) => v.clone(),
                 None => self.clone(),
             },
@@ -712,7 +732,7 @@ impl SymbolExpr {
     /// return hashset of all symbols this equation contains
     pub fn symbols(&self) -> HashSet<String> {
         match self {
-            SymbolExpr::Symbol(e) => HashSet::<String>::from([e.as_ref().clone()]),
+            SymbolExpr::Symbol(e) => HashSet::<String>::from([e.name()]),
             SymbolExpr::Value(_) => HashSet::<String>::new(),
             SymbolExpr::Unary { op: _, expr } => expr.symbols(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
@@ -743,7 +763,7 @@ impl SymbolExpr {
     /// check if a symbol is in this equation
     pub fn has_symbol(&self, param: &String) -> bool {
         match self {
-            SymbolExpr::Symbol(e) => e.as_ref() == param,
+            SymbolExpr::Symbol(e) => e.name.as_ref() == param,
             SymbolExpr::Value(_) => false,
             SymbolExpr::Unary { op: _, expr } => expr.has_symbol(param),
             SymbolExpr::Binary { op: _, lhs, rhs } => lhs.has_symbol(param) | rhs.has_symbol(param),
@@ -2509,7 +2529,7 @@ impl PartialOrd for SymbolExpr {
 
 impl From<&str> for SymbolExpr {
     fn from(v: &str) -> Self {
-        SymbolExpr::Symbol(Box::new(v.to_string()))
+        SymbolExpr::Symbol(Parameter::new(v))
     }
 }
 

@@ -16,6 +16,7 @@ use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
 use pyo3::exceptions::PyRuntimeError;
 use thiserror::Error;
+use uuid::Uuid;
 
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -27,6 +28,8 @@ use pyo3::IntoPyObjectExt;
 use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
+
+use super::symbol_expr::Parameter;
 
 #[derive(Error, Debug)]
 pub enum ParameterError {
@@ -45,6 +48,7 @@ impl From<ParameterError> for PyErr {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParameterExpression {
     expr: SymbolExpr,
+    paramt
 }
 
 #[inline]
@@ -139,10 +143,6 @@ impl ParameterExpression {
     /// return derivative of this expression for param
     pub fn derivative(&self, param: &Self) -> Result<Self, String> {
         self.expr.derivative(&param.expr).map(|expr| Self { expr })
-        // match self.expr.derivative(&param.expr) {
-        //     Ok(expr) => Ok(Self { expr }),
-        //     Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
-        // }
     }
 
     /// expand expression
@@ -158,10 +158,10 @@ impl ParameterExpression {
     }
 
     /// substitute symbols to expressions (or values) given by hash map
-    pub fn subs(&self, in_maps: HashMap<String, Self>) -> Self {
+    pub fn subs(&self, in_maps: &HashMap<String, Self>) -> Self {
         let maps: HashMap<String, SymbolExpr> = in_maps
             .into_iter()
-            .map(|(key, val)| (key, val.expr))
+            .map(|(key, val)| (key.clone(), val.expr.clone()))
             .collect();
         Self {
             expr: self.expr.subs(&maps),
@@ -170,7 +170,7 @@ impl ParameterExpression {
 
     pub fn name(&self) -> String {
         if let SymbolExpr::Symbol(s) = &self.expr {
-            return s.as_ref().clone();
+            return s.name();
         }
         match self.expr.eval(true) {
             Some(e) => e.to_string(),
@@ -246,7 +246,7 @@ impl ParameterExpression {
             .replace("__end_sympy_replace__", "$");
 
         ParameterExpression {
-            expr: SymbolExpr::Symbol(Box::new(name)),
+            expr: SymbolExpr::Symbol(Parameter::new(&name)),
         }
     }
     /// create new expression as a value
@@ -302,6 +302,66 @@ impl ParameterExpression {
         }
     }
 
+    #[pyo3(name = "sin")]
+    pub fn py_sin(&self) -> Self {
+        self.sin()
+    }
+
+    #[pyo3(name = "cos")]
+    pub fn py_cos(&self) -> Self {
+        self.cos()
+    }
+
+    #[pyo3(name = "tan")]
+    pub fn py_tan(&self) -> Self {
+        self.tan()
+    }
+
+    #[pyo3(name = "asin")]
+    pub fn py_asin(&self) -> Self {
+        self.asin()
+    }
+
+    #[pyo3(name = "acos")]
+    pub fn py_acos(&self) -> Self {
+        self.acos()
+    }
+
+    #[pyo3(name = "atan")]
+    pub fn py_atan(&self) -> Self {
+        self.atan()
+    }
+
+    #[pyo3(name = "exp")]
+    pub fn py_exp(&self) -> Self {
+        self.exp()
+    }
+
+    #[pyo3(name = "log")]
+    pub fn py_log(&self) -> Self {
+        self.log()
+    }
+
+    #[pyo3(name = "abs")]
+    pub fn py_abs(&self) -> Self {
+        self.abs()
+    }
+
+    #[pyo3(name = "sign")]
+    pub fn py_sign(&self) -> Self {
+        self.sign()
+    }
+
+    #[pyo3(name = "copy")]
+    pub fn py_copy(&self) -> Self {
+        self.copy()
+    }
+
+    #[pyo3(name = "conjugate")]
+    pub fn py_conjugate(&self) -> Self {
+        self.conjugate()
+    }
+
     /// Return derivative of this expression for param
     pub fn gradient(&self, param: &Self) -> PyResult<Self> {
         self.derivative(param).map_err(PyRuntimeError::new_err)
@@ -325,6 +385,17 @@ impl ParameterExpression {
     #[pyo3(name = "name")]
     pub fn py_name(&self) -> String {
         self.name()
+    }
+
+    #[pyo3(name = "symbols")]
+    pub fn py_symbols(&self) -> HashSet<String> {
+        self.symbols()
+    }
+
+    /// substitute symbols to expressions (or values) given by hash map
+    #[pyo3(name = "subs")]
+    pub fn py_subs(&self, in_maps: HashMap<String, Self>) -> Self {
+        self.subs(&in_maps)
     }
 
     /// bind values to symbols given by input hashmap
