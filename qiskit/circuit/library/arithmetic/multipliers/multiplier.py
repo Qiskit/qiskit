@@ -51,7 +51,7 @@ class Multiplier(QuantumCircuit):
         additional_msg=(
             "Use the MultiplierGate provided in qiskit.circuit.library.arithmetic instead. "
             "For different multiplier implementations, see "
-            "https://docs.quantum.ibm.com/api/qiskit/synthesis.",
+            "https://quantum.cloud.ibm.com/docs/api/qiskit/synthesis.",
         ),
         removal_timeline="in Qiskit 3.0",
     )

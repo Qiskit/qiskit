@@ -49,6 +49,7 @@ visualization = [
     "Pillow >= 4.2.1",
     "pylatexenc >= 1.4",
     "seaborn >= 0.9.0",
+    "sympy>=1.3",
 ]
 crosstalk-pass = [
     "z3-solver >= 4.7",
@@ -67,11 +68,11 @@ all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass,qpy-com
 
 [project.urls]
 Homepage = "https://www.ibm.com/quantum/qiskit"
-Documentation = "https://docs.quantum.ibm.com"
-"API Reference" = "https://docs.quantum.ibm.com/api/qiskit"
+Documentation = "https://quantum.cloud.ibm.com/docs"
+"API Reference" = "https://quantum.cloud.ibm.com/docs/api/qiskit"
 Repository = "https://github.com/Qiskit/qiskit"
 Issues = "https://github.com/Qiskit/qiskit/issues"
-Changelog = "https://docs.quantum.ibm.com/api/qiskit/release-notes"
+Changelog = "https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes"
 
 [project.entry-points."qiskit.unitary_synthesis"]
 default = "qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin:DefaultUnitarySynthesis"
