@@ -12,6 +12,7 @@
 
 """Test the evolved operator ansatz."""
 
+import unittest
 from ddt import ddt, data
 import numpy as np
 
@@ -25,6 +26,7 @@ from qiskit.circuit.library.n_local import (
     hamiltonian_variational_ansatz,
 )
 from qiskit.synthesis.evolution import MatrixExponential
+from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -192,6 +194,16 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
             ops = evo.count_ops()
             self.assertIn("hamiltonian", ops)
             self.assertIn("PauliEvolution", ops)
+
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
+    def test_sympify_is_real(self):
+        """Test converting the parameters to sympy is real."""
+        evo = evolved_operator_ansatz(SparsePauliOp(["Z"], coeffs=[1 + 0j]))
+        param = evo.parameters[0]  # get the gamma parameter
+
+        angle = evo.data[0].operation.params[0]
+        expected = (2.0 * param).sympify()
+        self.assertEqual(expected, angle.sympify())
 
 
 class TestHamiltonianVariationalAnsatz(QiskitTestCase):
