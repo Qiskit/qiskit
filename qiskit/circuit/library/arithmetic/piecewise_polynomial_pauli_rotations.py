@@ -19,11 +19,11 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_func
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 from .polynomial_pauli_rotations import PolynomialPauliRotations, PolynomialPauliRotationsGate
 from .integer_comparator import IntegerComparator, IntegerComparatorGate
-from qiskit.utils.deprecation import deprecate_func
 
 
 class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
