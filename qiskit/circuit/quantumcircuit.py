@@ -2253,7 +2253,7 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        `the docs <https://docs.quantum.ibm.com/guides/construct-circuits>`__
+        `the docs <https://quantum.cloud.ibm.com/docs/guides/construct-circuits>`__
         for more information.
 
         .. code-block:: text
