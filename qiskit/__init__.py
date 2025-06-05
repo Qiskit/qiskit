@@ -44,6 +44,14 @@ else:
             " See https://qisk.it/packaging-1-0 for more detail."
         )
 
+if sys.version_info < (3, 10):
+    warnings.warn(
+        "Using Qiskit with Python 3.9 is deprecated as of the 2.1.0 release. "
+        "Support for running Qiskit with Python 3.9 will be removed in the "
+        "2.3.0 release, which coincides with when Python 3.9 goes end of life.",
+        DeprecationWarning,
+    )
+
 from . import _accelerate
 import qiskit._numpy_compat
 
