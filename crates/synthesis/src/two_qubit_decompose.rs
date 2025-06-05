@@ -677,7 +677,7 @@ impl TwoQubitWeylDecomposition {
         }
         if !found {
             return Err(QiskitError::new_err(format!(
-                "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {:?}", unitary_matrix
+                "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {unitary_matrix:?}"
             )));
         }
         let mut d = -d.map(|x| x.arg() / 2.);

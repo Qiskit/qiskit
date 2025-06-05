@@ -235,8 +235,7 @@ pub fn cancel_commutations(
                         Ok(PI / 4.0)
                     } else {
                         Err(PyRuntimeError::new_err(format!(
-                            "Angle for operation {} is not defined",
-                            node_op_name
+                            "Angle for operation {node_op_name} is not defined"
                         )))
                     };
                     total_angle += node_angle?;

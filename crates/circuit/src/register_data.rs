@@ -33,7 +33,7 @@ impl<R: Register> From<usize> for RegisterIndex<R> {
         Self {
             index: value
                 .try_into()
-                .unwrap_or_else(|_| panic!("'{}' is too big to be converted to u32", value)),
+                .unwrap_or_else(|_| panic!("'{value}' is too big to be converted to u32")),
             _marker: PhantomData,
         }
     }

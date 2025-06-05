@@ -660,7 +660,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 label: None,
             });
         }
-        Err(PyTypeError::new_err(format!("invalid input: {}", ob)))
+        Err(PyTypeError::new_err(format!("invalid input: {ob}")))
     }
 }
 

@@ -31,15 +31,13 @@ pub fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
 
         if x as usize >= n {
             return Err(PyValueError::new_err(format!(
-                "Invalid permutation: input has length {} and contains {}.",
-                n, x
+                "Invalid permutation: input has length {n} and contains {x}."
             )));
         }
 
         if seen[x as usize] {
             return Err(PyValueError::new_err(format!(
-                "Invalid permutation: input contains {} more than once.",
-                x
+                "Invalid permutation: input contains {x} more than once."
             )));
         }
 
