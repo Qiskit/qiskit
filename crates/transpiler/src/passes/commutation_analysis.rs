@@ -21,7 +21,8 @@ use pyo3::prelude::*;
 
 use pyo3::types::{PyDict, PyList};
 use qiskit_circuit::circuit_instruction::IntoInstructionRef;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Parameters, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::operations::Parameters;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 // Custom types to store the commutation sets and node indices,

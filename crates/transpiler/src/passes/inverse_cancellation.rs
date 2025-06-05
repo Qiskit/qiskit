@@ -17,8 +17,8 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType, Parameters};
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
+use qiskit_circuit::operations::{Operation, Parameters};
 
 fn gate_eq(py: Python, gate_a: &DAGInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
     if gate_a.op.name() != gate_b.operation.name() {

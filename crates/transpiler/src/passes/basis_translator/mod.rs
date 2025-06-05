@@ -28,9 +28,9 @@ mod compose_transforms;
 use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::IntoInstructionRef;
-use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction, Parameters};
+use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
-use qiskit_circuit::operations::Param;
+use qiskit_circuit::operations::{Param, Parameters};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
@@ -492,7 +492,7 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-            let new_params: Option<Parameters> = inner_node.params.as_deref().map(|p| p.clone());
+            let new_params: Option<Parameters<_>> = inner_node.params.as_deref().map(|p| p.clone());
             dag.apply_operation_back(
                 new_op,
                 &new_qubits,
@@ -529,7 +529,7 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-            let mut new_params: Option<Parameters> =
+            let mut new_params: Option<Parameters<_>> =
                 inner_node.params.as_deref().map(|p| p.clone());
             if let Some(Parameters::Params(inner_node_params)) = inner_node.params.as_deref() {
                 if inner_node_params

@@ -16,8 +16,8 @@ use hashbrown::HashSet;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::{QuantumRegister, Register};
 use qiskit_circuit::circuit_instruction::IntoInstructionRef;
-use qiskit_circuit::dag_circuit::{DAGInstruction, Parameters};
-use qiskit_circuit::operations::{InstructionRef, OperationRef, StandardGateRef};
+use qiskit_circuit::dag_circuit::DAGInstruction;
+use qiskit_circuit::operations::{InstructionRef, OperationRef, Parameters, StandardGateRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{

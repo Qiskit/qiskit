@@ -27,10 +27,11 @@ use smallvec::{smallvec, SmallVec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::classical::expr;
+use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
-use numpy::{IntoPyArray, ToPyArray};
 use numpy::PyArray2;
 use numpy::PyReadonlyArray2;
+use numpy::{IntoPyArray, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
@@ -240,6 +241,78 @@ impl<'py> Iterator for ParamParameterIter<'py> {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct GateParameters(pub SmallVec<[Param; 3]>);
+//
+// #[derive(Clone, Debug)]
+// pub struct DelayParameters {
+//     pub duration: Param,
+// }
+
+#[derive(Clone, Debug)]
+pub enum Parameters<T> {
+    Params(SmallVec<[Param; 3]>),
+    // Delay(DelayParameters),
+    Box {
+        body: T,
+    },
+    ForLoop {
+        indexset: Vec<usize>,
+        loop_param: Option<PyObject>,
+        body: T,
+    },
+    IfElse {
+        true_body: T,
+        false_body: Option<T>,
+    },
+    Switch {
+        cases: Vec<T>,
+    },
+    While {
+        body: T,
+    },
+}
+
+impl<T> Parameters<T> {
+    /// Replace all blocks of this parameter set, in order.
+    ///
+    /// Panics if `blocks` does not contain exactly the expected number of blocks
+    /// for the parameter set.
+    pub fn replace_blocks(&mut self, blocks: impl IntoIterator<Item = T>) {
+        let mut replacements = blocks.into_iter();
+        match self {
+            Parameters::Params(_) => {}
+            Parameters::Box { body, .. } => {
+                *body = replacements.next().expect("not enough blocks");
+            }
+            Parameters::ForLoop { body, .. } => {
+                *body = replacements.next().expect("not enough blocks");
+            }
+            Parameters::IfElse {
+                true_body,
+                false_body,
+                ..
+            } => {
+                *true_body = replacements.next().expect("not enough blocks");
+                if false_body.is_some() {
+                    *false_body = Some(replacements.next().expect("not enough blocks"));
+                }
+            }
+            Parameters::Switch { cases, .. } => {
+                for case in cases {
+                    *case = replacements.next().expect("not enough blocks");
+                }
+            }
+            Parameters::While { body, .. } => {
+                *body = replacements.next().expect("not enough blocks");
+            }
+        }
+        if replacements.next().is_some() {
+            panic!("too many blocks");
+        }
+    }
+}
+
 /// Trait for generic circuit operations these define the common attributes
 /// needed for something to be addable to the circuit struct
 pub trait Operation {
@@ -339,7 +412,6 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.directive(),
         }
     }
-
 }
 
 #[derive(Clone, Debug)]
@@ -385,8 +457,9 @@ impl<'a, T> InstructionRef<'a, T> {
         match self {
             InstructionRef::Unitary(u) => u.matrix_as_nalgebra_1q(),
             // default implementation
-            _ => self.matrix_as_static_1q()
-                .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
+            _ => self
+                .matrix_as_static_1q()
+                .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1])),
         }
     }
 
@@ -2758,7 +2831,6 @@ impl Operation for StandardGate {
     fn directive(&self) -> bool {
         false
     }
-
 }
 
 #[derive(Clone, Debug)]

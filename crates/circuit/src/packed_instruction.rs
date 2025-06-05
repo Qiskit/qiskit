@@ -26,8 +26,8 @@ use crate::imports::{
 };
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, UnitaryGate,
+    ControlFlow, Operation, OperationRef, Param, Parameters, PyGate, PyInstruction, PyOperation,
+    StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
 
@@ -734,7 +734,7 @@ pub struct PackedInstruction {
     pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
     pub clbits: Interned<[Clbit]>,
-    pub params: Option<Box<SmallVec<[Param; 3]>>>,
+    pub params: Option<Box<Parameters<PyObject>>>,
     pub label: Option<Box<String>>,
 
     #[cfg(feature = "cache_pygates")]
@@ -757,19 +757,13 @@ impl Instruction for PackedInstruction {
     }
 
     #[inline]
-    fn params_view(&self) -> &[Param] {
-        self.params
-            .as_deref()
-            .map(SmallVec::as_slice)
-            .unwrap_or(&[])
+    fn params_view(&self) -> Option<&Parameters<PyObject>> {
+        self.params.as_deref()
     }
 
     #[inline]
-    fn params_mut(&mut self) -> &mut [Param] {
-        self.params
-            .as_deref_mut()
-            .map(SmallVec::as_mut_slice)
-            .unwrap_or(&mut [])
+    fn params_mut(&mut self) -> Option<&mut Parameters<PyObject>> {
+        self.params.as_deref_mut()
     }
 
     #[inline]
@@ -787,7 +781,7 @@ impl PackedInstruction {
     /// Pack a [StandardGate] into a complete instruction.
     pub fn from_standard_gate(
         gate: StandardGate,
-        params: Option<Box<SmallVec<[Param; 3]>>>,
+        params: Option<Box<Parameters<PyObject>>>,
         qubits: Interned<[Qubit]>,
     ) -> Self {
         Self {
@@ -800,10 +794,10 @@ impl PackedInstruction {
             py_op: OnceLock::new(),
         }
     }
-    
+
     pub fn from_control_flow(
         control_flow: ControlFlow,
-        params: SmallVec<[Param; 3]>,
+        params: Parameters<PyObject>,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
         label: Option<&str>,
@@ -819,17 +813,15 @@ impl PackedInstruction {
         }
     }
 
-    /// Access the standard gate in this `DataInstruction`, if it is one.  If the instruction
-    /// refers to a Python-space object, `None` is returned.
-    #[inline]
-    pub fn standard_gate(&self) -> Option<StandardGate> {
-        self.op.try_standard_gate()
-    }
-
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
     pub fn is_parameterized(&self) -> bool {
         self.params_view()
-            .iter()
-            .any(|x| matches!(x, Param::ParameterExpression(_)))
+            .and_then(|p| match p {
+                Parameters::Params(p) => {
+                    Some(p.iter().any(|x| matches!(x, Param::ParameterExpression(_))))
+                }
+                _ => None,
+            })
+            .unwrap_or(false)
     }
 }

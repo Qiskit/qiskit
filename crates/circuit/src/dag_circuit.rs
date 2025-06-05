@@ -33,7 +33,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, Condition, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef,
-    Param, PyInstruction, StandardGate, StandardGateRef, StandardInstruction,
+    Param, Parameters, PyInstruction, StandardGate, StandardGateRef, StandardInstruction,
     StandardInstructionRef, Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -87,76 +87,13 @@ static CONTROL_FLOW_OP_NAMES: [&str; 4] = ["for_loop", "while_loop", "if_else", 
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
 
 #[derive(Clone, Debug)]
-pub enum Parameters {
-    Params(SmallVec<[Param; 3]>),
-    Box {
-        body: DAGCircuit,
-    },
-    ForLoop {
-        indexset: Vec<usize>,
-        loop_param: Option<PyObject>,
-        body: DAGCircuit,
-    },
-    IfElse {
-        true_body: DAGCircuit,
-        false_body: Option<DAGCircuit>,
-    },
-    Switch {
-        cases: Vec<DAGCircuit>,
-    },
-    While {
-        body: DAGCircuit,
-    },
-}
-
-impl Parameters {
-    /// Replace all blocks of this parameter set, in order.
-    ///
-    /// Panics if `blocks` does not contain exactly the expected number of blocks
-    /// for the parameter set.
-    pub fn replace_blocks(&mut self, blocks: impl IntoIterator<Item = DAGCircuit>) {
-        let mut replacements = blocks.into_iter();
-        match self {
-            Parameters::Params(_) => {}
-            Parameters::Box { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
-            }
-            Parameters::ForLoop { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
-            }
-            Parameters::IfElse {
-                true_body,
-                false_body,
-                ..
-            } => {
-                *true_body = replacements.next().expect("not enough blocks");
-                if false_body.is_some() {
-                    *false_body = Some(replacements.next().expect("not enough blocks"));
-                }
-            }
-            Parameters::Switch { cases, .. } => {
-                for case in cases {
-                    *case = replacements.next().expect("not enough blocks");
-                }
-            }
-            Parameters::While { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
-            }
-        }
-        if replacements.next().is_some() {
-            panic!("too many blocks");
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct DAGInstruction {
     pub op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
     pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
     pub clbits: Interned<[Clbit]>,
-    pub params: Option<Box<Parameters>>,
+    pub params: Option<Box<Parameters<DAGCircuit>>>,
     pub label: Option<Box<String>>,
 
     #[cfg(feature = "cache_pygates")]
@@ -180,7 +117,7 @@ impl DAGInstruction {
 
     pub fn from_control_flow(
         control_flow: ControlFlow,
-        params: Option<Parameters>,
+        params: Option<Parameters<DAGCircuit>>,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
         label: Option<&str>,
@@ -196,84 +133,45 @@ impl DAGInstruction {
         }
     }
 
-    // TODO: when exactly do we need to clear the py_op cache?
     // TODO: remove Python token once Instruction holds CircuitData instead
     pub fn from_packed(py: Python, instr: PackedInstruction) -> PyResult<Self> {
-        let mut params = instr.params.map(|p| *p).unwrap_or_default().into_iter();
-        let params: Option<Parameters> = match instr.op.view() {
-            OperationRef::ControlFlow(cf) => match cf {
-                ControlFlow::Box { .. } => {
-                    let Some(Param::Circuit(body)) = params.next() else {
-                        panic!("invalid box params");
-                    };
-                    Some(Parameters::Box {
-                        body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
-                    })
-                }
-                ControlFlow::BreakLoop { .. } => None,
-                ControlFlow::ContinueLoop { .. } => None,
-                ControlFlow::ForLoop { .. } => {
-                    let Some(Param::Indexset(indexset)) = params.next() else {
-                        panic!("invalid for loop index set");
-                    };
-                    let loop_param = match params.next().unwrap() {
-                        Param::ParameterExpression(e) => Some(e),
-                        Param::None => None,
-                        _ => panic!("invalid for loop loop param"),
-                    };
-                    let Some(Param::Circuit(body)) = params.next() else {
-                        panic!("invalid for loop body");
-                    };
-                    Some(Parameters::ForLoop {
-                        indexset,
-                        loop_param,
-                        body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
-                    })
-                }
-                ControlFlow::IfElse { .. } => {
-                    let Some(Param::Circuit(true_body)) = params.next() else {
-                        panic!("invalid ifelse true body");
-                    };
-                    let false_body = match params.next().unwrap() {
-                        Param::Circuit(body) => {
-                            Some(circuit_to_dag(py, body.extract(py)?, false, None, None)?)
-                        }
-                        Param::None => None,
-                        _ => panic!("invalid ifelse false body"),
-                    };
-                    Some(Parameters::IfElse {
-                        true_body: circuit_to_dag(py, true_body.extract(py)?, false, None, None)?,
-                        false_body,
-                    })
-                }
-                ControlFlow::Switch { .. } => {
-                    let cases = params.map(|p| match p {
-                        Param::Circuit(case) => case,
-                        _ => panic!("invalid switch case"),
-                    });
-                    Some(Parameters::Switch {
-                        cases: cases
-                            .map(|c| circuit_to_dag(py, c.extract(py)?, false, None, None))
-                            .collect::<PyResult<_>>()?,
-                    })
-                }
-                ControlFlow::While { .. } => {
-                    let Some(Param::Circuit(body)) = params.next() else {
-                        panic!("invalid while loop body");
-                    };
-                    Some(Parameters::While {
-                        body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
-                    })
-                }
-            },
-            _ => {
-                let params: SmallVec<[Param; 3]> = params.collect();
-                if params.is_empty() {
-                    None
-                } else {
-                    Some(Parameters::Params(params))
-                }
+        let params: Option<Parameters<DAGCircuit>> = match instr.params.map(|p| *p) {
+            None => None,
+            Some(Parameters::Box { body }) => Some(Parameters::Box {
+                body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
+            }),
+            Some(Parameters::ForLoop {
+                indexset,
+                loop_param,
+                body,
+            }) => Some(Parameters::ForLoop {
+                indexset,
+                loop_param,
+                body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
+            }),
+            Some(Parameters::IfElse {
+                true_body,
+                false_body,
+            }) => {
+                let false_body = match false_body {
+                    Some(body) => Some(circuit_to_dag(py, body.extract(py)?, false, None, None)?),
+                    None => None,
+                };
+                Some(Parameters::IfElse {
+                    true_body: circuit_to_dag(py, true_body.extract(py)?, false, None, None)?,
+                    false_body,
+                })
             }
+            Some(Parameters::Switch { cases }) => Some(Parameters::Switch {
+                cases: cases
+                    .into_iter()
+                    .map(|c| circuit_to_dag(py, c.extract(py)?, false, None, None))
+                    .collect::<PyResult<_>>()?,
+            }),
+            Some(Parameters::While { body }) => Some(Parameters::While {
+                body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
+            }),
+            Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
         };
         Ok(Self {
             op: instr.op,
@@ -288,74 +186,43 @@ impl DAGInstruction {
 
     pub fn into_packed(self, py: Python) -> PyResult<PackedInstruction> {
         let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-        let params: Option<SmallVec<[Param; 3]>> = match self.op() {
-            OperationRef::ControlFlow(cf) => {
-                let mut params = SmallVec::with_capacity(self.op().num_params() as usize);
-                match cf {
-                    ControlFlow::Box { .. } => {
-                        let Some(Parameters::Box { body }) = self.params.map(|p| *p) else {
-                            panic!("invalid");
-                        };
-                        params.push(Param::Circuit(dag_to_circuit.call1((body,))?.unbind()))
-                    }
-                    ControlFlow::BreakLoop { .. } => {}
-                    ControlFlow::ContinueLoop { .. } => {}
-                    ControlFlow::ForLoop { .. } => {
-                        let Some(Parameters::ForLoop {
-                            indexset,
-                            loop_param,
-                            body,
-                        }) = self.params.map(|p| *p)
-                        else {
-                            panic!("invalid");
-                        };
-                        params.push(Param::Indexset(indexset));
-                        params.push(
-                            loop_param
-                                .map(|p| Param::ParameterExpression(p))
-                                .unwrap_or(Param::None),
-                        );
-                        params.push(Param::Circuit(dag_to_circuit.call1((body,))?.unbind()));
-                    }
-                    ControlFlow::IfElse { .. } => {
-                        let Some(Parameters::IfElse {
-                            true_body,
-                            false_body,
-                        }) = self.params.map(|p| *p)
-                        else {
-                            panic!("invalid");
-                        };
-                        let true_body =
-                            Param::Circuit(dag_to_circuit.call1((true_body,))?.unbind());
-                        let false_body = if let Some(false_body) = false_body {
-                            Param::Circuit(dag_to_circuit.call1((false_body,))?.unbind())
-                        } else {
-                            Param::None
-                        };
-                        params.push(true_body);
-                        params.push(false_body);
-                    }
-                    ControlFlow::Switch { .. } => {
-                        let Some(Parameters::Switch { cases }) = self.params.map(|p| *p) else {
-                            panic!("invalid");
-                        };
-                        for case in cases {
-                            params.push(Param::Circuit(dag_to_circuit.call1((case,))?.unbind()));
-                        }
-                    }
-                    ControlFlow::While { .. } => {
-                        let Some(Parameters::While { body }) = self.params.map(|p| *p) else {
-                            panic!("invalid");
-                        };
-                        params.push(Param::Circuit(dag_to_circuit.call1((body,))?.unbind()));
-                    }
-                }
-                Some(params)
-            }
-            _ => self.params.map(|p| match *p {
-                Parameters::Params(p) => p,
-                _ => panic!("specialized parameters not unpacked!"),
+        let params: Option<Parameters<PyObject>> = match self.params.map(|p| *p) {
+            None => None,
+            Some(Parameters::Box { body }) => Some(Parameters::Box {
+                body: dag_to_circuit.call1((body,))?.unbind(),
             }),
+            Some(Parameters::ForLoop {
+                indexset,
+                loop_param,
+                body,
+            }) => Some(Parameters::ForLoop {
+                indexset,
+                loop_param,
+                body: dag_to_circuit.call1((body,))?.unbind(),
+            }),
+            Some(Parameters::IfElse {
+                true_body,
+                false_body,
+            }) => {
+                let false_body = match false_body {
+                    Some(body) => Some(dag_to_circuit.call1((body,))?.unbind()),
+                    None => None,
+                };
+                Some(Parameters::IfElse {
+                    true_body: dag_to_circuit.call1((true_body,))?.unbind(),
+                    false_body,
+                })
+            }
+            Some(Parameters::Switch { cases }) => Some(Parameters::Switch {
+                cases: cases
+                    .into_iter()
+                    .map(|c| Ok(dag_to_circuit.call1((c,))?.unbind()))
+                    .collect::<PyResult<_>>()?,
+            }),
+            Some(Parameters::While { body }) => Some(Parameters::While {
+                body: dag_to_circuit.call1((body,))?.unbind(),
+            }),
+            Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
         };
         Ok(PackedInstruction {
             op: self.op,
@@ -1926,7 +1793,7 @@ impl DAGCircuit {
                     op: py_op.operation,
                     qubits: qubits_id,
                     clbits: clbits_id,
-                    params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
+                    params: py_op.params.map(|p| Box::new(p)),
                     label: py_op.label,
                     #[cfg(feature = "cache_pygates")]
                     py_op: op.unbind().into(),
@@ -1991,7 +1858,7 @@ impl DAGCircuit {
                     op: py_op.operation,
                     qubits: qubits_id,
                     clbits: clbits_id,
-                    params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
+                    params: py_op.params.map(|p| Box::new(p)),
                     label: py_op.label,
                     #[cfg(feature = "cache_pygates")]
                     py_op: op.unbind().into(),
@@ -2941,7 +2808,7 @@ impl DAGCircuit {
                 op: py_op.operation,
                 qubits: self.qargs_interner.get_default(),
                 clbits: self.cargs_interner.get_default(),
-                params: Some(py_op.params.into()),
+                params: py_op.params.map(|p| p.into()),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: Default::default(),
@@ -3403,7 +3270,7 @@ impl DAGCircuit {
                 .into_packed(py)?;
             let temp: OperationFromPython = op.extract()?;
             node.instruction.operation = temp.operation;
-            node.instruction.params = params.map(|p| *p).unwrap_or_default();
+            node.instruction.params = params.map(|p| *p);
             node.instruction.label = label;
             #[cfg(feature = "cache_pygates")]
             {
@@ -5757,7 +5624,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<Parameters>,
+        params: Option<Parameters<DAGCircuit>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -5779,7 +5646,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<Parameters>,
+        params: Option<Parameters<DAGCircuit>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -5802,7 +5669,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<Parameters>,
+        params: Option<Parameters<DAGCircuit>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
         front: bool,
@@ -6263,9 +6130,11 @@ impl DAGCircuit {
                     )?
                     .collect(),
             );
-            let params = (!op_node.instruction.params.is_empty())
-                .then(|| Box::new(op_node.instruction.params.clone()));
-
+            let params = op_node
+                .instruction
+                .params
+                .as_ref()
+                .map(|p| Box::new(p.clone()));
             let inst = PackedInstruction {
                 op: op_node.instruction.operation.clone(),
                 qubits,
@@ -6315,7 +6184,7 @@ impl DAGCircuit {
                                 operation: packed.op,
                                 qubits: PyTuple::new(py, self.qubits.map_indices(qubits))?.unbind(),
                                 clbits: PyTuple::new(py, self.clbits.map_indices(clbits))?.unbind(),
-                                params: packed.params.map(|p| *p).unwrap_or_default(),
+                                params: packed.params.map(|p| *p),
                                 label: packed.label,
                                 #[cfg(feature = "cache_pygates")]
                                 py_op: packed.py_op,
@@ -7259,7 +7128,7 @@ impl DAGCircuit {
         &mut self,
         block_ids: &[NodeIndex],
         op: PackedOperation,
-        params: Option<Parameters>,
+        params: Option<Parameters<DAGCircuit>>,
         label: Option<&str>,
         cycle_check: bool,
         qubit_pos_map: &HashMap<Qubit, usize>,
@@ -7658,7 +7527,7 @@ impl DAGCircuit {
         &mut self,
         node_index: NodeIndex,
         new_op: PackedOperation,
-        params: Option<Parameters>,
+        params: Option<Parameters<DAGCircuit>>,
         label: Option<&str>,
     ) -> PyResult<()> {
         let old_packed = self.dag[node_index].unwrap_operation();
@@ -7740,7 +7609,7 @@ impl DAGCircuit {
                 op: new_op.operation,
                 qubits: old_packed.qubits,
                 clbits: old_packed.clbits,
-                params: (!new_op.params.is_empty()).then(|| new_op.params.into()),
+                params: new_op.params.map(|p| p.into()),
                 label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
@@ -7850,7 +7719,7 @@ impl DAGCircuitBuilder {
         op: PackedOperation,
         qubits: &[Qubit],
         clbits: &[Clbit],
-        params: Option<Parameters>,
+        params: Option<Parameters<DAGCircuit>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> PyResult<NodeIndex> {
@@ -7958,7 +7827,7 @@ impl DAGCircuitBuilder {
         op: PackedOperation,
         qubits: &[Qubit],
         clbits: &[Clbit],
-        params: Option<Parameters>,
+        params: Option<Parameters<DAGCircuit>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<PyObject>,
     ) -> DAGInstruction {

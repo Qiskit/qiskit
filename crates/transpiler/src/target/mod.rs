@@ -36,7 +36,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 use qiskit_circuit::circuit_instruction::{Instruction, OperationFromPython};
-use qiskit_circuit::operations::{Operation, OperationRef, Param};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, Parameters};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
 
@@ -68,9 +68,9 @@ impl TargetOperation {
     }
 
     /// Gets the parameters of a [TargetOperation], will panic if the operation is [TargetOperation::Variadic].
-    pub fn params(&self) -> &[Param] {
+    pub fn params(&self) -> Option<&Parameters<PyObject>> {
         match &self {
-            TargetOperation::Normal(normal) => normal.params.as_slice(),
+            TargetOperation::Normal(normal) => normal.params_view(),
             TargetOperation::Variadic(_) => {
                 panic!("'parameters' property doesn't exist for Variadic operations")
             }
@@ -78,7 +78,10 @@ impl TargetOperation {
     }
 
     /// Creates a [TargetOperation] from an instance of [PackedOperation]
-    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+    pub fn from_packed_operation(
+        operation: PackedOperation,
+        params: Option<Parameters<PyObject>>,
+    ) -> Self {
         NormalOperation::from_packed_operation(operation, params).into()
     }
 }
@@ -94,13 +97,16 @@ impl From<NormalOperation> for TargetOperation {
 #[derive(Debug)]
 pub struct NormalOperation {
     pub operation: PackedOperation,
-    pub params: SmallVec<[Param; 3]>,
+    pub params: Option<Parameters<PyObject>>,
     op_object: OnceLock<PyResult<PyObject>>,
 }
 
 impl NormalOperation {
     /// Creates a of [TargetOperation] from an instance of [PackedOperation]
-    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+    pub fn from_packed_operation(
+        operation: PackedOperation,
+        params: Option<Parameters<PyObject>>,
+    ) -> Self {
         Self {
             operation,
             params,
@@ -114,12 +120,12 @@ impl Instruction for NormalOperation {
         self.operation.view()
     }
 
-    fn params_view(&self) -> &[Param] {
-        self.params.as_slice()
+    fn params_view(&self) -> Option<&Parameters<PyObject>> {
+        self.params.as_ref()
     }
 
-    fn params_mut(&mut self) -> &mut [Param] {
-        self.params.as_mut_slice()
+    fn params_mut(&mut self) -> Option<&mut Parameters<PyObject>> {
+        self.params.as_mut()
     }
 
     fn label(&self) -> Option<&str> {
@@ -887,7 +893,7 @@ impl Target {
     /// # Arguments
     ///
     /// * `operation` - The [PackedOperation] to be added.
-    /// * `params` - The collection of [Param] assigned to the instruction.
+    /// * `params` - The [Parameter]s collection assigned to the instruction.
     /// * `name` - The name of the instruction if differs from the [PackedOperation]
     ///   instance. If set to `None` it defaults to the string returned by [`Operation::name`] for `operation`.
     /// * `props_map`: The optional property mapping between [Qargs] and
@@ -908,7 +914,7 @@ impl Target {
     /// let mut target = Target::default();
     /// let result = target.add_instruction(
     ///     StandardGate::X.into(),
-    ///     &[],
+    ///     None,
     ///     None,
     ///     None,
     /// );
@@ -918,7 +924,7 @@ impl Target {
     pub fn add_instruction(
         &mut self,
         operation: PackedOperation,
-        params: &[Param],
+        params: Option<Parameters<PyObject>>,
         name: Option<&str>,
         props_map: Option<PropsMap>,
     ) -> Result<(), TargetError> {
@@ -1466,7 +1472,7 @@ mod test {
     use std::f64::consts::PI;
 
     use qiskit_circuit::operations::{
-        get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
+        get_standard_gate_names, Operation, Param, Parameters, StandardGate, STANDARD_GATE_SIZE,
     };
     use smallvec::SmallVec;
 
@@ -1483,7 +1489,7 @@ mod test {
         let mut target = Target::default();
         let result = target.add_instruction(
             StandardGate::CZ.into(),
-            &[],
+            None,
             None,
             Some([(qargs.clone().into(), inst_prop)].into_iter().collect()),
         );
@@ -1497,10 +1503,10 @@ mod test {
     #[test]
     fn test_add_invalid_repeated_insruction() {
         let mut target = Target::default();
-        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None);
+        let result = target.add_instruction(StandardGate::CX.into(), None, None, None);
         assert!(result.is_ok());
 
-        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None);
+        let result = target.add_instruction(StandardGate::CX.into(), None, None, None);
         // Re-add instruction
         let Err(res) = result else {
             panic!("The operation did not fail as expected.");
@@ -1527,7 +1533,7 @@ mod test {
 
             let res = all_standard_target.add_instruction(
                 gate.into(),
-                &params,
+                Some(Parameters::Params(params)),
                 None,
                 Some([(qargs, None)].into_iter().collect()),
             );
@@ -1547,7 +1553,7 @@ mod test {
         // Add instruction with None as property
         let result = test_target.add_instruction(
             StandardGate::CX.into(),
-            &[],
+            None,
             None,
             Some([(qargs.clone(), None)].into_iter().collect()),
         );
@@ -1581,7 +1587,7 @@ mod test {
         // Add instruction with None as property
         let result = test_target.add_instruction(
             StandardGate::CX.into(),
-            &[],
+            None,
             None,
             Some([(qargs.clone().into(), None)].into_iter().collect()),
         );

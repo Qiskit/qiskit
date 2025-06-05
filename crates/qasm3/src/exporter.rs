@@ -29,14 +29,16 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{DelayUnit, StandardInstruction, StandardInstructionRef};
+use qiskit_circuit::operations::{
+    DelayUnit, Parameters, StandardInstruction, StandardInstructionRef,
+};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
-use regex::Regex;
 use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef};
+use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
 
@@ -1183,7 +1185,11 @@ impl<'a> QASM3Builder {
     }
 
     fn build_delay(&self, instr: &PackedInstruction) -> ExporterResult<Delay> {
-        let Some(StandardInstructionRef::Delay { duration: param, unit: delay_unit}) = instr.standard_instruction() else {
+        let Some(StandardInstructionRef::Delay {
+            duration: param,
+            unit: delay_unit,
+        }) = instr.standard_instruction()
+        else {
             return Err(QASM3ExporterError::Error(
                 "Expected Delay instruction, but got wrong instruction".to_string(),
             ));
@@ -1224,7 +1230,7 @@ impl<'a> QASM3Builder {
                     Err(_) => panic!("Failed to parse parameter value"),
                 }
             }
-            _ => panic!("Unexpected duration type for delay")
+            _ => panic!("Unexpected duration type for delay"),
         });
 
         let mut map = HashMap::new();
@@ -1288,6 +1294,11 @@ impl<'a> QASM3Builder {
             Python::with_gil(|_py| {
                 instr
                     .params_view()
+                    .map(|p| match p {
+                        Parameters::Params(p) => p.as_slice(),
+                        _ => panic!("expected gate parameters"),
+                    })
+                    .unwrap_or_default()
                     .iter()
                     .map(|param| match param {
                         Param::Float(val) => Expression::Parameter(Parameter {
@@ -1348,7 +1359,7 @@ impl<'a> QASM3Builder {
                 .getattr("Parameter")
                 .expect("No Parameter class in qiskit.circuit");
 
-            (0..instr.params_view().len())
+            (0..instr.op.num_params())
                 .map(|i| {
                     let name = format!("{}_{}", self._gate_param_prefix, i);
                     let py_param = parameter_class

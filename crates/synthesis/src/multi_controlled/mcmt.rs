@@ -10,10 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use itertools::Itertools;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::operations::{Param, Parameters, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
@@ -104,7 +105,13 @@ pub fn mcmt_v_chain(
     }
 
     let packed_controlled_gate = controlled_gate.operation;
-    let gate_params = controlled_gate.params;
+    let gate_params = controlled_gate
+        .params
+        .map(|p| match p {
+            Parameters::Params(p) => p,
+            _ => panic!("expected gate parameters"),
+        })
+        .unwrap_or_default();
     let num_qubits = if num_ctrl_qubits > 1 {
         2 * num_ctrl_qubits - 1 + num_target_qubits
     } else {
@@ -151,7 +158,10 @@ pub fn mcmt_v_chain(
             flip_control_state
                 .clone()
                 .chain(targets)
-                .chain(flip_control_state),
+                .chain(flip_control_state)
+                .map_ok(|(op, params, qubits, clbits)| {
+                    (op, Some(Parameters::Params(params)), qubits, clbits)
+                }),
             Param::Float(0.0),
         )
     } else {
@@ -171,7 +181,10 @@ pub fn mcmt_v_chain(
                 .chain(down_chain)
                 .chain(targets)
                 .chain(up_chain)
-                .chain(flip_control_state),
+                .chain(flip_control_state)
+                .map_ok(|(op, params, qubits, clbits)| {
+                    (op, Some(Parameters::Params(params)), qubits, clbits)
+                }),
             Param::Float(0.0),
         )
     }

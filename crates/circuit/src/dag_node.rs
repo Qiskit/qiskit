@@ -14,9 +14,11 @@ use std::hash::Hasher;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::circuit_instruction::{CircuitInstruction, IntoInstructionRef, OperationFromPython};
+use crate::circuit_instruction::{
+    extract_params, CircuitInstruction, IntoInstructionRef, OperationFromPython,
+};
 use crate::imports::QUANTUM_CIRCUIT;
-use crate::operations::{Operation, Param};
+use crate::operations::{InstructionRef, Operation, Param, StandardGateRef};
 use crate::TupleLikeArg;
 
 use ahash::AHasher;
@@ -28,7 +30,7 @@ use numpy::IntoPyArray;
 use numpy::PyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
+use pyo3::types::{PyList, PyTuple};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 use smallvec::SmallVec;
@@ -176,41 +178,48 @@ impl DAGOpNode {
         {
             return Ok(false);
         }
-        let params_eq = if slf.instruction.operation.try_standard_gate().is_some() {
-            let mut params_eq = true;
-            for (a, b) in slf
-                .instruction
-                .params
-                .iter()
-                .zip(borrowed_other.instruction.params.iter())
-            {
-                let res = match [a, b] {
-                    [Param::Float(float_a), Param::Float(float_b)] => {
-                        relative_eq!(float_a, float_b, max_relative = 1e-10)
+        let params_eq = match (slf.instruction.view(), borrowed_other.instruction.view()) {
+            (
+                InstructionRef::StandardGate(StandardGateRef(_, slf_params)),
+                InstructionRef::StandardGate(StandardGateRef(_, other_params)),
+            ) => {
+                let mut params_eq = true;
+                for (a, b) in slf_params.iter().zip(other_params) {
+                    let res = match [a, b] {
+                        [Param::Float(float_a), Param::Float(float_b)] => {
+                            relative_eq!(float_a, float_b, max_relative = 1e-10)
+                        }
+                        [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => {
+                            param_a.bind(py).eq(param_b)?
+                        }
+                        [Param::Obj(param_a), Param::Obj(param_b)] => {
+                            param_a.bind(py).eq(param_b)?
+                        }
+                        [Param::Circuit(param_a), Param::Circuit(param_b)] => {
+                            param_a.bind(py).eq(param_b)?
+                        }
+                        [Param::Condition(param_a), Param::Condition(param_b)] => {
+                            param_a == param_b
+                        }
+                        [Param::Duration(param_a), Param::Duration(param_b)] => param_a == param_b,
+                        [Param::Target(param_a), Param::Target(param_b)] => param_a == param_b,
+                        _ => false,
+                    };
+                    if !res {
+                        params_eq = false;
+                        break;
                     }
-                    [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => {
-                        param_a.bind(py).eq(param_b)?
-                    }
-                    [Param::Obj(param_a), Param::Obj(param_b)] => param_a.bind(py).eq(param_b)?,
-                    [Param::Circuit(param_a), Param::Circuit(param_b)] => {
-                        param_a.bind(py).eq(param_b)?
-                    }
-                    [Param::Condition(param_a), Param::Condition(param_b)] => param_a == param_b,
-                    [Param::Duration(param_a), Param::Duration(param_b)] => param_a == param_b,
-                    [Param::Target(param_a), Param::Target(param_b)] => param_a == param_b,
-                    _ => false,
-                };
-                if !res {
-                    params_eq = false;
-                    break;
                 }
+                params_eq
             }
-            params_eq
-        } else {
-            // We've already evaluated the parameters are equal here via the Python space equality
-            // check so if we're not comparing standard gates and we've reached this point we know
-            // the parameters are already equal.
-            true
+            _ => {
+                // TODO: this is actually no longer true as of StandardInstruction, and is an
+                //       existing bug.
+                // We've already evaluated the parameters are equal here via the Python space equality
+                // check so if we're not comparing standard gates and we've reached this point we know
+                // the parameters are already equal.
+                true
+            }
         };
 
         Ok(params_eq
@@ -340,13 +349,14 @@ impl DAGOpNode {
     }
 
     #[getter]
-    fn get_params(&self) -> SmallVec<[Param; 3]> {
-        self.instruction.params.clone()
+    fn get_params(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.instruction.get_params(py)
     }
 
     #[setter]
-    fn set_params(&mut self, val: smallvec::SmallVec<[crate::operations::Param; 3]>) {
-        self.instruction.params = val;
+    fn set_params(&mut self, val: Bound<PyAny>) -> PyResult<()> {
+        self.instruction.params = extract_params(self.instruction.op(), &val)?;
+        Ok(())
     }
 
     #[getter]

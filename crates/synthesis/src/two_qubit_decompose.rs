@@ -53,11 +53,11 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::circuit_instruction::{Instruction, OperationFromPython};
 use qiskit_circuit::gate_matrix::{
     CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, SX_GATE, S_GATE, X_GATE,
 };
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, Param, Parameters, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
@@ -2232,6 +2232,14 @@ impl TwoQubitBasisDecomposer {
         _num_basis_uses: Option<u8>,
     ) -> PyResult<CircuitData> {
         let kak_gate = kak_gate.extract::<OperationFromPython>(py)?;
+        // TODO: don't clone unless we need to take this later
+        let kak_gate_params = kak_gate
+            .params_view()
+            .map(|p| match p {
+                Parameters::Params(p) => p.clone(),
+                _ => panic!("expected gate parameters"),
+            })
+            .unwrap_or_default();
         let sequence = self.__call__(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         match kak_gate.operation.try_standard_gate() {
             Some(std_kak_gate) => CircuitData::from_standard_gates(
@@ -2248,7 +2256,7 @@ impl TwoQubitBasisDecomposer {
                         ),
                         None => (
                             std_kak_gate,
-                            kak_gate.params.clone(),
+                            kak_gate_params.clone(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                         ),
                     }),
@@ -2264,13 +2272,15 @@ impl TwoQubitBasisDecomposer {
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
                             PackedOperation::from_standard_gate(gate),
-                            params.into_iter().map(Param::Float).collect(),
+                            Some(Parameters::Params(
+                                params.into_iter().map(Param::Float).collect(),
+                            )),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
                         )),
                         None => Ok((
                             kak_gate.operation.clone(),
-                            kak_gate.params.clone(),
+                            Some(Parameters::Params(kak_gate_params.clone())),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
                         )),
@@ -2573,9 +2583,15 @@ impl TwoQubitControlledUDecomposer {
                     let inverse: OperationFromPython = raw_inverse.extract()?;
                     let params: SmallVec<[f64; 3]> = inverse
                         .params
+                        .as_ref()
+                        .map(|p| match p {
+                            Parameters::Params(p) => p.as_slice(),
+                            _ => panic!("Inverse has invalid parameter"),
+                        })
+                        .unwrap_or_default()
                         .into_iter()
                         .map(|x| match x {
-                            Param::Float(val) => val,
+                            Param::Float(val) => *val,
                             _ => panic!("Inverse has invalid parameter"),
                         })
                         .collect();
@@ -2999,7 +3015,9 @@ impl TwoQubitControlledUDecomposer {
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
                             PackedOperation::from_standard_gate(gate),
-                            params.into_iter().map(Param::Float).collect(),
+                            Some(Parameters::Params(
+                                params.into_iter().map(Param::Float).collect(),
+                            )),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
                         )),
