@@ -359,6 +359,7 @@ def load(
 
     programs = []
     #TODO: Replace with multithreaded reading of each program from corresponding byte offset
+    #TODO: Check for backwards compatibility and modify any version info
     for _ in range(data.num_programs):
         programs.append(
             binary_io.read_circuit(
