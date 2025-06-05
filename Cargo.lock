@@ -1483,8 +1483,8 @@ dependencies = [
 name = "qiskit-cext"
 version = "2.1.0"
 dependencies = [
- "bytemuck",
  "ahash 0.8.12",
+ "bytemuck",
  "cbindgen",
  "indexmap",
  "nalgebra",
