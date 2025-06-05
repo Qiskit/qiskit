@@ -34,15 +34,39 @@ __all__ = ["EstimatorPubLike"]
 
 
 class EstimatorPub(ShapedMixin):
-    """Primitive Unified Bloc for any Estimator primitive.
+    """Primitive Unified Bloc (pub) for an estimator.
 
-    An estimator pub is essentially a tuple ``(circuit, observables, parameter_values, precision)``.
+    This is the basic computational unit of an estimator. An estimator accepts one or more pubs when
+    being run. If the pub's circuit is parametric then it can also specify many parameter value sets
+    and observables to bind the circuit against at execution time in array-like formats, and the
+    results of the estimator are correspondingly shaped.
 
-    If precision is provided this should be used for the target precision of an
-    estimator, if ``precision=None`` the estimator will determine the target precision.
+    If a ``precision`` value is provided to an estimator pub, then this value takes precedence over
+    any value provided to the :meth:`~.Estimator.run` method.
+
+    The value of a estimator pub's :attr:`~.shape` is typically taken as the shape of the
+    ``observables`` array broadcasted with the shape of the ``parameter_values`` shape at
+    construction time. However, it can also be specified manually as a constructor argument, in
+    which case it can be chosen to exceed the shape of either or both of these arrays so long as all
+    shapes are still broadcastable. This can be used to inject non-trivial axes into the execution.
+    For example, if the provided bindings array object that specifies the parameter values has shape
+    ``(2, 1)``, if the observables have shape ``(1, 2, 3)`` and if the shape tuple ``(8, 2, 3)`` is
+    provided, then the shape of the estimator pub will be ``(8, 2, 3)`` via standard broadcasting
+    rules.
+
+    Args:
+        circuit: A quantum circuit.
+        observables: An observables array.
+        parameter_values: A bindings array, if the circuit is parametric.
+        precision: An optional target precision for expectation value estimates.
+        shape: The shape of the pub, or ``None`` to infer by taking the broadcasted shape between
+            ``observables`` and ``parameter_values``.
+        validate: Whether to validate arguments during initialization.
+
+    Raises:
+        ValueError: If the ``observables`` and ``parameter_values`` are not broadcastable, that
+            is, if their shapes, when right-aligned, do not agree or equal 1.
     """
-
-    __slots__ = ("_circuit", "_observables", "_parameter_values", "_precision", "_shape")
 
     def __init__(
         self,
@@ -50,36 +74,28 @@ class EstimatorPub(ShapedMixin):
         observables: ObservablesArray,
         parameter_values: BindingsArray | None = None,
         precision: float | None = None,
+        shape: Tuple[int, ...] | None = None,
         validate: bool = True,
     ):
-        """Initialize an estimator pub.
-
-        Args:
-            circuit: A quantum circuit.
-            observables: An observables array.
-            parameter_values: A bindings array, if the circuit is parametric.
-            precision: An optional target precision for expectation value estimates.
-            validate: Whether to validate arguments during initialization.
-
-        Raises:
-            ValueError: If the ``observables`` and ``parameter_values`` are not broadcastable, that
-                is, if their shapes, when right-aligned, do not agree or equal 1.
-        """
         super().__init__()
         self._circuit = circuit
         self._observables = observables
         self._parameter_values = parameter_values or BindingsArray()
         self._precision = precision
 
-        # for ShapedMixin
-        try:
-            # _shape has to be defined to properly be Shaped, so we can't put it in validation
-            self._shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
-        except ValueError as ex:
-            raise ValueError(
-                f"The observables shape {self.observables.shape} and the "
-                f"parameter values shape {self.parameter_values.shape} are not broadcastable."
-            ) from ex
+        if shape is None:
+            try:
+                # _shape has to be defined to properly be Shaped, so we can't put it in validation
+                self._shape = np.broadcast_shapes(
+                    self.observables.shape, self.parameter_values.shape
+                )
+            except ValueError as ex:
+                raise ValueError(
+                    f"The observables shape {self.observables.shape} and the parameter values "
+                    f"shape {self.parameter_values.shape} are not broadcastable."
+                ) from ex
+        else:
+            self._shape = shape
 
         if validate:
             self.validate()
@@ -129,6 +145,7 @@ class EstimatorPub(ShapedMixin):
                     observables=pub.observables,
                     parameter_values=pub.parameter_values,
                     precision=precision,
+                    shape=pub.shape,
                     validate=False,  # Assume Pub is already validated
                 )
             return pub
@@ -141,9 +158,9 @@ class EstimatorPub(ShapedMixin):
                 "instead of `estimator.run((circuit, observables, param_values))`."
             )
 
-        if len(pub) not in [2, 3, 4]:
+        if len(pub) not in [2, 3, 4, 5]:
             raise ValueError(
-                f"The length of pub must be 2, 3 or 4, but length {len(pub)} is given."
+                f"The length of pub must be 2, 3, 4, or 5 but length {len(pub)} is given."
             )
         circuit = pub[0]
         observables = ObservablesArray.coerce(pub[1])
@@ -159,11 +176,15 @@ class EstimatorPub(ShapedMixin):
         if len(pub) > 3 and pub[3] is not None:
             precision = pub[3]
 
+        if len(pub) > 4 and (shape := pub[4]) is not None:
+            shape = pub[4]
+
         return cls(
             circuit=circuit,
             observables=observables,
             parameter_values=parameter_values,
             precision=precision,
+            shape=shape,
             validate=True,
         )
 
@@ -180,6 +201,27 @@ class EstimatorPub(ShapedMixin):
                 raise TypeError(f"precision must be a real number, not {type(self.precision)}.")
             if self.precision < 0:
                 raise ValueError("precision must be non-negative.")
+
+        # Validate shape consistency
+        if not isinstance(self.shape, tuple) or not all(isinstance(idx, int) for idx in self.shape):
+            raise ValueError(f"The shape must be a tuple of integers, found {self.shape} instead.")
+
+        try:
+            broadcast_shape = np.broadcast_shapes(
+                self.shape, self.parameter_values.shape, self.observables.shape
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"The shape of the parameter values, {self.parameter_values.shape}, "
+                f"is not compatible with the shape of the pub, {self.shape}."
+            ) from exc
+
+        if broadcast_shape != self.shape:
+            raise ValueError(
+                f"The shape of the observables, {self.observables}, or the shape of the parameter "
+                f"values, {self.parameter_values.shape}, exceeds the shape of the pub, "
+                f"{self.shape}, on some axis."
+            )
 
         # Cross validate circuits and observables
         for i, observable in np.ndenumerate(self.observables):
@@ -204,19 +246,25 @@ EstimatorPubLike = Union[
     Tuple[QuantumCircuit, ObservablesArrayLike],
     Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike],
     Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real],
+    Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real, Tuple[int, ...]],
 ]
-"""A Pub (Primitive Unified Bloc) for an Estimator primitive.
+"""Types coercible into an :class:`~.EstimatorPub`.
+ 
+This can either be an :class:`~.EstimatorPub` itself, or a tuple with entries
+``(circuit, observables, parameter_values, precision, shape)`` where the last three values 
+can optionally be absent or set to ``None``.
+The following formats are valid:
 
-A fully specified estimator pub is a tuple ``(circuit, observables, parameter_values, precision)``.
+ * (:class:`~.QuantumCircuit`, :class:`~.ObservablesArrayLike`\\)
+ * (:class:`~.QuantumCircuit`, :class:`~.ObservablesArrayLike`, :class:`~.BindingsArrayLike`\\)
+ * (:class:`~.QuantumCircuit`, :class:`~.ObservablesArrayLike`, :class:`~.BindingsArrayLike`, 
+   :class:`float`\\)
+ * (:class:`~.QuantumCircuit`, :class:`~.ObservablesArrayLike`, :class:`~.BindingsArrayLike`, 
+   :class:`float`, :class:`tuple[int, ...]`\\)
 
-If precision is provided this should be used for the target precision of an
-estimator, if ``precision=None`` the estimator will determine the target precision.
-
-.. note::
-
-    An Estimator Pub can also be initialized in the following formats which
-    will be converted to the full Pub tuple:
-
-    * ``(circuit, observables)``
-    * ``(circuit, observables, parameter_values)``
+If ``parameter_values`` are not provided, the circuit must have no 
+:attr:`~.QuantumCircuit.parameters`.
+If ``precision`` is not provided, the estimator will supply a value.
+If ``shape`` is not provided, it will be inferred by broadcasting the shapes of 
+``observables`` and ``parameter_values``. 
 """

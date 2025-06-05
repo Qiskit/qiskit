@@ -34,13 +34,14 @@ __all__ = ["SamplerPubLike"]
 
 
 class SamplerPub(ShapedMixin):
-    """Pub (Primitive Unified Bloc) for a sampler.
+    """Primitive Unified Bloc (pub) for a sampler.
 
-    This is the basic computational unit of a sampler, which accepts one or more pubs when being
-    run. A single sampler pub can result in a parametric circuit being run many times with different
-    parameters values bound each time.
+    This is the basic computational unit of a sampler. A sampler accepts one or more pubs when being
+    run. If the pub's circuit is parametric then it can also specify many parameter value sets to
+    bind the circuit against at execution time in an array-like format, and the results of the
+    sampler are correspondingly shaped.
 
-    If a numeric ``shots`` value is provided to a sampler pub, then this value takes precedence
+    If a ``shots`` value is provided to a sampler pub, then this value takes precedence
     over any value provided to the :meth:`~.Sampler.run` method.
 
     The value of a sampler pub's :attr:`~.shape` is typically taken from the ``parameter_values``
@@ -122,6 +123,7 @@ class SamplerPub(ShapedMixin):
                     circuit=pub.circuit,
                     parameter_values=pub.parameter_values,
                     shots=shots,
+                    shape=pub.shape,
                     validate=False,  # Assume Pub is already validated
                 )
             return pub
@@ -190,7 +192,7 @@ class SamplerPub(ShapedMixin):
                 )
             raise ValueError(message)
 
-        # check that the parameter values shape is consistent with the pub shape
+        # Validate shape consistency
         if not isinstance(self.shape, tuple) or not all(isinstance(idx, int) for idx in self.shape):
             raise ValueError(f"The shape must be a tuple of integers, found {self.shape} instead.")
 
@@ -210,25 +212,31 @@ class SamplerPub(ShapedMixin):
 
 
 SamplerPubLike = Union[
+    SamplerPub,
     QuantumCircuit,
     Tuple[QuantumCircuit],
     Tuple[QuantumCircuit, BindingsArrayLike],
     Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],
     Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None], Tuple[int, ...]],
 ]
-"""A Pub (Primitive Unified Bloc) for a Sampler.
+"""Types coercible into a :class:`~.SamplerPub`.
 
-A fully specified sample Pub is a tuple ``(circuit, parameter_values, shots)``.
+This can either be a :class:`~.SamplerPub` itself, 
+a single non-parametric :class:`~.QuantumCircuit`, or a tuple with entries
+``(circuit, parameter_values, shots, shape)`` where the last three values
+can optionally be absent or set to ``None``.
+The following formats are valid:
 
-If shots are provided this number of shots will be run with the sampler,
-if ``shots=None`` the number of run shots is determined by the sampler.
+ * :class:`~.QuantumCircuit`
+ * (:class:`~.QuantumCircuit`,)
+* (:class:`~.QuantumCircuit`, :class:`~.BindingsArrayLike`\\)
+ * (:class:`~.QuantumCircuit`, :class:`~.BindingsArrayLike`, 
+   :class:`int`\\)
+ * (:class:`~.QuantumCircuit`, :class:`~.BindingsArrayLike`, 
+   :class:`int`, :class:`tuple[int, ...]`\\)
 
-.. note::
-
-    A Sampler Pub can also be initialized in the following formats which
-    will be converted to the full Pub tuple:
-
-    * ``circuit``
-    * ``(circuit,)``
-    * ``(circuit, parameter_values)``
+If ``parameter_values`` are not provided, the circuit must have no 
+:attr:`~.QuantumCircuit.parameters`.
+If ``shots`` is not provided, the sampler will supply a value.
+If ``shape`` is not provided, it will be inferred from the ``parameter_values``. 
 """
