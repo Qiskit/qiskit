@@ -373,7 +373,7 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 }
 
 /// @ingroup QkCircuit
-/// Append a standard gate to the circuit.
+/// Append a ``QkGate`` to the circuit.
 ///
 /// @param circuit A pointer to the circuit to add the gate to.
 /// @param gate The StandardGate to add to the circuit.
@@ -431,7 +431,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
                 Qubit(*qubits.wrapping_add(2)),
                 Qubit(*qubits.wrapping_add(3)),
             ],
-            // There are no standard gates > 4 qubits
+            // There are no ``QkGate``s > 4 qubits
             _ => unreachable!(),
         };
         let params: &[Param] = match gate.num_params() {
@@ -452,7 +452,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
                 (*params.wrapping_add(2)).into(),
                 (*params.wrapping_add(3)).into(),
             ],
-            // There are no standard gates that take > 4 params
+            // There are no ``QkGate``s that take > 4 params
             _ => unreachable!(),
         };
         circuit.push_standard_gate(gate, params, qargs);
@@ -463,7 +463,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
 /// @ingroup QkCircuit
 /// Get the number of qubits for a ``QkGate``.
 ///
-/// @param gate The standard gate to get the number of qubits for.
+/// @param gate The ``QkGate`` to get the number of qubits for.
 ///
 /// @return The number of qubits the gate acts on.
 ///
@@ -480,7 +480,7 @@ pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
 /// @ingroup QkCircuit
 /// Get the number of parameters for a ``QkGate``.
 ///
-/// @param gate The standard gate to get the number of qubits for.
+/// @param gate The ``QkGate`` to get the number of qubits for.
 ///
 /// @return The number of parameters the gate has.
 ///
@@ -1014,6 +1014,18 @@ pub enum QkDelayUnit {
     PS = 4,
 }
 
+impl From<QkDelayUnit> for DelayUnit {
+    fn from(value: QkDelayUnit) -> Self {
+        match value {
+            QkDelayUnit::S => DelayUnit::S,
+            QkDelayUnit::MS => DelayUnit::MS,
+            QkDelayUnit::US => DelayUnit::US,
+            QkDelayUnit::NS => DelayUnit::NS,
+            QkDelayUnit::PS => DelayUnit::PS,
+        }
+    }
+}
+
 /// @ingroup QkCircuit
 /// Append a delay instruction to the circuit.
 ///
@@ -1043,13 +1055,7 @@ pub unsafe extern "C" fn qk_circuit_delay(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
-    let delay_unit_variant = match unit {
-        QkDelayUnit::S => DelayUnit::S,
-        QkDelayUnit::MS => DelayUnit::MS,
-        QkDelayUnit::US => DelayUnit::US,
-        QkDelayUnit::NS => DelayUnit::NS,
-        QkDelayUnit::PS => DelayUnit::PS,
-    };
+    let delay_unit_variant = unit.into();
 
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);

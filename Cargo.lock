@@ -1483,13 +1483,17 @@ dependencies = [
 name = "qiskit-cext"
 version = "2.1.0"
 dependencies = [
+ "ahash 0.8.12",
  "cbindgen",
+ "indexmap",
  "nalgebra",
  "ndarray",
  "num-complex",
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
+ "qiskit-transpiler",
+ "smallvec",
  "thiserror 2.0.12",
 ]
 
@@ -1577,6 +1581,9 @@ dependencies = [
  "numpy",
  "pyo3",
  "qiskit-circuit",
+ "rand 0.9.1",
+ "rand_distr 0.5.1",
+ "rand_pcg 0.9.0",
  "rayon",
  "rustworkx-core",
  "thiserror 2.0.12",
