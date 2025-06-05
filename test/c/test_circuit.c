@@ -882,26 +882,6 @@ cleanup:
     return result;
 }
 
-int test_commutation(void) {
-    uint32_t q01[2] = {0, 1};
-    uint32_t q0[1] = {0};
-    uint32_t q1[1] = {1};
-    uint32_t q10[2] = {1, 0};
-
-    double *empty = NULL;
-    QkCommutationCache *cache = NULL;
-    double approx = 1.0;
-
-    printf("Expect true:\n");
-    printf("%d\n", qk_gate_commute(QkGate_X, empty, q1, QkGate_CX, empty, q01, approx, cache));
-    printf("%d\n", qk_gate_commute(QkGate_CX, empty, q01, QkGate_CX, empty, q01, approx, cache));
-
-    printf("Expect false:\n");
-    printf("%d\n", qk_gate_commute(QkGate_X, empty, q0, QkGate_CX, empty, q01, approx, cache));
-    printf("%d\n", qk_gate_commute(QkGate_H, empty, q1, QkGate_CX, empty, q01, approx, cache));
-    printf("%d\n", qk_gate_commute(QkGate_CX, empty, q10, QkGate_CX, empty, q01, approx, cache));
-}
-
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -917,7 +897,6 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_gate_num_qubits);
     num_failed += RUN_TEST(test_gate_num_params);
     num_failed += RUN_TEST(test_delay_instruction);
-    num_failed += RUN_TEST(test_commutation);
     num_failed += RUN_TEST(test_unitary_gate);
     num_failed += RUN_TEST(test_not_unitary_gate);
     num_failed += RUN_TEST(test_unitary_gate_1q);

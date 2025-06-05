@@ -48,7 +48,6 @@ prefix_with_name = true
 "OpCount" = "QkOpCount"
 "CInstruction" = "QkCircuitInstruction"
 "ExitCode" = "QkExitCode"
-"CommutationChecker" = "QkCommutationCache"
 "QuantumRegister" = "QkQuantumRegister"
 "ClassicalRegister" = "QkClassicalRegister"
 "Target" = "QkTarget"

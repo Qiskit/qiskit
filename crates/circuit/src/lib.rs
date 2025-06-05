@@ -40,17 +40,14 @@ pub mod util;
 
 pub mod rustworkx_core_vnext;
 
-use bytemuck::{Pod, Zeroable};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 use pyo3::PyTypeInfo;
 
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, Zeroable, Pod)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
 pub struct Qubit(pub u32);
 
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, Zeroable, Pod)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
 pub struct Clbit(pub u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]

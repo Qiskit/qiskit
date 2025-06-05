@@ -18,7 +18,6 @@ workspace = true
 [dependencies]
 thiserror.workspace = true
 num-complex.workspace = true
-bytemuck.workspace = true
 qiskit-quantum-info.workspace = true
 qiskit-circuit.workspace = true
 qiskit-transpiler.workspace = true
