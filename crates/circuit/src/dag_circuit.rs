@@ -2652,7 +2652,7 @@ impl DAGCircuit {
             self.cregs.registers().to_vec(),
             wire_map_dict,
             var_map,
-            HashMap::new(),
+            None,
         );
 
         for (old_node_index, new_node_index) in node_map.iter() {
@@ -6866,7 +6866,7 @@ impl DAGCircuit {
                 cregs.registers().to_vec(),
                 edge_map,
                 HashMap::default(),
-                HashMap::default(),
+                None,
             )
         };
         let mut variable_mapper: Option<VariableMapper> = None;

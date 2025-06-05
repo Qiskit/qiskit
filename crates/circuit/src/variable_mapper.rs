@@ -74,19 +74,19 @@ impl VariableMapper {
     ///
     /// The `stretch_map` is only used for direct calls to [VariableMapper::map_expr]
     /// since `condition`s and `target`s expressions are never durations. Provide
-    /// an empty map if you don't need this.
+    /// [None] if you don't need this.
     pub fn new(
         target_cregs: Vec<ClassicalRegister>,
         bit_map: HashMap<ShareableClbit, ShareableClbit>,
         var_map: HashMap<expr::Var, expr::Var>,
-        stretch_map: HashMap<expr::Stretch, expr::Stretch>,
+        stretch_map: Option<HashMap<expr::Stretch, expr::Stretch>>,
     ) -> Self {
         Self {
             target_cregs,
             register_map: RefCell::default(),
             bit_map,
             var_map,
-            stretch_map,
+            stretch_map: stretch_map.unwrap_or_default(),
         }
     }
 
@@ -142,11 +142,8 @@ impl VariableMapper {
                     .cloned()
                     .map(Ok::<_, PyErr>)
                     .unwrap_or_else(|| {
-                        let mapped_theirs = ClassicalRegister::new_alias(
-                            // TODO: is this right? old code didn't specify name at all
-                            target.name().to_string(),
-                            mapped_bits_order.clone(),
-                        );
+                        let mapped_theirs =
+                            ClassicalRegister::new_alias(None, mapped_bits_order.clone());
                         add_register(&mapped_theirs)?;
                         Ok(mapped_theirs)
                     })?;
@@ -257,8 +254,7 @@ impl VariableMapper {
             .cloned()
             .map(Ok::<_, PyErr>)
             .unwrap_or_else(|| {
-                let mapped_theirs =
-                    ClassicalRegister::new_alias(theirs.name().to_string(), mapped_bits.clone());
+                let mapped_theirs = ClassicalRegister::new_alias(None, mapped_bits.clone());
                 add_register(&mapped_theirs)?;
                 Ok(mapped_theirs)
             })?;
