@@ -176,7 +176,8 @@ class EstimatorPub(ShapedMixin):
         if len(pub) > 3 and pub[3] is not None:
             precision = pub[3]
 
-        if len(pub) > 4 and (shape := pub[4]) is not None:
+        shape = None
+        if len(pub) > 4 and pub[4] is not None:
             shape = pub[4]
 
         return cls(
@@ -218,8 +219,8 @@ class EstimatorPub(ShapedMixin):
 
         if broadcast_shape != self.shape:
             raise ValueError(
-                f"The shape of the observables, {self.observables}, or the shape of the parameter "
-                f"values, {self.parameter_values.shape}, exceeds the shape of the pub, "
+                f"The shape of the observables, {self.observables.shape}, or the shape of the "
+                f"parameter values, {self.parameter_values.shape}, exceeds the shape of the pub, "
                 f"{self.shape}, on some axis."
             )
 

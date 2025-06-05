@@ -54,6 +54,17 @@ class EstimatorPubTestCase(QiskitTestCase):
             msg="incorrect value for `parameter_values` property",
         )
         self.assertEqual(pub.precision, precision, msg="incorrect value for `precision` property")
+        self.assertEqual(pub.shape, (10,), msg="incorrect shape")
+
+    @ddt.data([(1,), (), (18, 2)], [(1, 4, 1), (3,), (1, 4, 3)], [(2, 3), (2, 3), (2, 3)])
+    @ddt.unpack
+    def test_shape_argument(self, obs_shape, params_shape, shape):
+        """Test the shape argument."""
+        circuit = QuantumCircuit(2)
+        obs = ObservablesArray(np.full(obs_shape, {"XX": 1}))
+        parameter_values = BindingsArray({(): np.zeros((*params_shape, 0))}, shape=params_shape)
+        pub = EstimatorPub(circuit, obs, parameter_values=parameter_values, shape=shape)
+        self.assertEqual(pub.shape, shape)
 
     def test_invalidate_circuit(self):
         """Test validation of circuit argument"""
@@ -435,3 +446,72 @@ class EstimatorPubTestCase(QiskitTestCase):
         msg = rf"observables shape \({obs_shape}\) .+ values shape \({params_shape}\) are not"
         with self.assertRaisesRegex(ValueError, msg):
             EstimatorPub(circuit, obs, params)
+
+    @ddt.data(
+        # [(5,), (5,), (1,)],
+        [(3,), (3,), (5,)],
+        [(3, 8, 5), (), (3, 9, 5)],
+    )
+    @ddt.unpack
+    def test_broadcasting_fails_with_explicit_shape(self, obs_shape, params_shape, shape):
+        """Test that we get the right error if the entries are not broadcastablet."""
+        # sanity check that we agree with the NumPy convention
+        with self.assertRaises(ValueError):
+            np.broadcast_shapes(obs_shape, params_shape, shape)
+
+        params = list(map(Parameter, "abcdef"))
+        circuit = QuantumCircuit(2)
+        for idx in range(3):
+            circuit.rz(params[2 * idx], 0)
+            circuit.rz(params[2 * idx + 1], 1)
+
+        obs = ObservablesArray([{"XX": 1}] * np.prod(obs_shape, dtype=int)).reshape(obs_shape)
+        params = BindingsArray({tuple(params): np.empty(params_shape + (6,))})
+
+        msg = "parameter values.*is not compatible with.*pub"
+        with self.assertRaisesRegex(ValueError, msg):
+            EstimatorPub(circuit, obs, params, shape=shape)
+
+    @ddt.data(
+        [(5,), (5,), (1,)],
+        [(5, 1), (2, 5, 2), (1, 5, 2)],
+    )
+    @ddt.unpack
+    def test_broadcasting_fails_undersized_shape(self, obs_shape, params_shape, shape):
+        """Test that we get the right error if explicit shape is undersized."""
+        # sanity check that we agree with the NumPy convention
+        params = list(map(Parameter, "abcdef"))
+        circuit = QuantumCircuit(2)
+        for idx in range(3):
+            circuit.rz(params[2 * idx], 0)
+            circuit.rz(params[2 * idx + 1], 1)
+
+        obs = ObservablesArray([{"XX": 1}] * np.prod(obs_shape, dtype=int)).reshape(obs_shape)
+        params = BindingsArray({tuple(params): np.empty(params_shape + (6,))})
+
+        with self.assertRaisesRegex(ValueError, "exceeds the shape of the pub"):
+            EstimatorPub(circuit, obs, params, shape=shape)
+
+    @ddt.data([(1,), (), (18, 2)], [(1, 4, 1), (3,), (1, 4, 3)], [(2, 3), (2, 3), (2, 3)])
+    @ddt.unpack
+    def test_coerce_tuple_with_shape(self, obs_shape, params_shape, shape):
+        """Test coercing circuit and parameter values"""
+        circuit = QuantumCircuit(2)
+        obs = ObservablesArray(np.full(obs_shape, {"XX": 1}))
+        parameter_values = np.zeros((*params_shape, 0))
+
+        pub = EstimatorPub.coerce((circuit, obs, parameter_values, None, shape))
+        self.assertEqual(pub.circuit, circuit, msg="incorrect value for `circuit` property")
+        self.assertEqual(pub.precision, None, msg="incorrect value for `precision` property")
+        self.assertEqual(pub.shape, shape, msg="incorect value for `shape` property")
+
+        pub = EstimatorPub.coerce((circuit, obs, parameter_values, 0.1, shape))
+        self.assertEqual(pub.circuit, circuit, msg="incorrect value for `circuit` property")
+        self.assertEqual(pub.precision, 0.1, msg="incorrect value for `precision` property")
+        self.assertEqual(pub.shape, shape, msg="incorect value for `shape` property")
+
+        pub = EstimatorPub.coerce((circuit, obs, parameter_values, None, None))
+        self.assertEqual(pub.circuit, circuit, msg="incorrect value for `circuit` property")
+        self.assertEqual(pub.precision, None, msg="incorrect value for `precision` property")
+        expected_shape = np.broadcast_shapes(obs_shape, params_shape)
+        self.assertEqual(pub.shape, expected_shape, msg="incorect value for `shape` property")
