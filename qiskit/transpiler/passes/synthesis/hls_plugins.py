@@ -1917,13 +1917,15 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             # Don't do anything if a gate is called "evolution" but is not an
             # actual PauliEvolutionGate
             return None
-
         algo = high_level_object.synthesis
 
+        original_preserve_order = algo.preserve_order
         if "preserve_order" in options and isinstance(algo, ProductFormula):
             algo.preserve_order = options["preserve_order"]
 
-        return algo.synthesize(high_level_object)
+        synth_object = algo.synthesize(high_level_object)
+        algo.preserve_order = original_preserve_order
+        return synth_object
 
 
 class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
@@ -1974,6 +1976,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             )
             return None
 
+        original_preserve_order = algo.preserve_order
         if "preserve_order" in options:
             algo.preserve_order = options["preserve_order"]
 
@@ -1986,7 +1989,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         upto_phase = options.get("upto_phase", False)
         resynth_clifford_method = options.get("resynth_clifford_method", 1)
 
-        return synth_pauli_network_rustiq(
+        synth_object = synth_pauli_network_rustiq(
             num_qubits=num_qubits,
             pauli_network=pauli_network,
             optimize_count=optimize_count,
@@ -1995,6 +1998,8 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+        algo.preserve_order = original_preserve_order
+        return synth_object
 
 
 class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
