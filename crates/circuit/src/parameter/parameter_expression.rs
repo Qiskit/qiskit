@@ -14,9 +14,8 @@
 
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
-use pyo3::exceptions::PyRuntimeError;
+use pyo3::exceptions::{PyRuntimeError, PyZeroDivisionError};
 use thiserror::Error;
-use uuid::Uuid;
 
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -35,11 +34,25 @@ use super::symbol_expr::Parameter;
 pub enum ParameterError {
     #[error("Encountered unbound parameter.")]
     UnboundParameter,
+    #[error("Division by zero.")]
+    ZeroDivisionError,
+    #[error("Binding to infinite value.")]
+    BindingInf,
+    #[error("Binding to NaN.")]
+    BindingNaN,
 }
 
 impl From<ParameterError> for PyErr {
     fn from(value: ParameterError) -> Self {
-        PyRuntimeError::new_err(value.to_string())
+        match value {
+            ParameterError::ZeroDivisionError => {
+                PyZeroDivisionError::new_err("zero division occurs while binding parameter")
+            }
+            ParameterError::BindingInf => {
+                PyZeroDivisionError::new_err("attempted to bind infinite value to parameter")
+            }
+            _ => PyRuntimeError::new_err(value.to_string()),
+        }
     }
 }
 
@@ -48,7 +61,6 @@ impl From<ParameterError> for PyErr {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParameterExpression {
     expr: SymbolExpr,
-    paramt
 }
 
 #[inline]
@@ -178,15 +190,15 @@ impl ParameterExpression {
         }
     }
 
-    pub fn bind(&self, map: HashMap<String, symbol_expr::Value>) -> Result<Self, String> {
-        let bound = self.expr.bind(&map);
+    pub fn bind(&self, map: &HashMap<String, symbol_expr::Value>) -> Result<Self, ParameterError> {
+        let bound = self.expr.bind(map);
         match bound.eval(true) {
             Some(v) => match &v {
                 symbol_expr::Value::Real(r) => {
                     if r.is_infinite() {
-                        Err("attempted to bind infinite value to parameter".to_string())
+                        Err(ParameterError::BindingInf)
                     } else if r.is_nan() {
-                        Err("NAN detected while binding parameter".to_string())
+                        Err(ParameterError::BindingNaN)
                     } else {
                         Ok(Self {
                             expr: SymbolExpr::Value(v),
@@ -198,9 +210,9 @@ impl ParameterExpression {
                 }),
                 symbol_expr::Value::Complex(c) => {
                     if c.re.is_infinite() || c.im.is_infinite() {
-                        Err("zero division occurs while binding parameter".to_string())
+                        Err(ParameterError::ZeroDivisionError) // TODO this should probs be BindingInf
                     } else if c.re.is_nan() || c.im.is_nan() {
-                        Err("NAN detected while binding parameter".to_string())
+                        Err(ParameterError::BindingNaN)
                     } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
                         .contains(&c.im)
                     {
@@ -398,7 +410,7 @@ impl ParameterExpression {
         self.subs(&in_maps)
     }
 
-    /// bind values to symbols given by input hashmap
+    // bind values to symbols given by input hashmap
     #[pyo3(name = "bind")]
     pub fn py_bind(&self, map: HashMap<String, Bound<PyAny>>) -> PyResult<Self> {
         let map: HashMap<String, symbol_expr::Value> = map
@@ -417,8 +429,7 @@ impl ParameterExpression {
             })
             .collect();
 
-        // TODO introduce custom error types and map them to nicer types, e.g. PyZeroDivisionError
-        self.bind(map).map_err(PyRuntimeError::new_err)
+        self.bind(&map).map_err(|e| e.into())
     }
 
     // ====================================
