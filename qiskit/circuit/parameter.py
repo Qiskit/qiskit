@@ -17,11 +17,14 @@ from __future__ import annotations
 
 from uuid import uuid4, UUID
 
-import symengine
-
+import qiskit._accelerate.circuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.optionals import HAS_SYMPY
 
 from .parameterexpression import ParameterExpression
+
+
+SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
 
 
 class Parameter(ParameterExpression):
@@ -81,7 +84,7 @@ class Parameter(ParameterExpression):
                 allows them to be equal.  This is useful during serialization and deserialization.
         """
         self._uuid = uuid4() if uuid is None else uuid
-        symbol = symengine.Symbol(name)
+        symbol = SymbolExpr.Symbol(name)
 
         self._symbol_expr = symbol
         self._parameter_keys = frozenset((self._hash_key(),))
@@ -103,7 +106,7 @@ class Parameter(ParameterExpression):
             return value
         # This is the `super().bind` case, where we're required to return a `ParameterExpression`,
         # so we need to lift the given value to a symbolic expression.
-        return ParameterExpression({}, symengine.sympify(value))
+        return ParameterExpression({}, SymbolExpr.Value(value))
 
     def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""
@@ -156,7 +159,7 @@ class Parameter(ParameterExpression):
         # its hash as part of the equality comparison but has its own more complete symbolic
         # expression, so its full hash key is split into `(parameter_keys, symbolic_expression)`.
         # This method lets containing expressions get only the bits they need for equality checks in
-        # the first value, without wasting time re-hashing individual Sympy/Symengine symbols.
+        # the first value, without wasting time re-hashing individual symbols.
         return (self._symbol_expr, self._uuid)
 
     def __hash__(self):
@@ -177,3 +180,9 @@ class Parameter(ParameterExpression):
         self._name_map = None
         self._qpy_replay = []
         self._standalone_param = True
+
+    @HAS_SYMPY.require_in_call
+    def sympify(self):
+        import sympy
+
+        return sympy.Symbol(self.name)

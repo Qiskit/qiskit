@@ -44,6 +44,13 @@ class Delay(Instruction):
             CircuitError: A ``duration`` expression was specified with a resolved
                 type that is not timing-based, or the ``unit`` was improperly specified.
         """
+        duration, self._unit = self._validate_arguments(duration, unit)
+        super().__init__("delay", 1, 0, params=[duration])
+
+    @staticmethod
+    def _validate_arguments(duration, unit):
+        # This method is a centralization of the unit-handling logic, so used elsewhere in Qiskit
+        # (e.g. in `BoxOp`).
         if isinstance(duration, expr.Expr):
             if unit is not None and unit != "expr":
                 raise CircuitError(
@@ -60,12 +67,7 @@ class Delay(Instruction):
             unit = "dt"
         elif unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
             raise CircuitError(f"Unknown unit {unit} is specified.")
-        # Double underscore to differentiate from the private attribute in
-        # `Instruction`. This can be changed to `_unit` in 2.0 after we
-        # remove `unit` and `duration` from the standard instruction model
-        # as it only will exist in `Delay` after that point.
-        self.__unit = unit
-        super().__init__("delay", 1, 0, params=[duration])
+        return duration, unit
 
     broadcast_arguments = Gate.broadcast_arguments
 
@@ -76,13 +78,13 @@ class Delay(Instruction):
     @property
     def unit(self):
         """The unit for the duration of the delay in :attr`.params`"""
-        return self.__unit
+        return self._unit
 
     @unit.setter
     def unit(self, value):
         if value not in {"s", "ms", "us", "ns", "ps", "dt"}:
             raise CircuitError(f"Unknown unit {value} is specified.")
-        self.__unit = value
+        self._unit = value
 
     @property
     def duration(self):
@@ -126,7 +128,7 @@ class Delay(Instruction):
                 raise CircuitError(
                     f"Duration for Delay instruction must be positive. Found {parameter}"
                 )
-            if self.__unit == "dt":
+            if self._unit == "dt":
                 parameter_int = int(parameter)
                 if parameter != parameter_int:
                     raise CircuitError("Integer duration is expected for 'dt' unit.")

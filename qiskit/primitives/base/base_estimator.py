@@ -54,8 +54,8 @@ class BaseEstimatorV2(ABC):
             whose final state we define as :math:`\psi(\theta)`.
 
         * One or more observables (specified as any :class:`~.ObservablesArrayLike`, including
-            :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation
-            values to estimate, denoted :math:`H_j`.
+            :class:`~.quantum_info.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which
+            expectation values to estimate, denoted :math:`H_j`.
 
         * A collection parameter value sets to bind the circuit against, :math:`\theta_k`
 

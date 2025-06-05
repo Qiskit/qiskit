@@ -27,7 +27,8 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.tools.pi_check import pi_check
 
 
-from .qcstyle import load_style
+from qiskit.visualization.style import load_style
+from qiskit.visualization.circuit.qcstyle import MPLDefaultStyle, MPLStyleDict
 from ._utils import (
     get_gate_ctrl_text,
     get_param_str,
@@ -151,7 +152,13 @@ class QCircuitImage:
         self._wire_map = get_wire_map(circuit, qubits + clbits, self._cregbundle)
         self._img_width = len(self._wire_map)
 
-        self._style, _ = load_style(style)
+        self._style, _ = load_style(
+            style,
+            style_dict=MPLStyleDict,
+            default_style=MPLDefaultStyle(),
+            user_config_opt="circuit_mpl_style",
+            user_config_path_opt="circuit_mpl_style_path",
+        )
 
     def latex(self):
         """Return LaTeX string representation of circuit."""
