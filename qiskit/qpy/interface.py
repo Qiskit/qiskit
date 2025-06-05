@@ -199,7 +199,14 @@ def dump(
     )
     file_obj.write(header)
     common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
+    
+    # Table of byte offsets for each program
+    byte_offsets =  []
+    
+    # Skip the file position to write the byte offsets later
+    file_obj.seek(formats.FILE_HEADER_V10_SIZE + len(type_keys.Program.CIRCUIT) + len(programs) * 8)
 
+    # Serialize each program and write it to the file
     for program in programs:
         binary_io.write_circuit(
             file_obj,
@@ -209,6 +216,13 @@ def dump(
             version=version,
             annotation_factories=annotation_factories,
         )
+        # Determine the byte offset after writing each program
+        byte_offsets.append(file_obj.tell())
+    
+    # Write the byte offsets for each program
+    file_obj.seek(formats.FILE_HEADER_V10_SIZE + len(type_keys.Program.CIRCUIT))
+    for offset in byte_offsets:
+        file_obj.write(struct.pack("!Q", offset))
 
 
 def load(
@@ -339,8 +353,12 @@ def load(
         use_symengine = False
     else:
         use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
+        
+    # For now, skip the byte offsets
+    file_obj.seek(formats.FILE_HEADER_V10_SIZE + len(type_keys.Program.CIRCUIT) + data.num_programs * 8)
 
     programs = []
+    #TODO: Replace with multithreaded reading of each program from corresponding byte offset
     for _ in range(data.num_programs):
         programs.append(
             binary_io.read_circuit(
