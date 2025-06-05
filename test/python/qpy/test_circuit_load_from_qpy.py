@@ -373,6 +373,14 @@ class TestSymbolExpr(QpyCircuitTestCase):
         qc.rz(alpha + beta, 0)
         self.assert_roundtrip_equal(qc)
 
+    def test_math_mode_backslash(self):
+        """Test Parameter with mathmode backslah."""
+        qc = QuantumCircuit(2)
+        alpha = Parameter(r"$\alpha$")
+        beta = Parameter(r"$\beta$")
+        qc.rz(alpha + beta, 0)
+        self.assert_roundtrip_equal(qc)
+
 
 class TestAnnotations(QpyCircuitTestCase):
     # pylint: disable=missing-class-docstring,missing-function-docstring,redefined-outer-name
