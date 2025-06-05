@@ -2154,6 +2154,14 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr1, expr2)
 
+    def test_parameter_expression_equal_floats_to_divide_by_int(self):
+        """Verify an expression with float and division by int is identical."""
+        theta = Parameter("theta")
+        expr1 = 0.25 * theta
+        expr2 = theta / 4
+
+        self.assertEqual(expr1, expr2)
+
     def test_parameter_expression_not_equal_if_params_differ(self):
         """Verify expressions not equal if parameters are different."""
         theta1 = Parameter("theta")

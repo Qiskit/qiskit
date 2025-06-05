@@ -1348,6 +1348,7 @@ c[1] = measure q[1];
     def test_box(self):
         """Test that 'box' statements can be exported'"""
         qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
         with qc.box():
             qc.x(0)
         with qc.box(duration=50.0, unit="ms"):
@@ -1355,11 +1356,15 @@ c[1] = measure q[1];
         with qc.box(duration=200, unit="dt"):
             with qc.box(duration=10, unit="dt"):
                 pass
+        with qc.box(duration=a):
+            with qc.box(duration=expr.mul(2, a)):
+                pass
 
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
 qubit[2] q;
+stretch a;
 box {
   x q[0];
 }
@@ -1368,6 +1373,10 @@ box[50.0ms] {
 }
 box[200dt] {
   box[10dt] {
+  }
+}
+box[a] {
+  box[2 * a] {
   }
 }
 """
