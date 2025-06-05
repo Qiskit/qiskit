@@ -29,9 +29,6 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.gate import Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.synthesis.discrete_basis.solovay_kitaev import SolovayKitaevDecomposition
-from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
-    generate_basic_approximations,
-)
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
@@ -137,23 +134,35 @@ class SolovayKitaev(TransformationPass):
 
     def __init__(
         self,
-        recursion_degree: int = 3,
+        recursion_degree: int = 5,
         basic_approximations: str | dict[str, np.ndarray] | None = None,
+        *,
+        basis_gates: list[str | Gate] | None = None,
+        depth: int = 12,
     ) -> None:
-        """
+        r"""
         Args:
             recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
                 A larger recursion depth increases the accuracy and length of the
                 decomposition.
             basic_approximations: The basic approximations for the finding the best discrete
-                decomposition at the root of the recursion. If a string, it specifies the ``.npy``
+                decomposition at the root of the recursion. If a string, it specifies the
                 file to load the approximations from. If a dictionary, it contains
-                ``{label: SO(3)-matrix}`` pairs. If None, a default based on the H, T and Tdg gates
-                up to combinations of depth 10 is generated.
+                ``{label: SO(3)-matrix}`` pairs. If ``None``, a default based on the :math:`H`,
+                :math:`T` and :math:`T^\dagger` gates up to depth 16 is generated.
+                Note that if ``basic_approximations`` is passed, ``basis_gates`` and
+                ``depth`` cannot be set.
+            basis_gates: The basis gates used to build the net of basic approximations.
+                Defaults to ``["h", "t", "tdg"]``. This argument cannot be set if
+                ``basic_approximations`` is provided.
+            depth: The maximal gate depth used in basic approximations. This argument cannot be
+                set if ``basic_approximations`` is provided.
         """
         super().__init__()
         self.recursion_degree = recursion_degree
-        self._sk = SolovayKitaevDecomposition(basic_approximations)
+        self._sk = SolovayKitaevDecomposition(
+            basic_approximations, basis_gates=basis_gates, depth=depth
+        )
 
     @trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -169,7 +178,6 @@ class SolovayKitaev(TransformationPass):
             TranspilerError: if a gates does not have to_matrix
         """
         for node in dag.op_nodes():
-
             # ignore operations on which the algorithm cannot run
             if (
                 (node.op.num_qubits != 1)
@@ -182,11 +190,9 @@ class SolovayKitaev(TransformationPass):
             # we know it will generate a valid SU(2) matrix
             check_input = not isinstance(node.op, Gate)
 
-            matrix = node.op.to_matrix()
-
             # call solovay kitaev
             approximation = self._sk.run(
-                matrix, self.recursion_degree, return_dag=True, check_input=check_input
+                node.op, self.recursion_degree, return_dag=True, check_input=check_input
             )
 
             # convert to a dag and replace the gate by the approximation
@@ -221,12 +227,12 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
     depth (int):
         The gate-depth of the basic approximations. All possible, unique combinations of the
-        basis gates up to length ``depth`` are considered. If None, defaults to 10.
+        basis gates up to length ``depth`` are considered. If None, defaults to 12.
         If ``basic_approximations`` is not None, ``depth`` is required to correspond to the
         depth that was used to generate it.
 
     recursion_degree (int):
-        The number of times the decomposition is recursively improved. If None, defaults to 3.
+        The number of times the decomposition is recursively improved. If None, defaults to 5.
     """
 
     # Generating basic approximations of single-qubit gates is computationally expensive.
@@ -292,10 +298,10 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         """Run the SolovayKitaevSynthesis synthesis plugin on the given unitary."""
 
         config = options.get("config") or {}
-        basis_gates = options.get("basis_gates", ["h", "t", "tdg"])
-        depth = config.get("depth", 10)
+        basis_gates = options.get("basis_gates", None)
+        depth = config.get("depth", 12)
         basic_approximations = config.get("basic_approximations", None)
-        recursion_degree = config.get("recursion_degree", 3)
+        recursion_degree = config.get("recursion_degree", 5)
 
         # Check if we didn't yet construct the Solovay-Kitaev instance (which contains the basic
         # approximations) or if the basic approximations need need to be recomputed.
@@ -303,11 +309,10 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
             (basis_gates != SolovayKitaevSynthesis._basis_gates)
             or (depth != SolovayKitaevSynthesis._depth)
         ):
-            if basic_approximations is None:
-                basic_approximations = generate_basic_approximations(basis_gates, depth)
-
             SolovayKitaevSynthesis._basis_gates = basis_gates
             SolovayKitaevSynthesis._depth = depth
-            SolovayKitaevSynthesis._sk = SolovayKitaevDecomposition(basic_approximations)
+            SolovayKitaevSynthesis._sk = SolovayKitaevDecomposition(
+                basic_approximations, basis_gates=basis_gates, depth=depth
+            )
         approximate_circuit = SolovayKitaevSynthesis._sk.run(unitary, recursion_degree)
         return circuit_to_dag(approximate_circuit)

@@ -14,7 +14,6 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
-use crate::getenv_use_multiple_threads;
 use nalgebra::Matrix4;
 use num_complex::{Complex64, ComplexFloat};
 use rand::prelude::*;
@@ -23,6 +22,7 @@ use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};

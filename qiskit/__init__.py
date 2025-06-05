@@ -74,6 +74,7 @@ sys.modules["qiskit._accelerate.optimize_1q_gates_decomposition"] = (
 sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
+sys.modules["qiskit._accelerate.pauli_lindblad_map"] = _accelerate.pauli_lindblad_map
 sys.modules["qiskit._accelerate.qasm2"] = _accelerate.qasm2
 sys.modules["qiskit._accelerate.qasm3"] = _accelerate.qasm3
 sys.modules["qiskit._accelerate.remove_diagonal_gates_before_measure"] = (
@@ -84,7 +85,6 @@ sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.sparse_observable"] = _accelerate.sparse_observable
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
-sys.modules["qiskit._accelerate.star_prerouting"] = _accelerate.star_prerouting
 sys.modules["qiskit._accelerate.elide_permutations"] = _accelerate.elide_permutations
 sys.modules["qiskit._accelerate.target"] = _accelerate.target
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = _accelerate.two_qubit_decompose
@@ -102,6 +102,7 @@ sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commuta
 sys.modules["qiskit._accelerate.consolidate_blocks"] = _accelerate.consolidate_blocks
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
 sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.evolution
+sys.modules["qiskit._accelerate.synthesis.discrete_basis"] = _accelerate.synthesis.discrete_basis
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )

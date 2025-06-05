@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::ops::DerefMut;
+
 use hashbrown::{HashMap, HashSet};
 
 use pyo3::create_exception;
@@ -87,11 +89,12 @@ fn subgraph(graph: &CouplingMap, node_set: &HashSet<NodeIndex>) -> CouplingMap {
 
 #[pyfunction(name = "run_pass_over_connected_components")]
 pub fn py_run_pass_over_connected_components(
-    dag: &mut DAGCircuit,
+    dag: Bound<DAGCircuit>,
     target: &Target,
     run_func: Bound<PyAny>,
 ) -> PyResult<Option<Vec<PyObject>>> {
-    let func = |dag: DAGCircuit, cmap: &CouplingMap| -> PyResult<PyObject> {
+    let py = dag.py();
+    let func = |dag: Bound<DAGCircuit>, cmap: &CouplingMap| -> PyResult<PyObject> {
         let py = run_func.py();
         let coupling_map_cls = COUPLING_MAP.get_bound(py);
         let endpoints: Vec<[usize; 2]> = cmap
@@ -117,13 +120,17 @@ pub fn py_run_pass_over_connected_components(
         }
         Ok(run_func.call1((dag, py_cmap))?.unbind())
     };
-    match distribute_components(dag, target)? {
+    let components = {
+        let mut borrowed = dag.borrow_mut();
+        distribute_components(borrowed.deref_mut(), target)?
+    };
+    match components {
         DisjointSplit::NoneNeeded => {
             let coupling_map: CouplingMap = match build_coupling_map(target) {
                 Some(map) => map,
                 None => return Ok(None),
             };
-            Ok(Some(vec![func(dag.clone(), &coupling_map)?]))
+            Ok(Some(vec![func(dag, &coupling_map)?]))
         }
         DisjointSplit::TargetSubset(qubits) => {
             let coupling_map = build_coupling_map(target).unwrap();
@@ -131,7 +138,7 @@ pub fn py_run_pass_over_connected_components(
                 &coupling_map,
                 &qubits.iter().map(|x| NodeIndex::new(x.index())).collect(),
             );
-            Ok(Some(vec![func(dag.clone(), &cmap)?]))
+            Ok(Some(vec![func(dag, &cmap)?]))
         }
         DisjointSplit::Arbitrary(components) => Some(
             components
@@ -146,7 +153,7 @@ pub fn py_run_pass_over_connected_components(
                             .map(|x| NodeIndex::new(x.index()))
                             .collect(),
                     );
-                    func(component.sub_dag, &cmap)
+                    func(component.sub_dag.into_pyobject(py)?, &cmap)
                 })
                 .collect::<PyResult<Vec<_>>>(),
         )
@@ -284,7 +291,7 @@ fn map_components(
 }
 
 fn build_coupling_map(target: &Target) -> Option<UnGraph<PhysicalQubit, ()>> {
-    let num_qubits = target.num_qubits.unwrap_or_default();
+    let num_qubits = target.num_qubits.unwrap_or_default() as usize;
     if target.num_qargs() == 0 {
         return None;
     }
