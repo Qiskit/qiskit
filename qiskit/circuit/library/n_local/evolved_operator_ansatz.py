@@ -27,6 +27,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.synthesis.evolution.product_formula import real_or_fail
 
 from qiskit._accelerate.circuit_library import pauli_evolution
 
@@ -136,7 +137,8 @@ def evolved_operator_ansatz(
             for term in sparse_labels:
                 param = next(param_iter)
                 expanded_paulis += [
-                    (pauli, indices, 2 * coeff * param) for pauli, indices, coeff in term
+                    (pauli, indices, 2 * real_or_fail(coeff) * param)
+                    for pauli, indices, coeff in term
                 ]
 
         data = pauli_evolution(num_qubits, expanded_paulis, insert_barriers, False)
@@ -261,7 +263,7 @@ def hamiltonian_variational_ansatz(
 
     """
     # If a single operator is given, check if it is a sum of operators (a SparsePauliOp),
-    # and split it into commuting terms. Otherwise treat it as single operator.
+    # and split it into commuting terms. Otherwise, treat it as single operator.
     if isinstance(hamiltonian, SparsePauliOp):
         hamiltonian = hamiltonian.group_commuting()
 
