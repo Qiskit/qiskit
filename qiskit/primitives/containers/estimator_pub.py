@@ -44,7 +44,7 @@ class EstimatorPub(ShapedMixin):
     If a ``precision`` value is provided to an estimator pub, then this value takes precedence over
     any value provided to the :meth:`~.Estimator.run` method.
 
-    The value of a estimator pub's :attr:`~.shape` is typically taken as the shape of the
+    The value of an estimator pub's :attr:`~.shape` is typically taken as the shape of the
     ``observables`` array broadcasted with the shape of the ``parameter_values`` shape at
     construction time. However, it can also be specified manually as a constructor argument, in
     which case it can be chosen to exceed the shape of either or both of these arrays so long as all
