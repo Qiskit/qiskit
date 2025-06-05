@@ -11,12 +11,11 @@
 // that they have been altered from the originals.
 
 // ParameterExpression class for symbolic equation on Rust / interface to Python
-use crate::symbol_expr;
-use crate::symbol_expr::SymbolExpr;
-use crate::symbol_parser::parse_expression;
 
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
+use pyo3::exceptions::PyRuntimeError;
+use thiserror::Error;
 
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -24,6 +23,22 @@ use std::hash::{Hash, Hasher};
 
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+
+use crate::parameter::symbol_expr;
+use crate::parameter::symbol_expr::SymbolExpr;
+use crate::parameter::symbol_parser::parse_expression;
+
+#[derive(Error, Debug)]
+pub enum ParameterError {
+    #[error("Encountered unbound parameter.")]
+    UnboundParameter,
+}
+
+impl From<ParameterError> for PyErr {
+    fn from(value: ParameterError) -> Self {
+        PyRuntimeError::new_err(value.to_string())
+    }
+}
 
 // Python interface to SymbolExpr
 #[pyclass(sequence, module = "qiskit._accelerate.circuit")]
@@ -57,70 +72,7 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
     }
 }
 
-#[pymethods]
 impl ParameterExpression {
-    /// parse expression from string
-    #[new]
-    #[pyo3(signature = (in_expr=None))]
-    pub fn new(in_expr: Option<String>) -> PyResult<Self> {
-        match in_expr {
-            Some(e) => match parse_expression(&e) {
-                Ok(expr) => Ok(ParameterExpression { expr }),
-                Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
-            },
-            None => Ok(ParameterExpression {
-                expr: SymbolExpr::Value(symbol_expr::Value::Int(0)),
-            }),
-        }
-    }
-
-    /// create new expression as a symbol
-    #[allow(non_snake_case)]
-    #[staticmethod]
-    pub fn Symbol(name: String) -> Self {
-        // check if expr contains replacements for sympy
-        let name = name
-            .replace("__begin_sympy_replace__", "$\\")
-            .replace("__end_sympy_replace__", "$");
-
-        ParameterExpression {
-            expr: SymbolExpr::Symbol(Box::new(name)),
-        }
-    }
-
-    /// create new expression as a value
-    #[allow(non_snake_case)]
-    #[staticmethod]
-    pub fn Value(value: &Bound<PyAny>) -> PyResult<Self> {
-        match _extract_value(value) {
-            Some(v) => Ok(v),
-            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
-                "Unsupported data type to initialize SymbolExpr as a value",
-            )),
-        }
-    }
-
-    /// create new expression from string
-    #[allow(non_snake_case)]
-    #[staticmethod]
-    pub fn Expression(expr: String) -> PyResult<Self> {
-        // check if expr contains replacements for sympy
-        let expr = expr
-            .replace("__begin_sympy_replace__", "$\\")
-            .replace("__end_sympy_replace__", "$");
-        match parse_expression(&expr) {
-            // substitute 'I' to imaginary number i before returning expression
-            Ok(expr) => Ok(ParameterExpression {
-                expr: expr.bind(&HashMap::from([(
-                    "I".to_string(),
-                    symbol_expr::Value::from(Complex64::i()),
-                )])),
-            }),
-            Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
-        }
-    }
-
-    // unary functions
     pub fn sin(&self) -> Self {
         Self {
             expr: self.expr.sin(),
@@ -172,6 +124,163 @@ impl ParameterExpression {
         }
     }
 
+    /// clone expression
+    pub fn copy(&self) -> Self {
+        Self {
+            expr: self.expr.clone(),
+        }
+    }
+    /// return conjugate of expression
+    pub fn conjugate(&self) -> Self {
+        Self {
+            expr: self.expr.conjugate(),
+        }
+    }
+    /// return derivative of this expression for param
+    pub fn derivative(&self, param: &Self) -> Result<Self, String> {
+        self.expr.derivative(&param.expr).map(|expr| Self { expr })
+        // match self.expr.derivative(&param.expr) {
+        //     Ok(expr) => Ok(Self { expr }),
+        //     Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
+        // }
+    }
+
+    /// expand expression
+    pub fn expand(&self) -> Self {
+        Self {
+            expr: self.expr.expand(),
+        }
+    }
+
+    /// get hashset of all the symbols used in this expression
+    pub fn symbols(&self) -> HashSet<String> {
+        self.expr.symbols()
+    }
+
+    /// substitute symbols to expressions (or values) given by hash map
+    pub fn subs(&self, in_maps: HashMap<String, Self>) -> Self {
+        let maps: HashMap<String, SymbolExpr> = in_maps
+            .into_iter()
+            .map(|(key, val)| (key, val.expr))
+            .collect();
+        Self {
+            expr: self.expr.subs(&maps),
+        }
+    }
+
+    pub fn name(&self) -> String {
+        if let SymbolExpr::Symbol(s) = &self.expr {
+            return s.as_ref().clone();
+        }
+        match self.expr.eval(true) {
+            Some(e) => e.to_string(),
+            None => self.expr.optimize().to_string(),
+        }
+    }
+
+    pub fn bind(&self, map: HashMap<String, symbol_expr::Value>) -> Result<Self, String> {
+        let bound = self.expr.bind(&map);
+        match bound.eval(true) {
+            Some(v) => match &v {
+                symbol_expr::Value::Real(r) => {
+                    if r.is_infinite() {
+                        Err("attempted to bind infinite value to parameter".to_string())
+                    } else if r.is_nan() {
+                        Err("NAN detected while binding parameter".to_string())
+                    } else {
+                        Ok(Self {
+                            expr: SymbolExpr::Value(v),
+                        })
+                    }
+                }
+                symbol_expr::Value::Int(_) => Ok(Self {
+                    expr: SymbolExpr::Value(v),
+                }),
+                symbol_expr::Value::Complex(c) => {
+                    if c.re.is_infinite() || c.im.is_infinite() {
+                        Err("zero division occurs while binding parameter".to_string())
+                    } else if c.re.is_nan() || c.im.is_nan() {
+                        Err("NAN detected while binding parameter".to_string())
+                    } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
+                        .contains(&c.im)
+                    {
+                        Ok(Self {
+                            expr: SymbolExpr::Value(symbol_expr::Value::Real(c.re)),
+                        })
+                    } else {
+                        Ok(Self {
+                            expr: SymbolExpr::Value(v),
+                        })
+                    }
+                }
+            },
+            None => Ok(Self { expr: bound }),
+        }
+    }
+}
+
+#[pymethods]
+impl ParameterExpression {
+    /// parse expression from string
+    #[new]
+    #[pyo3(signature = (in_expr=None))]
+    pub fn new(in_expr: Option<String>) -> PyResult<Self> {
+        match in_expr {
+            Some(e) => match parse_expression(&e) {
+                Ok(expr) => Ok(ParameterExpression { expr }),
+                Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
+            },
+            None => Ok(ParameterExpression {
+                expr: SymbolExpr::Value(symbol_expr::Value::Int(0)),
+            }),
+        }
+    }
+
+    /// create new expression as a symbol
+    #[allow(non_snake_case)]
+    #[staticmethod]
+    pub fn Symbol(name: String) -> Self {
+        // check if expr contains replacements for sympy
+        let name = name
+            .replace("__begin_sympy_replace__", "$\\")
+            .replace("__end_sympy_replace__", "$");
+
+        ParameterExpression {
+            expr: SymbolExpr::Symbol(Box::new(name)),
+        }
+    }
+    /// create new expression as a value
+    #[allow(non_snake_case)]
+    #[staticmethod]
+    pub fn Value(value: &Bound<PyAny>) -> PyResult<Self> {
+        match _extract_value(value) {
+            Some(v) => Ok(v),
+            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "Unsupported data type to initialize SymbolExpr as a value",
+            )),
+        }
+    }
+
+    /// create new expression from string
+    #[allow(non_snake_case)]
+    #[staticmethod]
+    pub fn Expression(expr: String) -> PyResult<Self> {
+        // check if expr contains replacements for sympy
+        let expr = expr
+            .replace("__begin_sympy_replace__", "$\\")
+            .replace("__end_sympy_replace__", "$");
+        match parse_expression(&expr) {
+            // substitute 'I' to imaginary number i before returning expression
+            Ok(expr) => Ok(ParameterExpression {
+                expr: expr.bind(&HashMap::from([(
+                    "I".to_string(),
+                    symbol_expr::Value::from(Complex64::i()),
+                )])),
+            }),
+            Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
+        }
+    }
+
     /// return value if expression does not contain any symbols
     pub fn value(&self, py: Python) -> PyResult<PyObject> {
         match self.expr.eval(true) {
@@ -193,36 +302,9 @@ impl ParameterExpression {
         }
     }
 
-    /// clone expression
-    pub fn copy(&self) -> Self {
-        Self {
-            expr: self.expr.clone(),
-        }
-    }
-    /// return conjugate of expression
-    pub fn conjugate(&self) -> Self {
-        Self {
-            expr: self.expr.conjugate(),
-        }
-    }
-    /// return derivative of this expression for param
-    pub fn derivative(&self, param: &Self) -> PyResult<Self> {
-        match self.expr.derivative(&param.expr) {
-            Ok(expr) => Ok(Self { expr }),
-            Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
-        }
-    }
-
-    /// expand expression
-    pub fn expand(&self) -> Self {
-        Self {
-            expr: self.expr.expand(),
-        }
-    }
-
-    /// get hashset of all the symbols used in this expression
-    pub fn symbols(&self) -> HashSet<String> {
-        self.expr.symbols()
+    /// Return derivative of this expression for param
+    pub fn gradient(&self, param: &Self) -> PyResult<Self> {
+        self.derivative(param).map_err(PyRuntimeError::new_err)
     }
 
     /// return all values in this equation
@@ -240,8 +322,9 @@ impl ParameterExpression {
 
     /// return expression as a string
     #[getter]
-    pub fn name(&self) -> String {
-        self.__str__()
+    #[pyo3(name = "name")]
+    pub fn py_name(&self) -> String {
+        self.name()
     }
 
     /// bind values to symbols given by input hashmap
@@ -262,62 +345,9 @@ impl ParameterExpression {
                 }
             })
             .collect();
-        let bound = self.expr.bind(&map);
-        match bound.eval(true) {
-            Some(v) => match &v {
-                symbol_expr::Value::Real(r) => {
-                    if r.is_infinite() {
-                        Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                            "attempted to bind infinite value to parameter",
-                        ))
-                    } else if r.is_nan() {
-                        Err(pyo3::exceptions::PyRuntimeError::new_err(
-                            "NAN detected while binding parameter",
-                        ))
-                    } else {
-                        Ok(Self {
-                            expr: SymbolExpr::Value(v),
-                        })
-                    }
-                }
-                symbol_expr::Value::Int(_) => Ok(Self {
-                    expr: SymbolExpr::Value(v),
-                }),
-                symbol_expr::Value::Complex(c) => {
-                    if c.re.is_infinite() || c.im.is_infinite() {
-                        Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                            "zero division occurs while binding parameter",
-                        ))
-                    } else if c.re.is_nan() || c.im.is_nan() {
-                        Err(pyo3::exceptions::PyRuntimeError::new_err(
-                            "NAN detected while binding parameter",
-                        ))
-                    } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
-                        .contains(&c.im)
-                    {
-                        Ok(Self {
-                            expr: SymbolExpr::Value(symbol_expr::Value::Real(c.re)),
-                        })
-                    } else {
-                        Ok(Self {
-                            expr: SymbolExpr::Value(v),
-                        })
-                    }
-                }
-            },
-            None => Ok(Self { expr: bound }),
-        }
-    }
 
-    /// substitute symbols to expressions (or values) given by hash map
-    pub fn subs(&self, in_maps: HashMap<String, Self>) -> Self {
-        let maps: HashMap<String, SymbolExpr> = in_maps
-            .into_iter()
-            .map(|(key, val)| (key, val.expr))
-            .collect();
-        Self {
-            expr: self.expr.subs(&maps),
-        }
+        // TODO introduce custom error types and map them to nicer types, e.g. PyZeroDivisionError
+        self.bind(map).map_err(PyRuntimeError::new_err)
     }
 
     // ====================================
@@ -347,9 +377,11 @@ impl ParameterExpression {
             None => true,
         }
     }
+
     pub fn __neg__(&self) -> Self {
         Self { expr: -&self.expr }
     }
+
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => Ok(Self {
@@ -453,13 +485,7 @@ impl ParameterExpression {
     }
 
     pub fn __str__(&self) -> String {
-        if let SymbolExpr::Symbol(s) = &self.expr {
-            return s.as_ref().clone();
-        }
-        match self.expr.eval(true) {
-            Some(e) => e.to_string(),
-            None => self.expr.optimize().to_string(),
-        }
+        self.name()
     }
 
     pub fn __hash__(&self) -> u64 {

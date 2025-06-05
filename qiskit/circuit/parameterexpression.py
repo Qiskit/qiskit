@@ -436,7 +436,7 @@ class ParameterExpression:
 
         # Compute the gradient of the parameter expression w.r.t. param
         key = self._parameter_symbols[param]
-        expr_grad = self._symbol_expr.derivative(key)
+        expr_grad = self._symbol_expr.gradient(key)
 
         # generate the new dictionary of symbols
         # this needs to be done since in the derivative some symbols might disappear (e.g.

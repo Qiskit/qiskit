@@ -24,7 +24,7 @@ use nom::Parser;
 
 use num_complex::c64;
 
-use crate::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
+use crate::parameter::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
 
 // parsing value as real
 fn parse_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
