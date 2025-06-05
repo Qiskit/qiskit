@@ -18,7 +18,7 @@ QPY Type keys for several namespace.
 
 import uuid
 from abc import abstractmethod
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, IntFlag
 
 import numpy as np
 
@@ -136,6 +136,12 @@ class Condition(IntEnum):
     NONE = 0
     TWO_TUPLE = 1
     EXPRESSION = 2
+
+
+class InstructionExtraFlags(IntFlag):
+    """If an instruction has extra payloads associated with it."""
+
+    HAS_ANNOTATIONS = 0b1000_0000
 
 
 class Container(TypeKeyBase):

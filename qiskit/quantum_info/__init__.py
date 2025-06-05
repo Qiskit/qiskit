@@ -30,9 +30,13 @@ Operators
    ScalarOp
    SparseObservable
    SparsePauliOp
+   PauliLindbladMap
+   QubitSparsePauli
+   QubitSparsePauliList
    CNOTDihedral
    PauliList
    pauli_basis
+   get_clifford_gate_names
 
 .. _quantum_info_states:
 
@@ -115,6 +119,11 @@ Analysis
 
 from __future__ import annotations
 
+from qiskit._accelerate.pauli_lindblad_map import (
+    QubitSparsePauliList,
+    QubitSparsePauli,
+    PauliLindbladMap,
+)
 from qiskit._accelerate.sparse_observable import SparseObservable
 
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
@@ -129,6 +138,7 @@ from .operators import (
     commutator,
     double_commutator,
     pauli_basis,
+    get_clifford_gate_names,
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral

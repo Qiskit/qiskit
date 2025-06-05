@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import warnings
 import collections.abc
 import copy as _copy
 
@@ -48,7 +49,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import deprecate_func
+from qiskit.utils import deprecate_func, deprecate_arg
 from . import (  # pylint: disable=cyclic-import
     Bit,
     QuantumRegister,
@@ -80,11 +81,12 @@ from .delay import Delay
 from .store import Store
 
 
-if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
-    from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+if typing.TYPE_CHECKING:  # pylint: disable=cyclic-import
+    import qiskit
+    from qiskit.circuit import Annotation
+    from qiskit.transpiler.layout import TranspileLayout
     from qiskit.quantum_info.operators.base_operator import BaseOperator
-    from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
+    from qiskit.quantum_info.states.statevector import Statevector
 
 
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
@@ -170,50 +172,55 @@ class QuantumCircuit:
     A small handful of the attributes are intentionally mutable, the rest are data attributes that
     should be considered immutable.
 
-    ========================= ======================================================================
-    Mutable attribute         Summary
-    ========================= ======================================================================
-    :attr:`global_phase`      The global phase of the circuit, measured in radians.
-    :attr:`metadata`          Arbitrary user mapping, which Qiskit will preserve through the
-                              transpiler, but otherwise completely ignore.
-    :attr:`name`              An optional string name for the circuit.
-    ========================= ======================================================================
+    ============================== =================================================================
+    Mutable attribute              Summary
+    ============================== =================================================================
+    :attr:`global_phase`           The global phase of the circuit, measured in radians.
+    :attr:`metadata`               Arbitrary user mapping, which Qiskit will preserve through the
+                                   transpiler, but otherwise completely ignore.
+    :attr:`name`                   An optional string name for the circuit.
+    ============================== =================================================================
 
-    ========================= ======================================================================
-    Immutable data attribute  Summary
-    ========================= ======================================================================
-    :attr:`ancillas`          List of :class:`AncillaQubit`\\ s tracked by the circuit.
-    :attr:`cregs`             List of :class:`ClassicalRegister`\\ s tracked by the circuit.
+    ============================== =================================================================
+    Immutable data attribute       Summary
+    ============================== =================================================================
+    :attr:`ancillas`               List of :class:`AncillaQubit`\\ s tracked by the circuit.
+    :attr:`cregs`                  List of :class:`ClassicalRegister`\\ s tracked by the circuit.
 
-    :attr:`clbits`            List of :class:`Clbit`\\ s tracked by the circuit.
-    :attr:`data`              List of individual :class:`CircuitInstruction`\\ s that make up the
-                              circuit.
-    :attr:`duration`          Total duration of the circuit, added by scheduling transpiler passes.
-                              This attribute is deprecated and :meth:`.estimate_duration` should
-                              be used instead.
+    :attr:`clbits`                 List of :class:`Clbit`\\ s tracked by the circuit.
+    :attr:`data`                   List of individual :class:`CircuitInstruction`\\ s that make up
+                                   the circuit.
+    :attr:`duration`               Total duration of the circuit, added by scheduling transpiler
+                                   passes.
+                                   This attribute is deprecated and :meth:`.estimate_duration`
+                                   should be used instead.
 
-    :attr:`layout`            Hardware layout and routing information added by the transpiler.
-    :attr:`num_ancillas`      The number of ancilla qubits in the circuit.
-    :attr:`num_clbits`        The number of clbits in the circuit.
-    :attr:`num_captured_vars` Number of captured real-time classical variables.
+    :attr:`layout`                 Hardware layout and routing information added by the transpiler.
+    :attr:`num_ancillas`           The number of ancilla qubits in the circuit.
+    :attr:`num_clbits`             The number of clbits in the circuit.
+    :attr:`num_captured_vars`      Number of captured real-time classical variables.
+    :attr:`num_captured_stretches` Number of captured stretches.
+    :attr:`num_declared_vars`      Number of locally declared real-time classical variables in the
+                                   outer circuit scope.
+    :attr:`num_declared_stretches` Number of locally declared stretches in the outer circuit scope.
+    :attr:`num_input_vars`         Number of input real-time classical variables.
+    :attr:`num_parameters`         Number of compile-time :class:`Parameter`\\ s in the circuit.
+    :attr:`num_qubits`             Number of qubits in the circuit.
 
-    :attr:`num_declared_vars` Number of locally declared real-time classical variables in the outer
-                              circuit scope.
-    :attr:`num_input_vars`    Number of input real-time classical variables.
-    :attr:`num_parameters`    Number of compile-time :class:`Parameter`\\ s in the circuit.
-    :attr:`num_qubits`        Number of qubits in the circuit.
+    :attr:`num_vars`               Total number of real-time classical variables in the outer
+                                   circuit scope.
+    :attr:`num_stretches`          Total number of stretches in the outer circuit scope.
+    :attr:`num_identifiers`        Total number of both variables and stretches in the outer
+                                   circuit.
+    :attr:`op_start_times`         Start times of scheduled operations, added by scheduling
+                                   transpiler passes.
+    :attr:`parameters`             Ordered set-like view of the compile-time :class:`Parameter`\\ s
+                                   tracked by the circuit.
+    :attr:`qregs`                  List of :class:`QuantumRegister`\\ s tracked by the circuit.
 
-    :attr:`num_vars`          Total number of real-time classical variables in the outer circuit
-                              scope.
-    :attr:`op_start_times`    Start times of scheduled operations, added by scheduling transpiler
-                              passes.
-    :attr:`parameters`        Ordered set-like view of the compile-time :class:`Parameter`\\ s
-                              tracked by the circuit.
-    :attr:`qregs`             List of :class:`QuantumRegister`\\ s tracked by the circuit.
-
-    :attr:`qubits`            List of :class:`Qubit`\\ s tracked by the circuit.
-    :attr:`unit`              The unit of the :attr:`duration` field.
-    ========================= ======================================================================
+    :attr:`qubits`                 List of :class:`Qubit`\\ s tracked by the circuit.
+    :attr:`unit`                   The unit of the :attr:`duration` field.
+    ============================== =================================================================
 
     The core attribute is :attr:`data`.  This is a sequence-like object that exposes the
     :class:`CircuitInstruction`\\ s contained in an ordered form.  You generally should not mutate
@@ -283,10 +290,14 @@ class QuantumCircuit:
     .. autoattribute:: num_ancillas
     .. autoattribute:: num_clbits
     .. autoattribute:: num_captured_vars
+    .. autoattribute:: num_captured_stretches
     .. autoattribute:: num_declared_vars
+    .. autoattribute:: num_declared_stretches
     .. autoattribute:: num_input_vars
+    .. autoattribute:: num_identifiers
     .. autoattribute:: num_parameters
     .. autoattribute:: num_qubits
+    .. autoattribute:: num_stretches
     .. autoattribute:: num_vars
 
     Creating new circuits
@@ -353,8 +364,10 @@ class QuantumCircuit:
     :meth:`add_bits`               :class:`.Qubit`\\ s and :class:`.Clbit`\\ s.
     :meth:`add_register`           :class:`.QuantumRegister` and :class:`.ClassicalRegister`.
     :meth:`add_var`                :class:`~.expr.Var` nodes with local scope and initializers.
+    :meth:`add_stretch`            :class:`~.expr.Stretch` nodes with local scope.
     :meth:`add_input`              :class:`~.expr.Var` nodes that are treated as circuit inputs.
-    :meth:`add_capture`            :class:`~.expr.Var` nodes captured from containing scopes.
+    :meth:`add_capture`            :class:`~.expr.Var` or :class:`~.expr.Stretch` nodes captured
+                                   from containing scopes.
     :meth:`add_uninitialized_var`  :class:`~.expr.Var` nodes with local scope and undefined state.
     =============================  =================================================================
 
@@ -384,10 +397,12 @@ class QuantumCircuit:
     to instantiate these separately to a circuit (see :meth:`.Var.new`), but it is often more
     convenient to use circuit methods that will automatically manage the types and expression
     initialization for you.  The two most common methods are :meth:`add_var` (locally scoped
-    variables) and :meth:`add_input` (inputs to the circuit).
+    variables) and :meth:`add_input` (inputs to the circuit). Additionally, the method
+    :meth:`add_stretch` can be used to add stretches to the circuit.
 
     .. automethod:: add_var
     .. automethod:: add_input
+    .. automethod:: add_stretch
 
     In addition, there are two lower-level methods that can be useful for programmatic generation of
     circuits.  When working interactively, you will most likely not need these; most uses of
@@ -455,26 +470,37 @@ class QuantumCircuit:
             as a whole.
 
         :ref:`circuit-adding-data-objects`
-            The methods for adding new :class:`~.expr.Var` variables to a circuit after
-            initialization.
+            The methods for adding new :class:`~.expr.Var` or :class:`~.expr.Stretch` identifiers
+            to a circuit after initialization.
 
-    You can retrive a :class:`~.expr.Var` instance attached to a circuit by using its variable name
-    using :meth:`get_var`, or check if a circuit contains a given variable with :meth:`has_var`.
+    You can retrieve identifiers attached to a circuit (e.g. a :class:`~.expr.Var` or
+    :class:`~.expr.Stretch`) by name with methods :meth:`get_var`, :meth:`get_stretch`, or
+    :meth:`get_identifier`. You can also check if a circuit
+    contains a given identifier with :meth:`has_var`, :meth:`has_stretch`, or
+    :meth:`has_identifier`.
 
     .. automethod:: get_var
+    .. automethod:: get_stretch
+    .. automethod:: get_identifier
     .. automethod:: has_var
+    .. automethod:: has_stretch
+    .. automethod:: has_identifier
 
-    There are also several iterator methods that you can use to get the full set of variables
+
+    There are also several iterator methods that you can use to get the full set of identifiers
     tracked by a circuit.  At least one of :meth:`iter_input_vars` and :meth:`iter_captured_vars`
     will be empty, as inputs and captures are mutually exclusive.  All of the iterators have
     corresponding dynamic properties on :class:`QuantumCircuit` that contain their length:
-    :attr:`num_vars`, :attr:`num_input_vars`, :attr:`num_captured_vars` and
-    :attr:`num_declared_vars`.
+    :attr:`num_vars`, :attr:`num_stretches`, :attr:`num_input_vars`, :attr:`num_captured_vars`,
+    :attr:`num_captured_stretches`, :attr:`num_declared_vars`, or :attr:`num_declared_stretches`.
 
     .. automethod:: iter_vars
+    .. automethod:: iter_stretches
     .. automethod:: iter_input_vars
     .. automethod:: iter_captured_vars
+    .. automethod:: iter_captured_stretches
     .. automethod:: iter_declared_vars
+    .. automethod:: iter_declared_stretches
 
 
     .. _circuit-adding-operations:
@@ -802,6 +828,9 @@ class QuantumCircuit:
     a block, even though it has no operations defined.  In this case, you can use the :meth:`noop`
     method.
 
+    To check whether a circuit contains a :class:`.ControlFlowOp` you can use the helper method
+    :meth:`.QuantumCircuit.has_control_flow_op`.
+
     ..
         TODO: expand the examples of the builder interface.
 
@@ -814,6 +843,7 @@ class QuantumCircuit:
     .. automethod:: switch
     .. automethod:: while_loop
     .. automethod:: noop
+    .. automethod:: has_control_flow_op
 
 
     Converting circuits to single objects
@@ -1075,7 +1105,7 @@ class QuantumCircuit:
         self._base_name = None
         self.name: str
         """A human-readable name for the circuit.
-        
+
         Example:
 
             .. plot::
@@ -1153,7 +1183,7 @@ class QuantumCircuit:
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata.
-        
+
         Example:
 
             .. plot::
@@ -2224,7 +2254,7 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        `the docs <https://docs.quantum.ibm.com/guides/construct-circuits>`__
+        `the docs <https://quantum.cloud.ibm.com/docs/guides/construct-circuits>`__
         for more information.
 
         .. code-block:: text
@@ -2694,6 +2724,8 @@ class QuantumCircuit:
             if copy and is_parameter:
                 operation = _copy.deepcopy(operation)
         if isinstance(operation, ControlFlowOp):
+            if operation.name == "box" and operation.unit == "expr":
+                _validate_expr(circuit_scope, operation.duration)
             # Verify that any variable bindings are valid.  Control-flow ops are already enforced
             # by the class not to contain 'input' variables.
             if bad_captures := {
@@ -3567,7 +3599,7 @@ class QuantumCircuit:
         parameter_map: dict[Parameter, ParameterValueType] | None = None,
         label: str | None = None,
     ) -> Gate:
-        """Create a :class:`.Gate` out of this circuit.  The circuit must act only qubits and
+        """Create a :class:`.Gate` out of this circuit.  The circuit must act only on qubits and
         contain only unitary operations.
 
         .. seealso::
@@ -4795,6 +4827,11 @@ class QuantumCircuit:
 
         return None if inplace else target
 
+    def has_control_flow_op(self) -> bool:
+        """Checks whether the circuit has an instance of :class:`.ControlFlowOp`
+        present amongst its operations."""
+        return self._data.has_control_flow_op()
+
     def _unroll_param_dict(
         self, parameter_binds: Mapping[Parameter, ParameterValueType]
     ) -> Mapping[Parameter, ParameterValueType]:
@@ -5118,7 +5155,6 @@ class QuantumCircuit:
         """
         # pylint: disable=cyclic-import
         from .library.standard_gates.ry import RYGate
-        from .library.standard_gates.x import MCXGate
         from qiskit.synthesis.multi_controlled import (
             _apply_cu,
             _apply_mcu_graycode,
@@ -5137,17 +5173,33 @@ class QuantumCircuit:
         # auto-select the best mode
         if mode is None:
             # if enough ancillary qubits are provided, use the 'v-chain' method
-            additional_vchain = MCXGate.get_num_ancilla_qubits(len(control_qubits), "v-chain")
+            additional_vchain = max(0, len(control_qubits) - 2)
             if len(ancillary_qubits) >= additional_vchain:
                 mode = "basic"
             else:
                 mode = "noancilla"
 
         if mode == "basic":
+            from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
+
             self.ry(theta / 2, q_target)
-            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
+            if len(control_qubits) == 1:
+                self.cx(control_qubits[0], q_target)
+            elif len(control_qubits) == 2:
+                self.ccx(control_qubits[0], control_qubits[1], q_target)
+            else:
+                qubits = control_qubits + [target_qubit] + ancillary_qubits
+                mcx = synth_mcx_n_clean_m15(len(control_qubits))
+                self.compose(mcx, qubits, inplace=True)
             self.ry(-theta / 2, q_target)
-            self.mcx(list(q_controls), q_target, q_ancillae, mode="v-chain")
+            if len(control_qubits) == 1:
+                self.cx(control_qubits[0], q_target)
+            elif len(control_qubits) == 2:
+                self.ccx(control_qubits[0], control_qubits[1], q_target)
+            else:
+                qubits = control_qubits + [target_qubit] + ancillary_qubits
+                mcx = synth_mcx_n_clean_m15(len(control_qubits))
+                self.compose(mcx, qubits, inplace=True)
         elif mode == "noancilla":
             n_c = len(control_qubits)
             if n_c == 1:  # cu
@@ -6002,12 +6054,21 @@ class QuantumCircuit:
             copy=False,
         )
 
+    @deprecate_arg(
+        name="mode",
+        since="2.1",
+        additional_msg=(
+            "Instead, add a generic MCXGate to the circuit and specify the synthesis method "
+            "via the ``hls_config`` in the transpilation. Alternatively, specific decompositions "
+            "are available at https://qisk.it/mcx."
+        ),
+    )
     def mcx(
         self,
         control_qubits: Sequence[QubitSpecifier],
         target_qubit: QubitSpecifier,
         ancilla_qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
-        mode: str = "noancilla",
+        mode: str | None = None,
         ctrl_state: str | int | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCXGate`.
@@ -6043,46 +6104,62 @@ class QuantumCircuit:
         num_ctrl_qubits = len(control_qubits)
 
         available_implementations = {
-            "noancilla": MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state),
-            "recursion": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
-            "v-chain": MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state),
-            "v-chain-dirty": MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state),
-            # outdated, previous names
-            "advanced": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
-            "basic": MCXVChain(num_ctrl_qubits, dirty_ancillas=False, ctrl_state=ctrl_state),
-            "basic-dirty-ancilla": MCXVChain(
-                num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state
-            ),
+            "noancilla",
+            "recursion",
+            "v-chain",
+            "v-chain-dirty",
+            "advanced",
+            "basic",
+            "basic-dirty-ancilla",
         }
 
         # check ancilla input
         if ancilla_qubits:
             _ = self._qbit_argument_conversion(ancilla_qubits)
 
-        try:
-            gate = available_implementations[mode]
-        except KeyError as ex:
-            all_modes = list(available_implementations.keys())
-            raise ValueError(
-                f"Unsupported mode ({mode}) selected, choose one of {all_modes}"
-            ) from ex
-
-        if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
-            required = gate.num_ancilla_qubits
-            if ancilla_qubits is None:
-                raise AttributeError(f"No ancillas provided, but {required} are needed!")
-
-            # convert ancilla qubits to a list if they were passed as int or qubit
-            if not hasattr(ancilla_qubits, "__len__"):
-                ancilla_qubits = [ancilla_qubits]
-
-            if len(ancilla_qubits) < required:
-                actually = len(ancilla_qubits)
-                raise ValueError(f"At least {required} ancillas required, but {actually} given.")
-            # size down if too many ancillas were provided
-            ancilla_qubits = ancilla_qubits[:required]
+        if mode is None:
+            gate = MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state)
+        elif mode in available_implementations:
+            if mode == "noancilla":
+                gate = MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state)
+            elif mode in ["recursion", "advanced"]:
+                gate = MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state)
+            elif mode in ["v-chain", "basic"]:
+                gate = MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state)
+            elif mode in ["v-chain-dirty", "basic-dirty-ancilla"]:
+                gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state)
+            else:
+                raise ValueError("unreachable.")
+            # else is unreachable, we exhausted all options
         else:
+            raise ValueError(
+                f"Unsupported mode ({mode}) selected, choose one of {available_implementations}"
+            )
+
+        if mode is None or not hasattr(gate, "num_ancilla_qubits"):
             ancilla_qubits = []
+        else:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                required = gate.num_ancilla_qubits
+
+            if required > 0:
+                if ancilla_qubits is None:
+                    raise AttributeError(f"No ancillas provided, but {required} are needed!")
+
+                # convert ancilla qubits to a list if they were passed as int or qubit
+                if not hasattr(ancilla_qubits, "__len__"):
+                    ancilla_qubits = [ancilla_qubits]
+
+                if len(ancilla_qubits) < required:
+                    actually = len(ancilla_qubits)
+                    raise ValueError(
+                        f"At least {required} ancillas required, but {actually} given."
+                    )
+                # size down if too many ancillas were provided
+                ancilla_qubits = ancilla_qubits[:required]
+            else:
+                ancilla_qubits = []
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
@@ -6639,16 +6716,15 @@ class QuantumCircuit:
 
     def box(
         self,
-        # Forbidding passing `body` by keyword is in anticipation of the constructor expanding to
-        # allow `annotations` to be passed as the positional argument in the context-manager form.
-        body: QuantumCircuit | None = None,
+        body_or_annotations: QuantumCircuit | typing.Iterable[Annotation] = ...,
         /,
         qubits: Sequence[QubitSpecifier] | None = None,
         clbits: Sequence[ClbitSpecifier] | None = None,
         *,
         label: str | None = None,
         duration: None = None,
-        unit: Literal["dt", "s", "ms", "us", "ns", "ps"] = "dt",
+        unit: Literal["dt", "s", "ms", "us", "ns", "ps", "expr"] | None = None,
+        annotations: typing.Iterable[Annotation] = ...,
     ):
         """Create a ``box`` of operations on this circuit that are treated atomically in the greater
         context.
@@ -6677,13 +6753,16 @@ class QuantumCircuit:
 
             .. code-block:: python
 
-                from qiskit.circuit import QuantumCircuit
+                from qiskit.circuit import QuantumCircuit, Annotation
+
+                class MyAnnotation(Annotation):
+                    namespace = "my.namespace"
 
                 qc = QuantumCircuit(9)
                 with qc.box():
                     qc.cz(0, 1)
                     qc.cz(2, 3)
-                with qc.box():
+                with qc.box([MyAnnotation()]):
                     qc.cz(4, 5)
                     qc.cz(6, 7)
                     qc.noop(8)
@@ -6711,8 +6790,11 @@ class QuantumCircuit:
                 qc.box(body_1, [4, 5, 6, 7, 8], [])
 
         Args:
-            body: if given, the :class:`QuantumCircuit` to use as the box's body in the explicit
-                construction.  Not given in the context-manager form.
+            body_or_annotations: the first positional argument is unnamed.  If a
+                :class:`QuantumCircuit` is passed positionally, it is immediately used as the body
+                of the box, and ``qubits`` and ``clbits`` must also be specified.  If not given, or
+                if given an iterable of :class:`.Annotation` objects, the context-manager form of
+                this method is triggered.
             qubits: the qubits to apply the :class:`.BoxOp` to, in the explicit form.
             clbits: the qubits to apply the :class:`.BoxOp` to, in the explicit form.
             label: an optional string label for the instruction.
@@ -6720,23 +6802,35 @@ class QuantumCircuit:
                 constrained to schedule the contained scope to match a given duration, including
                 delay insertion if required.
             unit: the unit of the ``duration``.
+            annotations: any :class:`.Annotation` objects the box should have.  When this method is
+                used in context-manager form, this argument can instead be passed as the only
+                positional argument.
         """
-        if isinstance(body, QuantumCircuit):
+        if isinstance(body_or_annotations, QuantumCircuit):
             # Explicit-body form.
+            body = body_or_annotations
             if qubits is None or clbits is None:
                 raise CircuitError("When using 'box' with a body, you must pass qubits and clbits.")
+            if annotations is Ellipsis:
+                annotations = []
             return self.append(
-                BoxOp(body, duration=duration, unit=unit, label=label),
+                BoxOp(body, duration=duration, unit=unit, label=label, annotations=annotations),
                 qubits,
                 clbits,
                 copy=False,
             )
+        if body_or_annotations is ...:
+            annotations = () if annotations is ... else annotations
+        elif annotations is not ...:
+            raise TypeError("QuantumCircuit.box() got multiple values for argument 'annotations'")
+        else:
+            annotations = body_or_annotations
         # Context-manager form.
         if qubits is not None or clbits is not None:
             raise CircuitError(
                 "When using 'box' as a context manager, you cannot pass qubits or clbits."
             )
-        return BoxContext(self, duration=duration, unit=unit, label=label)
+        return BoxContext(self, duration=duration, unit=unit, label=label, annotations=annotations)
 
     @typing.overload
     def while_loop(
