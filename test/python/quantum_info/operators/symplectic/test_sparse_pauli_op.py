@@ -1325,14 +1325,15 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             op = SparsePauliOp.from_list([("", 1), ("", 2)])
             res = op.apply_layout(layout=layout, num_qubits=5)
             self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
+
     def test_simplify_sums_before_applying_tolerance():
         # """Test that simplify sums duplicates before applying atol threshold."""
         from qiskit.quantum_info import SparsePauliOp
 
-        op = SparsePauliOp(['X', 'X', 'Y', 'Z', 'Z'], coeffs=[5e-8, 5e-8, 1e-6, 1e-8, -1e-8])
+        op = SparsePauliOp(["X", "X", "Y", "Z", "Z"], coeffs=[5e-8, 5e-8, 1e-6, 1e-8, -1e-8])
         simplified = op.simplify(atol=1e-7)
 
-        expected = SparsePauliOp(['Y'], coeffs=[1e-6])
+        expected = SparsePauliOp(["Y"], coeffs=[1e-6])
         assert simplified == expected
 
 
