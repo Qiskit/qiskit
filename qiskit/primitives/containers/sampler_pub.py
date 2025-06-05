@@ -156,11 +156,15 @@ class SamplerPub(ShapedMixin):
         if len(pub) > 2 and pub[2] is not None:
             shots = pub[2]
 
+        shape = None
+        if len(pub) > 3 and pub[3] is not None:
+            shape = pub[3]
+
         return cls(
             circuit=circuit,
             parameter_values=parameter_values,
             shots=shots,
-            shape=(pub[3] if len(pub) > 3 and pub[3] is not None else None),
+            shape=shape,
             validate=True,
         )
 
