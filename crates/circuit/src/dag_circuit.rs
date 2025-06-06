@@ -4462,6 +4462,9 @@ impl DAGCircuit {
         for reg in self.qregs.registers() {
             out.add_qreg(reg.clone())?;
         }
+        // `copy_empty_like` has historically made a strong assumption that the exact same qargs
+        // will be used in the output.  Some Qiskit functions rely on this undocumented behaviour.
+        out.qargs_interner.clone_from(&self.qargs_interner);
         Ok(out)
     }
 
