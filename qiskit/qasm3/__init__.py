@@ -309,15 +309,18 @@ def dump(circuit, stream, **kwargs) -> None:
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
 def load(
-    filename: str, *, annotation_handlers: dict[str, annotation.OpenQASM3Serializer] | None = None
+    filename: str,
+    *,
+    num_qubits: int | None = None,
+    annotation_handlers: dict[str, annotation.OpenQASM3Serializer] | None = None,
 ) -> QuantumCircuit:
     """Load an OpenQASM 3 program from the file ``filename``.
 
     Args:
         filename: the filename to load the program from.
+        num_qubits: keyword argument which provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
             that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
-
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
@@ -328,28 +331,34 @@ def load(
     .. versionadded:: 2.1
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
     """
+
     with open(filename, "r") as fptr:
         program = fptr.read()
-    return loads(program, annotation_handlers=annotation_handlers)
+    return loads(program, num_qubits=num_qubits, annotation_handlers=annotation_handlers)
 
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
 def loads(
-    program: str, *, annotation_handlers: dict[str, annotation.OpenQASM3Serializer] | None = None
+    program: str,
+    *,
+    num_qubits: int | None = None,
+    annotation_handlers: dict[str, annotation.OpenQASM3Serializer] | None = None,
 ) -> QuantumCircuit:
     """Load an OpenQASM 3 program from the given string.
 
     Args:
         program: the OpenQASM 3 program.
+        num_qubits: keyword argument which provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
             that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
-
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
     Raises:
         QASM3ImporterError: if the OpenQASM 3 file is invalid, or cannot be represented by a
             :class:`.QuantumCircuit`.
+        TypeError: if num_qubits is not of type `int`.
+        ValueError: if number of qubits in qasm3_ckt is more than num_qubits.
 
     .. versionadded:: 2.1
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
@@ -365,10 +374,28 @@ def loads(
                 + qiskit_qasm3_import.__version__
             )
         kwargs["annotation_handlers"] = annotation_handlers
+
+    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
     try:
-        return qiskit_qasm3_import.parse(program, **kwargs)
+        qasm3_ckt = qiskit_qasm3_import.parse(program, **kwargs)
     except qiskit_qasm3_import.ConversionError as exc:
         raise QASM3ImporterError(str(exc)) from exc
+
+    if num_qubits is not None:
+        if not isinstance(num_qubits, int):
+            raise TypeError("`num_qubits` has to be of type `int`.")
+        if qasm3_ckt.num_qubits > num_qubits:
+            raise ValueError(
+                "Number of qubits cannot be more than the provided number of physical/virtual qubits."
+            )
+        if (num_qubits - qasm3_ckt.num_qubits) > 0:
+            qr = QuantumRegister(num_qubits, "q")
+            cr = ClassicalRegister(num_qubits, "c")
+            qc = QuantumCircuit(qr, cr)
+            qasm3_ckt = qc.compose(qasm3_ckt)
+
+    return qasm3_ckt
 
 
 @functools.wraps(_qasm3.loads)
