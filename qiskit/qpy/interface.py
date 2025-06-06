@@ -199,15 +199,20 @@ def dump(
     )
     file_obj.write(header)
     common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
-    
+
     # Table of byte offsets for each program
-    byte_offsets =  []
-    
-    # Skip the file position to write the byte offsets later
-    file_obj.seek(formats.FILE_HEADER_V10_SIZE + len(type_keys.Program.CIRCUIT) + len(programs) * 8)
+    byte_offsets = []
+    table_start = None
+    if version == common.QPY_VERSION:
+        table_start = file_obj.tell()
+        # Skip the file position to write the byte offsets later
+        file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
 
     # Serialize each program and write it to the file
     for program in programs:
+        if version == common.QPY_VERSION:
+            # Determine the byte offset before writing each program
+            byte_offsets.append(file_obj.tell())
         binary_io.write_circuit(
             file_obj,
             program,
@@ -216,13 +221,12 @@ def dump(
             version=version,
             annotation_factories=annotation_factories,
         )
-        # Determine the byte offset after writing each program
-        byte_offsets.append(file_obj.tell())
-    
-    # Write the byte offsets for each program
-    file_obj.seek(formats.FILE_HEADER_V10_SIZE + len(type_keys.Program.CIRCUIT))
-    for offset in byte_offsets:
-        file_obj.write(struct.pack("!Q", offset))
+
+    if version == common.QPY_VERSION:
+        # Write the byte offsets for each program
+        file_obj.seek(table_start)
+        for offset in byte_offsets:
+            file_obj.write(struct.pack(formats.CIRCUIT_TABLE_ENTRY, offset))
 
 
 def load(
@@ -353,15 +357,26 @@ def load(
         use_symengine = False
     else:
         use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
-        
-    # For now, skip the byte offsets
-    file_obj.seek(formats.FILE_HEADER_V10_SIZE + len(type_keys.Program.CIRCUIT) + data.num_programs * 8)
 
+    if data.qpy_version == common.QPY_VERSION:
+        # Obtain the byte offsets for each program
+        program_offsets = []
+        for _ in range(data.num_programs):
+            program_offsets.append(
+                struct.unpack(
+                    formats.CIRCUIT_TABLE_ENTRY,
+                    file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
+                )[0]
+            )
+    
     programs = []
-    #TODO: Replace with multithreaded reading of each program from corresponding byte offset
-    #TODO: Check for backwards compatibility and modify any version info
-    #TODO: Understand how to circuits are populated by read_circuit and ensure that they are returned in the correct order regardless of the thread completion order 
-    for _ in range(data.num_programs):
+    # TODO: Replace with multithreaded reading of each program from corresponding byte offset
+    # TODO: Check for backwards compatibility and modify any version info
+    # TODO: Understand how to circuits are populated by read_circuit and ensure that they are returned in the correct order regardless of the thread completion order
+    for i in range(data.num_programs):
+        if data.qpy_version == common.QPY_VERSION:
+            # Deserialize each program using their byte offsets
+            file_obj.seek(program_offsets[i])
         programs.append(
             binary_io.read_circuit(
                 file_obj,
