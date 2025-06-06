@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a compatibility issue with the minimum supported version of rustworkx,
+    0.15. With certain inputs the :class:`.VF2Layout` and
+    :class:`.VF2PostLayout` were previously using a rustworkx method that was
+    added in rustworkx 0.16.0 which would cause an error when using an older
+    rustworkx release which is listed as supported.
