@@ -7,3 +7,4 @@ deprecations_circuits:
       * :class:`.LinearAmplitudeFunction` ``-->`` :class:`.LinearAmplitudeFunctionGate`
       * :class:`.PhaseOracle` ``-->`` :class:`.PhaseOracleGate`
       * :class:`.PiecewisePolynomialPauliRotations` ``-->`` :class:`.PiecewisePolynomialPauliRotationsGate`
+      * :class:`.QuantumVolume` ``-->`` :func:`.quantum_volume`
