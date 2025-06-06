@@ -1548,7 +1548,7 @@ impl PyPauliLindbladMap {
     ///
     /// .. math::
     ///     
-    ///     f(Q) = \exp\left(-2 \sum_{P \in K} \lambda(P) \langle P, Q\rangle_{sp}),
+    ///     f(Q) = \exp\left(-2 \sum_{P \in K} \lambda(P) \langle P, Q\rangle_{sp}\right),
     ///
     /// where :math:`\langle P, Q\rangle_{sp}` is :math:`0` if :math:`P` and :math:`Q` commute, and
     /// :math:`1` if they anti-commute.
