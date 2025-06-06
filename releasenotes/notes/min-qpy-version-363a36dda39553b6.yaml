@@ -1,0 +1,6 @@
+---
+features_qpy:
+  - |
+    Added a setting named ``min_qpy_version`` in ``qiskit/user_config.py``. This setting defines the minimum required QPY version, 
+    which will be checked against the version currently in use in ``qiskit/qpy/interface.py``. If the active version is lower than 
+    the configured minimum, the system will raise a ``QiskitError``.
