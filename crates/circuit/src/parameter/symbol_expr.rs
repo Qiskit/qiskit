@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-/// symbol_expr.rs
-/// symbolic expression engine for parameter expression
-use core::f64;
 use hashbrown::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
@@ -22,11 +19,13 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 use uuid::Uuid;
 
 use num_complex::Complex64;
+use pyo3::prelude::pyclass;
 
 // epsilon for SymbolExpr is hearistically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
-#[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
+#[pyclass]
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Hash)]
 pub struct Parameter {
     name: Box<String>,
     uuid: Uuid,
@@ -729,20 +728,32 @@ impl SymbolExpr {
         }
     }
 
-    /// return hashset of all symbols this equation contains
-    pub fn symbols(&self) -> HashSet<String> {
+    /// Return hashset of all parameters this equation contains.
+    pub fn parameters(&self) -> HashSet<Parameter> {
         match self {
-            SymbolExpr::Symbol(e) => HashSet::<String>::from([e.name()]),
-            SymbolExpr::Value(_) => HashSet::<String>::new(),
-            SymbolExpr::Unary { op: _, expr } => expr.symbols(),
+            SymbolExpr::Symbol(e) => {
+                let mut set = HashSet::<Parameter>::new();
+                set.insert(e.clone()); // TODO can this be done more concisely?
+                set
+            }
+            SymbolExpr::Value(_) => HashSet::<Parameter>::new(),
+            SymbolExpr::Unary { op: _, expr } => expr.parameters(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
-                let mut symbols = HashSet::<String>::new();
-                for s in lhs.symbols().union(&rhs.symbols()) {
-                    symbols.insert(s.to_string());
+                let mut parameters = HashSet::<Parameter>::new();
+                for s in lhs.parameters().union(&rhs.parameters()) {
+                    parameters.insert(s.clone());
                 }
-                symbols
+                parameters
             }
         }
+    }
+
+    /// Map of parameter name to the parameter.
+    pub fn name_map(&self) -> HashMap<String, Parameter> {
+        self.parameters()
+            .iter()
+            .map(|param| (param.name(), param.clone()))
+            .collect()
     }
 
     /// return all numbers in the equation

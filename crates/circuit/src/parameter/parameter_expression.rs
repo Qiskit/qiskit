@@ -12,9 +12,10 @@
 
 // ParameterExpression class for symbolic equation on Rust / interface to Python
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use num_complex::Complex64;
 use pyo3::exceptions::{PyRuntimeError, PyZeroDivisionError};
+use pyo3::types::{PyDict, PySet, PyString};
 use thiserror::Error;
 
 use std::collections::hash_map::DefaultHasher;
@@ -164,11 +165,6 @@ impl ParameterExpression {
         }
     }
 
-    /// get hashset of all the symbols used in this expression
-    pub fn symbols(&self) -> HashSet<String> {
-        self.expr.symbols()
-    }
-
     /// substitute symbols to expressions (or values) given by hash map
     pub fn subs(&self, in_maps: &HashMap<String, Self>) -> Self {
         let maps: HashMap<String, SymbolExpr> = in_maps
@@ -314,6 +310,19 @@ impl ParameterExpression {
         }
     }
 
+    pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
+        PySet::new(py, self.expr.parameters())
+    }
+
+    pub fn name_map<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict = PyDict::new(py);
+        for (name, param) in self.expr.name_map().iter() {
+            let py_name = PyString::new(py, name.as_str());
+            dict.set_item(py_name, param.clone())?;
+        }
+        Ok(dict)
+    }
+
     #[pyo3(name = "sin")]
     pub fn py_sin(&self) -> Self {
         self.sin()
@@ -397,11 +406,6 @@ impl ParameterExpression {
     #[pyo3(name = "name")]
     pub fn py_name(&self) -> String {
         self.name()
-    }
-
-    #[pyo3(name = "symbols")]
-    pub fn py_symbols(&self) -> HashSet<String> {
-        self.symbols()
     }
 
     /// substitute symbols to expressions (or values) given by hash map
