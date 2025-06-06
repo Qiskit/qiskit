@@ -372,6 +372,15 @@ class TestParameters(QiskitTestCase):
 
         self.assertAlmostEqual(binds[0], qc.data[0].operation.params[0])
 
+    def test_assign_parameters_with_string_values_and_strict_equals_false(self):
+        """Test that a string parameter with strict=False does not return an error"""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        qc.rz(a, 0)
+        bound = qc.assign_parameters({"a": 1.0, "b": 2.0}, strict=False)
+        expected = qc.assign_parameters({a: 1.0})
+        self.assertEqual(bound, expected)
+
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
         x = Parameter("x")
