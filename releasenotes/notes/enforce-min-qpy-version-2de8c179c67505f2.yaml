@@ -1,0 +1,9 @@
+features_qpy:
+ - |
+   Added a new user configuration option ``min_qpy_version`` in ``qiskit/user_config.py`` to improve QPY format security.
+
+   This is useful for preventing the loading of potentially insecure QPY files
+   created using older versions of Qiskit.
+
+   If the version of a QPY file is below the configured minimum, a `QiskitError will be
+   raised. The minimum version can be set in `~/.qiskit/settings.conf`

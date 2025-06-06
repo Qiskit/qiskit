@@ -258,3 +258,59 @@ class TestUserConfig(QiskitTestCase):
             },
             dict(config.items("default")),
         )
+    def test_valid_min_qpy_version_string(self):
+        test_config = """
+        [default]
+        min_qpy_version = 2.0
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+
+        config = user_config.UserConfig(self.file_path)
+        config.read_config_file()
+        self.assertEqual(str(config.settings["min_qpy_version"]), "2.0")
+
+    def test_valid_min_qpy_version_semver_format(self):
+        test_config = """
+        [default]
+        min_qpy_version = 2.0.1
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+
+        config = user_config.UserConfig(self.file_path)
+        config.read_config_file()
+        self.assertEqual(str(config.settings["min_qpy_version"]), "2.0.1")
+
+    def test_invalid_min_qpy_version_string_raises(self):
+        test_config = """
+        [default]
+        min_qpy_version = banana
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+
+        config = user_config.UserConfig(self.file_path)
+        self.assertRaises(
+            exceptions.QiskitUserConfigError, config.read_config_file
+        )
+
+    def test_min_qpy_version_key_missing_is_ignored(self):
+        test_config = """
+        [default]
+        circuit_drawer = latex
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+
+        config = user_config.UserConfig(self.file_path)
+        config.read_config_file()
+        self.assertNotIn("min_qpy_version", config.settings)
