@@ -44,7 +44,7 @@ features = ["num-complex"]
 
 [dependencies.hashbrown]
 workspace = true
-features = ["rayon"]
+features = ["rayon", "serde"]
 
 [dependencies.pulp]
 version = "0.21.5"

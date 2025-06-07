@@ -16,7 +16,7 @@ mod errors;
 mod instruction_properties;
 mod qargs;
 
-use errors::TargetError;
+pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
 
@@ -198,12 +198,12 @@ pub struct Target {
     #[pyo3(get, set)]
     pub description: Option<String>,
     #[pyo3(get)]
-    pub num_qubits: Option<usize>,
+    pub num_qubits: Option<u32>,
     pub dt: Option<f64>,
     #[pyo3(get, set)]
     pub granularity: u32,
     #[pyo3(get, set)]
-    pub min_length: usize,
+    pub min_length: u32,
     #[pyo3(get, set)]
     pub pulse_alignment: u32,
     #[pyo3(get, set)]
@@ -275,12 +275,12 @@ impl Target {
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
-    fn new(
+    pub fn new(
         description: Option<String>,
-        mut num_qubits: Option<usize>,
+        mut num_qubits: Option<u32>,
         dt: Option<f64>,
         granularity: Option<u32>,
-        min_length: Option<usize>,
+        min_length: Option<u32>,
         pulse_alignment: Option<u32>,
         acquire_alignment: Option<u32>,
         qubit_properties: Option<Vec<PyObject>>,
@@ -288,14 +288,14 @@ impl Target {
     ) -> PyResult<Self> {
         if let Some(qubit_properties) = qubit_properties.as_ref() {
             if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
-                if num_qubits.unwrap() != qubit_properties.len() {
+                if num_qubits.unwrap() as usize != qubit_properties.len() {
                     return Err(PyValueError::new_err(
                         "The value of num_qubits specified does not match the \
                             length of the input qubit_properties list",
                     ));
                 }
             } else {
-                num_qubits = Some(qubit_properties.len())
+                num_qubits = Some(qubit_properties.len() as u32)
             }
         }
         Ok(Target {
@@ -305,7 +305,7 @@ impl Target {
             granularity: granularity.unwrap_or(1),
             min_length: min_length.unwrap_or(1),
             pulse_alignment: pulse_alignment.unwrap_or(1),
-            acquire_alignment: acquire_alignment.unwrap_or(0),
+            acquire_alignment: acquire_alignment.unwrap_or(1),
             qubit_properties,
             concurrent_measurements,
             gate_map: GateMap::default(),
@@ -543,7 +543,7 @@ impl Target {
                             // If qargs set then validate no duplicates and all indices are valid on device
                             return Ok(qargs
                                 .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
                                 && qarg_set.len() == qargs.len());
                         } else {
                             return Ok(true);
@@ -570,15 +570,15 @@ impl Target {
                                             self._gate_name_map[op_name].num_qubits();
                                         return Ok(qubit_comparison == qargs_as_vec.len() as u32
                                             && qargs_as_vec.iter().all(|x| {
-                                                x.index() < self.num_qubits.unwrap_or_default()
+                                                x.0 < self.num_qubits.unwrap_or_default()
                                             }));
                                     }
                                 } else {
                                     let qubit_comparison = obj.num_qubits();
                                     return Ok(qubit_comparison == qargs_as_vec.len() as u32
-                                        && qargs_as_vec.iter().all(|x| {
-                                            x.index() < self.num_qubits.unwrap_or_default()
-                                        }));
+                                        && qargs_as_vec
+                                            .iter()
+                                            .all(|x| x.0 < self.num_qubits.unwrap_or_default()));
                                 }
                             } else {
                                 return Ok(true);
@@ -597,7 +597,7 @@ impl Target {
                                 qargs_vec.iter().cloned().collect();
                             return Ok(qargs_vec
                                 .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
                                 && qarg_set.len() == qargs_vec.len());
                         } else {
                             return Ok(true);
@@ -842,10 +842,10 @@ impl Target {
         self.num_qubits = state
             .get_item("num_qubits")?
             .unwrap()
-            .extract::<Option<usize>>()?;
+            .extract::<Option<u32>>()?;
         self.dt = state.get_item("dt")?.unwrap().extract::<Option<f64>>()?;
         self.granularity = state.get_item("granularity")?.unwrap().extract::<u32>()?;
-        self.min_length = state.get_item("min_length")?.unwrap().extract::<usize>()?;
+        self.min_length = state.get_item("min_length")?.unwrap().extract::<u32>()?;
         self.pulse_alignment = state
             .get_item("pulse_alignment")?
             .unwrap()
@@ -980,15 +980,19 @@ impl Target {
                                 arguments: format!("{:?}", qarg),
                             });
                         }
-                        self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
-                            qarg_slice.iter().fold(0, |acc, x| {
-                                if acc > x.index() {
-                                    acc
-                                } else {
-                                    x.index()
-                                }
-                            }) + 1,
-                        ));
+                        self.num_qubits =
+                            Some(self.num_qubits.unwrap_or_default().max(
+                                qarg_slice.iter().fold(
+                                    0,
+                                    |acc, x| {
+                                        if acc > x.0 {
+                                            acc
+                                        } else {
+                                            x.0
+                                        }
+                                    },
+                                ) + 1,
+                            ));
                     }
                     if let Some(Some(value)) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
                         value.insert(name.to_string());
@@ -1131,8 +1135,8 @@ impl Target {
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
-    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = usize> {
-        0..self.num_qubits.unwrap_or_default()
+    pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> {
+        (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
     }
 
     /// Generate non global operations if missing
@@ -1166,7 +1170,7 @@ impl Target {
             }
         }
         let mut incomplete_basis_gates: Vec<String> = vec![];
-        let mut size_dict: IndexMap<usize, usize, RandomState> = IndexMap::default();
+        let mut size_dict: IndexMap<u32, u32, RandomState> = IndexMap::default();
         *size_dict
             .entry(1)
             .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
@@ -1174,10 +1178,10 @@ impl Target {
             if qarg.len() == 1 {
                 continue;
             }
-            *size_dict.entry(qarg.len()).or_insert(0) += 1;
+            *size_dict.entry(qarg.len() as u32).or_insert(0) += 1;
         }
         for (inst, qargs_props) in self.gate_map.iter() {
-            let mut qarg_len = qargs_props.len();
+            let mut qarg_len = qargs_props.len() as u32;
             let mut qargs_keys = qargs_props.keys().peekable();
             let qarg_sample = qargs_keys.peek().cloned();
             if let Some(qarg_sample) = qarg_sample {
@@ -1195,10 +1199,10 @@ impl Target {
                         ordered_qargs.sort_unstable();
                         deduplicated_qargs.insert(ordered_qargs);
                     }
-                    qarg_len = deduplicated_qargs.len();
+                    qarg_len = deduplicated_qargs.len() as u32;
                 }
                 if let Qargs::Concrete(qarg_sample) = qarg_sample {
-                    if qarg_len != *size_dict.entry(qarg_sample.len()).or_insert(0) {
+                    if qarg_len != *size_dict.entry(qarg_sample.len() as u32).or_insert(0) {
                         incomplete_basis_gates.push(inst.clone());
                     }
                 }
@@ -1239,7 +1243,7 @@ impl Target {
         if let QargsRef::Concrete(qargs) = qargs {
             if qargs
                 .iter()
-                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
+                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.0))
             {
                 return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
             }
@@ -1345,15 +1349,15 @@ impl Target {
                         TargetOperation::Variadic(_) => {
                             return qargs_as_vec
                                 .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
                                 && qarg_set.len() == qargs_as_vec.len();
                         }
                         TargetOperation::Normal(obj) => {
                             let qubit_comparison = obj.operation.num_qubits();
                             return qubit_comparison == qargs_as_vec.len() as u32
-                                && qargs_as_vec.iter().all(|qarg| {
-                                    qarg.index() < self.num_qubits.unwrap_or_default()
-                                });
+                                && qargs_as_vec
+                                    .iter()
+                                    .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
                         }
                     }
                 }
@@ -1365,7 +1369,7 @@ impl Target {
                         return qargs.is_global()
                             || qargs_as_vec
                                 .iter()
-                                .all(|qarg| qarg.index() <= self.num_qubits.unwrap_or_default())
+                                .all(|qarg| qarg.0 <= self.num_qubits.unwrap_or_default())
                                 && qarg_set.len() == qargs_as_vec.len();
                     }
                     TargetOperation::Normal(obj) => {
@@ -1373,7 +1377,7 @@ impl Target {
                         return qubit_comparison == qargs_as_vec.len() as u32
                             && qargs_as_vec
                                 .iter()
-                                .all(|qarg| qarg.index() < self.num_qubits.unwrap_or_default());
+                                .all(|qarg| qarg.0 < self.num_qubits.unwrap_or_default());
                     }
                 }
             }
