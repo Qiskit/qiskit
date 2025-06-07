@@ -88,7 +88,19 @@ clean: coverage_erase ;
 
 C_DIR_OUT = dist/c
 C_DIR_LIB = $(C_DIR_OUT)/lib
+C_DIR_SRC_INCLUDE=crates/cext/include
+
 C_DIR_INCLUDE = $(C_DIR_OUT)/include
+C_DIR_INCLUDE_NAMESPACE = $(C_DIR_INCLUDE)/qiskit
+
+# These are the files that are handwritten in `cext` and just get copied verbatim into the
+# distribution artifact.  There's an assumption in the recipes that there's no further nesting of
+# directories beyond `include/qiskit`.  You can add more to the end of it (space separated).
+C_NAMESPACED_FILENAMES=complex.h
+
+C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
+C_QISKIT_NAMESPACED_H=$(addprefix $(C_DIR_INCLUDE_NAMESPACE)/,$(C_NAMESPACED_FILENAMES))
+
 C_DIR_TEST_BUILD = test/c/build
 # Whether this is target/debug or target/release depends on the flags in the
 # `cheader` recipe.  For now, they're just hardcoded.
@@ -103,7 +115,6 @@ else
 endif
 C_LIB_CARGO_PATH=$(C_CARGO_TARGET_DIR)/$(C_LIB_CARGO_FILENAME)
 
-C_QISKIT_H=$(C_DIR_INCLUDE)/qiskit.h
 C_LIBQISKIT=$(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
 # Run clang-format (does not apply any changes)
@@ -124,21 +135,25 @@ $(C_DIR_LIB):
 
 $(C_DIR_INCLUDE):
 	mkdir -p $(C_DIR_INCLUDE)
-	mkdir $(C_DIR_INCLUDE)/qiskit
+$(C_DIR_INCLUDE_NAMESPACE):
+	mkdir -p $(C_DIR_INCLUDE_NAMESPACE)
 
 $(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_CARGO_PATH)
 	cp $(C_LIB_CARGO_PATH) $(C_DIR_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 
-$(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH)
-	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
-	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
+target/qiskit.h: $(C_LIBQISKIT)
+$(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH) target/qiskit.h
+	cp target/qiskit.h $(C_QISKIT_H)
+
+$(C_QISKIT_NAMESPACED_H): $(C_DIR_INCLUDE_NAMESPACE) $(C_DIR_SRC_INCLUDE)/$(notdir $@)
+	cp $(C_DIR_SRC_INCLUDE)/$(notdir $@) $(C_DIR_INCLUDE_NAMESPACE)/$(notdir $@)
 
 .PHONY: c cheader
-cheader: $(C_QISKIT_H)
-c: $(C_LIBQISKIT) $(C_QISKIT_H)
+cheader: $(C_QISKIT_H) $(C_QISKIT_NAMESPACED_H)
+c: $(C_LIBQISKIT) cheader
 
 # Use ctest to run C API tests
-ctest: $(C_DIR_INCLUDE)
+ctest: $(C_DIR_INCLUDE)/qiskit
 	cargo rustc --crate-type cdylib -p qiskit-cext
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
 	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
