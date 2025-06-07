@@ -33,7 +33,8 @@ class TestPermutationLibrary(QiskitTestCase):
 
     def test_permutation(self):
         """Test permutation circuit."""
-        circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
+        with self.assertWarns(DeprecationWarning):
+            circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
         expected.swap(2, 3)
@@ -43,7 +44,9 @@ class TestPermutationLibrary(QiskitTestCase):
 
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
-        self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+        with self.assertRaises(CircuitError):
+            with self.assertWarns(DeprecationWarning):
+                _ = Permutation(4, [1, 0, -1, 2])
 
 
 class TestPermutationGate(QiskitTestCase):
@@ -145,12 +148,6 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
         # same qubits.
         self.assertTrue(np.array_equal(qc.data[0].operation.pattern, qcr.data[0].operation.pattern))
         self.assertTrue(np.array_equal(qc.data[0].qubits, qcr.data[0].qubits))
-
-    def test_conditional(self):
-        """Test adding conditional permutations."""
-        qc = QuantumCircuit(5, 1)
-        qc.append(PermutationGate([1, 2, 0]), [2, 3, 4]).c_if(0, 1)
-        self.assertIsNotNone(qc.data[0].operation.condition)
 
     def test_qasm(self):
         """Test qasm for circuits with permutations."""

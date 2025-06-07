@@ -17,8 +17,6 @@ from typing import Optional
 import numpy
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -37,23 +35,23 @@ class GlobalPhaseGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.GlobalPhaseGate
+    _standard_gate = StandardGate.GlobalPhase
 
-    def __init__(
-        self, phase: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
         """
         Args:
             phase: The value of phase it takes.
             label: An optional label for the gate.
         """
-        super().__init__("global_phase", 0, [phase], label=label, duration=duration, unit=unit)
+        super().__init__("global_phase", 0, [phase], label=label)
 
     def _define(self):
-        q = QuantumRegister(0, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=self.params[0])
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.GlobalPhase._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverse GlobalPhaseGate gate.

@@ -15,13 +15,11 @@
 from __future__ import annotations
 
 import math
-from math import pi
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -33,7 +31,7 @@ class RYGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
         q_0: ┤ Ry(ϴ) ├
@@ -52,29 +50,24 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RYGate
+    _standard_gate = StandardGate.RY
 
-    def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RY gate."""
-        super().__init__("ry", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("ry", 1, [theta], label=label)
 
     def _define(self):
-        """
-        gate ry(theta) a { r(theta, pi/2) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .r import RGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(RGate(self.params[0], pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌──────────┐
+        # q: ┤ R(θ,π/2) ├
+        #    └──────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RY._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,
@@ -103,11 +96,6 @@ class RYGate(Gate):
             gate = CRYGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
         else:
-            # If the gate parameters contain free parameters, we cannot eagerly synthesize
-            # the controlled gate decomposition. In this case, we annotate the gate per default.
-            if annotated is None:
-                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,
@@ -158,7 +146,7 @@ class CRYGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ────■────
              ┌───┴───┐
@@ -188,7 +176,8 @@ class CRYGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────┐
             q_0: ┤ Ry(ϴ) ├
                  └───┬───┘
@@ -208,7 +197,7 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CRYGate
+    _standard_gate = StandardGate.CRY
 
     def __init__(
         self,
@@ -216,8 +205,6 @@ class CRYGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CRY gate."""
@@ -229,37 +216,21 @@ class CRYGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=RYGate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
-        """
-        gate cry(lambda) a,b
-        { u3(lambda/2,0,0) b; cx a,b;
-          u3(-lambda/2,0,0) b; cx a,b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        # q_0: ─────────────■───────────────■──
-        #      ┌─────────┐┌─┴─┐┌─────────┐┌─┴─┐
-        # q_1: ┤ Ry(λ/2) ├┤ X ├┤ Ry(λ/2) ├┤ X ├
-        #      └─────────┘└───┘└─────────┘└───┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RYGate(self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RYGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # q_0: ─────────────■────────────────■──
+        #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
+        # q_1: ┤ Ry(θ/2) ├┤ X ├┤ Ry(-θ/2) ├┤ X ├
+        #      └─────────┘└───┘└──────────┘└───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CRY._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse CRY gate (i.e. with the negative rotation angle)

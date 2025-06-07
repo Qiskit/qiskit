@@ -17,13 +17,12 @@ QPY serialization (:mod:`qiskit.qpy`)
 
 .. currentmodule:: qiskit.qpy
 
-QPY is a binary serialization format for :class:`~.QuantumCircuit` and
-:class:`~.ScheduleBlock` objects that is designed to be cross-platform,
-Python version agnostic, and backwards compatible moving forward. QPY should
-be used if you need a mechanism to save or copy between systems a
-:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock` that preserves the full
-Qiskit object structure (except for custom attributes defined outside of
-Qiskit code). This differs from other serialization formats like
+QPY is a binary serialization format for :class:`~.QuantumCircuit`
+objects that is designed to be cross-platform, Python version agnostic,
+and backwards compatible moving forward. QPY should be used if you need
+a mechanism to save or copy between systems a :class:`~.QuantumCircuit`
+that preserves the full Qiskit object structure (except for custom attributes
+defined outside of Qiskit code). This differs from other serialization formats like
 `OpenQASM <https://github.com/openqasm/openqasm>`__ (2.0 or 3.0) which has a
 different abstraction model and can result in a loss of information contained
 in the original circuit (or is unable to represent some aspects of the
@@ -40,7 +39,24 @@ serializers in Python's standard library, ``pickle`` and ``json``. There are
 2 user facing functions: :func:`qiskit.qpy.dump` and
 :func:`qiskit.qpy.load` which are used to dump QPY data
 to a file object and load circuits from QPY data in a file object respectively.
-For example::
+For example:
+
+.. plot::
+    :nofigs:
+    :context: reset
+
+    # This code is hidden from users
+    # It's a hack to avoid writing to file when testing the code examples
+    import io
+    bytestream = io.BytesIO()
+    bytestream.close = lambda: bytestream.seek(0)
+    def open(*args):
+        return bytestream
+
+.. plot::
+    :include-source:
+    :nofigs:
+    :context:
 
     from qiskit.circuit import QuantumCircuit
     from qiskit import qpy
@@ -57,21 +73,33 @@ For example::
         new_qc = qpy.load(fd)[0]
 
 The :func:`qiskit.qpy.dump` function also lets you
-include multiple circuits in a single QPY file::
+include multiple circuits in a single QPY file:
+
+.. plot::
+    :include-source:
+    :nofigs:
+    :context:
 
     with open('twenty_bells.qpy', 'wb') as fd:
         qpy.dump([qc] * 20, fd)
 
 and then loading that file will return a list with all the circuits
 
+.. plot::
+    :include-source:
+    :nofigs:
+    :context:
+
     with open('twenty_bells.qpy', 'rb') as fd:
         twenty_new_bells = qpy.load(fd)
+
 
 API documentation
 =================
 
 .. autofunction:: load
 .. autofunction:: dump
+.. autofunction:: get_qpy_version
 
 These functions will raise a custom subclass of :exc:`.QiskitError` if they encounter problems
 during serialization or deserialization.
@@ -97,6 +125,8 @@ Attributes:
         will be able to load all released format versions of QPY (up until
         ``QPY_VERSION``).
 
+.. _qpy_compatibility:
+
 QPY Compatibility
 =================
 
@@ -110,11 +140,47 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
+Note that circuit metadata and custom :class:`.Annotation` objects are serialized and deserialized
+by user-supplied classes, as the objects themselves are completely user-custom, so the forwards- and
+backwards-compatibility of these is limited by what the user provides.
+
 If a feature being loaded is deprecated in the corresponding qiskit release, QPY will
 raise a :exc:`~.QPYLoadingDeprecatedFeatureWarning` informing of the deprecation period
 and how the feature will be internally handled.
 
 .. autoexception:: QPYLoadingDeprecatedFeatureWarning
+
+.. note::
+
+    With versions of Qiskit before 1.2.4, the ``use_symengine=True`` argument to :func:`.qpy.dump`
+    could cause problems with backwards compatibility if there were :class:`.ParameterExpression`
+    objects to serialize.  In particular:
+
+    * When the loading version of Qiskit is 1.2.4 or greater, QPY files generated with any version
+      of Qiskit >= 0.46.0 can be loaded.  If a version of Qiskit between 0.45.0 and 0.45.3 was used
+      to generate the files, and the non-default argument ``use_symengine=True`` was given to
+      :func:`.qpy.dump`, the file can only be read if the version of ``symengine`` used in the
+      generating environment was in the 0.11 or 0.13 series, but if the environment was created
+      during the support window of Qiskit 0.45, it is likely that ``symengine==0.9.2`` was used.
+
+    * When the loading version of Qiskit is between 0.46.0 and 1.2.2 inclusive, the file can only be
+      read if the installed version of ``symengine`` in the loading environment matches the version
+      used in the generating environment.
+
+    To recover a QPY file that fails with ``symengine`` version-related errors during a call to
+    :func:`.qpy.load`, first attempt to use Qiskit >= 1.2.4 to load the file.  If this still fails,
+    it is likely because Qiskit 0.45.x was used to generate the file with ``use_symengine=True``.
+    In this case, use Qiskit 0.45.3 with ``symengine==0.9.2`` to load the file, and then re-export
+    it to QPY setting ``use_symengine=False``.  The resulting file can then be loaded by any later
+    version of Qiskit.
+
+.. note::
+
+    Starting with Qiskit version 2.0.0, which removed the Pulse module from the library, QPY provides
+    limited support for loading payloads that include pulse data. Loading a ``ScheduleBlock`` payload,
+    a :class:`.QpyError` exception will be raised. Loading a payload for a circuit that contained pulse
+    gates, the output circuit will contain  custom instructions **without** calibration data attached
+    for each pulse gate, leaving them undefined.
 
 QPY format version history
 --------------------------
@@ -133,6 +199,57 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.1.0
+     - 13, 14, 15
+     - 15
+   * - 2.0.2
+     - 13, 14
+     - 14
+   * - 2.0.1
+     - 13, 14
+     - 14
+   * - 2.0.0
+     - 13, 14
+     - 14
+   * - 1.4.3
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.2
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.1
+     - 10, 11, 12, 13
+     - 13
+   * - 1.4.0
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.3
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.2
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.1
+     - 10, 11, 12, 13
+     - 13
+   * - 1.3.0
+     - 10, 11, 12, 13
+     - 13
+   * - 1.2.4
+     - 10, 11, 12
+     - 12
+   * - 1.2.3 (yanked)
+     - 10, 11, 12
+     - 12
+   * - 1.2.2
+     - 10, 11, 12
+     - 12
+   * - 1.2.1
+     - 10, 11, 12
+     - 12
+   * - 1.2.0
+     - 10, 11, 12
+     - 12
    * - 1.1.0
      - 10, 11, 12
      - 12
@@ -287,16 +404,396 @@ All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
 
 The file header is immediately followed by the circuit payloads.
-Each individual circuit is composed of the following parts:
+Each individual circuit is composed of the following parts in order from top to bottom:
 
-``HEADER | METADATA | REGISTERS | STANDALONE_VARS | CUSTOM_DEFINITIONS | INSTRUCTIONS``
+.. code-block:: text
 
-The ``STANDALONE_VARS`` are new in QPY version 12; before that, there was no data between
-``REGISTERS`` and ``CUSTOM_DEFINITIONS``.
+    HEADER
+    METADATA
+    REGISTERS
+    ANNOTATION_HEADER
+    STANDALONE_VARS
+    CUSTOM_DEFINITIONS
+    INSTRUCTIONS
+
+.. versionchanged:: QPY 15
+    ``ANNOTATION_HEADER`` was added between ``REGISTERS`` and ``STANDALONE_VARS``.
+
+.. versionchanged:: QPY 12
+    ``STANDALONE_VARS`` was added between ``REGISTERS`` and ``CUSTOM_DEFINITIONS``.
 
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_15:
+
+Version 15
+----------
+
+Version 15 adds the concept of custom annotations to the payload format.  QPY itself does not
+specify how annotations are serialized or deserialized, as they are custom user objects.  The format
+does co-operate with sub-serializers, however.
+
+Version 15 adds the ``ANNOTATION_HEADER`` field between the ``STANDALONE_VARS`` and
+``CUSTOM_DEFINITIONS`` fields in the top level of a single circuit payload.  It modifies the
+interpretation of one field of the ``INSTRUCTION`` struct in an ABI-compatible manner, and adds a
+``INSTRUCTION_ANNOTATIONS`` trailer to ``INSTRUCTION`` which is present conditional on a set bit in
+the ``INSTRUCTION`` payload.
+
+New ANNOTATION_HEADER
+~~~~~~~~~~~~~~~~~~~~~
+
+The ``ANNOTATION_HEADER`` field is a variable-size payload in the header.  It begins with an
+instance of ``ANNOTATION_HEADER_STATIC``, which is the C struct:
+
+.. code-block:: c
+
+    struct ANNOTATION_HEADER_STATIC {
+        uint32_t num_namespaces;
+    }
+
+This is immediately followed by ``num_namespaces`` instances of the ``ANNOTATION_STATE`` payload.
+The order of these is important and should be retained during the deserialization process, as
+subsequent ``INSTRUCTION_ANNOTATION`` payloads will index into it.
+
+The ``ANNOTATION_STATE`` payload begins with the fixed C struct:
+
+.. code-block:: c
+
+    struct ANNOTATION_STATE_HEADER {
+        uint32_t namespace_size;
+        uint64_t state_size;
+    }
+
+This header is immediately followed by ``namespace_size`` bytes of UTF-8 encoded text, which
+comprise the namespace.  Those bytes are immediately followed by ``state_size`` bytes of arbitrary
+data.  The format of this "state" payload is not defined by QPY.  Instead, it is the responsibility
+of an external object associated with the stored namespace.  The format does not dictate how to
+produce these objects; as annotations are entirely custom, the user must supply the serialization
+and deserialization methods.
+
+
+.. _qpy_instruction_v15:
+
+Changes to INSTRUCTION
+~~~~~~~~~~~~~~~~~~~~~~
+
+The ``INSTRUCTION`` struct is modified in an ABI compatible manner to :ref:`its previous definition
+in version 9 <qpy_instruction_v9>`.  The new struct is the C struct (recall that there is no padding
+between any fields, nor at the end of the struct):
+
+.. code-block:: c
+
+    struct INSTRUCTION {
+        uint16_t name_size;
+        uint16_t label_size;
+        uint16_t num_parameters;
+        uint32_t num_qargs;
+        uint32_t num_cargs;
+        uint8_t extras_key;
+        uint16_t conditional_reg_name_size;
+        int64_t conditional_value;
+        uint32_t num_ctrl_qubits;
+        uint32_t ctrl_state;
+    }
+
+where the field ``uint8_t extras_key`` replaces the previous ``uint8_t conditional_key``.  The
+difference is purely in interpretation.  The low two bits of the byte are still interpreted as
+defining the condition and its type.  The high bit of the byte is now a flag, indicated whether an
+``INSTRUCTION_ANNOTATIONS_HEADER`` field is present (if the bit is set) in the trailing data of the
+``INSTRUCTION`` struct.
+
+A complete instruction payload appears in the data stream, including trailing objects and without
+any padding bytes inbetween elements, as:
+
+.. code-block:: text
+
+    struct INSTRUCTION;
+    uint8_t name[name_size];
+    uint8_t label[label_size];
+    uint8_t register[conditional_reg_name_size]; (1)
+    struct INSTRUCTION_PARAM;                    (2)
+    struct INSTRUCTION_ARG[num_qargs];
+    struct INSTRUCTION_ARG[num_cargs];
+    struct INSTRUCTION_PARAM[num_parameters];
+    INSTRUCTION_ANNOTATIONS;                     (3)
+
+The following notes apply:
+
+1. if the two low bits of the ``extras_key`` have the value ``2``, indicating the condition is an
+   ``EXPRESSION``, the ``conditional_reg_name_size`` is always zero.
+2. this field is present if and only if the two low bits of the ``extras_key`` have the value ``2``,
+   indicating the condition is an ``EXPRESSION``.
+3. this field is present if and only if the high bit of the ``extras_key`` is set.  This field has
+   a variable size; see :ref:`qpy_instruction_annotations_v15`.
+
+.. _qpy_instruction_annotations_v15:
+
+New INSTRUCTION_ANNOTATIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``INSTRUCTION_ANNOTATIONS`` payload begins with the C struct:
+
+.. code-block:: c
+
+    struct INSTRUCTION_ANNOTATIONS_HEADER {
+        uint32_t num_annotations;
+    }
+
+This payload is immediately followed by ``num_annotations`` instances of the
+``INSTRUCTION_ANNOTATION`` payload, which is of a variable size.
+
+The ``INSRTUCTION_ANNOTATION`` payload is defined by the following C struct plus a trailing number
+of bytes equal to the ``payload_size``, called ``ANNOTATION_PAYLOAD``.
+
+.. code-block:: c
+
+    struct INSTRUCTION_ANNOTATION {
+        uint32_t namespace_index;
+        uint32_t payload_size;
+    }
+
+The ``namespace_index`` is an integer index into the list of defined ``ANNOTATION_NAMESPACE``
+objects in the ``ANNOTATION_HEADER``.  The serialization namespace for an annotation is the UTF-8
+encoded string in the relevant payload.
+
+The format of the ``ANNOTATION_PAYLOAD`` object is not specified by QPY.  It is defined by an
+external serialization object associated with the namespace referred to by the ``namespace_index``
+and its associated serializer state in the ``ANNOTATION_HEADER``.
+
+
+Changes within PARAM_EXPR_ELEM_V13
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The struct itself is unchanged.  However, for a ``PARAM_EXPR_ELEM_V13`` representing a
+:meth:`.ParameterExpression.subs` call (with ``op_code = 15``, and therefore ``lhs_type = 'p'`` and
+``rhs_type = 'n'``), the trailing :ref:`qpy_mapping` now maps keys of the raw bytes of the
+:class:`.Parameter` UUIDs to the substituted values.  Previously (in QPY versions 13 and 14), this
+mapping stored the parameter names as the keys.
+
+
+.. _qpy_version_14:
+
+Version 14
+----------
+
+Version 14 adds a new core DURATION type, support for additional :class:`~.types.Type`
+classes :class:`~.types.Float` and :class:`~.types.Duration`, and a new expression
+node type :class:`~.expr.Stretch`.
+
+DURATION
+~~~~~~~~
+
+A :class:`~.circuit.Duration` is encoded by a single-byte ASCII ``char`` that encodes the kind of
+type, followed by a payload that varies depending on the type.  The defined codes are:
+
+==============================  =========  =========================================================
+Qiskit class                    Type code  Payload
+==============================  =========  =========================================================
+:class:`~.circuit.Duration.dt`   ``t``     One ``unsigned long long value``.
+
+:class:`~.circuit.Duration.ns`   ``n``     One ``double value``.
+
+:class:`~.circuit.Duration.us`   ``u``     One ``double value``.
+
+:class:`~.circuit.Duration.ms`   ``m``     One ``double value``.
+
+:class:`~.circuit.Duration.s`    ``s``     One ``double value``.
+
+==============================  =========  =========================================================
+
+Changes to EXPR_VAR_DECLARATION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``EXPR_VAR_DECLARATION`` type is now used to represent both :class:`~.expr.Var` standalone
+variables and :class:`~.expr.Stretch` identifiers. To support this change, the usage type code has
+two new possible entries, in addition to the existing ones:
+
+=========  =========================================================================================
+Type code  Meaning
+=========  =========================================================================================
+``A``      A ``capture`` stretch to the circuit.
+
+``O``      A locally declared stretch to the circuit.
+
+=========  =========================================================================================
+
+Changes to EXPRESSION
+---------------------
+
+The EXPRESSION type code has a new possible entry, ``s``, corresponding to :class:`.expr.Stretch`
+nodes.
+
+=======================  =========  ======================================================  ========
+Qiskit class             Type code  Payload                                                 Children
+=======================  =========  ======================================================  ========
+:class:`~.expr.Stretch`  ``s``      One ``unsigned short var_index``                        0
+=======================  =========  ======================================================  ========
+
+Changes to EXPR_TYPE
+~~~~~~~~~~~~~~~~~~~~
+
+The following table shows the new type classes added in the version:
+
+=========================  =========  ==============================================================
+Qiskit class               Type code  Payload
+=========================  =========  ==============================================================
+:class:`~.types.Float`     ``f``      None.
+
+:class:`~.types.Duration`  ``d``      None.
+
+=========================  =========  ==============================================================
+
+Changes to EXPR_VALUE
+~~~~~~~~~~~~~~~~~~~~~
+
+The classical expression's type system now supports new encoding types for value literals, in
+addition to the existing encodings for int and bool. The new value type encodings are below:
+
+===========================  =========  ============================================================
+Python type                  Type code  Payload
+===========================  =========  ============================================================
+``float``                    ``f``      One ``double value``.
+
+:class:`~.circuit.Duration`  ``t``      One ``DURATION``.
+
+===========================  =========  ============================================================
+
+.. _qpy_version_13:
+
+Version 13
+----------
+
+Version 13 added a native Qiskit serialization representation for :class:`.ParameterExpression`.
+Previous QPY versions relied on either ``sympy`` or ``symengine`` to serialize the underlying symbolic
+expression. Starting in Version 13, QPY now represents the sequence of API calls used to create the
+:class:`.ParameterExpression`.
+
+The main change in the serialization format is in the :ref:`qpy_param_expr_v3` payload.  The
+``expr_size`` bytes following the head now contain an array of ``PARAM_EXPR_ELEM_V13`` structs. The
+intent is for this array to be read one struct at a time, where each struct describes one of the
+calls to make to reconstruct the :class:`.ParameterExpression`.
+
+PARAM_EXPR_ELEM_V13
+~~~~~~~~~~~~~~~~~~~
+
+The struct format is defined as:
+
+.. code-block:: c
+
+    struct {
+        unsigned char op_code;
+        char lhs_type;
+        char lhs[16];
+        char rhs_type;
+        char rhs[16];
+    } PARAM_EXPR_ELEM_V13;
+
+The ``op_code`` field is used to define the operation added to the :class:`.ParameterExpression`.
+The value can be:
+
+.. list-table:: PARAM_EXPR_ELEM_V13 op code values
+   :header-rows: 1
+
+   * - ``op_code``
+     - :class:`.ParameterExpression` method
+   * - 0
+     - :meth:`~.ParameterExpression.__add__`
+   * - 1
+     - :meth:`~.ParameterExpression.__sub__`
+   * - 2
+     - :meth:`~.ParameterExpression.__mul__`
+   * - 3
+     - :meth:`~.ParameterExpression.__truediv__`
+   * - 4
+     - :meth:`~.ParameterExpression.__pow__`
+   * - 5
+     - :meth:`~.ParameterExpression.sin`
+   * - 6
+     - :meth:`~.ParameterExpression.cos`
+   * - 7
+     - :meth:`~.ParameterExpression.tan`
+   * - 8
+     - :meth:`~.ParameterExpression.arcsin`
+   * - 9
+     - :meth:`~.ParameterExpression.arccos`
+   * - 10
+     - :meth:`~.ParameterExpression.exp`
+   * - 11
+     - :meth:`~.ParameterExpression.log`
+   * - 12
+     - :meth:`~.ParameterExpression.sign`
+   * - 13
+     - :meth:`~.ParameterExpression.gradient`
+   * - 14
+     - :meth:`~.ParameterExpression.conjugate`
+   * - 15
+     - :meth:`~.ParameterExpression.subs`
+   * - 16
+     - :meth:`~.ParameterExpression.abs`
+   * - 17
+     - :meth:`~.ParameterExpression.arctan`
+   * - 255
+     - NULL
+
+The ``NULL`` value of 255 is only used to fill the op code field for
+entries that are not actual operations but indicate recursive definitions.
+Then the ``lhs_type`` and ``rhs_type`` fields are used to describe
+the operand types and can be one of the following UTF-8 encoded
+characters:
+
+.. list-table:: PARAM_EXPR_ELEM_V13 operand type values
+   :header-rows: 1
+
+   * - Value
+     - Type
+   * - ``n``
+     - ``None``
+   * - ``p``
+     - :class:`.Parameter`
+   * - ``f``
+     - ``float``
+   * - ``c``
+     - ``complex``
+   * - ``i``
+     - ``int``
+   * - ``s``
+     - Recursive :class:`.ParameterExpression` definition start
+   * - ``e``
+     - Recursive :class:`.ParameterExpression` definition stop
+   * - ``u``
+     - substitution
+
+If the type value is ``f``, ``c``, or ``i``, the corresponding ``lhs`` or ``rhs``
+field widths are 128 bits each. In the case of floats, the literal value is encoded as a double
+with 0 padding, while complex numbers are encoded as real part followed by imaginary part,
+taking up 64 bits each. For ``i``, the value is encoded as a 64 bit signed integer with 0 padding
+for the full 128 bit width. ``n`` is used to represent a ``None`` and typically isn't directly used
+as it indicates an argument that's not used. For ``p`` the data is the UUID for the
+:class:`.Parameter` which can be looked up in the symbol map described in the
+``map_elements`` outer :ref:`qpy_param_expr_v3` payload. If the type value is
+``s`` this marks the start of a a new recursive section for a nested
+:class:`.ParameterExpression`. For example, in the following snippet there is an inner ``expr``
+contained in ``final_expr``, constituting a nested expression::
+
+    from qiskit.circuit import Parameter
+
+    x = Parameter("x")
+    y = Parameter("y")
+    z = Parameter("z")
+
+    expr = (x + y) / 2
+    final_expr = z**2 + expr
+
+When ``s`` is encountered, this indicates that until an ``e` struct is reached, the next structs
+are used for a recursive definition. For both
+``s`` and ``e`` types, the data values are not used, and always set to 0. The type value
+of ``u`` is used to represent a substitution call. This is only used for ``lhs_type``
+and is always paired with an ``rhs_type`` of ``n``. The data value is the size in bytes of
+a :ref:`qpy_mapping` encoded mapping of :class:`.Parameter` names to their value for the
+:meth:`~.ParameterExpression.subs` call. The mapping data is immediately following the
+struct, and the next struct starts immediately after the mapping data.
 
 .. _qpy_version_12:
 
@@ -367,7 +864,7 @@ Type code  Meaning
 Changes to EXPR_VAR
 ~~~~~~~~~~~~~~~~~~~
 
-The EXPR_VAR variable has gained a new type code and payload, in addition to the pre-existing ones:
+The ``EXPR_VAR`` variable has gained a new type code and payload, in addition to the pre-existing ones:
 
 ===========================  =========  ============================================================
 Python class                 Type code  Payload
@@ -514,9 +1011,9 @@ Each of these are described in the following table:
 ======================  =========  =======================================================  ========
 Qiskit class            Type code  Payload                                                  Children
 ======================  =========  =======================================================  ========
-:class:`~.expr.Var`     ``x``      One EXPR_VAR.                                            0
+:class:`~.expr.Var`     ``x``      One ``EXPR_VAR``.                                        0
 
-:class:`~.expr.Value`   ``v``      One EXPR_VALUE.                                          0
+:class:`~.expr.Value`   ``v``      One ``EXPR_VALUE``.                                      0
 
 :class:`~.expr.Cast`    ``c``      One ``_Bool``  that corresponds to the value of          1
                                    ``implicit``.
@@ -578,6 +1075,7 @@ Python type  Type code  Payload
 ===========  =========  ============================================================================
 
 
+.. _qpy_instruction_v9:
 
 Changes to INSTRUCTION
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -619,7 +1117,7 @@ Value  Effects
 
 2      The instruction has its ``.condition`` field set to a :class:`~.expr.Expr` node.  The
        ``conditional_reg_name_size`` and ``conditional_value`` fields should be ignored.  The data
-       following the struct is followed (as in QPY versions less than 8) by ``name_size`` bytes of
+       following the struct is followed (as in QPY versions less than 9) by ``name_size`` bytes of
        UTF-8 string data for the class name and ``label_size`` bytes of UTF-8 string data for the
        label (if any). Then, there is one INSTRUCTION_PARAM, which will contain an EXPRESSION. After
        that, parsing continues with the INSTRUCTION_ARG structs, as in previous versions of QPY.
@@ -695,7 +1193,7 @@ Version 7
 ---------
 
 Version 7 adds support for :class:`.~Reference` instruction and serialization of
-a :class:`.~ScheduleBlock` program while keeping its reference to subroutines::
+a ``ScheduleBlock`` program while keeping its reference to subroutines::
 
     from qiskit import pulse
     from qiskit import qpy
@@ -767,14 +1265,14 @@ identical to :ref:`qpy_version_5`.
 Version 5
 ---------
 
-Version 5 changes from :ref:`qpy_version_4` by adding support for :class:`.~ScheduleBlock`
+Version 5 changes from :ref:`qpy_version_4` by adding support for ``ScheduleBlock``
 and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRUCTION block.
 These now have new fields to better account for :class:`~.ControlledGate` objects in a circuit.
 In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping` block.
 
-With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
+With the support of ``ScheduleBlock``, now :class:`~.QuantumCircuit` can be
 serialized together with :attr:`~.QuantumCircuit.calibrations`, or
-`Pulse Gates <https://docs.quantum.ibm.com/guides/pulse>`_.
+`Pulse Gates <https://quantum.cloud.ibm.com/docs/guides/pulse>`_.
 In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
 packed after the :ref:`qpy_instructions` block.
 
@@ -789,7 +1287,7 @@ In QPY version 5 and above,
 immediately follows the file header block to represent the program type stored in the file.
 
 - When ``type==c``, :class:`~.QuantumCircuit` payload follows
-- When ``type==s``, :class:`~.ScheduleBlock` payload follows
+- When ``type==s``, ``ScheduleBlock`` payload follows
 
 .. note::
 
@@ -802,7 +1300,7 @@ immediately follows the file header block to represent the program type stored i
 SCHEDULE_BLOCK
 ~~~~~~~~~~~~~~
 
-:class:`~.ScheduleBlock` is first supported in QPY Version 5. This allows
+``ScheduleBlock`` is first supported in QPY Version 5. This allows
 users to save pulse programs in the QPY binary format as follows:
 
 .. code-block:: python
@@ -813,10 +1311,10 @@ users to save pulse programs in the QPY binary format as follows:
         pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
 
     with open('schedule.qpy', 'wb') as fd:
-        qpy.dump(qc, fd)
+        qpy.dump(schedule, fd)
 
     with open('schedule.qpy', 'rb') as fd:
-        new_qc = qpy.load(fd)[0]
+        new_schedule = qpy.load(fd)[0]
 
 Note that circuit and schedule block are serialized and deserialized through
 the same QPY interface. Input data type is implicitly analyzed and
@@ -827,7 +1325,7 @@ no extra option is required to save the schedule block.
 SCHEDULE_BLOCK_HEADER
 ~~~~~~~~~~~~~~~~~~~~~
 
-:class:`~.ScheduleBlock` block starts with the following header:
+``ScheduleBlock`` block starts with the following header:
 
 .. code-block:: c
 
@@ -1027,8 +1525,8 @@ the gate name, ``num_qubits`` length of integers representing a sequence of qubi
 and ``num_params`` length of INSTRUCTION_PARAM payload for parameters
 associated to the custom instruction.
 The ``type`` indicates the class of pulse program which is either, in principle,
-:class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
-only :class:`~.ScheduleBlock` payload is supported.
+``ScheduleBlock`` or :class:`~.Schedule`. As of QPY Version 5,
+only ``ScheduleBlock`` payload is supported.
 Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
 
 .. _qpy_instruction_v5:
@@ -1621,6 +2119,8 @@ struct is used:
 
 this matches the internal C representation of Python's complex type. [#f3]_
 
+References
+==========
 
 .. [#f1] https://tools.ietf.org/html/rfc1700
 .. [#f2] https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
@@ -1628,7 +2128,7 @@ this matches the internal C representation of Python's complex type. [#f3]_
 """
 
 from .exceptions import QpyError, UnsupportedFeatureForVersion, QPYLoadingDeprecatedFeatureWarning
-from .interface import dump, load
+from .interface import dump, load, get_qpy_version
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.
 from .binary_io import (

@@ -21,7 +21,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -43,7 +42,7 @@ class U3Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────┐
         q_0: ┤ U3(ϴ,φ,λ) ├
@@ -84,7 +83,7 @@ class U3Gate(Gate):
         U3(\theta, 0, 0) = RY(\theta)
     """
 
-    _standard_gate = StandardGate.U3Gate
+    _standard_gate = StandardGate.U3
 
     def __init__(
         self,
@@ -92,12 +91,9 @@ class U3Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new U3 gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
+        super().__init__("u3", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted U3 gate.
@@ -155,12 +151,17 @@ class U3Gate(Gate):
         return gate
 
     def _define(self):
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        """Default definition"""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.u(self.params[0], self.params[1], self.params[2], 0)
-        self.definition = qc
+        #    ┌──────────┐
+        # q: ┤ U(θ,φ,λ) ├
+        #    └──────────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.U3._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the U3 gate."""
@@ -178,6 +179,9 @@ class U3Gate(Gate):
             dtype=dtype or complex,
         )
 
+    def __eq__(self, other):
+        return isinstance(other, U3Gate) and self._compare_parameters(other)
+
 
 class CU3Gate(ControlledGate):
     r"""Controlled-U3 gate (3-parameter two-qubit gate).
@@ -186,9 +190,26 @@ class CU3Gate(ControlledGate):
     It is restricted to 3 parameters, and so cannot cover generic two-qubit
     controlled gates).
 
+    .. warning::
+
+       This gate is deprecated. Instead, the :class:`.CUGate` should be used
+
+       .. math::
+
+           CU3(\theta, \phi, \lambda) = CU(\theta, \phi, \lambda, 0)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(2)
+          gamma = 0
+          circuit.cu(theta, phi, lambda, gamma, 0, 1)
+
+
+
+
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴─────┐
@@ -219,7 +240,8 @@ class CU3Gate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────────┐
             q_0: ┤ U3(ϴ,φ,λ) ├
                  └─────┬─────┘
@@ -240,7 +262,7 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CU3Gate
+    _standard_gate = StandardGate.CU3
 
     def __init__(
         self,
@@ -250,8 +272,6 @@ class CU3Gate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CU3 gate."""
@@ -263,45 +283,22 @@ class CU3Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U3Gate(theta, phi, lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
-        """
-        gate cu3(theta,phi,lambda) c, t
-        { u1((lambda+phi)/2) c;
-          u1((lambda-phi)/2) t;
-          cx c,t;
-          u3(-theta/2,0,-(phi+lambda)/2) t;
-          cx c,t;
-          u3(theta/2,phi,0) t;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
-        from .x import CXGate  # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
 
-        #      ┌───────────────┐
-        # q_0: ┤ U1(λ/2 + φ/2) ├──■─────────────────────────────■─────────────────
-        #      ├───────────────┤┌─┴─┐┌───────────────────────┐┌─┴─┐┌─────────────┐
-        # q_1: ┤ U1(λ/2 - φ/2) ├┤ X ├┤ U3(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U3(0/2,φ,0) ├
-        #      └───────────────┘└───┘└───────────────────────┘└───┘└─────────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
-            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #      ┌──────────────┐
+        # q_0: ┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────
+        #      ├──────────────┤┌─┴─┐┌──────────────────────┐┌─┴─┐┌────────────┐
+        # q_1: ┤ P(λ/2 - φ/2) ├┤ X ├┤ U(-θ/2,0,-λ/2 - φ/2) ├┤ X ├┤ U(θ/2,φ,0) ├
+        #      └──────────────┘└───┘└──────────────────────┘└───┘└────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CU3._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU3 gate.
@@ -350,6 +347,13 @@ class CU3Gate(ControlledGate):
                 ],
                 dtype=dtype or complex,
             )
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CU3Gate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )
 
 
 def _generate_gray_code(num_bits):

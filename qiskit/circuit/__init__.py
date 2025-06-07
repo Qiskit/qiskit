@@ -64,6 +64,7 @@ defined as:
 
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -268,10 +269,16 @@ circuit.  The top-level ones are:
 * :class:`ControlFlowOp`, which has specific subclasses:
     * :class:`BreakLoopOp`, to break out of the nearest containing loop
     * :class:`ContinueLoopOp`, to move immediately to the next iteration of the containing loop
+    * :class:`BoxOp`, a simple grouping of instructions
     * :class:`ForLoopOp`, to loop over a fixed range of values
     * :class:`IfElseOp`, to conditionally enter one of two subcircuits
     * :class:`SwitchCaseOp`, to conditionally enter one of many subcircuits
     * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified.
+
+Certain instructions can be "annotated" with metadata, which is typically intended to be consumed by
+a compiler pass either locally, or in later backend processing.  Currently this is limited to
+:class:`BoxOp`.  These annotations are represented by custom subclasses of :class:`Annotation`, and
+there is further discussion of the support infrastructure in :mod:`qiskit.circuit.annotation`.
 
 :ref:`Circuits can include classical expressions that are evaluated in real time
 <circuit-repr-real-time-classical>`, while the QPU is executing a single shot of the circuit.  These
@@ -293,6 +300,7 @@ main related classes are:
 * :class:`Parameter`, the atom of compile-time expressions
 * :class:`ParameterExpression`, a symbolic calculation on parameters
 * :class:`ParameterVector`, a convenience collection of many :class:`Parameter`\ s
+* :class:`ParameterVectorElement`, a subclass of :class:`Parameter` used by :class:`ParameterVector`
 
 The :mod:`qiskit.circuit` module also exposes some calculation classes that work with circuits to
 assist compilation workflows.  These include:
@@ -301,9 +309,11 @@ assist compilation workflows.  These include:
 * :data:`SessionEquivalenceLibrary`, a mutable instance of :class:`EquivalenceLibrary` which is used
   by default by the compiler's :class:`.BasisTranslator`.
 
-There is also a utility for generating random circuits:
+There are also utilities for generating random circuits:
 
 * :func:`random.random_circuit`
+* :func:`random.random_circuit_from_graph`
+* :func:`random.random_clifford_circuit`
 
 Finally, the circuit module has its own exception class, to indicate when things went wrong in
 circuit-specific manners:
@@ -454,7 +464,7 @@ attempt to "close over" outer circuit registers, or use hidden parameters inside
 :class:`Instruction`\ s can be related to other circuits to provide a decompositions by using
 their :attr:`Instruction.definition` attribute, which provides a local, one-off decomposition.  This
 can be in whatever basis set of operations is most convenient to you, as long as the definitions of
-all contained gates have some topological order; that is, you cannot use a gate in a definition it
+all contained gates have some topological order; that is, you cannot use a gate in a definition if
 its own definition depends on the parent.  If the :class:`Instruction` should be considered entirely
 opaque to optimizers, its :attr:`~Instruction.definition` can be ``None``.  See
 :ref:`circuit-custom-gates` for more detail.
@@ -559,7 +569,11 @@ Hardware can be instructed to apply a real-time idle period on a given qubit.  A
 
 The :class:`Barrier` instruction can span an arbitrary number of qubits and clbits, and is a no-op
 in hardware.  During transpilation and optimization, however, it blocks any optimizations from
-"crossing" the barrier; that is, in::
+"crossing" the barrier; that is, in:
+
+.. plot::
+    :include-source:
+    :nofigs:
 
     from qiskit.circuit import QuantumCircuit
 
@@ -666,12 +680,14 @@ execution.  You can do this assignment using :meth:`QuantumCircuit.assign_parame
 
 You may want to use many parameters that are related to each other.  To make this easier (and to
 avoid you needing to come up with many names), you can use the convenience constructor
-:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances.
+:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances, of
+a special subclass :class:`ParameterVectorElement`.
 
 .. autosummary::
     :toctree: ../stubs/
 
     ParameterVector
+    ParameterVectorElement
 
 .. _circuit-control-flow-repr:
 
@@ -692,6 +708,11 @@ attributes of each of the control-flow operations.
 .. data:: CONTROL_FLOW_OP_NAMES
 
     Set of the instruction names of Qiskit's known control-flow operations.
+
+The :func:`.get_control_flow_name_mapping` function allows to access the control-flow operation
+classes associated to each name.
+
+.. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
@@ -777,6 +798,30 @@ automatically.
 
 Consult :ref:`the control-flow construction documentation <circuit-control-flow-methods>` for more
 information on how to build circuits with control flow.
+
+Investigating commutation relations
+-----------------------------------
+
+If two operations in a circuit commute, we can swap the order in which they are applied.
+This can allow for optimizations and simplifications, for example, if it allows to merge
+or cancel gates:
+
+.. code-block:: text
+
+         ┌─────────┐     ┌─────────┐               ┌─────────┐
+    q_0: ┤ Rz(0.5) ├──■──┤ Rz(1.2) ├──■──     q_0: ┤ Rz(1.7) ├
+         └─────────┘┌─┴─┐└──┬───┬──┘┌─┴─┐  =       └──┬───┬──┘
+    q_1: ───────────┤ X ├───┤ X ├───┤ X ├     q_1: ───┤ X ├───
+                    └───┘   └───┘   └───┘             └───┘
+
+Performing these optimizations are part of the transpiler, but the tools to investigate commutations
+are available in the :class:`CommutationChecker`.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CommutationChecker
+
 
 .. _circuit-custom-gates:
 
@@ -1011,17 +1056,23 @@ default instances of the :class:`.BasisTranslator`.
     :data:`StandardEquivalenceLibrary`.
 
 
+Apply Pauli twirling to a circuit
+---------------------------------
 
-Generating random circuits
---------------------------
+There are two primary types of noise when executing quantum circuits. The first is stochastic,
+or incoherent, noise that is mainly due to the unwanted interaction between the quantum processor
+and the external environment in which it resides. The second is known as coherent error, and these
+errors arise due to imperfect control of a quantum system. This can be unwanted terms in a system
+Hamiltonian, i.e. incorrect unitary evolution, or errors from incorrect temporal control of the
+quantum system, which includes things like incorrect pulse-shapes for gates.
 
-..
-    If we expand these capabilities in the future, it's probably best to move it to its own
-    module-level documentation page than to expand this "inline" module documentation.
+Pauli twirling is a quantum error suppression technique that uses randomization to shape coherent
+error into stochastic errors by combining the results from many random, but logically equivalent
+circuits, together. Qiskit provides a function to apply Pauli twirling to a given circuit for
+standard two qubit gates. For more details you can refer to the documentation of the function
+below:
 
-.. currentmodule:: qiskit.circuit.random
-.. autofunction:: random_circuit
-.. currentmodule:: qiskit.circuit
+.. autofunction:: qiskit.circuit.pauli_twirl_2q_gates
 
 
 Exceptions
@@ -1098,6 +1149,7 @@ If we draw this circuit, we will see that Qiskit places the zeroth qubit on the 
 drawing:
 
 .. plot::
+    :alt: Circuit diagram output by the previous code.
     :include-source:
     :context:
     :show-source-link: False
@@ -1226,14 +1278,26 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
         \end{pmatrix}
 """
 
+from qiskit._accelerate.circuit import (  # pylint: disable=unused-import
+    Bit,
+    Qubit,
+    AncillaQubit,
+    Clbit,
+    QuantumRegister,
+    AncillaRegister,
+    ClassicalRegister,
+    Register,
+    Duration,
+)
+
 from .exceptions import CircuitError
 from . import _utils
 from .quantumcircuit import QuantumCircuit
-from .classicalregister import ClassicalRegister, Clbit
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate
 
 # pylint: disable=cyclic-import
+from . import annotation
+from .annotation import Annotation
 from .controlledgate import ControlledGate
 from . import singleton
 from .instruction import Instruction
@@ -1245,18 +1309,17 @@ from .measure import Measure
 from .reset import Reset
 from .store import Store
 from .parameter import Parameter
-from .parametervector import ParameterVector
+from .parametervector import ParameterVector, ParameterVectorElement
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
-from .bit import Bit
-from .register import Register
 from . import library
 from .equivalence_library import StandardEquivalenceLibrary, SessionEquivalenceLibrary
 from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
+    BoxOp,
     WhileLoopOp,
     ForLoopOp,
     IfElseOp,
@@ -1265,6 +1328,8 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
     CONTROL_FLOW_OP_NAMES,
+    get_control_flow_name_mapping,
 )
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
+from .twirling import pauli_twirl_2q_gates

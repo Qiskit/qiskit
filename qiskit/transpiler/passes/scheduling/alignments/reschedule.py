@@ -35,7 +35,7 @@ class ConstrainedReschedule(AnalysisPass):
 
         We assume executing the following circuit on a backend with 16 dt of acquire alignment.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(100[dt]) ├┤M├
@@ -46,7 +46,7 @@ class ConstrainedReschedule(AnalysisPass):
         Note that delay of 100 dt induces a misalignment of 4 dt at the measurement.
         This pass appends an extra 12 dt time shift to the input circuit.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(112[dt]) ├┤M├
@@ -84,6 +84,8 @@ class ConstrainedReschedule(AnalysisPass):
         self.acquire_align = acquire_alignment
         self.pulse_align = pulse_alignment
         if target is not None:
+            self.durations = target.durations()
+            self.target = target
             self.acquire_align = target.acquire_alignment
             self.pulse_align = target.pulse_alignment
 
@@ -117,7 +119,6 @@ class ConstrainedReschedule(AnalysisPass):
             node: Current node.
         """
         node_start_time = self.property_set["node_start_time"]
-        conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         if isinstance(node.op, Gate):
@@ -142,20 +143,25 @@ class ConstrainedReschedule(AnalysisPass):
             node_start_time[node] = this_t0
 
         # Compute shifted t1 of this node separately for qreg and creg
-        new_t1q = this_t0 + node.op.duration
+        if self.target is not None:
+            try:
+                duration = self.durations.get(node.op, [dag.find_bit(x).index for x in node.qargs])
+            except TranspilerError:
+                duration = 0
+            new_t1q = this_t0 + duration
+
+        elif node.name == "delay":
+            new_t1q = this_t0 + node.op.duration
+        else:
+            new_t1q = this_t0
         this_qubits = set(node.qargs)
         if isinstance(node.op, (Measure, Reset)):
             # creg access ends at the end of instruction
             new_t1c = new_t1q
             this_clbits = set(node.cargs)
         else:
-            if node.op.condition_bits:
-                # conditional access ends at the beginning of node start time
-                new_t1c = this_t0
-                this_clbits = set(node.op.condition_bits)
-            else:
-                new_t1c = None
-                this_clbits = set()
+            new_t1c = None
+            this_clbits = set()
 
         # Check immediate successors for overlap
         for next_node in self._get_next_gate(dag, node):
@@ -167,13 +173,8 @@ class ConstrainedReschedule(AnalysisPass):
                 next_t0c = next_t0q + clbit_write_latency
                 next_clbits = set(next_node.cargs)
             else:
-                if next_node.op.condition_bits:
-                    # conditional access starts before node start time
-                    next_t0c = next_t0q - conditional_latency
-                    next_clbits = set(next_node.op.condition_bits)
-                else:
-                    next_t0c = None
-                    next_clbits = set()
+                next_t0c = None
+                next_clbits = set()
             # Compute overlap if there is qubits overlap
             if any(this_qubits & next_qubits):
                 qreg_overlap = new_t1q - next_t0q

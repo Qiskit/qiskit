@@ -23,30 +23,32 @@ for the transpiler. The preset pass managers are instances of
 transformations as part of Qiskit's compiler inside the
 :func:`~.transpile` function at the different optimization levels, but
 can also be used in a standalone manner.
-The functionality here is divided into two parts, the first includes the
-functions used generate the entire pass manager which is used by
-:func:`~.transpile` (:ref:`preset_pass_manager_generators`) and the
-second includes functions which are used to build (either entirely or in
-part) the stages which the preset pass managers are composed of
+The functionality here is divided into two parts. The first includes the
+functions used to generate the entire pass manager, which is used by
+:func:`~.transpile` (:ref:`preset_pass_manager_generators`), and the
+second includes functions that are used to build (either entirely or in
+part) the stages that comprise the preset pass managers
 (:ref:`stage_generators`).
 
 .. _preset_pass_manager_generators:
 
-Preset Pass Manager Generation
-------------------------------
+Low-level preset pass manager generation
+----------------------------------------
 
-.. autofunction:: generate_preset_pass_manager
 .. autofunction:: level_0_pass_manager
 .. autofunction:: level_1_pass_manager
 .. autofunction:: level_2_pass_manager
 .. autofunction:: level_3_pass_manager
 
+..
+    `generate_preset_pass_manager` is not documented here because it's documented to be at the root
+    of `qiskit.transpiler`.
+
 .. _stage_generators:
 
-Stage Generator Functions
+Stage generator functions
 -------------------------
 
-.. currentmodule:: qiskit.transpiler.preset_passmanagers.common
 .. autofunction:: generate_control_flow_options_check
 .. autofunction:: generate_error_on_control_flow
 .. autofunction:: generate_unroll_3q
@@ -55,8 +57,18 @@ Stage Generator Functions
 .. autofunction:: generate_pre_op_passmanager
 .. autofunction:: generate_translation_passmanager
 .. autofunction:: generate_scheduling
-.. currentmodule:: qiskit.transpiler.preset_passmanagers
 """
+
+from .common import (
+    generate_control_flow_options_check,
+    generate_error_on_control_flow,
+    generate_unroll_3q,
+    generate_embed_passmanager,
+    generate_routing_passmanager,
+    generate_pre_op_passmanager,
+    generate_translation_passmanager,
+    generate_scheduling,
+)
 from .generate_preset_pass_manager import generate_preset_pass_manager
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -70,4 +82,12 @@ __all__ = [
     "level_2_pass_manager",
     "level_3_pass_manager",
     "generate_preset_pass_manager",
+    "generate_control_flow_options_check",
+    "generate_error_on_control_flow",
+    "generate_unroll_3q",
+    "generate_embed_passmanager",
+    "generate_routing_passmanager",
+    "generate_pre_op_passmanager",
+    "generate_translation_passmanager",
+    "generate_scheduling",
 ]

@@ -19,6 +19,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit._accelerate import euler_one_qubit_decomposer
+from qiskit._accelerate import optimize_1q_gates_decomposition
 from qiskit.circuit.library.standard_gates import (
     UGate,
     PhaseGate,
@@ -63,7 +64,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
     The decision to replace the original chain with a new re-synthesis depends on:
      - whether the original chain was out of basis: replace
      - whether the original chain was in basis but re-synthesis is lower error: replace
-     - whether the original chain contains a pulse gate: do not replace
      - whether the original chain amounts to identity: replace with null
 
      Error is computed as a multiplication of the errors of individual gates on that qubit.
@@ -81,17 +81,19 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
 
-        if basis:
+        if basis and len(basis) > 0:
             self._basis_gates = set(basis)
         else:
             self._basis_gates = None
-        self._target = target
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._global_decomposers = None
         self._local_decomposers_cache = {}
 
-        if basis:
+        if self._basis_gates:
             self._global_decomposers = _possible_decomposers(set(basis))
-        elif target is None:
+        elif target is None or len(target.operation_names) == 0:
             self._global_decomposers = _possible_decomposers(None)
             self._basis_gates = None
 
@@ -115,7 +117,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
     def _get_decomposer(self, qubit=None):
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        if self._target is not None and self._target.num_qubits is not None:
+        if (
+            self._target is not None
+            and self._target.num_qubits is not None
+            and len(self._target.operation_names) > 0
+        ):
             if qubit is not None:
                 qubits_tuple = (qubit,)
             else:
@@ -160,33 +166,24 @@ class Optimize1qGatesDecomposition(TransformationPass):
             out_dag.apply_operation_back(op.operation, qubits, check=False)
         return out_dag
 
-    def _substitution_checks(
-        self, dag, old_run, new_circ, basis, qubit, old_error=None, new_error=None
-    ):
+    def _substitution_checks(self, old_run, new_circ, basis, qubit, old_error=None, new_error=None):
         """
         Returns `True` when it is recommended to replace `old_run` with `new_circ` over `basis`.
         """
         if new_circ is None:
             return False
 
-        # do we even have calibrations?
-        has_cals_p = dag.calibrations is not None and len(dag.calibrations) > 0
-        # does this run have uncalibrated gates?
-        uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
-        # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
+        # does this run have gates not in the image of ._decomposers?
         if basis is not None:
-            uncalibrated_and_not_basis_p = any(
-                g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
-                for g in old_run
-            )
+            not_basis_p = any(g.name not in basis for g in old_run)
         else:
             # If no basis is specified then we're always in the basis
-            uncalibrated_and_not_basis_p = False
+            not_basis_p = False
 
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
-        if not uncalibrated_and_not_basis_p:
+        if not not_basis_p:
             if new_error is None:
                 new_error = self._error(new_circ, qubit)
             if old_error is None:
@@ -196,8 +193,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
             old_error = 0.0
 
         return (
-            uncalibrated_and_not_basis_p
-            or (uncalibrated_p and new_error < old_error)
+            not_basis_p
+            or (True and new_error < old_error)
             or (math.isclose(new_error[0], 0) and not math.isclose(old_error[0], 0))
         )
 
@@ -211,7 +208,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        euler_one_qubit_decomposer.optimize_1q_gates_decomposition(
+        optimize_1q_gates_decomposition.optimize_1q_gates_decomposition(
             dag,
             target=self._target,
             global_decomposers=self._global_decomposers,
@@ -222,18 +219,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
     def _error(self, circuit, qubit):
         """
         Calculate a rough error for a `circuit` that runs on a specific
-        `qubit` of `target` (`circuit` can either be an OneQubitGateSequence
-        from Rust or a list of DAGOPNodes).
+        `qubit` of `target` (`circuit` is a list of DAGOPNodes).
 
         Use basis errors from target if available, otherwise use length
         of circuit as a weak proxy for error.
         """
-        if isinstance(circuit, euler_one_qubit_decomposer.OneQubitGateSequence):
-            return euler_one_qubit_decomposer.compute_error_one_qubit_sequence(
-                circuit, qubit, self.error_map
-            )
-        else:
-            return euler_one_qubit_decomposer.compute_error_list(circuit, qubit, self.error_map)
+        return euler_one_qubit_decomposer.compute_error_list(circuit, qubit, self.error_map)
 
 
 def _possible_decomposers(basis_set):

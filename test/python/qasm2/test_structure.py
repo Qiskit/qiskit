@@ -12,7 +12,6 @@
 
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
-import copy
 import io
 import math
 import os
@@ -259,8 +258,10 @@ class TestGateApplication(QiskitTestCase):
         parsed = qiskit.qasm2.loads(program)
         cond = ClassicalRegister(1, "cond")
         qc = QuantumCircuit(QuantumRegister(2, "q"), cond)
-        qc.u(0, 0, 0, 0).c_if(cond, 0)
-        qc.cx(1, 0).c_if(cond, 1)
+        with qc.if_test((cond, 0)):
+            qc.u(0, 0, 0, 0)
+        with qc.if_test((cond, 1)):
+            qc.cx(1, 0)
         self.assertEqual(parsed, qc)
 
     def test_conditioned_broadcast(self):
@@ -276,10 +277,14 @@ class TestGateApplication(QiskitTestCase):
         q1 = QuantumRegister(2, "q1")
         q2 = QuantumRegister(2, "q2")
         qc = QuantumCircuit(q1, q2, cond)
-        qc.u(0, 0, 0, q1[0]).c_if(cond, 0)
-        qc.u(0, 0, 0, q1[1]).c_if(cond, 0)
-        qc.cx(q1[0], q2[0]).c_if(cond, 1)
-        qc.cx(q1[0], q2[1]).c_if(cond, 1)
+        with qc.if_test((cond, 0)):
+            qc.u(0, 0, 0, q1[0])
+        with qc.if_test((cond, 0)):
+            qc.u(0, 0, 0, q1[1])
+        with qc.if_test((cond, 1)):
+            qc.cx(q1[0], q2[0])
+        with qc.if_test((cond, 1)):
+            qc.cx(q1[0], q2[1])
         self.assertEqual(parsed, qc)
 
     def test_constant_folding(self):
@@ -342,15 +347,24 @@ class TestGateApplication(QiskitTestCase):
         qr, cr = QuantumRegister(2, "qr"), ClassicalRegister(2, "cr")
         cond = ClassicalRegister(500, "cond")
         qc = QuantumCircuit(qr, cr, cond)
-        qc.u(0, 0, 0, qr[0]).c_if(cond, bigint)
-        qc.u(0, 0, 0, qr[0]).c_if(cond, bigint)
-        qc.u(0, 0, 0, qr[1]).c_if(cond, bigint)
-        qc.reset(qr[0]).c_if(cond, bigint)
-        qc.reset(qr[0]).c_if(cond, bigint)
-        qc.reset(qr[1]).c_if(cond, bigint)
-        qc.measure(qr[0], cr[0]).c_if(cond, bigint)
-        qc.measure(qr[0], cr[0]).c_if(cond, bigint)
-        qc.measure(qr[1], cr[1]).c_if(cond, bigint)
+        with qc.if_test((cond, bigint)):
+            qc.u(0, 0, 0, qr[0])
+        with qc.if_test((cond, bigint)):
+            qc.u(0, 0, 0, qr[0])
+        with qc.if_test((cond, bigint)):
+            qc.u(0, 0, 0, qr[1])
+        with qc.if_test((cond, bigint)):
+            qc.reset(qr[0])
+        with qc.if_test((cond, bigint)):
+            qc.reset(qr[0])
+        with qc.if_test((cond, bigint)):
+            qc.reset(qr[1])
+        with qc.if_test((cond, bigint)):
+            qc.measure(qr[0], cr[0])
+        with qc.if_test((cond, bigint)):
+            qc.measure(qr[0], cr[0])
+        with qc.if_test((cond, bigint)):
+            qc.measure(qr[1], cr[1])
         self.assertEqual(parsed, qc)
 
 
@@ -390,7 +404,8 @@ class TestGateDefinition(QiskitTestCase):
         not_bell = gate_builder("not_bell", [], not_bell_def)
         cond = ClassicalRegister(1, "cond")
         qc = QuantumCircuit(QuantumRegister(2, "q"), cond)
-        qc.append(not_bell().c_if(cond, 0), [0, 1])
+        with qc.if_test((cond, 0)):
+            qc.append(not_bell(), [0, 1])
         self.assertEqual(parsed, qc)
 
     def test_constant_folding_in_definition(self):
@@ -725,32 +740,6 @@ class TestGateDefinition(QiskitTestCase):
             loaded = qpy.load(fptr)[0]
         self.assertEqual(loaded, qc)
 
-    def test_deepcopy_conditioned_defined_gate(self):
-        program = """
-            include "qelib1.inc";
-            gate my_gate a {
-                x a;
-            }
-            qreg q[1];
-            creg c[1];
-            if (c == 1) my_gate q[0];
-        """
-        parsed = qiskit.qasm2.loads(program)
-        my_gate = parsed.data[0].operation
-
-        self.assertEqual(my_gate.name, "my_gate")
-        self.assertEqual(my_gate.condition, (parsed.cregs[0], 1))
-
-        copied = copy.deepcopy(parsed)
-        copied_gate = copied.data[0].operation
-        self.assertEqual(copied_gate.name, "my_gate")
-        self.assertEqual(copied_gate.condition, (copied.cregs[0], 1))
-
-        pickled = pickle.loads(pickle.dumps(parsed))
-        pickled_gate = pickled.data[0].operation
-        self.assertEqual(pickled_gate.name, "my_gate")
-        self.assertEqual(pickled_gate.condition, (pickled.cregs[0], 1))
-
 
 class TestOpaque(QiskitTestCase):
     def test_simple(self):
@@ -907,9 +896,12 @@ class TestMeasure(QiskitTestCase):
         parsed = qiskit.qasm2.loads(program)
         cond = ClassicalRegister(1, "cond")
         qc = QuantumCircuit(QuantumRegister(2, "q"), ClassicalRegister(2, "c"), cond)
-        qc.measure(0, 0).c_if(cond, 0)
-        qc.measure(0, 0).c_if(cond, 1)
-        qc.measure(1, 1).c_if(cond, 1)
+        with qc.if_test((cond, 0)):
+            qc.measure(0, 0)
+        with qc.if_test((cond, 1)):
+            qc.measure(0, 0)
+        with qc.if_test((cond, 1)):
+            qc.measure(1, 1)
         self.assertEqual(parsed, qc)
 
     def test_broadcast_against_empty_register(self):
@@ -994,9 +986,12 @@ class TestReset(QiskitTestCase):
         parsed = qiskit.qasm2.loads(program)
         cond = ClassicalRegister(1, "cond")
         qc = QuantumCircuit(QuantumRegister(2, "q"), cond)
-        qc.reset(0).c_if(cond, 0)
-        qc.reset(0).c_if(cond, 1)
-        qc.reset(1).c_if(cond, 1)
+        with qc.if_test((cond, 0)):
+            qc.reset(0)
+        with qc.if_test((cond, 1)):
+            qc.reset(0)
+        with qc.if_test((cond, 1)):
+            qc.reset(1)
         self.assertEqual(parsed, qc)
 
     def test_broadcast_against_empty_register(self):
@@ -1648,6 +1643,47 @@ class TestCustomInstructions(QiskitTestCase):
         qc.append(MyGate(0.5), [0])
         self.assertEqual(parsed, qc)
 
+    def test_compatible_definition_of_builtin_is_ignored(self):
+        program = """
+            qreg q[1];
+            gate my_gate a { U(0, 0, 0) a; }
+            my_gate q[0];
+        """
+
+        class MyGate(Gate):
+            def __init__(self):
+                super().__init__("my_gate", 1, [])
+
+            def _define(self):
+                self._definition = QuantumCircuit(1)
+                self._definition.z(0)
+
+        parsed = qiskit.qasm2.loads(
+            program, custom_instructions=[qiskit.qasm2.CustomInstruction("my_gate", 0, 1, MyGate)]
+        )
+        self.assertEqual(parsed.data[0].operation.definition, MyGate().definition)
+
+    def test_gates_defined_after_a_builtin_align(self):
+        """It's easy to get out of sync between the Rust-space and Python-space components when
+        ``builtin=True``. See https://github.com/Qiskit/qiskit/issues/13339."""
+        program = """
+        OPENQASM 2.0;
+        gate first a { U(0, 0, 0) a; }
+        gate second a { U(pi, pi, pi) a; }
+
+        qreg q[1];
+        first q[0];
+        second q[0];
+        """
+        custom = qiskit.qasm2.CustomInstruction("first", 0, 1, lib.XGate, builtin=True)
+        parsed = qiskit.qasm2.loads(program, custom_instructions=[custom])
+        # Provided definitions for built-in gates are ignored, so it should be an XGate directly.
+        self.assertEqual(parsed.data[0].operation, lib.XGate())
+        self.assertEqual(parsed.data[1].operation.name, "second")
+        defn = parsed.data[1].operation.definition.copy_empty_like()
+        defn.u(math.pi, math.pi, math.pi, 0)
+        self.assertEqual(parsed.data[1].operation.definition, defn)
+
 
 class TestCustomClassical(QiskitTestCase):
     def test_qiskit_extensions(self):
@@ -1800,3 +1836,19 @@ class TestStrict(QiskitTestCase):
         qc = QuantumCircuit(QuantumRegister(1, "q"))
         qc.h(0)
         self.assertEqual(parsed, qc)
+
+    def test_unitary_qasm(self):
+        """Test that UnitaryGate can be loaded by OQ2 correctly."""
+        qc = QuantumCircuit(1)
+        qc.unitary([[1, 0], [0, 1]], 0)
+        qasm = """
+            OPENQASM 2.0;
+            include "qelib1.inc";
+            gate unitary q0 { U(0,0,0) q0; }
+            qreg q[1];
+            unitary q[0];
+        """
+        parsed = qiskit.qasm2.loads(qasm)
+        self.assertIsInstance(parsed, QuantumCircuit)
+        self.assertIsInstance(parsed.data[0].operation, qiskit.qasm2.parse._DefinedGate)
+        self.assertEqual(Operator.from_circuit(parsed), Operator.from_circuit(qc))

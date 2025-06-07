@@ -28,7 +28,7 @@ copyright_line = re.compile(r"^(\/\/|#) \(C\) Copyright IBM 20")
 
 
 def discover_files(code_paths):
-    """Find all .py, .pyx, .pxd files in a list of trees"""
+    """Find all .py, .rs, .c, and .h files in a list of trees"""
     out_paths = []
     for path in code_paths:
         if os.path.isfile(path):
@@ -37,12 +37,8 @@ def discover_files(code_paths):
             for directory in os.walk(path):
                 dir_path = directory[0]
                 for subfile in directory[2]:
-                    if (
-                        subfile.endswith(".py")
-                        or subfile.endswith(".pyx")
-                        or subfile.endswith(".pxd")
-                        or subfile.endswith(".rs")
-                    ):
+                    ending = subfile.rsplit(".", 1)[-1]
+                    if ending in (".py", ".rs", ".c", ".h"):
                         out_paths.append(os.path.join(dir_path, subfile))
     return out_paths
 
@@ -61,10 +57,10 @@ def validate_header(file_path):
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-    header_rs = """// This code is part of Qiskit.
+    header_slashes = """// This code is part of Qiskit.
 //
 """
-    apache_text_rs = """//
+    apache_text_slashes = """//
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
 // of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
@@ -73,6 +69,7 @@ def validate_header(file_path):
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 """
+
     count = 0
     with open(file_path, encoding="utf8") as fd:
         lines = fd.readlines()
@@ -86,14 +83,16 @@ def validate_header(file_path):
         if line_start.search(line):
             start = index
             break
-    if file_path.endswith(".rs"):
-        if "".join(lines[start : start + 2]) != header_rs:
+
+    ending = file_path.rsplit(".", 1)[-1]
+    if ending in (".rs", ".c", ".h"):
+        if "".join(lines[start : start + 2]) != header_slashes:
             return (file_path, False, f"Header up to copyright line does not match: {header}")
         if not copyright_line.search(lines[start + 2]):
             return (file_path, False, "Header copyright line not found")
-        if "".join(lines[start + 3 : start + 11]) != apache_text_rs:
+        if "".join(lines[start + 3 : start + 11]) != apache_text_slashes:
             return (file_path, False, f"Header apache text string doesn't match:\n {apache_text}")
-    else:
+    else:  # .py ending
         if "".join(lines[start : start + 2]) != header:
             return (file_path, False, f"Header up to copyright line does not match: {header}")
         if not copyright_line.search(lines[start + 2]):

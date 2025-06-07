@@ -19,6 +19,7 @@ from warnings import warn
 import numpy as np
 
 from qiskit.circuit import (
+    BoxOp,
     ClassicalRegister,
     Clbit,
     ControlFlowOp,
@@ -32,7 +33,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, PhaseOracleGate, BitFlipOracleGate
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -41,14 +42,10 @@ from ..exceptions import VisualizationError
 
 
 def _is_boolean_expression(gate_text, op):
-    if not _optionals.HAS_TWEEDLEDUM:
-        return False
-    from qiskit.circuit.classicalfunction import BooleanExpression
-
-    return isinstance(op, BooleanExpression) and gate_text == op.name
+    return isinstance(op, (PhaseOracleGate, BitFlipOracleGate)) and gate_text == op.label
 
 
-def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
+def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
 
     # The measure doesn't have any text since it uses a dial icon
@@ -127,13 +124,6 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         or (gate_text == base_name and base_type not in (Gate, Instruction))
     ) and (op_type is not PauliEvolutionGate):
         gate_text = gate_text.capitalize()
-
-    if drawer == "mpl" and op.name in calibrations:
-        if isinstance(op, ControlledGate):
-            ctrl_text = "" if ctrl_text is None else ctrl_text
-            ctrl_text = "(cal)\n" + ctrl_text
-        else:
-            gate_text = gate_text + "\n(cal)"
 
     if anno_text:
         gate_text += " - " + anno_text
@@ -294,10 +284,21 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                     f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
                 )
         except StopIteration:
-            if drawer == "text":
-                wire_label = f"{virt_bit} -> {index}"
+            if virt_bit._register is not None:
+                virt_reg = virt_bit._register
+                if drawer == "text":
+                    wire_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+                else:
+                    wire_label = (
+                        f"{{{virt_reg.name}}}_"
+                        f"{{{virt_reg[:].index(virt_bit)}}} "
+                        f"\\mapsto {{{index}}}"
+                    )
             else:
-                wire_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+                if drawer == "text":
+                    wire_label = f"{index_str} -> {index}"
+                else:
+                    wire_label = f"{index_str} \\mapsto {{{index}}}"
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
@@ -472,9 +473,9 @@ def _get_layered_instructions(
     else:
         nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, drawer)
 
-    # Optionally remove all idle wires and instructions that are on them and
-    # on them only.
     if not idle_wires:
+        # Optionally remove all idle wires and instructions that are on them and
+        # on them only.
         for wire in dag.idle_wires(ignore=["barrier", "delay"]):
             if wire in qubits:
                 qubits.remove(wire)
@@ -510,9 +511,10 @@ def _get_gate_span(qubits, node, drawer):
         if index > max_index:
             max_index = index
 
-    # Because of wrapping boxes for mpl control flow ops, this
-    # type of op must be the only op in the layer
-    if isinstance(node.op, ControlFlowOp):
+    if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
+        # Because of wrapping boxes for mpl control flow ops, this
+        # type of op must be the only op in the layer
+        # BoxOps are excepted because they have one block executed unconditionally
         span = qubits
     elif (node.cargs and (drawer != "mpl" or not isinstance(node.op, Measure))) or getattr(
         node.op, "condition", None
@@ -612,6 +614,39 @@ class _LayerSpooler(list):
                         except StopIteration:
                             pass
             while curr_index > 0:
+                # ||||||| f06bcccb2
+                #             index_stop = -1
+                #             if (condition := getattr(node.op, "condition", None)) is not None:
+                #                 index_stop = max(
+                #                     (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                #                     default=index_stop,
+                #                 )
+                #             if node.cargs:
+                #                 for carg in node.cargs:
+                #                     try:
+                #                         carg_bit = next(bit for bit in self.measure_map if carg == bit)
+                #                         if self.measure_map[carg_bit] > index_stop:
+                #                             index_stop = self.measure_map[carg_bit]
+                #                     except StopIteration:
+                #                         pass
+                #             while curr_index > index_stop:
+                # =======
+                #             index_stop = -1
+                #             if (condition := getattr(node, "condition", None)) is not None:
+                #                 index_stop = max(
+                #                     (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                #                     default=index_stop,
+                #                 )
+                #             if node.cargs:
+                #                 for carg in node.cargs:
+                #                     try:
+                #                         carg_bit = next(bit for bit in self.measure_map if carg == bit)
+                #                         if self.measure_map[carg_bit] > index_stop:
+                #                             index_stop = self.measure_map[carg_bit]
+                #                     except StopIteration:
+                #                         pass
+                #             while curr_index > index_stop:
+                # >>>>>>> main
                 if self.is_found_in(node, self[curr_index]):
                     break
                 if self.insertable(node, self[curr_index], drawer):

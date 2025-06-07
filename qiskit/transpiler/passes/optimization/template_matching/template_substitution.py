@@ -443,6 +443,7 @@ class TemplateSubstitution:
         self.dag_dep_optimized = dag_dep_opt
         self.dag_optimized = dagdependency_to_dag(dag_dep_opt)
 
+    @_optionals.HAS_SYMPY.require_in_call("Bind parameters in templates")
     def _attempt_bind(self, template_sublist, circuit_sublist):
         """
         Copies the template and attempts to bind any parameters,
@@ -450,7 +451,7 @@ class TemplateSubstitution:
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────┐                  ┌────────┐
             q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
@@ -460,7 +461,7 @@ class TemplateSubstitution:
 
         should only maximally match once in the circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────┐
             q_0: ┤ P(-2) ├──■────────────■────────────────────────────
@@ -495,16 +496,9 @@ class TemplateSubstitution:
                 parameter constraints, returns None.
         """
         import sympy as sym
-        from sympy.parsing.sympy_parser import parse_expr
 
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            # Converts Sympy expressions to Symengine ones.
-            to_native_symbolic = symengine.sympify
-        else:
-            # Our native form is sympy, so we don't need to do anything.
-            to_native_symbolic = lambda x: x
+        # Our native form is sympy, so we don't need to do anything.
+        to_native_symbolic = lambda x: x
 
         circuit_params, template_params = [], []
         # Set of all parameter names that are present in the circuits to be optimized.
@@ -571,7 +565,8 @@ class TemplateSubstitution:
                 if isinstance(circuit_param, ParameterExpression):
                     circ_param_sym = circuit_param.sympify()
                 else:
-                    circ_param_sym = parse_expr(str(circuit_param))
+                    # if it's not a ParameterExpression we're a float
+                    circ_param_sym = sym.Float(circuit_param)
                 equations.append(sym.Eq(template_param.sympify(), circ_param_sym))
 
                 for param in template_param.parameters:
@@ -595,7 +590,7 @@ class TemplateSubstitution:
             return None
         # If there's multiple solutions, arbitrarily pick the first one.
         sol = {
-            param.name: ParameterExpression(circ_dict, to_native_symbolic(expr))
+            param.name: ParameterExpression(circ_dict, str(to_native_symbolic(expr)))
             for param, expr in sym_sol[0].items()
         }
         fake_bind = {key: sol[key.name] for key in temp_symbols}

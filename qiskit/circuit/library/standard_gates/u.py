@@ -23,7 +23,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -35,7 +34,7 @@ class UGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤ U(ϴ,φ,λ) ├
@@ -72,7 +71,7 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
 
-    _standard_gate = StandardGate.UGate
+    _standard_gate = StandardGate.U
 
     def __init__(
         self,
@@ -80,12 +79,9 @@ class UGate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new U gate."""
-        super().__init__("u", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
+        super().__init__("u", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
@@ -218,7 +214,7 @@ class CUGate(ControlledGate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴──────┐
@@ -251,7 +247,8 @@ class CUGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌────────────┐
             q_0: ┤ U(ϴ,φ,λ,γ) ├
                  └─────┬──────┘
@@ -272,7 +269,7 @@ class CUGate(ControlledGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CUGate
+    _standard_gate = StandardGate.CU
 
     def __init__(
         self,
@@ -283,8 +280,6 @@ class CUGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CU gate."""
@@ -296,40 +291,22 @@ class CUGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=UGate(theta, phi, lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
-        """
-        gate cu(theta,phi,lambda,gamma) c, t
-        { phase(gamma) c;
-          phase((lambda+phi)/2) c;
-          phase((lambda-phi)/2) t;
-          cx c,t;
-          u(-theta/2,0,-(phi+lambda)/2) t;
-          cx c,t;
-          u(theta/2,phi,0) t;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
         #          ┌──────┐    ┌──────────────┐
         # q_0: ────┤ P(γ) ├────┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────
         #      ┌───┴──────┴───┐└──────────────┘┌─┴─┐┌──────────────────────┐┌─┴─┐┌────────────┐
         # q_1: ┤ P(λ/2 - φ/2) ├────────────────┤ X ├┤ U(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U(0/2,φ,0) ├
         #      └──────────────┘                └───┘└──────────────────────┘└───┘└────────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.p(self.params[3], 0)
-        qc.p((self.params[2] + self.params[1]) / 2, 0)
-        qc.p((self.params[2] - self.params[1]) / 2, 1)
-        qc.cx(0, 1)
-        qc.u(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2, 1)
-        qc.cx(0, 1)
-        qc.u(self.params[0] / 2, self.params[1], 0, 1)
-        self.definition = qc
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CU._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.
@@ -393,3 +370,10 @@ class CUGate(ControlledGate):
         out = super().__deepcopy__(memo)
         out._params = _copy.deepcopy(out._params, memo)
         return out
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CUGate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )

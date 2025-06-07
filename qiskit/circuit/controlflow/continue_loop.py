@@ -48,9 +48,7 @@ class ContinueLoopPlaceholder(InstructionPlaceholder):
 
     def concrete_instruction(self, qubits, clbits):
         return (
-            self._copy_mutable_properties(
-                ContinueLoopOp(len(qubits), len(clbits), label=self.label)
-            ),
+            ContinueLoopOp(len(qubits), len(clbits), label=self.label),
             InstructionResources(qubits=tuple(qubits), clbits=tuple(clbits)),
         )
 

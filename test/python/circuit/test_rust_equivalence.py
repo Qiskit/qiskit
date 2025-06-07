@@ -74,63 +74,12 @@ class TestRustGateEquivalence(QiskitTestCase):
                 else:
                     rs_def = QuantumCircuit._from_circuit_data(rs_def)
                     for rs_inst, py_inst in zip(rs_def._data, py_def._data):
-                        # In the following cases, Rust uses U but python still uses U3 and U2
-                        if (
-                            name in {"x", "y", "h", "r", "p", "u2", "u3", "cu", "crx"}
-                            and rs_inst.operation.name == "u"
-                        ):
-                            if py_inst.operation.name == "u3":
-                                self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
-                            elif py_inst.operation.name == "u2":
-                                self.assertEqual(
-                                    rs_inst.operation.params,
-                                    [
-                                        pi / 2,
-                                        py_inst.operation.params[0],
-                                        py_inst.operation.params[1],
-                                    ],
-                                )
-
-                            self.assertEqual(
-                                [py_def.find_bit(x).index for x in py_inst.qubits],
-                                [rs_def.find_bit(x).index for x in rs_inst.qubits],
-                            )
-                        # In the following cases, Rust uses P but python still uses U1 and U3
-                        elif (
-                            name in {"z", "s", "sdg", "t", "tdg", "rz", "u1", "crx"}
-                            and rs_inst.operation.name == "p"
-                        ):
-                            if py_inst.operation.name == "u1":
-                                self.assertEqual(py_inst.operation.name, "u1")
-                                self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
-                                self.assertEqual(
-                                    [py_def.find_bit(x).index for x in py_inst.qubits],
-                                    [rs_def.find_bit(x).index for x in rs_inst.qubits],
-                                )
-                            else:
-                                self.assertEqual(py_inst.operation.name, "u3")
-                                self.assertEqual(
-                                    rs_inst.operation.params[0], py_inst.operation.params[2]
-                                )
-                                self.assertEqual(
-                                    [py_def.find_bit(x).index for x in py_inst.qubits],
-                                    [rs_def.find_bit(x).index for x in rs_inst.qubits],
-                                )
-                        # In the following cases, Rust uses CP but python still uses CU1
-                        elif name in {"csx"} and rs_inst.operation.name == "cp":
-                            self.assertEqual(py_inst.operation.name, "cu1")
-                            self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
-                            self.assertEqual(
-                                [py_def.find_bit(x).index for x in py_inst.qubits],
-                                [rs_def.find_bit(x).index for x in rs_inst.qubits],
-                            )
-                        else:
-                            self.assertEqual(py_inst.operation.name, rs_inst.operation.name)
-                            self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
-                            self.assertEqual(
-                                [py_def.find_bit(x).index for x in py_inst.qubits],
-                                [rs_def.find_bit(x).index for x in rs_inst.qubits],
-                            )
+                        self.assertEqual(py_inst.operation.name, rs_inst.operation.name)
+                        self.assertEqual(rs_inst.operation.params, py_inst.operation.params)
+                        self.assertEqual(
+                            [py_def.find_bit(x).index for x in py_inst.qubits],
+                            [rs_def.find_bit(x).index for x in rs_inst.qubits],
+                        )
 
     def test_matrix(self):
         """Test matrices are the same in rust space."""
@@ -145,6 +94,22 @@ class TestRustGateEquivalence(QiskitTestCase):
                 py_def = gate_class.base_class(*params).to_matrix()
                 rs_def = standard_gate._to_matrix(params)
                 np.testing.assert_allclose(rs_def, py_def)
+
+    def test_inverse(self):
+        """Test that the inverse is the same in rust space."""
+        for name, gate_class in self.standard_gates.items():
+            standard_gate = getattr(gate_class, "_standard_gate", None)
+            if standard_gate is None:
+                # gate is not in rust yet
+                continue
+
+            with self.subTest(name=name):
+                params = [0.1 * (i + 1) for i in range(standard_gate._num_params())]
+                py_def = gate_class.base_class(*params).inverse()
+                rs_def = standard_gate._inverse(params)
+                if rs_def is not None:
+                    self.assertEqual(py_def.name, rs_def[0].name)
+                    np.testing.assert_allclose(py_def.params, rs_def[1])
 
     def test_name(self):
         """Test that the gate name properties match in rust space."""

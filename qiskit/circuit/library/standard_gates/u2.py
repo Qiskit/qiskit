@@ -17,7 +17,6 @@ from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -43,7 +42,7 @@ class U2Gate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤ U2(φ,λ) ├
@@ -87,32 +86,29 @@ class U2Gate(Gate):
         using two X90 pulses.
     """
 
-    _standard_gate = StandardGate.U2Gate
+    _standard_gate = StandardGate.U2
 
     def __init__(
         self,
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new U2 gate."""
-        super().__init__("u2", 1, [phi, lam], label=label, duration=duration, unit=unit)
+        super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌────────────┐
+        # q: ┤ U(π/2,φ,λ) ├
+        #    └────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.U2._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted U2 gate.
@@ -144,3 +140,6 @@ class U2Gate(Gate):
             ],
             dtype=dtype or complex,
         )
+
+    def __eq__(self, other):
+        return isinstance(other, U2Gate) and self._compare_parameters(other)

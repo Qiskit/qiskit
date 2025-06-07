@@ -16,7 +16,7 @@ import unittest
 from ddt import ddt, data, unpack
 import numpy as np
 
-from qiskit.circuit.library import FourierChecking
+from qiskit.circuit.library import FourierChecking, fourier_checking
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -51,7 +51,8 @@ class TestFourierCheckingLibrary(QiskitTestCase):
     @unpack
     def test_fourier_checking(self, f_truth_table, g_truth_table):
         """Test if the Fourier Checking circuit produces the correct matrix."""
-        fc_circuit = FourierChecking(f_truth_table, g_truth_table)
+        with self.assertWarns(DeprecationWarning):
+            fc_circuit = FourierChecking(f_truth_table, g_truth_table)
         self.assertFourierCheckingIsCorrect(f_truth_table, g_truth_table, fc_circuit)
 
     @data(([1, -1, -1, -1], [1, 1, -1]), ([1], [-1]), ([1, -1, -1, -1, 1], [1, 1, -1, -1, 1]))
@@ -59,7 +60,22 @@ class TestFourierCheckingLibrary(QiskitTestCase):
     def test_invalid_input_raises(self, f_truth_table, g_truth_table):
         """Test that invalid input truth tables raise an error."""
         with self.assertRaises(CircuitError):
-            FourierChecking(f_truth_table, g_truth_table)
+            with self.assertWarns(DeprecationWarning):
+                FourierChecking(f_truth_table, g_truth_table)
+
+    @data(([1, -1, -1, -1], [1, 1, -1, -1]), ([1, 1, 1, 1], [1, 1, 1, 1]))
+    @unpack
+    def test_fourier_checking_function(self, f_truth_table, g_truth_table):
+        """Test if the Fourier Checking circuit produces the correct matrix."""
+        fc_circuit = fourier_checking(f_truth_table, g_truth_table)
+        self.assertFourierCheckingIsCorrect(f_truth_table, g_truth_table, fc_circuit)
+
+    @data(([1, -1, -1, -1], [1, 1, -1]), ([1], [-1]), ([1, -1, -1, -1, 1], [1, 1, -1, -1, 1]))
+    @unpack
+    def test_invalid_input_raises_function(self, f_truth_table, g_truth_table):
+        """Test that invalid input truth tables raise an error."""
+        with self.assertRaises(CircuitError):
+            fourier_checking(f_truth_table, g_truth_table)
 
 
 if __name__ == "__main__":

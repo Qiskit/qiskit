@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.transpiler.passes.optimization import CollectLinearFunctions
 from qiskit.transpiler.passes.synthesis import HighLevelSynthesis, LinearFunctionsToPermutations
 from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -238,7 +238,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         extracting linear functions produces the expected number of linear blocks,
         and synthesizing these blocks produces an expected number of CNOTs.
         """
-        ansatz = RealAmplitudes(4, reps=2)
+        ansatz = real_amplitudes(4, reps=2)
         circuit1 = ansatz.decompose()
 
         # collect linear functions
@@ -257,7 +257,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         extracting linear functions produces the expected number of linear blocks,
         and synthesizing these blocks produces an expected number of CNOTs.
         """
-        ansatz = RealAmplitudes(5, reps=2)
+        ansatz = real_amplitudes(5, reps=2)
         circuit1 = ansatz.decompose()
 
         # collect linear functions
@@ -532,6 +532,29 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertNotIn("linear_function", circuit4.count_ops().keys())
         self.assertEqual(circuit4.count_ops()["cx"], 6)
 
+    def test_max_block_width(self):
+        """Test that the option max_block_width for collecting linear functions works correctly."""
+        circuit = QuantumCircuit(6)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.cx(2, 3)
+        circuit.cx(3, 4)
+        circuit.cx(4, 5)
+
+        # When max_block_width = 3, we should obtain 3 linear blocks
+        circuit1 = PassManager(CollectLinearFunctions(min_block_size=1, max_block_width=3)).run(
+            circuit
+        )
+        self.assertEqual(circuit1.count_ops()["linear_function"], 3)
+        self.assertNotIn("cx", circuit1.count_ops().keys())
+
+        # When max_block_width = 4, we should obtain 2 linear blocks
+        circuit1 = PassManager(CollectLinearFunctions(min_block_size=1, max_block_width=4)).run(
+            circuit
+        )
+        self.assertEqual(circuit1.count_ops()["linear_function"], 2)
+        self.assertNotIn("cx", circuit1.count_ops().keys())
+
     @combine(do_commutative_analysis=[False, True])
     def test_collect_from_back_correctness(self, do_commutative_analysis):
         """Test that collecting from the back of the circuit works correctly."""
@@ -607,25 +630,6 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         self.assertEqual(Operator(resulting_subcircuit1), Operator(expected_subcircuit1))
         self.assertEqual(Operator(resulting_subcircuit2), Operator(expected_subcircuit2))
-
-    def test_do_not_merge_conditional_gates(self):
-        """Test that collecting Cliffords works properly when there the circuit
-        contains conditional gates."""
-
-        qc = QuantumCircuit(2, 1)
-        qc.cx(1, 0)
-        qc.swap(1, 0)
-        qc.cx(0, 1).c_if(0, 1)
-        qc.cx(0, 1)
-        qc.cx(1, 0)
-
-        qct = PassManager(CollectLinearFunctions()).run(qc)
-
-        # The conditional gate prevents from combining all gates into a single clifford
-        self.assertEqual(qct.count_ops()["linear_function"], 2)
-
-        # Make sure that the condition on the middle gate is not lost
-        self.assertIsNotNone(qct.data[1].operation.condition)
 
     @combine(do_commutative_analysis=[False, True])
     def test_split_layers(self, do_commutative_analysis):

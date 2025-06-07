@@ -64,6 +64,11 @@ from qiskit.circuit.library import (
     CSXGate,
     RVGate,
     XXMinusYYGate,
+    FullAdderGate,
+    HalfAdderGate,
+    ModularAdderGate,
+    LinearFunction,
+    MultiplierGate,
 )
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -198,6 +203,41 @@ class TestGateDefinitions(QiskitTestCase):
         operator = Operator(gate)
         self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
 
+    def test_linear_function_definition(self):
+        """Test LinearFunction gate matrix and definition."""
+        circ = QuantumCircuit(3)
+        circ.append(LinearFunction([[1, 1], [0, 1]]), [0, 2])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_full_adder_definition(self):
+        """Test FullAdder gate matrix and definition."""
+        circ = QuantumCircuit(4)
+        circ.append(FullAdderGate(1), [0, 1, 2, 3])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_half_adder_definition(self):
+        """Test HalfAdder gate matrix and definition."""
+        circ = QuantumCircuit(3)
+        circ.append(HalfAdderGate(1), [0, 1, 2])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_modular_adder_definition(self):
+        """Test ModularAdder gate matrix and definition."""
+        circ = QuantumCircuit(2)
+        circ.append(ModularAdderGate(1), [0, 1])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_multiplier_gate_definition(self):
+        """Test Multiplier gate matrix and definition."""
+        circ = QuantumCircuit(4)
+        circ.append(MultiplierGate(1), [0, 1, 2, 3])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
 
 @ddt
 class TestStandardGates(QiskitTestCase):
@@ -220,10 +260,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             param_vector = param_vector[:-1]
             gate = gate_class(*param_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 2
             param_vector = param_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *param_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 2
+            param_vector = param_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *param_vector)
         elif class_name == "MSGate":
             num_qubits = 2
             param_vector = param_vector[:-1]
@@ -251,10 +296,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             float_vector = float_vector[:-1]
             gate = gate_class(*float_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 3
+            float_vector = float_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
@@ -293,9 +343,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "UCPauliRotGate",
         "SingleQubitUnitary",
         "MCXGate",
+        "MCMTGate",
         "VariadicZeroParamGate",
-        "ClassicalFunction",
-        "ClassicalElement",
         "StatePreparation",
         "UniformSuperpositionGate",
         "LinearFunction",
@@ -309,6 +358,24 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
         "QFTGate",
+        "ModularAdderGate",
+        "HalfAdderGate",
+        "FullAdderGate",
+        "MultiplierGate",
+        "GraphStateGate",
+        "AndGate",
+        "OrGate",
+        "BitwiseXorGate",
+        "InnerProductGate",
+        "IntegerComparatorGate",
+        "PolynomialPauliRotationsGate",
+        "PiecewiseLinearPauliRotationsGate",
+        "PiecewisePolynomialPauliRotationsGate",
+        "PiecewiseChebyshevGate",
+        "ExactReciprocalGate",
+        "LinearPauliRotationsGate",
+        "LinearAmplitudeFunctionGate",
+        "WeightedSumGate",
     }
 
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
@@ -326,7 +393,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             params[0] = 2
         if gate_class.__name__ in ["PauliGate"]:
             params = ["IXYZ"]
-        if gate_class.__name__ in ["BooleanExpression"]:
+        if gate_class.__name__ in ["BooleanExpression", "BitFlipOracleGate", "PhaseOracleGate"]:
             params = ["x | y"]
 
         gate = gate_class(*params)
@@ -405,8 +472,8 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         param_qc = QuantumCircuit(param_gate.num_qubits)
         float_qc = QuantumCircuit(float_gate.num_qubits)
 
-        param_qc.append(param_gate, param_qc.qregs[0])
-        float_qc.append(float_gate, float_qc.qregs[0])
+        param_qc.append(param_gate, param_qc.qubits)
+        float_qc.append(float_gate, float_qc.qubits)
 
         self.assertTrue(any(equiv == param_qc.decompose() for equiv in param_entry))
         self.assertTrue(any(equiv == float_qc.decompose() for equiv in float_entry))

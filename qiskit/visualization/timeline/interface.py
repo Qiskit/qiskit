@@ -22,6 +22,7 @@ the configured canvas is passed to one of the plotter APIs to generate a visuali
 from typing import Optional, Dict, Any, List, Tuple
 
 from qiskit import circuit
+from qiskit.transpiler.target import Target
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import types, core, stylesheet
@@ -43,11 +44,16 @@ def draw(
     plotter: Optional[str] = types.Plotter.MPL.value,
     axis: Optional[Any] = None,
     filename: Optional[str] = None,
+    target: Optional[Target] = None,
     *,
     show_idle: Optional[bool] = None,
     show_barriers: Optional[bool] = None,
 ):
     r"""Generate visualization data for scheduled circuit programs.
+
+    .. deprecated:: 1.3
+       The ``target`` parameter needs to be specified in Qiskit 2.0 in order to get the
+       instruction durations.
 
     Args:
         program: Program to visualize. This program should be a `QuantumCircuit` which is
@@ -81,6 +87,7 @@ def draw(
             the plotters uses given `axis` instead of internally initializing a figure object.
             This object format depends on the plotter. See plotters section for details.
         filename: If provided the output image is dumped into a file under the filename.
+        target: The target for the backend the timeline is being generated for.
         show_idle: DEPRECATED.
         show_barriers: DEPRECATED.
 
@@ -287,16 +294,17 @@ def draw(
             for more details. No default layout is set. (default `None`).
 
     Examples:
-        To visualize a scheduled circuit program, you can call this function with set of
-        control arguments. Most of appearance of the output image can be controlled by the
+        To visualize a scheduled circuit program, you can call this function with a set of
+        control arguments. Most of the appearance of the output image can be controlled by the
         stylesheet.
 
         Drawing with the default stylesheet.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw
             from qiskit.providers.fake_provider import GenericBackendV2
 
@@ -304,15 +312,18 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
-            draw(qc)
+            backend = GenericBackendV2(5)
+
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, target=backend.target)
 
         Drawing with the simple stylesheet.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw, IQXSimple
             from qiskit.providers.fake_provider import GenericBackendV2
 
@@ -320,15 +331,18 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
-            draw(qc, style=IQXSimple())
+            backend = GenericBackendV2(5)
+
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, style=IQXSimple(), target=backend.target)
 
         Drawing with the stylesheet suited for program debugging.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw, IQXDebugging
             from qiskit.providers.fake_provider import GenericBackendV2
 
@@ -336,8 +350,9 @@ def draw(
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, GenericBackendV2(5), scheduling_method='alap', layout_method='trivial')
-            draw(qc, style=IQXDebugging())
+            backend = GenericBackendV2(5)
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, style=IQXDebugging(), target=backend.target)
 
         You can partially customize a preset stylesheet when call it::
 
@@ -352,7 +367,7 @@ def draw(
 
         In the same way as above, you can create custom generator or layout functions
         and update existing stylesheet with custom functions.
-        This feature enables you to control the most of appearance of the output image
+        This feature enables you to control the most of the appearance of the output image
         without modifying the codebase of the scheduled circuit drawer.
     """
     del show_idle
@@ -360,6 +375,11 @@ def draw(
     # update stylesheet
     temp_style = stylesheet.QiskitTimelineStyle()
     temp_style.update(style or stylesheet.IQXStandard())
+
+    if target is None:
+        raise VisualizationError(
+            "No target is specified, this is required to get the duration of instructions."
+        )
 
     # update control properties
     if idle_wires is not None:
@@ -376,7 +396,7 @@ def draw(
 
     # create empty canvas and load program
     canvas = core.DrawerCanvas(stylesheet=temp_style)
-    canvas.load_program(program=program)
+    canvas.load_program(program=program, target=target)
 
     #
     # update configuration

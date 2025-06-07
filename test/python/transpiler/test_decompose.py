@@ -17,8 +17,9 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Decompose
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.library import HGate, CCXGate, U2Gate
-from qiskit.quantum_info.operators import Operator
+from qiskit.circuit.library import HGate, CCXGate
+from qiskit.quantum_info.operators import Operator, Clifford
+
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -52,6 +53,7 @@ class TestDecompose(QiskitTestCase):
         circ3 = QuantumCircuit(2)
         circ3.x(0)
         q_bits = QuantumRegister(5)
+
         qc = QuantumCircuit(q_bits)
         qc.append(my_gate, q_bits[:3])
         qc.append(my_gate2, q_bits[2:])
@@ -59,6 +61,19 @@ class TestDecompose(QiskitTestCase):
         qc.h(0)
         qc.append(circ3, [0, 1])
         self.complex_circuit = qc
+
+        # same circuit but with barriers around the MCX-gate
+        # (to make sure that the nodes before/after the MCX-gate remain
+        # before/after the gates of the expanded MCX-gate).
+        qc = QuantumCircuit(q_bits)
+        qc.append(my_gate, q_bits[:3])
+        qc.append(my_gate2, q_bits[2:])
+        qc.barrier(label="barrier1")
+        qc.mcx(q_bits[:4], q_bits[4])
+        qc.barrier(label="barrier2")
+        qc.h(0)
+        qc.append(circ3, [0, 1])
+        self.complex_circuit_with_barriers = qc
 
     def test_basic(self):
         """Test decompose a single H into u2."""
@@ -70,7 +85,7 @@ class TestDecompose(QiskitTestCase):
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
-        self.assertEqual(op_nodes[0].name, "u2")
+        self.assertEqual(op_nodes[0].name, "u")
 
     def test_decompose_none(self):
         """Test decompose a single H into u2."""
@@ -82,7 +97,7 @@ class TestDecompose(QiskitTestCase):
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
-        self.assertEqual(op_nodes[0].name, "u2")
+        self.assertEqual(op_nodes[0].name, "u")
 
     def test_decompose_only_h(self):
         """Test to decompose a single H, without the rest"""
@@ -96,7 +111,7 @@ class TestDecompose(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 2)
         for node in op_nodes:
-            self.assertIn(node.name, ["cx", "u2"])
+            self.assertIn(node.name, ["cx", "u"])
 
     def test_decompose_toffoli(self):
         """Test decompose CCX."""
@@ -111,24 +126,6 @@ class TestDecompose(QiskitTestCase):
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
-
-    def test_decompose_conditional(self):
-        """Test decompose a 1-qubit gates with a conditional."""
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr).c_if(cr, 1)
-        circuit.x(qr).c_if(cr, 1)
-        dag = circuit_to_dag(circuit)
-        pass_ = Decompose(HGate)
-        after_dag = pass_.run(dag)
-
-        ref_circuit = QuantumCircuit(qr, cr)
-        ref_circuit.append(U2Gate(0, pi), [qr[0]]).c_if(cr, 1)
-        ref_circuit.x(qr).c_if(cr, 1)
-        ref_dag = circuit_to_dag(ref_circuit)
-
-        self.assertEqual(after_dag, ref_dag)
 
     def test_decompose_oversized_instruction(self):
         """Test decompose on a single-op gate that doesn't use all qubits."""
@@ -197,7 +194,7 @@ class TestDecompose(QiskitTestCase):
         decom_circ = circ.decompose(["h"])
         dag = circuit_to_dag(decom_circ)
         self.assertEqual(len(dag.op_nodes()), 2)
-        self.assertEqual(dag.op_nodes()[0].name, "u2")
+        self.assertEqual(dag.op_nodes()[0].name, "u")
         self.assertEqual(dag.op_nodes()[1].name, "cz")
 
     def test_decompose_only_given_label(self):
@@ -216,45 +213,30 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_only_given_name(self):
         """Test decomposition parameters so that only given name is decomposed."""
-        decom_circ = self.complex_circuit.decompose(["mcx"], reps=2)
+        decom_circ = self.complex_circuit_with_barriers.decompose(["mcx"], reps=2)
         dag = circuit_to_dag(decom_circ)
-
-        self.assertEqual(len(dag.op_nodes()), 13)
+        self.assertEqual(len(dag.op_nodes()), 75)
         self.assertEqual(dag.op_nodes()[0].op.label, "gate1")
         self.assertEqual(dag.op_nodes()[1].op.label, "gate2")
-        self.assertEqual(dag.op_nodes()[2].name, "h")
-        self.assertEqual(dag.op_nodes()[3].name, "cu1")
-        self.assertEqual(dag.op_nodes()[4].name, "rcccx")
-        self.assertEqual(dag.op_nodes()[5].name, "h")
-        self.assertEqual(dag.op_nodes()[6].name, "h")
-        self.assertEqual(dag.op_nodes()[7].name, "cu1")
-        self.assertEqual(dag.op_nodes()[8].name, "rcccx_dg")
-        self.assertEqual(dag.op_nodes()[9].name, "h")
-        self.assertEqual(dag.op_nodes()[10].name, "c3sx")
-        self.assertEqual(dag.op_nodes()[11].name, "h")
-        self.assertRegex(dag.op_nodes()[12].name, "circuit-")
+        self.assertEqual(dag.op_nodes()[2].op.label, "barrier1")
+        self.assertEqual(dag.op_nodes()[72].op.label, "barrier2")
+        self.assertEqual(dag.op_nodes()[73].name, "h")
+        self.assertRegex(dag.op_nodes()[74].name, "circuit-")
 
     def test_decompose_mixture_of_names_and_labels(self):
         """Test decomposition parameters so that mixture of names and labels is decomposed"""
-        decom_circ = self.complex_circuit.decompose(["mcx", "gate2"], reps=2)
+        decom_circ = self.complex_circuit_with_barriers.decompose(["mcx", "gate2"], reps=2)
         dag = circuit_to_dag(decom_circ)
 
-        self.assertEqual(len(dag.op_nodes()), 15)
+        self.assertEqual(len(dag.op_nodes()), 77)
         self.assertEqual(dag.op_nodes()[0].op.label, "gate1")
         self.assertEqual(dag.op_nodes()[1].name, "h")
         self.assertEqual(dag.op_nodes()[2].name, "cx")
         self.assertEqual(dag.op_nodes()[3].name, "x")
-        self.assertEqual(dag.op_nodes()[4].name, "h")
-        self.assertEqual(dag.op_nodes()[5].name, "cu1")
-        self.assertEqual(dag.op_nodes()[6].name, "rcccx")
-        self.assertEqual(dag.op_nodes()[7].name, "h")
-        self.assertEqual(dag.op_nodes()[8].name, "h")
-        self.assertEqual(dag.op_nodes()[9].name, "cu1")
-        self.assertEqual(dag.op_nodes()[10].name, "rcccx_dg")
-        self.assertEqual(dag.op_nodes()[11].name, "h")
-        self.assertEqual(dag.op_nodes()[12].name, "c3sx")
-        self.assertEqual(dag.op_nodes()[13].name, "h")
-        self.assertRegex(dag.op_nodes()[14].name, "circuit-")
+        self.assertEqual(dag.op_nodes()[4].name, "barrier")
+        self.assertEqual(dag.op_nodes()[74].name, "barrier")
+        self.assertEqual(dag.op_nodes()[75].name, "h")
+        self.assertRegex(dag.op_nodes()[76].name, "circuit-")
 
     def test_decompose_name_wildcards(self):
         """Test decomposition parameters so that name wildcards is decomposed"""
@@ -317,3 +299,89 @@ class TestDecompose(QiskitTestCase):
         decomposed = circuit.decompose()
 
         self.assertEqual(decomposed, block)
+
+    def test_decompose_synthesis(self):
+        """Test a high-level object with only a synthesis and no definition is correctly decomposed."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        cliff = Clifford(qc)
+
+        bigger = QuantumCircuit(1)
+        bigger.append(cliff, [0])
+
+        decomposed = bigger.decompose()
+
+        self.assertEqual(qc, decomposed)
+
+    def test_specify_hls_object(self):
+        """Test specifying an HLS object by name works."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        cliff = Clifford(qc)
+
+        bigger = QuantumCircuit(1)
+        bigger.append(cliff, [0])
+        bigger.h(0)  # add another gate that should remain unaffected, but has a definition
+
+        decomposed = bigger.decompose(gates_to_decompose=["clifford"])
+
+        expected = QuantumCircuit(1)
+        expected.h(0)
+        expected.h(0)
+
+        self.assertEqual(expected, decomposed)
+
+    def test_control_flow_if(self):
+        """Test decompose with control flow."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.p(0.2, 0)
+        qc.measure(0, 0)
+
+        with qc.if_test((cr[0], 0)) as else_:
+            qc.cry(0.5, 0, 1)
+        with else_:
+            qc.crz(0.5, 0, 1)
+
+        expect = qc.copy_empty_like()
+        expect.u(0, 0, 0.2, 0)
+        expect.measure(0, 0)
+
+        with expect.if_test((cr[0], 0)) as else_:
+            expect.ry(0.25, 1)
+            expect.cx(0, 1)
+            expect.ry(-0.25, 1)
+            expect.cx(0, 1)
+        with else_:
+            expect.rz(0.25, 1)
+            expect.cx(0, 1)
+            expect.rz(-0.25, 1)
+            expect.cx(0, 1)
+
+        self.assertEqual(expect, qc.decompose())
+
+    def test_control_flow_for(self):
+        """Test decompose with control flow."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.p(0.2, 0)
+        qc.measure(0, 0)
+
+        with qc.for_loop(range(3)):
+            qc.cry(0.5, 0, 1)
+
+        expect = qc.copy_empty_like()
+        expect.u(0, 0, 0.2, 0)
+        expect.measure(0, 0)
+
+        with expect.for_loop(range(3)):
+            expect.ry(0.25, 1)
+            expect.cx(0, 1)
+            expect.ry(-0.25, 1)
+            expect.cx(0, 1)
+
+        self.assertEqual(expect, qc.decompose())

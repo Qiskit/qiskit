@@ -14,11 +14,9 @@
 
 import math
 from cmath import exp
-from math import pi
 from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -31,11 +29,12 @@ class RGate(Gate):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
-             ┌──────┐
-        q_0: ┤ R(ϴ) ├
-             └──────┘
+               ┌─────────┐
+        q_0:   ┤ R(θ,ϕ)  ├ 
+               └─────────┘
+
 
     **Matrix Representation:**
 
@@ -50,40 +49,32 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RGate
+    _standard_gate = StandardGate.R
 
     def __init__(
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
         label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
     ):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi], label=label, duration=duration, unit=unit)
+        super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
-        """
-        gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        theta = self.params[0]
-        phi = self.params[1]
-        rules = [(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌───────────────────────┐
+        # q: ┤ U(θ,-π/2 + φ,π/2 - φ) ├
+        #    └───────────────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.R._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate as: :math:`r(θ, φ)^dagger = r(-θ, φ)`
+        r"""Invert this gate as: :math:`R(θ, φ)^{\dagger} = R(-θ, φ)`
 
         Args:
             annotated: when set to ``True``, this is typically used to return an

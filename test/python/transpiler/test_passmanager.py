@@ -26,9 +26,8 @@ from qiskit.passmanager.flow_controllers import (
     ConditionalController,
     DoWhileController,
 )
-from qiskit.transpiler import PassManager, PropertySet, TransformationPass
-from qiskit.transpiler.passes import RXCalibrationBuilder
-from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
+from qiskit.transpiler import PassManager, PropertySet, TransformationPass, AnalysisPass
+from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator, ResourceEstimation
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
@@ -83,7 +82,7 @@ class TestPassManager(QiskitTestCase):
         self.assertEqual("MyCircuit", calls[1]["dag"].name)
 
     def test_callback_with_pass_requires(self):
-        """Test the callback with a pass with another pass requirement."""
+        """Test the callback with a pass with pass requirements."""
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr, name="MyCircuit")
         circuit.z(qr[0])
@@ -106,22 +105,29 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(RXCalibrationBuilder())
+        passmanager.append(ResourceEstimation())
         passmanager.run(circuit, callback=callback)
-        self.assertEqual(len(calls), 2)
-        self.assertEqual(len(calls[0]), 5)
-        self.assertEqual(calls[0]["count"], 0)
-        self.assertEqual(calls[0]["pass_"].name(), "NormalizeRXAngle")
-        self.assertEqual(expected_start_dag, calls[0]["dag"])
-        self.assertIsInstance(calls[0]["time"], float)
-        self.assertIsInstance(calls[0]["property_set"], PropertySet)
-        self.assertEqual("MyCircuit", calls[0]["dag"].name)
-        self.assertEqual(len(calls[1]), 5)
-        self.assertEqual(calls[1]["count"], 1)
-        self.assertEqual(calls[1]["pass_"].name(), "RXCalibrationBuilder")
-        self.assertIsInstance(calls[0]["time"], float)
-        self.assertIsInstance(calls[0]["property_set"], PropertySet)
-        self.assertEqual("MyCircuit", calls[1]["dag"].name)
+
+        self.assertEqual(len(calls), 7)
+
+        required_passes = [
+            "Depth",
+            "Width",
+            "Size",
+            "CountOps",
+            "NumTensorFactors",
+            "NumQubits",
+            "ResourceEstimation",
+        ]
+
+        for call_entry in range(7):
+            self.assertEqual(len(calls[call_entry]), 5)
+            self.assertEqual(calls[call_entry]["count"], call_entry)
+            self.assertEqual(calls[call_entry]["pass_"].name(), required_passes[call_entry])
+            self.assertEqual(expected_start_dag, calls[call_entry]["dag"])
+            self.assertIsInstance(calls[call_entry]["time"], float)
+            self.assertIsInstance(calls[call_entry]["property_set"], PropertySet)
+            self.assertEqual("MyCircuit", calls[call_entry]["dag"].name)
 
     def test_to_flow_controller(self):
         """Test that conversion to a `FlowController` works, and the result can be added to a
@@ -185,3 +191,20 @@ class TestPassManager(QiskitTestCase):
             "third 4",
         ]
         self.assertEqual(calls, expected)
+
+    def test_override_initial_property_set(self):
+        """Test that the ``property_set`` argument allows seeding the base analysis."""
+        input_name = "my_property"
+        output_name = "output_property"
+
+        class Analyse(AnalysisPass):
+            def run(self, dag):
+                self.property_set[output_name] = self.property_set[input_name]
+                return dag
+
+        pm = PassManager([Analyse()])
+        pm.run(QuantumCircuit(), property_set={input_name: "hello, world"})
+        self.assertEqual(pm.property_set[output_name], "hello, world")
+
+        pm.run(QuantumCircuit(), property_set={input_name: "a different string"})
+        self.assertEqual(pm.property_set[output_name], "a different string")

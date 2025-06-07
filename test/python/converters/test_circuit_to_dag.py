@@ -34,7 +34,6 @@ class TestCircuitToDag(QiskitTestCase):
         circuit_in.h(qr[1])
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
-        circuit_in.x(qr[0]).c_if(cr, 0x3)
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
         circuit_in.measure(qr[2], cr[2])
@@ -42,25 +41,12 @@ class TestCircuitToDag(QiskitTestCase):
         circuit_out = dag_to_circuit(dag)
         self.assertEqual(circuit_out, circuit_in)
 
-    def test_calibrations(self):
-        """Test that calibrations are properly copied over."""
-        circuit_in = QuantumCircuit(1)
-        circuit_in.add_calibration("h", [0], None)
-        self.assertEqual(len(circuit_in.calibrations), 1)
-
-        dag = circuit_to_dag(circuit_in)
-        self.assertEqual(len(dag.calibrations), 1)
-
-        circuit_out = dag_to_circuit(dag)
-        self.assertEqual(len(circuit_out.calibrations), 1)
-
     def test_wires_from_expr_nodes_condition(self):
         """Test that the classical wires implied by an `Expr` node in a control-flow op's
         `condition` are correctly transferred."""
         # The control-flow builder interface always includes any classical wires in the blocks of
         # the operation, so we test by using manually constructed blocks that don't do that.  It's
-        # not required by the `QuantumCircuit` model (just like `c_if` instructions don't expand
-        # their `cargs`).
+        # not required by the `QuantumCircuit` model.
         inner = QuantumCircuit(1)
         inner.x(0)
         cr1 = ClassicalRegister(2, "a")

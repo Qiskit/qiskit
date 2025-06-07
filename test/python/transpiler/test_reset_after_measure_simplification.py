@@ -13,8 +13,9 @@
 """Test the ResetAfterMeasureSimplification pass"""
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit import Clbit
 from qiskit.transpiler.passes.optimization import ResetAfterMeasureSimplification
+from qiskit.circuit import IfElseOp
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -26,12 +27,15 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         qc = QuantumCircuit(1, 1)
         qc.measure(0, 0)
         qc.reset(0)
-
         new_qc = ResetAfterMeasureSimplification()(qc)
 
         ans_qc = QuantumCircuit(1, 1)
         ans_qc.measure(0, 0)
-        ans_qc.x(0).c_if(ans_qc.clbits[0], 1)
+        x_body = QuantumCircuit(1)
+        x_body.x(0)
+        new_x = IfElseOp((ans_qc.clbits[0], 1), x_body)
+        ans_qc.append(new_x, [ans_qc.qubits[0]])
+
         self.assertEqual(new_qc, ans_qc)
 
     def test_simple_null(self):
@@ -52,12 +56,14 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         qc = QuantumCircuit(qr, cr1, cr2)
         qc.measure(0, 1)
         qc.reset(0)
-
         new_qc = ResetAfterMeasureSimplification()(qc)
 
         ans_qc = QuantumCircuit(qr, cr1, cr2)
         ans_qc.measure(0, 1)
-        ans_qc.x(0).c_if(cr2[0], 1)
+        x_body = QuantumCircuit(1)
+        x_body.x(0)
+        new_x = IfElseOp((cr2[0], 1), x_body)
+        ans_qc.append(new_x, [ans_qc.qubits[0]])
 
         self.assertEqual(new_qc, ans_qc)
 
@@ -69,7 +75,6 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         qc = QuantumCircuit(qr, cr1, cr2)
         qc.measure(0, 1)
         qc.reset(1)  # reset not on same qubit as meas
-
         new_qc = ResetAfterMeasureSimplification()(qc)
         self.assertEqual(new_qc, qc)
 
@@ -79,12 +84,14 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         qc.measure(0, 0)
         qc.reset(0)
         qc.reset(0)
-
         new_qc = ResetAfterMeasureSimplification()(qc)
 
         ans_qc = QuantumCircuit(1, 2)
         ans_qc.measure(0, 0)
-        ans_qc.x(0).c_if(ans_qc.clbits[0], 1)
+        x_body = QuantumCircuit(1)
+        x_body.x(0)
+        new_x = IfElseOp((ans_qc.clbits[0], 1), x_body)
+        ans_qc.append(new_x, [ans_qc.qubits[0]])
         ans_qc.reset(0)
         self.assertEqual(new_qc, ans_qc)
 
@@ -100,7 +107,10 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         ans_qc = QuantumCircuit(2, 2)
         ans_qc.measure(0, 0)
-        ans_qc.x(0).c_if(Clbit(ClassicalRegister(2, "c"), 0), 1)
+        x_body = QuantumCircuit(1)
+        x_body.x(0)
+        new_x = IfElseOp((Clbit(ClassicalRegister(2, "c"), 0), 1), x_body)
+        ans_qc.append(new_x, [ans_qc.qubits[0]])
         ans_qc.reset(1)
         ans_qc.measure(1, 1)
 
@@ -149,7 +159,10 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         base_expected = QuantumCircuit(1, 1)
         base_expected.measure(0, 0)
-        base_expected.x(0).c_if(0, True)
+        x_body = QuantumCircuit(1)
+        x_body.x(0)
+        new_x = IfElseOp((base_expected.clbits[0], True), x_body)
+        base_expected.append(new_x, [base_expected.qubits[0]])
 
         test = QuantumCircuit(1, 1)
         test.if_else(
@@ -177,7 +190,8 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
 
         base_expected = QuantumCircuit(1, 1)
         base_expected.measure(0, 0)
-        base_expected.x(0).c_if(0, True)
+        with base_expected.if_test((0, True)):
+            base_expected.x(0)
 
         body_test = QuantumCircuit(1, 1)
         body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, body_test.clbits)
@@ -194,5 +208,4 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         expected.while_loop(
             (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
         )
-
         self.assertEqual(pass_(test), expected)
