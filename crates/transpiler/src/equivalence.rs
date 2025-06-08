@@ -36,7 +36,7 @@ use rustworkx_core::petgraph::{
 };
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
 use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
@@ -284,9 +284,15 @@ pub struct GateOper {
 impl<'py> FromPyObject<'py> for GateOper {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let op_struct: OperationFromPython = ob.extract()?;
+        let params = op_struct
+            .gate_params()
+            .expect("expected gate parameters")
+            .iter()
+            .cloned()
+            .collect();
         Ok(Self {
             operation: op_struct.operation,
-            params: op_struct.params,
+            params,
         })
     }
 }

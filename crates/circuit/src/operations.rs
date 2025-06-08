@@ -242,17 +242,8 @@ impl<'py> Iterator for ParamParameterIter<'py> {
 }
 
 #[derive(Clone, Debug)]
-pub struct GateParameters(pub SmallVec<[Param; 3]>);
-//
-// #[derive(Clone, Debug)]
-// pub struct DelayParameters {
-//     pub duration: Param,
-// }
-
-#[derive(Clone, Debug)]
 pub enum Parameters<T> {
     Params(SmallVec<[Param; 3]>),
-    // Delay(DelayParameters),
     Box {
         body: T,
     },

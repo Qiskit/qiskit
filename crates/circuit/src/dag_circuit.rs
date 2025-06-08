@@ -392,6 +392,24 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
             _ => panic!("invalid control-flow instruction parameters"),
         })
     }
+
+    fn gate_params(self) -> Option<&'a [Param]> {
+        match self.view() {
+            InstructionRef::StandardGate(_)
+            | InstructionRef::Gate(_)
+            | InstructionRef::Operation(_)
+            | InstructionRef::Unitary(_) => Some(
+                self.params
+                    .as_deref()
+                    .and_then(|p| match p {
+                        Parameters::Params(p) => Some(p.as_slice()),
+                        _ => panic!("expected gate parameters"),
+                    })
+                    .unwrap_or_default(),
+            ),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -95,25 +95,6 @@ pub fn analyze_commutations(
                             break;
                         }
 
-                        // TODO: we assume that operations other than ControlFlow use Params as their
-                        //   parameters, but we should move away from this.
-                        let params1 = packed_inst0
-                            .params
-                            .as_deref()
-                            .map(|p| match p {
-                                Parameters::Params(p) => p.as_slice(),
-                                _ => panic!("expected Params as parameter type"),
-                            })
-                            .unwrap_or_default();
-                        let params2 = packed_inst1
-                            .params
-                            .as_deref()
-                            .map(|p| match p {
-                                Parameters::Params(p) => p.as_slice(),
-                                _ => panic!("expected Params as parameter type"),
-                            })
-                            .unwrap_or_default();
-
                         let qargs1 = dag.get_qargs(packed_inst0.qubits);
                         let qargs2 = dag.get_qargs(packed_inst1.qubits);
                         let cargs1 = dag.get_cargs(packed_inst0.clbits);
@@ -122,11 +103,11 @@ pub fn analyze_commutations(
                         all_commute = commutation_checker.commute_inner(
                             py,
                             &op1,
-                            params1,
+                            packed_inst0.params.as_deref(),
                             qargs1,
                             cargs1,
                             &op2,
-                            params2,
+                            packed_inst1.params.as_deref(),
                             qargs2,
                             cargs2,
                             MAX_NUM_QUBITS,

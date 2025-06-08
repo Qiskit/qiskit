@@ -73,11 +73,7 @@ pub(super) fn compose_transforms<'a>(
             op: gate_obj.operation,
             qubits: builder.insert_qargs(&qubits),
             clbits: builder.insert_cargs(&[]),
-            params: if gate_obj.params.is_empty() {
-                None
-            } else {
-                Some(Box::new(gate_obj.params))
-            },
+            params: gate_obj.params.map(|p| Box::new(p)),
             label: gate_obj.label,
             #[cfg(feature = "cache_pygates")]
             py_op: gate.unbind().into(),

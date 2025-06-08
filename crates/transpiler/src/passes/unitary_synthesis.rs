@@ -588,7 +588,12 @@ fn get_2q_decomposers_from_target(
                 continue;
             }
             // Add to param_basis if the gate parameters aren't bound (not Float)
-            if !op.params.iter().all(|p| matches!(p, Param::Float(_))) {
+            if !op
+                .gate_params()
+                .unwrap()
+                .iter()
+                .all(|p| matches!(p, Param::Float(_)))
+            {
                 available_2q_param_basis.insert(
                     key,
                     (
@@ -642,7 +647,7 @@ fn get_2q_decomposers_from_target(
                     decomposers.push(DecomposerElement {
                         decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
                         packed_op: gate.operation.clone(),
-                        params: gate.params.clone(),
+                        params: gate.gate_params().unwrap().iter().cloned().collect(),
                     });
                 }
                 Err(_) => continue,
@@ -699,7 +704,7 @@ fn get_2q_decomposers_from_target(
             decomposers.push(DecomposerElement {
                 decomposer: DecomposerType::TwoQubitBasis(Box::new(decomposer)),
                 packed_op: gate.operation.clone(),
-                params: gate.params.clone(),
+                params: gate.gate_params().unwrap().iter().cloned().collect(),
             });
         }
     }
@@ -805,11 +810,17 @@ fn get_2q_decomposers_from_target(
             let decomposer_gate = decomposer
                 .getattr(intern!(py, "gate"))?
                 .extract::<NormalOperation>()?;
+            let params = decomposer_gate
+                .gate_params()
+                .unwrap()
+                .iter()
+                .cloned()
+                .collect();
 
             decomposers.push(DecomposerElement {
                 decomposer: DecomposerType::XX(decomposer.into()),
                 packed_op: decomposer_gate.operation,
-                params: decomposer_gate.params.clone(),
+                params,
             });
         }
     }
@@ -1144,15 +1155,19 @@ fn synth_error(
                         continue;
                     };
                     let are_params_close = if let Some(params) = inst_params {
-                        params.iter().zip(target_op.params.iter()).all(|(p1, p2)| {
-                            p1.is_close(py, p2, 1e-10)
-                                .expect("Unexpected parameter expression error.")
-                        })
+                        params
+                            .iter()
+                            .zip(target_op.gate_params().unwrap().iter())
+                            .all(|(p1, p2)| {
+                                p1.is_close(py, p2, 1e-10)
+                                    .expect("Unexpected parameter expression error.")
+                            })
                     } else {
                         false
                     };
                     let is_parametrized = target_op
-                        .params
+                        .gate_params()
+                        .unwrap()
                         .iter()
                         .any(|param| matches!(param, Param::ParameterExpression(_)));
                     if target_op.operation.name() == inst_name

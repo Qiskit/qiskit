@@ -35,7 +35,7 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
-use qiskit_circuit::circuit_instruction::{Instruction, OperationFromPython};
+use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef, OperationFromPython};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, Parameters};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
@@ -558,7 +558,7 @@ impl Target {
                     TargetOperation::Normal(normal) => {
                         if normal.into_pyobject(py)?.is_instance(_operation_class)? {
                             if let Some(parameters) = &parameters {
-                                if parameters.len() != normal.params.len() {
+                                if parameters.len() != normal.gate_params().unwrap().len() {
                                     continue;
                                 }
                                 if !check_obj_params(parameters, normal) {
@@ -610,7 +610,14 @@ impl Target {
                         }
                     }
 
-                    let obj_params = obj.params();
+                    let obj_params = match obj {
+                        TargetOperation::Normal(n) => {
+                            n.gate_params().expect("gate operation expected")
+                        }
+                        TargetOperation::Variadic(_) => {
+                            unreachable!("only normal operation expected")
+                        }
+                    };
                     if parameters.len() != obj_params.len() {
                         return Ok(false);
                     }
@@ -1437,7 +1444,7 @@ impl Default for Target {
 // For instruction_supported
 fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
     for (index, param) in parameters.iter().enumerate() {
-        let param_at_index = &obj.params[index];
+        let param_at_index = &obj.gate_params().expect("expected gate")[index];
         match (param, param_at_index) {
             (Param::Float(p1), Param::Float(p2)) => {
                 if p1 != p2 {

@@ -28,9 +28,9 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
-use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{radd_param, Param};
 use qiskit_circuit::operations::{InstructionRef, Operation};
+use qiskit_circuit::operations::{Parameters, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
@@ -548,10 +548,11 @@ fn run_on_circuitdata(
 
             let packed_instruction = PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),
-                operations::replace_blocks(
-                    inst.params_view().into_iter().cloned().collect(),
-                    new_blocks_py.into_iter().map(|b| b.unbind()),
-                ),
+                {
+                    let mut params = inst.params_view().unwrap().clone();
+                    params.replace_blocks(new_blocks_py.into_iter().map(|b| b.unbind()));
+                    params
+                },
                 inst.qubits,
                 inst.clbits,
                 inst.label(),

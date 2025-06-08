@@ -47,6 +47,7 @@ pub trait IntoInstructionRef<'a> {
     fn standard_gate(self) -> Option<StandardGateRef<'a>>;
     fn standard_instruction(self) -> Option<StandardInstructionRef<'a>>;
     fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>>;
+    fn gate_params(self) -> Option<&'a [Param]>;
 
     #[inline]
     fn view(self) -> InstructionRef<'a, Self::Block>
@@ -459,6 +460,23 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                 ControlFlowRef::While { condition, body }
             }
         })
+    }
+
+    fn gate_params(self) -> Option<&'a [Param]> {
+        match self.view() {
+            InstructionRef::StandardGate(_)
+            | InstructionRef::Gate(_)
+            | InstructionRef::Operation(_)
+            | InstructionRef::Unitary(_) => Some(
+                self.params_view()
+                    .and_then(|p| match p {
+                        Parameters::Params(p) => Some(p.as_slice()),
+                        _ => panic!("expected gate parameters"),
+                    })
+                    .unwrap_or_default(),
+            ),
+            _ => None,
+        }
     }
 }
 

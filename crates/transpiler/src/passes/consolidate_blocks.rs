@@ -174,7 +174,7 @@ pub fn run_consolidate_blocks(
 
                     Ok((
                         inst.op,
-                        inst.params.map(|p| *p).unwrap_or_default(),
+                        inst.params.map(|p| *p),
                         dag.get_qargs(inst.qubits)
                             .iter()
                             .map(|x| Qubit::new(block_index_map[x]))

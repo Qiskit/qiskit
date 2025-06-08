@@ -26,12 +26,12 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
-use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::circuit_instruction::{Instruction, OperationFromPython};
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
+    Operation, OperationRef, Param, Parameters, StandardGate, STANDARD_GATE_SIZE,
 };
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -172,11 +172,11 @@ impl CommutationChecker {
         self.commute_inner(
             py,
             &op1.instruction.operation.view(),
-            &op1.instruction.params,
+            op1.instruction.params_view(),
             &qargs1,
             &cargs1,
             &op2.instruction.operation.view(),
-            &op2.instruction.params,
+            op2.instruction.params_view(),
             &qargs2,
             &cargs2,
             max_num_qubits,
@@ -209,11 +209,11 @@ impl CommutationChecker {
         self.commute_inner(
             py,
             &op1.operation.view(),
-            &op1.params,
+            op1.params_view(),
             &qargs1,
             &cargs1,
             &op2.operation.view(),
-            &op2.params,
+            op2.params_view(),
             &qargs2,
             &cargs2,
             max_num_qubits,
@@ -274,15 +274,15 @@ impl CommutationChecker {
 
 impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
-    pub fn commute_inner(
+    pub fn commute_inner<T>(
         &mut self,
         py: Python,
         op1: &OperationRef,
-        params1: &[Param],
+        params1: Option<&Parameters<T>>,
         qargs1: &[Qubit],
         cargs1: &[Clbit],
         op2: &OperationRef,
-        params2: &[Param],
+        params2: Option<&Parameters<T>>,
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
@@ -292,6 +292,19 @@ impl CommutationChecker {
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
         let tol = 1e-12_f64.max(1. - approximation_degree);
+
+        let params1 = params1
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => &[],
+            })
+            .unwrap_or_default();
+        let params2 = params2
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => &[],
+            })
+            .unwrap_or_default();
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
@@ -334,6 +347,7 @@ impl CommutationChecker {
         if let Some(is_commuting) = commutation {
             return Ok(is_commuting);
         }
+        // let params1 = p
 
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
