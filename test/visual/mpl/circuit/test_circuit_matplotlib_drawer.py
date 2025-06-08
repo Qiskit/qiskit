@@ -1940,7 +1940,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         """
         Test to verify barrier label is always rendered on top
         """
-        fname = "barrier_label.png"
+        fname = "barrier_label_on_top.png"
         circuit = QuantumCircuit(3)
         circuit.barrier(label="init")
         circuit.h(0)
