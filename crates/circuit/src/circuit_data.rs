@@ -140,8 +140,7 @@ pub struct CircuitData {
     /// Variable identifiers, in order of their addition to the circuit
     identifier_info: IndexMap<String, CircuitIdentifierInfo>,
 
-    // Var and Stretch indices stored in the circuit.
-    // These all of type Vec so that insertion order is kept when using the various iterator functions in Python (e.g. iter_vars)
+    // Var and Stretch indices stored in the circuit
     vars_input: Vec<Var>,
     vars_captured: Vec<Var>,
     vars_declared: Vec<Var>,
@@ -287,6 +286,7 @@ pub enum VarsCopyMode {
     Drop = 2,
 }
 
+/// A convenience enum used in [CircuitData::from_packed_instructions]
 pub enum CircuitVar {
     Var(expr::Var, CircuitVarType),
     Stretch(expr::Stretch, CircuitStretchType),
@@ -2515,7 +2515,7 @@ impl CircuitData {
         Ok(var_idx)
     }
 
-    /// Return a variable given its unique [Var] index in the circuit, or
+    /// Return a variable given its unique [Var] index in the circuit or
     /// None if `var` is not a valid var index for this circuit.
     pub fn get_var(&self, var: Var) -> Option<&expr::Var> {
         self.vars.get(var)
@@ -2592,7 +2592,7 @@ impl CircuitData {
         Ok(stretch_idx)
     }
 
-    /// Return a stretch variable given its unique [Stretch] index in the circuit, or
+    /// Return a stretch variable given its unique [Stretch] index in the circuit or
     /// None if `stretch` is not a valid stretch index for this circuit.
     pub fn get_stretch(&self, stretch: Stretch) -> Option<&expr::Stretch> {
         self.stretches.get(stretch)

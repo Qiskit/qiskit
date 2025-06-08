@@ -387,6 +387,16 @@ pub enum DAGVarType {
     Declare = 2,
 }
 
+impl From<CircuitVarType> for DAGVarType {
+    fn from(value: CircuitVarType) -> Self {
+        match value {
+            CircuitVarType::Input => DAGVarType::Input,
+            CircuitVarType::Capture => DAGVarType::Capture,
+            CircuitVarType::Declare => DAGVarType::Declare,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct DAGVarInfo {
     var: Var,
@@ -436,6 +446,15 @@ impl DAGVarInfo {
 pub enum DAGStretchType {
     Capture = 0,
     Declare = 1,
+}
+
+impl From<CircuitStretchType> for DAGStretchType {
+    fn from(value: CircuitStretchType) -> Self {
+        match value {
+            CircuitStretchType::Capture => DAGStretchType::Capture,
+            CircuitStretchType::Declare => DAGStretchType::Declare,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -6119,6 +6138,16 @@ impl DAGCircuit {
         self.stretches.get(stretch)
     }
 
+    /// Add a variable to the DAGCircuit.
+    ///
+    /// # Arguments:
+    ///
+    /// * var: the new variable to add.
+    /// * type_: the type the variable should have in the DAGCircuit.
+    ///
+    /// # Returns:
+    ///
+    /// The [Var] index of the stretch in the DAGCircuit.
     fn add_var(&mut self, var: expr::Var, type_: DAGVarType) -> PyResult<Var> {
         // The setup of the initial graph structure between an "in" and an "out" node is the same as
         // the bit-related `_add_wire`, but this logically needs to do different bookkeeping around
@@ -6163,6 +6192,16 @@ impl DAGCircuit {
         Ok(var_idx)
     }
 
+    /// Add a stretch variable to the DAGCircuit.
+    ///
+    /// # Arguments:
+    ///
+    /// * stretch: the new stretch to add.
+    /// * type_: the type the stretch should have in the DAGCircuit.
+    ///
+    /// # Returns:
+    ///
+    /// The [Stretch] index of the stretch in the DAGCircuit.
     fn add_stretch(&mut self, stretch: expr::Stretch, type_: DAGStretchType) -> PyResult<Stretch> {
         let name: String = stretch.name.clone();
         match self.identifier_info.get(&name) {
@@ -6664,10 +6703,7 @@ impl DAGCircuit {
                             .get_stretch(circuit_stretch_info.get_stretch())
                             .expect("Stretch not found for the specified index")
                             .clone(),
-                        match circuit_stretch_info.get_type() {
-                            CircuitStretchType::Capture => DAGStretchType::Capture,
-                            CircuitStretchType::Declare => DAGStretchType::Declare,
-                        },
+                        circuit_stretch_info.get_type().into(),
                     )?;
                 }
                 CircuitIdentifierInfo::Var(circuit_var_info) => {
@@ -6676,11 +6712,7 @@ impl DAGCircuit {
                             .get_var(circuit_var_info.get_var())
                             .expect("Var not found for the specified index")
                             .clone(),
-                        match circuit_var_info.get_type() {
-                            CircuitVarType::Input => DAGVarType::Input,
-                            CircuitVarType::Capture => DAGVarType::Capture,
-                            CircuitVarType::Declare => DAGVarType::Declare,
-                        },
+                        circuit_var_info.get_type().into()
                     )?;
                 }
             }
