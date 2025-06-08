@@ -115,21 +115,27 @@ pub fn dag_to_circuit(
         match identifier {
             DAGIdentifierInfo::Stretch(dag_stretch_info) => {
                 res.add_stretch(
-                dag.get_stretch(dag_stretch_info.get_stretch()).expect("Stretch not found for the specified index").clone(),
-                match dag_stretch_info.get_type() {
-                    DAGStretchType::Capture => CircuitStretchType::Capture,
-                    DAGStretchType::Declare => CircuitStretchType::Declare,
-                    }
-                )?;},
+                    dag.get_stretch(dag_stretch_info.get_stretch())
+                        .expect("Stretch not found for the specified index")
+                        .clone(),
+                    match dag_stretch_info.get_type() {
+                        DAGStretchType::Capture => CircuitStretchType::Capture,
+                        DAGStretchType::Declare => CircuitStretchType::Declare,
+                    },
+                )?;
+            }
             DAGIdentifierInfo::Var(dag_var_info) => {
                 res.add_var(
-                dag.get_var(dag_var_info.get_var()).expect("Var not found for the specified index").clone(),
-                match dag_var_info.get_type() {
-                    DAGVarType::Input => CircuitVarType::Input,
-                    DAGVarType::Capture => CircuitVarType::Capture,
-                    DAGVarType::Declare => CircuitVarType::Declare,
-                }
-                )?;},
+                    dag.get_var(dag_var_info.get_var())
+                        .expect("Var not found for the specified index")
+                        .clone(),
+                    match dag_var_info.get_type() {
+                        DAGVarType::Input => CircuitVarType::Input,
+                        DAGVarType::Capture => CircuitVarType::Capture,
+                        DAGVarType::Declare => CircuitVarType::Declare,
+                    },
+                )?;
+            }
         }
     }
 

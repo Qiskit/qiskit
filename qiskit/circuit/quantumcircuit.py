@@ -1156,11 +1156,6 @@ class QuantumCircuit:
 
         # Add classical variables.  Resolve inputs and captures first because they can't depend on
         # anything, but declarations might depend on them.
-        # self._vars_input: dict[str, expr.Var] = {}
-        # self._vars_capture: dict[str, expr.Var] = {}
-        # self._vars_local: dict[str, expr.Var] = {}
-        # self._stretches_capture: dict[str, expr.Stretch] = {}
-        # self._stretches_local: dict[str, expr.Stretch] = {}
         for input_ in inputs:
             self.add_input(input_)
         for capture in captures:
@@ -2483,7 +2478,9 @@ class QuantumCircuit:
             builder = self._control_flow_scopes[-1]
             return itertools.chain(builder.iter_captured_vars(), builder.iter_local_vars())
         return itertools.chain(
-            self._data.get_input_vars(), self._data.get_captured_vars(), self._data.get_declared_vars()
+            self._data.get_input_vars(),
+            self._data.get_captured_vars(),
+            self._data.get_declared_vars(),
         )
 
     def iter_stretches(self) -> typing.Iterable[expr.Stretch]:
@@ -2496,7 +2493,9 @@ class QuantumCircuit:
             return itertools.chain(
                 builder.iter_captured_stretches(), builder.iter_local_stretches()
             )
-        return itertools.chain(self._data.get_captured_stretches(), self._data.get_declared_stretches())
+        return itertools.chain(
+            self._data.get_captured_stretches(), self._data.get_declared_stretches()
+        )
 
     def iter_declared_vars(self) -> typing.Iterable[expr.Var]:
         """Get an iterable over all real-time classical variables that are declared with automatic
@@ -3140,7 +3139,7 @@ class QuantumCircuit:
         else:
             var = name_or_var
             if not var.standalone:
-                raise CircuitError( # TODO: this check is also in Rust
+                raise CircuitError(
                     "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances."
                     " Use `add_bits` or `add_register` as appropriate."
                 )
@@ -3290,11 +3289,10 @@ class QuantumCircuit:
             )
         else:
             var = name_or_var
-        try:
-            # Store is responsible for ensuring the type safety of the initialization.
-            store = Store(var, initial)
-        except CircuitError:
-            raise
+
+        # Store is responsible for ensuring the type safety of the initialization.
+        # This will raise a CircuitError if type safety cannot be ensured.
+        store = Store(var, initial)
         circuit_scope.add_uninitialized_var(var)
         circuit_scope.append(CircuitInstruction(store, (), ()))
         return var
@@ -3405,7 +3403,6 @@ class QuantumCircuit:
         if self._control_flow_scopes:
             raise CircuitError("cannot add an input variable in a control-flow scope")
 
-        # TODO: this logic should be implemented in Rust
         if self._data.num_captured_vars or self._data.num_captured_stretches:
             raise CircuitError("circuits to be enclosed with captures cannot have input variables")
         if isinstance(name_or_var, expr.Var) and type_ is not None:
@@ -4157,7 +4154,7 @@ class QuantumCircuit:
             )
         cpy = _copy.copy(self)
 
-        _copy_metadata(self, cpy, vars_mode)
+        _copy_metadata(self, cpy)
 
         cpy._data = self._data.copy_empty_like(vars_mode=vars_mode)
 
@@ -7464,17 +7461,9 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
 
     def get_var(self, name):
         return self.circuit._data.get_var(name)
-        # if (out := self.circuit._vars_local.get(name)) is not None: # TODO: there  is a precedence here for the search, test it
-        #     return out
-        # if (out := self.circuit._vars_capture.get(name)) is not None:
-        #     return out
-        # return self.circuit._vars_input.get(name)
 
     def get_stretch(self, name):
         return self.circuit._data.get_stretch(name)
-        # if (out := self.circuit._stretches_local.get(name)) is not None: # TODO: there  is a precedence here for the search, test it
-        #     return out
-        # return self.circuit._stretches_capture.get(name)
 
     def use_var(self, var):
         if self.get_var(var.name) != var:
@@ -7506,7 +7495,7 @@ def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> exp
     return node
 
 
-def _copy_metadata(original, cpy, vars_mode):
+def _copy_metadata(original, cpy):
     # copy registers correctly, in copy.copy they are only copied via reference
     cpy._builder_api = _OuterCircuitScopeInterface(cpy)
     cpy._ancillas = original._ancillas.copy()

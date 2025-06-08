@@ -630,7 +630,7 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
         QUANTUM_CIRCUIT
             .get_bound(py)
             .call_method1(intern!(py, "_from_circuit_data"), (*circuit,))
-            .expect("Unabled to create a Python circuit")
+            .expect("Unable to create a Python circuit")
             .into_ptr()
     }
 }
