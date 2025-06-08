@@ -1360,11 +1360,11 @@ class MatplotlibDrawer:
 
     def _barrier(self, node, node_data, glob_data):
         """Draw a barrier"""
-        topmost_node = len(node_data[node].q_xy) - 1 if self._reverse_bits else 0
+        topmost_node_idx = self._qubits[0]._index
         for i, xy in enumerate(node_data[node].q_xy):
             xpos, ypos = xy
             # For the topmost barrier, reduce the rectangle if there's a label to allow for the text.
-            if i == topmost_node and node.op.label is not None:
+            if i == topmost_node_idx and node.op.label is not None:
                 ypos_adj = -0.35
             else:
                 ypos_adj = 0.0
@@ -1389,7 +1389,7 @@ class MatplotlibDrawer:
             self._ax.add_patch(box)
 
             # display the barrier label at the top if there is one
-            if i == topmost_node and node.op.label is not None:
+            if i == topmost_node_idx and node.op.label is not None:
                 dir_ypos = ypos + 0.65 * HIG
                 self._ax.text(
                     xpos,
@@ -1971,6 +1971,7 @@ class MatplotlibDrawer:
 
     def _plot_coord(self, x_index, y_index, gate_width, glob_data, flow_op=False):
         """Get the coord positions for an index"""
+
         # Check folding
         fold = self._fold if self._fold > 0 else INFINITE_FOLD
         h_pos = x_index % fold + 1
