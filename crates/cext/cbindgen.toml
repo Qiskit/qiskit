@@ -9,11 +9,21 @@ after_includes = """
     #include <Python.h>
 #endif
 
-#include <qiskit/complex.h>
+#include "qiskit/complex.h"
+
+#define QISKIT_VERSION_MAJOR 2
+#define QISKIT_VERSION_MINOR 1
+#define QISKIT_VERSION_PATCH 0
+
+#define QISKIT_VERSION_NUMERIC(M,m,p) ((M)<<16|(m)<<8|(p))
+#define QISKIT_VERSION (QISKIT_VERSION_MAJOR<<16 | QISKIT_VERSION_MINOR<<8 | QISKIT_VERSION_PATCH)
 
 // Always expose [cfg(feature = "cbinding")] -- workaround for
 // https://github.com/mozilla/cbindgen/issues/995
 #define QISKIT_WITH_CBINDINGS
+
+typedef struct QkQuantumRegister QkQuantumRegister;
+typedef struct QkClassicalRegister QkClassicalRegister;
 """
 
 [defines]
@@ -22,7 +32,7 @@ after_includes = """
 
 [parse]
 parse_deps = true
-include = ["qiskit-quantum-info", "qiskit-circuit"]
+include = ["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"]
 
 [enum]
 prefix_with_name = true
@@ -38,3 +48,7 @@ prefix_with_name = true
 "OpCount" = "QkOpCount"
 "CInstruction" = "QkCircuitInstruction"
 "ExitCode" = "QkExitCode"
+"QuantumRegister" = "QkQuantumRegister"
+"ClassicalRegister" = "QkClassicalRegister"
+"Target" = "QkTarget"
+"TargetEntry" = "QkTargetEntry"

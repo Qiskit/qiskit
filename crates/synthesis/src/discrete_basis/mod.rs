@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2024
+// (C) Copyright IBM 2025
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,9 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Quantum-information and linear-algebra related functionality, typically used as drivers for
-//! numeric compiler routines.
+mod basic_approximations;
+mod math;
+mod solovay_kitaev;
 
-mod versor_u2;
+use pyo3::prelude::*;
 
-pub use self::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
+pub fn discrete_basis(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<solovay_kitaev::SolovayKitaevSynthesis>()?;
+    m.add_class::<basic_approximations::GateSequence>()?;
+    Ok(())
+}
