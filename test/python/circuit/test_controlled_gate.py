@@ -539,7 +539,8 @@ class TestControlledGate(QiskitTestCase):
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
+        with self.assertWarns(DeprecationWarning):
+            qc.mcx(q_controls, q_target[0], q_ancillas, mode=mode)
 
         simulated = Operator(qc).data
         if num_ancillas > 0:
@@ -713,7 +714,8 @@ class TestControlledGate(QiskitTestCase):
     def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test an MCXGrayCode yields explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
-        qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(MCXGrayCode(num_ctrl_qubits), list(range(qc.num_qubits)), [])
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
         self.assertEqual(qc[0].operation.base_class, explicit[num_ctrl_qubits])
 
@@ -723,12 +725,14 @@ class TestControlledGate(QiskitTestCase):
         reference = np.zeros(2 ** (num_ctrl_qubits + 1))
         reference[-1] = 1
 
-        for gate in [
-            MCXGrayCode(num_ctrl_qubits),
-            MCXRecursive(num_ctrl_qubits),
-            MCXVChain(num_ctrl_qubits, False),
-            MCXVChain(num_ctrl_qubits, True),
-        ]:
+        with self.assertWarns(DeprecationWarning):
+            gates = [
+                MCXGrayCode(num_ctrl_qubits),
+                MCXRecursive(num_ctrl_qubits),
+                MCXVChain(num_ctrl_qubits, False),
+                MCXVChain(num_ctrl_qubits, True),
+            ]
+        for gate in gates:
             with self.subTest(gate=gate):
                 circuit = QuantumCircuit(gate.num_qubits)
                 if num_ctrl_qubits > 0:
@@ -737,10 +741,15 @@ class TestControlledGate(QiskitTestCase):
                 statevector = Statevector(circuit).data
 
                 # account for ancillas
-                if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
+                if isinstance(gate, MCXGate):
+                    with self.assertWarns(DeprecationWarning):
+                        num_ancilla_qubits = gate.get_num_ancilla_qubits(gate.num_ctrl_qubits)
+                else:
+                    num_ancilla_qubits = 0
+                if num_ancilla_qubits > 0:
                     corrected = np.zeros(2 ** (num_ctrl_qubits + 1), dtype=complex)
                     for i, statevector_amplitude in enumerate(statevector):
-                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[gate.num_ancilla_qubits :], 2)
+                        i = int(bin(i)[2:].zfill(circuit.num_qubits)[num_ancilla_qubits:], 2)
                         corrected[i] += statevector_amplitude
                     statevector = corrected
                 np.testing.assert_array_almost_equal(statevector.real, reference)
@@ -751,8 +760,9 @@ class TestControlledGate(QiskitTestCase):
 
         num_ctrl_qubits = 5
 
-        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        gate_with_cancelling = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, action_only=True)
+        with self.assertWarns(DeprecationWarning):
+            gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+            gate_with_cancelling = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, action_only=True)
 
         num_qubits = gate.num_qubits
         ref_circuit = QuantumCircuit(num_qubits)
@@ -773,8 +783,11 @@ class TestControlledGate(QiskitTestCase):
         with only relative phase Toffoli gates."""
         num_ctrl_qubits = 5
 
-        gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
-        gate_relative_phase = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, relative_phase=True)
+        with self.assertWarns(DeprecationWarning):
+            gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True)
+            gate_relative_phase = MCXVChain(
+                num_ctrl_qubits, dirty_ancillas=True, relative_phase=True
+            )
 
         num_qubits = gate.num_qubits + 1
         ref_circuit = QuantumCircuit(num_qubits)
@@ -1606,11 +1619,20 @@ class TestControlledStandardGates(QiskitTestCase):
                 if gate_params[i] == "num_ctrl_qubits":
                     args[i] = 2
 
-        gate = gate_class(*args)
+        if issubclass(gate_class, (MCXGrayCode, MCXRecursive, MCXVChain)):
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(*args)
+        else:
+            gate = gate_class(*args)
 
         for ctrl_state in (ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed):
             with self.subTest(i=f"{gate_class.__name__}, ctrl_state={ctrl_state}"):
-                if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
+                if isinstance(gate, MCXGate):
+                    with self.assertWarns(DeprecationWarning):
+                        num_ancilla_qubits = gate.get_num_ancilla_qubits(gate.num_ctrl_qubits)
+                else:
+                    num_ancilla_qubits = 0
+                if num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits
                     continue
                 try:
