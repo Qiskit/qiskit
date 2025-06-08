@@ -758,6 +758,8 @@ impl Instruction for PackedInstruction {
 
     #[inline]
     fn params_view(&self) -> Option<&Parameters<PyObject>> {
+        // TODO: this should probably produce Some(Parameters::Params(&[]))
+        //   when dealing with a gate?
         self.params.as_deref()
     }
 

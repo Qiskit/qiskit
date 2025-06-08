@@ -15,7 +15,8 @@ use pyo3::types::PySequence;
 use pyo3::types::PyString;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{
-    add_param, multiply_param, multiply_params, Param, StandardGate, StandardInstruction,
+    add_param, multiply_param, multiply_params, Param, Parameters, StandardGate,
+    StandardInstruction,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
@@ -28,7 +29,7 @@ use crate::QiskitError;
 
 type Instruction = (
     PackedOperation,
-    SmallVec<[Param; 3]>,
+    Option<Parameters<PyObject>>,
     Vec<Qubit>,
     Vec<Clbit>,
 );
@@ -82,7 +83,7 @@ pub fn pauli_feature_map(
             PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
                 feature_dimension,
             )),
-            smallvec![],
+            None,
             (0..feature_dimension).map(Qubit).collect(),
             vec![] as Vec<Clbit>,
         ))
@@ -135,7 +136,7 @@ fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
     (0..feature_dimension).map(|i| {
         (
             StandardGate::H.into(),
-            smallvec![],
+            Some(Parameters::Params(smallvec![])),
             vec![Qubit(i)],
             vec![] as Vec<Clbit>,
         )

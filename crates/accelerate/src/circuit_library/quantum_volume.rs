@@ -23,14 +23,14 @@ use rayon::prelude::*;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::getenv_use_multiple_threads;
-use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
+use qiskit_circuit::operations::{ArrayType, Param, Parameters, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
 
 type Instruction = (
     PackedOperation,
-    SmallVec<[Param; 3]>,
+    Option<Parameters<PyObject>>,
     Vec<Qubit>,
     Vec<Clbit>,
 );
@@ -113,7 +113,7 @@ pub fn quantum_volume(
         let qubit = layer_index * 2;
         Ok((
             PackedOperation::from_unitary(Box::new(unitary_gate)),
-            smallvec![],
+            None,
             vec![permutation[qubit], permutation[qubit + 1]],
             vec![],
         ))

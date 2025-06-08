@@ -19,7 +19,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, StandardInstruction};
+use qiskit_circuit::operations::{Param, Parameters, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 
 use itertools::izip;
@@ -29,7 +29,7 @@ use super::parameter_ledger::{LayerParameters, LayerType, ParameterLedger};
 
 type Instruction = (
     PackedOperation,
-    SmallVec<[Param; 3]>,
+    Option<Parameters<PyObject>>,
     Vec<Qubit>,
     Vec<Clbit>,
 );
@@ -76,7 +76,7 @@ fn rotation_layer<'a>(
                         .expect("Failed to rebind");
                     Ok((
                         bound_op,
-                        bound_params,
+                        Some(Parameters::Params(bound_params)),
                         (0..block.num_qubits)
                             .map(|i| Qubit(start_idx + i))
                             .collect(),
@@ -121,7 +121,7 @@ fn entanglement_layer<'a>(
                     .expect("Failed to rebind");
                 Ok((
                     bound_op,
-                    bound_params,
+                    Some(Parameters::Params(bound_params)),
                     indices.iter().map(|i| Qubit(*i)).collect(),
                     vec![] as Vec<Clbit>,
                 ))
@@ -288,7 +288,7 @@ impl MaybeBarrier {
                 PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
                     num_qubits,
                 )),
-                smallvec![],
+                None,
                 (0..num_qubits).map(Qubit).collect(),
                 vec![] as Vec<Clbit>,
             );

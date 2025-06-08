@@ -303,10 +303,11 @@ fn generate_twirled_circuit(
                     py,
                     PackedInstruction::from_control_flow(
                         inst.op.control_flow().clone(),
-                        operations::replace_blocks(
-                            inst.params_view().into_iter().cloned().collect(),
-                            new_blocks,
-                        ),
+                        {
+                            let mut blocks = inst.params_view().unwrap().clone();
+                            blocks.replace_blocks(new_blocks);
+                            blocks
+                        },
                         inst.qubits,
                         inst.clbits,
                         inst.label(),
