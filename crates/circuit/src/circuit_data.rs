@@ -1269,6 +1269,9 @@ impl CircuitData {
                 return Ok(false);
             }
 
+            // Checking for variable equivalence in a strict way: both circuits should have the
+            // same variables/stretches as well as the exact same order thereof.
+            // Do we want to relax the order requirement within each variable/stretch type?
             if let Ok(slf_dc) = slf.extract::<CircuitData>() {
                 if slf_dc.identifier_info
                     != other_dc
