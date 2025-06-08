@@ -393,21 +393,32 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
         })
     }
 
-    fn gate_params(self) -> Option<&'a [Param]> {
+    /// Returns the old-style [Param] sequence, unless this is a control
+    /// flow instruction.
+    fn legacy_params(self) -> Option<&'a [Param]> {
         match self.view() {
             InstructionRef::StandardGate(_)
             | InstructionRef::Gate(_)
             | InstructionRef::Operation(_)
-            | InstructionRef::Unitary(_) => Some(
-                self.params
-                    .as_deref()
+            | InstructionRef::Unitary(_)
+            | InstructionRef::Instruction(_) => Some(
+                self.params_view()
                     .and_then(|p| match p {
                         Parameters::Params(p) => Some(p.as_slice()),
                         _ => panic!("expected gate parameters"),
                     })
                     .unwrap_or_default(),
             ),
-            _ => None,
+            InstructionRef::StandardInstruction(inst) => match inst {
+                StandardInstructionRef::Delay { duration, .. } => {
+                    Some(std::slice::from_ref(&duration))
+                }
+                _ => Some(&[]),
+            },
+            _ => {
+                println!("GOT NONE FOR GATE PARAMS: {:?}", self.view());
+                None
+            }
         }
     }
 }

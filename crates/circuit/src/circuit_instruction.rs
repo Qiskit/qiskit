@@ -47,7 +47,7 @@ pub trait IntoInstructionRef<'a> {
     fn standard_gate(self) -> Option<StandardGateRef<'a>>;
     fn standard_instruction(self) -> Option<StandardInstructionRef<'a>>;
     fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>>;
-    fn gate_params(self) -> Option<&'a [Param]>;
+    fn legacy_params(self) -> Option<&'a [Param]>;
 
     #[inline]
     fn view(self) -> InstructionRef<'a, Self::Block>
@@ -365,8 +365,10 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
         let OperationRef::StandardGate(gate) = self.op() else {
             return None;
         };
-        let Some(Parameters::Params(params)) = self.params_view() else {
-            panic!("invalid gate");
+        let params = match self.params_view() {
+            Some(Parameters::Params(params)) => params.as_slice(),
+            None => &[],
+            _ => panic!("invalid gate"),
         };
         Some(StandardGateRef(gate, params))
     }
@@ -462,12 +464,15 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
         })
     }
 
-    fn gate_params(self) -> Option<&'a [Param]> {
+    /// Returns the old-style [Param] sequence, unless this is a control
+    /// flow instruction.
+    fn legacy_params(self) -> Option<&'a [Param]> {
         match self.view() {
             InstructionRef::StandardGate(_)
             | InstructionRef::Gate(_)
             | InstructionRef::Operation(_)
-            | InstructionRef::Unitary(_) => Some(
+            | InstructionRef::Unitary(_)
+            | InstructionRef::Instruction(_) => Some(
                 self.params_view()
                     .and_then(|p| match p {
                         Parameters::Params(p) => Some(p.as_slice()),
@@ -475,7 +480,16 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                     })
                     .unwrap_or_default(),
             ),
-            _ => None,
+            InstructionRef::StandardInstruction(inst) => match inst {
+                StandardInstructionRef::Delay { duration, .. } => {
+                    Some(std::slice::from_ref(&duration))
+                }
+                _ => Some(&[]),
+            },
+            _ => {
+                println!("GOT NONE FOR GATE PARAMS: {:?}", self.view());
+                None
+            }
         }
     }
 }

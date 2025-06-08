@@ -16,7 +16,6 @@ use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::{smallvec, SmallVec};
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, Parameters, StandardInstruction};

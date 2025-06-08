@@ -285,8 +285,8 @@ impl<'py> FromPyObject<'py> for GateOper {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let op_struct: OperationFromPython = ob.extract()?;
         let params = op_struct
-            .gate_params()
-            .expect("expected gate parameters")
+            .legacy_params()
+            .expect("unexpected control flow")
             .iter()
             .cloned()
             .collect();

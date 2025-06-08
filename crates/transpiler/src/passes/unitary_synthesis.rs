@@ -589,7 +589,7 @@ fn get_2q_decomposers_from_target(
             }
             // Add to param_basis if the gate parameters aren't bound (not Float)
             if !op
-                .gate_params()
+                .legacy_params()
                 .unwrap()
                 .iter()
                 .all(|p| matches!(p, Param::Float(_)))
@@ -647,7 +647,7 @@ fn get_2q_decomposers_from_target(
                     decomposers.push(DecomposerElement {
                         decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
                         packed_op: gate.operation.clone(),
-                        params: gate.gate_params().unwrap().iter().cloned().collect(),
+                        params: gate.legacy_params().unwrap().iter().cloned().collect(),
                     });
                 }
                 Err(_) => continue,
@@ -704,7 +704,7 @@ fn get_2q_decomposers_from_target(
             decomposers.push(DecomposerElement {
                 decomposer: DecomposerType::TwoQubitBasis(Box::new(decomposer)),
                 packed_op: gate.operation.clone(),
-                params: gate.gate_params().unwrap().iter().cloned().collect(),
+                params: gate.legacy_params().unwrap().iter().cloned().collect(),
             });
         }
     }
@@ -811,7 +811,7 @@ fn get_2q_decomposers_from_target(
                 .getattr(intern!(py, "gate"))?
                 .extract::<NormalOperation>()?;
             let params = decomposer_gate
-                .gate_params()
+                .legacy_params()
                 .unwrap()
                 .iter()
                 .cloned()
@@ -1157,7 +1157,7 @@ fn synth_error(
                     let are_params_close = if let Some(params) = inst_params {
                         params
                             .iter()
-                            .zip(target_op.gate_params().unwrap().iter())
+                            .zip(target_op.legacy_params().unwrap().iter())
                             .all(|(p1, p2)| {
                                 p1.is_close(py, p2, 1e-10)
                                     .expect("Unexpected parameter expression error.")
@@ -1166,7 +1166,7 @@ fn synth_error(
                         false
                     };
                     let is_parametrized = target_op
-                        .gate_params()
+                        .legacy_params()
                         .unwrap()
                         .iter()
                         .any(|param| matches!(param, Param::ParameterExpression(_)));

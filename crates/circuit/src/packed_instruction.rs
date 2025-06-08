@@ -758,8 +758,6 @@ impl Instruction for PackedInstruction {
 
     #[inline]
     fn params_view(&self) -> Option<&Parameters<PyObject>> {
-        // TODO: this should probably produce Some(Parameters::Params(&[]))
-        //   when dealing with a gate?
         self.params.as_deref()
     }
 
@@ -781,6 +779,7 @@ impl Instruction for PackedInstruction {
 
 impl PackedInstruction {
     /// Pack a [StandardGate] into a complete instruction.
+    // TODO: I think this should take SmallVec<[Param; 3]>
     pub fn from_standard_gate(
         gate: StandardGate,
         params: Option<Box<Parameters<PyObject>>>,
