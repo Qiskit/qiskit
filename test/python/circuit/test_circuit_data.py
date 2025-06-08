@@ -25,6 +25,7 @@ from qiskit.circuit import (
     Qubit,
     Clbit,
 )
+from qiskit.circuit.classical import types, expr
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate, Measure
 from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -144,6 +145,19 @@ class TestQuantumCircuitData(QiskitTestCase):
             ],
             global_phase=1,
         )
+
+        data.add_input_var(expr.Var.new("in1", types.Bool()))
+        data.add_declared_var(expr.Var.new("v1", types.Float()))
+        data.add_declared_stretch(expr.Stretch.new("s1"))
+
+        self.assertEqual(data, pickle.loads(pickle.dumps(data)))
+
+        # Now with captured variables
+        data = CircuitData()
+        data.add_captured_var(expr.Var.new("v1", types.Bool()))
+        data.add_declared_var(expr.Var.new("v2", types.Float()))
+        data.add_declared_stretch(expr.Stretch.new("s1"))
+        data.add_captured_stretch(expr.Stretch.new("s2"))
 
         self.assertEqual(data, pickle.loads(pickle.dumps(data)))
 
@@ -565,6 +579,45 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
 
         self.assertEqual(data_copy, qc.data)
 
+    def test_copy_empty_like(self):
+        """Test copy_empty_like with variable handling"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        data = CircuitData(
+            qubits=qr,
+            clbits=cr,
+            global_phase=1,
+        )
+        data.add_input_var(expr.Var.new("in1", types.Bool()))
+        data.add_declared_var(expr.Var.new("v1", types.Float()))
+        data.add_declared_stretch(expr.Stretch.new("s1"))
+
+        with self.subTest("vars_mode validation"):
+            with self.assertRaises(ValueError):
+                data.copy_empty_like(vars_mode="invalid-mode")
+
+        with self.subTest("variables copied alike"):
+            data_copy = data.copy_empty_like(vars_mode="alike")
+            self.assertEqual(data_copy, data)
+
+        with self.subTest("variables copied as captured"):
+            data_copy = data.copy_empty_like(vars_mode="captures")
+            self.assertNotEqual(data_copy, data)
+            self.assertEqual(data_copy.num_captured_vars, 2)
+            self.assertEqual(data_copy.num_captured_stretches, 1)
+
+        with self.subTest("no variables are copied"):
+            data_copy = data.copy_empty_like(vars_mode="drop")
+            self.assertNotEqual(data_copy, data)
+            self.assertEqual(
+                data_copy.num_input_vars
+                + data_copy.num_declared_vars
+                + data_copy.num_captured_vars
+                + data_copy.num_declared_stretches
+                + data_copy.num_captured_stretches,
+                0,
+            )
+
     def test_repr(self):
         """Verify circuit.data repr."""
         qr = QuantumRegister(2)
@@ -879,3 +932,107 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc0_instance = qc0._data[next(iter(qc0._data._raw_parameter_table_entry(b)))[0]]
         qc1_instance = qc1._data[next(iter(qc1._data._raw_parameter_table_entry(a)))[0]]
         self.assertNotEqual(qc0_instance, qc1_instance)
+
+    def test_input_variables(self):
+        """Test input variables handling"""
+
+        data = CircuitData()
+        d1 = expr.Var.new("d1", types.Bool())
+        data.add_declared_var(d1)
+        data.add_input_var(expr.Var.new("in1", types.Bool()))
+        in2 = expr.Var.new("in2", types.Uint(4))
+        data.add_input_var(in2)
+
+        self.assertTrue(data.has_var("in1"))
+        self.assertTrue(data.has_var(in2))
+        self.assertFalse(data.has_var("vv"))
+        self.assertEqual(data.num_input_vars, 2)
+        self.assertEqual(data.get_var("in2"), in2)
+        self.assertIsNone(data.get_var("v22"))
+        self.assertTrue(data.has_input_var("in1"))
+        self.assertFalse(data.has_input_var("in22"))
+        self.assertTrue(in2 in data.get_input_vars())
+        self.assertTrue(d1 in data.get_declared_vars())
+        self.assertEqual(len(data.get_declared_vars()), 1)
+        self.assertEqual(len(data.get_input_vars()), 2)
+
+    def test_captured_variables(self):
+        """Test input variables handling"""
+        data = CircuitData()
+        c1 = expr.Var.new("c1", types.Bool())
+        data.add_declared_var(expr.Var.new("d1", types.Bool()))
+        data.add_captured_var(c1)
+
+        self.assertEqual(data.get_var("c1"), c1)
+        self.assertEqual(data.num_input_vars, 0)
+        self.assertEqual(data.num_captured_vars, 1)
+        self.assertEqual(data.num_declared_vars, 1)
+        assert c1 in data.get_captured_vars()
+
+    def test_local_stretches(self):
+        """Test local stretch variables handling"""
+        data = CircuitData()
+        s1 = expr.Stretch.new("s1")
+        data.add_declared_stretch(s1)
+        data.add_declared_stretch(expr.Stretch.new("s2"))
+        self.assertTrue(data.has_stretch("s1"))
+        self.assertTrue(data.has_stretch("s2"))
+        self.assertTrue(data.has_stretch(s1))
+        self.assertEqual(data.get_stretch("s1"), s1)
+        self.assertEqual(data.num_declared_stretches, 2)
+        self.assertEqual(len(data.get_declared_stretches()), 2)
+
+    def test_captured_stretches(self):
+        """Test captured stretch variables handling"""
+        data = CircuitData()
+        s1 = expr.Stretch.new("s1")
+        data.add_captured_stretch(s1)
+        data.add_declared_stretch(expr.Stretch.new("s2"))
+        self.assertTrue(data.has_stretch("s1"))
+        self.assertEqual(data.get_stretch("s1"), s1)
+        self.assertEqual(len([data.get_captured_stretches()]), 1)
+        self.assertEqual(data.num_captured_stretches, 1)
+        self.assertTrue(s1 in data.get_captured_stretches())
+
+    def test_variable_declaration_rules(self):
+        """Verify that variable and stretch declaration rules
+        are enforced when adding new variables, including checks for name collisions"""
+        with self.subTest("circuit with input variables"):
+            data = CircuitData()
+            data.add_input_var(expr.Var.new("in1", types.Bool()))
+            with self.assertRaisesRegex(
+                CircuitError, "cannot add var as its name shadows an existing identifier"
+            ):
+                data.add_input_var(expr.Var.new("in1", types.Bool()))
+            with self.assertRaisesRegex(
+                CircuitError,
+                "circuits with input variables cannot be enclosed, so cannot be closures",
+            ):
+                data.add_captured_var(expr.Var.new("v1", types.Bool()))
+
+            data.add_declared_stretch(expr.Stretch.new("s1"))
+            with self.assertRaisesRegex(
+                CircuitError, "cannot add stretch as its name shadows an existing identifier"
+            ):
+                data.add_declared_stretch(expr.Stretch.new("s1"))
+            with self.assertRaisesRegex(
+                CircuitError,
+                "circuits with input variables cannot be enclosed, so cannot be closures",
+            ):
+                data.add_captured_stretch(expr.Stretch.new("s2"))
+
+        with self.subTest("circuits with captured variables"):
+            data = CircuitData()
+            data.add_captured_var(expr.Var.new("v1", types.Bool()))
+            data.add_declared_stretch(expr.Stretch.new("s1"))
+            with self.assertRaisesRegex(
+                CircuitError, "circuits to be enclosed with captures cannot have input variables"
+            ):
+                data.add_input_var(expr.Var.new("in1", types.Bool()))
+
+            data = CircuitData()
+            data.add_captured_stretch(expr.Stretch.new("s1"))
+            with self.assertRaisesRegex(
+                CircuitError, "circuits to be enclosed with captures cannot have input variables"
+            ):
+                data.add_input_var(expr.Var.new("in1", types.Bool()))

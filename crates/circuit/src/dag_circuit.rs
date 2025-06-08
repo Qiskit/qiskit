@@ -4582,7 +4582,7 @@ impl DAGCircuit {
         self.identifier_info.iter().map(|id| id.1)
     }
 
-    /// Returns an iterator over the input variables used by the circuit. // TODO: this can be used in the circuitdata as a comment
+    /// Returns an iterator over the input variables used by the circuit.
     pub fn input_vars(&self) -> impl ExactSizeIterator<Item = &expr::Var> {
         self.vars_input.iter().map(|v| self.vars.get(*v).unwrap())
     }
@@ -6251,7 +6251,7 @@ impl DAGCircuit {
     pub fn with_capacity(
         num_qubits: usize,
         num_clbits: usize,
-        num_vars: Option<usize>, // TODO: something similar for CircuitData's with_capacity
+        num_vars: Option<usize>,
         num_ops: Option<usize>,
         num_edges: Option<usize>,
         num_stretches: Option<usize>,
