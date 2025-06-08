@@ -1500,12 +1500,95 @@ impl CircuitData {
                     instruction: instruction_index,
                     parameter: 0,
                 };
-                todo!()
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.track(&param_ob?, Some(usage))?;
+                }
             }
-            Parameters::ForLoop { .. } => todo!(),
-            Parameters::IfElse { .. } => todo!(),
-            Parameters::Switch { .. } => todo!(),
-            Parameters::While { .. } => todo!(),
+            Parameters::ForLoop {
+                loop_param, body, ..
+            } => {
+                if let Some(loop_param) = loop_param {
+                    self.param_table.track(
+                        &loop_param.bind(py),
+                        Some(ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: 1,
+                        }),
+                    )?;
+                }
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 2,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.track(&param_ob?, Some(usage))?;
+                }
+            }
+            Parameters::IfElse {
+                true_body,
+                false_body,
+            } => {
+                let true_usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in true_body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.track(&param_ob?, Some(true_usage))?;
+                }
+                if let Some(false_body) = false_body {
+                    let false_usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 1,
+                    };
+                    for param_ob in false_body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.track(&param_ob?, Some(false_usage))?;
+                    }
+                }
+            }
+            Parameters::Switch { cases } => {
+                for (idx, case) in cases.iter().enumerate() {
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: idx as u32,
+                    };
+                    for param_ob in case
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.track(&param_ob?, Some(usage))?;
+                    }
+                }
+            }
+            Parameters::While { body } => {
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.track(&param_ob?, Some(usage))?;
+                }
+            }
         }
         Ok(())
     }
@@ -1533,7 +1616,100 @@ impl CircuitData {
                     }
                 }
             }
-            _ => todo!(),
+            Parameters::Box { body } => {
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.untrack(&param_ob?, usage)?;
+                }
+            }
+            Parameters::ForLoop {
+                loop_param, body, ..
+            } => {
+                if let Some(loop_param) = loop_param {
+                    self.param_table.untrack(
+                        &loop_param.bind(py),
+                        ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: 1,
+                        },
+                    )?;
+                }
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 2,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.untrack(&param_ob?, usage)?;
+                }
+            }
+            Parameters::IfElse {
+                true_body,
+                false_body,
+            } => {
+                let true_usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in true_body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.untrack(&param_ob?, true_usage)?;
+                }
+                if let Some(false_body) = false_body {
+                    let false_usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 1,
+                    };
+                    for param_ob in false_body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.untrack(&param_ob?, false_usage)?;
+                    }
+                }
+            }
+            Parameters::Switch { cases } => {
+                for (idx, case) in cases.iter().enumerate() {
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: idx as u32,
+                    };
+                    for param_ob in case
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.untrack(&param_ob?, usage)?;
+                    }
+                }
+            }
+            Parameters::While { body } => {
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.untrack(&param_ob?, usage)?;
+                }
+            }
         }
         Ok(())
     }
@@ -1925,7 +2101,7 @@ impl CircuitData {
                                 }
                             };
                             op.getattr(params_attr)?.set_item(parameter, new_param)?;
-                            let mut new_op = op.extract::<OperationFromPython>()?;
+                            let new_op = op.extract::<OperationFromPython>()?;
                             previous.op = new_op.operation;
                             previous.params = new_op.params.map(|p| p.into());
                             previous.label = new_op.label;
