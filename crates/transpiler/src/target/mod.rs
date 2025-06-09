@@ -14,13 +14,13 @@
 
 mod errors;
 mod instruction_properties;
-mod qubit_properties;
 mod qargs;
+mod qubit_properties;
 
 pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
-pub use qubit_properties::QubitProperties;
 pub use qargs::{Qargs, QargsRef};
+pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
 
@@ -1493,7 +1493,10 @@ mod test {
     use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
 
-    use super::{instruction_properties::InstructionProperties, qubit_properties::QubitProperties, Qargs, Target};
+    use super::{
+        instruction_properties::InstructionProperties, qubit_properties::QubitProperties, Qargs,
+        Target,
+    };
 
     #[test]
     fn test_add_invalid_qargs_insruction() {
@@ -1647,11 +1650,10 @@ mod test {
 
     #[test]
     fn test_qubit_properties_creation() {
-    // Create a QubitProperties instance with specific values and check its fields
+        // Create a QubitProperties instance with specific values and check its fields
         let qubit_props = QubitProperties::new(Some(100.0), Some(200.0), Some(5.0));
         assert_eq!(qubit_props.t1, Some(100.0));
         assert_eq!(qubit_props.t2, Some(200.0));
         assert_eq!(qubit_props.frequency, Some(5.0));
     }
-
 }

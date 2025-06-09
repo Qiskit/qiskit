@@ -10,14 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::{prelude::*,pyclass};
+use pyo3::{prelude::*, pyclass};
 /**
     A representation of a ``QubitProperties`` object.
-*/    
-#[pyclass(subclass,
-    name="QubitProperties",
-    module="qiskit._accelerate.target")]
-#[derive(Clone,Debug,PartialEq)]
+*/
+#[pyclass(
+    subclass,
+    name = "QubitProperties",
+    module = "qiskit._accelerate.target"
+)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct QubitProperties {
     #[pyo3(get, set)]
     pub t1: Option<f64>,
@@ -28,7 +30,7 @@ pub struct QubitProperties {
 }
 
 #[pymethods]
-impl QubitProperties{
+impl QubitProperties {
     /// Create a new ``QubitProperties`` object
     ///
     /// Args:
@@ -36,9 +38,8 @@ impl QubitProperties{
     ///     t2 (Option<f64>): The T2 dephasing time for the qubit, in seconds.
     ///     frequency (Option<f64>): The resonance frequency of the qubit, in Hz.
     #[new]
-    pub fn new(t1:Option<f64>, t2:Option<f64>, frequency:Option<f64>)->Self
-    {
-        QubitProperties{t1,t2,frequency}
+    pub fn new(t1: Option<f64>, t2: Option<f64>, frequency: Option<f64>) -> Self {
+        QubitProperties { t1, t2, frequency }
     }
 
     fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>, Option<f64>)> {
@@ -53,23 +54,23 @@ impl QubitProperties{
     }
 
     fn __repr__(&self) -> String {
-    format!(
-        "QubitProperties(t1={}, t2={}, frequency={})",
-        if let Some(t1) = self.t1 {
-            t1.to_string()
-        } else {
-            "None".to_string()
-        },
-        if let Some(t2) = self.t2 {
-            t2.to_string()
-        } else {
-            "None".to_string()
-        },
-        if let Some(frequency) = self.frequency {
-            frequency.to_string()
-        } else {
-            "None".to_string()
-        }
-    )
-}
+        format!(
+            "QubitProperties(t1={}, t2={}, frequency={})",
+            if let Some(t1) = self.t1 {
+                t1.to_string()
+            } else {
+                "None".to_string()
+            },
+            if let Some(t2) = self.t2 {
+                t2.to_string()
+            } else {
+                "None".to_string()
+            },
+            if let Some(frequency) = self.frequency {
+                frequency.to_string()
+            } else {
+                "None".to_string()
+            }
+        )
+    }
 }
