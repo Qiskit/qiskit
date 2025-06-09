@@ -946,7 +946,7 @@ impl Target {
     }
 
     /// Does the gate have an angle bound?
-    pub fn gate_has_angle_bound(&self, name: &str) -> bool {
+    pub fn gate_has_angle_bounds(&self, name: &str) -> bool {
         self.angle_bounds.contains_key(name)
     }
 }

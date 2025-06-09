@@ -40,7 +40,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
             return Ok(true);
         }
         if target.has_angle_bounds()
-            && target.gate_has_angle_bound(gate.op.name())
+            && target.gate_has_angle_bounds(gate.op.name())
             && !gate.is_parameterized()
         {
             let params: Vec<f64> = gate

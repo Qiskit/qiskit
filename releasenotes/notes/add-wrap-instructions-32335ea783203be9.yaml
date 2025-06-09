@@ -12,21 +12,35 @@ features_transpiler:
     the angle value between the values 0 and :math:`2\pi`.
 
     There are several methods available for working with the angle bouds on the target. The first is
-    :meth:`.Target.add_angle_bound` which is used to add an angle bound to an instruction in the
-    :class:`.Target`. To add an angle bound you must specify a callback function that will take
-    arbitrary ``float`` values representing a gate angles from the circuit and that will return a
-    :class:`.DAGCircuit` that represents an equivalent circuit for the gate with that angle but
-    respecting the angle bounds. For example::
+    :meth:`.Target.add_instruction` which has a new ``angle_bounds`` keyword argument that is used to
+    add an angle bound to an instruction in the :class:`.Target`. To work with angle bounds you will also
+    want to register a callback function to the global ``WRAP_ANGLE_REGISTRY`` registry that will tell the
+    transpiler and :class:`.WrapAngles` pass how to adjust gates for angle bounds. The callback function
+    will take a list of  arbitrary ``float`` values representing the gate angles from the circuit, as well
+    as the qubit indices in the circuit the gate was operating on and it will return a :class:`.DAGCircuit`
+    that represents an equivalent circuit for the gate with that angle but respecting the angle bounds and
+    other :class:`.Target` constraints. For example::
 
         import math
 
         from qiskit.dagcircuit import DAGCircuit
         from qiskit.transpiler import target
+        from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
 
         target = Target(num_qubits=1)
-        target.add_instruction(RZGate(Parameter("theta")))
+        target.add_instruction(RZGate(Parameter("theta")), angle_bounds=[(-math.pi, math.pi)])
 
-        def callback(angles: float) -> DAGCircuit:
+        def callback(angles: List[float], qubits: List[int]) -> DAGCircuit:
+            """Callback function to wrap RZ gate angles
+
+            Args:
+                angles: The list of floating point parameter values for the instance of RZGate in
+                    the circuit
+                qubits: The physical qubit indices that this gate is operating on
+
+            Returns:
+                The DAGCircuit of the equivalent circuit
+
             angle = angles[0]
             dag = DAGCircuit()
             dag.add_qubits([Qubit()])
@@ -40,20 +54,17 @@ features_transpiler:
                 dag.apply_operation_back(RZGate(math.pi), [dag.qubits[0]], check=True)
             dag.apply_operation_back(rem, [dag.qubits[0]], check=True)
 
-        target.add_bound("rz", [(-math.pi, math.pi)], callback)
+        WRAP_ANGLE_REGISTRY.add_wrapper("rz", callback)
 
     :meth:`.Target.has_angle_bounds` can be used to check whether there are
-    any angle bounds set in the target, and :meth:`.Target.gate_has_angle_bound`.
+    any angle bounds set in the target, and :meth:`.Target.gate_has_angle_bounds`.
 
     If you want to apply the angle bounds from a target to any gates in a circuit the
     :class:`.WrapAngles` transpiler pass should be used to do this.
   - |
     Added a new kwarg ``check_angle_bounds`` to the :meth:`.Target.instruction_supported` method.
-    When set to ``True`` the method will check if the specified ``parameters``
-    also conforms to any angle bounds that may exist for the instruction
-    being queried. This argument defaults to ``False`` for both backwards
-    compatibility and because the check would add extra overhead to
-    the preset pass managers which handle working with angle bounds independently.
+    When set to ``True`` (the default) the method will check if the specified ``parameters``
+    also conforms to any angle bounds that may exist for the instruction being queried.
   - |
     Added a new transpiler pass :class:`.WrapAngles` which is used to apply
     angle constraints on gates in the :class:`.Target`. If a :class:`.Target` has defined
@@ -78,7 +89,7 @@ features_transpiler:
        circuit = QuantumCircuit(1)
        circuit.append(MyCustomGate(6.0), [0])
        target = Target(num_qubits=1)
-       target.add_instruction(MyCustomGate(param))
+       target.add_instruction(MyCustomGate(param), angle_bounds=[(0, 0.5)])
 
        def callback(angles):
            angle = angles[0]
@@ -92,7 +103,8 @@ features_transpiler:
                dag.apply_operation_back(MyCustomGate(0.5), [dag.qubits[0]])
            return dag
 
-       target.add_angle_bound("my_custom", [(0, 0.5)], callback)
-       wrap_pass = WrapAngles(target)
+       registry = WrapAngleRegistry()
+       registry.add_wrapper("my_custom", callback)
+       wrap_pass = WrapAngles(target, registry)
        res = wrap_pass(circuit)
        res.draw('mpl')
