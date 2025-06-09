@@ -285,7 +285,7 @@ impl Target {
         min_length: Option<u32>,
         pulse_alignment: Option<u32>,
         acquire_alignment: Option<u32>,
-        qubit_properties: Option<Vec<QubitProperties>>,
+        qubit_properties: Option<Vec<PyObject>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
         if let Some(qubit_properties) = qubit_properties.as_ref() {
@@ -1648,9 +1648,10 @@ mod test {
     #[test]
     fn test_qubit_properties_creation() {
     // Create a QubitProperties instance with specific values and check its fields
-    let qubit_props = QubitProperties::new(Some(100.0), Some(200.0), Some(5.0));
-    assert_eq!(qubit_props.t1, Some(100.0));
-    assert_eq!(qubit_props.t2, Some(200.0));
-    assert_eq!(qubit_props.frequency, Some(5.0));
-}
+        let qubit_props = QubitProperties::new(Some(100.0), Some(200.0), Some(5.0));
+        assert_eq!(qubit_props.t1, Some(100.0));
+        assert_eq!(qubit_props.t2, Some(200.0));
+        assert_eq!(qubit_props.frequency, Some(5.0));
+    }
+
 }
