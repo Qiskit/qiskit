@@ -12,6 +12,7 @@
 
 use std::env;
 
+pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
 pub mod circuit_data;
@@ -168,6 +169,7 @@ pub fn getenv_use_multiple_threads() -> bool {
 }
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<annotation::PyAnnotation>()?;
     m.add_class::<bit::PyBit>()?;
     m.add_class::<bit::PyClbit>()?;
     m.add_class::<bit::PyQubit>()?;

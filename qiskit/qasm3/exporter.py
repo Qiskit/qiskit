@@ -27,6 +27,7 @@ from typing import Iterable, List, Sequence, Union
 from qiskit._accelerate.circuit import StandardGate
 from qiskit.circuit import (
     library,
+    Annotation,
     Barrier,
     CircuitInstruction,
     Clbit,
@@ -42,6 +43,7 @@ from qiskit.circuit import (
     Bit,
     Register,
 )
+from qiskit.circuit.annotation import iter_namespaces, OpenQASM3Serializer
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import (
     BoxOp,
@@ -136,6 +138,7 @@ class Exporter:
         allow_aliasing: bool = None,
         indent: str = "  ",
         experimental: ExperimentalFeatures = ExperimentalFeatures(0),
+        annotation_handlers: dict[str, OpenQASM3Serializer] | None = None,
     ):
         """
         Args:
@@ -172,6 +175,10 @@ class Exporter:
                 set to the empty string to disable indentation.
             experimental: any experimental features to enable during the export.  See
                 :class:`ExperimentalFeatures` for more details.
+            annotation_handlers: a mapping of namespaces to annotation serializers.  When an
+                :class:`.Annotation` object is encountered, the most specific namespace in this
+                mapping that matches the annotation's :attr:`~.Annotation.namespace` attribute will
+                be used to serialize it.
         """
         self.basis_gates = basis_gates
         self.disable_constants = disable_constants
@@ -181,6 +188,7 @@ class Exporter:
         self.includes = list(includes)
         self.indent = indent
         self.experimental = experimental
+        self.annotation_handlers = {} if annotation_handlers is None else annotation_handlers
 
     def dumps(self, circuit):
         """Convert the circuit to OpenQASM 3, returning the result as a string."""
@@ -197,6 +205,7 @@ class Exporter:
             disable_constants=self.disable_constants,
             allow_aliasing=self.allow_aliasing,
             experimental=self.experimental,
+            annotation_handlers=self.annotation_handlers,
         )
         BasicPrinter(stream, indent=self.indent, experimental=self.experimental).visit(
             builder.build_program()
@@ -563,6 +572,7 @@ class QASM3Builder:
         disable_constants,
         allow_aliasing,
         experimental=ExperimentalFeatures(0),
+        annotation_handlers=None,
     ):
         self.scope = BuildScope(
             quantumcircuit,
@@ -582,6 +592,7 @@ class QASM3Builder:
         self.includes = includeslist
         self.basis_gates = basis_gates
         self.experimental = experimental
+        self.annotation_handlers = {} if annotation_handlers is None else annotation_handlers
 
     @contextlib.contextmanager
     def new_scope(self, circuit: QuantumCircuit, qubits: Iterable[Qubit], clbits: Iterable[Clbit]):
@@ -1090,10 +1101,13 @@ class QASM3Builder:
         """Build a :class:`.BoxOp` into a :class:`.ast.BoxStatement`."""
         duration = self.build_duration(instruction.operation.duration, instruction.operation.unit)
         body_circuit = instruction.operation.blocks[0]
+        annotations = [
+            self.build_annotation(annotation) for annotation in instruction.operation.annotations
+        ]
         with self.new_scope(body_circuit, instruction.qubits, instruction.clbits):
             # TODO: handle no-op qubits (see https://github.com/openqasm/openqasm/issues/584).
             body = ast.ProgramBlock(self.build_current_scope())
-        return ast.BoxStatement(body, duration)
+        return ast.BoxStatement(body, duration, annotations=annotations)
 
     def build_while_loop(self, instruction: CircuitInstruction) -> ast.WhileLoopStatement:
         """Build a :obj:`.WhileLoopOp` into a :obj:`.ast.WhileLoopStatement`."""
@@ -1128,6 +1142,15 @@ class QASM3Builder:
                     ) from None
             body_ast = ast.ProgramBlock(self.build_current_scope())
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
+
+    def build_annotation(self, annotation: Annotation) -> ast.Annotation:
+        """Use the custom serializers to construct an annotation object."""
+        for namespace in iter_namespaces(annotation.namespace):
+            if (serializer := self.annotation_handlers.get(namespace, None)) is not None and (
+                payload := serializer.dump(annotation)
+            ) is not NotImplemented:
+                return ast.Annotation(annotation.namespace, payload)
+        raise QASM3ExporterError(f"No configured annotation serializer could handle {annotation}")
 
     def _lookup_variable_for_expression(self, var):
         if isinstance(var, Bit):

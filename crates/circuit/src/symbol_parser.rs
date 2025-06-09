@@ -102,7 +102,6 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                 "log" => UnaryOp::Log,
                 "exp" => UnaryOp::Exp,
                 "sign" => UnaryOp::Sign,
-                "conj" => UnaryOp::Conj, // this is for backward compatibility
                 "conjugate" => UnaryOp::Conj,
                 "abs" => UnaryOp::Abs,
                 &_ => return Err("unsupported unary operation found."),
