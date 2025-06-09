@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "2.1.0"
+version = "2.2.0"
 edition = "2021"
 rust-version = "1.79"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
 license = "Apache-2.0"
@@ -36,7 +36,7 @@ rand = "0.9"
 rand_pcg = "0.9"
 rand_distr = "0.5"
 num-traits = "0.2"
-uuid = { version = "1.16", features = ["v4", "fast-rng"] }
+uuid = { version = "1.17", features = ["v4", "fast-rng"], default-features = false }
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python

@@ -36,6 +36,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.circuit.library.templates import rzx
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils import optionals
 from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
     random_clifford_circuit,
 )
@@ -61,6 +62,7 @@ def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
     return PassManager(TemplateOptimization([template], user_cost_dict=costs))
 
 
+@unittest.skipUnless(optionals.HAS_SYMPY, "sympy required for template optimization")
 class TestTemplateMatching(QiskitTestCase):
     """Test the TemplateOptimization pass."""
 

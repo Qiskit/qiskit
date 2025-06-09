@@ -51,22 +51,18 @@ fn alphanumeric1(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
 
 fn parse_symbol_string(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
     recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0_count(alt((alphanumeric1, tag("_")))),
+        alt((alpha1, tag("_"), tag("\\"), tag("$"))),
+        many0_count(alt((alphanumeric1, tag("_"), tag("\\"), tag("$")))),
     ))
     .parse(s)
 }
 
-fn parse_mpl_special_char(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    recognize(tuple((tag("$\\"), alpha1, tag("$")))).parse(s)
-}
-
 // parse string as symbol
-// symbol starting with alphabet and can contain numbers and '_', '[', ']'
+// symbol starting with alphabet and can contain numbers and '_', '\', '$', '[', ']'
 fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         tuple((
-            alt((parse_mpl_special_char, parse_symbol_string)),
+            parse_symbol_string,
             opt(delimited(char('['), digit1, char(']'))),
         )),
         |(v, array_idx)| -> Result<SymbolExpr, &str> {
@@ -106,6 +102,8 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                 "log" => UnaryOp::Log,
                 "exp" => UnaryOp::Exp,
                 "sign" => UnaryOp::Sign,
+                "conjugate" => UnaryOp::Conj,
+                "abs" => UnaryOp::Abs,
                 &_ => return Err("unsupported unary operation found."),
             };
             Ok(SymbolExpr::Unary {

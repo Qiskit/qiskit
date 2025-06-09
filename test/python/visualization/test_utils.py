@@ -355,6 +355,7 @@ class TestVisualizationUtils(QiskitTestCase):
             _utils.generate_latex_label(r"$a$bc$_∭X∀Y"),
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_array_to_latex(self):
         """Test array_to_latex produces correct latex string"""
         matrix = [
