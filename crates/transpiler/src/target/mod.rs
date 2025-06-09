@@ -14,10 +14,12 @@
 
 mod errors;
 mod instruction_properties;
+mod qubit_properties;
 mod qargs;
 
 pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
+pub use qubit_properties::QubitProperties;
 pub use qargs::{Qargs, QargsRef};
 
 use std::{ops::Index, sync::OnceLock};
@@ -283,7 +285,7 @@ impl Target {
         min_length: Option<u32>,
         pulse_alignment: Option<u32>,
         acquire_alignment: Option<u32>,
-        qubit_properties: Option<Vec<PyObject>>,
+        qubit_properties: Option<Vec<QubitProperties>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
         if let Some(qubit_properties) = qubit_properties.as_ref() {
@@ -1475,6 +1477,7 @@ where
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
+    m.add_class::<QubitProperties>()?;
     Ok(())
 }
 
@@ -1490,7 +1493,7 @@ mod test {
     use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
 
-    use super::{instruction_properties::InstructionProperties, Qargs, Target};
+    use super::{instruction_properties::InstructionProperties, qubit_properties::QubitProperties, Qargs, Target};
 
     #[test]
     fn test_add_invalid_qargs_insruction() {
@@ -1641,4 +1644,13 @@ mod test {
         // Check that no changes were made.
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
     }
+
+    #[test]
+    fn test_qubit_properties_creation() {
+    // Create a QubitProperties instance with specific values and check its fields
+    let qubit_props = QubitProperties::new(Some(100.0), Some(200.0), Some(5.0));
+    assert_eq!(qubit_props.t1, Some(100.0));
+    assert_eq!(qubit_props.t2, Some(200.0));
+    assert_eq!(qubit_props.frequency, Some(5.0));
+}
 }
