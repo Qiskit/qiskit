@@ -278,16 +278,19 @@ def load(
     
     # Enforce min_qpy_version if set in user config
     qpy_version = _read_qpy_version(file_obj)
+    if not isinstance(qpy_version, int):
+        raise QiskitError(f"Invalid QPY file version: {qpy_version} is not an integer")
     user_config = get_config()
     min_qpy_version = user_config.get("min_qpy_version")
     if min_qpy_version is not None:
-        current_version = parse_version(str(qpy_version))
-        if current_version < min_qpy_version:
-            filename = getattr(file_obj, 'name', str(file_obj))
+        if not isinstance(min_qpy_version, int) or min_qpy_version <= 0:
+            raise QiskitError(f"Invalid min_qpy_version in config: {min_qpy_version} must be a positive integer")
+        if qpy_version < min_qpy_version:
+            filename = getattr(file_obj, "name", "<unknown>")
             raise QiskitError(
-                f"Refusing to load QPY file with version {qpy_version}. "
-                f"This is below the minimum version set in your config: {min_qpy_version}. "
-                f"Update the QPY file or relax the 'min_qpy_version' in ~/.qiskit/settings.conf."
+                f"QPY file '{filename}' has version {qpy_version}, "
+                f"below the minimum version {min_qpy_version} set in ~/.qiskit/settings.conf. "
+                "Update the QPY file or adjust 'min_qpy_version' to allow older versions"
             )
 
     if version > common.QPY_VERSION:
