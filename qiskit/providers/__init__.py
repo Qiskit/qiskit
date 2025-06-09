@@ -472,6 +472,48 @@ to memory::
                         return True
         return False
 
+Angle bounds on Gates
+^^^^^^^^^^^^^^^^^^^^^
+
+If your backend has constraints on the allowed parameter values for any gate
+in the target you can model this with angle bounds on the :class:`.Target`.
+When you add the instruction with the :meth:`.add_instruction` you can use
+the ``angle_bounds`` keyword argument which takes a list of tuples for the
+upper and lower bound for the parameter of a gate.
+
+For example, this code snippet instead of the example adding the :class:`.PhaseGate`
+in the example above::
+
+    lam = Parameter("λ")
+    p_props = {(qubit,): None for qubit in range(5)}
+    self._target.add_instruction(PhaseGate(lam), p_props, angle_bounds=[(0, math.pi)])
+
+will set the bounds on :class:`.PhaseGate` to be between 0 and :math:`\pi` (inclusive).
+This models the angle constraint in the :class:`.Target` on the angle values for the
+``lam`` parameter on :class:`.PhaseGate`. The :class:`.WrapAngles` transpiler pass is
+used to transform any :class:`.PhaseGate` outside the specified angle bounds. You will
+need to write a function that takes in the angle values for the gate and returns
+a :class:`.DAGCircuit`. For example::
+
+    from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
+
+    def fold_phase(angles: List[float], qubits: List[int]) -> DAGCircuit:
+        angle = angles[0]
+        if angle > 0:
+            number_of_gates = angle / math.pi
+        else:
+            number_of_gates = (6.28 - angle) / math.pi
+        dag = DAGCircuit()
+        dag.add_qubits([Qubit()])
+        for _ in range(int(number_of_gates)):
+            dag.apply_operation_back(PhaseGate(math.pi), [dag.qubits[0]])
+        return dag
+
+    WRAP_ANGLE_REGISTRY.add_wrapper("phase", fold_phase)
+
+This function will transform the out of bounds gates into one that respects the angle
+bounds in the target and the target's other constraints (although not particularly well).
+
 .. _providers-guide-backend-run:
 
 Backend.run Method

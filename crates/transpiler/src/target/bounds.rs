@@ -10,59 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::fmt;
-
-use pyo3::prelude::*;
-use pyo3::Python;
-
 use super::errors::TargetError;
-use qiskit_circuit::dag_circuit::DAGCircuit;
 use smallvec::SmallVec;
 
-#[derive(Clone)]
-pub(crate) enum CallbackType {
-    Python(PyObject),
-    Native(fn(&[f64]) -> DAGCircuit),
-}
-
-impl CallbackType {
-    fn call(&self, angles: &[f64]) -> PyResult<DAGCircuit> {
-        match self {
-            Self::Python(inner) => {
-                Python::with_gil(|py| inner.bind(py).call1((angles,))?.extract())
-            }
-            Self::Native(inner) => Ok(inner(angles)),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct AngleBound {
-    bounds: SmallVec<[Option<[f64; 2]>; 3]>,
-    callback: CallbackType,
-}
-
-impl fmt::Debug for AngleBound {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("AngleBound")
-            .field("bounds", &self.bounds)
-            .finish()
-    }
-}
+#[derive(Clone, Debug)]
+pub(crate) struct AngleBound(SmallVec<[Option<[f64; 2]>; 3]>);
 
 impl AngleBound {
     pub fn bounds(&self) -> &[Option<[f64; 2]>] {
-        &self.bounds
+        &self.0
     }
 
-    pub fn callback(&self) -> &CallbackType {
-        &self.callback
-    }
-
-    pub fn new_native(
-        bounds: SmallVec<[Option<[f64; 2]>; 3]>,
-        callback: fn(&[f64]) -> DAGCircuit,
-    ) -> Result<Self, TargetError> {
+    pub fn new(bounds: SmallVec<[Option<[f64; 2]>; 3]>) -> Result<Self, TargetError> {
         for [low, high] in bounds.iter().flatten() {
             if low >= high {
                 return Err(TargetError::InvalidBounds {
@@ -71,41 +30,16 @@ impl AngleBound {
                 });
             }
         }
-        Ok(Self {
-            bounds,
-            callback: CallbackType::Native(callback),
-        })
-    }
-
-    pub fn new_py(
-        bounds: SmallVec<[Option<[f64; 2]>; 3]>,
-        callback: PyObject,
-    ) -> Result<Self, TargetError> {
-        for [low, high] in bounds.iter().flatten() {
-            if low >= high {
-                return Err(TargetError::InvalidBounds {
-                    low: *low,
-                    high: *high,
-                });
-            }
-        }
-        Ok(Self {
-            bounds,
-            callback: CallbackType::Python(callback),
-        })
+        Ok(Self(bounds))
     }
 
     pub fn angles_supported(&self, angles: &[f64]) -> bool {
         angles
             .iter()
-            .zip(&self.bounds)
+            .zip(&self.0)
             .all(|(angle, bound)| match bound {
                 Some([low, high]) => !(angle < low || angle > high),
                 None => true,
             })
-    }
-
-    pub fn get_replacement_circuit(&self, angle: &[f64]) -> PyResult<DAGCircuit> {
-        self.callback.call(angle)
     }
 }

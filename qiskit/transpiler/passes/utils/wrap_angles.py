@@ -15,6 +15,9 @@
 from qiskit.transpiler.basepasses import TransformationPass
 
 from qiskit._accelerate import wrap_angles
+from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
+
+WRAP_ANGLE_REGISTRY = WrapAngleRegistry()
 
 
 class WrapAngles(TransformationPass):
@@ -28,10 +31,14 @@ class WrapAngles(TransformationPass):
     the angles to be treated as inside the bounds
     """
 
-    def __init__(self, target):
+    def __init__(self, target, registry=None):
         super().__init__()
         self.target = target
+        if registry:
+            self.registry = registry
+        else:
+            self.registry = WRAP_ANGLE_REGISTRY
 
     def run(self, dag):
-        wrap_angles.wrap_angles(dag, self.target)
+        wrap_angles.wrap_angles(dag, self.target, self.registry)
         return dag

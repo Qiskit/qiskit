@@ -14,13 +14,29 @@ use pyo3::prelude::*;
 
 use rustworkx_core::petgraph::prelude::*;
 
+use crate::angle_bound_registry::{PyWrapAngleRegistry, WrapAngleRegistry};
 use crate::target::Target;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::PhysicalQubit;
 
 #[pyfunction]
 #[pyo3(name = "wrap_angles")]
-pub fn run_wrap_angles(py: Python, dag: &mut DAGCircuit, target: &Target) -> PyResult<()> {
+pub fn py_run_wrap_angles(
+    py: Python,
+    dag: &mut DAGCircuit,
+    target: &Target,
+    bounds_registry: &PyWrapAngleRegistry,
+) -> PyResult<()> {
+    run_wrap_angles(py, dag, target, bounds_registry.get_inner())
+}
+
+pub fn run_wrap_angles(
+    py: Python,
+    dag: &mut DAGCircuit,
+    target: &Target,
+    bounds_registry: &WrapAngleRegistry,
+) -> PyResult<()> {
     if !target.has_angle_bounds() {
         return Ok(());
     }
@@ -49,7 +65,8 @@ pub fn run_wrap_angles(py: Python, dag: &mut DAGCircuit, target: &Target) -> PyR
             })
             .collect();
         if !target.gate_supported_angle_bound(inst.op.name(), &params) {
-            let new_dag = target.substitute_angle_bounds(inst.op.name(), &params)?;
+            let qargs: Vec<_> = dag.get_qargs(inst.qubits).iter().map(|x| PhysicalQubit(x.0)).collect();
+            let new_dag = bounds_registry.substitute_angle_bounds(inst.op.name(), &params, &qargs)?;
             if let Some(new_dag) = new_dag {
                 dag.py_substitute_node_with_dag(
                     py,
@@ -65,6 +82,6 @@ pub fn run_wrap_angles(py: Python, dag: &mut DAGCircuit, target: &Target) -> PyR
 }
 
 pub fn wrap_angles_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_wrap_angles))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_wrap_angles))?;
     Ok(())
 }

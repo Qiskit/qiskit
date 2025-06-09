@@ -1272,6 +1272,7 @@ Hardware description
 
    Target
    InstructionProperties
+   WrapAngleRegistry
 
 Pass Manager Definition
 -----------------------
@@ -1350,3 +1351,4 @@ from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
+from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry

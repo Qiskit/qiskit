@@ -20,6 +20,8 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import WrapAngles
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.target import Target
+from qiskit.transpiler import WrapAngleRegistry
+from qiskit.circuit.library import RZXGate
 
 
 class TestWrapAngles(QiskitTestCase):
@@ -28,13 +30,16 @@ class TestWrapAngles(QiskitTestCase):
     def test_empty_dag(self):
         """Invalid callback"""
         circuit = QuantumCircuit(2)
-        target = Target.from_configuration(["u", "rzx"], 2, CouplingMap([[0, 1]]))
+        target = Target.from_configuration(["u"], 2, CouplingMap([[0, 1]]))
 
         def callback(_):
             raise NotADirectoryError("test_works")
 
-        target.add_angle_bound("rzx", [(0, 3.14)], callback)
-        wrap_pass = WrapAngles(target)
+        target.add_instruction(RZXGate(Parameter("x")), angle_bounds=[(0, 3.14)])
+        registry = WrapAngleRegistry()
+        registry.add_wrapper("rzx", callback)
+
+        wrap_pass = WrapAngles(target, registry)
         circuit.rzx(6.28, 0, 1)
         with self.assertRaisesRegex(NotADirectoryError, "test_works"):
             wrap_pass(circuit)
@@ -52,7 +57,7 @@ class TestWrapAngles(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.append(MyCustomGate(6.0), [0])
         target = Target(num_qubits=1)
-        target.add_instruction(MyCustomGate(param))
+        target.add_instruction(MyCustomGate(param), angle_bounds=[(0, 0.5)])
 
         def callback(angles):
             angle = angles[0]
@@ -66,7 +71,8 @@ class TestWrapAngles(QiskitTestCase):
                 dag.apply_operation_back(MyCustomGate(0.5), [dag.qubits[0]])
             return dag
 
-        target.add_angle_bound("my_custom", [(0, 0.5)], callback)
-        wrap_pass = WrapAngles(target)
+        registry = WrapAngleRegistry()
+        registry.add_wrapper("my_custom", callback)
+        wrap_pass = WrapAngles(target, registry)
         res = wrap_pass(circuit)
         self.assertEqual(res.count_ops()["my_custom"], 12)

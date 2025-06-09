@@ -90,11 +90,13 @@ from qiskit.utils import should_run_in_parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
+from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import InstructionProperties, Target
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.transpiler import WrapAngleRegistry
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
@@ -3098,12 +3100,18 @@ class TestTranspileParallel(QiskitTestCase):
         target.add_instruction(
             RZZGate(theta),
             {(0, 1): InstructionProperties(error=5e-3), (1, 0): InstructionProperties(error=5e-3)},
+            angle_bounds=[(0, pi / 2)],
         )
         target.add_instruction(
             CZGate(),
             {(0, 1): InstructionProperties(error=5e-3), (1, 0): InstructionProperties(error=5e-3)},
         )
-        target.add_angle_bound("rzz", [(0, pi / 2)], fold_rzz)
+        WRAP_ANGLE_REGISTRY.add_wrapper("rzz", fold_rzz)
+
+        def cleanup_wrap_registry():
+            WRAP_ANGLE_REGISTRY = WrapAngleRegistry()
+
+        self.addCleanup(cleanup_wrap_registry)
 
         transpiled = transpile(
             circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890

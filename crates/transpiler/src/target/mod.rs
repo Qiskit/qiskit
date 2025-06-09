@@ -37,7 +37,6 @@ use pyo3::types::{PyDict, PyList, PySet};
 use pyo3::IntoPyObjectExt;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
@@ -327,16 +326,24 @@ impl Target {
     ///         if representing a variadic.
     ///     properties: A mapping of qargs and ``InstructionProperties``.
     ///     name: A name assigned to the provided gate.
+    ///     bound_list: The bounds on the parameters for a given gate. This is specified by a list
+    ///         of tuples (low, high) which represent the low and high bound (inclusively) on what
+    ///         float values are allowed for the parameter in that position. If a parameter
+    ///         doesn't have an angle bound you can use ``None`` to represent that. For example if
+    ///         a 3 parameter gate only had a bound on the second parameter you would represent
+    ///         that with: ``[None, [0, 3.14], None]`` which means the first and third parameter
+    ///         allow any value but the second parameter only accepts values between 0 and 3.14.
     /// Raises:
     ///     AttributeError: If gate is already in map
     ///     TranspilerError: If an operation class is passed in for ``instruction`` and no name
     ///         is specified or ``properties`` is set.
-    #[pyo3(name="add_instruction", signature = (instruction, name, properties=None))]
+    #[pyo3(name="add_instruction", signature = (instruction, name, properties=None, *, angle_bounds=None))]
     fn py_add_instruction(
         &mut self,
         instruction: TargetOperation,
         name: String,
         properties: Option<PropsMap>,
+        angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
@@ -350,8 +357,14 @@ impl Target {
             IndexMap::from_iter([(Qargs::Global, None)])
         };
 
-        self.inner_add_instruction(instruction, name, props_map)
-            .map_err(|err| TranspilerError::new_err(err.to_string()))
+        self.inner_add_instruction(instruction, name.clone(), props_map)
+            .map_err(|err| TranspilerError::new_err(err.to_string()))?;
+
+        if let Some(bounds) = angle_bounds {
+            self.add_owned_angle_bound(name, bounds)
+                .map_err(|err| TranspilerError::new_err(err.to_string()))?;
+        }
+        Ok(())
     }
 
     /// Update the property object for an instruction qarg pair already in the `Target`
@@ -864,15 +877,7 @@ impl Target {
         )?;
         let bounds_dict = PyDict::new(py);
         for (gate, bounds) in self.angle_bounds.iter() {
-            let callback = match bounds.callback() {
-                bounds::CallbackType::Python(obj) => obj.clone_ref(py),
-                bounds::CallbackType::Native(_) => {
-                    return Err(TranspilerError::new_err(
-                        "Target contains native code bounds callbacks which can't be serialized",
-                    ));
-                }
-            };
-            bounds_dict.set_item(gate, (bounds.bounds().to_vec(), callback))?;
+            bounds_dict.set_item(gate, bounds.bounds().to_vec())?;
         }
         result_list.set_item("angle_bounds", bounds_dict)?;
         Ok(result_list.unbind())
@@ -931,51 +936,12 @@ impl Target {
             .extract::<Option<Vec<String>>>()?;
         let angle_bounds_raw = state.get_item("angle_bounds")?.unwrap();
         let angle_bounds_dict = angle_bounds_raw.downcast::<PyDict>()?;
-        type AngleBoundIterList = Vec<(String, (SmallVec<[Option<[f64; 2]>; 3]>, PyObject))>;
+        type AngleBoundIterList = Vec<(String, SmallVec<[Option<[f64; 2]>; 3]>)>;
         let angle_bounds_list: AngleBoundIterList = angle_bounds_dict.items().extract()?;
-        for (gate, bound_tuple) in angle_bounds_list {
-            self.py_add_angle_bound(gate, bound_tuple.0, bound_tuple.1)?;
+        for (gate, bounds) in angle_bounds_list {
+            self.add_owned_angle_bound(gate, bounds)
+                .map_err(|err| TranspilerError::new_err(err.to_string()))?;
         }
-        Ok(())
-    }
-
-    /// Add an angle bound constraint on gate.
-    ///
-    /// When an angle bound is set on a gate this is used to inform the transpiler that the
-    /// angles allowed for a particular parameter fall within a given bound. Angle bounds apply to
-    /// all qargs supported by a gate.
-    ///
-    /// Args:
-    ///     name: The name of the gate to add the constraint to. If a constraint is already present
-    ///         on the specified gate this will silently replace the existing constraint with the
-    ///         newly specified bounds.
-    ///     bound_list: The bounds on the parameters for a given gate. This is specified by a list
-    ///         of tuples (low, high) which represent the low and high bound (inclusively) on what
-    ///         float values are allowed for the parameter in that position. If a parameter
-    ///         doesn't have an angle bound you can use ``None`` to represent that. For example if
-    ///         a 3 parameter gate only had a bound on the second parameter you would represent
-    ///         that with: ``[None, [0, 3.14], None]`` which means the first and third parameter
-    ///         allow any value but the second parameter only accepts values between 0 and 3.14.
-    ///     wrap_function: A required callback that tells the transpiler how to generate an equivalent
-    ///         circuit for the gate with an out of bounds angle. Since ``gate`` can be any arbitrary
-    ///         operation the transpiler needs to know how to convert an out of bounds angle into
-    ///         one that is acceptable. This callback function is the mechanism for doing this.
-    ///         This function is passed a float value for the angle and returns a :class:`.DAGCircuit`
-    ///         representing the equivalent circuit for ``gate`` with that angle value. It is expected
-    ///         that the callback will generate a gate in terms of other supported instructions on the
-    ///         target. This function will be called by the :clas:`.WrapAngles`
-    #[pyo3(name = "add_angle_bound")]
-    pub fn py_add_angle_bound(
-        &mut self,
-        name: String,
-        bounds: SmallVec<[Option<[f64; 2]>; 3]>,
-        callback: PyObject,
-    ) -> PyResult<()> {
-        self.check_bounds_inputs(&name, &bounds)
-            .map_err(|err| TranspilerError::new_err(err.to_string()))?;
-        let new_bound = AngleBound::new_py(bounds, callback)
-            .map_err(|err| TranspilerError::new_err(err.to_string()))?;
-        self.angle_bounds.insert(name, new_bound);
         Ok(())
     }
 
@@ -1557,27 +1523,28 @@ impl Target {
         &mut self,
         name: String,
         bounds: &[Option<[f64; 2]>],
-        callback: fn(&[f64]) -> DAGCircuit,
     ) -> Result<(), TargetError> {
         self.check_bounds_inputs(&name, bounds)?;
-        let new_bound = AngleBound::new_native(bounds.iter().copied().collect(), callback)?;
+        let new_bound = AngleBound::new(bounds.iter().copied().collect())?;
         self.angle_bounds.insert(name, new_bound);
         Ok(())
     }
 
-    pub fn gate_supported_angle_bound(&self, name: &str, angles: &[f64]) -> bool {
-        self.angle_bounds[name].angles_supported(angles)
+    /// Add an owned angle bound constraint on gate.
+    fn add_owned_angle_bound(
+        &mut self,
+        name: String,
+        bounds: SmallVec<[Option<[f64; 2]>; 3]>,
+    ) -> Result<(), TargetError> {
+        self.check_bounds_inputs(&name, &bounds)?;
+        let new_bound = AngleBound::new(bounds)?;
+        self.angle_bounds.insert(name, new_bound);
+        Ok(())
     }
 
-    pub fn substitute_angle_bounds(
-        &self,
-        name: &str,
-        params: &[f64],
-    ) -> PyResult<Option<DAGCircuit>> {
-        match self.angle_bounds.get(name) {
-            Some(bounds) => Some(bounds.get_replacement_circuit(params)).transpose(),
-            None => Ok(None),
-        }
+    /// Check that any numeric angle
+    pub fn gate_supported_angle_bound(&self, name: &str, angles: &[f64]) -> bool {
+        self.angle_bounds[name].angles_supported(angles)
     }
 }
 

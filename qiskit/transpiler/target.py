@@ -281,7 +281,7 @@ class Target(BaseTarget):
         self._dt = dt
         self._instruction_durations = None
 
-    def add_instruction(self, instruction, properties=None, name=None):
+    def add_instruction(self, instruction, properties=None, name=None, *, angle_bounds=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
 
         As ``Target`` objects are strictly additive this is the primary method
@@ -343,6 +343,13 @@ class Target(BaseTarget):
                 parameterization of a single gate by providing a unique name for
                 each (e.g. `"rx30"`, `"rx60", ``"rx90"`` similar to the example in the
                 documentation for the :class:`~qiskit.transpiler.Target` class).
+            angle_bounds: The bounds on the parameters for a given gate. This is specified by a list
+                of tuples (low, high) which represent the low and high bound (inclusively) on what
+                float values are allowed for the parameter in that position. If a parameter
+                doesn't have an angle bound you can use ``None`` to represent that. For example if
+                a 3 parameter gate only had a bound on the second parameter you would represent
+                that with: ``[None, [0, 3.14], None]`` which means the first and third parameter
+                allow any value but the second parameter only accepts values between 0 and 3.14.
         Raises:
             AttributeError: If gate is already in map
             TranspilerError: If an operation class is passed in for ``instruction`` and no name
@@ -366,7 +373,9 @@ class Target(BaseTarget):
             properties = {None: None}
         if instruction_name in self._gate_map:
             raise AttributeError(f"Instruction {instruction_name} is already in the target")
-        super().add_instruction(instruction, instruction_name, properties)
+        super().add_instruction(
+            instruction, instruction_name, properties, angle_bounds=angle_bounds
+        )
         self._gate_map[instruction_name] = properties
         self._coupling_graph = None
         self._instruction_durations = None
