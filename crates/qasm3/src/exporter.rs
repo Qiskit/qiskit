@@ -1195,15 +1195,6 @@ impl<'a> QASM3Builder {
             ));
         };
 
-        // let standard_instr = instr.op.standard_instruction();
-        // let delay_unit = if let StandardInstruction::Delay(delay) = standard_instr {
-        //     delay
-        // } else {
-        //     return Err(QASM3ExporterError::Error(
-        //         "Expected Delay instruction, but got wrong instruction".to_string(),
-        //     ));
-        // };
-        // let param = &instr.params_view()[0];
         let duration: f64 = Python::with_gil(|py| match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {
@@ -1230,7 +1221,6 @@ impl<'a> QASM3Builder {
                     Err(_) => panic!("Failed to parse parameter value"),
                 }
             }
-            _ => panic!("Unexpected duration type for delay"),
         });
 
         let mut map = HashMap::new();

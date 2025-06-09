@@ -655,10 +655,7 @@ fn run_on_circuitdata(
 /// Essentially this function constructs a default definition for a unitary gate, in which case
 /// ``op.definition`` purposefully returns ``None``.
 /// For all other operation types, it simply calls ``op.definition``.
-fn extract_definition(
-    py: Python,
-    instr: &impl Instruction,
-) -> PyResult<Option<CircuitData>> {
+fn extract_definition(py: Python, instr: &impl Instruction) -> PyResult<Option<CircuitData>> {
     match instr.view() {
         InstructionRef::Unitary(unitary) => {
             let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match unitary.matrix() {

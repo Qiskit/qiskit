@@ -402,7 +402,8 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
             | InstructionRef::Operation(_)
             | InstructionRef::Unitary(_)
             | InstructionRef::Instruction(_) => Some(
-                self.params_view()
+                self.params
+                    .as_deref()
                     .and_then(|p| match p {
                         Parameters::Params(p) => Some(p.as_slice()),
                         _ => panic!("expected gate parameters"),

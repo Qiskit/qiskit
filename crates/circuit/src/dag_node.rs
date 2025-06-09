@@ -195,14 +195,6 @@ impl DAGOpNode {
                         [Param::Obj(param_a), Param::Obj(param_b)] => {
                             param_a.bind(py).eq(param_b)?
                         }
-                        [Param::Circuit(param_a), Param::Circuit(param_b)] => {
-                            param_a.bind(py).eq(param_b)?
-                        }
-                        [Param::Condition(param_a), Param::Condition(param_b)] => {
-                            param_a == param_b
-                        }
-                        [Param::Duration(param_a), Param::Duration(param_b)] => param_a == param_b,
-                        [Param::Target(param_a), Param::Target(param_b)] => param_a == param_b,
                         _ => false,
                     };
                     if !res {

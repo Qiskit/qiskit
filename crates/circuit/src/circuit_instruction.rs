@@ -795,48 +795,12 @@ impl CircuitInstruction {
                                 Param::ParameterExpression(right) | Param::Obj(right) => {
                                     right.bind(py).eq(left)?
                                 }
-                                Param::Circuit(_)
-                                | Param::Condition(_)
-                                | Param::Duration(_)
-                                | Param::Target(_)
-                                | Param::Indexset(_)
-                                | Param::None => false,
                             },
                             Param::ParameterExpression(left) | Param::Obj(left) => match right {
                                 Param::Float(right) => left.bind(py).eq(right)?,
                                 Param::ParameterExpression(right) | Param::Obj(right) => {
                                     left.bind(py).eq(right)?
                                 }
-                                Param::Circuit(_)
-                                | Param::Condition(_)
-                                | Param::Duration(_)
-                                | Param::Target(_)
-                                | Param::Indexset(_)
-                                | Param::None => false,
-                            },
-                            Param::Circuit(left) => match right {
-                                Param::Circuit(right) => left.bind(py).eq(right)?,
-                                _ => false,
-                            },
-                            Param::Condition(left) => match right {
-                                Param::Condition(right) => left == right,
-                                _ => false,
-                            },
-                            Param::Duration(left) => match right {
-                                Param::Duration(right) => left == right,
-                                _ => false,
-                            },
-                            Param::Target(left) => match right {
-                                Param::Target(right) => left == right,
-                                _ => false,
-                            },
-                            Param::Indexset(left) => match right {
-                                Param::Indexset(right) => left == right,
-                                _ => false,
-                            },
-                            Param::None => match right {
-                                Param::None => true,
-                                _ => false,
                             },
                         };
                         if !eq {

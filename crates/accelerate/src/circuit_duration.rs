@@ -62,9 +62,6 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                                             Param::ParameterExpression(_) => Err(QiskitError::new_err(
                                                 "Circuit contains parameterized delays, can't compute a duration estimate with this circuit"
                                             )),
-                                            _ => Err(QiskitError::new_err(
-                                                "Invalid type for parameter value for delay in circuit",
-                                            )),
                                         }
                                     } else {
                                         Err(QiskitError::new_err(

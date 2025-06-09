@@ -2079,7 +2079,7 @@ impl CircuitData {
                                     }
                                 }
                                 // TODO: remove this, assuming only control flow needed it
-                                Param::Circuit(block) => {
+                                Param::Obj(block) => {
                                     let obj = block.bind_borrowed(py);
                                     if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
                                         return Err(inconsistent());
@@ -2095,9 +2095,6 @@ impl CircuitData {
                                             ),
                                         )?,
                                     )?
-                                }
-                                _ => {
-                                    return Err(inconsistent());
                                 }
                             };
                             op.getattr(params_attr)?.set_item(parameter, new_param)?;

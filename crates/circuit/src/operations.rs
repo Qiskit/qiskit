@@ -37,63 +37,11 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
 pub enum Param {
     ParameterExpression(PyObject),
     Float(f64),
-    Circuit(PyObject),
-    Condition(Condition),
-    Duration(Duration),
-    Target(Target),
-    Indexset(Vec<usize>),
     Obj(PyObject),
-    None,
-}
-
-impl<'py> IntoPyObject<'py> for Param {
-    type Target = PyAny;
-    type Output = Bound<'py, PyAny>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self {
-            Param::ParameterExpression(p) => Ok(p.into_bound(py)),
-            Param::Float(f) => f.into_bound_py_any(py),
-            Param::Circuit(c) => Ok(c.into_bound(py)),
-            Param::Condition(c) => c.into_bound_py_any(py),
-            Param::Duration(d) => d.into_bound_py_any(py),
-            Param::Target(t) => t.into_bound_py_any(py),
-            Param::Indexset(s) => s.into_bound_py_any(py),
-            Param::Obj(o) => Ok(o.into_bound(py)),
-            Param::None => None::<()>.into_bound_py_any(py),
-        }
-    }
-}
-
-/// Replace the blocks of a Params list with new ones.
-///
-/// Note: this is a short-term solution until Param becomes just an enum of numeric
-/// types for use in gates. At that point, we'll also have a Parameters enum type
-/// for `impl Instruction`s that allows per-instruction kind signatures (mirroring
-/// [dag_circuit::Parameters]).
-pub fn replace_blocks(
-    params: SmallVec<[Param; 3]>,
-    blocks: impl IntoIterator<Item = PyObject>,
-) -> SmallVec<[Param; 3]> {
-    let mut replacements = blocks.into_iter();
-    let result = params
-        .into_iter()
-        .map(|p| match p {
-            Param::Circuit(_) => {
-                Param::Circuit(replacements.next().expect("not enough replacement blocks"))
-            }
-            param => param,
-        })
-        .collect();
-    if replacements.next().is_some() {
-        panic!("too many replacement blocks")
-    }
-    result
 }
 
 impl Param {
@@ -108,13 +56,6 @@ impl Param {
             [Self::Obj(a), Self::ParameterExpression(b)] => a.bind(py).eq(b),
             [Self::Obj(a), Self::Obj(b)] => a.bind(py).eq(b),
             [Self::ParameterExpression(a), Self::Obj(b)] => a.bind(py).eq(b),
-            [Self::Condition(a), Self::Condition(b)] => Ok(a == b),
-            [Self::Target(a), Self::Target(b)] => Ok(a == b),
-            [Self::Duration(a), Self::Duration(b)] => Ok(a == b),
-            [Self::Circuit(a), Self::Circuit(b)] => a.bind(py).eq(b),
-            [Self::Indexset(a), Self::Indexset(b)] => Ok(a == b),
-            [Self::None, Self::None] => Ok(true),
-            _ => todo!(),
         }
     }
 
@@ -128,12 +69,8 @@ impl Param {
 
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(if b.is_none() {
-            Param::None
-        } else if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
+        Ok(if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))? {
             Param::ParameterExpression(b.clone().unbind())
-        } else if b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))? {
-            Param::Circuit(b.clone().unbind())
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
@@ -157,7 +94,8 @@ impl Param {
             Param::Obj(obj) => {
                 let obj = obj.bind(py);
                 if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                    panic!("object should not be circuit");
+                    // TODO: are there any instructions that use a QuantumCircuit as a
+                    //   parameter now that control flow is ported to Rust?
                     Ok(ParamParameterIter(Some(
                         obj.getattr(parameters_attr)?.try_iter()?,
                     )))
@@ -165,20 +103,6 @@ impl Param {
                     Ok(ParamParameterIter(None))
                 }
             }
-            Param::Circuit(circuit) => {
-                let obj = circuit.bind(py);
-                if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                    Ok(ParamParameterIter(Some(
-                        obj.getattr(parameters_attr)?.try_iter()?,
-                    )))
-                } else {
-                    panic!(
-                        "invalid Python type for circuit param: {}",
-                        obj.get_type().name()?
-                    )
-                }
-            }
-            _ => Ok(ParamParameterIter(None)),
         }
     }
 
@@ -186,14 +110,10 @@ impl Param {
     /// coerce integers into floats, but in things like `assign_parameters`, this is not always
     /// desirable.
     pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
-        Ok(if ob.is_none() {
-            Param::None
-        } else if ob.is_instance_of::<PyFloat>() {
+        Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
         } else if ob.is_instance(PARAMETER_EXPRESSION.get_bound(ob.py()))? {
             Param::ParameterExpression(ob.clone().unbind())
-        } else if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
-            Param::Circuit(ob.clone().unbind())
         } else {
             Param::Obj(ob.clone().unbind())
         })
@@ -205,12 +125,6 @@ impl Param {
             Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
-            Param::Circuit(c) => Param::Circuit(c.clone_ref(py)),
-            Param::Condition(c) => Param::Condition(c.clone()),
-            Param::Duration(d) => Param::Duration(d.clone()),
-            Param::Target(t) => Param::Target(t.clone()),
-            Param::Indexset(s) => Param::Indexset(s.clone()),
-            Param::None => Param::None,
         }
     }
 }
