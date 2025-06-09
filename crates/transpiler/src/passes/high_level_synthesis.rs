@@ -22,7 +22,7 @@ use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef, OperationFromPython};
+use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionView, OperationFromPython};
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
@@ -30,7 +30,7 @@ use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{radd_param, Param};
-use qiskit_circuit::operations::{InstructionRef, Operation};
+use qiskit_circuit::operations::{InstructionView, Operation};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Clbit;
@@ -508,7 +508,7 @@ fn run_on_circuitdata(
         // that different subcircuits may choose to use different auxiliary global qubits, and to
         // avoid complications related to tracking qubit status for while- loops.
         // In the future, this handling can potentially be improved.
-        if let Some(control_flow) = inst.control_flow() {
+        if let Some(control_flow) = inst.try_view_control_flow() {
             let quantum_circuit_cls = QUANTUM_CIRCUIT.get_bound(py);
 
             // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
@@ -657,7 +657,7 @@ fn run_on_circuitdata(
 /// For all other operation types, it simply calls ``op.definition``.
 fn extract_definition(py: Python, instr: &impl Instruction) -> PyResult<Option<CircuitData>> {
     match instr.view() {
-        InstructionRef::Unitary(unitary) => {
+        InstructionView::Unitary(unitary) => {
             let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match unitary.matrix() {
                 Some(unitary) => unitary,
                 None => return Err(TranspilerError::new_err("Unitary not found")),
@@ -714,7 +714,7 @@ fn extract_definition(py: Python, instr: &impl Instruction) -> PyResult<Option<C
                 }
             }
         }
-        _ => Ok(instr.view().definition()),
+        _ => Ok(instr.view().try_definition()),
     }
 }
 

@@ -14,7 +14,7 @@ use crate::equivalence::CircuitFromPython;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
-use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
+use qiskit_circuit::circuit_instruction::{IntoInstructionView, OperationFromPython};
 use qiskit_circuit::dag_circuit::DAGInstruction;
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
 use qiskit_circuit::operations::Parameters;
@@ -145,9 +145,12 @@ fn get_gates_num_params(
     example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
 ) -> PyResult<()> {
     for (_, inst) in dag.op_nodes(true) {
-        if let Some(control_flow) = inst.control_flow() {
+        if let Some(control_flow) = inst.try_view_control_flow() {
             example_gates.insert(
-                (inst.op().name().to_string(), inst.op().num_qubits()),
+                (
+                    inst.view_op().name().to_string(),
+                    inst.view_op().num_qubits(),
+                ),
                 inst.op.num_params() as usize,
             );
             for block in control_flow.blocks() {

@@ -16,7 +16,7 @@ use indexmap::IndexMap;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::circuit_instruction::{IntoInstructionRef, OperationFromPython};
+use qiskit_circuit::circuit_instruction::{IntoInstructionView, OperationFromPython};
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
 use qiskit_circuit::operations::Operation;
 
@@ -24,8 +24,8 @@ fn gate_eq(py: Python, gate_a: &DAGInstruction, gate_b: &OperationFromPython) ->
     if gate_a.op.name() != gate_b.operation.name() {
         return Ok(false);
     }
-    let a_params = gate_a.legacy_params().expect("expected gate");
-    let b_params = gate_b.legacy_params().expect("expected gate");
+    let a_params = gate_a.try_legacy_params().expect("expected gate");
+    let b_params = gate_b.try_legacy_params().expect("expected gate");
     if a_params.len() != b_params.len() {
         return Ok(false);
     }

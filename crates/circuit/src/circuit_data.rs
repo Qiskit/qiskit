@@ -20,7 +20,9 @@ use crate::bit::{
     ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
-use crate::circuit_instruction::{CircuitInstruction, Instruction, OperationFromPython};
+use crate::circuit_instruction::{
+    CircuitInstruction, Instruction, IntoInstructionView, OperationFromPython,
+};
 use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
@@ -2037,13 +2039,7 @@ impl CircuitData {
 
                             let op = previous.unpack_py_op(py)?.into_bound(py);
                             // All "user" operations (e.g. PyOperation) use Parameters::Param.
-                            let previous_param = &previous
-                                .params_view()
-                                .and_then(|p| match p {
-                                    Parameters::Params(p) => Some(p.as_slice()),
-                                    _ => panic!("invalid user operation params"),
-                                })
-                                .unwrap_or_default()[parameter];
+                            let previous_param = &previous.try_legacy_params().unwrap()[parameter];
                             let new_param = match previous_param {
                                 Param::Float(_) => return Err(inconsistent()),
                                 Param::ParameterExpression(expr) => {

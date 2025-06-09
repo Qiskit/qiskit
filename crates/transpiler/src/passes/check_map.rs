@@ -14,7 +14,7 @@ use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::Qubit;
@@ -36,7 +36,7 @@ fn recurse<'py>(
     };
     for (_node, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
-        if let Some(control_flow) = inst.control_flow() {
+        if let Some(control_flow) = inst.try_view_control_flow() {
             for block in control_flow.blocks() {
                 let wire_map = (0..block.num_qubits())
                     .map(|inner| {

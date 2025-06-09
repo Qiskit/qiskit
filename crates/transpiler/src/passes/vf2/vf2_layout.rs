@@ -23,13 +23,13 @@ use std::cmp::Ordering;
 use std::time::Instant;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{ControlFlowRef, Operation};
+use qiskit_circuit::operations::{ControlFlowView, Operation};
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;
 
 use super::error_map::ErrorMap;
 use crate::target::{Qargs, Target};
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 
@@ -143,8 +143,8 @@ fn build_interaction_graph<Ty: EdgeType>(
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
-        if let Some(control_flow) = inst.control_flow() {
-            let inner_weight = if let ControlFlowRef::ForLoop { indexset, .. } = &control_flow {
+        if let Some(control_flow) = inst.try_view_control_flow() {
+            let inner_weight = if let ControlFlowView::ForLoop { indexset, .. } = &control_flow {
                 indexset.len()
             } else {
                 weight

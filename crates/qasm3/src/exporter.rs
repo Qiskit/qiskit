@@ -29,13 +29,13 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{DelayUnit, Parameters, StandardInstructionRef};
+use qiskit_circuit::operations::{DelayUnit, Parameters, StandardInstructionView};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
-use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionRef};
+use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionView};
 use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
@@ -1183,10 +1183,10 @@ impl<'a> QASM3Builder {
     }
 
     fn build_delay(&self, instr: &PackedInstruction) -> ExporterResult<Delay> {
-        let Some(StandardInstructionRef::Delay {
+        let Some(StandardInstructionView::Delay {
             duration: param,
             unit: delay_unit,
-        }) = instr.standard_instruction()
+        }) = instr.try_view_standard_instruction()
         else {
             return Err(QASM3ExporterError::Error(
                 "Expected Delay instruction, but got wrong instruction".to_string(),
@@ -1357,7 +1357,7 @@ impl<'a> QASM3Builder {
                 })
                 .collect()
         });
-        if let Some(instruction) = instr.view().definition() {
+        if let Some(instruction) = instr.view().try_definition() {
             let params_def = params
                 .iter()
                 .enumerate()

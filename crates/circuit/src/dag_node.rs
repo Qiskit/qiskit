@@ -15,10 +15,10 @@ use std::hash::Hasher;
 use std::sync::OnceLock;
 
 use crate::circuit_instruction::{
-    extract_params, CircuitInstruction, IntoInstructionRef, OperationFromPython,
+    extract_params, CircuitInstruction, IntoInstructionView, OperationFromPython,
 };
 use crate::imports::QUANTUM_CIRCUIT;
-use crate::operations::{InstructionRef, Operation, Param, StandardGateRef};
+use crate::operations::{InstructionView, Operation, Param, StandardGateView};
 use crate::TupleLikeArg;
 
 use ahash::AHasher;
@@ -179,8 +179,8 @@ impl DAGOpNode {
         }
         let params_eq = match (slf.instruction.view(), borrowed_other.instruction.view()) {
             (
-                InstructionRef::StandardGate(StandardGateRef(_, slf_params)),
-                InstructionRef::StandardGate(StandardGateRef(_, other_params)),
+                InstructionView::StandardGate(StandardGateView(_, slf_params)),
+                InstructionView::StandardGate(StandardGateView(_, other_params)),
             ) => {
                 let mut params_eq = true;
                 for (a, b) in slf_params.iter().zip(other_params) {
@@ -346,13 +346,13 @@ impl DAGOpNode {
 
     #[setter]
     fn set_params(&mut self, val: Bound<PyAny>) -> PyResult<()> {
-        self.instruction.params = extract_params(self.instruction.op(), &val)?;
+        self.instruction.params = extract_params(self.instruction.view_op(), &val)?;
         Ok(())
     }
 
     #[getter]
     fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = self.instruction.view().matrix();
+        let matrix = self.instruction.view().try_matrix();
         matrix.map(|mat| mat.into_pyarray(py))
     }
 
@@ -396,7 +396,7 @@ impl DAGOpNode {
     fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
         self.instruction
             .view()
-            .definition()
+            .try_definition()
             .map(|data| {
                 QUANTUM_CIRCUIT
                     .get_bound(py)

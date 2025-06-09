@@ -13,7 +13,7 @@
 use crate::target::{Qargs, Target};
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::PhysicalQubit;
@@ -38,7 +38,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
             return Ok(true);
         }
 
-        if let Some(control_flow) = gate.control_flow() {
+        if let Some(control_flow) = gate.try_view_control_flow() {
             for block in control_flow.blocks() {
                 let block_qubits = (0..block.num_qubits()).map(Qubit::new);
                 let inner_wire_map = qargs

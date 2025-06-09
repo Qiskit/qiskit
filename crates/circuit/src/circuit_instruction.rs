@@ -29,44 +29,44 @@ use crate::imports::{
     WARNINGS_WARN, WHILE_LOOP_OP,
 };
 use crate::operations::{
-    ArrayType, ControlFlow, ControlFlowRef, ControlFlowType, InstructionRef, Operation,
+    ArrayType, ControlFlow, ControlFlowType, ControlFlowView, InstructionView, Operation,
     OperationRef, Param, Parameters, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardGateRef, StandardInstruction, StandardInstructionRef, StandardInstructionType,
-    UnitaryGate, UnitaryGateRef,
+    StandardGateView, StandardInstruction, StandardInstructionType, StandardInstructionView,
+    UnitaryGate, UnitaryGateView,
 };
 use crate::packed_instruction::PackedOperation;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
-pub trait IntoInstructionRef<'a> {
+pub trait IntoInstructionView<'a> {
     type Block;
 
-    fn op(self) -> OperationRef<'a>;
-    fn standard_gate(self) -> Option<StandardGateRef<'a>>;
-    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>>;
-    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>>;
-    fn legacy_params(self) -> Option<&'a [Param]>;
+    fn view_op(self) -> OperationRef<'a>;
+    fn try_view_standard_gate(self) -> Option<StandardGateView<'a>>;
+    fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>>;
+    fn try_view_control_flow(self) -> Option<ControlFlowView<'a, Self::Block>>;
+    fn try_legacy_params(self) -> Option<&'a [Param]>;
 
     #[inline]
-    fn view(self) -> InstructionRef<'a, Self::Block>
+    fn view(self) -> InstructionView<'a, Self::Block>
     where
         Self: Copy + Sized,
     {
-        match self.op() {
+        match self.view_op() {
             OperationRef::ControlFlow(_) => {
-                InstructionRef::ControlFlow(self.control_flow().unwrap())
+                InstructionView::ControlFlow(self.try_view_control_flow().unwrap())
             }
             OperationRef::StandardGate(_) => {
-                InstructionRef::StandardGate(self.standard_gate().unwrap())
+                InstructionView::StandardGate(self.try_view_standard_gate().unwrap())
             }
             OperationRef::StandardInstruction(_) => {
-                InstructionRef::StandardInstruction(self.standard_instruction().unwrap())
+                InstructionView::StandardInstruction(self.try_view_standard_instruction().unwrap())
             }
-            OperationRef::Gate(g) => InstructionRef::Gate(g),
-            OperationRef::Instruction(i) => InstructionRef::Instruction(i),
-            OperationRef::Operation(o) => InstructionRef::Operation(o),
-            OperationRef::Unitary(u) => InstructionRef::Unitary(UnitaryGateRef(u)),
+            OperationRef::Gate(g) => InstructionView::Gate(g),
+            OperationRef::Instruction(i) => InstructionView::Instruction(i),
+            OperationRef::Operation(o) => InstructionView::Operation(o),
+            OperationRef::Unitary(u) => InstructionView::Unitary(UnitaryGateView(u)),
         }
     }
 }
@@ -353,14 +353,14 @@ impl Instruction for CircuitInstruction {
     }
 }
 
-impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
+impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
     type Block = PyObject;
 
-    fn op(self) -> OperationRef<'a> {
+    fn view_op(self) -> OperationRef<'a> {
         Instruction::op(self)
     }
 
-    fn standard_gate(self) -> Option<StandardGateRef<'a>> {
+    fn try_view_standard_gate(self) -> Option<StandardGateView<'a>> {
         let OperationRef::StandardGate(gate) = self.op() else {
             return None;
         };
@@ -369,15 +369,15 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
             None => &[],
             _ => panic!("invalid gate"),
         };
-        Some(StandardGateRef(gate, params))
+        Some(StandardGateView(gate, params))
     }
 
-    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
+    fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>> {
         let OperationRef::StandardInstruction(instruction) = self.op() else {
             return None;
         };
         Some(match instruction {
-            StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
+            StandardInstruction::Barrier(n) => StandardInstructionView::Barrier(n),
             StandardInstruction::Delay(unit) => {
                 let Some([duration]) = self.params_view().and_then(|p| match p {
                     Parameters::Params(params) => Some(params.as_slice()),
@@ -385,14 +385,14 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                 }) else {
                     panic!("invalid delay parameters");
                 };
-                StandardInstructionRef::Delay { duration, unit }
+                StandardInstructionView::Delay { duration, unit }
             }
-            StandardInstruction::Measure => StandardInstructionRef::Measure,
-            StandardInstruction::Reset => StandardInstructionRef::Reset,
+            StandardInstruction::Measure => StandardInstructionView::Measure,
+            StandardInstruction::Reset => StandardInstructionView::Reset,
         })
     }
 
-    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
+    fn try_view_control_flow(self) -> Option<ControlFlowView<'a, Self::Block>> {
         let OperationRef::ControlFlow(control) = self.op() else {
             return None;
         };
@@ -402,10 +402,10 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                 let Some(Parameters::Box { body }) = self.params_view() else {
                     panic!("invalid box parameters");
                 };
-                ControlFlowRef::Box(duration.as_ref(), body)
+                ControlFlowView::Box(duration.as_ref(), body)
             }
-            ControlFlow::BreakLoop { .. } => ControlFlowRef::BreakLoop,
-            ControlFlow::ContinueLoop { .. } => ControlFlowRef::ContinueLoop,
+            ControlFlow::BreakLoop { .. } => ControlFlowView::BreakLoop,
+            ControlFlow::ContinueLoop { .. } => ControlFlowView::ContinueLoop,
             ControlFlow::ForLoop { .. } => {
                 let Some(Parameters::ForLoop {
                     indexset,
@@ -415,7 +415,7 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                 else {
                     panic!("invalid");
                 };
-                ControlFlowRef::ForLoop {
+                ControlFlowView::ForLoop {
                     indexset,
                     loop_param: loop_param.as_ref(),
                     body,
@@ -429,7 +429,7 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                 else {
                     panic!("invalid");
                 };
-                ControlFlowRef::IfElse {
+                ControlFlowView::IfElse {
                     condition,
                     true_body,
                     false_body: false_body.as_ref(),
@@ -449,7 +449,7 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                             .expect("invalid"),
                     )
                     .collect();
-                ControlFlowRef::Switch {
+                ControlFlowView::Switch {
                     target,
                     cases_specifier,
                 }
@@ -458,20 +458,20 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                 let Some(Parameters::While { body }) = self.params_view() else {
                     panic!("invalid");
                 };
-                ControlFlowRef::While { condition, body }
+                ControlFlowView::While { condition, body }
             }
         })
     }
 
     /// Returns the old-style [Param] sequence, unless this is a control
     /// flow instruction.
-    fn legacy_params(self) -> Option<&'a [Param]> {
+    fn try_legacy_params(self) -> Option<&'a [Param]> {
         match self.view() {
-            InstructionRef::StandardGate(_)
-            | InstructionRef::Gate(_)
-            | InstructionRef::Operation(_)
-            | InstructionRef::Unitary(_)
-            | InstructionRef::Instruction(_) => Some(
+            InstructionView::StandardGate(_)
+            | InstructionView::Gate(_)
+            | InstructionView::Operation(_)
+            | InstructionView::Unitary(_)
+            | InstructionView::Instruction(_) => Some(
                 self.params_view()
                     .and_then(|p| match p {
                         Parameters::Params(p) => Some(p.as_slice()),
@@ -479,8 +479,8 @@ impl<'a, T: Instruction> IntoInstructionRef<'a> for &'a T {
                     })
                     .unwrap_or_default(),
             ),
-            InstructionRef::StandardInstruction(inst) => match inst {
-                StandardInstructionRef::Delay { duration, .. } => {
+            InstructionView::StandardInstruction(inst) => match inst {
+                StandardInstructionView::Delay { duration, .. } => {
                     Some(std::slice::from_ref(&duration))
                 }
                 _ => Some(&[]),
@@ -592,7 +592,7 @@ impl CircuitInstruction {
 
     #[getter]
     fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = self.view().matrix();
+        let matrix = self.view().try_matrix();
         matrix.map(move |mat| mat.into_pyarray(py))
     }
 

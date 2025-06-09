@@ -18,7 +18,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::operations::{
     DelayUnit, Operation, Param, Parameters, StandardGate, StandardInstruction,
 };
@@ -746,7 +746,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     let mut qargs_vec: Vec<u32> = qargs.iter().map(|x| x.0).collect();
     let cargs = circuit.get_cargs(packed_inst.clbits);
     let mut cargs_vec: Vec<u32> = cargs.iter().map(|x| x.0).collect();
-    let params = packed_inst.legacy_params().unwrap_or_default();
+    let params = packed_inst.try_legacy_params().unwrap_or_default();
     let mut params_vec: Vec<f64> = params
         .iter()
         .map(|x| match x {

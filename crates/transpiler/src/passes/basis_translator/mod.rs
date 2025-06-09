@@ -27,7 +27,7 @@ mod compose_transforms;
 
 use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::{Param, Parameters};
@@ -236,7 +236,7 @@ fn extract_basis(
             if circuit.get_qargs(operation.qubits).len() >= min_qubits {
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
-            if let Some(control_flow) = operation.control_flow() {
+            if let Some(control_flow) = operation.try_view_control_flow() {
                 for block in control_flow.blocks() {
                     recurse_dag(py, block, basis, min_qubits)?;
                 }
@@ -316,7 +316,7 @@ fn extract_basis_target(
         } else {
             source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
         }
-        if let Some(control_flow) = node_obj.control_flow() {
+        if let Some(control_flow) = node_obj.try_view_control_flow() {
             for block in control_flow.blocks() {
                 extract_basis_target(
                     py,
@@ -355,7 +355,7 @@ fn apply_translation(
         let qubit_set: IndexSet<Qubit, ahash::RandomState> =
             IndexSet::from_iter(node_qarg.iter().copied());
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
-            if let Some(control_flow) = node_obj.control_flow() {
+            if let Some(control_flow) = node_obj.try_view_control_flow() {
                 let mut flow_blocks = vec![];
                 for dag_block in control_flow.blocks() {
                     let updated_dag: DAGCircuit;

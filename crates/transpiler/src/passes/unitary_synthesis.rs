@@ -20,7 +20,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::{IntoPyArray, ToPyArray};
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
 use smallvec::SmallVec;
 
@@ -254,7 +254,7 @@ pub fn run_unitary_synthesis(
     // Iterate over dag nodes and determine unitary synthesis approach
     for node in dag.topological_op_nodes()? {
         let mut packed_instr = dag[node].unwrap_operation().clone();
-        if let Some(control_flow) = packed_instr.control_flow() {
+        if let Some(control_flow) = packed_instr.try_view_control_flow() {
             let blocks = control_flow.blocks();
             let mut new_blocks = Vec::with_capacity(blocks.len());
             for block in blocks {
@@ -317,7 +317,7 @@ pub fn run_unitary_synthesis(
                         true,
                         None,
                     ),
-                    _ => match packed_instr.view().matrix() {
+                    _ => match packed_instr.view().try_matrix() {
                         Some(matrix) => unitary_to_gate_sequence_inner(
                             matrix.view(),
                             &target_basis_set,
@@ -381,7 +381,7 @@ pub fn run_unitary_synthesis(
                             apply_original_op,
                         )?;
                     }
-                    _ => match packed_instr.view().matrix() {
+                    _ => match packed_instr.view().try_matrix() {
                         Some(matrix) => {
                             run_2q_unitary_synthesis(
                                 py,
@@ -413,7 +413,7 @@ pub fn run_unitary_synthesis(
                         OperationRef::Unitary(gate) => {
                             qs_decomposition.call1((gate.matrix_view().to_pyarray(py),))?
                         }
-                        _ => match packed_instr.view().matrix() {
+                        _ => match packed_instr.view().try_matrix() {
                             Some(matrix) => qs_decomposition.call1((matrix.into_pyarray(py),))?,
                             _ => return Err(QiskitError::new_err("Unitary not found")),
                         },
@@ -589,7 +589,7 @@ fn get_2q_decomposers_from_target(
             }
             // Add to param_basis if the gate parameters aren't bound (not Float)
             if !op
-                .legacy_params()
+                .try_legacy_params()
                 .unwrap()
                 .iter()
                 .all(|p| matches!(p, Param::Float(_)))
@@ -647,7 +647,7 @@ fn get_2q_decomposers_from_target(
                     decomposers.push(DecomposerElement {
                         decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
                         packed_op: gate.operation.clone(),
-                        params: gate.legacy_params().unwrap().iter().cloned().collect(),
+                        params: gate.try_legacy_params().unwrap().iter().cloned().collect(),
                     });
                 }
                 Err(_) => continue,
@@ -666,7 +666,7 @@ fn get_2q_decomposers_from_target(
     // Step 2: Try TwoQubitBasisDecomposers
     #[inline]
     fn is_supercontrolled(op: &NormalOperation) -> bool {
-        match op.view().matrix() {
+        match op.view().try_matrix() {
             None => false,
             Some(unitary_matrix) => {
                 let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
@@ -695,7 +695,7 @@ fn get_2q_decomposers_from_target(
             }
             let decomposer = TwoQubitBasisDecomposer::new_inner(
                 gate.operation.name().to_string(),
-                gate.view().matrix().unwrap().view(),
+                gate.view().try_matrix().unwrap().view(),
                 basis_2q_fidelity,
                 basis_1q,
                 pulse_optimize,
@@ -704,7 +704,7 @@ fn get_2q_decomposers_from_target(
             decomposers.push(DecomposerElement {
                 decomposer: DecomposerType::TwoQubitBasis(Box::new(decomposer)),
                 packed_op: gate.operation.clone(),
-                params: gate.legacy_params().unwrap().iter().cloned().collect(),
+                params: gate.try_legacy_params().unwrap().iter().cloned().collect(),
             });
         }
     }
@@ -720,7 +720,7 @@ fn get_2q_decomposers_from_target(
     // Step 3: Try XXDecomposers (Python)
     #[inline]
     fn is_controlled(op: &NormalOperation) -> bool {
-        match op.view().matrix() {
+        match op.view().try_matrix() {
             None => false,
             Some(unitary_matrix) => {
                 let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
@@ -743,7 +743,7 @@ fn get_2q_decomposers_from_target(
         |(name, (op, props))| -> PyResult<(f64, f64, pyo3::Bound<'_, pyo3::PyAny>)> {
             let strength = 2.0
                 * TwoQubitWeylDecomposition::new_inner(
-                    op.view().matrix().unwrap().view(),
+                    op.view().try_matrix().unwrap().view(),
                     None,
                     None,
                 )
@@ -811,7 +811,7 @@ fn get_2q_decomposers_from_target(
                 .getattr(intern!(py, "gate"))?
                 .extract::<NormalOperation>()?;
             let params = decomposer_gate
-                .legacy_params()
+                .try_legacy_params()
                 .unwrap()
                 .iter()
                 .cloned()
@@ -1157,7 +1157,7 @@ fn synth_error(
                     let are_params_close = if let Some(params) = inst_params {
                         params
                             .iter()
-                            .zip(target_op.legacy_params().unwrap().iter())
+                            .zip(target_op.try_legacy_params().unwrap().iter())
                             .all(|(p1, p2)| {
                                 p1.is_close(py, p2, 1e-10)
                                     .expect("Unexpected parameter expression error.")
@@ -1166,7 +1166,7 @@ fn synth_error(
                         false
                     };
                     let is_parametrized = target_op
-                        .legacy_params()
+                        .try_legacy_params()
                         .unwrap()
                         .iter()
                         .any(|param| matches!(param, Param::ParameterExpression(_)));
@@ -1342,7 +1342,7 @@ fn run_2q_unitary_synthesis(
                             unreachable!("DAG node must be an instruction")
                         };
                         if !matches!(
-                            inst.op(),
+                            inst.view_op(),
                             OperationRef::StandardGate(_)
                                 | OperationRef::Gate(_)
                                 | OperationRef::Operation(_)

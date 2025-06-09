@@ -25,7 +25,7 @@ use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use super::analyze_commutations;
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_synthesis::{euler_one_qubit_decomposer, QiskitError};
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
@@ -216,7 +216,7 @@ pub fn cancel_commutations(
                 for current_node in cancel_set {
                     let node_op = &dag[*current_node]
                         .unwrap_operation()
-                        .standard_gate()
+                        .try_view_standard_gate()
                         .expect("standard gate operation expected");
                     let node_op_name = node_op.gate().name();
 

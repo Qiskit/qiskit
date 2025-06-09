@@ -15,13 +15,13 @@ use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{
-    DelayUnit, InstructionRef, Operation, Param, StandardInstructionRef,
+    DelayUnit, InstructionView, Operation, Param, StandardInstructionView,
 };
 
 use qiskit_transpiler::target::Target;
 
 use crate::QiskitError;
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::PhysicalQubit;
 use rustworkx_core::dag_algo::longest_path;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
@@ -42,9 +42,9 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                     let physical_qubits: Vec<PhysicalQubit> =
                         qubits.iter().map(|x| PhysicalQubit::new(x.0)).collect();
 
-                    if let InstructionRef::StandardInstruction(inst) = inst.view() {
+                    if let InstructionView::StandardInstruction(inst) = inst.view() {
                         match inst {
-                            StandardInstructionRef::Delay { duration, unit } => {
+                            StandardInstructionView::Delay { duration, unit } => {
                                 return if unit == DelayUnit::DT {
                                     if let Some(dt) = dt {
                                         match duration {
@@ -81,7 +81,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                                     ))
                                 };
                             }
-                            StandardInstructionRef::Barrier(_) => {
+                            StandardInstructionView::Barrier(_) => {
                                 return Ok(0.);
                             }
                             _ => (),

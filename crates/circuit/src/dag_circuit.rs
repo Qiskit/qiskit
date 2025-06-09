@@ -22,7 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{
-    CircuitInstruction, Instruction, IntoInstructionRef, OperationFromPython,
+    CircuitInstruction, Instruction, IntoInstructionView, OperationFromPython,
 };
 use crate::classical::expr;
 use crate::converters::{circuit_to_dag, QuantumCircuitData};
@@ -32,9 +32,9 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, Condition, ControlFlow, ControlFlowRef, InstructionRef, Operation, OperationRef,
-    Param, Parameters, PyInstruction, StandardGate, StandardGateRef, StandardInstruction,
-    StandardInstructionRef, Target,
+    ArrayType, Condition, ControlFlow, ControlFlowView, InstructionView, Operation, OperationRef,
+    Param, Parameters, PyInstruction, StandardGate, StandardGateView, StandardInstruction,
+    StandardInstructionView, Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
@@ -252,7 +252,7 @@ impl DAGInstruction {
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
     fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
-        match (self.op(), other.op()) {
+        match (self.view_op(), other.view_op()) {
             (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
                 Ok(left == right)
             }
@@ -304,15 +304,15 @@ impl DAGInstruction {
     }
 }
 
-impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
+impl<'a> IntoInstructionView<'a> for &'a DAGInstruction {
     type Block = DAGCircuit;
 
-    fn op(self) -> OperationRef<'a> {
+    fn view_op(self) -> OperationRef<'a> {
         self.op.view()
     }
 
-    fn standard_gate(self) -> Option<StandardGateRef<'a>> {
-        let OperationRef::StandardGate(gate) = self.op() else {
+    fn try_view_standard_gate(self) -> Option<StandardGateView<'a>> {
+        let OperationRef::StandardGate(gate) = self.view_op() else {
             return None;
         };
         let params = self.params.as_deref().map(|p| {
@@ -321,15 +321,15 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
             };
             p.as_slice()
         });
-        Some(StandardGateRef(gate, params.unwrap_or(&[])))
+        Some(StandardGateView(gate, params.unwrap_or(&[])))
     }
 
-    fn standard_instruction(self) -> Option<StandardInstructionRef<'a>> {
-        let OperationRef::StandardInstruction(instruction) = self.op() else {
+    fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>> {
+        let OperationRef::StandardInstruction(instruction) = self.view_op() else {
             return None;
         };
         Some(match instruction {
-            StandardInstruction::Barrier(n) => StandardInstructionRef::Barrier(n),
+            StandardInstruction::Barrier(n) => StandardInstructionView::Barrier(n),
             StandardInstruction::Delay(unit) => {
                 let Some(duration) = self.params.as_deref().and_then(|p| match p {
                     Parameters::Params(params) => params.iter().next(),
@@ -337,23 +337,23 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
                 }) else {
                     panic!("invalid delay parameters")
                 };
-                StandardInstructionRef::Delay { duration, unit }
+                StandardInstructionView::Delay { duration, unit }
             }
-            StandardInstruction::Measure => StandardInstructionRef::Measure,
-            StandardInstruction::Reset => StandardInstructionRef::Reset,
+            StandardInstruction::Measure => StandardInstructionView::Measure,
+            StandardInstruction::Reset => StandardInstructionView::Reset,
         })
     }
 
-    fn control_flow(self) -> Option<ControlFlowRef<'a, Self::Block>> {
+    fn try_view_control_flow(self) -> Option<ControlFlowView<'a, Self::Block>> {
         let OperationRef::ControlFlow(control) = self.op.view() else {
             return None;
         };
         Some(match (control, self.params.as_deref()) {
             (ControlFlow::Box { duration, .. }, Some(Parameters::Box { body })) => {
-                ControlFlowRef::Box(duration.as_ref(), body)
+                ControlFlowView::Box(duration.as_ref(), body)
             }
-            (ControlFlow::BreakLoop { .. }, _) => ControlFlowRef::BreakLoop,
-            (ControlFlow::ContinueLoop { .. }, _) => ControlFlowRef::ContinueLoop,
+            (ControlFlow::BreakLoop { .. }, _) => ControlFlowView::BreakLoop,
+            (ControlFlow::ContinueLoop { .. }, _) => ControlFlowView::ContinueLoop,
             (
                 ControlFlow::ForLoop { .. },
                 Some(Parameters::ForLoop {
@@ -361,7 +361,7 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
                     loop_param,
                     body,
                 }),
-            ) => ControlFlowRef::ForLoop {
+            ) => ControlFlowView::ForLoop {
                 indexset,
                 loop_param: loop_param.as_ref(),
                 body,
@@ -372,7 +372,7 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
                     true_body,
                     false_body,
                 }),
-            ) => ControlFlowRef::IfElse {
+            ) => ControlFlowView::IfElse {
                 condition,
                 true_body,
                 false_body: false_body.as_ref(),
@@ -382,12 +382,12 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
                     target, label_spec, ..
                 },
                 Some(Parameters::Switch { cases }),
-            ) => ControlFlowRef::Switch {
+            ) => ControlFlowView::Switch {
                 target,
                 cases_specifier: label_spec.iter().zip(cases).collect(),
             },
             (ControlFlow::While { condition, .. }, Some(Parameters::While { body })) => {
-                ControlFlowRef::While { condition, body }
+                ControlFlowView::While { condition, body }
             }
             _ => panic!("invalid control-flow instruction parameters"),
         })
@@ -395,13 +395,13 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
 
     /// Returns the old-style [Param] sequence, unless this is a control
     /// flow instruction.
-    fn legacy_params(self) -> Option<&'a [Param]> {
+    fn try_legacy_params(self) -> Option<&'a [Param]> {
         match self.view() {
-            InstructionRef::StandardGate(_)
-            | InstructionRef::Gate(_)
-            | InstructionRef::Operation(_)
-            | InstructionRef::Unitary(_)
-            | InstructionRef::Instruction(_) => Some(
+            InstructionView::StandardGate(_)
+            | InstructionView::Gate(_)
+            | InstructionView::Operation(_)
+            | InstructionView::Unitary(_)
+            | InstructionView::Instruction(_) => Some(
                 self.params
                     .as_deref()
                     .and_then(|p| match p {
@@ -410,8 +410,8 @@ impl<'a> IntoInstructionRef<'a> for &'a DAGInstruction {
                     })
                     .unwrap_or_default(),
             ),
-            InstructionRef::StandardInstruction(inst) => match inst {
-                StandardInstructionRef::Delay { duration, .. } => {
+            InstructionView::StandardInstruction(inst) => match inst {
+                StandardInstructionView::Delay { duration, .. } => {
                     Some(std::slice::from_ref(&duration))
                 }
                 _ => Some(&[]),
@@ -2116,13 +2116,13 @@ impl DAGCircuit {
             let NodeType::Operation(node) = node else {
                 continue;
             };
-            let Some(control_flow) = node.control_flow() else {
+            let Some(control_flow) = node.try_view_control_flow() else {
                 continue;
             };
 
             // TODO: should Box be skipped as it was before?
             match control_flow {
-                ControlFlowRef::ForLoop { indexset, body, .. } => {
+                ControlFlowView::ForLoop { indexset, body, .. } => {
                     // TODO: is this the intended logic?
                     length += indexset.len() * body.size(py, true)?;
                 }
@@ -2183,10 +2183,10 @@ impl DAGCircuit {
             let NodeType::Operation(node) = node else {
                 continue;
             };
-            let Some(control_flow) = node.control_flow() else {
+            let Some(control_flow) = node.try_view_control_flow() else {
                 continue;
             };
-            let weight = if let ControlFlowRef::ForLoop { indexset, .. } = control_flow {
+            let weight = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
                 indexset.len()
             } else {
                 1
@@ -2453,7 +2453,7 @@ impl DAGCircuit {
                         true
                     };
                     match [inst1.view(), inst2.view()] {
-                        [InstructionRef::StandardGate(StandardGateRef(gate1, params1)), InstructionRef::StandardGate(StandardGateRef(gate2, params2))] => {
+                        [InstructionView::StandardGate(StandardGateView(gate1, params1)), InstructionView::StandardGate(StandardGateView(gate2, params2))] => {
                             Ok(gate1 == gate2
                                 && check_args()
                                 && params1
@@ -2461,45 +2461,48 @@ impl DAGCircuit {
                                     .zip(params2)
                                     .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
                         }
-                        [InstructionRef::StandardInstruction(inst1), InstructionRef::StandardInstruction(inst2)] => {
+                        [InstructionView::StandardInstruction(inst1), InstructionView::StandardInstruction(inst2)] => {
                             Ok(match [inst1, inst2] {
-                                [StandardInstructionRef::Barrier(n1), StandardInstructionRef::Barrier(n2)] => {
+                                [StandardInstructionView::Barrier(n1), StandardInstructionView::Barrier(n2)] => {
                                     n1 == n2
                                 }
-                                [StandardInstructionRef::Delay {
+                                [StandardInstructionView::Delay {
                                     duration: duration1,
                                     unit: unit1,
-                                }, StandardInstructionRef::Delay {
+                                }, StandardInstructionView::Delay {
                                     duration: duration2,
                                     unit: unit2,
                                 }] => unit1 == unit2 && duration1.is_close(py, duration2, 1e-10)?,
-                                [StandardInstructionRef::Measure, StandardInstructionRef::Measure] => {
+                                [StandardInstructionView::Measure, StandardInstructionView::Measure] => {
                                     true
                                 }
-                                [StandardInstructionRef::Reset, StandardInstructionRef::Reset] => {
+                                [StandardInstructionView::Reset, StandardInstructionView::Reset] => {
                                     true
                                 }
                                 _ => false,
                             } && check_args())
                         }
-                        [InstructionRef::ControlFlow(inst1), InstructionRef::ControlFlow(inst2)] => {
+                        [InstructionView::ControlFlow(inst1), InstructionView::ControlFlow(inst2)] =>
+                        {
                             match (inst1, inst2) {
                                 // TODO: use structural equivalence for condition and target
                                 (
-                                    ControlFlowRef::Box(duration_a, body_a),
-                                    ControlFlowRef::Box(duration_b, body_b),
+                                    ControlFlowView::Box(duration_a, body_a),
+                                    ControlFlowView::Box(duration_b, body_b),
                                 ) => Ok(duration_a == duration_b && body_a.__eq__(py, body_b)?),
-                                (ControlFlowRef::BreakLoop, ControlFlowRef::BreakLoop) => Ok(true),
-                                (ControlFlowRef::ContinueLoop, ControlFlowRef::ContinueLoop) => {
+                                (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
+                                    Ok(true)
+                                }
+                                (ControlFlowView::ContinueLoop, ControlFlowView::ContinueLoop) => {
                                     Ok(true)
                                 }
                                 (
-                                    ControlFlowRef::ForLoop {
+                                    ControlFlowView::ForLoop {
                                         indexset: indexset_a,
                                         loop_param: loop_param_a,
                                         body: body_a,
                                     },
-                                    ControlFlowRef::ForLoop {
+                                    ControlFlowView::ForLoop {
                                         indexset: indexset_b,
                                         loop_param: loop_param_b,
                                         body: body_b,
@@ -2518,12 +2521,12 @@ impl DAGCircuit {
                                         && body_a.__eq__(py, body_b)?)
                                 }
                                 (
-                                    ControlFlowRef::IfElse {
+                                    ControlFlowView::IfElse {
                                         condition: condition_a,
                                         true_body: true_body_a,
                                         false_body: false_body_a,
                                     },
-                                    ControlFlowRef::IfElse {
+                                    ControlFlowView::IfElse {
                                         condition: condition_b,
                                         true_body: true_body_b,
                                         false_body: false_body_b,
@@ -2543,11 +2546,11 @@ impl DAGCircuit {
                                         && false_body_eq()?)
                                 }
                                 (
-                                    ControlFlowRef::Switch {
+                                    ControlFlowView::Switch {
                                         target: target_a,
                                         cases_specifier: cases_a,
                                     },
-                                    ControlFlowRef::Switch {
+                                    ControlFlowView::Switch {
                                         target: target_b,
                                         cases_specifier: cases_b,
                                     },
@@ -2568,11 +2571,11 @@ impl DAGCircuit {
                                     Ok(true)
                                 }
                                 (
-                                    ControlFlowRef::While {
+                                    ControlFlowView::While {
                                         condition: condition_a,
                                         body: body_a,
                                     },
-                                    ControlFlowRef::While {
+                                    ControlFlowView::While {
                                         condition: condition_b,
                                         body: body_b,
                                     },
@@ -2580,26 +2583,26 @@ impl DAGCircuit {
                                 _ => Ok(false),
                             }
                         }
-                        [InstructionRef::Instruction(_op1), InstructionRef::Instruction(_op2)] => {
+                        [InstructionView::Instruction(_op1), InstructionView::Instruction(_op2)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
-                        [InstructionRef::Gate(_op1), InstructionRef::Gate(_op2)] => {
+                        [InstructionView::Gate(_op1), InstructionView::Gate(_op2)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
-                        [InstructionRef::Operation(_op1), InstructionRef::Operation(_op2)] => {
+                        [InstructionView::Operation(_op1), InstructionView::Operation(_op2)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
                         // Handle the edge case where we end up with a Python object and a standard
                         // gate/instruction.
                         // This typically only happens if we have a ControlledGate in Python
                         // and we have mutable state set.
-                        [InstructionRef::StandardGate(_), InstructionRef::Gate(_)]
-                        | [InstructionRef::Gate(_), InstructionRef::StandardGate(_)]
-                        | [InstructionRef::StandardInstruction(_), InstructionRef::Instruction(_)]
-                        | [InstructionRef::Instruction(_), InstructionRef::StandardInstruction(_)] => {
+                        [InstructionView::StandardGate(_), InstructionView::Gate(_)]
+                        | [InstructionView::Gate(_), InstructionView::StandardGate(_)]
+                        | [InstructionView::StandardInstruction(_), InstructionView::Instruction(_)]
+                        | [InstructionView::Instruction(_), InstructionView::StandardInstruction(_)] => {
                             Ok(inst1.py_op_eq(py, inst2)? && check_args())
                         }
-                        [InstructionRef::Unitary(op_a), InstructionRef::Unitary(op_b)] => {
+                        [InstructionView::Unitary(op_a), InstructionView::Unitary(op_b)] => {
                             match [&op_a.array, &op_b.array] {
                                 [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
                                     Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
@@ -5431,7 +5434,8 @@ impl DAGCircuit {
                 NodeType::Operation(inst) => Ok(inst.op.num_qubits() == 1
                     && inst.op.num_clbits() == 0
                     && !inst.is_parameterized()
-                    && (inst.op.try_standard_gate().is_some() || inst.view().matrix().is_some())),
+                    && (inst.op.try_standard_gate().is_some()
+                        || inst.view().try_matrix().is_some())),
                 _ => Ok(false),
             }
         };
@@ -5850,7 +5854,7 @@ impl DAGCircuit {
     fn additional_wires(
         &self,
         py: Python,
-        instr: InstructionRef<DAGCircuit>,
+        instr: InstructionView<DAGCircuit>,
     ) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
         let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<Var>)> {
             let mut clbits = Vec::new();
@@ -5874,13 +5878,13 @@ impl DAGCircuit {
         let mut clbits = Vec::new();
         let mut vars = Vec::new();
 
-        if let InstructionRef::ControlFlow(instr) = &instr {
+        if let InstructionView::ControlFlow(instr) = &instr {
             match instr {
-                ControlFlowRef::IfElse {
+                ControlFlowView::IfElse {
                     condition: Condition::Expr(condition),
                     ..
                 }
-                | ControlFlowRef::While {
+                | ControlFlowView::While {
                     condition: Condition::Expr(condition),
                     ..
                 } => {
@@ -5893,7 +5897,7 @@ impl DAGCircuit {
                         vars.push(var);
                     }
                 }
-                ControlFlowRef::Switch { target, .. } => match target {
+                ControlFlowView::Switch { target, .. } => match target {
                     Target::Bit(bit) => {
                         clbits.push(self.clbits.find(bit).unwrap());
                     }
@@ -5919,7 +5923,7 @@ impl DAGCircuit {
                     vars.push(self.vars.find(var).unwrap());
                 }
             }
-        } else if let InstructionRef::Instruction(instr) = &instr {
+        } else if let InstructionView::Instruction(instr) = &instr {
             let op = instr.instruction.bind(py);
             if op.is_instance(imports::STORE_OP.get_bound(py))? {
                 let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
@@ -6917,7 +6921,7 @@ impl DAGCircuit {
                     let NodeType::Operation(node) = node else {
                         continue;
                     };
-                    let Some(control_flow) = node.control_flow() else {
+                    let Some(control_flow) = node.try_view_control_flow() else {
                         continue;
                     };
                     for block in control_flow.blocks() {

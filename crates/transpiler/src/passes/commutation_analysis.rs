@@ -20,7 +20,7 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 
 use pyo3::types::{PyDict, PyList};
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -87,8 +87,8 @@ pub fn analyze_commutations(
                         let op1 = packed_inst0.op.view();
                         let op2 = packed_inst1.op.view();
 
-                        if packed_inst0.control_flow().is_some()
-                            || packed_inst1.control_flow().is_some()
+                        if packed_inst0.try_view_control_flow().is_some()
+                            || packed_inst1.try_view_control_flow().is_some()
                         {
                             all_commute = false;
                             break;

@@ -15,9 +15,9 @@ use crate::TranspilerError;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::{QuantumRegister, Register};
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::DAGInstruction;
-use qiskit_circuit::operations::{InstructionRef, OperationRef, Parameters, StandardGateRef};
+use qiskit_circuit::operations::{InstructionView, OperationRef, Parameters, StandardGateView};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
@@ -98,7 +98,7 @@ where
     for (_, packed_inst) in dag.op_nodes(false) {
         let inst_qargs = dag.get_qargs(packed_inst.qubits);
 
-        if let Some(control_flow) = packed_inst.control_flow() {
+        if let Some(control_flow) = packed_inst.try_view_control_flow() {
             for block in control_flow.blocks() {
                 let block_ok = if let Some(mapping) = qubit_mapping {
                     let mapping = inst_qargs // Create a temp mapping for the recursive call
@@ -191,7 +191,7 @@ pub fn fix_direction_target(
         ];
 
         // Take this path so Target can check for exact match of the parameterized gate's angle
-        if let InstructionRef::StandardGate(StandardGateRef(std_gate, params)) = inst.view() {
+        if let InstructionView::StandardGate(StandardGateView(std_gate, params)) = inst.view() {
             match std_gate {
                 StandardGate::RXX | StandardGate::RYY | StandardGate::RZZ | StandardGate::RZX => {
                     return target
@@ -233,7 +233,7 @@ where
     for (node, packed_inst) in dag.op_nodes(false) {
         let op_args = dag.get_qargs(packed_inst.qubits);
 
-        if let Some(control_flow) = packed_inst.control_flow() {
+        if let Some(control_flow) = packed_inst.try_view_control_flow() {
             let blocks = control_flow.blocks();
             let mut blocks_to_replace = Vec::with_capacity(blocks.len());
             for inner_dag in blocks {
@@ -359,10 +359,10 @@ fn replace_dag(std_gate: StandardGate, inst: &DAGInstruction) -> PyResult<DAGCir
         StandardGate::CZ => cz_replacement_dag(),
         StandardGate::Swap => swap_replacement_dag(),
         // TODO: is this correct?
-        StandardGate::RXX => rxx_replacement_dag(inst.standard_gate().unwrap().1),
-        StandardGate::RYY => ryy_replacement_dag(inst.standard_gate().unwrap().1),
-        StandardGate::RZZ => rzz_replacement_dag(inst.standard_gate().unwrap().1),
-        StandardGate::RZX => rzx_replacement_dag(inst.standard_gate().unwrap().1),
+        StandardGate::RXX => rxx_replacement_dag(inst.try_view_standard_gate().unwrap().1),
+        StandardGate::RYY => ryy_replacement_dag(inst.try_view_standard_gate().unwrap().1),
+        StandardGate::RZZ => rzz_replacement_dag(inst.try_view_standard_gate().unwrap().1),
+        StandardGate::RZX => rzx_replacement_dag(inst.try_view_standard_gate().unwrap().1),
         _ => panic!("Mismatch in supported gates assumption"),
     };
 

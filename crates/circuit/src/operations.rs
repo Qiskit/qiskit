@@ -319,36 +319,36 @@ impl Operation for OperationRef<'_> {
 }
 
 #[derive(Clone, Debug)]
-pub enum InstructionRef<'a, T> {
-    ControlFlow(ControlFlowRef<'a, T>),
-    StandardGate(StandardGateRef<'a>),
-    StandardInstruction(StandardInstructionRef<'a>),
+pub enum InstructionView<'a, T> {
+    ControlFlow(ControlFlowView<'a, T>),
+    StandardGate(StandardGateView<'a>),
+    StandardInstruction(StandardInstructionView<'a>),
     Gate(&'a PyGate),
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
-    Unitary(UnitaryGateRef<'a>),
+    Unitary(UnitaryGateView<'a>),
 }
 
-impl<'a, T> InstructionRef<'a, T> {
-    pub fn standard_gate(self) -> Option<StandardGateRef<'a>> {
+impl<'a, T> InstructionView<'a, T> {
+    pub fn standard_gate(self) -> Option<StandardGateView<'a>> {
         match self {
-            InstructionRef::StandardGate(standard) => Some(standard),
+            InstructionView::StandardGate(standard) => Some(standard),
             _ => None,
         }
     }
 
-    pub fn matrix(&self) -> Option<Array2<Complex64>> {
+    pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self {
-            InstructionRef::StandardGate(g) => g.matrix(),
-            InstructionRef::Gate(g) => g.matrix(),
-            InstructionRef::Unitary(u) => u.matrix(),
+            InstructionView::StandardGate(g) => g.matrix(),
+            InstructionView::Gate(g) => g.matrix(),
+            InstructionView::Unitary(u) => u.matrix(),
             _ => None,
         }
     }
 
     /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.
     #[inline]
-    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+    pub fn try_matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         match self {
             Self::StandardGate(standard) => standard.matrix_as_static_1q(),
             Self::Gate(gate) => gate.matrix_as_static_1q(),
@@ -357,21 +357,21 @@ impl<'a, T> InstructionRef<'a, T> {
         }
     }
 
-    pub fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
+    pub fn try_matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
         match self {
-            InstructionRef::Unitary(u) => u.matrix_as_nalgebra_1q(),
+            InstructionView::Unitary(u) => u.matrix_as_nalgebra_1q(),
             // default implementation
             _ => self
-                .matrix_as_static_1q()
+                .try_matrix_as_static_1q()
                 .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1])),
         }
     }
 
-    pub fn definition(&self) -> Option<CircuitData> {
+    pub fn try_definition(&self) -> Option<CircuitData> {
         match self {
-            InstructionRef::StandardGate(g) => g.definition(),
-            InstructionRef::Gate(g) => g.definition(),
-            InstructionRef::Instruction(i) => i.definition(),
+            InstructionView::StandardGate(g) => g.definition(),
+            InstructionView::Gate(g) => g.definition(),
+            InstructionView::Instruction(i) => i.definition(),
             _ => None,
         }
     }
@@ -568,7 +568,7 @@ impl<'py> IntoPyObject<'py> for CaseSpecifier {
 }
 
 #[derive(Clone, Debug)]
-pub enum ControlFlowRef<'a, T> {
+pub enum ControlFlowView<'a, T> {
     Box(Option<&'a Duration>, &'a T),
     BreakLoop,
     ContinueLoop,
@@ -592,14 +592,14 @@ pub enum ControlFlowRef<'a, T> {
     },
 }
 
-impl<'a, T> ControlFlowRef<'a, T> {
+impl<'a, T> ControlFlowView<'a, T> {
     pub fn blocks(&self) -> impl ExactSizeIterator<Item = &'a T> {
         match self {
-            ControlFlowRef::Box(_, body) => vec![*body],
-            ControlFlowRef::BreakLoop => vec![],
-            ControlFlowRef::ContinueLoop => vec![],
-            ControlFlowRef::ForLoop { body, .. } => vec![*body],
-            ControlFlowRef::IfElse {
+            ControlFlowView::Box(_, body) => vec![*body],
+            ControlFlowView::BreakLoop => vec![],
+            ControlFlowView::ContinueLoop => vec![],
+            ControlFlowView::ForLoop { body, .. } => vec![*body],
+            ControlFlowView::IfElse {
                 true_body,
                 false_body,
                 ..
@@ -610,10 +610,10 @@ impl<'a, T> ControlFlowRef<'a, T> {
                     vec![*true_body]
                 }
             }
-            ControlFlowRef::Switch {
+            ControlFlowView::Switch {
                 cases_specifier, ..
             } => cases_specifier.iter().map(|(_, block)| *block).collect(),
-            ControlFlowRef::While { body, .. } => vec![*body],
+            ControlFlowView::While { body, .. } => vec![*body],
         }
         .into_iter()
     }
@@ -765,7 +765,7 @@ impl Operation for StandardInstruction {
 }
 
 #[derive(Clone, Debug)]
-pub enum StandardInstructionRef<'a> {
+pub enum StandardInstructionView<'a> {
     Barrier(u32),
     Delay {
         duration: &'a Param,
@@ -2738,9 +2738,9 @@ impl Operation for StandardGate {
 }
 
 #[derive(Clone, Debug)]
-pub struct StandardGateRef<'a>(pub StandardGate, pub &'a [Param]);
+pub struct StandardGateView<'a>(pub StandardGate, pub &'a [Param]);
 
-impl<'a> StandardGateRef<'a> {
+impl<'a> StandardGateView<'a> {
     #[inline]
     pub fn gate(&self) -> &StandardGate {
         &self.0
@@ -3174,9 +3174,9 @@ impl UnitaryGate {
 }
 
 #[derive(Clone, Debug)]
-pub struct UnitaryGateRef<'a>(pub &'a UnitaryGate);
+pub struct UnitaryGateView<'a>(pub &'a UnitaryGate);
 
-impl Deref for UnitaryGateRef<'_> {
+impl Deref for UnitaryGateView<'_> {
     type Target = UnitaryGate;
     fn deref(&self) -> &Self::Target {
         self.0

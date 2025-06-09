@@ -28,7 +28,7 @@ use uuid::Uuid;
 use crate::target::{Qargs, Target};
 use crate::TranspilerError;
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
@@ -355,7 +355,7 @@ fn build_interaction_graph<Ty: EdgeType>(
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
-        if let Some(control_flow) = inst.control_flow() {
+        if let Some(control_flow) = inst.try_view_control_flow() {
             for block in control_flow.blocks() {
                 let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
                 let node_qargs = dag.get_qargs(inst.qubits);

@@ -16,11 +16,11 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
+use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
-use qiskit_circuit::operations::{InstructionRef, Operation, StandardGateRef};
+use qiskit_circuit::operations::{InstructionView, Operation, StandardGateView};
 use qiskit_circuit::PhysicalQubit;
 
 const MINIMUM_TOL: f64 = 1e-12;
@@ -85,7 +85,7 @@ pub fn run_remove_identity_equiv(
         }
         let view = inst.view();
         match view {
-            InstructionRef::StandardGate(StandardGateRef(gate, params)) => {
+            InstructionView::StandardGate(StandardGateView(gate, params)) => {
                 let (tr_over_dim, dim) = match gate {
                     StandardGate::RX
                     | StandardGate::RY
@@ -108,7 +108,7 @@ pub fn run_remove_identity_equiv(
                         }
                     }
                     _ => {
-                        if let Some(matrix) = view.matrix() {
+                        if let Some(matrix) = view.try_matrix() {
                             let dim = matrix.shape()[0] as f64;
                             let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
                             (tr_over_dim, dim)
@@ -126,7 +126,7 @@ pub fn run_remove_identity_equiv(
                 }
             }
             _ => {
-                let matrix = view.matrix();
+                let matrix = view.try_matrix();
                 // If view.matrix() returns None, then there is no matrix and we skip the operation.
                 if let Some(matrix) = matrix {
                     let error = get_error_cutoff(inst);
