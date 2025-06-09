@@ -20,7 +20,7 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{smallvec, SmallVec};
+use smallvec::smallvec;
 use std::f64::consts::PI;
 
 use crate::circuit_library::entanglement;

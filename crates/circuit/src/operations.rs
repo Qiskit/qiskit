@@ -27,7 +27,6 @@ use smallvec::{smallvec, SmallVec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::classical::expr;
-use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use numpy::PyArray2;
 use numpy::PyReadonlyArray2;

@@ -30,10 +30,9 @@ use numpy::IntoPyArray;
 use numpy::PyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PyTuple};
+use pyo3::types::PyTuple;
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
-use smallvec::SmallVec;
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
 #[pyclass(module = "qiskit._accelerate.circuit", subclass)]

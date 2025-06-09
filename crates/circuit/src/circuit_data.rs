@@ -12,7 +12,6 @@
 
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::mem::swap;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -21,16 +20,12 @@ use crate::bit::{
     ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
-use crate::circuit_instruction::{
-    CircuitInstruction, Instruction, IntoInstructionRef, OperationFromPython,
-};
+use crate::circuit_instruction::{CircuitInstruction, Instruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{
-    Operation, OperationRef, Param, Parameters, StandardGate, StandardGateRef,
-};
+use crate::operations::{Operation, OperationRef, Param, Parameters, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;

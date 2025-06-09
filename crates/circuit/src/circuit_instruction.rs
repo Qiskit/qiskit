@@ -19,8 +19,8 @@ use pyo3::prelude::*;
 use std::sync::OnceLock;
 
 use pyo3::types::{IntoPyDict, PyBool, PyDict, PyList, PyTuple, PyType};
+use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
-use pyo3::{BoundObject, IntoPyObjectExt};
 
 use crate::duration::Duration;
 use crate::imports::{
@@ -37,8 +37,7 @@ use crate::operations::{
 use crate::packed_instruction::PackedOperation;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
-use rustworkx_core::petgraph::visit::Walker;
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 
 pub trait IntoInstructionRef<'a> {
     type Block;

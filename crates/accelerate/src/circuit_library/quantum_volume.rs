@@ -26,7 +26,6 @@ use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_circuit::operations::{ArrayType, Param, Parameters, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
-use smallvec::{smallvec, SmallVec};
 
 type Instruction = (
     PackedOperation,

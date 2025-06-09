@@ -23,7 +23,6 @@ use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, Unit
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 
-use qiskit_circuit::circuit_instruction::IntoInstructionRef;
 use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
 
 #[pyfunction]

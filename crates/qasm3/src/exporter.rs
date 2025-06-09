@@ -29,9 +29,7 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{
-    DelayUnit, Parameters, StandardInstruction, StandardInstructionRef,
-};
+use qiskit_circuit::operations::{DelayUnit, Parameters, StandardInstructionRef};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use thiserror::Error;
