@@ -462,35 +462,34 @@ class SparsePauliOp(LinearOp):
         """Simplify PauliList by combining duplicates and removing zeros.
 
         Args:
-              atol (float): Optional. Absolute tolerance for checking if
-                            coefficients are zero (Default: 1e-8).
-              rtol (float): Optional. relative tolerance for checking if
-                            coefficients are zero (Default: 1e-5).
+            atol (float): Optional. Absolute tolerance for checking if
+                          coefficients are zero (Default: 1e-8).
+            rtol (float): Optional. relative tolerance for checking if
+                          coefficients are zero (Default: 1e-5).
 
         Returns:
-              SparsePauliOp: the simplified SparsePauliOp operator.
+            SparsePauliOp: the simplified SparsePauliOp operator.
         """
         # Get default atol and rtol
         if atol is None:
             atol = self.atol
         if rtol is None:
             rtol = self.rtol
-        # ----- STEP 1: KEEP all terms (do NOT remove near-zero yet) -----
+
+
         paulis_x = self.paulis.x
         paulis_z = self.paulis.z
-        all_coeffs = self.coeffs
+        nz_coeffs = self.coeffs
 
-        # Identify duplicate Paulis
         array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
             paulis_z, axis=1
         )
         indexes, inverses = unordered_unique(array)
 
-        # Sum coefficients of duplicate Paulis
         coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
-        np.add.at(coeffs, inverses, all_coeffs)
+        np.add.at(coeffs, inverses, nz_coeffs)
 
-        # ----- STEP 2: NOW remove near-zero coefficients -----
+        # Filter non-zero coefficients
         if self.coeffs.dtype == object:
 
             def to_complex(coeff):
@@ -499,15 +498,27 @@ class SparsePauliOp(LinearOp):
                 sympified = coeff.sympify()
                 return complex(sympified) if sympified.is_Number else np.nan
 
-            is_zero = np.array([np.isclose(to_complex(c), 0, atol=atol, rtol=rtol) for c in coeffs])
+            non_zero = np.logical_not(
+                np.isclose([to_complex(x) for x in self.coeffs], 0, atol=atol, rtol=rtol)
+            )
+        else:
+            non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
+
+
+        # Delete zero coefficient rows
+        if self.coeffs.dtype == object:
+            is_zero = np.array(
+                [np.isclose(to_complex(coeff), 0, atol=atol, rtol=rtol) for coeff in coeffs]
+            )
         else:
             is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
-
+        # Check edge case that we deleted all Paulis
+        # In this case we return an identity Pauli with a zero coefficient
         if np.all(is_zero):
-            x = np.zeros((0, self.num_qubits), dtype=bool)
-            z = np.zeros((0, self.num_qubits), dtype=bool)
-            coeffs = np.array([], dtype=self.coeffs.dtype)
-
+            print(self.num_qubits)
+            x = np.zeros((1, self.num_qubits), dtype=bool)
+            z = np.zeros((1, self.num_qubits), dtype=bool)
+            coeffs = np.array([0j], dtype=self.coeffs.dtype)
         else:
             non_zero = np.logical_not(is_zero)
             non_zero_indexes = indexes[non_zero]
