@@ -32,7 +32,7 @@ class TestWrapAngles(QiskitTestCase):
         circuit = QuantumCircuit(2)
         target = Target.from_configuration(["u"], 2, CouplingMap([[0, 1]]))
 
-        def callback(_):
+        def callback(_, __):
             raise NotADirectoryError("test_works")
 
         target.add_instruction(RZXGate(Parameter("x")), angle_bounds=[(0, 3.14)])
@@ -59,7 +59,7 @@ class TestWrapAngles(QiskitTestCase):
         target = Target(num_qubits=1)
         target.add_instruction(MyCustomGate(param), angle_bounds=[(0, 0.5)])
 
-        def callback(angles):
+        def callback(angles, _qubits):
             angle = angles[0]
             if angle > 0:
                 number_of_gates = angle / 0.5

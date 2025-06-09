@@ -1333,6 +1333,8 @@ from qiskit.passmanager import (
 )
 from qiskit.passmanager.compilation_status import PropertySet
 
+from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
+
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
 from .exceptions import (
@@ -1351,4 +1353,3 @@ from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
-from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry

@@ -1846,8 +1846,8 @@ class TestAngleBounds(QiskitTestCase):
             UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
         )
         target.add_instruction(XGate())
-        self.assertTrue(target.gate_has_angle_bound("u"))
-        self.assertFalse(target.gate_has_angle_bound("x"))
+        self.assertTrue(target.gate_has_angle_bounds("u"))
+        self.assertFalse(target.gate_has_angle_bounds("x"))
 
     def test_instruction_supported_angle_check(self):
         """Test instruction supported with angle bounds check enabled."""

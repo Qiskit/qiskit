@@ -2995,7 +2995,7 @@ class TestTranspileParallel(QiskitTestCase):
         rzz_outside_bounds.h(1)
         circs = [qc, rzz_outside_bounds]
 
-        def fold_rzz(angles):
+        def fold_rzz(angles, _qubits):
             angle = angles[0]
             if 0 <= angle <= pi / 2:
                 return None
@@ -3106,9 +3106,11 @@ class TestTranspileParallel(QiskitTestCase):
             CZGate(),
             {(0, 1): InstructionProperties(error=5e-3), (1, 0): InstructionProperties(error=5e-3)},
         )
+        global WRAP_ANGLE_REGISTRY  # pylint: disable=global-statement
         WRAP_ANGLE_REGISTRY.add_wrapper("rzz", fold_rzz)
 
         def cleanup_wrap_registry():
+            global WRAP_ANGLE_REGISTRY  # pylint: disable=global-statement
             WRAP_ANGLE_REGISTRY = WrapAngleRegistry()
 
         self.addCleanup(cleanup_wrap_registry)

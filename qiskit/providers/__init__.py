@@ -488,7 +488,7 @@ in the example above::
     p_props = {(qubit,): None for qubit in range(5)}
     self._target.add_instruction(PhaseGate(lam), p_props, angle_bounds=[(0, math.pi)])
 
-will set the bounds on :class:`.PhaseGate` to be between 0 and :math:`\pi` (inclusive).
+will set the bounds on :class:`.PhaseGate` to be between 0 and :math:`\\pi` (inclusive).
 This models the angle constraint in the :class:`.Target` on the angle values for the
 ``lam`` parameter on :class:`.PhaseGate`. The :class:`.WrapAngles` transpiler pass is
 used to transform any :class:`.PhaseGate` outside the specified angle bounds. You will
