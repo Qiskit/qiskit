@@ -1957,21 +1957,31 @@ impl SymbolExpr {
 
     /// Mul with heuristic optimization
     fn mul_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        if self.is_zero() {
-            Some(self.clone())
-        } else if rhs.is_zero() || self.is_one() {
-            Some(rhs.clone())
-        } else if rhs.is_one() {
-            Some(self.clone())
-        } else if self.is_minus_one() {
-            match rhs.neg_opt() {
+        if self.is_zero() || rhs.is_one() {
+            match self.mul_values(rhs) {
                 Some(e) => Some(e),
-                None => Some(_neg(rhs.clone())),
+                None => Some(self.clone()),
+            }
+        } else if rhs.is_zero() || self.is_one() {
+            match self.mul_values(rhs) {
+                Some(e) => Some(e),
+                None => Some(rhs.clone()),
+            }
+        } else if self.is_minus_one() {
+            match self.mul_values(rhs) {
+                Some(e) => Some(e),
+                None => match rhs.neg_opt() {
+                    Some(e) => Some(e),
+                    None => Some(_neg(rhs.clone())),
+                },
             }
         } else if rhs.is_minus_one() {
-            match self.neg_opt() {
+            match self.mul_values(rhs) {
                 Some(e) => Some(e),
-                None => Some(_neg(self.clone())),
+                None => match self.neg_opt() {
+                    Some(e) => Some(e),
+                    None => Some(_neg(self.clone())),
+                },
             }
         } else {
             if let Some(v) = self.mul_values(rhs) {
@@ -2505,11 +2515,17 @@ impl SymbolExpr {
             // return inf to detect divide by zero without panic
             Some(SymbolExpr::Value(Value::Real(f64::INFINITY)))
         } else if rhs.is_one() {
-            Some(self.clone())
-        } else if rhs.is_minus_one() {
-            match self.neg_opt() {
+            match self.div_values(rhs) {
                 Some(e) => Some(e),
-                None => Some(_neg(self.clone())),
+                None => Some(self.clone()),
+            }
+        } else if rhs.is_minus_one() {
+            match self.div_values(rhs) {
+                Some(e) => Some(e),
+                None => match self.neg_opt() {
+                    Some(e) => Some(e),
+                    None => Some(_neg(self.clone())),
+                },
             }
         } else if *self == *rhs {
             let l_is_int = self.is_int().unwrap_or_default();
