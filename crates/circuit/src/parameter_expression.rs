@@ -52,10 +52,6 @@ impl ParameterValueType {
                         symbol_expr::Value::Int(i) => ParameterValueType::Int(i),
                         symbol_expr::Value::Real(r) => ParameterValueType::Float(r),
                         symbol_expr::Value::Complex(c) => ParameterValueType::Complex(c),
-                        symbol_expr::Value::Fraction {
-                            numerator,
-                            denominator,
-                        } => ParameterValueType::Float(numerator as f64 / denominator as f64),
                     };
                 }
             }
@@ -1626,10 +1622,6 @@ impl ParameterExpression {
                             c.into_py_any(py)
                         }
                     }
-                    symbol_expr::Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => (numerator as f64 / denominator as f64).into_py_any(py),
                 },
                 None => Err(pyo3::exceptions::PyTypeError::new_err(format!(
                     "Expression with unbound parameters '{:?}' is not numeric",
@@ -1725,7 +1717,6 @@ impl ParameterExpression {
                     symbol_expr::Value::Real(r) => Ok(Complex64::from(r)),
                     symbol_expr::Value::Int(i) => Ok(Complex64::from(i as f64)),
                     symbol_expr::Value::Complex(c) => Ok(c),
-                    symbol_expr::Value::Fraction { numerator, denominator } => Ok(Complex64::from(numerator as f64 / denominator as f64)),
                 },
                 None => Err(pyo3::exceptions::PyTypeError::new_err(format!(
                     "ParameterExpression with unbound parameters ({:?}) cannot be cast to a complex.",
@@ -1763,10 +1754,6 @@ impl ParameterExpression {
                             ))
                         }
                     }
-                    symbol_expr::Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => Ok(numerator as f64 / denominator as f64),
                 },
                 None => Err(pyo3::exceptions::PyTypeError::new_err(format!(
                     "ParameterExpression with unbound parameters ({:?}) cannot be cast to a float.",
@@ -1804,10 +1791,6 @@ impl ParameterExpression {
                             ))
                         }
                     }
-                    symbol_expr::Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => Ok(numerator / denominator),
                 },
                 None => Err(pyo3::exceptions::PyTypeError::new_err(format!(
                     "ParameterExpression with unbound parameters ({:?}) cannot be cast to int.",
@@ -1870,10 +1853,6 @@ impl ParameterExpression {
                             c.into_py_any(py)
                         }
                     }
-                    symbol_expr::Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => (*numerator as f64 / *denominator as f64).into_py_any(py),
                 },
                 _ => grad.into_py_any(py),
             },
@@ -1958,10 +1937,6 @@ impl ParameterExpression {
                     symbol_expr::Value::Real(r) => r.into_py_any(py),
                     symbol_expr::Value::Int(i) => i.into_py_any(py),
                     symbol_expr::Value::Complex(c) => c.into_py_any(py),
-                    symbol_expr::Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => (*numerator as f64 / *denominator as f64).into_py_any(py),
                 })
                 .collect(),
             _ => Ok(Vec::new()),
@@ -2207,7 +2182,6 @@ impl ParameterExpression {
                         symbol_expr::Value::Int(i) => *i == 0,
                         symbol_expr::Value::Real(r) => *r == 0.0,
                         symbol_expr::Value::Complex(c) => c.re == 0.0 && c.im == 0.0,
-                        symbol_expr::Value::Fraction { numerator, .. } => *numerator == 0,
                     };
                     if zero {
                         return Err(pyo3::exceptions::PyZeroDivisionError::new_err(
@@ -2288,12 +2262,6 @@ impl ParameterExpression {
                     symbol_expr::Value::Int(i) => i.into_pyobject(py)?.hash(),
                     symbol_expr::Value::Real(r) => r.into_pyobject(py)?.hash(),
                     symbol_expr::Value::Complex(c) => c.into_pyobject(py)?.hash(),
-                    symbol_expr::Value::Fraction {
-                        numerator,
-                        denominator,
-                    } => (numerator as f64 / denominator as f64)
-                        .into_pyobject(py)?
-                        .hash(),
                 },
                 None => expr.to_string().into_pyobject(py)?.hash(),
             },
