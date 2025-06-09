@@ -527,13 +527,8 @@ impl Target {
     ///             target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
     ///
     ///         will return ``True`` if an RXGate(pi/4) exists on qubit 0.
-    ///     check_angle_bounds (bool): If set to True the value of ``parameters`` will be validated
-    ///         against any angle bounds set in the target. By default this is set to False as in
-    ///         the preset transpiler pipeline checking this is handled directly by the
-    ///         :class:`.GatesInBasis` pass and adjusting to respect angle bounds is handled
-    ///         automatically by the :class:`.WrapAngles` pass so this check would restrict other
-    ///         transpilations passes. However for validating all the instructions in a target or
-    ///         when building custom transpilation pipelines you will want to set this to ``True``.
+    ///     check_angle_bounds (bool): If set to True (the default) the value of ``parameters`` will
+    ///         be validated against any angle bounds set in the target.
     ///         If any of the values in ``parameters`` are set to be :class:`.ParameterExpression`
     ///         instances this flag will have no effect as angle bounds only impact
     ///         non-parameterized operations in the circuit.
@@ -542,7 +537,7 @@ impl Target {
     ///     bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
     #[pyo3(
         name = "instruction_supported",
-        signature = (operation_name=None, qargs=Qargs::Global, operation_class=None, parameters=None, check_angle_bounds=false)
+        signature = (operation_name=None, qargs=Qargs::Global, operation_class=None, parameters=None, check_angle_bounds=true)
     )]
     pub fn py_instruction_supported(
         &self,
