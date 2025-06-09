@@ -981,7 +981,18 @@ pub fn run_high_level_synthesis(
         let (output_circuit, _) =
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
-        let new_dag = DAGCircuit::from_circuit_data(py, output_circuit, false)?;
+        // Using this constructor so name and metadata are not lost
+        let new_dag = DAGCircuit::from_circuit(
+            py,
+            QuantumCircuitData {
+                data: output_circuit,
+                name: dag.get_name().cloned(),
+                metadata: dag.get_metadata().map(|m| m.bind(py)).cloned(),
+            },
+            false,
+            None,
+            None,
+        )?;
 
         Ok(Some(new_dag))
     }

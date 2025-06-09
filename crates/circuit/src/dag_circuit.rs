@@ -6588,7 +6588,7 @@ impl DAGCircuit {
     }
 
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
-    pub(crate) fn from_circuit(
+    pub fn from_circuit(
         py: Python,
         qc: QuantumCircuitData,
         copy_op: bool,
@@ -7279,6 +7279,16 @@ impl DAGCircuit {
     /// of multiple new instructions to the [DAGCircuit].
     pub fn into_builder(self) -> DAGCircuitBuilder {
         DAGCircuitBuilder::new(self)
+    }
+
+    // Returns an immutable reference to 'name', if it exists
+    pub fn get_name(&self) -> Option<&String> {
+        self.name.as_ref()
+    }
+
+    // Returns an immutable reference to 'metadata'
+    pub fn get_metadata(&self) -> Option<&PyObject> {
+        self.metadata.as_ref()
     }
 }
 

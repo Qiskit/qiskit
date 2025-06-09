@@ -933,12 +933,13 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc1_instance = qc1._data[next(iter(qc1._data._raw_parameter_table_entry(a)))[0]]
         self.assertNotEqual(qc0_instance, qc1_instance)
 
-    def test_input_variables(self):
+    def test_variables(self):
         """Test input variables handling"""
-
         data = CircuitData()
         d1 = expr.Var.new("d1", types.Bool())
         data.add_declared_var(d1)
+        with self.assertRaisesRegex(CircuitError, "already present in the circuit"):
+            data.add_declared_var(d1)
         data.add_input_var(expr.Var.new("in1", types.Bool()))
         in2 = expr.Var.new("in2", types.Uint(4))
         data.add_input_var(in2)
@@ -956,8 +957,17 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         self.assertEqual(len(data.get_declared_vars()), 1)
         self.assertEqual(len(data.get_input_vars()), 2)
 
+        with self.assertRaisesRegex(
+            CircuitError, "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances"
+        ):
+            data.add_input_var(expr.Var(ClassicalRegister(1, "c"), types.Bool()))
+        with self.assertRaisesRegex(
+            CircuitError, "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances"
+        ):
+            data.add_input_var(expr.Var(Clbit(), types.Bool()))
+
     def test_captured_variables(self):
-        """Test input variables handling"""
+        """Test captured variables handling"""
         data = CircuitData()
         c1 = expr.Var.new("c1", types.Bool())
         data.add_declared_var(expr.Var.new("d1", types.Bool()))
@@ -974,9 +984,14 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         data = CircuitData()
         s1 = expr.Stretch.new("s1")
         data.add_declared_stretch(s1)
+        with self.assertRaisesRegex(CircuitError, "already present in the circuit"):
+            data.add_declared_stretch(s1)
+
         data.add_declared_stretch(expr.Stretch.new("s2"))
         self.assertTrue(data.has_stretch("s1"))
+        self.assertTrue(data.has_declared_stretch("s1"))
         self.assertTrue(data.has_stretch("s2"))
+        self.assertFalse(data.has_stretch("s3"))
         self.assertTrue(data.has_stretch(s1))
         self.assertEqual(data.get_stretch("s1"), s1)
         self.assertEqual(data.num_declared_stretches, 2)
