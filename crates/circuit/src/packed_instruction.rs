@@ -760,11 +760,6 @@ impl Instruction for PackedInstruction {
     }
 
     #[inline]
-    fn params_mut(&mut self) -> Option<&mut Parameters<PyObject>> {
-        self.params.as_deref_mut()
-    }
-
-    #[inline]
     fn label(&self) -> Option<&str> {
         self.label.as_ref().map(|label| label.as_str())
     }

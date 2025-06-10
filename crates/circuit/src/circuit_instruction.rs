@@ -79,9 +79,6 @@ pub trait Instruction {
     /// Get a slice view onto the contained parameters.
     fn params_view(&self) -> Option<&Parameters<PyObject>>;
 
-    /// Get a mutable slice view onto the contained parameters.
-    fn params_mut(&mut self) -> Option<&mut Parameters<PyObject>>;
-
     /// Get the label for this instruction.
     fn label(&self) -> Option<&str>;
 
@@ -337,10 +334,6 @@ impl Instruction for CircuitInstruction {
 
     fn params_view(&self) -> Option<&Parameters<PyObject>> {
         self.params.as_ref()
-    }
-
-    fn params_mut(&mut self) -> Option<&mut Parameters<PyObject>> {
-        self.params.as_mut()
     }
 
     fn label(&self) -> Option<&str> {
@@ -947,10 +940,6 @@ impl Instruction for OperationFromPython {
 
     fn params_view(&self) -> Option<&Parameters<PyObject>> {
         self.params.as_ref()
-    }
-
-    fn params_mut(&mut self) -> Option<&mut Parameters<PyObject>> {
-        self.params.as_mut()
     }
 
     fn label(&self) -> Option<&str> {

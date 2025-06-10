@@ -124,10 +124,6 @@ impl Instruction for NormalOperation {
         self.params.as_ref()
     }
 
-    fn params_mut(&mut self) -> Option<&mut Parameters<PyObject>> {
-        self.params.as_mut()
-    }
-
     fn label(&self) -> Option<&str> {
         None
     }
