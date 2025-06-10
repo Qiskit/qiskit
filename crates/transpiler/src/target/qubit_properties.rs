@@ -16,7 +16,6 @@ use pyo3::{prelude::*, pyclass};
 */
 #[pyclass(
     subclass,
-    name = "QubitProperties",
     module = "qiskit._accelerate.target"
 )]
 #[derive(Clone, Debug, PartialEq)]
