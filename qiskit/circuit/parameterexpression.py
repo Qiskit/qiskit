@@ -169,6 +169,7 @@ class ParameterExpression:
             new_op = _INSTRUCTION(_OPCode.CONJ, None)
         new_replay = self._qpy_replay.copy()
         new_replay.append(new_op)
+
         conjugated = ParameterExpression(
             self._parameter_symbols, self._symbol_expr.conjugate(), _qpy_replay=new_replay
         )

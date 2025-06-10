@@ -14,7 +14,7 @@
 
 use hashbrown::HashMap;
 use num_complex::Complex64;
-use pyo3::exceptions::{PyRuntimeError, PyZeroDivisionError};
+use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
 use pyo3::types::{PyDict, PySet, PyString};
 use thiserror::Error;
 
@@ -29,7 +29,7 @@ use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 
-use super::symbol_expr::Parameter;
+use super::symbol_expr::{Parameter, SYMEXPR_EPSILON};
 
 #[derive(Error, Debug)]
 pub enum ParameterError {
@@ -58,10 +58,16 @@ impl From<ParameterError> for PyErr {
 }
 
 // Python interface to SymbolExpr
-#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(subclass, sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParameterExpression {
     expr: SymbolExpr,
+}
+
+impl Hash for ParameterExpression {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.expr.to_string().hash(state);
+    }
 }
 
 #[inline]
@@ -90,6 +96,10 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
 }
 
 impl ParameterExpression {
+    pub fn new(expr: &SymbolExpr) -> Self {
+        Self { expr: expr.clone() }
+    }
+
     pub fn sin(&self) -> Self {
         Self {
             expr: self.expr.sin(),
@@ -166,8 +176,8 @@ impl ParameterExpression {
     }
 
     /// substitute symbols to expressions (or values) given by hash map
-    pub fn subs(&self, in_maps: &HashMap<String, Self>) -> Self {
-        let maps: HashMap<String, SymbolExpr> = in_maps
+    pub fn subs(&self, in_maps: &HashMap<Parameter, Self>) -> Self {
+        let maps: HashMap<Parameter, SymbolExpr> = in_maps
             .into_iter()
             .map(|(key, val)| (key.clone(), val.expr.clone()))
             .collect();
@@ -186,7 +196,10 @@ impl ParameterExpression {
         }
     }
 
-    pub fn bind(&self, map: &HashMap<String, symbol_expr::Value>) -> Result<Self, ParameterError> {
+    pub fn bind(
+        &self,
+        map: &HashMap<Parameter, symbol_expr::Value>,
+    ) -> Result<Self, ParameterError> {
         let bound = self.expr.bind(map);
         match bound.eval(true) {
             Some(v) => match &v {
@@ -232,7 +245,7 @@ impl ParameterExpression {
     /// parse expression from string
     #[new]
     #[pyo3(signature = (in_expr=None))]
-    pub fn new(in_expr: Option<String>) -> PyResult<Self> {
+    pub fn py_new(in_expr: Option<String>) -> PyResult<Self> {
         match in_expr {
             Some(e) => match parse_expression(&e) {
                 Ok(expr) => Ok(ParameterExpression { expr }),
@@ -241,6 +254,13 @@ impl ParameterExpression {
             None => Ok(ParameterExpression {
                 expr: SymbolExpr::Value(symbol_expr::Value::Int(0)),
             }),
+        }
+    }
+
+    #[staticmethod]
+    pub fn from_parameter(param: &Bound<'_, Parameter>) -> Self {
+        ParameterExpression {
+            expr: SymbolExpr::Symbol(param.borrow().clone()),
         }
     }
 
@@ -280,7 +300,7 @@ impl ParameterExpression {
         match parse_expression(&expr) {
             // substitute 'I' to imaginary number i before returning expression
             Ok(expr) => Ok(ParameterExpression {
-                expr: expr.bind(&HashMap::from([(
+                expr: expr.bind_by_name(&HashMap::from([(
                     "I".to_string(),
                     symbol_expr::Value::from(Complex64::i()),
                 )])),
@@ -310,8 +330,20 @@ impl ParameterExpression {
         }
     }
 
+    // TODO use .numeric as main interface
+    pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
+        self.value(py)
+    }
+
+    #[getter]
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
-        PySet::new(py, self.expr.parameters())
+        let py_parameters: Vec<Py<PyParameter>> = self
+            .expr
+            .parameters()
+            .iter()
+            .map(|s| Py::new(py, PyParameter::from_symbol(s)))
+            .collect::<PyResult<_>>()?;
+        PySet::new(py, py_parameters)
     }
 
     pub fn name_map<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
@@ -338,18 +370,15 @@ impl ParameterExpression {
         self.tan()
     }
 
-    #[pyo3(name = "asin")]
-    pub fn py_asin(&self) -> Self {
+    pub fn arcsin(&self) -> Self {
         self.asin()
     }
 
-    #[pyo3(name = "acos")]
-    pub fn py_acos(&self) -> Self {
+    pub fn arccos(&self) -> Self {
         self.acos()
     }
 
-    #[pyo3(name = "atan")]
-    pub fn py_atan(&self) -> Self {
+    pub fn arctan(&self) -> Self {
         self.atan()
     }
 
@@ -383,6 +412,11 @@ impl ParameterExpression {
         self.conjugate()
     }
 
+    #[pyo3(name = "is_real")]
+    pub fn py_is_real(&self) -> Option<bool> {
+        self.expr.is_real()
+    }
+
     /// Return derivative of this expression for param
     pub fn gradient(&self, param: &Self) -> PyResult<Self> {
         self.derivative(param).map_err(PyRuntimeError::new_err)
@@ -410,31 +444,54 @@ impl ParameterExpression {
 
     /// substitute symbols to expressions (or values) given by hash map
     #[pyo3(name = "subs")]
-    pub fn py_subs(&self, in_maps: HashMap<String, Self>) -> Self {
-        self.subs(&in_maps)
+    pub fn py_subs(&self, parameter_dict: HashMap<PyParameter, Self>) -> PyResult<Self> {
+        let map = parameter_dict
+            .iter()
+            .map(|(param, expr)| (param.symbol.clone(), expr.clone()))
+            .collect();
+        Ok(self.subs(&map))
     }
 
     // bind values to symbols given by input hashmap
     #[pyo3(name = "bind")]
-    pub fn py_bind(&self, map: HashMap<String, Bound<PyAny>>) -> PyResult<Self> {
-        let map: HashMap<String, symbol_expr::Value> = map
-            .into_iter()
-            .filter_map(|(key, val)| {
-                if let Ok(i) = val.extract::<i64>() {
-                    Some((key, symbol_expr::Value::from(i)))
-                } else if let Ok(r) = val.extract::<f64>() {
-                    Some((key, symbol_expr::Value::from(r)))
-                } else if let Ok(c) = val.extract::<Complex64>() {
-                    Some((key, symbol_expr::Value::from(c)))
+    pub fn py_bind(&self, parameter_dict: HashMap<PyParameter, Bound<PyAny>>) -> PyResult<Self> {
+        let map = parameter_dict
+            .iter()
+            .map(|(param, value)| {
+                let value = if let Ok(i) = value.extract::<i64>() {
+                    Ok(symbol_expr::Value::from(i))
+                } else if let Ok(r) = value.extract::<f64>() {
+                    Ok(symbol_expr::Value::from(r))
+                } else if let Ok(c) = value.extract::<Complex64>() {
+                    Ok(symbol_expr::Value::from(c))
                 } else {
-                    // if unsupported data type, insert nothing
-                    None
-                }
+                    Err(PyValueError::new_err("Invalid value in bind."))
+                };
+
+                Ok((param.symbol.clone(), value?))
             })
-            .collect();
+            .collect::<PyResult<_>>()?;
 
         self.bind(&map).map_err(|e| e.into())
     }
+    // pub fn py_bind(&self, map: HashMap<PyParameter, Bound<PyAny>>) -> PyResult<Self> {
+    //     let map: HashMap<Parameter, symbol_expr::Value> = map
+    //         .into_iter()
+    //         .filter_map(|(key, val)| {
+    //             let key = key.symbol;
+    //             if let Ok(i) = val.extract::<i64>() {
+    //                 Some((key, symbol_expr::Value::from(i)))
+    //             } else if let Ok(r) = val.extract::<f64>() {
+    //                 Some((key, symbol_expr::Value::from(r)))
+    //             } else if let Ok(c) = val.extract::<Complex64>() {
+    //                 Some((key, symbol_expr::Value::from(c)))
+    //             } else {
+    //                 // if unsupported data type, insert nothing
+    //                 None
+    //             }
+    //         })
+    //         .collect();
+    // pub fn py_bind(&self, parameter_dict: &Bound<'_, PyDict>) -> PyResult<Self> {
 
     // ====================================
     // operator overrides
@@ -462,6 +519,10 @@ impl ParameterExpression {
             },
             None => true,
         }
+    }
+
+    pub fn __abs__(&self) -> Self {
+        self.abs()
     }
 
     pub fn __neg__(&self) -> Self {
@@ -531,9 +592,17 @@ impl ParameterExpression {
 
     pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => Ok(Self {
-                expr: &self.expr / &rhs.expr,
-            }),
+            Some(rhs) => {
+                if rhs.expr.is_zero() {
+                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
+                        "Division by 0.",
+                    ))
+                } else {
+                    Ok(Self {
+                        expr: &self.expr / &rhs.expr,
+                    })
+                }
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __truediv__",
             )),
@@ -566,6 +635,62 @@ impl ParameterExpression {
             }),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rpow__",
+            )),
+        }
+    }
+
+    pub fn __int__(&self) -> PyResult<i64> {
+        match self.expr.eval(true) {
+            Some(value) => match value {
+                symbol_expr::Value::Complex(_) => Err(PyTypeError::new_err(
+                    "Cannot cast complex parameter to float.",
+                )),
+                symbol_expr::Value::Real(r) => {
+                    let rounded = r.round();
+                    if (r - rounded).abs() > SYMEXPR_EPSILON {
+                        Err(PyTypeError::new_err("Cannot cast float to int."))
+                    } else {
+                        Ok(rounded as i64)
+                    }
+                }
+                symbol_expr::Value::Int(i) => Ok(i),
+            },
+            None => Err(PyRuntimeError::new_err(
+                "Expression has some undefined symbols.",
+            )),
+        }
+    }
+
+    pub fn __float__(&self) -> PyResult<f64> {
+        match self.expr.eval(true) {
+            Some(value) => match value {
+                symbol_expr::Value::Complex(c) => {
+                    if c.im.abs() > SYMEXPR_EPSILON {
+                        Err(PyTypeError::new_err(
+                            "Cannot cast complex parameter to float.",
+                        ))
+                    } else {
+                        Ok(c.re)
+                    }
+                }
+                symbol_expr::Value::Real(r) => Ok(r),
+                symbol_expr::Value::Int(i) => Ok(i as f64),
+            },
+            None => Err(PyRuntimeError::new_err(
+                "Expression has some undefined symbols.",
+            )),
+        }
+    }
+
+    pub fn __complex__(&self) -> PyResult<Complex64> {
+        match self.expr.eval(true) {
+            Some(value) => match value {
+                symbol_expr::Value::Complex(c) => Ok(c),
+                symbol_expr::Value::Real(r) => Ok(Complex64::new(r, 0.)),
+                symbol_expr::Value::Int(i) => Ok(Complex64::new(i as f64, 0.)),
+            },
+            None => Err(PyRuntimeError::new_err(
+                "Expression has some undefined symbols.",
             )),
         }
     }
@@ -607,3 +732,46 @@ impl fmt::Display for ParameterExpression {
 }
 
 // rust native implementation will be added in PR #14207
+#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=ParameterExpression, name="Parameter")]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PyParameter {
+    pub symbol: Parameter,
+}
+
+impl Hash for PyParameter {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.symbol.hash(state);
+    }
+}
+
+impl PyParameter {
+    fn from_symbol(symbol: &Parameter) -> PyClassInitializer<Self> {
+        let expr = SymbolExpr::Symbol(symbol.clone());
+
+        let py_parameter = Self {
+            symbol: symbol.clone(),
+        };
+        let py_expr = ParameterExpression::new(&expr);
+
+        PyClassInitializer::from(py_expr).add_subclass(py_parameter)
+    }
+}
+
+#[pymethods]
+impl PyParameter {
+    #[new]
+    // fn py_new(name: String) -> (Self, ParameterExpression) {
+    fn py_new(name: String) -> PyClassInitializer<Self> {
+        let symbol = Parameter::new(name.as_str());
+        let expr = SymbolExpr::Symbol(symbol.clone());
+
+        let py_parameter = Self { symbol };
+        let py_expr = ParameterExpression::new(&expr);
+
+        PyClassInitializer::from(py_expr).add_subclass(py_parameter)
+    }
+
+    fn uuid(&self) -> u128 {
+        self.symbol.py_uuid()
+    }
+}

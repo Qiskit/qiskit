@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
+use pyo3::types::PyString;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -19,7 +20,9 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 use uuid::Uuid;
 
 use num_complex::Complex64;
-use pyo3::prelude::pyclass;
+use pyo3::prelude::*;
+
+use super::parameter_expression::ParameterExpression;
 
 // epsilon for SymbolExpr is hearistically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
@@ -41,6 +44,33 @@ impl Parameter {
 
     pub fn name(&self) -> String {
         self.name.as_ref().clone()
+    }
+}
+
+#[pymethods]
+impl Parameter {
+    #[new]
+    #[pyo3(signature = (name, uuid=None))]
+    pub fn py_new(name: &str, uuid: Option<u128>) -> Self {
+        Self {
+            name: Box::new(name.to_string()),
+            uuid: uuid.map_or_else(|| Uuid::new_v4(), |id| Uuid::from_u128(id)),
+        }
+    }
+
+    #[pyo3(name = "name")]
+    pub fn py_name<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        PyString::new(py, self.name().as_str())
+    }
+
+    #[pyo3(name = "uuid")]
+    pub fn py_uuid(&self) -> u128 {
+        self.uuid.as_u128()
+    }
+
+    pub fn as_expr(&self) -> ParameterExpression {
+        let expr = SymbolExpr::Symbol(self.clone());
+        ParameterExpression::new(&expr)
     }
 }
 
@@ -369,9 +399,9 @@ impl fmt::Display for SymbolExpr {
 /// ==================================
 impl SymbolExpr {
     /// bind value to symbol node
-    pub fn bind(&self, maps: &HashMap<String, Value>) -> SymbolExpr {
+    pub fn bind(&self, maps: &HashMap<Parameter, Value>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e.name.as_ref()) {
+            SymbolExpr::Symbol(e) => match maps.get(e) {
                 Some(v) => SymbolExpr::Value(*v),
                 None => self.clone(),
             },
@@ -394,10 +424,36 @@ impl SymbolExpr {
         }
     }
 
-    /// substitute symbol node to other expression
-    pub fn subs(&self, maps: &HashMap<String, SymbolExpr>) -> SymbolExpr {
+    /// bind value to symbol node
+    pub fn bind_by_name(&self, maps: &HashMap<String, Value>) -> SymbolExpr {
         match self {
             SymbolExpr::Symbol(e) => match maps.get(e.name.as_ref()) {
+                Some(v) => SymbolExpr::Value(*v),
+                None => self.clone(),
+            },
+            SymbolExpr::Value(e) => SymbolExpr::Value(*e),
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
+                op: op.clone(),
+                expr: Box::new(expr.bind_by_name(maps)),
+            },
+            SymbolExpr::Binary { op, lhs, rhs } => {
+                let new_lhs = lhs.bind_by_name(maps);
+                let new_rhs = rhs.bind_by_name(maps);
+                match op {
+                    BinaryOp::Add => new_lhs + new_rhs,
+                    BinaryOp::Sub => new_lhs - new_rhs,
+                    BinaryOp::Mul => new_lhs * new_rhs,
+                    BinaryOp::Div => new_lhs / new_rhs,
+                    BinaryOp::Pow => _pow(new_lhs, new_rhs),
+                }
+            }
+        }
+    }
+
+    /// substitute symbol node to other expression
+    pub fn subs(&self, maps: &HashMap<Parameter, SymbolExpr>) -> SymbolExpr {
+        match self {
+            SymbolExpr::Symbol(e) => match maps.get(e) {
                 Some(v) => v.clone(),
                 None => self.clone(),
             },
@@ -409,6 +465,32 @@ impl SymbolExpr {
             SymbolExpr::Binary { op, lhs, rhs } => {
                 let new_lhs = lhs.subs(maps);
                 let new_rhs = rhs.subs(maps);
+                match op {
+                    BinaryOp::Add => new_lhs + new_rhs,
+                    BinaryOp::Sub => new_lhs - new_rhs,
+                    BinaryOp::Mul => new_lhs * new_rhs,
+                    BinaryOp::Div => new_lhs / new_rhs,
+                    BinaryOp::Pow => _pow(new_lhs, new_rhs),
+                }
+            }
+        }
+    }
+
+    /// TODO make this use .subs
+    pub fn subs_by_name(&self, maps: &HashMap<String, SymbolExpr>) -> SymbolExpr {
+        match self {
+            SymbolExpr::Symbol(e) => match maps.get(e.name.as_ref()) {
+                Some(v) => v.clone(),
+                None => self.clone(),
+            },
+            SymbolExpr::Value(e) => SymbolExpr::Value(*e),
+            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
+                op: op.clone(),
+                expr: Box::new(expr.subs_by_name(maps)),
+            },
+            SymbolExpr::Binary { op, lhs, rhs } => {
+                let new_lhs = lhs.subs_by_name(maps);
+                let new_rhs = rhs.subs_by_name(maps);
                 match op {
                     BinaryOp::Add => new_lhs + new_rhs,
                     BinaryOp::Sub => new_lhs - new_rhs,
@@ -846,8 +928,7 @@ impl SymbolExpr {
     pub fn is_real(&self) -> Option<bool> {
         match self.eval(true) {
             Some(v) => match v {
-                Value::Real(_) => Some(true),
-                Value::Int(_) => Some(false),
+                Value::Real(_) | Value::Int(_) => Some(true),
                 Value::Complex(c) => Some((-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)),
             },
             None => None,
