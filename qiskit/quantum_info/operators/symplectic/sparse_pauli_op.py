@@ -515,7 +515,6 @@ class SparsePauliOp(LinearOp):
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if np.all(is_zero):
-            print(self.num_qubits)
             x = np.zeros((1, self.num_qubits), dtype=bool)
             z = np.zeros((1, self.num_qubits), dtype=bool)
             coeffs = np.array([0j], dtype=self.coeffs.dtype)
