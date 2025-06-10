@@ -11,10 +11,13 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
+
 use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;
-use pyo3::types::{PyCapsule, PyDict};
+use pyo3::types::PyDict;
 use pyo3::Python;
+
+use crate::TranspilerError;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::PhysicalQubit;
 
@@ -68,13 +71,12 @@ impl PyWrapAngleRegistry {
     fn __getstate__(&self, py: Python) -> PyResult<Py<PyDict>> {
         let bounds_dict = PyDict::new(py);
         for (name, bound) in self.get_inner().registry.iter() {
-            match bound {
-                CallbackType::Python(obj) => {
-                    bounds_dict.set_item(name, obj.clone_ref(py))?;
-                }
-                CallbackType::Native(func) => {
-                    bounds_dict.set_item(name, PyCapsule::new(py, *func, None)?)?;
-                }
+            if let CallbackType::Python(obj) = bound {
+                bounds_dict.set_item(name, obj.clone_ref(py))?;
+            } else {
+                return Err(TranspilerError::new_err(
+                    "Target contains native code bounds callbacks which can't be serialized",
+                ));
             }
         }
         Ok(bounds_dict.unbind())
@@ -83,17 +85,7 @@ impl PyWrapAngleRegistry {
     fn __setstate__(&mut self, data: Bound<PyDict>) -> PyResult<()> {
         for (key, val) in data.iter() {
             let name: String = key.extract()?;
-            if let Ok(capsule) = val.downcast::<PyCapsule>() {
-                // SAFETY: It isn't
-                unsafe {
-                    self.0.add_native(
-                        name,
-                        *capsule.reference::<fn(&[f64], &[PhysicalQubit]) -> DAGCircuit>(),
-                    );
-                }
-            } else {
-                self.add_wrapper(name, val.unbind());
-            }
+            self.add_wrapper(name, val.unbind());
         }
         Ok(())
     }
