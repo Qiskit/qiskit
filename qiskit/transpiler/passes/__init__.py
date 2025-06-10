@@ -91,6 +91,7 @@ Optimizations
    Split2QUnitaries
    RemoveIdentityEquivalent
    ContractIdleWiresInControlFlow
+   OptimizeCliffordT
 
 Scheduling
 =============

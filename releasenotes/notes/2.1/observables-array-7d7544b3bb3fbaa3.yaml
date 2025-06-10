@@ -2,6 +2,7 @@
 features:
   - |
     Incorporated the :class:`.SparseObservable` class with the :class:`.ObservablesArray` class.
+
     * There is no change in behavior of existing methods of :class:`.ObservablesArray`, except for the method :meth:`~.ObservablesArray.coerce_observable`, whose return type is changed to `SparseObservable`.
     * The new method :meth:`~.ObservablesArray.apply_layout` performs an `apply_layout` operation on each observable in the array.
     * The new method :meth:`~.ObservablesArray.equivalent` returns `True` if two arrays store equivalent observables.

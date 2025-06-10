@@ -9,4 +9,4 @@ fixes:
     approximation could have a phase that differs by :math:`\pi` from the correct value.
     This resulted due to the internal :math:`SO(3)` representation, which requires additional
     handling to obtain the correct sign of the qubit gate matrix.
-    Fixed `#9552 <https://github.com/Qiskit/qiskit-terra/issues/9552>`__
+    Fixed `#9552 <https://github.com/Qiskit/qiskit-terra/issues/9552>`__.

@@ -2,7 +2,7 @@ deprecations_circuits:
   - |
     The circuit library underwent a refactoring in the Qiskit 1.3 release,
     in which alternatives for objects of type :class:`.QuantumCircuit` were provided
-    that are either a :class:`.Instruction` or a Python function for construction. This refactoring
+    that are either an :class:`.Instruction` or a Python function for construction. This refactoring
     allows the compiler to reason about high-level instructions, and reduces the
     overhead for circuits that do not require high-level optimizations.
 
