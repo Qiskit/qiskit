@@ -31,10 +31,10 @@ use crate::QiskitError;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
-use qiskit_circuit::instruction::Instruction;
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, Parameters, StandardGate, STANDARD_GATE_SIZE,
+    Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
 };
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;

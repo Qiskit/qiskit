@@ -57,8 +57,8 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::gate_matrix::{
     CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, SX_GATE, S_GATE, X_GATE,
 };
-use qiskit_circuit::instruction::IntoInstructionView;
-use qiskit_circuit::operations::{Operation, Param, Parameters, StandardGate};
+use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};

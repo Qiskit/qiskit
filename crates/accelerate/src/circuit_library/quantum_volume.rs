@@ -23,7 +23,8 @@ use rayon::prelude::*;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::getenv_use_multiple_threads;
-use qiskit_circuit::operations::{ArrayType, Param, Parameters, UnitaryGate};
+use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 

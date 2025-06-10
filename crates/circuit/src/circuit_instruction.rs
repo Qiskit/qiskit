@@ -28,12 +28,13 @@ use crate::imports::{
     IF_ELSE_OP, INSTRUCTION, MEASURE, OPERATION, RESET, SWITCH_CASE_OP, UNITARY_GATE,
     WARNINGS_WARN, WHILE_LOOP_OP,
 };
-use crate::instruction::{Instruction, IntoInstructionView};
+use crate::instruction::{
+    ControlFlowView, Instruction, InstructionView, IntoInstructionView, Parameters,
+    StandardGateView, StandardInstructionView,
+};
 use crate::operations::{
-    ArrayType, ControlFlow, ControlFlowType, ControlFlowView, InstructionView, Operation,
-    OperationRef, Param, Parameters, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardGateView, StandardInstruction, StandardInstructionType, StandardInstructionView,
-    UnitaryGate,
+    ArrayType, ControlFlow, ControlFlowType, Operation, OperationRef, Param, PyGate, PyInstruction,
+    PyOperation, StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};

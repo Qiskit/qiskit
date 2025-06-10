@@ -29,13 +29,13 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{DelayUnit, StandardInstructionView};
+use qiskit_circuit::operations::DelayUnit;
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
-use qiskit_circuit::instruction::IntoInstructionView;
+use qiskit_circuit::instruction::{IntoInstructionView, StandardInstructionView};
 use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;

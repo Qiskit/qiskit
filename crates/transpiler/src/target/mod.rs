@@ -36,8 +36,8 @@ use pyo3::{
     IntoPyObjectExt,
 };
 use qiskit_circuit::circuit_instruction::{CreatePythonOperation, OperationFromPython};
-use qiskit_circuit::instruction::{Instruction, IntoInstructionView};
-use qiskit_circuit::operations::{Operation, OperationRef, Param, Parameters};
+use qiskit_circuit::instruction::{Instruction, IntoInstructionView, Parameters};
+use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use smallvec::SmallVec;
@@ -1474,13 +1474,13 @@ pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
 mod test {
     use std::f64::consts::PI;
 
-    use qiskit_circuit::operations::{
-        get_standard_gate_names, Operation, Param, Parameters, StandardGate, STANDARD_GATE_SIZE,
-    };
-    use smallvec::SmallVec;
-
     use crate::target::QargsRef;
+    use qiskit_circuit::instruction::Parameters;
+    use qiskit_circuit::operations::{
+        get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
+    };
     use qiskit_circuit::PhysicalQubit;
+    use smallvec::SmallVec;
 
     use super::{instruction_properties::InstructionProperties, Qargs, Target};
 

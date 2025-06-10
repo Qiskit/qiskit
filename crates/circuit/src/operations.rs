@@ -17,7 +17,6 @@ use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, imports, Qubit};
 use approx::relative_eq;
 use std::f64::consts::PI;
 use std::fmt::Debug;
-use std::ops::Deref;
 use std::{fmt, vec};
 
 use nalgebra::{Matrix2, Matrix4};
@@ -154,69 +153,6 @@ impl<'py> Iterator for ParamParameterIter<'py> {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum Parameters<T> {
-    Params(SmallVec<[Param; 3]>),
-    Box {
-        body: T,
-    },
-    ForLoop {
-        indexset: Vec<usize>,
-        loop_param: Option<PyObject>,
-        body: T,
-    },
-    IfElse {
-        true_body: T,
-        false_body: Option<T>,
-    },
-    Switch {
-        cases: Vec<T>,
-    },
-    While {
-        body: T,
-    },
-}
-
-impl<T> Parameters<T> {
-    /// Replace all blocks of this parameter set, in order.
-    ///
-    /// Panics if `blocks` does not contain exactly the expected number of blocks
-    /// for the parameter set.
-    pub fn replace_blocks(&mut self, blocks: impl IntoIterator<Item = T>) {
-        let mut replacements = blocks.into_iter();
-        match self {
-            Parameters::Params(_) => {}
-            Parameters::Box { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
-            }
-            Parameters::ForLoop { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
-            }
-            Parameters::IfElse {
-                true_body,
-                false_body,
-                ..
-            } => {
-                *true_body = replacements.next().expect("not enough blocks");
-                if false_body.is_some() {
-                    *false_body = Some(replacements.next().expect("not enough blocks"));
-                }
-            }
-            Parameters::Switch { cases, .. } => {
-                for case in cases {
-                    *case = replacements.next().expect("not enough blocks");
-                }
-            }
-            Parameters::While { body, .. } => {
-                *body = replacements.next().expect("not enough blocks");
-            }
-        }
-        if replacements.next().is_some() {
-            panic!("too many blocks");
-        }
-    }
-}
-
 /// Trait for generic circuit operations these define the common attributes
 /// needed for something to be addable to the circuit struct
 pub trait Operation {
@@ -314,65 +250,6 @@ impl Operation for OperationRef<'_> {
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum InstructionView<'a, T> {
-    ControlFlow(ControlFlowView<'a, T>),
-    StandardGate(StandardGateView<'a>),
-    StandardInstruction(StandardInstructionView<'a>),
-    Gate(&'a PyGate),
-    Instruction(&'a PyInstruction),
-    Operation(&'a PyOperation),
-    Unitary(UnitaryGateView<'a>),
-}
-
-impl<'a, T> InstructionView<'a, T> {
-    pub fn standard_gate(self) -> Option<StandardGateView<'a>> {
-        match self {
-            InstructionView::StandardGate(standard) => Some(standard),
-            _ => None,
-        }
-    }
-
-    pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
-        match self {
-            InstructionView::StandardGate(g) => g.matrix(),
-            InstructionView::Gate(g) => g.matrix(),
-            InstructionView::Unitary(u) => u.matrix(),
-            _ => None,
-        }
-    }
-
-    /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.
-    #[inline]
-    pub fn try_matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
-        match self {
-            Self::StandardGate(standard) => standard.matrix_as_static_1q(),
-            Self::Gate(gate) => gate.matrix_as_static_1q(),
-            Self::Unitary(unitary) => unitary.matrix_as_static_1q(),
-            _ => None,
-        }
-    }
-
-    pub fn try_matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
-        match self {
-            InstructionView::Unitary(u) => u.matrix_as_nalgebra_1q(),
-            // default implementation
-            _ => self
-                .try_matrix_as_static_1q()
-                .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1])),
-        }
-    }
-
-    pub fn try_definition(&self) -> Option<CircuitData> {
-        match self {
-            InstructionView::StandardGate(g) => g.definition(),
-            InstructionView::Gate(g) => g.definition(),
-            InstructionView::Instruction(i) => i.definition(),
-            _ => None,
         }
     }
 }
@@ -567,58 +444,6 @@ impl<'py> IntoPyObject<'py> for CaseSpecifier {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum ControlFlowView<'a, T> {
-    Box(Option<&'a Duration>, &'a T),
-    BreakLoop,
-    ContinueLoop,
-    ForLoop {
-        indexset: &'a [usize],
-        loop_param: Option<&'a PyObject>,
-        body: &'a T,
-    },
-    IfElse {
-        condition: &'a Condition,
-        true_body: &'a T,
-        false_body: Option<&'a T>,
-    },
-    Switch {
-        target: &'a Target,
-        cases_specifier: Vec<(&'a Vec<CaseSpecifier>, &'a T)>,
-    },
-    While {
-        condition: &'a Condition,
-        body: &'a T,
-    },
-}
-
-impl<'a, T> ControlFlowView<'a, T> {
-    pub fn blocks(&self) -> impl ExactSizeIterator<Item = &'a T> {
-        match self {
-            ControlFlowView::Box(_, body) => vec![*body],
-            ControlFlowView::BreakLoop => vec![],
-            ControlFlowView::ContinueLoop => vec![],
-            ControlFlowView::ForLoop { body, .. } => vec![*body],
-            ControlFlowView::IfElse {
-                true_body,
-                false_body,
-                ..
-            } => {
-                if let Some(false_body) = false_body {
-                    vec![*true_body, *false_body]
-                } else {
-                    vec![*true_body]
-                }
-            }
-            ControlFlowView::Switch {
-                cases_specifier, ..
-            } => cases_specifier.iter().map(|(_, block)| *block).collect(),
-            ControlFlowView::While { body, .. } => vec![*body],
-        }
-        .into_iter()
-    }
-}
-
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
 pub enum DelayUnit {
@@ -762,17 +587,6 @@ impl Operation for StandardInstruction {
             StandardInstruction::Reset => false,
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub enum StandardInstructionView<'a> {
-    Barrier(u32),
-    Delay {
-        duration: &'a Param,
-        unit: DelayUnit,
-    },
-    Measure,
-    Reset,
 }
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
@@ -1190,7 +1004,7 @@ impl StandardGate {
         }
     }
 
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    pub fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self {
             Self::GlobalPhase => None,
             Self::H => match params {
@@ -2737,33 +2551,6 @@ impl Operation for StandardGate {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct StandardGateView<'a>(pub StandardGate, pub &'a [Param]);
-
-impl<'a> StandardGateView<'a> {
-    #[inline]
-    pub fn gate(&self) -> &StandardGate {
-        &self.0
-    }
-
-    #[inline]
-    pub fn params(&self) -> &'a [Param] {
-        self.1
-    }
-
-    pub fn matrix(&self) -> Option<Array2<Complex64>> {
-        self.0.matrix(self.1)
-    }
-
-    fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
-        self.0.matrix_as_static_1q(self.1)
-    }
-
-    pub fn definition(&self) -> Option<CircuitData> {
-        self.0.definition(self.1)
-    }
-}
-
 const FLOAT_ZERO: Param = Param::Float(0.0);
 
 // Return explicitly requested copy of `param`, handling
@@ -2883,7 +2670,7 @@ impl Operation for PyInstruction {
 }
 
 impl PyInstruction {
-    fn definition(&self) -> Option<CircuitData> {
+    pub fn definition(&self) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
@@ -2936,7 +2723,7 @@ impl Operation for PyGate {
 }
 
 impl PyGate {
-    fn matrix(&self) -> Option<Array2<Complex64>> {
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
         Python::with_gil(|py| -> Option<Array2<Complex64>> {
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
@@ -2954,7 +2741,7 @@ impl PyGate {
         })
     }
 
-    fn definition(&self) -> Option<CircuitData> {
+    pub fn definition(&self) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
@@ -2967,7 +2754,7 @@ impl PyGate {
         })
     }
 
-    fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         if self.num_qubits() != 1 {
             return None;
         }
@@ -3094,7 +2881,7 @@ impl UnitaryGate {
         }
     }
 
-    fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         match &self.array {
             ArrayType::OneQ(mat) => Some([[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]]),
             ArrayType::NDArray(arr) => {
@@ -3108,7 +2895,7 @@ impl UnitaryGate {
         }
     }
 
-    fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
+    pub fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
         match &self.array {
             ArrayType::OneQ(mat) => Some(*mat),
             ArrayType::NDArray(arr) => {
@@ -3170,15 +2957,5 @@ impl UnitaryGate {
                 unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) }
             }
         }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct UnitaryGateView<'a>(pub &'a UnitaryGate);
-
-impl Deref for UnitaryGateView<'_> {
-    type Target = UnitaryGate;
-    fn deref(&self) -> &Self::Target {
-        self.0
     }
 }

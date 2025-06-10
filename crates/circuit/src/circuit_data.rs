@@ -25,7 +25,7 @@ use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{Operation, OperationRef, Param, Parameters, StandardGate};
+use crate::operations::{Operation, OperationRef, Param, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -40,7 +40,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
-use crate::instruction::{Instruction, IntoInstructionView};
+use crate::instruction::{Instruction, IntoInstructionView, Parameters};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;

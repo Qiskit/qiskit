@@ -17,10 +17,10 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
-use qiskit_circuit::instruction::IntoInstructionView;
+use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, StandardGateView};
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
-use qiskit_circuit::operations::{InstructionView, Operation, StandardGateView};
 use qiskit_circuit::PhysicalQubit;
 
 const MINIMUM_TOL: f64 = 1e-12;

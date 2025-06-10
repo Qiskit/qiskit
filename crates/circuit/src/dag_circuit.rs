@@ -30,9 +30,8 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, Condition, ControlFlow, ControlFlowView, InstructionView, Operation, OperationRef,
-    Param, Parameters, PyInstruction, StandardGate, StandardGateView, StandardInstruction,
-    StandardInstructionView, Target,
+    ArrayType, Condition, ControlFlow, Operation, OperationRef, Param, PyInstruction, StandardGate,
+    StandardInstruction, Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
@@ -77,7 +76,10 @@ use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
 
-use crate::instruction::IntoInstructionView;
+use crate::instruction::{
+    ControlFlowView, InstructionView, IntoInstructionView, Parameters, StandardGateView,
+    StandardInstructionView,
+};
 use approx::relative_eq;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;

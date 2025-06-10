@@ -16,7 +16,7 @@ use std::sync::OnceLock;
 
 use crate::circuit_instruction::{extract_params, CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
-use crate::operations::{InstructionView, Operation, Param, StandardGateView};
+use crate::operations::{Operation, Param};
 use crate::TupleLikeArg;
 
 use ahash::AHasher;
@@ -24,7 +24,7 @@ use approx::relative_eq;
 use num_complex::Complex64;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use crate::instruction::IntoInstructionView;
+use crate::instruction::{InstructionView, IntoInstructionView, StandardGateView};
 use numpy::IntoPyArray;
 use numpy::PyArray2;
 use pyo3::exceptions::PyValueError;

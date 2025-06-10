@@ -23,13 +23,13 @@ use std::cmp::Ordering;
 use std::time::Instant;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{ControlFlowView, Operation};
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;
 
 use super::error_map::ErrorMap;
 use crate::target::{Qargs, Target};
-use qiskit_circuit::instruction::IntoInstructionView;
+use qiskit_circuit::instruction::{ControlFlowView, IntoInstructionView};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 

@@ -10,22 +10,21 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::circuit_library::entanglement;
+use crate::circuit_library::pauli_evolution;
+use crate::QiskitError;
 use pyo3::prelude::*;
 use pyo3::types::PySequence;
 use pyo3::types::PyString;
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    add_param, multiply_param, multiply_params, Param, Parameters, StandardGate,
-    StandardInstruction,
+    add_param, multiply_param, multiply_params, Param, StandardGate, StandardInstruction,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::smallvec;
 use std::f64::consts::PI;
-
-use crate::circuit_library::entanglement;
-use crate::circuit_library::pauli_evolution;
-use crate::QiskitError;
 
 type Instruction = (
     PackedOperation,

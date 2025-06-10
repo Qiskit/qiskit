@@ -22,8 +22,8 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
-use qiskit_circuit::instruction::IntoInstructionView;
-use qiskit_circuit::operations::{ArrayType, InstructionView, StandardGateView};
+use qiskit_circuit::instruction::{InstructionView, IntoInstructionView, StandardGateView};
+use qiskit_circuit::operations::ArrayType;
 use qiskit_circuit::Qubit;
 
 use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};

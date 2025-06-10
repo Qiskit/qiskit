@@ -30,11 +30,11 @@ use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
-use qiskit_circuit::instruction::{Instruction, IntoInstructionView};
-use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
-use qiskit_circuit::operations::{
-    InstructionView, Operation, Param, StandardGate, StandardGateView,
+use qiskit_circuit::instruction::{
+    Instruction, InstructionView, IntoInstructionView, StandardGateView,
 };
+use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 use crate::QiskitError;

@@ -18,13 +18,13 @@ use pyo3::types::PyString;
 use qiskit_circuit::packed_instruction::PackedOperation;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, Parameters, StandardInstruction};
+use qiskit_circuit::operations::{Param, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
-
-use itertools::izip;
 
 use super::blocks::{Block, Entanglement, LayerEntanglement};
 use super::parameter_ledger::{LayerParameters, LayerType, ParameterLedger};
+use itertools::izip;
+use qiskit_circuit::instruction::Parameters;
 
 type Instruction = (
     PackedOperation,

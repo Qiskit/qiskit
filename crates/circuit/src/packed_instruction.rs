@@ -22,11 +22,11 @@ use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY,
     FOR_LOOP_OP, IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
 };
-use crate::instruction::Instruction;
+use crate::instruction::{Instruction, Parameters};
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, Operation, OperationRef, Param, Parameters, PyGate, PyInstruction, PyOperation,
-    StandardGate, StandardInstruction, UnitaryGate,
+    ControlFlow, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
+    StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
 
