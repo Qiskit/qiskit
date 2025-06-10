@@ -77,7 +77,7 @@ features_transpiler:
 
        from qiskit.circuit import Gate, Parameter, QuantumCircuit
        from qiskit.dagcircuit import DAGCircuit
-       from qiskit.transpiler import Target
+       from qiskit.transpiler import Target, WrapAngleRegistry
        from qiskit.transpiler.passes import WrapAngles
 
        class MyCustomGate(Gate):
