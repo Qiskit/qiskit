@@ -18,7 +18,6 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGInstruction;
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
 use qiskit_circuit::instruction::IntoInstructionView;
-use qiskit_circuit::operations::Parameters;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
@@ -94,13 +93,11 @@ pub(super) fn compose_transforms<'a>(
                     .map(|(node, op)| {
                         (
                             node,
-                            op.params
-                                .as_deref()
-                                .map(|p| match p {
-                                    Parameters::Params(p) => p.clone(),
-                                    _ => panic!("unexpected parameter list"),
-                                })
-                                .unwrap_or_default(),
+                            op.try_legacy_params()
+                                .unwrap()
+                                .into_iter()
+                                .cloned()
+                                .collect::<SmallVec<[Param; 3]>>(),
                         )
                     })
                     .collect::<Vec<_>>();
@@ -160,14 +157,7 @@ fn get_gates_num_params(
         } else {
             example_gates.insert(
                 (inst.op.name().to_string(), inst.op.num_qubits()),
-                inst.params
-                    .as_deref()
-                    .map(|p| match p {
-                        Parameters::Params(p) => p.clone(),
-                        _ => panic!("unexpected parameter list"),
-                    })
-                    .unwrap_or_default()
-                    .len(),
+                inst.try_legacy_params().unwrap().len(),
             );
         }
     }

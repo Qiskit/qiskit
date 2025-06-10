@@ -447,20 +447,7 @@ fn replace_node(
 ) -> PyResult<()> {
     let (target_params, target_dag) =
         &instr_map[&(node.op.name().to_string(), node.op.num_qubits())];
-
-    // TODO: this assumes that all instruction kinds (i.e. standard gates, PyGates,
-    //   standard instructions, etc.) use a list of Param for their params. This
-    //   is exactly what this PR is trying to move us away from, but for now we only
-    //   have custom parameters for control flow ops so we can get away with this
-    //   mostly as is.
-    let params_view = node
-        .params
-        .as_deref()
-        .map(|p| match p {
-            Parameters::Params(params) => params.as_slice(),
-            _ => panic!("must be params list"),
-        })
-        .unwrap_or(&[]);
+    let params_view = node.try_legacy_params().unwrap();
 
     if params_view.len() != target_params.len() {
         return Err(TranspilerError::new_err(format!(

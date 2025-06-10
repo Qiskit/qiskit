@@ -14,7 +14,8 @@ use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::{Operation, Param, Parameters};
+use qiskit_circuit::instruction::IntoInstructionView;
+use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::Qubit;
 
 /// Run the ElidePermutations pass on `dag`.
@@ -53,14 +54,7 @@ pub fn run_elide_permutations(
                     mapping.swap(index0, index1);
                 }
                 "permutation" => {
-                    let params = inst
-                        .params
-                        .as_deref()
-                        .map(|p| match p {
-                            Parameters::Params(p) => p,
-                            _ => panic!("wrong parameters type"),
-                        })
-                        .unwrap();
+                    let params = inst.try_legacy_params().unwrap();
                     if let Param::Obj(ref pyobj) = params[0] {
                         let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                         let pattern = pyarray.as_array();

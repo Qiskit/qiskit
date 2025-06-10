@@ -57,7 +57,7 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::gate_matrix::{
     CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, SX_GATE, S_GATE, X_GATE,
 };
-use qiskit_circuit::instruction::Instruction;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, Param, Parameters, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
@@ -2233,14 +2233,12 @@ impl TwoQubitBasisDecomposer {
         _num_basis_uses: Option<u8>,
     ) -> PyResult<CircuitData> {
         let kak_gate = kak_gate.extract::<OperationFromPython>(py)?;
-        // TODO: don't clone unless we need to take this later
-        let kak_gate_params = kak_gate
-            .parameters()
-            .map(|p| match p {
-                Parameters::Params(p) => p.clone(),
-                _ => panic!("expected gate parameters"),
-            })
-            .unwrap_or_default();
+        let kak_gate_params: SmallVec<[Param; 3]> = kak_gate
+            .try_legacy_params()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect();
         let sequence = self.__call__(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         match kak_gate.operation.try_standard_gate() {
             Some(std_kak_gate) => CircuitData::from_standard_gates(
@@ -2583,13 +2581,8 @@ impl TwoQubitControlledUDecomposer {
                     let raw_inverse = gate_obj.call_method0(intern!(py, "inverse"))?;
                     let inverse: OperationFromPython = raw_inverse.extract()?;
                     let params: SmallVec<[f64; 3]> = inverse
-                        .params
-                        .as_ref()
-                        .map(|p| match p {
-                            Parameters::Params(p) => p.as_slice(),
-                            _ => panic!("Inverse has invalid parameter"),
-                        })
-                        .unwrap_or_default()
+                        .try_legacy_params()
+                        .unwrap()
                         .into_iter()
                         .map(|x| match x {
                             Param::Float(val) => *val,

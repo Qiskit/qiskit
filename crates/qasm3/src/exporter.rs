@@ -29,13 +29,13 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{DelayUnit, Parameters, StandardInstructionView};
+use qiskit_circuit::operations::{DelayUnit, StandardInstructionView};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
-use qiskit_circuit::instruction::{Instruction, IntoInstructionView};
+use qiskit_circuit::instruction::IntoInstructionView;
 use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
@@ -1281,12 +1281,8 @@ impl<'a> QASM3Builder {
         let params = if self.disable_constants {
             Python::with_gil(|_py| {
                 instr
-                    .parameters()
-                    .map(|p| match p {
-                        Parameters::Params(p) => p.as_slice(),
-                        _ => panic!("expected gate parameters"),
-                    })
-                    .unwrap_or_default()
+                    .try_legacy_params()
+                    .unwrap()
                     .iter()
                     .map(|param| match param {
                         Param::Float(val) => Expression::Parameter(Parameter {

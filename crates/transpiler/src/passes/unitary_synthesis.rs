@@ -1341,16 +1341,9 @@ fn run_2q_unitary_synthesis(
                         let NodeType::Operation(inst) = &synth_dag[node] else {
                             unreachable!("DAG node must be an instruction")
                         };
-                        if !matches!(
-                            inst.view_operation(),
-                            OperationRef::StandardGate(_)
-                                | OperationRef::Gate(_)
-                                | OperationRef::Operation(_)
-                                | OperationRef::Unitary(_)
-                        ) {
-                            // Instruction needs to be gate-like (we should introduce a view for that).
+                        let Some(params) = inst.try_legacy_params() else {
                             return None;
-                        }
+                        };
                         let inst_qubits = synth_dag
                             .get_qargs(inst.qubits)
                             .iter()
@@ -1358,9 +1351,11 @@ fn run_2q_unitary_synthesis(
                             .collect();
                         Some((
                             inst.op.name().to_string(),
-                            inst.params.as_deref().map(|p| match p {
-                                Parameters::Params(inst_params) => inst_params.clone(),
-                                _ => panic!("Expected gate parameters"),
+                            (!params.is_empty()).then(|| {
+                                params
+                                    .into_iter()
+                                    .cloned()
+                                    .collect::<SmallVec<[Param; 3]>>()
                             }),
                             inst_qubits,
                         ))
