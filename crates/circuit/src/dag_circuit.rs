@@ -22,7 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{
-    CircuitInstruction, Instruction, IntoInstructionView, OperationFromPython,
+    CircuitInstruction, IntoInstructionView, OperationFromPython, UnpackPythonOperation,
 };
 use crate::classical::expr;
 use crate::converters::{circuit_to_dag, QuantumCircuitData};

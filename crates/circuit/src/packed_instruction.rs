@@ -755,7 +755,7 @@ impl Instruction for PackedInstruction {
     }
 
     #[inline]
-    fn params_view(&self) -> Option<&Parameters<PyObject>> {
+    fn parameters(&self) -> Option<&Parameters<PyObject>> {
         self.params.as_deref()
     }
 
@@ -809,7 +809,7 @@ impl PackedInstruction {
 
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
     pub fn is_parameterized(&self) -> bool {
-        self.params_view()
+        self.parameters()
             .and_then(|p| match p {
                 Parameters::Params(p) => {
                     Some(p.iter().any(|x| matches!(x, Param::ParameterExpression(_))))

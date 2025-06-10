@@ -1281,7 +1281,7 @@ impl<'a> QASM3Builder {
         let params = if self.disable_constants {
             Python::with_gil(|_py| {
                 instr
-                    .params_view()
+                    .parameters()
                     .map(|p| match p {
                         Parameters::Params(p) => p.as_slice(),
                         _ => panic!("expected gate parameters"),

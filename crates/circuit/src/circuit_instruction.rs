@@ -74,161 +74,29 @@ pub trait IntoInstructionView<'a> {
 /// Represents an instruction that is directly convertible to our Python API
 /// instruction type.
 pub trait Instruction {
+    /// Gets a reference to this instruction's operation.
     fn op(&self) -> OperationRef<'_>;
 
-    /// Get a slice view onto the contained parameters.
-    fn params_view(&self) -> Option<&Parameters<PyObject>>;
+    /// Get a reference to this instruction's parameter list, if applicable.
+    ///
+    /// For standard gates without parameters this may be [None] or a
+    /// `Some(Parameters::Param(smallvec![]))`.
+    fn parameters(&self) -> Option<&Parameters<PyObject>>;
 
     /// Get the label for this instruction.
     fn label(&self) -> Option<&str>;
 
+    /// Gets the py_op cache for this instruction, if the implementation
+    /// supports caching.
     #[cfg(feature = "cache_pygates")]
     fn py_op(&self) -> Option<&OnceLock<Py<PyAny>>> {
         // Disable caching by default.
         None
     }
+}
 
-    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        match self.op() {
-            OperationRef::ControlFlow(control) => {
-                let kwargs = self
-                    .label()
-                    .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
-                    .transpose()?;
-                let out = match control {
-                    ControlFlow::Box { duration, .. } => {
-                        let Some(Parameters::Box { body }) = self.params_view() else {
-                            panic!("invalid box params");
-                        };
-                        let (duration, unit) = match duration {
-                            Some(duration) => (Some(duration.py_value(py)?), duration.unit()),
-                            None => (None, "dt"),
-                        };
-                        BOX_OP
-                            .get_bound(py)
-                            .call((body, duration, unit), kwargs.as_ref())?
-                    }
-                    ControlFlow::BreakLoop { qubits, clbits } => BREAK_LOOP_OP
-                        .get_bound(py)
-                        .call((qubits, clbits), kwargs.as_ref())?,
-                    ControlFlow::ContinueLoop { qubits, clbits } => CONTINUE_LOOP_OP
-                        .get_bound(py)
-                        .call((qubits, clbits), kwargs.as_ref())?,
-                    ControlFlow::ForLoop { .. } => {
-                        let Some(Parameters::ForLoop {
-                            indexset,
-                            loop_param,
-                            body,
-                        }) = self.params_view()
-                        else {
-                            panic!("invalid forloop params");
-                        };
-                        FOR_LOOP_OP.get_bound(py).call(
-                            (indexset.clone(), loop_param.clone(), body.clone()),
-                            kwargs.as_ref(),
-                        )?
-                    }
-                    ControlFlow::IfElse { condition, .. } => {
-                        let Some(Parameters::IfElse {
-                            true_body,
-                            false_body,
-                        }) = self.params_view()
-                        else {
-                            panic!("invalid if else params");
-                        };
-                        IF_ELSE_OP.get_bound(py).call(
-                            (condition.clone(), true_body.clone(), false_body.clone()),
-                            kwargs.as_ref(),
-                        )?
-                    }
-                    ControlFlow::Switch {
-                        target, label_spec, ..
-                    } => {
-                        let cases = label_spec
-                            .iter()
-                            .cloned()
-                            .zip(
-                                self.params_view()
-                                    .and_then(|p| match p {
-                                        Parameters::Switch { cases } => Some(cases),
-                                        _ => None,
-                                    })
-                                    .expect("invalid switch params"),
-                            )
-                            .collect_vec();
-                        SWITCH_CASE_OP
-                            .get_bound(py)
-                            .call((target.clone(), cases), kwargs.as_ref())?
-                    }
-                    ControlFlow::While { condition, .. } => {
-                        let Some(Parameters::While { body }) = self.params_view() else {
-                            panic!("invalid while loop params");
-                        };
-                        WHILE_LOOP_OP
-                            .get_bound(py)
-                            .call((condition.clone(), body), kwargs.as_ref())?
-                    }
-                };
-                Ok(out.unbind())
-            }
-            OperationRef::StandardGate(standard) => standard.create_py_op(
-                py,
-                self.params_view().map(|p| match p {
-                    Parameters::Params(params) => params.as_slice(),
-                    _ => panic!("invalid standard gate params"),
-                }),
-                self.label(),
-            ),
-            OperationRef::StandardInstruction(instruction) => {
-                let kwargs = self
-                    .label()
-                    .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
-                    .transpose()?;
-                let out = match &instruction {
-                    StandardInstruction::Barrier(num_qubits) => {
-                        BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
-                    }
-                    StandardInstruction::Delay(unit) => {
-                        let duration = match self.params_view() {
-                            Some(Parameters::Params(params)) if params.len() == 1 => {
-                                params[0].clone()
-                            }
-                            _ => panic!("invalid delay params"),
-                        };
-                        DELAY
-                            .get_bound(py)
-                            .call1((duration.clone().into_py_any(py)?, unit.to_string()))?
-                    }
-                    StandardInstruction::Measure => {
-                        MEASURE.get_bound(py).call((), kwargs.as_ref())?
-                    }
-                    StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
-                };
-
-                Ok(out.unbind())
-            }
-            OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
-            OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
-            OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
-            OperationRef::Unitary(unitary) => {
-                let kwargs = PyDict::new(py);
-                if let Some(label) = self.label() {
-                    kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
-                }
-                let out_array = match &unitary.array {
-                    ArrayType::NDArray(arr) => arr.to_pyarray(py),
-                    ArrayType::OneQ(arr) => arr.to_pyarray(py),
-                    ArrayType::TwoQ(arr) => arr.to_pyarray(py),
-                };
-                kwargs.set_item(intern!(py, "check_input"), false)?;
-                kwargs.set_item(intern!(py, "num_qubits"), self.op().num_qubits())?;
-                let gate = UNITARY_GATE
-                    .get_bound(py)
-                    .call((out_array,), Some(&kwargs))?;
-                Ok(gate.unbind())
-            }
-        }
-    }
+pub trait UnpackPythonOperation {
+    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>>;
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
     /// instruction.  This may construct the reference if the `DataInstruction` is a standard
@@ -237,27 +105,7 @@ pub trait Instruction {
     /// A standard-gate or standard-instruction operation object returned by this function is
     /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
     /// and condition will not be propagated back.
-    fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
-        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
-        // Python interpreter as this one does, since that can allow CPython to freeze the thread
-        // and for another to attempt the initialisation.
-        #[cfg(feature = "cache_pygates")]
-        {
-            if let Some(ob) = self.py_op().and_then(|cache| cache.get()) {
-                return Ok(ob.clone_ref(py));
-            }
-        }
-        let out = self.create_py_op(py)?;
-        #[cfg(feature = "cache_pygates")]
-        if let Some(cache) = self.py_op() {
-            // The unpacking operation can cause a thread pause and concurrency, since it can call
-            // interpreted Python code for a standard gate, so we need to take care that some other
-            // Python thread might have populated the cache before we do.
-            let _ = cache.set(out.clone_ref(py));
-        }
-        Ok(out)
-    }
+    fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>>;
 }
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
@@ -332,7 +180,7 @@ impl Instruction for CircuitInstruction {
         self.operation.view()
     }
 
-    fn params_view(&self) -> Option<&Parameters<PyObject>> {
+    fn parameters(&self) -> Option<&Parameters<PyObject>> {
         self.params.as_ref()
     }
 
@@ -357,10 +205,10 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
         let OperationRef::StandardGate(gate) = self.op() else {
             return None;
         };
-        let params = match self.params_view() {
+        let params = match self.parameters() {
             Some(Parameters::Params(params)) => params.as_slice(),
             None => &[],
-            _ => panic!("invalid gate"),
+            _ => panic!("invalid standard gate parameters"),
         };
         Some(StandardGateView(gate, params))
     }
@@ -372,7 +220,7 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
         Some(match instruction {
             StandardInstruction::Barrier(n) => StandardInstructionView::Barrier(n),
             StandardInstruction::Delay(unit) => {
-                let Some([duration]) = self.params_view().and_then(|p| match p {
+                let Some([duration]) = self.parameters().and_then(|p| match p {
                     Parameters::Params(params) => Some(params.as_slice()),
                     _ => None,
                 }) else {
@@ -392,7 +240,7 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
 
         Some(match control {
             ControlFlow::Box { duration, .. } => {
-                let Some(Parameters::Box { body }) = self.params_view() else {
+                let Some(Parameters::Box { body }) = self.parameters() else {
                     panic!("invalid box parameters");
                 };
                 ControlFlowView::Box(duration.as_ref(), body)
@@ -404,9 +252,9 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
                     indexset,
                     loop_param,
                     body,
-                }) = self.params_view()
+                }) = self.parameters()
                 else {
-                    panic!("invalid");
+                    panic!("invalid for loop parameters");
                 };
                 ControlFlowView::ForLoop {
                     indexset,
@@ -418,9 +266,9 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
                 let Some(Parameters::IfElse {
                     true_body,
                     false_body,
-                }) = self.params_view()
+                }) = self.parameters()
                 else {
-                    panic!("invalid");
+                    panic!("invalid ifelse parameters");
                 };
                 ControlFlowView::IfElse {
                     condition,
@@ -434,12 +282,12 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
                 let cases_specifier = label_spec
                     .iter()
                     .zip(
-                        self.params_view()
+                        self.parameters()
                             .and_then(|p| match p {
                                 Parameters::Switch { cases } => Some(cases),
                                 _ => None,
                             })
-                            .expect("invalid"),
+                            .expect("invalid switch parameters"),
                     )
                     .collect();
                 ControlFlowView::Switch {
@@ -448,8 +296,8 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
                 }
             }
             ControlFlow::While { condition, .. } => {
-                let Some(Parameters::While { body }) = self.params_view() else {
-                    panic!("invalid");
+                let Some(Parameters::While { body }) = self.parameters() else {
+                    panic!("invalid while parameters");
                 };
                 ControlFlowView::While { condition, body }
             }
@@ -465,7 +313,7 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
             | InstructionView::Operation(_)
             | InstructionView::Unitary(_)
             | InstructionView::Instruction(_) => Some(
-                self.params_view()
+                self.parameters()
                     .and_then(|p| match p {
                         Parameters::Params(p) => Some(p.as_slice()),
                         _ => panic!("expected gate parameters"),
@@ -478,11 +326,154 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
                 }
                 _ => Some(&[]),
             },
-            _ => {
-                println!("GOT NONE FOR GATE PARAMS: {:?}", self.view());
-                None
+            _ => panic!(
+                "legacy parameters not supported for operation {:?}",
+                self.op()
+            ),
+        }
+    }
+}
+
+impl<T: Instruction> UnpackPythonOperation for T {
+    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        match self.view() {
+            InstructionView::ControlFlow(cf) => {
+                let qubits = self.op().num_qubits();
+                let clbits = self.op().num_clbits();
+                let kwargs = self
+                    .label()
+                    .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+                    .transpose()?;
+                match cf {
+                    ControlFlowView::Box(duration, body) => {
+                        let (duration, unit) = match duration {
+                            Some(duration) => (Some(duration.py_value(py)?), duration.unit()),
+                            None => (None, "dt"),
+                        };
+                        BOX_OP
+                            .get(py)
+                            .call(py, (body, duration, unit), kwargs.as_ref())
+                    }
+                    ControlFlowView::BreakLoop => {
+                        BREAK_LOOP_OP
+                            .get(py)
+                            .call(py, (qubits, clbits), kwargs.as_ref())
+                    }
+                    ControlFlowView::ContinueLoop => {
+                        CONTINUE_LOOP_OP
+                            .get(py)
+                            .call(py, (qubits, clbits), kwargs.as_ref())
+                    }
+                    ControlFlowView::ForLoop {
+                        indexset,
+                        loop_param,
+                        body,
+                    } => FOR_LOOP_OP.get(py).call(
+                        py,
+                        (indexset, loop_param.clone(), body),
+                        kwargs.as_ref(),
+                    ),
+                    ControlFlowView::IfElse {
+                        condition,
+                        true_body,
+                        false_body,
+                    } => IF_ELSE_OP.get(py).call(
+                        py,
+                        (condition.clone(), true_body.clone(), false_body.clone()),
+                        kwargs.as_ref(),
+                    ),
+                    ControlFlowView::Switch {
+                        target,
+                        cases_specifier,
+                    } => SWITCH_CASE_OP.get(py).call(
+                        py,
+                        (
+                            target.clone(),
+                            cases_specifier
+                                .into_iter()
+                                .map(|(spec, case)| (spec.clone(), case))
+                                .collect_vec(),
+                        ),
+                        kwargs.as_ref(),
+                    ),
+                    ControlFlowView::While { condition, body } => {
+                        WHILE_LOOP_OP
+                            .get(py)
+                            .call(py, (condition.clone(), body), kwargs.as_ref())
+                    }
+                }
+            }
+            InstructionView::StandardGate(StandardGateView(gate, params)) => {
+                gate.create_py_op(py, Some(params), self.label())
+            }
+            InstructionView::StandardInstruction(instruction) => {
+                let kwargs = self
+                    .label()
+                    .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+                    .transpose()?;
+                match instruction {
+                    StandardInstructionView::Barrier(num_qubits) => {
+                        BARRIER.get(py).call(py, (num_qubits,), kwargs.as_ref())
+                    }
+                    StandardInstructionView::Delay { duration, unit } => DELAY
+                        .get(py)
+                        .call1(py, (duration.clone().into_py_any(py)?, unit.to_string())),
+                    StandardInstructionView::Measure => {
+                        MEASURE.get(py).call(py, (), kwargs.as_ref())
+                    }
+                    StandardInstructionView::Reset => RESET.get(py).call(py, (), kwargs.as_ref()),
+                }
+            }
+            InstructionView::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+            InstructionView::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
+            InstructionView::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+            InstructionView::Unitary(unitary) => {
+                let kwargs = PyDict::new(py);
+                if let Some(label) = self.label() {
+                    kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
+                }
+                let out_array = match &unitary.array {
+                    ArrayType::NDArray(arr) => arr.to_pyarray(py),
+                    ArrayType::OneQ(arr) => arr.to_pyarray(py),
+                    ArrayType::TwoQ(arr) => arr.to_pyarray(py),
+                };
+                kwargs.set_item(intern!(py, "check_input"), false)?;
+                kwargs.set_item(intern!(py, "num_qubits"), self.op().num_qubits())?;
+                let gate = UNITARY_GATE
+                    .get_bound(py)
+                    .call((out_array,), Some(&kwargs))?;
+                Ok(gate.unbind())
             }
         }
+    }
+
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
+    /// instruction.  This may construct the reference if the `Instruction` is a standard
+    /// gate or instruction with no already stored operation.
+    ///
+    /// A standard-gate or standard-instruction operation object returned by this function is
+    /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
+    /// and condition will not be propagated back.
+    fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
+        // Python interpreter as this one does, since that can allow CPython to freeze the thread
+        // and for another to attempt the initialisation.
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(ob) = self.py_op().and_then(|cache| cache.get()) {
+                return Ok(ob.clone_ref(py));
+            }
+        }
+        let out = self.create_py_op(py)?;
+        #[cfg(feature = "cache_pygates")]
+        if let Some(cache) = self.py_op() {
+            // The unpacking operation can cause a thread pause and concurrency, since it can call
+            // interpreted Python code for a standard gate, so we need to take care that some other
+            // Python thread might have populated the cache before we do.
+            let _ = cache.set(out.clone_ref(py));
+        }
+        Ok(out)
     }
 }
 
@@ -938,7 +929,7 @@ impl Instruction for OperationFromPython {
         self.operation.view()
     }
 
-    fn params_view(&self) -> Option<&Parameters<PyObject>> {
+    fn parameters(&self) -> Option<&Parameters<PyObject>> {
         self.params.as_ref()
     }
 

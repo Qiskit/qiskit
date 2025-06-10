@@ -2234,7 +2234,7 @@ impl TwoQubitBasisDecomposer {
         let kak_gate = kak_gate.extract::<OperationFromPython>(py)?;
         // TODO: don't clone unless we need to take this later
         let kak_gate_params = kak_gate
-            .params_view()
+            .parameters()
             .map(|p| match p {
                 Parameters::Params(p) => p.clone(),
                 _ => panic!("expected gate parameters"),

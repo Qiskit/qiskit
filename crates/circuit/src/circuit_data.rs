@@ -22,6 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{
     CircuitInstruction, Instruction, IntoInstructionView, OperationFromPython,
+    UnpackPythonOperation,
 };
 use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
@@ -774,7 +775,7 @@ impl CircuitData {
                 clbits: PyTuple::new(py, self.clbits.map_indices(clbits))
                     .unwrap()
                     .unbind(),
-                params: inst.params_view().cloned(),
+                params: inst.parameters().cloned(),
                 label: inst.label.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: inst.py_op.clone(),
@@ -1476,7 +1477,7 @@ impl CircuitData {
         py: Python,
         instruction_index: usize,
     ) -> PyResult<()> {
-        let Some(parameters) = self.data[instruction_index].params_view() else {
+        let Some(parameters) = self.data[instruction_index].parameters() else {
             return Ok(());
         };
 
@@ -1597,7 +1598,7 @@ impl CircuitData {
         py: Python,
         instruction_index: usize,
     ) -> PyResult<()> {
-        let Some(parameters) = self.data[instruction_index].params_view() else {
+        let Some(parameters) = self.data[instruction_index].parameters() else {
             return Ok(());
         };
 

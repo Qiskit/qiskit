@@ -22,7 +22,9 @@ use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionView, OperationFromPython};
+use qiskit_circuit::circuit_instruction::{
+    Instruction, IntoInstructionView, OperationFromPython, UnpackPythonOperation,
+};
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
@@ -549,7 +551,7 @@ fn run_on_circuitdata(
             let packed_instruction = PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),
                 {
-                    let mut params = inst.params_view().unwrap().clone();
+                    let mut params = inst.parameters().unwrap().clone();
                     params.replace_blocks(new_blocks_py.into_iter().map(|b| b.unbind()));
                     params
                 },
@@ -622,7 +624,7 @@ fn run_on_circuitdata(
 
                     output_circuit.push_packed_operation(
                         inst_inner.op.clone(),
-                        inst_inner.params_view().cloned(),
+                        inst_inner.parameters().cloned(),
                         &inst_outer_qubits,
                         &inst_outer_clbits,
                     );

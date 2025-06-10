@@ -305,7 +305,7 @@ fn generate_twirled_circuit(
                     PackedInstruction::from_control_flow(
                         inst.op.control_flow().clone(),
                         {
-                            let mut blocks = inst.params_view().unwrap().clone();
+                            let mut blocks = inst.parameters().unwrap().clone();
                             blocks.replace_blocks(new_blocks);
                             blocks
                         },

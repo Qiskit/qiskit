@@ -35,7 +35,9 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
-use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionView, OperationFromPython};
+use qiskit_circuit::circuit_instruction::{
+    Instruction, IntoInstructionView, OperationFromPython, UnpackPythonOperation,
+};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, Parameters};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::SmallVec;
@@ -70,7 +72,7 @@ impl TargetOperation {
     /// Gets the parameters of a [TargetOperation], will panic if the operation is [TargetOperation::Variadic].
     pub fn params(&self) -> Option<&Parameters<PyObject>> {
         match &self {
-            TargetOperation::Normal(normal) => normal.params_view(),
+            TargetOperation::Normal(normal) => normal.parameters(),
             TargetOperation::Variadic(_) => {
                 panic!("'parameters' property doesn't exist for Variadic operations")
             }
@@ -120,7 +122,7 @@ impl Instruction for NormalOperation {
         self.operation.view()
     }
 
-    fn params_view(&self) -> Option<&Parameters<PyObject>> {
+    fn parameters(&self) -> Option<&Parameters<PyObject>> {
         self.params.as_ref()
     }
 
