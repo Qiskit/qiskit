@@ -370,9 +370,6 @@ def load(
             )
 
     programs = []
-    # TODO: Replace with multithreaded reading of each program from corresponding byte offset
-    # TODO: Check for backwards compatibility and modify any version info
-    # TODO: Understand how to circuits are populated by read_circuit and ensure that they are returned in the correct order regardless of the thread completion order
     for i in range(data.num_programs):
         if data.qpy_version >= 16:
             # Deserialize each program using their byte offsets
