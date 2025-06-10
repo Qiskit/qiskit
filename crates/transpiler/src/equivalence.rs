@@ -36,8 +36,9 @@ use rustworkx_core::petgraph::{
 };
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{IntoInstructionView, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;

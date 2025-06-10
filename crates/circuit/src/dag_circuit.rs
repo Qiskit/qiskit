@@ -21,7 +21,7 @@ use crate::bit::{
 };
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
-use crate::circuit_instruction::{CircuitInstruction, IntoInstructionView, OperationFromPython};
+use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::converters::{circuit_to_dag, QuantumCircuitData};
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
@@ -77,6 +77,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
 
+use crate::instruction::IntoInstructionView;
 use approx::relative_eq;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;

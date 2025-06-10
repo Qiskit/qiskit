@@ -35,7 +35,7 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
-use qiskit_circuit::circuit_instruction::{Instruction, IntoInstructionView};
+use qiskit_circuit::instruction::{Instruction, IntoInstructionView};
 use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;

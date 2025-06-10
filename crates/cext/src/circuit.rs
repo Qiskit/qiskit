@@ -18,7 +18,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::IntoInstructionView;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{
     DelayUnit, Operation, Param, Parameters, StandardGate, StandardInstruction,
 };

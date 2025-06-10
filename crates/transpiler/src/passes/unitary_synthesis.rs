@@ -20,8 +20,8 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::{IntoPyArray, ToPyArray};
-use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
+use qiskit_circuit::instruction::IntoInstructionView;
 use smallvec::SmallVec;
 
 use pyo3::intern;

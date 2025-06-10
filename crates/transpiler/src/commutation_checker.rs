@@ -26,17 +26,17 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
-use qiskit_circuit::circuit_instruction::{Instruction, OperationFromPython};
+use crate::gate_metrics;
+use crate::QiskitError;
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
+use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, Parameters, StandardGate, STANDARD_GATE_SIZE,
 };
 use qiskit_circuit::{Clbit, Qubit};
-
-use crate::gate_metrics;
-use crate::QiskitError;
 use qiskit_quantum_info::unitary_compose;
 
 const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {

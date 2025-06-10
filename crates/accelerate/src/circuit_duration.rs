@@ -21,7 +21,7 @@ use qiskit_circuit::operations::{
 use qiskit_transpiler::target::Target;
 
 use crate::QiskitError;
-use qiskit_circuit::circuit_instruction::IntoInstructionView;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::PhysicalQubit;
 use rustworkx_core::dag_algo::longest_path;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;

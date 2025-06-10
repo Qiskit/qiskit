@@ -19,10 +19,10 @@ use numpy::ndarray::{arr2, aview2, Array2, ArrayView2, ArrayViewMut2};
 use numpy::PyReadonlyArray2;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{ArrayType, InstructionView, StandardGateView};
 use qiskit_circuit::Qubit;
 

@@ -25,7 +25,7 @@ use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::Qubit;
 
 use super::analyze_commutations;
-use qiskit_circuit::circuit_instruction::IntoInstructionView;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_synthesis::{euler_one_qubit_decomposer, QiskitError};
 
 const _CUTOFF_PRECISION: f64 = 1e-5;

@@ -53,10 +53,11 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{Instruction, OperationFromPython};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::gate_matrix::{
     CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, SX_GATE, S_GATE, X_GATE,
 };
+use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::{Operation, Param, Parameters, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};

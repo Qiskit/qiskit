@@ -29,7 +29,7 @@ use qiskit_circuit::Qubit;
 
 use super::error_map::ErrorMap;
 use crate::target::{Qargs, Target};
-use qiskit_circuit::circuit_instruction::IntoInstructionView;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 

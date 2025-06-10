@@ -25,6 +25,7 @@ pub mod duration;
 pub mod error;
 pub mod gate_matrix;
 pub mod imports;
+pub mod instruction;
 pub mod interner;
 pub mod nlayout;
 pub mod object_registry;

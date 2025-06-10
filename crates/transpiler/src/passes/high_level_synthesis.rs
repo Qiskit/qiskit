@@ -22,9 +22,7 @@ use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::{
-    CreatePythonOperation, Instruction, IntoInstructionView, OperationFromPython,
-};
+use qiskit_circuit::circuit_instruction::{CreatePythonOperation, OperationFromPython};
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
@@ -48,6 +46,7 @@ use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
+use qiskit_circuit::instruction::{Instruction, IntoInstructionView};
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 

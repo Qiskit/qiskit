@@ -14,8 +14,8 @@ use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::circuit_instruction::IntoInstructionView;
 use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::Qubit;
 

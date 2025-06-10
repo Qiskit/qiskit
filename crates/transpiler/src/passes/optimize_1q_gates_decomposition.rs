@@ -23,7 +23,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param};
 
 use crate::target::Target;
-use qiskit_circuit::circuit_instruction::IntoInstructionView;
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::{gate_matrix, PhysicalQubit};
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet, OneQubitGateSequence, EULER_BASES,

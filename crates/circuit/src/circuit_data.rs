@@ -20,9 +20,7 @@ use crate::bit::{
     ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
-use crate::circuit_instruction::{
-    CircuitInstruction, Instruction, IntoInstructionView, OperationFromPython,
-};
+use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
@@ -42,6 +40,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
+use crate::instruction::{Instruction, IntoInstructionView};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;

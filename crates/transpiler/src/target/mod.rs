@@ -35,14 +35,12 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
-use qiskit_circuit::circuit_instruction::{
-    CreatePythonOperation, Instruction, IntoInstructionView, OperationFromPython,
-};
+use qiskit_circuit::circuit_instruction::{CreatePythonOperation, OperationFromPython};
+use qiskit_circuit::instruction::{Instruction, IntoInstructionView};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, Parameters};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
-
 use qiskit_circuit::PhysicalQubit;
+use smallvec::SmallVec;
 
 use crate::TranspilerError;
 
