@@ -200,17 +200,17 @@ def dump(
     file_obj.write(header)
     common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
 
-    # Table of byte offsets for each program
+    # Table of byte offsets for each program (supported in QPY v16+)
     byte_offsets = []
     table_start = None
-    if version == common.QPY_VERSION:
+    if version >= 16:
         table_start = file_obj.tell()
         # Skip the file position to write the byte offsets later
         file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
 
     # Serialize each program and write it to the file
     for program in programs:
-        if version == common.QPY_VERSION:
+        if version >= 16:
             # Determine the byte offset before writing each program
             byte_offsets.append(file_obj.tell())
         binary_io.write_circuit(
@@ -222,11 +222,11 @@ def dump(
             annotation_factories=annotation_factories,
         )
 
-    if version == common.QPY_VERSION:
+    if version >= 16:
         # Write the byte offsets for each program
         file_obj.seek(table_start)
         for offset in byte_offsets:
-            file_obj.write(struct.pack(formats.CIRCUIT_TABLE_ENTRY, offset))
+            file_obj.write(struct.pack(formats.CIRCUIT_TABLE_ENTRY_PACK, offset))
 
 
 def load(
@@ -358,13 +358,13 @@ def load(
     else:
         use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
 
-    if data.qpy_version == common.QPY_VERSION:
+    if data.qpy_version >= 16:
         # Obtain the byte offsets for each program
         program_offsets = []
         for _ in range(data.num_programs):
             program_offsets.append(
                 struct.unpack(
-                    formats.CIRCUIT_TABLE_ENTRY,
+                    formats.CIRCUIT_TABLE_ENTRY_PACK,
                     file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
                 )[0]
             )
@@ -374,7 +374,7 @@ def load(
     # TODO: Check for backwards compatibility and modify any version info
     # TODO: Understand how to circuits are populated by read_circuit and ensure that they are returned in the correct order regardless of the thread completion order
     for i in range(data.num_programs):
-        if data.qpy_version == common.QPY_VERSION:
+        if data.qpy_version >= 16:
             # Deserialize each program using their byte offsets
             file_obj.seek(program_offsets[i])
         programs.append(
