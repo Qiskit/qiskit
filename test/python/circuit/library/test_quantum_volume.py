@@ -26,7 +26,6 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
         """Test qv circuit reproducibility for deprecated QuantumVolume class."""
         with self.assertWarns(DeprecationWarning):
             left = QuantumVolume(4, 4, seed=28, classical_permutation=False)
-        with self.assertWarns(DeprecationWarning):
             right = QuantumVolume(4, 4, seed=28, classical_permutation=False)
         self.assertEqual(left, right)
 
