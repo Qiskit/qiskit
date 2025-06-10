@@ -211,7 +211,7 @@ pub struct Target {
     #[pyo3(get, set)]
     pub acquire_alignment: u32,
     #[pyo3(get, set)]
-    pub qubit_properties: Option<Vec<PyObject>>,
+    pub qubit_properties: Option<Vec<QubitProperties>>,
     #[pyo3(get, set)]
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: GateMap,
@@ -285,7 +285,7 @@ impl Target {
         min_length: Option<u32>,
         pulse_alignment: Option<u32>,
         acquire_alignment: Option<u32>,
-        qubit_properties: Option<Vec<PyObject>>,
+        qubit_properties: Option<Vec<QubitProperties>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
         if let Some(qubit_properties) = qubit_properties.as_ref() {
@@ -859,7 +859,7 @@ impl Target {
         self.qubit_properties = state
             .get_item("qubit_properties")?
             .unwrap()
-            .extract::<Option<Vec<PyObject>>>()?;
+            .extract::<Option<Vec<QubitProperties>>>()?;
         self.concurrent_measurements = state
             .get_item("concurrent_measurements")?
             .unwrap()
