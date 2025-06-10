@@ -17,7 +17,7 @@ use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_transpiler::target::{InstructionProperties, Qargs, Target};
+use qiskit_transpiler::target::{InstructionProperties, Qargs, QargsRef, Target};
 use smallvec::{smallvec, SmallVec};
 
 /// @ingroup QkTarget
@@ -827,6 +827,131 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
     let target = unsafe { const_ptr_as_ref(target) };
 
     target.len()
+}
+
+/// @ingroup QkTarget
+/// Checks if the provided instruction and its qargs are supported by this
+/// ``Target``.
+///
+/// @param target A pointer to the ``Target``.
+/// @param operation The instruction to check for.
+/// @param qargs The pointer to the array of ``uint32_t`` values to use as
+/// qargs. Can be ``NULL`` if global.
+/// @param num_qubits The number of qubits in the array.
+///
+/// @return Whether the instruction is supported or not.
+///
+/// # Example
+///
+///     QkTarget *target = qk_target_new(5);
+///     QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, *[3.14]);
+///     qk_target_entry_add(crx_entry, NULL, 0, 0.0, 0.1);
+///     qk_target_add_instruction(target, crx_entry);
+///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
+///
+///     qk_target_instruction_supported(target, QkGate_CRX, [0, 1], 2)
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+///
+/// The ``qargs`` type is expected to be a pointer to an array of ``u32int_t`` where the length
+/// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
+/// array is insufficently long the behavior of this function is undefined as this will read
+/// outside the bounds of the array. It can be a null pointer if there are no qubits for
+/// a given gate. You can check `qk_gate_num_qubits` to determine how many qubits are required
+/// for a given gate.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_instruction_supported(
+    target: *const Target,
+    operation: StandardGate,
+    qargs: *mut u32,
+    num_qubits: u32,
+) -> bool {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
+    let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
+
+    target.instruction_supported(operation.name(), &qargs)
+}
+
+/// @ingroup QkTarget
+/// Checks if this instance of ``QkTarget`` is compatible with Reset.
+///
+/// @param target A pointer to the ``Target``.
+/// @param qarg The index of the qubit to be checked. If the index is negative
+/// it will be treated as a global.
+///
+/// @return Whether the instruction is supported or not.
+///
+/// # Example
+///
+///     QkTarget *target = qk_target_new(5);
+///     QkTargetEntry *reset_entry = qk_target_entry_new_reset();
+///     uint32_t qargs[1] = {1};
+///     qk_target_entry_add(reset_entry, qargs, 1, 0.092, 0.1);
+///     qk_target_add_instruction(target, reset_entry);
+///
+///     qk_target_reset_supported(target, 1);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_reset_supported(target: *const Target, qarg: i32) -> bool {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    if qarg.is_negative() {
+        let qargs = QargsRef::Global;
+        target.instruction_supported(StandardInstruction::Reset.name(), qargs)
+    } else {
+        let bit = &[PhysicalQubit(u32::try_from(qarg).unwrap())];
+        let qargs = QargsRef::Concrete(bit);
+        target.instruction_supported(StandardInstruction::Reset.name(), qargs)
+    }
+}
+
+/// @ingroup QkTarget
+/// Checks if this instance of ``QkTarget`` is compatible with Measure.
+///
+/// @param target A pointer to the ``Target``.
+/// @param qarg The index of the qubit to be checked. If the index is negative
+/// it will be treated as a global.
+///
+/// @return Whether the instruction is supported or not.
+///
+/// # Example
+///
+///     QkTarget *target = qk_target_new(5);
+///     QkTargetEntry *measure_entry = qk_target_entry_new_measure();
+///     uint32_t qargs[1] = {0};
+///     qk_target_entry_add(measure_entry, qargs, 1, NaN, NaN);
+///     qk_target_add_instruction(target, measure_entry);
+///
+///     qk_target_measure_supported(target, 0);
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_measure_supported(target: *const Target, qarg: i32) -> bool {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    if qarg.is_negative() {
+        let qargs = QargsRef::Global;
+        target.instruction_supported(StandardInstruction::Measure.name(), qargs)
+    } else {
+        let bit = &[PhysicalQubit(u32::try_from(qarg).unwrap())];
+        let qargs = QargsRef::Concrete(bit);
+        target.instruction_supported(StandardInstruction::Measure.name(), qargs)
+    }
 }
 
 /// Parses qargs based on a pointer and its size.
