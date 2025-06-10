@@ -1644,4 +1644,55 @@ mod test {
         // Check that no changes were made.
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
     }
+
+    #[test]
+    fn test_set_and_get_qubit_properties() {
+        use super::QubitProperties;
+        let props = vec![
+            QubitProperties {
+                t1: Some(10.0),
+                t2: Some(20.0),
+                frequency: Some(5.0),
+            },
+            QubitProperties {
+                t1: Some(11.0),
+                t2: Some(21.0),
+                frequency: Some(6.0),
+            },
+        ];
+        let target = Target {
+            qubit_properties: Some(props.clone()),
+            num_qubits: Some(2),
+            ..Default::default()
+        };
+        assert_eq!(target.qubit_properties.as_ref().unwrap().len(), 2);
+        assert_eq!(target.qubit_properties.as_ref().unwrap()[0].t1, Some(10.0));
+        assert_eq!(
+            target.qubit_properties.as_ref().unwrap()[1].frequency,
+            Some(6.0)
+        );
+    }
+
+    #[test]
+    fn test_qubit_properties_num_qubits_mismatch() {
+        use super::QubitProperties;
+        let props = vec![QubitProperties {
+            t1: Some(10.0),
+            t2: Some(20.0),
+            frequency: Some(5.0),
+        }];
+        // num_qubits is 2, but only 1 qubit_properties
+        let result = Target::new(
+            None,
+            Some(2),
+            None,
+            Some(1),
+            Some(1),
+            Some(1),
+            Some(1),
+            Some(props),
+            None,
+        );
+        assert!(result.is_err());
+    }
 }
