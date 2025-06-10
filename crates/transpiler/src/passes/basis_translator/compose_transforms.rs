@@ -148,8 +148,8 @@ fn get_gates_num_params(
         if let Some(control_flow) = inst.try_view_control_flow() {
             example_gates.insert(
                 (
-                    inst.view_op().name().to_string(),
-                    inst.view_op().num_qubits(),
+                    inst.view_operation().name().to_string(),
+                    inst.view_operation().num_qubits(),
                 ),
                 inst.op.num_params() as usize,
             );

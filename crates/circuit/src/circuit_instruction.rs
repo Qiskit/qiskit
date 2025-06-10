@@ -39,21 +39,36 @@ use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
+/// Implemented for various instruction-like reference types.
+///
+/// Provides ergonomic views of an underlying instruction.
 pub trait IntoInstructionView<'a> {
+    /// The type of inner circuits contained within this instruction's views.
     type Block;
 
-    fn view_op(self) -> OperationRef<'a>;
+    /// Returns a view of the operation.
+    fn view_operation(self) -> OperationRef<'a>;
+
+    /// Returns a view of this instruction as a standard gate, if applicable.
     fn try_view_standard_gate(self) -> Option<StandardGateView<'a>>;
+
+    /// Returns a view of this instruction as a standard instruction, if applicable.
     fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>>;
+
+    /// Returns a view of this instruction as a control flow instruction, if applicable.
     fn try_view_control_flow(self) -> Option<ControlFlowView<'a, Self::Block>>;
+
+    /// Returns the old-style [Param] sequence, unless this is a control
+    /// flow instruction.
     fn try_legacy_params(self) -> Option<&'a [Param]>;
 
+    /// Returns an immutable ergonomic view of this instruction.
     #[inline]
     fn view(self) -> InstructionView<'a, Self::Block>
     where
         Self: Copy + Sized,
     {
-        match self.view_op() {
+        match self.view_operation() {
             OperationRef::ControlFlow(_) => {
                 InstructionView::ControlFlow(self.try_view_control_flow().unwrap())
             }
@@ -85,27 +100,17 @@ pub trait Instruction {
 
     /// Get the label for this instruction.
     fn label(&self) -> Option<&str>;
-
-    /// Gets the py_op cache for this instruction, if the implementation
-    /// supports caching.
-    #[cfg(feature = "cache_pygates")]
-    fn py_op(&self) -> Option<&OnceLock<Py<PyAny>>> {
-        // Disable caching by default.
-        None
-    }
 }
 
-pub trait UnpackPythonOperation {
-    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>>;
-
+/// Supports creation of a Python-space representation.
+pub trait CreatePythonOperation {
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
-    /// instruction.  This may construct the reference if the `DataInstruction` is a standard
-    /// gate or instruction with no already stored operation.
+    /// instruction.
     ///
     /// A standard-gate or standard-instruction operation object returned by this function is
     /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
     /// and condition will not be propagated back.
-    fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>>;
+    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>>;
 }
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
@@ -187,17 +192,12 @@ impl Instruction for CircuitInstruction {
     fn label(&self) -> Option<&str> {
         self.label()
     }
-
-    #[cfg(feature = "cache_pygates")]
-    fn py_op(&self) -> Option<&OnceLock<Py<PyAny>>> {
-        Some(&self.py_op)
-    }
 }
 
 impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
     type Block = PyObject;
 
-    fn view_op(self) -> OperationRef<'a> {
+    fn view_operation(self) -> OperationRef<'a> {
         Instruction::op(self)
     }
 
@@ -304,8 +304,6 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
         })
     }
 
-    /// Returns the old-style [Param] sequence, unless this is a control
-    /// flow instruction.
     fn try_legacy_params(self) -> Option<&'a [Param]> {
         match self.view() {
             InstructionView::StandardGate(_)
@@ -334,7 +332,7 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
     }
 }
 
-impl<T: Instruction> UnpackPythonOperation for T {
+impl<T: Instruction> CreatePythonOperation for T {
     fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self.view() {
             InstructionView::ControlFlow(cf) => {
@@ -445,35 +443,6 @@ impl<T: Instruction> UnpackPythonOperation for T {
                 Ok(gate.unbind())
             }
         }
-    }
-
-    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
-    /// instruction.  This may construct the reference if the `Instruction` is a standard
-    /// gate or instruction with no already stored operation.
-    ///
-    /// A standard-gate or standard-instruction operation object returned by this function is
-    /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
-    /// and condition will not be propagated back.
-    fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
-        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
-        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
-        // Python interpreter as this one does, since that can allow CPython to freeze the thread
-        // and for another to attempt the initialisation.
-        #[cfg(feature = "cache_pygates")]
-        {
-            if let Some(ob) = self.py_op().and_then(|cache| cache.get()) {
-                return Ok(ob.clone_ref(py));
-            }
-        }
-        let out = self.create_py_op(py)?;
-        #[cfg(feature = "cache_pygates")]
-        if let Some(cache) = self.py_op() {
-            // The unpacking operation can cause a thread pause and concurrency, since it can call
-            // interpreted Python code for a standard gate, so we need to take care that some other
-            // Python thread might have populated the cache before we do.
-            let _ = cache.set(out.clone_ref(py));
-        }
-        Ok(out)
     }
 }
 

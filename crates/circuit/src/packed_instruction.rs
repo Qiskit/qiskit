@@ -17,7 +17,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 
-use crate::circuit_instruction::Instruction;
+use crate::circuit_instruction::{CreatePythonOperation, Instruction};
 use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY,
     FOR_LOOP_OP, IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
@@ -763,11 +763,6 @@ impl Instruction for PackedInstruction {
     fn label(&self) -> Option<&str> {
         self.label.as_ref().map(|label| label.as_str())
     }
-
-    #[cfg(feature = "cache_pygates")]
-    fn py_op(&self) -> Option<&OnceLock<Py<PyAny>>> {
-        Some(&self.py_op)
-    }
 }
 
 impl PackedInstruction {
@@ -817,5 +812,32 @@ impl PackedInstruction {
                 _ => None,
             })
             .unwrap_or(false)
+    }
+
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
+    /// instruction.  This may construct the reference if the `Instruction` is a standard
+    /// gate or instruction with no already stored operation.
+    ///
+    /// A standard-gate or standard-instruction operation object returned by this function is
+    /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
+    /// and condition will not be propagated back.
+    pub fn unpack_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
+        // Python interpreter as this one does, since that can allow CPython to freeze the thread
+        // and for another to attempt the initialisation.
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(ob) = self.py_op.get() {
+                return Ok(ob.clone_ref(py));
+            }
+        }
+        let out = self.create_py_op(py)?;
+        #[cfg(feature = "cache_pygates")]
+        // The unpacking operation can cause a thread pause and concurrency, since it can call
+        // interpreted Python code for a standard gate, so we need to take care that some other
+        // Python thread might have populated the cache before we do.
+        let _ = self.py_op.set(out.clone_ref(py));
+        Ok(out)
     }
 }

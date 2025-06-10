@@ -346,7 +346,7 @@ impl DAGOpNode {
 
     #[setter]
     fn set_params(&mut self, val: Bound<PyAny>) -> PyResult<()> {
-        self.instruction.params = extract_params(self.instruction.view_op(), &val)?;
+        self.instruction.params = extract_params(self.instruction.view_operation(), &val)?;
         Ok(())
     }
 

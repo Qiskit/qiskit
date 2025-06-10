@@ -36,7 +36,7 @@ use pyo3::{
     IntoPyObjectExt,
 };
 use qiskit_circuit::circuit_instruction::{
-    Instruction, IntoInstructionView, OperationFromPython, UnpackPythonOperation,
+    CreatePythonOperation, Instruction, IntoInstructionView, OperationFromPython,
 };
 use qiskit_circuit::operations::{Operation, OperationRef, Param, Parameters};
 use qiskit_circuit::packed_instruction::PackedOperation;

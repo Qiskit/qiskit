@@ -1342,7 +1342,7 @@ fn run_2q_unitary_synthesis(
                             unreachable!("DAG node must be an instruction")
                         };
                         if !matches!(
-                            inst.view_op(),
+                            inst.view_operation(),
                             OperationRef::StandardGate(_)
                                 | OperationRef::Gate(_)
                                 | OperationRef::Operation(_)

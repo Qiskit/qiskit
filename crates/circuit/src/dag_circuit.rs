@@ -21,9 +21,7 @@ use crate::bit::{
 };
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::CircuitData;
-use crate::circuit_instruction::{
-    CircuitInstruction, IntoInstructionView, OperationFromPython, UnpackPythonOperation,
-};
+use crate::circuit_instruction::{CircuitInstruction, IntoInstructionView, OperationFromPython};
 use crate::classical::expr;
 use crate::converters::{circuit_to_dag, QuantumCircuitData};
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
@@ -252,7 +250,7 @@ impl DAGInstruction {
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
     fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
-        match (self.view_op(), other.view_op()) {
+        match (self.view_operation(), other.view_operation()) {
             (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
                 Ok(left == right)
             }
@@ -307,12 +305,12 @@ impl DAGInstruction {
 impl<'a> IntoInstructionView<'a> for &'a DAGInstruction {
     type Block = DAGCircuit;
 
-    fn view_op(self) -> OperationRef<'a> {
+    fn view_operation(self) -> OperationRef<'a> {
         self.op.view()
     }
 
     fn try_view_standard_gate(self) -> Option<StandardGateView<'a>> {
-        let OperationRef::StandardGate(gate) = self.view_op() else {
+        let OperationRef::StandardGate(gate) = self.view_operation() else {
             return None;
         };
         let params = self.params.as_deref().map(|p| {
@@ -325,7 +323,7 @@ impl<'a> IntoInstructionView<'a> for &'a DAGInstruction {
     }
 
     fn try_view_standard_instruction(self) -> Option<StandardInstructionView<'a>> {
-        let OperationRef::StandardInstruction(instruction) = self.view_op() else {
+        let OperationRef::StandardInstruction(instruction) = self.view_operation() else {
             return None;
         };
         Some(match instruction {

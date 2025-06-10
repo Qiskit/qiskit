@@ -23,7 +23,7 @@ use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::{
-    Instruction, IntoInstructionView, OperationFromPython, UnpackPythonOperation,
+    CreatePythonOperation, Instruction, IntoInstructionView, OperationFromPython,
 };
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
