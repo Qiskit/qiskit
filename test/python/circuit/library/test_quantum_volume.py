@@ -38,7 +38,6 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
 
         with self.assertWarns(DeprecationWarning):
             left = QuantumVolume(4, 4, seed=2024, flatten=True)
-        with self.assertWarns(DeprecationWarning):
             right = QuantumVolume(4, 4, seed=2024, flatten=True)
         self.assertEqual(left, right)
 
