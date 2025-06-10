@@ -102,6 +102,7 @@ Scheduling
    TimeUnitConversion
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
+   ContextAwareDynamicalDecoupling
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
@@ -227,6 +228,7 @@ from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
 from .optimization import TwoQubitPeepholeOptimization
 from .optimization import ContractIdleWiresInControlFlow
+from .optimization import OptimizeCliffordT
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -246,6 +248,7 @@ from .synthesis import HighLevelSynthesis
 from .synthesis import HLSConfig
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import CliffordUnitarySynthesis
 from .synthesis import AQCSynthesisPlugin
 
 # circuit scheduling
@@ -257,6 +260,7 @@ from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
+from .scheduling import ContextAwareDynamicalDecoupling
 
 # additional utility passes
 from .utils import CheckMap

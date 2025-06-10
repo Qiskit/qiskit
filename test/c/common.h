@@ -14,12 +14,6 @@
 #include <qiskit.h>
 #include <stdio.h>
 
-#ifdef _MSC_VER
-QkComplex64 make_complex_double(double real, double imag) { return (QkComplex64){real, imag}; }
-#else
-QkComplex64 make_complex_double(double real, double imag) { return real + I * imag; }
-#endif
-
 // An enumeration of test results. These should be returned by test functions to
 // indicate what kind of error occurred. This will be used to produce more
 // helpful messages for the developer running the test suite.
@@ -37,23 +31,4 @@ enum TestResult {
 // A function to run a test function of a given name. This function will also
 // post-process the returned `TestResult` to product a minimal info message for
 // the developer running the test suite.
-int run(const char *name, int (*test_function)(void)) {
-    // TODO: we could consider to change the return value of our test functions
-    // to be a struct containing the integer return value and a custom error
-    // message which could then be included below.
-    int result = test_function();
-    int did_fail = 1;
-    char *msg;
-    if (result == Ok) {
-        did_fail = 0;
-        msg = "Ok";
-    } else if (result == EqualityError) {
-        msg = "FAILED with an EqualityError";
-    } else {
-        msg = "FAILED with unknown error";
-    }
-    fprintf(stderr, "--- %-30s: %s\n", name, msg);
-    fflush(stderr);
-
-    return did_fail;
-}
+int run(const char *name, int (*test_function)(void));

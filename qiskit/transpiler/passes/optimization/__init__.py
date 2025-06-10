@@ -40,3 +40,4 @@ from .split_2q_unitaries import Split2QUnitaries
 from .collect_and_collapse import CollectAndCollapse
 from .two_qubit_peephole import TwoQubitPeepholeOptimization
 from .contract_idle_wires_in_control_flow import ContractIdleWiresInControlFlow
+from .optimize_clifford_t import OptimizeCliffordT

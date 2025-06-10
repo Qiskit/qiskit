@@ -31,12 +31,12 @@ class TestIQPLibrary(QiskitTestCase):
     def test_iqp(self, use_function):
         """Test iqp circuit.
 
-             ┌───┐                             ┌─────────┐┌───┐
-        q_0: ┤ H ├─■───────────────────■───────┤ P(3π/4) ├┤ H ├
-             ├───┤ │P(5π/2)            │       └┬────────┤├───┤
-        q_1: ┤ H ├─■─────────■─────────┼────────┤ P(π/2) ├┤ H ├
-             ├───┤           │P(3π/2)  │P(π/2)  ├────────┤├───┤
-        q_2: ┤ H ├───────────■─────────■────────┤ P(π/4) ├┤ H ├
+             ┌───┐                   ┌─────────┐  ┌───┐
+        q_0: ┤ H ├─■─────────■───────┤ P(3π/2) ├──┤ H ├────────
+             ├───┤ │P(5π/2)  │       └─────────┘ ┌┴───┴─┐ ┌───┐
+        q_1: ┤ H ├─■─────────┼─────────■─────────┤ P(π) ├─┤ H ├
+             ├───┤           │P(π/2)   │P(3π/2) ┌┴──────┴┐├───┤
+        q_2: ┤ H ├───────────■─────────■────────┤ P(π/2) ├┤ H ├
              └───┘                              └────────┘└───┘
         """
 
@@ -45,16 +45,17 @@ class TestIQPLibrary(QiskitTestCase):
         if use_function:
             circuit = iqp(interactions)
         else:
-            circuit = IQP(interactions)
+            with self.assertWarns(DeprecationWarning):
+                circuit = IQP(interactions)
 
         expected = QuantumCircuit(3)
         expected.h([0, 1, 2])
         expected.cp(5 * np.pi / 2, 0, 1)
         expected.cp(3 * np.pi / 2, 1, 2)
         expected.cp(1 * np.pi / 2, 0, 2)
-        expected.p(6 * np.pi / 8, 0)
-        expected.p(4 * np.pi / 8, 1)
-        expected.p(2 * np.pi / 8, 2)
+        expected.p(6 * np.pi / 4, 0)
+        expected.p(4 * np.pi / 4, 1)
+        expected.p(2 * np.pi / 4, 2)
         expected.h([0, 1, 2])
         expected = Operator(expected)
         simulated = Operator(circuit)
@@ -63,7 +64,13 @@ class TestIQPLibrary(QiskitTestCase):
     @data(True, False)
     def test_iqp_bad(self, use_function):
         """Test an error is raised if the interactions matrix is not symmetric."""
-        self.assertRaises(CircuitError, iqp if use_function else IQP, [[6, 5], [2, 4]])
+        interactions = [[6, 5], [2, 4]]
+        with self.assertRaises(CircuitError):
+            if use_function:
+                _ = iqp(interactions)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    _ = IQP(interactions)
 
     def test_random_iqp(self):
         """Test generating a random IQP circuit."""

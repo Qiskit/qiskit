@@ -14,6 +14,7 @@
 
 import os
 
+from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -30,6 +31,8 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
+from qiskit.transpiler.passes import OptimizeCliffordT
+from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -66,6 +69,7 @@ from qiskit.circuit.library.standard_gates import (
     SXGate,
     SXdgGate,
 )
+from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.utils import default_num_processes
 from qiskit import user_config
 
@@ -86,6 +90,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+
         if optimization_level == 0:
             init = None
             if (
@@ -186,7 +191,12 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 ]
             )
             init.append(CommutativeCancellation())
-            init.append(ConsolidateBlocks())
+
+            # We do not want to consolidate blocks for a Clifford+T basis set,
+            # since this involves resynthesizing 2-qubit unitaries.
+            if not pass_manager_config._is_clifford_t:
+                init.append(ConsolidateBlocks())
+
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
@@ -215,6 +225,7 @@ class DefaultTranslationPassManager(PassManagerStagePlugin):
         # future if we want to change the default method to do more context-aware switching, or to
         # start transitioning the default method without breaking the semantics of the default
         # string referring to the `BasisTranslator`.
+
         return BasisTranslatorPassManager().pass_manager(pass_manager_config, optimization_level)
 
 
@@ -222,10 +233,14 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        if pass_manager_config._is_clifford_t:
+            method = "clifford_t"
+        else:
+            method = "translator"
         return common.generate_translation_passmanager(
             pass_manager_config.target,
             basis_gates=pass_manager_config.basis_gates,
-            method="translator",
+            method=method,
             approximation_degree=pass_manager_config.approximation_degree,
             coupling_map=pass_manager_config.coupling_map,
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
@@ -496,6 +511,13 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
+
+        # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if pass_manager_config._is_clifford_t:
+            return CliffordTOptimizationPassManager().pass_manager(
+                pass_manager_config, optimization_level
+            )
+
         # Obtain the translation method required for this pass to work
         translation_method = pass_manager_config.translation_method or "default"
         optimization = PassManager()
@@ -646,6 +668,23 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
             )
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
+
+            if optimization_level == 3 and pass_manager_config.coupling_map:
+                vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
+                    optimization_level,
+                    pass_manager_config.layout_method,
+                    pass_manager_config.initial_layout,
+                )
+                optimization.append(
+                    VF2PostLayout(
+                        target=pass_manager_config.target,
+                        seed=-1,
+                        call_limit=vf2_call_limit,
+                        max_trials=vf2_max_trials,
+                        strict_direction=True,
+                    )
+                )
+
             return optimization
         else:
             return None
@@ -736,13 +775,18 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
         layout = PassManager()
         layout.append(_given_layout)
         if optimization_level == 0:
-            layout.append(
-                ConditionalController(
-                    TrivialLayout(coupling_map), condition=_choose_layout_condition
+            if coupling_map is not None:
+                layout.append(
+                    ConditionalController(
+                        TrivialLayout(coupling_map), condition=_choose_layout_condition
+                    )
                 )
-            )
             layout += common.generate_embed_passmanager(coupling_map)
             return layout
+
+        if coupling_map is None:
+            # There's nothing to lay out onto.  We only need to embed the initial layout, if given.
+            pass
         elif optimization_level == 1:
             layout.append(
                 ConditionalController(
@@ -870,9 +914,12 @@ class TrivialLayoutPassManager(PassManagerStagePlugin):
 
         layout = PassManager()
         layout.append(_given_layout)
-        layout.append(
-            ConditionalController(TrivialLayout(coupling_map), condition=_choose_layout_condition)
-        )
+        if coupling_map is not None:
+            layout.append(
+                ConditionalController(
+                    TrivialLayout(coupling_map), condition=_choose_layout_condition
+                )
+            )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
 
@@ -893,15 +940,16 @@ class DenseLayoutPassManager(PassManagerStagePlugin):
 
         layout = PassManager()
         layout.append(_given_layout)
-        layout.append(
-            ConditionalController(
-                DenseLayout(
-                    coupling_map=pass_manager_config.coupling_map,
-                    target=pass_manager_config.target,
-                ),
-                condition=_choose_layout_condition,
+        if coupling_map is not None:
+            layout.append(
+                ConditionalController(
+                    DenseLayout(
+                        coupling_map=pass_manager_config.coupling_map,
+                        target=pass_manager_config.target,
+                    ),
+                    condition=_choose_layout_condition,
+                )
             )
-        )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
 
@@ -925,7 +973,9 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
 
         layout = PassManager()
         layout.append(_given_layout)
-        if optimization_level == 0:
+        if coupling_map is None:
+            layout_pass = None
+        elif optimization_level == 0:
             trial_count = _get_trial_count(5)
 
             layout_pass = SabreLayout(
@@ -971,17 +1021,18 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
             )
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
-        layout.append(
-            ConditionalController(
-                [
-                    BarrierBeforeFinalMeasurements(
-                        "qiskit.transpiler.internal.routing.protection.barrier"
-                    ),
-                    layout_pass,
-                ],
-                condition=_choose_layout_condition,
+        if layout_pass is not None:
+            layout.append(
+                ConditionalController(
+                    [
+                        BarrierBeforeFinalMeasurements(
+                            "qiskit.transpiler.internal.routing.protection.barrier"
+                        ),
+                        layout_pass,
+                    ],
+                    condition=_choose_layout_condition,
+                )
             )
-        )
         embed = common.generate_embed_passmanager(coupling_map)
         layout.append(ConditionalController(embed.to_flow_controller(), condition=_swap_mapped))
         return layout
@@ -991,3 +1042,73 @@ def _get_trial_count(default_trials=5):
     if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
         return max(default_num_processes(), default_trials)
     return default_trials
+
+
+class CliffordTOptimizationPassManager(PassManagerStagePlugin):
+    """Plugin class for optimization stage"""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        """Build pass manager for optimization stage."""
+
+        # Obtain the translation method required for this pass to work
+        optimization = PassManager()
+        if optimization_level != 0:
+            _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+            _size_check = [Size(recurse=True), FixedPoint("size")]
+
+            def _opt_control(property_set):
+                return (not property_set["depth_fixed_point"]) or (
+                    not property_set["size_fixed_point"]
+                )
+
+            if optimization_level == 1:
+                _opt = [
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
+                    ContractIdleWiresInControlFlow(),
+                ]
+            elif optimization_level in [2, 3]:
+                # The optimization loop runs OptimizeCliffordT + CommutativeCancellation
+                # until fixpoint.
+                _opt = [
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    ),
+                    OptimizeCliffordT(),
+                    CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
+                ]
+
+            else:
+                raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
+
+            # Build nested flow controllers
+            optimization.append(_depth_check + _size_check)
+
+            opt_loop = _opt + _depth_check + _size_check
+            optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
+            # We need to run BasisTranslator because OptimizeCliffordT does not consider the basis set.
+            if optimization_level in [2, 3]:
+                optimization.append(
+                    BasisTranslator(
+                        sel, pass_manager_config.basis_gates, pass_manager_config.target
+                    )
+                )
+            return optimization
+        else:
+            return None

@@ -697,7 +697,8 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit/issues/13412 for more
         details.
         """
-        qc = QAOAAnsatz(SparsePauliOp("Z"), initial_state=QuantumCircuit(1))
+        with self.assertWarns(DeprecationWarning):
+            qc = QAOAAnsatz(SparsePauliOp("Z"), initial_state=QuantumCircuit(1))
         pm = PassManager([HighLevelSynthesis(basis_gates=["PauliEvolution"])])
         qct = pm.run(qc)
         self.assertEqual(qct.count_ops()["PauliEvolution"], 2)
@@ -741,6 +742,21 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             expected_block = QuantumCircuit(2, global_phase=0.8)
             expected_block.cx(0, 1)
             self.assertEqual(transpiled_block, expected_block)
+
+    def test_control_flow(self):
+        """Test that the pass recurses into control-flow ops."""
+        clifford_circuit = QuantumCircuit(3)
+        clifford_circuit.cx(1, 0)
+        clifford_circuit.cz(0, 2)
+        cliff = Clifford(clifford_circuit)
+
+        qc = QuantumCircuit(5, 5)
+        with qc.for_loop(range(3)):
+            qc.append(cliff, [0, 1, 4])
+
+        transpiled = HighLevelSynthesis(basis_gates=["cx", "u", "for_loop"])(qc)
+        transpiled_block = transpiled[0].operation.blocks[0]
+        self.assertNotIn("clifford", transpiled_block.count_ops())
 
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):
@@ -2889,6 +2905,22 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(qct))
         self.assertEqual(count_rotation_gates(qct), 1)
 
+    def test_default_preserve_order(self):
+        """Test that option preserve_order is reset."""
+        op = SparsePauliOp(["IIIX", "IIXX", "IYYI", "IIZZ"], coeffs=[1, 2, 3, 4])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 3, 4])
+        with self.subTest("preserve_order_is_reset"):
+            hls_config = HLSConfig(PauliEvolution=[("default", {"preserve_order": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            self.assertEqual(qct.depth(), 3)
+            # check that preserve_order is reset and is no longer False
+            hls_config = HLSConfig(PauliEvolution=[("default", {})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            self.assertEqual(qct.depth(), 4)
+
     def test_rustiq_upto_options(self):
         """Test non-default Rustiq options upto_phase and upto_clifford."""
         op = SparsePauliOp(["XXXX", "YYYY", "ZZZZ"], coeffs=[1, 2, 3])
@@ -2941,6 +2973,20 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             cnt_ops = qct.count_ops()
             self.assertEqual(count_rotation_gates(qct), 6)
             self.assertEqual(cnt_ops["cx"], 4)
+        with self.subTest("preserve_order_is_reset"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"preserve_order": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 6)
+            self.assertEqual(cnt_ops["cx"], 4)
+            # check that preserve_order is reset and is no longer False
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 6)
+            self.assertEqual(cnt_ops["cx"], 16)
 
     def test_rustiq_upto_phase(self):
         """Check that Rustiq synthesis with ``upto_phase=True`` produces a correct

@@ -36,7 +36,8 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
-from qiskit.circuit.library import Permutation, PermutationGate
+from qiskit.circuit.library import PermutationGate
+from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
@@ -750,6 +751,7 @@ class TestOperator(OperatorTestCase):
         state2 = Operator(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_drawings(self):
         """Test draw method"""
         qc1 = QFTGate(5).definition
@@ -1190,7 +1192,7 @@ class TestOperator(OperatorTestCase):
         # Compose the operator with the operator constructed from the
         # permutation circuit.
         op2 = op.copy()
-        perm_op = Operator(Permutation(6, pattern))
+        perm_op = Operator(PermutationGate(pattern))
         op2 &= perm_op
 
         # Compose the operator with the operator constructed from the
@@ -1218,7 +1220,7 @@ class TestOperator(OperatorTestCase):
         # Compose the operator with the operator constructed from the
         # permutation circuit.
         op2 = op.copy()
-        perm_op = Operator(Permutation(6, pattern))
+        perm_op = Operator(PermutationGate(pattern))
         op2 = perm_op & op2
 
         # Compose the operator with the operator constructed from the

@@ -403,6 +403,10 @@ Half Adder Synthesis
       - :class:`.HalfAdderSynthesisC04`
       - 1
       - a ripple-carry adder
+    * - ``"ripple_r25"``
+      - :class:`.HalfAdderSynthesisR25`
+      - 0
+      - a ripple-carry adder with no ancillas
     * - ``"ripple_vbe"``
       - :class:`.HalfAdderSynthesisV95`
       - :math:`n-1`, for :math:`n`-bit numbers
@@ -422,6 +426,7 @@ Half Adder Synthesis
    HalfAdderSynthesisC04
    HalfAdderSynthesisD00
    HalfAdderSynthesisV95
+   HalfAdderSynthesisR25
    HalfAdderSynthesisDefault
 
 Full Adder Synthesis
@@ -561,6 +566,7 @@ from qiskit.synthesis.arithmetic import (
     adder_ripple_c04,
     adder_qft_d00,
     adder_ripple_v95,
+    adder_ripple_r25,
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
@@ -1425,11 +1431,11 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
         # Iteratively run other synthesis methods available
 
         for synthesis_method in [
+            MCXSynthesis2CleanKG24,
+            MCXSynthesis1CleanKG24,
             MCXSynthesisNCleanM15,
             MCXSynthesisNDirtyI15,
-            MCXSynthesis2CleanKG24,
             MCXSynthesis2DirtyKG24,
-            MCXSynthesis1CleanKG24,
             MCXSynthesis1DirtyKG24,
             MCXSynthesis1CleanB95,
         ]:
@@ -1685,13 +1691,17 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        # For up to 3 qubits, ripple_v95 is better (if there are enough ancilla qubits)
-        if high_level_object.num_state_qubits <= 3:
-            decomposition = HalfAdderSynthesisV95().run(
-                high_level_object, coupling_map, target, qubits, **options
+        # For up to 3 qubits, ripple_r25 is better
+        if (
+            high_level_object.num_state_qubits <= 3
+            and (
+                decomposition := HalfAdderSynthesisR25().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
             )
-            if decomposition is not None:
-                return decomposition
+            is not None
+        ):
+            return decomposition
 
         # The next best option is to use ripple_c04 (if there are enough ancilla qubits)
         if (
@@ -1701,8 +1711,8 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         ) is not None:
             return decomposition
 
-        # The QFT-based adder does not require ancilla qubits and should always succeed
-        return HalfAdderSynthesisD00().run(
+        # The ripple_rv_25 adder does not require ancilla qubits and should always succeed
+        return HalfAdderSynthesisR25().run(
             high_level_object, coupling_map, target, qubits, **options
         )
 
@@ -1757,6 +1767,22 @@ class HalfAdderSynthesisV95(HighLevelSynthesisPlugin):
             return None
 
         return adder_ripple_v95(num_state_qubits, kind="half")
+
+
+class HalfAdderSynthesisR25(HighLevelSynthesisPlugin):
+    """A ripple-carry adder with a carry-out bit with no ancillary qubits.
+
+    This plugin name is:``HalfAdder.ripple_r25`` which can be used as the key on an
+    :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, HalfAdderGate):
+            return None
+
+        num_state_qubits = high_level_object.num_state_qubits
+        return adder_ripple_r25(num_state_qubits)
 
 
 class HalfAdderSynthesisD00(HighLevelSynthesisPlugin):
@@ -1891,13 +1917,15 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             # Don't do anything if a gate is called "evolution" but is not an
             # actual PauliEvolutionGate
             return None
-
         algo = high_level_object.synthesis
 
+        original_preserve_order = algo.preserve_order
         if "preserve_order" in options and isinstance(algo, ProductFormula):
             algo.preserve_order = options["preserve_order"]
 
-        return algo.synthesize(high_level_object)
+        synth_object = algo.synthesize(high_level_object)
+        algo.preserve_order = original_preserve_order
+        return synth_object
 
 
 class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
@@ -1948,6 +1976,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             )
             return None
 
+        original_preserve_order = algo.preserve_order
         if "preserve_order" in options:
             algo.preserve_order = options["preserve_order"]
 
@@ -1960,7 +1989,7 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         upto_phase = options.get("upto_phase", False)
         resynth_clifford_method = options.get("resynth_clifford_method", 1)
 
-        return synth_pauli_network_rustiq(
+        synth_object = synth_pauli_network_rustiq(
             num_qubits=num_qubits,
             pauli_network=pauli_network,
             optimize_count=optimize_count,
@@ -1969,6 +1998,8 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+        algo.preserve_order = original_preserve_order
+        return synth_object
 
 
 class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):

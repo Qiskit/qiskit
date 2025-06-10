@@ -13,16 +13,17 @@
 use std::ffi::{c_char, CString};
 
 use crate::exit_codes::{CInputError, ExitCode};
+use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use num_complex::Complex64;
 
-use qiskit_accelerate::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
+use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable, SparseTermView};
 
 #[cfg(feature = "python_binding")]
 use pyo3::ffi::PyObject;
 #[cfg(feature = "python_binding")]
 use pyo3::{Py, Python};
 #[cfg(feature = "python_binding")]
-use qiskit_accelerate::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 /// A term in a ``QkObs``.
 ///
@@ -69,41 +70,6 @@ impl TryFrom<&CSparseTerm> for SparseTermView<'_> {
             indices,
         })
     }
-}
-
-/// Check the pointer is not null and is aligned.
-fn check_ptr<T>(ptr: *const T) -> Result<(), CInputError> {
-    if ptr.is_null() {
-        return Err(CInputError::NullPointerError);
-    };
-    if !ptr.is_aligned() {
-        return Err(CInputError::AlignmentError);
-    };
-    Ok(())
-}
-
-/// Casts a const pointer to a reference. Panics is the pointer is null or not aligned.
-///
-/// # Safety
-///
-/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
-/// While the resulting reference exists, the memory pointed to must not be mutated.
-unsafe fn const_ptr_as_ref<'a, T>(ptr: *const T) -> &'a T {
-    check_ptr(ptr).unwrap();
-    let as_ref = unsafe { ptr.as_ref() };
-    as_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
-}
-
-/// Casts a mut pointer to a mut reference. Panics is the pointer is null or not aligned.
-///
-/// # Safety
-///
-/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
-/// While the resulting reference exists, the memory pointed to must not be accessed otherwise.
-unsafe fn mut_ptr_as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
-    check_ptr(ptr).unwrap();
-    let as_mut_ref = unsafe { ptr.as_mut() };
-    as_mut_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
 }
 
 /// @ingroup QkObs
@@ -476,12 +442,14 @@ pub unsafe extern "C" fn qk_obs_coeffs(obs: *mut SparseObservable) -> *mut Compl
 ///     QkObsTerm term = {&coeff, 3, bit_terms, indices, num_qubits};
 ///     qk_obs_add_term(obs, &term);
 ///
-///     size_T len = qk_obs_len(obs);
+///     size_t len = qk_obs_len(obs);
 ///     uint32_t *indices = qk_obs_indices(obs);
 ///
 ///     for (size_t i = 0; i < len; i++) {
 ///         printf("index %i: %i\n", i, indices[i]);
 ///     }
+///
+///     qk_obs_free(obs);
 ///
 /// # Safety
 ///
@@ -565,6 +533,8 @@ pub unsafe extern "C" fn qk_obs_boundaries(obs: *mut SparseObservable) -> *mut u
 ///     for (size_t i = 0; i < len; i++) {
 ///         printf("bit term %i: %i\n", i, bits[i]);
 ///     }
+///
+///     qk_obs_free(obs);
 ///
 /// # Safety
 ///

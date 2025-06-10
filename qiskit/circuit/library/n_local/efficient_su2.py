@@ -42,7 +42,7 @@ def efficient_su2(
     parameter_prefix: str = "θ",
     insert_barriers: bool = False,
     name: str = "EfficientSU2",
-):
+) -> QuantumCircuit:
     r"""The hardware-efficient :math:`SU(2)` 2-local circuit.
 
     The ``efficient_su2`` circuit consists of layers of single qubit operations spanned by
@@ -194,9 +194,9 @@ class EfficientSU2(TwoLocal):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use the function qiskit.circuit.library.efficient_su2 instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
