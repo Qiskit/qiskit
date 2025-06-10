@@ -22,6 +22,8 @@ use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Qubit, VirtualQubit};
 
+use crate::TranspilerError;
+
 // TODO: replace with simple map over `op.blocks()` once vars and stretches are in `CircuitData`
 // (and then even simpler logic once control flow is in Rust).
 fn control_flow_block_dags<'a>(
@@ -76,6 +78,7 @@ impl InteractionKind {
             return Ok(Self::ControlFlow(blocks));
         }
         match qargs {
+            &[] | &[_] => Ok(Self::Synchronize),
             // We're assuming that if the instruction has classical wires (like a `PyInstruction` or
             // something), then it's still going to need routing, even though we can't see inside
             // the operation to actually _know_ what it is.
@@ -83,9 +86,7 @@ impl InteractionKind {
                 VirtualQubit::new(left.0),
                 VirtualQubit::new(right.0),
             ])),
-            // TODO: multi-q gates _should_ be an error, but for the initial patch, we're
-            // maintaining the historical behaviour of Sabre which is to ignore multi-q gates.
-            _ => Ok(Self::Synchronize),
+            _ => Err(SabreDAGError::MultiQ),
         }
     }
 }
@@ -104,12 +105,15 @@ impl SabreNode {
 
 #[derive(Error, Debug)]
 pub enum SabreDAGError {
+    #[error("encountered a non-directive multi-qubit operation")]
+    MultiQ,
     #[error("Python error: {0}")]
     Python(#[from] PyErr),
 }
 impl From<SabreDAGError> for PyErr {
     fn from(err: SabreDAGError) -> PyErr {
         match err {
+            SabreDAGError::MultiQ => TranspilerError::new_err(err.to_string()),
             SabreDAGError::Python(err) => err,
         }
     }
