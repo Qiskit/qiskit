@@ -368,7 +368,7 @@ def load(
                     file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
                 )[0]
             )
-    
+
     programs = []
     # TODO: Replace with multithreaded reading of each program from corresponding byte offset
     # TODO: Check for backwards compatibility and modify any version info
