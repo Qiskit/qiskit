@@ -194,8 +194,9 @@ class TestOldQASM3Import(QiskitTestCase):
         """Test num_qubits equal the number of qubits in the loaded circuit having only virtual qubits"""
         num_qubits = 10
         qc = QuantumCircuit(num_qubits)
-        [qc.h(i) for i in range(0, num_qubits, 2)]
-        [qc.cx(i, i + 1) for i in range(0, num_qubits, 2)]
+        for i in range(0, num_qubits, 2):
+            qc.h(i)
+            qc.cx(i, i + 1)
         qc_ser = qasm3.dumps(qc)
         qc_unser = qasm3.loads(qc_ser, num_qubits=num_qubits)
         self.assertTrue(qc_unser.num_qubits <= num_qubits)
@@ -203,9 +204,11 @@ class TestOldQASM3Import(QiskitTestCase):
     def test_loads_physical_qubits_post_transpilation(self):
         """Test num_qubits equal the number of qubits in the loaded circuit having physical qubits"""
         backend = GenericBackendV2(num_qubits=127)
-        qc = QuantumCircuit(20)
-        [qc.h(i) for i in range(0, 20)]
-        [qc.cx(i, i + 1) for i in range(0, 20, 2)]
+        num_qubits = 20
+        qc = QuantumCircuit(num_qubits)
+        for i in range(0, num_qubits, 2):
+            qc.h(i)
+            qc.cx(i, i + 1)
         tr_qc = transpile(qc, backend, optimization_level=2)
         qc_ser = qasm3.dumps(tr_qc)
         qc_unser = qasm3.loads(qc_ser, num_qubits=backend.num_qubits)
@@ -213,9 +216,11 @@ class TestOldQASM3Import(QiskitTestCase):
 
     def test_loads_circuit_equivalence(self):
         """Test circuit equivalence of base circuit with loaded circuit from OpenQASM3 string"""
-        qc = QuantumCircuit(20)
-        [qc.h(i) for i in range(0, 20)]
-        [qc.cx(i, i + 1) for i in range(0, 20, 2)]
+        num_qubits = 20
+        qc = QuantumCircuit(num_qubits)
+        for i in range(0, num_qubits, 2):
+            qc.h(i)
+            qc.cx(i, i + 1)
         qc_ser = qasm3.dumps(qc)
         qc_unser = qasm3.loads(qc_ser, num_qubits=qc.num_qubits)
         self.assertEqual(qc_unser, qc)

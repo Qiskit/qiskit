@@ -384,10 +384,10 @@ def loads(
             # load OpenQASM3 string with argument `num_qubits`
             qc_load2 = loads(qc_ser, num_qubits = backend.num_qubits)
 
-            # without `num_qubits` the number of qubits in the loaded circuit equals the highest index seen in the transpiled circuit
+            # without `num_qubits`
             print(qc_load1.num_qubits)
 
-            # with `num_qubits` the number of qubits in the loaded circuit equals the number of qubits in the backend
+            # with `num_qubits`
             print(qc_load2.num_qubits)
 
     Args:
@@ -418,7 +418,6 @@ def loads(
             )
         kwargs["annotation_handlers"] = annotation_handlers
 
-    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
     from qiskit.circuit import Qubit
 
     try:
