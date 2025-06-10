@@ -14,10 +14,7 @@ use pyo3::{prelude::*, pyclass};
 /**
     A representation of a ``QubitProperties`` object.
 */
-#[pyclass(
-    subclass,
-    module = "qiskit._accelerate.target"
-)]
+#[pyclass(subclass, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug, PartialEq)]
 pub struct QubitProperties {
     #[pyo3(get, set)]
@@ -71,5 +68,28 @@ impl QubitProperties {
                 "None".to_string()
             }
         )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_qubit_properties_creation() {
+        // Test creation of QubitProperties with all fields set
+        let qubit_props = QubitProperties::new(Some(100.0), Some(200.0), Some(5.0));
+        assert_eq!(qubit_props.t1, Some(100.0));
+        assert_eq!(qubit_props.t2, Some(200.0));
+        assert_eq!(qubit_props.frequency, Some(5.0));
+    }
+
+    #[test]
+    fn test_qubit_properties_none_fields() {
+        // Test creation of QubitProperties with all fields as None
+        let qubit_props = QubitProperties::new(None, None, None);
+        assert_eq!(qubit_props.t1, None);
+        assert_eq!(qubit_props.t2, None);
+        assert_eq!(qubit_props.frequency, None);
     }
 }

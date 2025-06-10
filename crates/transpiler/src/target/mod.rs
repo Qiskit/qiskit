@@ -1493,10 +1493,7 @@ mod test {
     use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
 
-    use super::{
-        instruction_properties::InstructionProperties, qubit_properties::QubitProperties, Qargs,
-        Target,
-    };
+    use super::{instruction_properties::InstructionProperties, Qargs, Target};
 
     #[test]
     fn test_add_invalid_qargs_insruction() {
@@ -1646,22 +1643,5 @@ mod test {
         assert_eq!(res.to_string(), expected_message);
         // Check that no changes were made.
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
-    }
-
-    #[test]
-    fn test_qubit_properties_creation() {
-        // Create a QubitProperties instance with specific values and check its fields
-        let qubit_props = QubitProperties::new(Some(100.0), Some(200.0), Some(5.0));
-        assert_eq!(qubit_props.t1, Some(100.0));
-        assert_eq!(qubit_props.t2, Some(200.0));
-        assert_eq!(qubit_props.frequency, Some(5.0));
-    }
-
-    #[test]
-    fn test_qubit_properties_none_fields() {
-        let qubit_props = QubitProperties::new(None, None, None);
-        assert_eq!(qubit_props.t1, None);
-        assert_eq!(qubit_props.t2, None);
-        assert_eq!(qubit_props.frequency, None);
     }
 }
