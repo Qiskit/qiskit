@@ -20,7 +20,6 @@ from unittest import mock
 from qiskit import exceptions
 from qiskit import user_config
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from qiskit.exceptions import QiskitUserConfigError
 import tempfile
 
 
