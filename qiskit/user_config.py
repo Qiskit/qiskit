@@ -36,7 +36,7 @@ class UserConfig:
     parallel = False
     num_processes = 4
     sabre_all_threads = true
-    min_qpy_version = 2.0
+    min_qpy_version = 2
 
     """
 
