@@ -162,10 +162,10 @@ pub struct DAGCircuit {
     /// Circuit name.  Generally, this corresponds to the name
     /// of the QuantumCircuit from which the DAG was generated.
     #[pyo3(get, set)]
-    name: Option<String>,
+    pub name: Option<String>,
     /// Circuit metadata
     #[pyo3(get, set)]
-    metadata: Option<PyObject>,
+    pub metadata: Option<PyObject>,
 
     dag: StableDiGraph<NodeType, Wire>,
 
