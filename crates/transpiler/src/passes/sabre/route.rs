@@ -51,13 +51,37 @@ use super::neighbors::Neighbors;
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
 
+/// The number of control-flow blocks to take off the stack.
+///
+/// This funky struct is just a trick to get the Rust compiler to use the niche optimisation for
+/// `RoutedItemKind`.  We actually store the number of blocks as the bitwise negation of the true
+/// number, and disallow there being `u32::MAX` blocks.
+///
+/// At the time of writing (2025-06-11), Qiskit's Python-space model doesn't allow constructing any
+/// control-flow operations with zero blocks, so we could use `NonZero<u32>` directly.  Technically,
+/// though, a `switch` on a zero-bit register _could_ be valid and have zero blocks, so doing this
+/// little trick makes us safe against that long-range assumption changing, for zero measureable
+/// runtime cost.
+#[repr(transparent)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+struct ControlFlowBlockCount(NonZero<u32>);
+impl ControlFlowBlockCount {
+    pub fn get(self) -> u32 {
+        !self.0.get()
+    }
+}
+impl From<u32> for ControlFlowBlockCount {
+    fn from(val: u32) -> Self {
+        Self((!val).try_into().expect("cannot store u32::MAX blocks"))
+    }
+}
+
 enum RoutedItemKind {
     Simple,
     /// How many blocks out of [RoutingResult::control_flow] we need to take.  This is stored
     /// out-of-band of the item kind because control-flow is expected to be very uncommon, and we
-    /// don't want to needless increase the size of the enum.  Nonzero because control-flow ops
-    /// always have at least one block, and this way we can use the enum niche optimisation.
-    ControlFlow(NonZero<u32>),
+    /// don't want to needless increase the size of the enum.
+    ControlFlow(ControlFlowBlockCount),
 }
 struct RoutedItem {
     initial_swaps: Option<Box<[[PhysicalQubit; 2]]>>,
@@ -432,9 +456,7 @@ impl<'a> RoutingState<'a> {
                         let block_result = self.route_control_flow_block(&layout, sabre, dag);
                         self.control_flow.push(block_result);
                     }
-                    let num_blocks = NonZero::new(blocks.len() as u32)
-                        .expect("control-flow nodes have at least one block");
-                    RoutedItemKind::ControlFlow(num_blocks)
+                    RoutedItemKind::ControlFlow((blocks.len() as u32).into())
                 }
             };
             self.order.push(RoutedItem {
