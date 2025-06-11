@@ -75,7 +75,7 @@ features_transpiler:
     .. plot::
        :include-source:
 
-       from qiskit.circuit import Gate, Parameter, QuantumCircuit
+       from qiskit.circuit import Gate, Parameter, QuantumCircuit, Qubit
        from qiskit.dagcircuit import DAGCircuit
        from qiskit.transpiler import Target, WrapAngleRegistry
        from qiskit.transpiler.passes import WrapAngles

@@ -31,6 +31,7 @@ class WrapAngles(TransformationPass):
     be ignored by this pass as bound angles are neceessary to transform the gate. For example:
 
     .. plot::
+       :alt: Circuit digram of the output from running the WrapAngles pass
        :include-source:
 
        from qiskit.circuit import Gate, Parameter, Qubit, QuantumCircuit
