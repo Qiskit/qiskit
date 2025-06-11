@@ -7769,4 +7769,45 @@ mod test {
         assert_eq!(actual_wires, expected_wires, "unexpected DAG structure");
         Ok(())
     }
+
+    #[test]
+    fn test_physical_empty_like() -> PyResult<()> {
+        let mut dag = DAGCircuit::new()?;
+        let qr = QuantumRegister::new_owning("virtual".to_owned(), 5);
+        let cr = ClassicalRegister::new_owning("classical".to_owned(), 5);
+        dag.name = Some("my dag".to_owned());
+        dag.add_creg(cr.clone())?;
+        dag.add_qreg(qr)?;
+        dag.apply_operation_back(
+            StandardGate::H.into(),
+            &[Qubit(0)],
+            &[],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )?;
+        dag.apply_operation_back(
+            StandardGate::CX.into(),
+            &[Qubit(0), Qubit(1)],
+            &[],
+            None,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )?;
+        let empty = dag.physical_empty_like_with_capacity(10, 0, 0)?;
+        assert_eq!(empty.name.as_deref(), Some("my dag"));
+        assert_eq!(
+            empty
+                .qregs()
+                .iter()
+                .map(|reg| (reg.name(), reg.len()))
+                .collect::<Vec<_>>(),
+            vec![("q", 10)]
+        );
+        assert_eq!(empty.cregs(), &[cr]);
+        assert_eq!(empty.num_ops(), 0);
+        Ok(())
+    }
 }
