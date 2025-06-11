@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.library import QFT
 
@@ -107,7 +107,7 @@ class PhaseEstimation(QuantumCircuit):
 
 def phase_estimation(
     num_evaluation_qubits: int,
-    unitary: QuantumCircuit,
+    unitary: QuantumCircuit | Gate,
     name: str = "QPE",
 ) -> QuantumCircuit:
     r"""Phase Estimation circuit.

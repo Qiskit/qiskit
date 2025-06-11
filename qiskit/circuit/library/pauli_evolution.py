@@ -21,7 +21,12 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    ControlModifier,
+    PowerModifier,
+    InverseModifier,
+)
 import qiskit.quantum_info
 
 if TYPE_CHECKING:
@@ -153,13 +158,28 @@ class PauliEvolutionGate(Gate):
         """
         self.params = [time]
 
+    def inverse(self, annotated: bool = False) -> Gate:
+        """Invert this instruction by negating the time.
+
+        Args:
+            annotated: If set to ``True`` the output inverse gate will be returned
+                as :class:`.AnnotatedOperation`.
+
+        Returns:
+            The inverse operation.
+        """
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
+        return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
+
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
 
         Implemented by multiplying the time by the exponent.
 
         Args:
-            exponent: the power to raise the gate to
+            exponent: The power to raise the gate to.
             annotated: indicates whether the power gate can be implemented
                 as an annotated operation.
 
@@ -171,25 +191,29 @@ class PauliEvolutionGate(Gate):
 
         return AnnotatedOperation(self, PowerModifier(exponent))
 
+    def _return_repeat(self, exponent: float) -> PauliEvolutionGate:
+        return self.power(exponent)  # same implementation
+
     def control(
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
         annotated: bool | None = None,
-    ):
-        """Return the controlled version of itself.
+    ) -> Gate:
+        r"""Return the controlled version of itself.
 
-        Implemented either as a controlled gate (ref. :class:`.ControlledGate`)
-        or as an annotated operation (ref. :class:`.AnnotatedOperation`).
+        Implemented either by extending the observable with :math:`|0\rangle\langle 0|` and
+        :math:`|1\rangle\langle 1|` projectors, or as an annotated operation
+        (ref. :class:`.AnnotatedOperation`).
 
         Args:
-            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
-            label: optional gate label. Ignored if implemented as an annotated
+            num_ctrl_qubits: Number of controls to add to gate (default: ``1``).
+            label: Optional gate label. Ignored if implemented as an annotated
                 operation.
-            ctrl_state: the control state in decimal or as a bitstring
-                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
-            annotated: indicates whether the controlled gate is implemented
+            ctrl_state: The control state in decimal or as a bitstring
+                (e.g. ``"111"``). If ``None``, use ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate is implemented
                 as an annotated gate. If ``None``, this is set to ``False``
                 if the controlled gate can directly be constructed, and otherwise
                 set to ``True``. This allows defering the construction process in case the
@@ -198,13 +222,15 @@ class PauliEvolutionGate(Gate):
 
         Returns:
             Controlled version of the given operation.
-
-        Raises:
-            QiskitError: unrecognized mode or invalid ctrl_state
         """
         if not annotated:  # captures both None and False
             if ctrl_state is None:
                 ctrl_state = "1" * num_ctrl_qubits
+
+            # We implement the controlled version by tensoring corresponding |0><0| (control state 0)
+            # or |1><1| (control state 1) projectors to the observable. This will result in a
+            # circuit that only controls the central Pauli rotation. For example, calling
+            # PauliEvolutionGate(Z).control(2) will produce PauliEvolutionGate(11Z).
             control_op = SparseObservable(ctrl_state)
 
             if isinstance(self.operator, SparsePauliOp):
