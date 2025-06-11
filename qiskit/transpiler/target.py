@@ -159,6 +159,38 @@ class Target(BaseTarget):
     angle :class:`~qiskit.circuit.library.RXGate` while ``rx`` will get the
     parameterized :class:`~qiskit.circuit.library.RXGate`.
 
+    You can optionally specify a bound on valid values on a gate in the target
+    by using the ``angle_bounds`` keyword argument when calling the :meth:`.add_instruction`
+    method. Bounds are set on operations not individual instructions, so when
+    you call :meth:`.add_instruction` the bounds are applied for all qargs that it
+    is defined on. The bounds are specified of a list of 2-tuples of floats where
+    the first float is the lower bound and the second float is the upper bound. For example,
+    if you specfied an angle bound::
+
+        [(0.0, 3.14), (-3.14, 3.14), (0.0, 1.0)]
+
+    this indicates the angle bounds for a 3 parameter gate where the first
+    parameter accepts angles between 0 and 3.14, the second between -3.14 and
+    3.14, and the third parameter between 0 and 1. All bounds are set
+    inclusively as well. A bound can also be specified with ``None`` instead
+    of a 2-tuple which indicates that parameter has no constraints. For example::
+
+        [(0.0, 3.14, None, None)]
+
+    indicates an angle bound for a 3 parameter gate where only the first
+    parameter is restricted to angles between 0.0 and 3.14 and the other
+    parameters accept any value.
+
+    You can check if any operations in the target have angle bounds set with,
+    :meth:`.has_angle_bounds` and also if a specific name in the target has
+    angle bounds set with :meth`.gate_has_angle_bounds`. Whether a paricular
+    set of parameter values confroms to the angle bounds can be checked
+    with :meth:`.add_owned_angle_bound`. In the preset pass managers the
+    :class:`.WrapAngles` pass is used to enforce the angle bounds, for this
+    to work you need to provide a function to the :class:`.WrapAngleRegistry`
+    used by the pass. You can see more details on this in:
+    :ref:`angle-bounds-on-gates`.
+
     .. note::
 
         This class assumes that qubit indices start at 0 and are a contiguous

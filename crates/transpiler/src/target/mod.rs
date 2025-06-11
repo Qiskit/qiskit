@@ -940,14 +940,52 @@ impl Target {
         Ok(())
     }
 
-    /// Are there angle bounds set in the target?
+    /// Check if there are any angle bounds set in the target
+    ///
+    /// Returns:
+    ///     bool: This will return ``True`` if there are angle bounds set on any instructions in
+    ///     the circuit
     pub fn has_angle_bounds(&self) -> bool {
         !self.angle_bounds.is_empty()
     }
 
-    /// Does the gate have an angle bound?
+    /// Check if a specific gate gate has an angle bound set
+    ///
+    /// Args:
+    ///     name (str): The instruction name to check if it has an angle bound set
+    ///
+    /// Returns:
+    ///     bool: This will return ``True`` if the gate is in the target and has angle bounds
+    ///     defined. It will return ``False`` if the gate does not have angle bounds defined
+    ///     or is not in the target.
     pub fn gate_has_angle_bounds(&self, name: &str) -> bool {
         self.angle_bounds.contains_key(name)
+    }
+
+    /// Check that parameters on a specific gate conform to the angle bounds
+    ///
+    /// Args:
+    ///     name (str): The instruction name to check the angle bounds of
+    ///     angles (list): A list of float parameter values for ``name``
+    ///         to see if they conform to the defined angle bounds.
+    ///
+    /// Returns:
+    ///     bool: Returns ``True`` if the parameter values specified are compatible with the
+    ///     angle bounds. ``False`` is returned if the any of the parameters
+    ///     are outside the defined bounds.
+    ///
+    /// Raises:
+    ///     TranspilerError: If ``name`` is not in the target or does not
+    ///     have angle bounds defined.
+    ///
+    pub fn supported_angle_bound(&self, name: &str, angles: Vec<f64>) -> PyResult<bool> {
+        if !self.gate_has_angle_bounds(name) {
+            Err(TranspilerError::new_err(format!(
+                "The specified gate {name} does not have angle bounds defined or is not in the Target"
+            )))
+        } else {
+            Ok(self.angle_bounds[name].angles_supported(&angles))
+        }
     }
 }
 
@@ -1537,7 +1575,7 @@ impl Target {
         Ok(())
     }
 
-    /// Check that any numeric angle
+    /// Check that a gates angle bounds are supported
     pub fn gate_supported_angle_bound(&self, name: &str, angles: &[f64]) -> bool {
         self.angle_bounds[name].angles_supported(angles)
     }

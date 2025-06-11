@@ -472,6 +472,8 @@ to memory::
                         return True
         return False
 
+.. _angle-bounds-on-gates:
+
 Angle bounds on Gates
 ^^^^^^^^^^^^^^^^^^^^^
 
