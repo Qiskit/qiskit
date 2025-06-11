@@ -17,6 +17,7 @@ from __future__ import annotations
 from qiskit.circuit import QuantumCircuit, Gate
 
 from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+from qiskit.utils.deprecation import deprecate_func
 
 
 class PhaseOracle(QuantumCircuit):
@@ -49,6 +50,11 @@ class PhaseOracle(QuantumCircuit):
     default synthesizer.
     """
 
+    @deprecate_func(
+        since="2.2",
+        additional_msg="Use the class qiskit.circuit.library.PhaseOracleGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         expression: str,
@@ -60,6 +66,7 @@ class PhaseOracle(QuantumCircuit):
             var_order: A list with the order in which variables will be created.
                (default: by appearance)
         """
+
         self.boolean_expression = BooleanExpression(expression, var_order=var_order)
         oracle = self.boolean_expression.synth(circuit_type="phase")
 
