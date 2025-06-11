@@ -202,6 +202,8 @@ class SabreLayout(TransformationPass):
         Raises:
             TranspilerError: if dag wider than the target.
         """
+        if self.target.num_qubits is None:
+            raise TranspilerError("given 'Target' was not initialized with a qubit count")
         if len(dag.qubits) > self.target.num_qubits:
             raise TranspilerError("More virtual qubits exist than physical.")
 
