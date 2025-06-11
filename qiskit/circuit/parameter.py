@@ -21,13 +21,15 @@ import qiskit._accelerate.circuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.optionals import HAS_SYMPY
 
-from .parameterexpression import ParameterExpression
+from .parameterexpression import OldParameterExpression
 
 
 SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
+ParameterExpression = qiskit._accelerate.circuit.ParameterExpression
+Parameter = qiskit._accelerate.circuit.Parameter
 
 
-class Parameter(ParameterExpression):
+class OldParameter(OldParameterExpression):
     """A compile-time symbolic parameter.
 
     The value of a :class:`Parameter` must be entirely determined before a circuit begins execution.
@@ -101,12 +103,12 @@ class Parameter(ParameterExpression):
             raise CircuitError(
                 f"Cannot bind Parameters ({[str(parameter)]}) not present in expression."
             )
-        if isinstance(value, ParameterExpression):
+        if isinstance(value, OldParameterExpression):
             # This is the `super().subs` case.
             return value
         # This is the `super().bind` case, where we're required to return a `ParameterExpression`,
         # so we need to lift the given value to a symbolic expression.
-        return ParameterExpression({}, SymbolExpr.Value(value))
+        return OldParameterExpression({}, SymbolExpr.Value(value))
 
     def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""
@@ -149,7 +151,7 @@ class Parameter(ParameterExpression):
     def __eq__(self, other):
         if isinstance(other, Parameter):
             return (self._uuid, self._symbol_expr) == (other._uuid, other._symbol_expr)
-        elif isinstance(other, ParameterExpression):
+        elif isinstance(other, OldParameterExpression):
             return super().__eq__(other)
         else:
             return False

@@ -26,7 +26,7 @@ use num_complex::c64;
 
 use crate::parameter::symbol_expr::{BinaryOp, SymbolExpr, UnaryOp, Value};
 
-use super::symbol_expr::Parameter;
+use super::symbol_expr::Symbol;
 
 // parsing value as real
 fn parse_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
@@ -78,9 +78,9 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
                     let s = format!("{}[{}]", v, i);
-                    Ok(SymbolExpr::Symbol(Parameter::new(&s)))
+                    Ok(SymbolExpr::Symbol(Symbol::new(&s, None)))
                 }
-                None => Ok(SymbolExpr::Symbol(Parameter::new(v))),
+                None => Ok(SymbolExpr::Symbol(Symbol::new(v, None))),
             }
         },
     )(s)

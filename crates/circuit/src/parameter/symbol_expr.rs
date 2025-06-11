@@ -22,23 +22,23 @@ use uuid::Uuid;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 
-use super::parameter_expression::ParameterExpression;
+use super::parameter_expression::PyParameterExpression;
 
 // epsilon for SymbolExpr is hearistically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
 #[pyclass]
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Hash)]
-pub struct Parameter {
+pub struct Symbol {
     name: Box<String>,
     uuid: Uuid,
 }
 
-impl Parameter {
-    pub fn new(name: &str) -> Self {
+impl Symbol {
+    pub fn new(name: &str, uuid: Option<Uuid>) -> Self {
         Self {
             name: Box::new(name.to_string()),
-            uuid: Uuid::new_v4(),
+            uuid: uuid.unwrap_or(Uuid::new_v4()),
         }
     }
 
@@ -48,7 +48,7 @@ impl Parameter {
 }
 
 #[pymethods]
-impl Parameter {
+impl Symbol {
     #[new]
     #[pyo3(signature = (name, uuid=None))]
     pub fn py_new(name: &str, uuid: Option<u128>) -> Self {
@@ -68,16 +68,16 @@ impl Parameter {
         self.uuid.as_u128()
     }
 
-    pub fn as_expr(&self) -> ParameterExpression {
+    pub fn as_expr(&self) -> PyParameterExpression {
         let expr = SymbolExpr::Symbol(self.clone());
-        ParameterExpression::new(&expr)
+        PyParameterExpression::new(&expr)
     }
 }
 
 /// node types of expression tree
 #[derive(Debug, Clone)]
 pub enum SymbolExpr {
-    Symbol(Parameter),
+    Symbol(Symbol),
     Value(Value),
     Unary {
         op: UnaryOp,
@@ -399,7 +399,7 @@ impl fmt::Display for SymbolExpr {
 /// ==================================
 impl SymbolExpr {
     /// bind value to symbol node
-    pub fn bind(&self, maps: &HashMap<Parameter, Value>) -> SymbolExpr {
+    pub fn bind(&self, maps: &HashMap<Symbol, Value>) -> SymbolExpr {
         match self {
             SymbolExpr::Symbol(e) => match maps.get(e) {
                 Some(v) => SymbolExpr::Value(*v),
@@ -451,7 +451,7 @@ impl SymbolExpr {
     }
 
     /// substitute symbol node to other expression
-    pub fn subs(&self, maps: &HashMap<Parameter, SymbolExpr>) -> SymbolExpr {
+    pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> SymbolExpr {
         match self {
             SymbolExpr::Symbol(e) => match maps.get(e) {
                 Some(v) => v.clone(),
@@ -811,17 +811,17 @@ impl SymbolExpr {
     }
 
     /// Return hashset of all parameters this equation contains.
-    pub fn parameters(&self) -> HashSet<Parameter> {
+    pub fn parameters(&self) -> HashSet<Symbol> {
         match self {
             SymbolExpr::Symbol(e) => {
-                let mut set = HashSet::<Parameter>::new();
+                let mut set = HashSet::<Symbol>::new();
                 set.insert(e.clone()); // TODO can this be done more concisely?
                 set
             }
-            SymbolExpr::Value(_) => HashSet::<Parameter>::new(),
+            SymbolExpr::Value(_) => HashSet::<Symbol>::new(),
             SymbolExpr::Unary { op: _, expr } => expr.parameters(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
-                let mut parameters = HashSet::<Parameter>::new();
+                let mut parameters = HashSet::<Symbol>::new();
                 for s in lhs.parameters().union(&rhs.parameters()) {
                     parameters.insert(s.clone());
                 }
@@ -831,7 +831,7 @@ impl SymbolExpr {
     }
 
     /// Map of parameter name to the parameter.
-    pub fn name_map(&self) -> HashMap<String, Parameter> {
+    pub fn name_map(&self) -> HashMap<String, Symbol> {
         self.parameters()
             .iter()
             .map(|param| (param.name(), param.clone()))
@@ -2621,7 +2621,7 @@ impl PartialOrd for SymbolExpr {
 
 impl From<&str> for SymbolExpr {
     fn from(v: &str) -> Self {
-        SymbolExpr::Symbol(Parameter::new(v))
+        SymbolExpr::Symbol(Symbol::new(v, None))
     }
 }
 

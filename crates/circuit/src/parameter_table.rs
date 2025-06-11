@@ -80,7 +80,7 @@ impl ParameterUuid {
     /// Extract a UUID from a Python-space `Parameter` object. This assumes that the object is known
     /// to be a parameter.
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
-        ob.getattr(intern!(ob.py(), "_uuid"))?.extract()
+        ob.getattr(intern!(ob.py(), "uuid"))?.extract()
     }
 }
 

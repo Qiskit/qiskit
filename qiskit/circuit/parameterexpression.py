@@ -27,6 +27,7 @@ from qiskit.utils.optionals import HAS_SYMPY
 from qiskit.circuit.exceptions import CircuitError
 import qiskit._accelerate.circuit
 
+ParameterExpression = qiskit._accelerate.circuit.ParameterExpression
 SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
@@ -102,7 +103,7 @@ class _SUBS:
     op: _OPCode = _OPCode.SUBSTITUTE
 
 
-class ParameterExpression:
+class OldParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
     __slots__ = [

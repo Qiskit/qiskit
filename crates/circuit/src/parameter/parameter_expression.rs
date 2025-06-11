@@ -15,8 +15,9 @@
 use hashbrown::HashMap;
 use num_complex::Complex64;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
-use pyo3::types::{PyDict, PySet, PyString};
+use pyo3::types::{IntoPyDict, PyDict, PySet, PyString};
 use thiserror::Error;
+use uuid::Uuid;
 
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -25,11 +26,12 @@ use std::hash::{Hash, Hasher};
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 
+use crate::imports::UUID;
 use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 
-use super::symbol_expr::{Parameter, SYMEXPR_EPSILON};
+use super::symbol_expr::{Symbol, SYMEXPR_EPSILON};
 
 #[derive(Error, Debug)]
 pub enum ParameterError {
@@ -58,44 +60,49 @@ impl From<ParameterError> for PyErr {
 }
 
 // Python interface to SymbolExpr
-#[pyclass(subclass, sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(
+    subclass,
+    sequence,
+    module = "qiskit._accelerate.circuit",
+    name = "ParameterExpression"
+)]
 #[derive(Clone, Debug, PartialEq)]
-pub struct ParameterExpression {
+pub struct PyParameterExpression {
     expr: SymbolExpr,
 }
 
-impl Hash for ParameterExpression {
+impl Hash for PyParameterExpression {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.expr.to_string().hash(state);
     }
 }
 
 #[inline]
-fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
+fn _extract_value(value: &Bound<PyAny>) -> Option<PyParameterExpression> {
     if let Ok(i) = value.extract::<i64>() {
-        Some(ParameterExpression {
+        Some(PyParameterExpression {
             expr: SymbolExpr::Value(symbol_expr::Value::from(i)),
         })
     } else if let Ok(c) = value.extract::<Complex64>() {
-        Some(ParameterExpression {
+        Some(PyParameterExpression {
             expr: SymbolExpr::Value(symbol_expr::Value::from(c)),
         })
     } else if let Ok(r) = value.extract::<f64>() {
-        Some(ParameterExpression {
+        Some(PyParameterExpression {
             expr: SymbolExpr::Value(symbol_expr::Value::from(r)),
         })
     } else if let Ok(s) = value.extract::<String>() {
         if let Ok(expr) = parse_expression(&s) {
-            Some(ParameterExpression { expr })
+            Some(PyParameterExpression { expr })
         } else {
             None
         }
     } else {
-        value.extract::<ParameterExpression>().ok()
+        value.extract::<PyParameterExpression>().ok()
     }
 }
 
-impl ParameterExpression {
+impl PyParameterExpression {
     pub fn new(expr: &SymbolExpr) -> Self {
         Self { expr: expr.clone() }
     }
@@ -176,8 +183,8 @@ impl ParameterExpression {
     }
 
     /// substitute symbols to expressions (or values) given by hash map
-    pub fn subs(&self, in_maps: &HashMap<Parameter, Self>) -> Self {
-        let maps: HashMap<Parameter, SymbolExpr> = in_maps
+    pub fn subs(&self, in_maps: &HashMap<Symbol, Self>) -> Self {
+        let maps: HashMap<Symbol, SymbolExpr> = in_maps
             .into_iter()
             .map(|(key, val)| (key.clone(), val.expr.clone()))
             .collect();
@@ -196,10 +203,7 @@ impl ParameterExpression {
         }
     }
 
-    pub fn bind(
-        &self,
-        map: &HashMap<Parameter, symbol_expr::Value>,
-    ) -> Result<Self, ParameterError> {
+    pub fn bind(&self, map: &HashMap<Symbol, symbol_expr::Value>) -> Result<Self, ParameterError> {
         let bound = self.expr.bind(map);
         match bound.eval(true) {
             Some(v) => match &v {
@@ -241,30 +245,30 @@ impl ParameterExpression {
 }
 
 #[pymethods]
-impl ParameterExpression {
+impl PyParameterExpression {
     /// parse expression from string
     #[new]
     #[pyo3(signature = (in_expr=None))]
     pub fn py_new(in_expr: Option<String>) -> PyResult<Self> {
         match in_expr {
             Some(e) => match parse_expression(&e) {
-                Ok(expr) => Ok(ParameterExpression { expr }),
+                Ok(expr) => Ok(PyParameterExpression { expr }),
                 Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
             },
-            None => Ok(ParameterExpression {
+            None => Ok(PyParameterExpression {
                 expr: SymbolExpr::Value(symbol_expr::Value::Int(0)),
             }),
         }
     }
 
     #[staticmethod]
-    pub fn from_parameter(param: &Bound<'_, Parameter>) -> Self {
-        ParameterExpression {
+    pub fn from_parameter(param: &Bound<'_, Symbol>) -> Self {
+        PyParameterExpression {
             expr: SymbolExpr::Symbol(param.borrow().clone()),
         }
     }
 
-    /// create new expression as a symbol
+    /// TODO: remove -- this is to be done via PyParameter
     #[allow(non_snake_case)]
     #[staticmethod]
     pub fn Symbol(name: String) -> Self {
@@ -273,11 +277,12 @@ impl ParameterExpression {
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
 
-        ParameterExpression {
-            expr: SymbolExpr::Symbol(Parameter::new(&name)),
+        PyParameterExpression {
+            expr: SymbolExpr::Symbol(Symbol::new(&name, None)),
         }
     }
-    /// create new expression as a value
+
+    /// TODO remove
     #[allow(non_snake_case)]
     #[staticmethod]
     pub fn Value(value: &Bound<PyAny>) -> PyResult<Self> {
@@ -289,6 +294,7 @@ impl ParameterExpression {
         }
     }
 
+    /// TODO remove
     /// create new expression from string
     #[allow(non_snake_case)]
     #[staticmethod]
@@ -299,7 +305,7 @@ impl ParameterExpression {
             .replace("__end_sympy_replace__", "$");
         match parse_expression(&expr) {
             // substitute 'I' to imaginary number i before returning expression
-            Ok(expr) => Ok(ParameterExpression {
+            Ok(expr) => Ok(PyParameterExpression {
                 expr: expr.bind_by_name(&HashMap::from([(
                     "I".to_string(),
                     symbol_expr::Value::from(Complex64::i()),
@@ -310,7 +316,7 @@ impl ParameterExpression {
     }
 
     /// return value if expression does not contain any symbols
-    pub fn value(&self, py: Python) -> PyResult<PyObject> {
+    pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
         match self.expr.eval(true) {
             Some(v) => match v {
                 symbol_expr::Value::Real(r) => r.into_py_any(py),
@@ -328,11 +334,6 @@ impl ParameterExpression {
                 "Expression has some undefined symbols.",
             )),
         }
-    }
-
-    // TODO use .numeric as main interface
-    pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
-        self.value(py)
     }
 
     #[getter]
@@ -716,7 +717,7 @@ impl ParameterExpression {
     }
 }
 
-impl Default for ParameterExpression {
+impl Default for PyParameterExpression {
     // default constructor returns zero
     fn default() -> Self {
         Self {
@@ -725,17 +726,17 @@ impl Default for ParameterExpression {
     }
 }
 
-impl fmt::Display for ParameterExpression {
+impl fmt::Display for PyParameterExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.expr)
     }
 }
 
 // rust native implementation will be added in PR #14207
-#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=ParameterExpression, name="Parameter")]
+#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PyParameter {
-    pub symbol: Parameter,
+    pub symbol: Symbol,
 }
 
 impl Hash for PyParameter {
@@ -745,13 +746,13 @@ impl Hash for PyParameter {
 }
 
 impl PyParameter {
-    fn from_symbol(symbol: &Parameter) -> PyClassInitializer<Self> {
+    fn from_symbol(symbol: &Symbol) -> PyClassInitializer<Self> {
         let expr = SymbolExpr::Symbol(symbol.clone());
 
         let py_parameter = Self {
             symbol: symbol.clone(),
         };
-        let py_expr = ParameterExpression::new(&expr);
+        let py_expr = PyParameterExpression::new(&expr);
 
         PyClassInitializer::from(py_expr).add_subclass(py_parameter)
     }
@@ -760,18 +761,88 @@ impl PyParameter {
 #[pymethods]
 impl PyParameter {
     #[new]
-    // fn py_new(name: String) -> (Self, ParameterExpression) {
-    fn py_new(name: String) -> PyClassInitializer<Self> {
-        let symbol = Parameter::new(name.as_str());
+    #[pyo3(signature = (name, uuid=None))]
+    fn py_new(
+        py: Python<'_>,
+        name: String,
+        uuid: Option<PyObject>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        let uuid = if let Some(val) = uuid {
+            // construct from u128
+            let as_u128 = if let Ok(as_u128) = val.extract::<u128>(py) {
+                as_u128
+            // construct from Python UUID type
+            } else if val.bind(py).is_exact_instance(UUID.get_bound(py)) {
+                val.getattr(py, "int")?.extract::<u128>(py)?
+            // invalid format
+            } else {
+                return Err(PyTypeError::new_err("not a UUID!"));
+            };
+            Some(Uuid::from_u128(as_u128))
+        } else {
+            None
+        };
+
+        let symbol = Symbol::new(name.as_str(), uuid);
         let expr = SymbolExpr::Symbol(symbol.clone());
 
         let py_parameter = Self { symbol };
-        let py_expr = ParameterExpression::new(&expr);
+        let py_expr = PyParameterExpression::new(&expr);
 
-        PyClassInitializer::from(py_expr).add_subclass(py_parameter)
+        Ok(PyClassInitializer::from(py_expr).add_subclass(py_parameter))
     }
 
-    fn uuid(&self) -> u128 {
-        self.symbol.py_uuid()
+    /// The UUID of the parameter.
+    #[getter]
+    fn uuid(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let uuid = self.symbol.py_uuid();
+        let kwargs = [("int", uuid)].into_py_dict(py)?;
+        Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
     }
+}
+
+#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
+#[derive(Clone, Debug)]
+pub struct PyParameterVectorElement {
+    index: u64,
+    vector: PyObject,
+}
+
+#[pymethods]
+impl PyParameterVectorElement {
+    #[new]
+    #[pyo3(signature = (vector, index, uuid=None))]
+    pub fn py_new(
+        py: Python<'_>,
+        vector: PyObject,
+        index: u64,
+        uuid: Option<PyObject>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        let vector_name = vector.getattr(py, "name")?.extract::<String>(py)?;
+
+        let name = format!("{}[{}]", vector_name, index);
+
+        let py_parameter = PyParameter::py_new(py, name, uuid)?;
+        let py_element = Self {
+            index,
+            vector: vector.clone_ref(py),
+        };
+
+        Ok(py_parameter.add_subclass(py_element))
+    }
+
+    #[getter]
+    pub fn index(&self) -> u64 {
+        self.index
+    }
+
+    #[getter]
+    pub fn vector(&self, py: Python<'_>) -> PyObject {
+        self.vector.clone_ref(py)
+    }
+
+    // pub fn __getstate__(self_: PyRef<Self>) {
+    //     let super_ = self_.as_ref();
+    //     super_.__getstate__()
+    // }
 }

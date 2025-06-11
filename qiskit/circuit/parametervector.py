@@ -14,10 +14,11 @@
 
 from uuid import uuid4, UUID
 
-from .parameter import Parameter
+from .parameter import OldParameter
+from qiskit._accelerate.circuit import ParameterVectorElement
 
 
-class ParameterVectorElement(Parameter):
+class OldParameterVectorElement(OldParameter):
     """An element of a :class:`ParameterVector`.
 
     .. note::
@@ -28,7 +29,7 @@ class ParameterVectorElement(Parameter):
     ___slots__ = ("_vector", "_index")
 
     def __init__(self, vector, index, uuid=None):
-        super().__init__(f"{vector.name}[{index}]", uuid=uuid)
+        super().__init__(f"{vector.name}[{index}]", uuid)
         self._vector = vector
         self._index = index
 
