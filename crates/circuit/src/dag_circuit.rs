@@ -4436,6 +4436,11 @@ impl DAGCircuit {
         })
     }
 
+    /// Create an empty DAG, but with all the same qubit data, classical data and metadata
+    /// (including global phase).
+    ///
+    /// This method clones both the `qargs_interner` and `cargs_interner` of `self`;
+    /// `Interned<[Qubit]>` and `Interned<[Clbit]>` keys from `self` are valid in the output DAG.
     pub fn copy_empty_like_with_same_capacity(&self, vars_mode: &str) -> PyResult<Self> {
         self.copy_empty_like_with_capacity(
             self.dag.node_count().saturating_sub(2 * self.width()),
@@ -4444,6 +4449,11 @@ impl DAGCircuit {
         )
     }
 
+    /// Create an empty DAG, but with all the same qubit data, classical data and metadata
+    /// (including global phase).
+    ///
+    /// This method clones both the `qargs_interner` and `cargs_interner` of `self`;
+    /// `Interned<[Qubit]>` and `Interned<[Clbit]>` keys from `self` are valid in the output DAG.
     pub fn copy_empty_like_with_capacity(
         &self,
         num_ops: usize,
@@ -4474,6 +4484,9 @@ impl DAGCircuit {
     /// This is similar to [copy_empty_like_with_capacity] with `vars_mode="alike"`, and copies the
     /// same things over (global phase, metadata, etc) it does, except for replacing the qubits.
     ///
+    /// This method clones the `cargs_interner` of `self`; `Interned<[Clbit]>` keys from `self` are
+    /// valid in the output DAG.  The `qargs_interner` is empty.
+    ///
     /// This method is intended for use by passes that are converting a virtual DAG to a physical
     /// one.
     pub fn physical_empty_like_with_capacity(
@@ -4492,6 +4505,9 @@ impl DAGCircuit {
     /// (including global phase).
     ///
     /// This is the base of all the `copy_empty_like` methods.
+    ///
+    /// This method clones the `cargs_interner` of `self`; `Interned<[Clbit]>` keys from `self` are
+    /// valid in the output DAG.  The `qargs_interner` is empty.
     ///
     /// The graph will always have sufficient capacity to store the in and out nodes of the
     /// classical data.  `num_qubits` and `num_ops` together form the _additional_ capacity the
