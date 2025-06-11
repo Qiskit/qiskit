@@ -19,7 +19,7 @@ import math
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import efficient_su2, quantum_volume
-from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
+from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager, Target
 from qiskit.transpiler.passes import SabreLayout, DenseLayout, Unroll3qOrMore, BasicSwap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
@@ -310,6 +310,14 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         _ = pass_(qc)
         layout = pass_.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 4, 2, 5, 1])
+
+    def test_uninitialized_target(self):
+        """We shouldn't panic if the target isn't initialized."""
+        target = Target(num_qubits=None)
+        qc = QuantumCircuit(2)
+        pass_ = SabreLayout(target, seed=0)
+        with self.assertRaisesRegex(TranspilerError, "not initialized"):
+            pass_(qc)
 
     @slow_test
     def test_release_valve_routes_multiple(self):

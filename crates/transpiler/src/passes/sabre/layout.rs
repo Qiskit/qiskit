@@ -52,7 +52,9 @@ pub fn sabre_layout_and_routing(
 ) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
     // TODO: verify `partial_layouts` are all in bounds.
     let Some(num_physical_qubits) = target.num_qubits else {
-        todo!();
+        return Err(TranspilerError::new_err(
+            "given 'Target' was not initialized with a qubit count",
+        ));
     };
     let num_physical_qubits = num_physical_qubits as usize;
     let allow_parallel = getenv_use_multiple_threads();
