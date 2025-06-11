@@ -50,13 +50,21 @@ pub fn sabre_layout_and_routing(
     partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
     skip_routing: bool,
 ) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
-    // TODO: verify `partial_layouts` are all in bounds.
     let Some(num_physical_qubits) = target.num_qubits else {
         return Err(TranspilerError::new_err(
             "given 'Target' was not initialized with a qubit count",
         ));
     };
     let num_physical_qubits = num_physical_qubits as usize;
+    if partial_layouts
+        .iter()
+        .flatten()
+        .any(|q| q.is_some_and(|q| q.index() >= num_physical_qubits))
+    {
+        return Err(TranspilerError::new_err(
+            "partial layouts contained out-of-range physical qubits",
+        ));
+    }
     let allow_parallel = getenv_use_multiple_threads();
     let coupling = match target.coupling_graph() {
         Ok(coupling) => coupling,

@@ -19,7 +19,7 @@ import math
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import efficient_su2, quantum_volume
-from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager, Target
+from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager, Target, Layout
 from qiskit.transpiler.passes import SabreLayout, DenseLayout, Unroll3qOrMore, BasicSwap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
@@ -318,6 +318,19 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         pass_ = SabreLayout(target, seed=0)
         with self.assertRaisesRegex(TranspilerError, "not initialized"):
             pass_(qc)
+
+    def test_out_of_range_partials(self):
+        """We should safely reject partial layouts that are invalid."""
+        pass_ = SabreLayout(
+            Target.from_configuration(
+                num_qubits=5, coupling_map=CouplingMap.from_line(5), basis_gates=["sx", "rz", "cx"]
+            ),
+            seed=0,
+        )
+        qc = QuantumCircuit(2)
+        partial = Layout(dict(zip(qc.qubits, [1, 5])))
+        with self.assertRaisesRegex(TranspilerError, "out-of-range physical qubits"):
+            pass_(qc, property_set={"sabre_starting_layouts": [partial]})
 
     @slow_test
     def test_release_valve_routes_multiple(self):
