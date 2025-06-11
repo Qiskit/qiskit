@@ -366,29 +366,31 @@ def loads(
 
            # create a quantum circuit
            qc = QuantumCircuit(20)
-           [qc.ry(2*np.pi*i/20,i) for i in range(0,20)]
-           [qc.cx(i,i+1) for i in range(0,20,2)]
+           for i in range(0,20):
+               qc.ry(2*np.pi*i/20,i)
+           for i in range(0,20,2):
+               qc.cx(i,i+1)
            qc.measure_all()
            qc.draw('mpl')
 
-            # transpile the circuit
-            pm = generate_preset_pass_manager(optimization_level=2,backend=backend)
-            isa_qc = pm.run(qc)
+           # transpile the circuit
+           pm = generate_preset_pass_manager(optimization_level=2,backend=backend)
+           isa_qc = pm.run(qc)
 
-            # serialize the quantum circuit in an OpenQASM3 string
-            qc_ser = dumps(isa_qc)
+           # serialize the quantum circuit in an OpenQASM3 string
+           qc_ser = dumps(isa_qc)
 
-            # load OpenQASM3 string without `num_qubits` argument
-            qc_load1 = loads(qc_ser)
+           # load OpenQASM3 string without `num_qubits` argument
+           qc_load1 = loads(qc_ser)
 
-            # load OpenQASM3 string with argument `num_qubits`
-            qc_load2 = loads(qc_ser, num_qubits = backend.num_qubits)
+           # load OpenQASM3 string with argument `num_qubits`
+           qc_load2 = loads(qc_ser, num_qubits = backend.num_qubits)
 
-            # without `num_qubits`
-            print(qc_load1.num_qubits)
+           # without `num_qubits`
+           print(qc_load1.num_qubits)
 
-            # with `num_qubits`
-            print(qc_load2.num_qubits)
+           # with `num_qubits`
+           print(qc_load2.num_qubits)
 
     Args:
         program: the OpenQASM 3 program.
