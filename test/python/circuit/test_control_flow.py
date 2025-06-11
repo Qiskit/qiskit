@@ -580,6 +580,15 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertEqual(op.unit, "ms")
         self.assertEqual(op.label, "hello, world")
 
+        a = expr.Stretch.new("a")
+        op = BoxOp(body, duration=a)
+        self.assertEqual(op.duration, a)
+        self.assertEqual(op.unit, "expr")
+
+        op = BoxOp(body, duration=expr.mul(2, a))
+        self.assertEqual(op.duration, expr.mul(2, a))
+        self.assertEqual(op.unit, "expr")
+
     def test_box_valid_params_setter(self):
         """Verify that valid sets to `params` function."""
         a = Parameter("a")

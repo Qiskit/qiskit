@@ -27,6 +27,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
+      - name: Standalone checks for all crates
+        run: |
+          set -e
+          for crate in `ls -d ./crates/*/` ; do
+              pushd "$crate"
+              cargo check
+              popd
+          done
       - name: Install Qiskit directly
         run: |
           set -e

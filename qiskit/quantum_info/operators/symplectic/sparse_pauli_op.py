@@ -992,7 +992,7 @@ class SparsePauliOp(LinearOp):
                 array (the default).
             force_serial: if ``True``, use an unthreaded implementation, regardless of the state of
                 the `Qiskit threading-control environment variables
-                <https://docs.quantum.ibm.com/guides/configure-qiskit-local#environment-variables>`__.
+                <https://quantum.cloud.ibm.com/docs/guides/configure-qiskit-local#environment-variables>`__.
                 By default, this will use threaded parallelism over the available CPUs.
 
         Returns:

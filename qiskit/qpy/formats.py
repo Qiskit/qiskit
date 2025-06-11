@@ -128,7 +128,7 @@ CIRCUIT_INSTRUCTION_V2 = namedtuple(
         "num_parameters",
         "num_qargs",
         "num_cargs",
-        "conditional_key",
+        "extras_key",
         "condition_register_size",
         "condition_value",
         "num_ctrl_qubits",
@@ -143,6 +143,22 @@ CIRCUIT_INSTRUCTION_V2_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V2_PACK)
 CIRCUIT_INSTRUCTION_ARG = namedtuple("CIRCUIT_INSTRUCTION_ARG", ["type", "size"])
 CIRCUIT_INSTRUCTION_ARG_PACK = "!1cI"
 CIRCUIT_INSTRUCTION_ARG_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_ARG_PACK)
+
+ANNOTATION_HEADER_STATIC = namedtuple("ANNOTATION_HEADER_STATIC", ["num_namespaces"])
+ANNOTATION_HEADER_STATIC_PACK = "!I"
+ANNOTATION_HEADER_STATIC_SIZE = struct.calcsize(ANNOTATION_HEADER_STATIC_PACK)
+
+ANNOTATION_STATE_HEADER = namedtuple("ANNOTATION_STATE_HEADER", ["namespace_size", "state_size"])
+ANNOTATION_STATE_HEADER_PACK = "!IQ"
+ANNOTATION_STATE_HEADER_SIZE = struct.calcsize(ANNOTATION_STATE_HEADER_PACK)
+
+INSTRUCTION_ANNOTATIONS_HEADER = namedtuple("INSTRUCTION_ANNOTATIONS_HEADER", ["num_annotations"])
+INSTRUCTION_ANNOTATIONS_HEADER_PACK = "!I"
+INSTRUCTION_ANNOTATIONS_HEADER_SIZE = struct.calcsize(INSTRUCTION_ANNOTATIONS_HEADER_PACK)
+
+INSTRUCTION_ANNOTATION = namedtuple("INSTRUCTION_ANNOTATION", ["namespace_index", "payload_size"])
+INSTRUCTION_ANNOTATION_PACK = "!IQ"
+INSTRUCTION_ANNOTATION_SIZE = struct.calcsize(INSTRUCTION_ANNOTATION_PACK)
 
 # SparsePauliOp List
 SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])

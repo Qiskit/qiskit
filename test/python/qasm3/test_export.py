@@ -25,7 +25,7 @@ from ddt import ddt, data
 
 from qiskit.exceptions import ExperimentalWarning
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Duration, Gate, ParameterVector
+from qiskit.circuit import Parameter, Qubit, Clbit, Duration, Gate, ParameterVector, annotation
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -1348,6 +1348,7 @@ c[1] = measure q[1];
     def test_box(self):
         """Test that 'box' statements can be exported'"""
         qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
         with qc.box():
             qc.x(0)
         with qc.box(duration=50.0, unit="ms"):
@@ -1355,11 +1356,15 @@ c[1] = measure q[1];
         with qc.box(duration=200, unit="dt"):
             with qc.box(duration=10, unit="dt"):
                 pass
+        with qc.box(duration=a):
+            with qc.box(duration=expr.mul(2, a)):
+                pass
 
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
 qubit[2] q;
+stretch a;
 box {
   x q[0];
 }
@@ -1368,6 +1373,10 @@ box[50.0ms] {
 }
 box[200dt] {
   box[10dt] {
+  }
+}
+box[a] {
+  box[2 * a] {
   }
 }
 """
@@ -3139,3 +3148,102 @@ class TestQASM3ExporterRust(QiskitTestCase):
             ]
         )
         self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
+
+    def test_annotations(self):
+        """Test that the annotation-serialisation framework works."""
+        # pylint: disable=missing-class-docstring,missing-function-docstring
+        assert_in = self.assertIn
+        assert_equal = self.assertEqual
+
+        class MyStr(annotation.Annotation):
+            namespace = "my.str"
+
+            def __init__(self, x):
+                self.x = x
+
+            def __eq__(self, other):
+                return isinstance(other, MyStr) and self.x == other.x
+
+        class MyInt(annotation.Annotation):
+            namespace = "my.int"
+
+            def __init__(self, x):
+                self.x = x
+
+            def __eq__(self, other):
+                return isinstance(other, MyInt) and self.x == other.x
+
+        class Static(annotation.Annotation):
+            namespace = "static"
+
+            def __eq__(self, other):
+                return isinstance(other, Static)
+
+        class StaticGlobal(annotation.Annotation):
+            namespace = "static.global"
+
+            def __eq__(self, other):
+                return isinstance(other, StaticGlobal)
+
+        class MyHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                raise NotImplementedError("unused in test")
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                base, sub = annotation.namespace.split(".", 1)
+                assert_equal(base, "my")
+                assert_in(sub, ("int", "str"))
+                if sub == "int":
+                    return f"{annotation.x:#04x}"
+                return annotation.x
+
+        skip_triggered = False
+
+        class ExactStaticHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                raise NotImplementedError("unused in test")
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                if annotation.namespace == "static.global":
+                    nonlocal skip_triggered
+                    skip_triggered = True
+                    return NotImplemented
+                assert_equal(annotation.namespace, "static")
+                return ""
+
+        class GlobalHandler(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                raise NotImplementedError("unused in test")
+
+            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+                # This is registered as the global handler, but should only be called when handling
+                # `static.global`.
+                assert_equal(annotation.namespace, "static.global")
+                return ""
+
+        expected = """
+OPENQASM 3.0;
+include "stdgates.inc";
+@my.str hello, world
+@my.int 0x0a
+box {
+  @static
+  @static.global
+  box {
+  }
+}
+"""
+        qc = QuantumCircuit()
+        with qc.box([MyInt(10), MyStr("hello, world")]):
+            with qc.box([StaticGlobal(), Static()]):
+                pass
+        prog = dumps(
+            qc,
+            annotation_handlers={
+                "my": MyHandler(),
+                "static": ExactStaticHandler(),
+                "": GlobalHandler(),
+            },
+        )
+        self.assertEqual(prog.strip(), expected.strip())
+        self.assertTrue(skip_triggered)

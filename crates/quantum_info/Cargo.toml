@@ -22,6 +22,9 @@ rayon.workspace = true
 bytemuck.workspace = true
 ahash.workspace = true
 ndarray-einsum = "0.8.0"
+rand.workspace = true
+rand_pcg.workspace = true
+rand_distr.workspace = true
 
 [dependencies.ndarray]
 workspace = true

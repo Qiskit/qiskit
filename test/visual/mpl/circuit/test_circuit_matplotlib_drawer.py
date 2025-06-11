@@ -1168,6 +1168,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         qc = QuantumCircuit(5)
         with qc.box():
             qc.x(0)
+        qc.x(1)
         with qc.box():
             qc.cx(2, 3)
             with qc.box():

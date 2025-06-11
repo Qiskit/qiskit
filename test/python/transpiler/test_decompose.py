@@ -53,6 +53,7 @@ class TestDecompose(QiskitTestCase):
         circ3 = QuantumCircuit(2)
         circ3.x(0)
         q_bits = QuantumRegister(5)
+
         qc = QuantumCircuit(q_bits)
         qc.append(my_gate, q_bits[:3])
         qc.append(my_gate2, q_bits[2:])
@@ -60,6 +61,19 @@ class TestDecompose(QiskitTestCase):
         qc.h(0)
         qc.append(circ3, [0, 1])
         self.complex_circuit = qc
+
+        # same circuit but with barriers around the MCX-gate
+        # (to make sure that the nodes before/after the MCX-gate remain
+        # before/after the gates of the expanded MCX-gate).
+        qc = QuantumCircuit(q_bits)
+        qc.append(my_gate, q_bits[:3])
+        qc.append(my_gate2, q_bits[2:])
+        qc.barrier(label="barrier1")
+        qc.mcx(q_bits[:4], q_bits[4])
+        qc.barrier(label="barrier2")
+        qc.h(0)
+        qc.append(circ3, [0, 1])
+        self.complex_circuit_with_barriers = qc
 
     def test_basic(self):
         """Test decompose a single H into u2."""
@@ -199,45 +213,30 @@ class TestDecompose(QiskitTestCase):
 
     def test_decompose_only_given_name(self):
         """Test decomposition parameters so that only given name is decomposed."""
-        decom_circ = self.complex_circuit.decompose(["mcx"], reps=2)
+        decom_circ = self.complex_circuit_with_barriers.decompose(["mcx"], reps=2)
         dag = circuit_to_dag(decom_circ)
-
-        self.assertEqual(len(dag.op_nodes()), 13)
+        self.assertEqual(len(dag.op_nodes()), 75)
         self.assertEqual(dag.op_nodes()[0].op.label, "gate1")
         self.assertEqual(dag.op_nodes()[1].op.label, "gate2")
-        self.assertEqual(dag.op_nodes()[2].name, "h")
-        self.assertEqual(dag.op_nodes()[3].name, "cu1")
-        self.assertEqual(dag.op_nodes()[4].name, "rcccx")
-        self.assertEqual(dag.op_nodes()[5].name, "h")
-        self.assertEqual(dag.op_nodes()[6].name, "h")
-        self.assertEqual(dag.op_nodes()[7].name, "cu1")
-        self.assertEqual(dag.op_nodes()[8].name, "rcccx_dg")
-        self.assertEqual(dag.op_nodes()[9].name, "h")
-        self.assertEqual(dag.op_nodes()[10].name, "c3sx")
-        self.assertEqual(dag.op_nodes()[11].name, "h")
-        self.assertRegex(dag.op_nodes()[12].name, "circuit-")
+        self.assertEqual(dag.op_nodes()[2].op.label, "barrier1")
+        self.assertEqual(dag.op_nodes()[72].op.label, "barrier2")
+        self.assertEqual(dag.op_nodes()[73].name, "h")
+        self.assertRegex(dag.op_nodes()[74].name, "circuit-")
 
     def test_decompose_mixture_of_names_and_labels(self):
         """Test decomposition parameters so that mixture of names and labels is decomposed"""
-        decom_circ = self.complex_circuit.decompose(["mcx", "gate2"], reps=2)
+        decom_circ = self.complex_circuit_with_barriers.decompose(["mcx", "gate2"], reps=2)
         dag = circuit_to_dag(decom_circ)
 
-        self.assertEqual(len(dag.op_nodes()), 15)
+        self.assertEqual(len(dag.op_nodes()), 77)
         self.assertEqual(dag.op_nodes()[0].op.label, "gate1")
         self.assertEqual(dag.op_nodes()[1].name, "h")
         self.assertEqual(dag.op_nodes()[2].name, "cx")
         self.assertEqual(dag.op_nodes()[3].name, "x")
-        self.assertEqual(dag.op_nodes()[4].name, "h")
-        self.assertEqual(dag.op_nodes()[5].name, "cu1")
-        self.assertEqual(dag.op_nodes()[6].name, "rcccx")
-        self.assertEqual(dag.op_nodes()[7].name, "h")
-        self.assertEqual(dag.op_nodes()[8].name, "h")
-        self.assertEqual(dag.op_nodes()[9].name, "cu1")
-        self.assertEqual(dag.op_nodes()[10].name, "rcccx_dg")
-        self.assertEqual(dag.op_nodes()[11].name, "h")
-        self.assertEqual(dag.op_nodes()[12].name, "c3sx")
-        self.assertEqual(dag.op_nodes()[13].name, "h")
-        self.assertRegex(dag.op_nodes()[14].name, "circuit-")
+        self.assertEqual(dag.op_nodes()[4].name, "barrier")
+        self.assertEqual(dag.op_nodes()[74].name, "barrier")
+        self.assertEqual(dag.op_nodes()[75].name, "h")
+        self.assertRegex(dag.op_nodes()[76].name, "circuit-")
 
     def test_decompose_name_wildcards(self):
         """Test decomposition parameters so that name wildcards is decomposed"""

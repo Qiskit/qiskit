@@ -269,10 +269,16 @@ circuit.  The top-level ones are:
 * :class:`ControlFlowOp`, which has specific subclasses:
     * :class:`BreakLoopOp`, to break out of the nearest containing loop
     * :class:`ContinueLoopOp`, to move immediately to the next iteration of the containing loop
+    * :class:`BoxOp`, a simple grouping of instructions
     * :class:`ForLoopOp`, to loop over a fixed range of values
     * :class:`IfElseOp`, to conditionally enter one of two subcircuits
     * :class:`SwitchCaseOp`, to conditionally enter one of many subcircuits
     * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified.
+
+Certain instructions can be "annotated" with metadata, which is typically intended to be consumed by
+a compiler pass either locally, or in later backend processing.  Currently this is limited to
+:class:`BoxOp`.  These annotations are represented by custom subclasses of :class:`Annotation`, and
+there is further discussion of the support infrastructure in :mod:`qiskit.circuit.annotation`.
 
 :ref:`Circuits can include classical expressions that are evaluated in real time
 <circuit-repr-real-time-classical>`, while the QPU is executing a single shot of the circuit.  These
@@ -1290,6 +1296,8 @@ from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 
 # pylint: disable=cyclic-import
+from . import annotation
+from .annotation import Annotation
 from .controlledgate import ControlledGate
 from . import singleton
 from .instruction import Instruction

@@ -1,0 +1,25 @@
+---
+features_synthesis:
+  - |
+    The :class:`.SolovayKitaevDecomposition` class has additional arguments in the initializer,
+    which allows it to be directly constructed from a set of ``basis_gates`` and a ``depth``
+    for the basic approximations.
+  - |
+    Added :meth:`.SolovayKitaevDecomposition.save_basic_approximations` to save the set of
+    basic approximations the class uses into a binary format.  This change, in combination with
+    the new initializer arguments, allows to skip the explicit use of
+    :func:`.generate_basic_approximations` and only rely on :class:`.SolovayKitaevDecomposition`.
+upgrade_synthesis:
+  - |
+    The serialization format in for basic approximations in the Solovay Kitaev algorithms has
+    been changed from ``.npy`` to another binary format, based on Rust's ``serde`` and ``bincode``.
+    All routines loading basic approximations (such as :func:`.generate_basic_approximations`,
+    :meth:`.SolovayKitaevDecomposition.load_basic_approximations` or the initializer of
+    :class:`.SolovayKitaev`) still support loading the legacy format.  Any new file, however, will
+    be stored in the new format.  If you relied on the old format, downgrade Qiskit to <2.2
+    and store the required files.
+  - |
+    The default values for :class:`.SolovayKitaev` (and related classes) have increased to
+    ``depth=12`` and ``reps=5``. This is due to the underlying implementation now being in Rust,
+    which allows us to increase the default precision, while still being significantly faster
+    than the previous Python version.

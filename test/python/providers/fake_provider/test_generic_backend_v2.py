@@ -149,6 +149,7 @@ class TestGenericBackendV2(QiskitTestCase):
         op_names = list(target.operation_names)
         op_names.sort()
         reference = [
+            "box",
             "break",
             "continue",
             "delay",

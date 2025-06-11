@@ -35,7 +35,8 @@ class TestPhaseOracleAndGate(QiskitTestCase):
     @unpack
     def test_evaluate_bitstring(self, expression, input_bitstring, expected):
         """PhaseOracle(...).evaluate_bitstring"""
-        oracle = PhaseOracle(expression)
+        with self.assertWarns(DeprecationWarning):
+            oracle = PhaseOracle(expression)
         result = oracle.evaluate_bitstring(input_bitstring)
         self.assertEqual(result, expected)
 
@@ -51,7 +52,11 @@ class TestPhaseOracleAndGate(QiskitTestCase):
     def test_statevector(self, expression, truth_table):
         """Circuit generation"""
         for use_gate in [True, False]:
-            oracle = PhaseOracleGate(expression) if use_gate else PhaseOracle(expression)
+            if use_gate:
+                oracle = PhaseOracleGate(expression)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    oracle = PhaseOracle(expression)
             num_qubits = oracle.num_qubits
             circuit = QuantumCircuit(num_qubits)
             circuit.h(range(num_qubits))
@@ -80,11 +85,11 @@ class TestPhaseOracleAndGate(QiskitTestCase):
     def test_variable_order(self, expression, var_order, good_states):
         """Circuit generation"""
         for use_gate in [True, False]:
-            oracle = (
-                PhaseOracleGate(expression, var_order=var_order)
-                if use_gate
-                else PhaseOracle(expression, var_order=var_order)
-            )
+            if use_gate:
+                oracle = PhaseOracleGate(expression, var_order=var_order)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    oracle = PhaseOracle(expression, var_order=var_order)
             num_qubits = oracle.num_qubits
             circuit = QuantumCircuit(num_qubits)
             circuit.h(range(num_qubits))
