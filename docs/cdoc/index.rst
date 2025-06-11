@@ -14,9 +14,9 @@ the C API:
   with the Rust objects from the extension code without using Python for better
   performance.
 
-To get started, see `Install the Qiskit C API <https://docs.quantum.ibm.com/guides/install-c-api>`_.
+To get started, see `Install the Qiskit C API <https://quantum.cloud.ibm.com/docs/guides/install-c-api>`_.
 To combine the C API with custom Python extensions, see
-`Extend Qiskit in Python with C <https://docs.quantum.ibm.com/guides/c-extension-for-python>`_.
+`Extend Qiskit in Python with C <https://quantum.cloud.ibm.com/docs/guides/c-extension-for-python>`_.
 
 As this interface is still new in Qiskit it should be considered experimental
 and the interface might change between minor version releases.
@@ -29,6 +29,8 @@ Quantum Circuit
    :maxdepth: 1
 
    qk-circuit
+   qk-quantum-register
+   qk-classical-register
 
 -------------------
 Quantum information
@@ -42,3 +44,5 @@ Quantum information
    qk-bit-term
    qk-complex64
    qk-exit-code
+   qk-target
+   qk-target-entry

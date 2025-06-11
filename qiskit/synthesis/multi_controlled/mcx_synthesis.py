@@ -21,8 +21,13 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister, Ancil
 from qiskit.circuit.library.standard_gates import (
     HGate,
     CU1Gate,
-    RC3XGate,
-    C3SXGate,
+)
+
+from qiskit._accelerate.synthesis.multi_controlled import (
+    c3x as c3x_rs,
+    c4x as c4x_rs,
+    synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
+    synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
 )
 
 
@@ -55,85 +60,9 @@ def synth_mcx_n_dirty_i15(
         1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
            `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
     """
-
-    # First, handle some special cases
-    if num_ctrl_qubits == 1:
-        qc = QuantumCircuit(2)
-        qc.cx(0, 1)
-        return qc
-    elif num_ctrl_qubits == 2:
-        qc = QuantumCircuit(3)
-        qc.ccx(0, 1, 2)
-        return qc
-    elif num_ctrl_qubits == 3 and not relative_phase:
-        qc = synth_c3x()
-        qc.name = "mcx_vchain"
-        return qc
-
-    num_qubits = 2 * num_ctrl_qubits - 1
-    q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_vchain")
-    q_controls = q[:num_ctrl_qubits]
-    q_target = q[num_ctrl_qubits]
-    q_ancillas = q[num_ctrl_qubits + 1 :]
-    num_ancillas = num_ctrl_qubits - 2
-    targets = [q_target] + q_ancillas[:num_ancillas][::-1]
-
-    for j in range(2):
-        for i in range(num_ctrl_qubits):  # action part
-            if i < num_ctrl_qubits - 2:
-                if targets[i] != q_target or relative_phase:
-                    # gate cancelling
-
-                    # cancel rightmost gates of action part
-                    # with leftmost gates of reset part
-                    if relative_phase and targets[i] == q_target and j == 1:
-                        qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
-                        qc.t(targets[i])
-                        qc.cx(q_controls[num_ctrl_qubits - i - 1], targets[i])
-                        qc.tdg(targets[i])
-                        qc.h(targets[i])
-                    else:
-                        qc.h(targets[i])
-                        qc.t(targets[i])
-                        qc.cx(q_controls[num_ctrl_qubits - i - 1], targets[i])
-                        qc.tdg(targets[i])
-                        qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
-                else:
-                    controls = [
-                        q_controls[num_ctrl_qubits - i - 1],
-                        q_ancillas[num_ancillas - i - 1],
-                    ]
-
-                    qc.ccx(controls[0], controls[1], targets[i])
-            else:
-                # implements an optimized toffoli operation
-                # up to a diagonal gate, akin to lemma 6 of arXiv:1501.06911
-                qc.h(targets[i])
-                qc.t(targets[i])
-                qc.cx(q_controls[num_ctrl_qubits - i - 2], targets[i])
-                qc.tdg(targets[i])
-                qc.cx(q_controls[num_ctrl_qubits - i - 1], targets[i])
-                qc.t(targets[i])
-                qc.cx(q_controls[num_ctrl_qubits - i - 2], targets[i])
-                qc.tdg(targets[i])
-                qc.h(targets[i])
-
-                break
-
-        for i in range(num_ancillas - 1):  # reset part
-            qc.cx(q_ancillas[i], q_ancillas[i + 1])
-            qc.t(q_ancillas[i + 1])
-            qc.cx(q_controls[2 + i], q_ancillas[i + 1])
-            qc.tdg(q_ancillas[i + 1])
-            qc.h(q_ancillas[i + 1])
-
-        if action_only:
-            qc.ccx(q_controls[-1], q_ancillas[-1], q_target)
-
-            break
-
-    return qc
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_n_dirty_i15_rs(num_ctrl_qubits, relative_phase, action_only)
+    )
 
 
 def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
@@ -288,20 +217,39 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
            Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
            `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
     """
-    if num_ctrl_qubits == 3:
-        return synth_c3x()
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_v24_rs(num_ctrl_qubits))
+    return circ
 
-    if num_ctrl_qubits == 4:
-        return synth_c4x()
 
-    num_qubits = num_ctrl_qubits + 1
-    q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q)
-    q_controls = list(range(num_ctrl_qubits))
-    q_target = num_ctrl_qubits
-    qc.h(q_target)
-    qc.mcp(np.pi, q_controls, q_target)
-    qc.h(q_target)
+def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
+    r"""
+    Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
+    implements Fig. 4a of [1]. The circuit applies n relative CCX (RCCX) gates . If apply_x is True,
+    each RCCX gate is preceded by an X gate on the target qubit. The order of returned qubits is
+    qr_a, qr_b, qr_target.
+
+    Args:
+        n: Number of conditionally clean ancillae to create.
+        apply_x: If True, apply X gate to the target qubit.
+
+    Returns:
+        QuantumCircuit: The quantum circuit for creating n-conditionally clean ancillae.
+
+    References:
+        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
+        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
+    """
+
+    n_qubits = 3 * n
+    q = QuantumRegister(n_qubits, name="q")
+    qc = QuantumCircuit(q, name=f"ccxn_{n}")
+    qr_a, qr_b, qr_target = q[:n], q[n : 2 * n], q[2 * n :]
+
+    if apply_x:
+        qc.x(qr_target)
+
+    qc.rccx(qr_a, qr_b, qr_target)
+
     return qc
 
 
@@ -335,7 +283,7 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
 
     # up-ladder
     for i in range(2, n - 2, 2):
-        qc.ccx(qreg[i + 1], qreg[i + 2], qreg[i])
+        qc.rccx(qreg[i + 1], qreg[i + 2], qreg[i])
         qc.x(qreg[i])
 
     # down-ladder
@@ -345,11 +293,11 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
         a, b, target = n - 1, n - 4, n - 5
 
     if target > 0:
-        qc.ccx(qreg[a], qreg[b], qreg[target])
+        qc.rccx(qreg[a], qreg[b], qreg[target])
         qc.x(qreg[target])
 
     for i in range(target, 2, -2):
-        qc.ccx(qreg[i], qreg[i - 1], qreg[i - 2])
+        qc.rccx(qreg[i], qreg[i - 1], qreg[i - 2])
         qc.x(qreg[i - 2])
 
     mid_second_ctrl = 1 + max(0, 6 - n)
@@ -386,7 +334,8 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     qc = QuantumCircuit(q_controls, q_target, q_ancilla, name="mcx_linear_depth")
 
     ladder_ops, final_ctrl = _linear_depth_ladder_ops(num_ctrl_qubits)
-    qc.ccx(q_controls[0], q_controls[1], q_ancilla)  #                  # create cond. clean ancilla
+
+    qc.rccx(q_controls[0], q_controls[1], q_ancilla[0])  #              # create cond. clean ancilla
     qc.compose(ladder_ops, q_ancilla[:] + q_controls[:], inplace=True)  # up-ladder
     qc.ccx(q_ancilla, q_controls[final_ctrl], q_target)  #              # target
     qc.compose(  #                                                      # down-ladder
@@ -394,7 +343,7 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
         q_ancilla[:] + q_controls[:],
         inplace=True,
     )
-    qc.ccx(q_controls[0], q_controls[1], q_ancilla)
+    qc.rccx(q_controls[0], q_controls[1], q_ancilla[0])  #              # undo cond. clean ancilla
 
     if not clean:
         # perform toggle-detection if ancilla is dirty
@@ -451,32 +400,6 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     return synth_mcx_1_kg24(num_ctrl_qubits, clean=False)
 
 
-def _n_parallel_ccx_x(n: int) -> QuantumCircuit:
-    r"""
-    Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
-    implements Fig. 4a of [1]. The order of returned qubits is qr_a, qr_a, qr_target.
-
-    Args:
-        n: Number of conditionally clean ancillae to create.
-
-    Returns:
-        QuantumCircuit: The quantum circuit for creating n-condionally clean ancillae.
-
-    References:
-        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-    """
-
-    n_qubits = 3 * n
-    q = QuantumRegister(n_qubits, name="q")
-    qc = QuantumCircuit(q, name=f"ccxn_{n}")
-    qr_a, qr_b, qr_target = q[:n], q[n : 2 * n], q[2 * n :]
-    qc.x(qr_target)
-    qc.ccx(qr_a, qr_b, qr_target)
-
-    return qc
-
-
 def _build_logn_depth_ccx_ladder(
     ancilla_idx: int, ctrls: list[int], skip_cond_clean: bool = False
 ) -> tuple[QuantumCircuit, list[int]]:
@@ -525,7 +448,8 @@ def _build_logn_depth_ccx_ladder(
                 qc.compose(_n_parallel_ccx_x(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
             else:
                 if not skip_cond_clean:
-                    qc.ccx(ccx_x[0], ccx_y[0], ccx_t[0])  #  # create conditionally clean ancilla
+                    qc.rccx(ccx_x[0], ccx_y[0], ccx_t[0])  # # create conditionally clean ancilla
+
             new_anc += nxt_batch[st:]  #                     # newly created cond. clean ancilla
             nxt_batch = ccx_t + nxt_batch[:st]
             anc = anc[:-ccx_n]
@@ -651,58 +575,9 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_c3x() -> QuantumCircuit:
     """Efficient synthesis of 3-controlled X-gate."""
-
-    q = QuantumRegister(4, name="q")
-    qc = QuantumCircuit(q, name="mcx")
-    qc.h(3)
-    qc.p(np.pi / 8, [0, 1, 2, 3])
-    qc.cx(0, 1)
-    qc.p(-np.pi / 8, 1)
-    qc.cx(0, 1)
-    qc.cx(1, 2)
-    qc.p(-np.pi / 8, 2)
-    qc.cx(0, 2)
-    qc.p(np.pi / 8, 2)
-    qc.cx(1, 2)
-    qc.p(-np.pi / 8, 2)
-    qc.cx(0, 2)
-    qc.cx(2, 3)
-    qc.p(-np.pi / 8, 3)
-    qc.cx(1, 3)
-    qc.p(np.pi / 8, 3)
-    qc.cx(2, 3)
-    qc.p(-np.pi / 8, 3)
-    qc.cx(0, 3)
-    qc.p(np.pi / 8, 3)
-    qc.cx(2, 3)
-    qc.p(-np.pi / 8, 3)
-    qc.cx(1, 3)
-    qc.p(np.pi / 8, 3)
-    qc.cx(2, 3)
-    qc.p(-np.pi / 8, 3)
-    qc.cx(0, 3)
-    qc.h(3)
-    return qc
+    return QuantumCircuit._from_circuit_data(c3x_rs())
 
 
 def synth_c4x() -> QuantumCircuit:
     """Efficient synthesis of 4-controlled X-gate."""
-
-    q = QuantumRegister(5, name="q")
-    qc = QuantumCircuit(q, name="mcx")
-
-    rules = [
-        (HGate(), [q[4]], []),
-        (CU1Gate(np.pi / 2), [q[3], q[4]], []),
-        (HGate(), [q[4]], []),
-        (RC3XGate(), [q[0], q[1], q[2], q[3]], []),
-        (HGate(), [q[4]], []),
-        (CU1Gate(-np.pi / 2), [q[3], q[4]], []),
-        (HGate(), [q[4]], []),
-        (RC3XGate().inverse(), [q[0], q[1], q[2], q[3]], []),
-        (C3SXGate(), [q[0], q[1], q[2], q[4]], []),
-    ]
-    for instr, qargs, cargs in rules:
-        qc._append(instr, qargs, cargs)
-
-    return qc
+    return QuantumCircuit._from_circuit_data(c4x_rs())

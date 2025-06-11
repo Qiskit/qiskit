@@ -14,42 +14,99 @@
 
 from __future__ import annotations
 
+import typing
+import warnings
 import numpy as np
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.library import get_standard_gate_name_mapping, IGate
+from qiskit.utils.deprecation import deprecate_func
+from qiskit._accelerate.synthesis.discrete_basis import (
+    SolovayKitaevSynthesis as RustSolovayKitaevSynthesis,
+    GateSequence,
+)
 
-from .gate_sequence import GateSequence
-from .commutator_decompose import commutator_decompose
-from .generate_basis_approximations import generate_basic_approximations, _1q_gates, _1q_inverses
+if typing.TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
 
 class SolovayKitaevDecomposition:
     """The Solovay Kitaev discrete decomposition algorithm.
 
     This class is called recursively by the transpiler pass, which is why it is separated.
-    See :class:`qiskit.transpiler.passes.SolovayKitaev` for more information.
+    See :class:`~qiskit.transpiler.passes.SolovayKitaev` for more information.
     """
 
     def __init__(
-        self, basic_approximations: str | dict[str, np.ndarray] | list[GateSequence] | None = None
+        self,
+        basic_approximations: str | dict[str, np.ndarray] | list[GateSequence] | None = None,
+        *,
+        basis_gates: list[str | Gate] | None = None,
+        depth: int = 12,
+        check_input: bool = False,
     ) -> None:
         """
         Args:
             basic_approximations: A specification of the basic SO(3) approximations in terms
                 of discrete gates. At each iteration this algorithm, the remaining error is
                 approximated with the closest sequence of gates in this set.
-                If a ``str``, this specifies a ``.npy`` filename from which to load the
+                If a ``str``, this specifies a filename from which to load the
                 approximation. If a ``dict``, then this contains
                 ``{gates: effective_SO3_matrix}`` pairs,
                 e.g. ``{"h t": np.array([[0, 0.7071, -0.7071], [0, -0.7071, -0.7071], [-1, 0, 0]]}``.
                 If a list, this contains the same information as the dict, but already converted to
                 :class:`.GateSequence` objects, which contain the SO(3) matrix and gates.
+
+                Either this parameter, or ``basis_gates`` and ``depth`` can be specified.
+            basis_gates: A list of discrete (i.e., non-parameterized) standard gates.
+                Defaults to ``["h", "t", "tdg"]``.
+            depth: The number of basis gate combinations to consider in the basis set. This
+                determines how fast (and if) the algorithm converges and should be chosen
+                sufficiently high.
+            check_input: If ``True``, perform intermediate steps checking whether the matrices
+                are of expected form.
         """
         if basic_approximations is None:
-            # generate a default basic approximation
-            basic_approximations = generate_basic_approximations(
-                basis_gates=["h", "t", "tdg"], depth=10
+            if basis_gates is not None:
+                basis_gates = normalize_gates(basis_gates)
+            self._sk = RustSolovayKitaevSynthesis(basis_gates, depth, None, check_input)
+
+        elif basis_gates is not None:
+            raise ValueError(
+                "Either basic_approximations or basis_gates + depth can be specified, not both."
             )
 
-        self.basic_approximations = self.load_basic_approximations(basic_approximations)
+        else:
+            # Fast Rust path to load the file
+            if isinstance(basic_approximations, str) and basic_approximations[~3:] != ".npy":
+                self._sk = RustSolovayKitaevSynthesis.from_basic_approximations(
+                    basic_approximations, True
+                )
+            else:
+                sequences = self.load_basic_approximations(basic_approximations)
+                self._sk = RustSolovayKitaevSynthesis.from_sequences(sequences, True)
+
+        self._depth = depth
+        self._check_input = check_input
+        self._basis_gates = basis_gates
+
+    @property
+    def depth(self) -> int:
+        """The maximum gate depth of the basic approximations."""
+        return self._depth
+
+    @property
+    def check_input(self) -> bool:
+        """Whether to perform runtime checks on the internal data."""
+        return self._check_input
+
+    @property
+    def basis_gates(self) -> list[str] | None:
+        """The basis gate set of the basic approximations.
+
+        If ``None``, defaults to ``["h", "t", "tdg"]``.
+        """
+        return self._basis_gates
 
     @staticmethod
     def load_basic_approximations(data: list | str | dict) -> list[GateSequence]:
@@ -71,14 +128,28 @@ class SolovayKitaevDecomposition:
         Raises:
             ValueError: If the number of gate combinations and associated matrices does not match.
         """
+        # new data format stored by the Rust internal class
+        if isinstance(data, str) and data[-4:] != ".npy":
+            sk = SolovayKitaevDecomposition(data)
+            return sk._sk.get_gate_sequences()
+
+        warnings.warn(
+            "It is suggested to pass basic_approximations in the binary format produced "
+            "by SolovayKitaevDecomposition.save_basic_approximations, which is more "
+            "performant than other formats. Other formats are pending deprecation "
+            "and will be deprecated in a future release.",
+            category=PendingDeprecationWarning,
+        )
+
         # is already a list of GateSequences
         if isinstance(data, list):
             return data
 
-        # if a file, load the dictionary
+        # file is ``.npy``, load the dictionary it contains
         if isinstance(data, str):
             data = np.load(data, allow_pickle=True).item()
 
+        # parse the dictionary
         sequences = []
         for gatestring, matrix_and_phase in data.items():
             if isinstance(matrix_and_phase, tuple):
@@ -86,100 +157,100 @@ class SolovayKitaevDecomposition:
             else:
                 matrix, global_phase = matrix_and_phase, 0
 
-            sequence = GateSequence()
-            sequence.gates = [_1q_gates[element] for element in gatestring.split()]
-            sequence.labels = [gate.name for gate in sequence.gates]
-            sequence.product = np.asarray(matrix)
-            sequence.global_phase = global_phase
+            # gates = [_1q_gates[element] for element in gatestring.split()]
+            gates = normalize_gates(gatestring.split())
+            sequence = GateSequence.from_gates_and_matrix(gates, matrix, global_phase)
             sequences.append(sequence)
 
         return sequences
 
+    def save_basic_approximations(self, filename: str):
+        """Save the basic approximations into a file.
+
+        This can then be loaded again via the class initializer (preferred) or
+        via :meth:`load_basic_approximations`::
+
+            filename = "approximations.bin"
+            sk.save_basic_approximations(filename)
+
+            new_sk = SolovayKitaevDecomposition(filename)
+
+        Args:
+            filename: The filename to store the approximations in.
+
+        Raises:
+            ValueError: If the filename has a `.npy` extension. The format is not `.npy`,
+                and storing as such can cause errors when loading the file again.
+        """
+        # Safety guard: previously, we serialized via npy, but this format is incompatible
+        # with the current serialization, using Rust's serde + bincode. While we can still load
+        # .npy files in legacy format, the new format should not be stored as .npy.
+        if filename[~3:] == ".npy":
+            raise ValueError(
+                "The basic approximations are not stored in npy format. "
+                "Choose a different file extension (e.g. .bin)."
+            )
+        self._sk.save_basic_approximations(filename)
+
     def run(
         self,
-        gate_matrix: np.ndarray,
+        gate_matrix: np.ndarray | Gate,
         recursion_degree: int,
         return_dag: bool = False,
         check_input: bool = True,
-    ) -> "QuantumCircuit" | "DAGCircuit":
+    ) -> QuantumCircuit | DAGCircuit:
         r"""Run the algorithm.
 
         Args:
-            gate_matrix: The 2x2 matrix representing the gate. This matrix has to be SU(2)
-                up to global phase.
+            gate_matrix: The single-qubit gate to approximate. Can either be a :class:`.Gate`, where
+                :meth:`.Gate.to_matrix` returns the matrix, or a :math:`2\times 2` unitary matrix
+                representing the gate.
             recursion_degree: The recursion degree, called :math:`n` in the paper.
             return_dag: If ``True`` return a :class:`.DAGCircuit`, else a :class:`.QuantumCircuit`.
             check_input: If ``True`` check that the input matrix is valid for the decomposition.
+                Overrides the class attribute with the same name, but only for this function call.
 
         Returns:
             A one-qubit circuit approximating the ``gate_matrix`` in the specified discrete basis.
         """
-        # make input matrix SU(2) and get the according global phase
-        z = 1 / np.sqrt(np.linalg.det(gate_matrix))
+        # handle overriding the check_input setting
+        self_check_input = self.check_input
+        if check_input != self_check_input:
+            self._sk.do_checks = check_input
 
-        gate_matrix_su2 = z * gate_matrix
-        gate_matrix_as_sequence = GateSequence.from_matrix(gate_matrix_su2)
-        global_phase = np.arctan2(np.imag(z), np.real(z))
+        if isinstance(gate_matrix, Gate):
+            data = self._sk.synthesize(gate_matrix, recursion_degree)
+        else:
+            data = self._sk.synthesize_matrix(gate_matrix, recursion_degree)
 
-        # get the decomposition as GateSequence type
-        decomposition = self._recurse(
-            gate_matrix_as_sequence, recursion_degree, check_input=check_input
-        )
+        if check_input != self_check_input:
+            self._sk.do_checks = self_check_input
 
-        # simplify
-        _remove_identities(decomposition)
-        _remove_inverse_follows_gate(decomposition)
+        circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
 
-        # adjust to the correct SU(2) phase
-        adjust_phase = (
-            np.pi if _should_adjust_phase(decomposition._to_u2(), gate_matrix_su2) else 0.0
-        )
-
-        # convert to a circuit and attach the right phases
         if return_dag:
-            out = decomposition.to_dag()
+            from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
+
+            return circuit_to_dag(circuit)
+
+        return circuit
+
+    def query_basic_approximation(self, gate: np.ndarray | Gate) -> QuantumCircuit:
+        """Query a basic approximation of a matrix."""
+        if isinstance(gate, Gate):
+            data = self._sk.query_basic_approximation(gate)
         else:
-            out = decomposition.to_circuit()
+            data = self._sk.query_basic_approximation_matrix(gate)
 
-        out.global_phase += adjust_phase
-        out.global_phase -= global_phase
+        circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+        return circuit
 
-        return out
-
-    def _recurse(self, sequence: GateSequence, n: int, check_input: bool = True) -> GateSequence:
-        """Performs ``n`` iterations of the Solovay-Kitaev algorithm on ``sequence``.
-
-        Args:
-            sequence: ``GateSequence`` to which the Solovay-Kitaev algorithm is applied.
-            n: The number of iterations that the algorithm needs to run.
-            check_input: If ``True`` check that the input matrix represented by ``GateSequence``
-                is valid for the decomposition.
-
-        Returns:
-            GateSequence that approximates ``sequence``.
-
-        Raises:
-            ValueError: If the matrix in ``GateSequence`` does not represent an SO(3)-matrix.
-        """
-        if sequence.product.shape != (3, 3):
-            raise ValueError("Shape of U must be (3, 3) but is", sequence.shape)
-
-        if n == 0:
-            res = self.find_basic_approximation(sequence)
-
-        else:
-            u_n1 = self._recurse(sequence, n - 1, check_input=check_input)
-
-            v_n, w_n = commutator_decompose(
-                sequence.dot(u_n1.adjoint()).product, check_input=check_input
-            )
-
-            v_n1 = self._recurse(v_n, n - 1, check_input=check_input)
-            w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
-            res = v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
-
-        return res
-
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use query_basic_approximation instead, which takes a Gate or matrix "
+        "as input and returns a QuantumCircuit object.",
+        pending=True,
+    )
     def find_basic_approximation(self, sequence: GateSequence) -> GateSequence:
         """Find ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
 
@@ -187,54 +258,23 @@ class SolovayKitaevDecomposition:
             sequence: ``GateSequence`` to find the approximation to.
 
         Returns:
-            ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.
+            ``GateSequence`` in that approximates ``sequence``.
         """
-        # TODO explore using a k-d tree here
-
-        def key(x):
-            return np.linalg.norm(np.subtract(x.product, sequence.product))
-
-        best = min(self.basic_approximations, key=key)
-        return best
+        return self._sk.find_basic_approximation(sequence)
 
 
-def _remove_inverse_follows_gate(sequence):
-    index = 0
-    while index < len(sequence.gates) - 1:
-        curr_gate = sequence.gates[index]
-        next_gate = sequence.gates[index + 1]
-        if curr_gate.name in _1q_inverses:
-            remove = _1q_inverses[curr_gate.name] == next_gate.name
-        else:
-            remove = curr_gate.inverse() == next_gate
+def normalize_gates(gates: list[Gate | str]) -> list[Gate]:
+    """Normalize a list[Gate | str] into list[Gate]."""
+    name_to_gate = get_standard_gate_name_mapping()
+    # special case: we used to support "i" as IGate, but the official name is "id", so
+    # we add it manually here
+    name_to_gate["i"] = IGate()
 
-        if remove:
-            # remove gates at index and index + 1
-            sequence.remove_cancelling_pair([index, index + 1])
-            # take a step back to see if we have uncovered a new pair, e.g.
-            # [h, s, sdg, h] at index = 1 removes s, sdg but if we continue at index 1
-            # we miss the uncovered [h, h] pair at indices 0 and 1
-            if index > 0:
-                index -= 1
-        else:
-            # next index
-            index += 1
+    def normalize(gate: Gate | str) -> Gate:
+        if isinstance(gate, Gate):
+            return gate
+        if gate in name_to_gate:
+            return name_to_gate[gate]
+        raise ValueError(f"Unsupported gate: {gate}")
 
-
-def _remove_identities(sequence):
-    index = 0
-    while index < len(sequence.gates):
-        if sequence.gates[index].name == "id":
-            sequence.gates.pop(index)
-        else:
-            index += 1
-
-
-def _should_adjust_phase(computed: np.ndarray, target: np.ndarray) -> bool:
-    """
-    The implemented SolovayKitaevDecomposition has a global phase uncertainty of +-1,
-    due to approximating not the original SU(2) matrix but its projection onto SO(3).
-    This function returns ``True`` if the global phase of the computed approximation
-    should be adjusted (by adding pi) to better much the target.
-    """
-    return np.linalg.norm(-computed - target) < np.linalg.norm(computed - target)
+    return list(map(normalize, gates))
