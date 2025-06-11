@@ -412,16 +412,24 @@ impl<'a> StandardGateView<'a> {
         self.1
     }
 
+    #[inline]
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         self.0.matrix(self.1)
     }
 
+    #[inline]
     fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         self.0.matrix_as_static_1q(self.1)
     }
 
+    #[inline]
     pub fn definition(&self) -> Option<CircuitData> {
         self.0.definition(self.1)
+    }
+
+    #[inline]
+    pub fn inverse(&self) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        self.0.inverse(self.1)
     }
 }
 
