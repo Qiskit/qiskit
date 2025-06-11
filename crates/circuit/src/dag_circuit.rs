@@ -405,22 +405,22 @@ impl<'a> IntoInstructionView<'a> for &'a DAGInstruction {
             | InstructionView::Instruction(_) => Some(
                 self.params
                     .as_deref()
-                    .and_then(|p| match p {
-                        Parameters::Params(p) => Some(p.as_slice()),
+                    .map(|p| match p {
+                        Parameters::Params(p) => p.as_slice(),
                         _ => panic!("expected gate parameters"),
                     })
                     .unwrap_or_default(),
             ),
             InstructionView::StandardInstruction(inst) => match inst {
                 StandardInstructionView::Delay { duration, .. } => {
-                    Some(std::slice::from_ref(&duration))
+                    Some(std::slice::from_ref(duration))
                 }
                 _ => Some(&[]),
             },
-            _ => {
-                println!("GOT NONE FOR GATE PARAMS: {:?}", self.view());
-                None
-            }
+            _ => panic!(
+                "legacy parameters not supported for operation {:?}",
+                self.op.view()
+            ),
         }
     }
 }
@@ -1756,7 +1756,7 @@ impl DAGCircuit {
                     op: py_op.operation,
                     qubits: qubits_id,
                     clbits: clbits_id,
-                    params: py_op.params.map(|p| Box::new(p)),
+                    params: py_op.params.map(Box::new),
                     label: py_op.label,
                     #[cfg(feature = "cache_pygates")]
                     py_op: op.unbind().into(),
@@ -1821,7 +1821,7 @@ impl DAGCircuit {
                     op: py_op.operation,
                     qubits: qubits_id,
                     clbits: clbits_id,
-                    params: py_op.params.map(|p| Box::new(p)),
+                    params: py_op.params.map(Box::new),
                     label: py_op.label,
                     #[cfg(feature = "cache_pygates")]
                     py_op: op.unbind().into(),
@@ -2031,7 +2031,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if an unknown :class:`.ControlFlowOp` is present in a call with
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    fn size(&self, py: Python, recurse: bool) -> PyResult<usize> {
+    fn size(&self, recurse: bool) -> PyResult<usize> {
         let mut length = self.num_ops();
         if !self.has_control_flow() {
             return Ok(length);
@@ -2057,11 +2057,11 @@ impl DAGCircuit {
             match control_flow {
                 ControlFlowView::ForLoop { indexset, body, .. } => {
                     // TODO: is this the intended logic?
-                    length += indexset.len() * body.size(py, true)?;
+                    length += indexset.len() * body.size(true)?;
                 }
                 _ => {
                     for block in control_flow.blocks() {
-                        length += block.size(py, true)?;
+                        length += block.size(true)?;
                     }
                 }
             }
@@ -2091,7 +2091,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if unknown control flow is present in a recursive call, or any control
     ///         flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    fn depth(&self, py: Python, recurse: bool) -> PyResult<usize> {
+    fn depth(&self, recurse: bool) -> PyResult<usize> {
         if self.qubits.is_empty() && self.clbits.is_empty() && self.num_vars() == 0 {
             return Ok(0);
         }
@@ -2130,7 +2130,7 @@ impl DAGCircuit {
                 let blocks = control_flow.blocks();
                 let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
                 for block in blocks {
-                    block_weights.push(block.depth(py, true)?);
+                    block_weights.push(block.depth(true)?);
                     node_lookup.insert(node_index, weight * block_weights.iter().max().unwrap());
                 }
             }
@@ -4250,7 +4250,7 @@ impl DAGCircuit {
     ///     Mapping[str, int]: a mapping of operation names to the number of times it appears.
     #[pyo3(name = "count_ops", signature = (*, recurse=true))]
     fn py_count_ops(&self, py: Python, recurse: bool) -> PyResult<PyObject> {
-        self.count_ops(py, recurse)?.into_py_any(py)
+        self.count_ops(recurse)?.into_py_any(py)
     }
 
     /// Count the occurrences of operation names on the longest path.
@@ -4377,8 +4377,8 @@ impl DAGCircuit {
     /// Return a dictionary of circuit properties.
     fn properties(&self, py: Python) -> PyResult<HashMap<&str, PyObject>> {
         Ok(HashMap::from_iter([
-            ("size", self.size(py, false)?.into_py_any(py)?),
-            ("depth", self.depth(py, false)?.into_py_any(py)?),
+            ("size", self.size(false)?.into_py_any(py)?),
+            ("depth", self.depth(false)?.into_py_any(py)?),
             ("width", self.width().into_py_any(py)?),
             ("qubits", self.num_qubits().into_py_any(py)?),
             ("bits", self.num_clbits().into_py_any(py)?),
@@ -5976,7 +5976,7 @@ impl DAGCircuit {
                     ..
                 } => {
                     // TODO: do we need to add bits from non-expr condition?
-                    let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
+                    let (expr_clbits, expr_vars) = wires_from_expr(condition)?;
                     for bit in expr_clbits {
                         clbits.push(bit);
                     }
@@ -6985,16 +6985,11 @@ impl DAGCircuit {
     /// Args:
     ///     py: The python token necessary for control flow recursion
     ///     recurse: Whether to recurse into control flow ops or not
-    pub fn count_ops(
-        &self,
-        py: Python,
-        recurse: bool,
-    ) -> PyResult<IndexMap<String, usize, RandomState>> {
+    pub fn count_ops(&self, recurse: bool) -> PyResult<IndexMap<String, usize, RandomState>> {
         if !recurse || !self.has_control_flow() {
             Ok(self.op_names.clone())
         } else {
             fn inner(
-                py: Python,
                 dag: &DAGCircuit,
                 counts: &mut IndexMap<String, usize, RandomState>,
             ) -> PyResult<()> {
@@ -7012,14 +7007,14 @@ impl DAGCircuit {
                         continue;
                     };
                     for block in control_flow.blocks() {
-                        inner(py, block, counts)?;
+                        inner(block, counts)?;
                     }
                 }
                 Ok(())
             }
             let mut counts =
                 IndexMap::with_capacity_and_hasher(self.op_names.len(), RandomState::default());
-            inner(py, self, &mut counts)?;
+            inner(self, &mut counts)?;
             Ok(counts)
         }
     }

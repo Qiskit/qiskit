@@ -2583,7 +2583,7 @@ impl TwoQubitControlledUDecomposer {
                     let params: SmallVec<[f64; 3]> = inverse
                         .try_legacy_params()
                         .unwrap()
-                        .into_iter()
+                        .iter()
                         .map(|x| match x {
                             Param::Float(val) => *val,
                             _ => panic!("Inverse has invalid parameter"),

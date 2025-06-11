@@ -45,14 +45,13 @@ use std::f64::consts::PI;
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_coupling")]
 pub fn check_direction_coupling_map(
-    py: Python,
     dag: &DAGCircuit,
     coupling_edges: HashSet<[Qubit; 2]>,
 ) -> PyResult<bool> {
     let coupling_map_check =
         |_: &DAGInstruction, op_args: &[Qubit]| -> bool { coupling_edges.contains(op_args) };
 
-    check_gate_direction(py, dag, &coupling_map_check, None)
+    check_gate_direction(dag, &coupling_map_check, None)
 }
 
 /// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
@@ -66,7 +65,7 @@ pub fn check_direction_coupling_map(
 ///     true iff all two-qubit gates comply with the target's coupling constraints
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
-pub fn check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
+pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &DAGInstruction, op_args: &[Qubit]| -> bool {
         let qargs = [
             PhysicalQubit::new(op_args[0].0),
@@ -76,7 +75,7 @@ pub fn check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> 
         target.instruction_supported(inst.op.name(), &qargs)
     };
 
-    check_gate_direction(py, dag, &target_check, None)
+    check_gate_direction(dag, &target_check, None)
 }
 
 // The main routine for checking gate directionality.
@@ -89,7 +88,6 @@ pub fn check_direction_target(py: Python, dag: &DAGCircuit, target: &Target) -> 
 //  to carry the mapping context relative to the original DAG.
 //  When qubit_mapping is None, the identity mapping is assumed
 fn check_gate_direction<T>(
-    py: Python,
     dag: &DAGCircuit,
     gate_complies: &T,
     qubit_mapping: Option<&[Qubit]>,
@@ -108,9 +106,9 @@ where
                         .map(|q| mapping[q.index()])
                         .collect::<Vec<Qubit>>();
 
-                    check_gate_direction(py, block, gate_complies, Some(&mapping))?
+                    check_gate_direction(block, gate_complies, Some(&mapping))?
                 } else {
-                    check_gate_direction(py, block, gate_complies, Some(inst_qargs))?
+                    check_gate_direction(block, gate_complies, Some(inst_qargs))?
                 };
 
                 if !block_ok {
@@ -403,7 +401,7 @@ fn apply_operation_back(
         PackedOperation::from_standard_gate(gate),
         qargs,
         &[],
-        param.map(|p| Parameters::Params(p)),
+        param.map(Parameters::Params),
         None,
         #[cfg(feature = "cache_pygates")]
         None,

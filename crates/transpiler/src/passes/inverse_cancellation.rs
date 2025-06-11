@@ -170,7 +170,7 @@ pub fn run_inverse_cancellation(
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
     }
-    let op_counts = dag.count_ops(py, true)?;
+    let op_counts = dag.count_ops(true)?;
     if !self_inverse_gate_names.is_empty() {
         run_on_self_inverse(
             py,

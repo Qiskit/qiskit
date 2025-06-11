@@ -364,7 +364,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     inner_wire_map[inner as usize] = wire_map[outer.index()]
                 }
                 build_interaction_graph(
-                    &block,
+                    block,
                     &inner_wire_map,
                     im_graph,
                     im_graph_node_map,

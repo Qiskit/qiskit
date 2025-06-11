@@ -939,7 +939,7 @@ impl Target {
         if self.gate_map.contains_key(&parsed_name) {
             return Err(TargetError::AlreadyExists(parsed_name));
         }
-        let operation = TargetOperation::from_packed_operation(operation, params.into());
+        let operation = TargetOperation::from_packed_operation(operation, params);
         let props_map = if let Some(props_map) = props_map {
             props_map
         } else {

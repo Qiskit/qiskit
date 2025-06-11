@@ -33,7 +33,7 @@ pub fn run_elide_permutations(
     dag: &mut DAGCircuit,
 ) -> PyResult<Option<(DAGCircuit, Vec<usize>)>> {
     let permutation_gate_names = ["swap".to_string(), "permutation".to_string()];
-    let op_counts = dag.count_ops(py, false)?;
+    let op_counts = dag.count_ops(false)?;
     if !permutation_gate_names
         .iter()
         .any(|name| op_counts.contains_key(name))

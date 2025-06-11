@@ -243,7 +243,7 @@ impl SolovayKitaevSynthesis {
         let Some(StandardGateView(gate, params)) = gate.try_view_standard_gate() else {
             return Err(PyValueError::new_err("Only standard gates are supported."));
         };
-        self.synthesize_gate(&gate, &params, recursion_degree)
+        self.synthesize_gate(&gate, params, recursion_degree)
             .map_err(|err| err.into())
     }
 

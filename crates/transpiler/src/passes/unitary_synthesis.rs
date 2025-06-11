@@ -213,7 +213,7 @@ fn apply_synth_sequence(
             new_op,
             &mapped_qargs,
             &[],
-            new_params.map(|p| Parameters::Params(p)),
+            new_params.map(Parameters::Params),
             None,
             #[cfg(feature = "cache_pygates")]
             None,
@@ -1339,9 +1339,7 @@ fn run_2q_unitary_synthesis(
                         let NodeType::Operation(inst) = &synth_dag[node] else {
                             unreachable!("DAG node must be an instruction")
                         };
-                        let Some(params) = inst.try_legacy_params() else {
-                            return None;
-                        };
+                        let params = inst.try_legacy_params()?;
                         let inst_qubits = synth_dag
                             .get_qargs(inst.qubits)
                             .iter()
@@ -1349,12 +1347,8 @@ fn run_2q_unitary_synthesis(
                             .collect();
                         Some((
                             inst.op.name().to_string(),
-                            (!params.is_empty()).then(|| {
-                                params
-                                    .into_iter()
-                                    .cloned()
-                                    .collect::<SmallVec<[Param; 3]>>()
-                            }),
+                            (!params.is_empty())
+                                .then(|| params.iter().cloned().collect::<SmallVec<[Param; 3]>>()),
                             inst_qubits,
                         ))
                     });

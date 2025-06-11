@@ -107,7 +107,7 @@ pub fn mcmt_v_chain(
     let gate_params: SmallVec<[Param; 3]> = controlled_gate
         .try_legacy_params()
         .unwrap()
-        .into_iter()
+        .iter()
         .cloned()
         .collect();
     let packed_controlled_gate = controlled_gate.operation;

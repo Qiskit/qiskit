@@ -256,15 +256,15 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
             | InstructionView::Unitary(_)
             | InstructionView::Instruction(_) => Some(
                 self.parameters()
-                    .and_then(|p| match p {
-                        Parameters::Params(p) => Some(p.as_slice()),
+                    .map(|p| match p {
+                        Parameters::Params(p) => p.as_slice(),
                         _ => panic!("expected gate parameters"),
                     })
                     .unwrap_or_default(),
             ),
             InstructionView::StandardInstruction(inst) => match inst {
                 StandardInstructionView::Delay { duration, .. } => {
-                    Some(std::slice::from_ref(&duration))
+                    Some(std::slice::from_ref(duration))
                 }
                 _ => Some(&[]),
             },

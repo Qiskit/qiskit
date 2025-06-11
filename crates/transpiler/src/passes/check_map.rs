@@ -20,7 +20,6 @@ use qiskit_circuit::operations::Operation;
 use qiskit_circuit::Qubit;
 
 fn recurse<'py>(
-    py: Python<'py>,
     dag: &'py DAGCircuit,
     edge_set: &'py HashSet<[u32; 2]>,
     wire_map: Option<&'py [Qubit]>,
@@ -48,7 +47,7 @@ fn recurse<'py>(
                     })
                     .collect::<Vec<_>>();
 
-                let res = recurse(py, block, edge_set, Some(&wire_map))?;
+                let res = recurse(block, edge_set, Some(&wire_map))?;
                 if res.is_some() {
                     return Ok(res);
                 }
@@ -66,11 +65,10 @@ fn recurse<'py>(
 #[pyfunction]
 #[pyo3(name = "check_map")]
 pub fn run_check_map(
-    py: Python,
     dag: &DAGCircuit,
     edge_set: HashSet<[u32; 2]>,
 ) -> PyResult<Option<(String, [u32; 2])>> {
-    recurse(py, dag, &edge_set, None)
+    recurse(dag, &edge_set, None)
 }
 
 pub fn check_map_mod(m: &Bound<PyModule>) -> PyResult<()> {

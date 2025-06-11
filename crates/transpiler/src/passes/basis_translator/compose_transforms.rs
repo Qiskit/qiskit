@@ -73,7 +73,7 @@ pub(super) fn compose_transforms<'a>(
             op: gate_obj.operation,
             qubits: builder.insert_qargs(&qubits),
             clbits: builder.insert_cargs(&[]),
-            params: gate_obj.params.map(|p| Box::new(p)),
+            params: gate_obj.params.map(Box::new),
             label: gate_obj.label,
             #[cfg(feature = "cache_pygates")]
             py_op: gate.unbind().into(),
@@ -95,7 +95,7 @@ pub(super) fn compose_transforms<'a>(
                             node,
                             op.try_legacy_params()
                                 .unwrap()
-                                .into_iter()
+                                .iter()
                                 .cloned()
                                 .collect::<SmallVec<[Param; 3]>>(),
                         )

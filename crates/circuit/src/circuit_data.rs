@@ -1259,7 +1259,7 @@ impl CircuitData {
             let (operation, params, qargs, cargs) = item?;
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
-            let params = params.map(|p| Box::new(p));
+            let params = params.map(Box::new);
             res.data.push(PackedInstruction {
                 op: operation,
                 qubits,
@@ -1454,7 +1454,7 @@ impl CircuitData {
         qargs: &[Qubit],
         cargs: &[Clbit],
     ) {
-        let params = params.map(|p| Box::new(p));
+        let params = params.map(Box::new);
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
         self.data.push(PackedInstruction {
@@ -1509,7 +1509,7 @@ impl CircuitData {
             } => {
                 if let Some(loop_param) = loop_param {
                     self.param_table.track(
-                        &loop_param.bind(py),
+                        loop_param.bind(py),
                         Some(ParameterUse::Index {
                             instruction: instruction_index,
                             parameter: 1,
@@ -1630,7 +1630,7 @@ impl CircuitData {
             } => {
                 if let Some(loop_param) = loop_param {
                     self.param_table.untrack(
-                        &loop_param.bind(py),
+                        loop_param.bind(py),
                         ParameterUse::Index {
                             instruction: instruction_index,
                             parameter: 1,
@@ -1756,7 +1756,7 @@ impl CircuitData {
             op: inst.operation.clone(),
             qubits,
             clbits,
-            params: inst.params.clone().map(|p| Box::new(p)),
+            params: inst.params.clone().map(Box::new),
             label: inst.label.clone(),
             #[cfg(feature = "cache_pygates")]
             py_op: inst.py_op.clone(),

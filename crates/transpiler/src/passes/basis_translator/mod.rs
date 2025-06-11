@@ -104,7 +104,6 @@ pub fn run_basis_translator(
             .map(|x| x.to_string())
             .collect();
         extract_basis_target(
-            py,
             &dag,
             &mut source_basis,
             &mut qargs_local_source_basis,
@@ -116,7 +115,7 @@ pub fn run_basis_translator(
             .into_iter()
             .map(|x| x.to_string())
             .collect();
-        source_basis = extract_basis(py, &dag, min_qubits)?;
+        source_basis = extract_basis(&dag, min_qubits)?;
         new_target_basis = target_basis.unwrap().into_iter().collect();
     }
     new_target_basis = new_target_basis
@@ -220,14 +219,12 @@ pub fn run_basis_translator(
 
 /// Method that extracts all gate instances identifiers from a DAGCircuit.
 fn extract_basis(
-    py: Python,
     circuit: &DAGCircuit,
     min_qubits: usize,
 ) -> PyResult<IndexSet<GateIdentifier, ahash::RandomState>> {
     let mut basis = IndexSet::default();
     // Recurse for DAGCircuit
     fn recurse_dag(
-        py: Python,
         circuit: &DAGCircuit,
         basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
@@ -238,14 +235,14 @@ fn extract_basis(
             }
             if let Some(control_flow) = operation.try_view_control_flow() {
                 for block in control_flow.blocks() {
-                    recurse_dag(py, block, basis, min_qubits)?;
+                    recurse_dag(block, basis, min_qubits)?;
                 }
             }
         }
         Ok(())
     }
 
-    recurse_dag(py, circuit, &mut basis, min_qubits)?;
+    recurse_dag(circuit, &mut basis, min_qubits)?;
     Ok(basis)
 }
 
@@ -254,7 +251,6 @@ fn extract_basis(
 /// When dealing with `ControlFlowOp` instances the function will perform a recursion call
 /// to a variant design to handle instances of `QuantumCircuit`.
 fn extract_basis_target(
-    py: Python,
     dag: &DAGCircuit,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
@@ -319,7 +315,6 @@ fn extract_basis_target(
         if let Some(control_flow) = node_obj.try_view_control_flow() {
             for block in control_flow.blocks() {
                 extract_basis_target(
-                    py,
                     block,
                     source_basis,
                     qargs_local_source_basis,
@@ -361,7 +356,7 @@ fn apply_translation(
                     let updated_dag: DAGCircuit;
                     (updated_dag, is_updated) = apply_translation(
                         py,
-                        &dag_block,
+                        dag_block,
                         target_basis,
                         instr_map,
                         extra_inst_map,
@@ -479,7 +474,7 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-            let new_params: Option<Parameters<_>> = inner_node.params.as_deref().map(|p| p.clone());
+            let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             dag.apply_operation_back(
                 new_op,
                 &new_qubits,
@@ -516,8 +511,7 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-            let mut new_params: Option<Parameters<_>> =
-                inner_node.params.as_deref().map(|p| p.clone());
+            let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             if let Some(Parameters::Params(inner_node_params)) = inner_node.params.as_deref() {
                 if inner_node_params
                     .iter()

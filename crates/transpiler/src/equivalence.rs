@@ -724,8 +724,8 @@ fn raise_if_param_mismatch(
         py,
         gate_params
             .iter()
-            .cloned()
-            .filter(|param| matches!(param, Param::ParameterExpression(_))),
+            .filter(|&param| matches!(param, Param::ParameterExpression(_)))
+            .cloned(),
     )?;
     if !gate_params_obj.eq(&circuit_parameters)? {
         return Err(CircuitError::new_err(format!(

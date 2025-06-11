@@ -727,7 +727,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 
     match target.add_instruction(
         instruction.into(),
-        entry.params.map(|p| Parameters::Params(p)),
+        entry.params.map(Parameters::Params),
         None,
         property_map,
     ) {

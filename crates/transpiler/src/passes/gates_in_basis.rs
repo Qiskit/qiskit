@@ -46,7 +46,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
                     .zip(block_qubits)
                     .map(|(outer, inner)| (inner, wire_map[outer]))
                     .collect();
-                if visit_circuit(target, &block, &inner_wire_map)? {
+                if visit_circuit(target, block, &inner_wire_map)? {
                     return Ok(true);
                 }
             }
@@ -91,12 +91,8 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
 
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_basis")]
-pub fn gates_missing_from_basis(
-    py: Python,
-    dag: &DAGCircuit,
-    basis: HashSet<String>,
-) -> PyResult<bool> {
-    for (gate, _) in dag.count_ops(py, true)? {
+pub fn gates_missing_from_basis(dag: &DAGCircuit, basis: HashSet<String>) -> PyResult<bool> {
+    for (gate, _) in dag.count_ops(true)? {
         if !basis.contains(gate.as_str()) {
             return Ok(true);
         }

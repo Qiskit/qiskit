@@ -590,18 +590,18 @@ impl<T: Instruction> CreatePythonOperation for T {
                         indexset,
                         loop_param,
                         body,
-                    } => FOR_LOOP_OP.get(py).call(
-                        py,
-                        (indexset, loop_param.clone(), body),
-                        kwargs.as_ref(),
-                    ),
+                    } => {
+                        FOR_LOOP_OP
+                            .get(py)
+                            .call(py, (indexset, loop_param, body), kwargs.as_ref())
+                    }
                     ControlFlowView::IfElse {
                         condition,
                         true_body,
                         false_body,
                     } => IF_ELSE_OP.get(py).call(
                         py,
-                        (condition.clone(), true_body.clone(), false_body.clone()),
+                        (condition.clone(), true_body, false_body),
                         kwargs.as_ref(),
                     ),
                     ControlFlowView::Switch {
