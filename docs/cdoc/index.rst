@@ -46,3 +46,12 @@ Quantum information
    qk-exit-code
    qk-target
    qk-target-entry
+
+--------
+Versions
+--------
+
+.. toctree::
+  :maxdepth: 1
+
+  version

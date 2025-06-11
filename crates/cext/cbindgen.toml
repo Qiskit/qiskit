@@ -11,9 +11,9 @@ after_includes = """
 
 #include "qiskit/complex.h"
 
-#define QISKIT_RELEASE_LEVEL_DEV 0xA  // dev or "alpha"
-#define QISKIT_RELEASE_LEVEL_RC 0xC  // candidate release
-#define QISKIT_RELEASE_LEVEL_FINAL 0xF
+#define QISKIT_RELEASE_LEVEL_DEV 0xA // dev or "alpha"
+#define QISKIT_RELEASE_LEVEL_RC 0xC // candidate release
+#define QISKIT_RELEASE_LEVEL_FINAL 0xF // final release
 
 #define QISKIT_VERSION_MAJOR 2
 #define QISKIT_VERSION_MINOR 1
@@ -31,6 +31,7 @@ after_includes = """
     (serial & 0xf)\
 )
 
+// HEX version using 4 bytes: 0xMMmmppls. For example, 2.1.0rc1 is 0x020100C1.
 #define QISKIT_VERSION_HEX QISKIT_GET_VERSION_HEX(\
     QISKIT_VERSION_MAJOR, \
     QISKIT_VERSION_MINOR, \
