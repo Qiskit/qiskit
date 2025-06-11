@@ -22,18 +22,21 @@ from qiskit.circuit.library.quantum_volume import quantum_volume
 class TestQuantumVolumeLibrary(QiskitTestCase):
     """Test library of quantum volume quantum circuits."""
 
-    def test_qv_seed_reproducibility(self):
-        """Test qv circuit."""
-        left = QuantumVolume(4, 4, seed=28, classical_permutation=False)
-        right = QuantumVolume(4, 4, seed=28, classical_permutation=False)
+    def test_qv_seed_reproducibility_deprecated(self):
+        """Test qv circuit reproducibility for deprecated QuantumVolume class."""
+        with self.assertWarns(DeprecationWarning):
+            left = QuantumVolume(4, 4, seed=28, classical_permutation=False)
+            right = QuantumVolume(4, 4, seed=28, classical_permutation=False)
         self.assertEqual(left, right)
 
-        left = QuantumVolume(4, 4, seed=3, classical_permutation=True)
-        right = QuantumVolume(4, 4, seed=3, classical_permutation=True)
+        with self.assertWarns(DeprecationWarning):
+            left = QuantumVolume(4, 4, seed=3, classical_permutation=True)
+            right = QuantumVolume(4, 4, seed=3, classical_permutation=True)
         self.assertEqual(left, right)
 
-        left = QuantumVolume(4, 4, seed=2024, flatten=True)
-        right = QuantumVolume(4, 4, seed=2024, flatten=True)
+        with self.assertWarns(DeprecationWarning):
+            left = QuantumVolume(4, 4, seed=2024, flatten=True)
+            right = QuantumVolume(4, 4, seed=2024, flatten=True)
         self.assertEqual(left, right)
 
     def test_qv_function_seed_reproducibility(self):
