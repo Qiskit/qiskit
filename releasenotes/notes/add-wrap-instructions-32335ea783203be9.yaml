@@ -91,7 +91,7 @@ features_transpiler:
        target = Target(num_qubits=1)
        target.add_instruction(MyCustomGate(param), angle_bounds=[(0, 0.5)])
 
-       def callback(angles):
+       def callback(angles, _qubits):
            angle = angles[0]
            if angle > 0:
                number_of_gates = angle / 0.5
