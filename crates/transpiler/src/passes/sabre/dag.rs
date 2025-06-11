@@ -54,10 +54,6 @@ pub enum InteractionKind {
     /// the Sabre version and the DAG representation of the block, so we can reconstruct things
     /// later.  When control-flow ops are represented with native DAGs, we won't need to store the
     /// temporary.
-    ///
-    /// The rest of Sabre is allowed to assume that this slice is non-empty; the only possible
-    /// exception to this in Qiskit's data model is an empty `switch`.  We handle that edge case by
-    /// inserting an empty block into the interaction graph in its place.
     ControlFlow(Box<[(SabreDAG, DAGCircuit)]>),
 }
 impl InteractionKind {
@@ -77,9 +73,6 @@ impl InteractionKind {
                     })
                     .collect::<Result<Box<[_]>, _>>()
             })?;
-            if blocks.is_empty() {
-                todo!("handle empty blocks");
-            }
             return Ok(Self::ControlFlow(blocks));
         }
         match qargs {
