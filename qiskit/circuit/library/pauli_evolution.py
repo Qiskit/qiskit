@@ -21,6 +21,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier
 import qiskit.quantum_info
 
 if TYPE_CHECKING:
@@ -151,6 +152,73 @@ class PauliEvolutionGate(Gate):
             time: The evolution time.
         """
         self.params = [time]
+
+    def power(self, exponent: float, annotated: bool = False) -> Gate:
+        """Raise this gate to the power of ``exponent``.
+
+        Implemented by multiplying the time by the exponent.
+
+        Args:
+            exponent: the power to raise the gate to
+            annotated: indicates whether the power gate can be implemented
+                as an annotated operation.
+
+        Returns:
+            An operation implementing ``gate^exponent``
+        """
+        if not annotated:
+            return PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
+
+        return AnnotatedOperation(self, PowerModifier(exponent))
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return the controlled version of itself.
+
+        Implemented either as a controlled gate (ref. :class:`.ControlledGate`)
+        or as an annotated operation (ref. :class:`.AnnotatedOperation`).
+
+        Args:
+            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
+            label: optional gate label. Ignored if implemented as an annotated
+                operation.
+            ctrl_state: the control state in decimal or as a bitstring
+                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
+            annotated: indicates whether the controlled gate is implemented
+                as an annotated gate. If ``None``, this is set to ``False``
+                if the controlled gate can directly be constructed, and otherwise
+                set to ``True``. This allows defering the construction process in case the
+                synthesis of the controlled gate requires more information (e.g.
+                values of unbound parameters).
+
+        Returns:
+            Controlled version of the given operation.
+
+        Raises:
+            QiskitError: unrecognized mode or invalid ctrl_state
+        """
+        if not annotated:  # captures both None and False
+            if ctrl_state is None:
+                ctrl_state = "1" * num_ctrl_qubits
+            control_op = SparseObservable(ctrl_state)
+
+            if isinstance(self.operator, SparsePauliOp):
+                op = SparseObservable.from_sparse_pauli_op(self.operator)
+            else:
+                op = self.operator
+
+            op ^= control_op
+            return PauliEvolutionGate(op, self.time, label, synthesis=self.synthesis)
+
+        else:
+            return AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
