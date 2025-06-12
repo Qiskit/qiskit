@@ -1987,7 +1987,12 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         else:
             raise TranspilerError("Invalid PauliEvolutionGate.")
 
-        evo = PauliEvolutionGate(pauli_op, high_level_object.time)
+        evo = PauliEvolutionGate(
+            pauli_op,
+            time=high_level_object.time,
+            label=high_level_object.label,
+            synthesis=high_level_object.synthesis,
+        )
         algo = evo.synthesis
 
         if not isinstance(algo, ProductFormula):
