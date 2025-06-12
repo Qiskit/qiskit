@@ -23,6 +23,7 @@ from typing import List, Union, Tuple
 from qiskit.circuit.gate import Instruction
 from qiskit._accelerate.target import QubitProperties
 
+
 class Backend:
     """Base common type for all versioned Backend abstract classes.
 

@@ -31,12 +31,9 @@ import inspect
 import rustworkx as rx
 
 # import target class from the rust side
-# import QubitProperties here to provide convenience alias for building a
-# full target
 from qiskit._accelerate.target import (
     BaseTarget,
     BaseInstructionProperties,
-    QubitProperties,
 )
 
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
