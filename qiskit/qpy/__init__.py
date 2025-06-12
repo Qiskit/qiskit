@@ -199,6 +199,9 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.1.1
+     - 13, 14, 15, 16
+     - 16
    * - 2.1.0
      - 13, 14, 15
      - 15
@@ -400,10 +403,13 @@ encoding scheme used for symbolic expressions:
         char symbolic_encoding;
     }
 
+From V16 on, the file header struct is immediately followed by a circuit start table 
+containing the byte offsets of each circuit payload in the file (as an ``uint64_t``).
+
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
 
-The file header is immediately followed by the circuit payloads.
+The circuit start table is immediately followed by the circuit payloads.
 Each individual circuit is composed of the following parts in order from top to bottom:
 
 .. code-block:: text
@@ -425,6 +431,16 @@ Each individual circuit is composed of the following parts in order from top to 
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_16:
+
+Version 16
+----------
+
+Version 16 adds a circuit start table to the QPY file format. It contiains the set of
+byte offsets of each circuit payload in the file. The motivation for this change is to
+enable a more efficient loading of circuits using multi-threading in a future rust
+implementation of the QPY deserializer.
 
 .. _qpy_version_15:
 
