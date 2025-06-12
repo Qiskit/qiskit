@@ -126,22 +126,25 @@ def phase_estimation(
 
     Args:
         num_evaluation_qubits: The number of evaluation qubits.
-        unitary: The unitary operation :math:`U` which will be repeated and controlled.
-        name: The name of the circuit.
+        unitary: The unitary operation :math:`U` which will be repeated and controlled. This
+            can either be a :class:`.QuantumCircuit` or a :class:`.Gate`. Passing gates can often
+            be more performant, as it allows calling optimized control and power subroutines.
+        name: The name of the output circuit.
 
     **Reference Circuit:**
 
     .. plot::
-       :alt: Circuit diagram output by the previous code.
+       :alt: A phase estimation circuit.
        :include-source:
 
-       from qiskit.circuit import QuantumCircuit
-       from qiskit.circuit.library import phase_estimation
-       unitary = QuantumCircuit(2)
-       unitary.x(0)
-       unitary.y(1)
-       circuit = phase_estimation(3, unitary)
-       circuit.draw('mpl')
+       from qiskit.circuit.library import phase_estimation, PauliEvolutionGate
+       from qiskit.quantum_info import SparsePauliOp
+
+       hamiltonian = SparsePauliOp(["ZZ", "IX", "XI"])
+       evo = PauliEvolutionGate(hamiltonian, time=0.1)  # implements exp(-itH)
+
+       circuit = phase_estimation(3, evo)  # QPE for the evolution operator
+       circuit.draw("mpl")
 
     **References:**
 
