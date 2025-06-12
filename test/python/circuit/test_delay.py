@@ -149,6 +149,7 @@ class TestDelayClass(QiskitTestCase):
         qc.delay(expr.lift(Duration.ms(3)), 0)
         qc.delay(expr.lift(Duration.s(4)), 0)
         qc.delay(expr.lift(Duration.dt(5)), 0)
+        qc.delay(expr.lift(Duration.ps(6)), 0)
         qc.delay(stretch, [0, 1])
         self.assertEqual(qc, pickle.loads(pickle.dumps(qc)))
         self.assertEqual(qc, copy.copy(qc))

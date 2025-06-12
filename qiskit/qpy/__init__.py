@@ -426,6 +426,21 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_16:
+
+Version 16
+----------
+
+Version 16 adds a new variant to the existing DURATION type encoding for picoseconds. This
+is encoded as follows, and is in addition to the previously supported variants.
+
+==============================  =========  =========================================================
+Qiskit class                    Type code  Payload
+==============================  =========  =========================================================
+:class:`~.circuit.Duration.ps`    ``p``    One ``double value``.
+
+==============================  =========  =========================================================
+
 .. _qpy_version_15:
 
 Version 15
