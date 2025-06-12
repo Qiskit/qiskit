@@ -6612,7 +6612,6 @@ impl DAGCircuit {
 
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
     pub(crate) fn from_circuit(
-        py: Python,
         qc: QuantumCircuitData,
         copy_op: bool,
         qubit_order: Option<Vec<Bound<PyAny>>>,
@@ -6641,7 +6640,9 @@ impl DAGCircuit {
 
         // Avoid manually acquiring the GIL.
         new_dag.global_phase = match qc_data.global_phase() {
-            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
+            // The clone here implicitly requires the gil while ParameterExpression is defined in
+            // Python.
+            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone()),
             Param::Float(float) => Param::Float(*float),
             _ => unreachable!("Incorrect parameter assigned for global phase"),
         };
@@ -6753,7 +6754,7 @@ impl DAGCircuit {
         new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
             Ok(PackedInstruction {
                 op: if copy_op {
-                    instr.op.py_deepcopy(py, None)?
+                    instr.op.py_deepcopy(None)?
                 } else {
                     instr.op.clone()
                 },
@@ -6769,11 +6770,7 @@ impl DAGCircuit {
     }
 
     /// Builds a [DAGCircuit] based on an instance of [CircuitData].
-    pub fn from_circuit_data(
-        py: Python,
-        circuit_data: CircuitData,
-        copy_op: bool,
-    ) -> PyResult<Self> {
+    pub fn from_circuit_data(circuit_data: CircuitData, copy_op: bool) -> PyResult<Self> {
         let circ = QuantumCircuitData {
             data: circuit_data,
             name: None,
@@ -6784,7 +6781,7 @@ impl DAGCircuit {
             captured_stretches: Vec::new(),
             declared_stretches: Vec::new(),
         };
-        Self::from_circuit(py, circ, copy_op, None, None)
+        Self::from_circuit(circ, copy_op, None, None)
     }
 
     #[allow(clippy::too_many_arguments)]

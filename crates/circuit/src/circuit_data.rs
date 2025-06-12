@@ -505,7 +505,7 @@ impl CircuitData {
             let memo = PyDict::new(py);
             for inst in &self.data {
                 res.data.push(PackedInstruction {
-                    op: inst.op.py_deepcopy(py, Some(&memo))?,
+                    op: inst.op.py_deepcopy(Some(&memo))?,
                     qubits: inst.qubits,
                     clbits: inst.clbits,
                     params: inst.params.clone(),
