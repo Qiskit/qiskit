@@ -47,9 +47,9 @@ Quantum information
    qk-target
    qk-target-entry
 
---------
-Versions
---------
+----------
+Versioning
+----------
 
 .. toctree::
   :maxdepth: 1
