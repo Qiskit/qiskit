@@ -1481,6 +1481,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         circuit.h(0)
         circuit.cx(0, 3)
 
+        # Add a custom gate to trigger HighLevelSynthesis
+        my_h = QuantumCircuit(1, name="my_h")
+        my_h.h(0)
+        circuit.append(my_h.to_gate(), (1,))
+
         num_qubits = 10
         target = Target(num_qubits)
         for inst in (lib.IGate(), lib.PhaseGate(Parameter("t")), lib.SXGate()):

@@ -65,13 +65,7 @@ def dag_to_circuit(dag, copy_operations=True):
         *dag.cregs.values(),
         name=name,
         global_phase=dag.global_phase,
-        inputs=dag.iter_input_vars(),
-        captures=dag.iter_captures(),
     )
-    for var in dag.iter_declared_vars():
-        circuit.add_uninitialized_var(var)
-    for stretch in dag.iter_declared_stretches():
-        circuit.add_stretch(stretch)
     circuit.metadata = dag.metadata or {}
     circuit._data = circuit_data
     circuit._duration = dag._duration
