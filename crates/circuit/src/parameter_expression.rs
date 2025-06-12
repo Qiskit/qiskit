@@ -227,76 +227,6 @@ impl fmt::Display for ParameterExpression {
     }
 }
 
-// ===========================================
-// Parameter class
-// ===========================================
-#[pyclass(sequence, subclass, module = "qiskit._accelerate.circuit", extends=ParameterExpression, name="Parameter")]
-#[derive(Clone, Debug)]
-pub struct PyParameter {}
-
-#[pymethods]
-impl PyParameter {
-    #[new]
-    #[pyo3(signature = (name = None, uuid = None))]
-    pub fn new(name: Option<String>, uuid: Option<u128>) -> PyClassInitializer<Self> {
-        match name {
-            Some(name) => {
-                // check if expr contains replacements for sympy
-                let name = name
-                    .replace("__begin_sympy_replace__", "$\\")
-                    .replace("__end_sympy_replace__", "$");
-
-                let uuid = match uuid {
-                    Some(u) => u,
-                    None => Uuid::new_v4().as_u128(),
-                };
-                PyClassInitializer::from(ParameterExpression {
-                    inner: ParameterInner::Symbol {
-                        name: Box::new(name.clone()),
-                        uuid,
-                    },
-                })
-                .add_subclass(Self {})
-            }
-            None => PyClassInitializer::from(ParameterExpression::default()).add_subclass(Self {}),
-        }
-    }
-}
-
-// ===========================================
-// ParameterVectorElement class
-// ===========================================
-#[pyclass(sequence, module = "qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
-#[derive(Clone, Debug)]
-pub struct PyParameterVectorElement {}
-
-#[pymethods]
-impl PyParameterVectorElement {
-    #[new]
-    #[pyo3(signature = (vector, index, uuid = None))]
-    pub fn new(
-        vector: &ParameterVector,
-        index: usize,
-        uuid: Option<u128>,
-    ) -> PyClassInitializer<Self> {
-        let uuid = match uuid {
-            Some(u) => u,
-            None => Uuid::new_v4().as_u128(),
-        };
-
-        PyClassInitializer::from(ParameterExpression {
-            inner: ParameterInner::VectorElement {
-                name: Box::new(vector.name.clone()),
-                index,
-                uuid,
-                vector: Some(Arc::new(vector.clone())),
-            },
-        })
-        .add_subclass(PyParameter {})
-        .add_subclass(Self {})
-    }
-}
-
 // Rust side ParameterExpression implementation
 impl ParameterExpression {
     /// new for ParameterExpression
@@ -315,15 +245,15 @@ impl ParameterExpression {
     }
 
     /// get uuid for this symbol
-    pub fn uuid(&self) -> u128 {
+    pub fn uuid(&self) -> &u128 {
         match &self.inner {
-            ParameterInner::Symbol { name: _, uuid } => *uuid,
+            ParameterInner::Symbol { name: _, uuid } => uuid,
             ParameterInner::VectorElement {
                 name: _,
                 index: _,
                 uuid,
                 vector: _,
-            } => *uuid,
+            } => uuid,
             ParameterInner::Expression {
                 expr: _,
                 qpy_replay: _,
@@ -334,7 +264,7 @@ impl ParameterExpression {
                         return symbols.iter().next().unwrap().uuid();
                     }
                 }
-                0_u128
+                &0_u128
             }
         }
     }
@@ -1533,40 +1463,103 @@ impl ParameterExpression {
     /// ParameterExpression::__init__
     /// initialize ParameterExpression from the equation stored in string
     #[new]
-    #[pyo3(signature = (symbol_map = None, expr = None, *, _qpy_replay = None))]
+    #[pyo3(signature = (symbol_map = None, expr = None, _qpy_replay = None))]
     pub fn __new__(
         symbol_map: Option<HashMap<ParameterExpression, PyObject>>,
-        expr: Option<String>,
+        expr: Option<Bound<PyAny>>,
         _qpy_replay: Option<Vec<OPReplay>>,
     ) -> PyResult<Self> {
-        let (Some(symbol_map), Some(expr)) = (symbol_map, expr) else {
+        let Some(expr) = expr else {
             return Ok(ParameterExpression::default());
         };
 
+        if let Ok(expr) = expr.extract::<ParameterExpression>() {
+            Ok(expr)
+        }
+        else if let Ok(expr) = expr.extract::<String>() {
+            // check if expr contains replacements for sympy
+            let expr = expr
+                .replace("__begin_sympy_replace__", "$\\")
+                .replace("__end_sympy_replace__", "$");
+            match parse_expression(&expr) {
+                Ok(expr) => {
+                    let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
+                    if let Some(symbol_map) = symbol_map {
+                        for (param, _) in symbol_map {
+                            parameter_symbols.insert(Arc::new(param.to_owned()));
+                        }
+                    } else {
+                        for symbol in expr.symbols() {
+                            parameter_symbols.insert(Arc::new(ParameterExpression {
+                                inner: ParameterInner::Symbol {
+                                    name: Box::new(symbol.clone()),
+                                    uuid: Uuid::new_v4().as_u128(),
+                                },
+                            }));
+                        }
+                    }
+                    // substitute 'I' to imaginary number i before returning expression
+                    Ok(ParameterExpression {
+                        inner: ParameterInner::Expression {
+                            expr: expr.bind(&HashMap::from([(
+                                "I".to_string(),
+                                symbol_expr::Value::from(Complex64::i()),
+                            )])),
+                            qpy_replay: _qpy_replay.unwrap_or_default(),
+                            parameter_symbols: Some(parameter_symbols),
+                        },
+                    })
+                }
+                Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
+            }
+        } else {
+            Err(pyo3::exceptions::PyRuntimeError::new_err("Unsupported data type to initialize ParameterExpression."))
+        }
+    }
+
+    /// create new expression as symbol
+    #[allow(non_snake_case)]
+    #[staticmethod]
+    #[pyo3(signature = (name, uuid = None))]
+    pub fn Symbol(name: String, uuid: Option<u128>) -> PyResult<Self> {
         // check if expr contains replacements for sympy
-        let expr = expr
+        let name = name
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
-        match parse_expression(&expr) {
-            Ok(expr) => {
-                let mut parameter_symbols = HashSet::<Arc<ParameterExpression>>::new();
-                for (param, _) in symbol_map {
-                    parameter_symbols.insert(Arc::new(param.to_owned()));
-                }
-                // substitute 'I' to imaginary number i before returning expression
-                Ok(ParameterExpression {
-                    inner: ParameterInner::Expression {
-                        expr: expr.bind(&HashMap::from([(
-                            "I".to_string(),
-                            symbol_expr::Value::from(Complex64::i()),
-                        )])),
-                        qpy_replay: _qpy_replay.unwrap_or_default(),
-                        parameter_symbols: Some(parameter_symbols),
-                    },
-                })
-            }
-            Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
-        }
+
+        let uuid = match uuid {
+            Some(u) => u,
+            None => Uuid::new_v4().as_u128(),
+        };
+        Ok(ParameterExpression {
+            inner: ParameterInner::Symbol {
+                name: Box::new(name.clone()),
+                uuid,
+            },
+        })
+    }
+
+    /// create new expression as vector element
+    #[allow(non_snake_case)]
+    #[staticmethod]
+    #[pyo3(signature = (name, index, uuid = None))]
+    pub fn VectorElement(name: String, index: usize, uuid: Option<u128>) -> PyResult<Self> {
+        // check if expr contains replacements for sympy
+        let name = name
+            .replace("__begin_sympy_replace__", "$\\")
+            .replace("__end_sympy_replace__", "$");
+        let uuid = match uuid {
+            Some(u) => u,
+            None => Uuid::new_v4().as_u128(),
+        };
+        Ok(ParameterExpression {
+            inner: ParameterInner::VectorElement {
+                name: Box::new(name.clone()),
+                index,
+                uuid,
+                vector: None,
+            },
+        })
     }
 
     /// create new expression as a value
@@ -1661,9 +1654,9 @@ impl ParameterExpression {
     }
 
     /// get uuid for this symbol
-    #[getter("uuid")]
+    #[pyo3(name = "get_uuid")]
     pub fn py_get_uuid(&self) -> u128 {
-        self.uuid()
+        *self.uuid()
     }
 
     /// get ParameterVector if this is ParameterVectorElement
@@ -1872,58 +1865,21 @@ impl ParameterExpression {
             } => match &parameter_symbols {
                 Some(symbols) => {
                     for s in symbols {
-                        // initialize new Parameter/ParameterVectorElement object from ParameterExpression in symbols set
-                        match &s.inner {
-                            ParameterInner::VectorElement { .. } => {
-                                let pve = Py::new(
-                                    py,
-                                    PyClassInitializer::from(
-                                        Arc::<ParameterExpression>::unwrap_or_clone(s.clone()),
-                                    )
-                                    .add_subclass(PyParameter {})
-                                    .add_subclass(PyParameterVectorElement {}),
-                                )?;
-                                out.add(pve)?;
-                            }
-                            _ => {
-                                let pp = Py::new(
-                                    py,
-                                    PyClassInitializer::from(
-                                        Arc::<ParameterExpression>::unwrap_or_clone(s.clone()),
-                                    )
-                                    .add_subclass(PyParameter {}),
-                                )?;
-                                out.add(pp)?;
-                            }
-                        }
+                        out.add(Arc::<ParameterExpression>::unwrap_or_clone(s.clone()))?;
                     }
                     Ok(out.unbind())
                 }
                 None => Ok(out.unbind()),
             },
             ParameterInner::VectorElement { .. } => {
-                let pve = Py::new(
-                    py,
-                    PyClassInitializer::from(self.clone())
-                        .add_subclass(PyParameter {})
-                        .add_subclass(PyParameterVectorElement {}),
-                )?;
-                out.add(pve)?;
+                out.add(self.clone())?;
                 Ok(out.unbind())
             }
             ParameterInner::Symbol { .. } => {
-                let pp = Py::new(
-                    py,
-                    PyClassInitializer::from(self.clone()).add_subclass(PyParameter {}),
-                )?;
-                out.add(pp)?;
+                out.add(self.clone())?;
                 Ok(out.unbind())
             }
         }
-    }
-    #[getter("_parameter_symbols")]
-    pub fn py_parameter_symbols(&self, py: Python) -> PyResult<Py<PySet>> {
-        self.py_get_parameters(py)
     }
 
     /// return all values in this equation
@@ -2304,7 +2260,7 @@ impl ParameterExpression {
                 if let Some(symbols) = &parameter_symbols {
                     let mut ret = HashMap::<String, u128>::new();
                     for s in symbols {
-                        ret.insert(s.to_string(), s.uuid());
+                        ret.insert(s.to_string(), *s.uuid());
                     }
                     return Ok((self.to_string(), None, None, None, Some(ret)));
                 }
@@ -2422,19 +2378,9 @@ impl ParameterIter {
     fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PyObject> {
         // make new vector element object from ParameterExpression for next object
         match slf.inner.next() {
-            Some(e) => {
-                match Py::new(
-                    slf.py(),
-                    PyClassInitializer::from(e.clone())
-                        .add_subclass(PyParameter {})
-                        .add_subclass(PyParameterVectorElement {}),
-                ) {
-                    Ok(p) => match p.into_py_any(slf.py()) {
-                        Ok(p) => Some(p),
-                        _ => None,
-                    },
-                    _ => None,
-                }
+            Some(e) => match e.into_py_any(slf.py()) {
+                Ok(e) => Some(e),
+                Err(_) => None,
             }
             None => None,
         }
@@ -2444,7 +2390,7 @@ impl ParameterIter {
 // ===========================================
 // ParameterVector class
 // ===========================================
-#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(sequence, subclass, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct ParameterVector {
     name: String,
@@ -2512,14 +2458,7 @@ impl ParameterVector {
     pub fn py_get_params(&self, py: Python) -> PyResult<Py<PyList>> {
         let out = PyList::empty(py);
         for s in &self.params {
-            // initialize new ParameterVectorElement object from ParameterExpression
-            let pve = Py::new(
-                py,
-                PyClassInitializer::from(s.clone())
-                    .add_subclass(PyParameter {})
-                    .add_subclass(PyParameterVectorElement {}),
-            )?;
-            out.append(pve)?;
+            out.append(s.clone())?;
         }
         Ok(out.unbind())
     }
@@ -2537,25 +2476,12 @@ impl ParameterVector {
     pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<PyObject> {
         match index.with_len(self.params.len())? {
             SequenceIndex::Int(index) => {
-                // return new ParameterVectorElement object made from ParameterExpression
-                let pve = Py::new(
-                    py,
-                    PyClassInitializer::from(self.params[index].clone())
-                        .add_subclass(PyParameter {})
-                        .add_subclass(PyParameterVectorElement {}),
-                )?;
-                pve.into_py_any(py)
+                self.params[index].clone().into_py_any(py)
             }
             indices => {
                 let out = PyList::empty(py);
                 for i in indices {
-                    let pve = Py::new(
-                        py,
-                        PyClassInitializer::from(self.params[i].clone())
-                            .add_subclass(PyParameter {})
-                            .add_subclass(PyParameterVectorElement {}),
-                    )?;
-                    out.append(pve)?;
+                    out.append(self.params[i].clone())?;
                 }
                 out.into_py_any(py)
             }

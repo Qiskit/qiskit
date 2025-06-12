@@ -423,7 +423,7 @@ class SparsePauliOp(LinearOp):
             return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
         # Otherwise we just update the phases
         return SparsePauliOp(
-            self.paulis.copy(), self.coeffs * other, ignore_pauli_phase=True, copy=False
+            self.paulis.copy(), other * self.coeffs, ignore_pauli_phase=True, copy=False
         )
 
     # ---------------------------------------------------------------------
@@ -482,9 +482,7 @@ class SparsePauliOp(LinearOp):
             def to_complex(coeff):
                 if not hasattr(coeff, "sympify"):
                     return coeff
-                import sympy as sym
-
-                sympified = sym.sympify(coeff.sympify())
+                sympified = coeff.sympify()
                 return complex(sympified) if sympified.is_Number else np.nan
 
             non_zero = np.logical_not(
@@ -1077,8 +1075,7 @@ class SparsePauliOp(LinearOp):
             def __getitem__(self, key):
                 coeff = self.obj.coeffs[key]
                 mat = self.obj.paulis[key].to_matrix(sparse)
-                # swap multiply order temporary until ParameterExpression will accept ndarray
-                return mat * coeff
+                return coeff * mat
 
         return MatrixIterator(self)
 
