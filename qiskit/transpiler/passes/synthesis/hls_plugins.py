@@ -1966,7 +1966,29 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             # actual PauliEvolutionGate
             return None
 
-        algo = high_level_object.synthesis
+        from qiskit.quantum_info import SparsePauliOp, SparseObservable
+
+        # The synthesis function synth_pauli_network_rustiq does not support SparseObservables,
+        # so we need to convert them to SparsePauliOps.
+        if isinstance(high_level_object.operator, SparsePauliOp):
+            pauli_op = high_level_object.operator
+
+        elif isinstance(high_level_object.operator, SparseObservable):
+            pauli_op = SparsePauliOp.from_sparse_observable(high_level_object.operator)
+
+        elif isinstance(high_level_object.operator, list):
+            pauli_op = []
+            for op in high_level_object.operator:
+                if isinstance(op, SparseObservable):
+                    pauli_op.append(SparsePauliOp.from_sparse_observable(op))
+                else:
+                    pauli_op.append(op)
+
+        else:
+            raise TranspilerError("Invalid PauliEvolutionGate.")
+
+        evo = PauliEvolutionGate(pauli_op, high_level_object.time)
+        algo = evo.synthesis
 
         if not isinstance(algo, ProductFormula):
             warnings.warn(
@@ -1980,9 +2002,8 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         if "preserve_order" in options:
             algo.preserve_order = options["preserve_order"]
 
-        num_qubits = high_level_object.num_qubits
-        pauli_network = algo.expand(high_level_object)
-
+        num_qubits = evo.num_qubits
+        pauli_network = algo.expand(evo)
         optimize_count = options.get("optimize_count", True)
         preserve_order = options.get("preserve_order", True)
         upto_clifford = options.get("upto_clifford", False)

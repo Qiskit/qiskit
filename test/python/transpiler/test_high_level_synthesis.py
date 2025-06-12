@@ -55,7 +55,14 @@ from qiskit.circuit.library import (
     GlobalPhaseGate,
 )
 from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
-from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
+from qiskit.quantum_info import (
+    Pauli,
+    Clifford,
+    Operator,
+    Statevector,
+    SparsePauliOp,
+    SparseObservable,
+)
 from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.synthesis.arithmetic import adder_qft_d00
@@ -3031,6 +3038,41 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         )
         self.assertEqual(count_rotation_gates(qct), 2)
         self.assertEqual(set(qct.parameters), {alpha, beta})
+
+    def test_rustiq_raises_on_invalid_input(self):
+        """Test that we get an error on invalid input."""
+        # The Pauli string "1Y" is invalid
+        pauli_network = [("XXX", [0, 1, 2], 0.5), ("1Y", [1, 2], -0.5)]
+        with self.assertRaises(QiskitError):
+            synth_pauli_network_rustiq(num_qubits=4, pauli_network=pauli_network)
+
+    def test_on_sparse_observable(self):
+        """Test that plugins handle operators with SparseObservables."""
+        obs = SparseObservable.from_sparse_list([("1+XY", (0, 1, 2, 3), 1.5)], num_qubits=4)
+        evo = PauliEvolutionGate(obs, time=1)
+        qc = QuantumCircuit(4)
+        qc.append(evo, [0, 1, 2, 3])
+        default_config = HLSConfig(PauliEvolution=["default"])
+        qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
+        rustiq_config = HLSConfig(PauliEvolution=[("rustiq")])
+        qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
+        self.assertEqual(Operator(qct_default), Operator(qc))
+        self.assertEqual(Operator(qct_rustiq), Operator(qc))
+
+    def test_on_list_with_sparse_observable(self):
+        """Test that plugins handle operators with SparseObservables."""
+        pauli = Pauli("-XYZI")
+        op = SparsePauliOp(["IZXY"], 1)
+        obs = SparseObservable.from_sparse_list([("1+XY", (0, 1, 2, 3), 1.5)], num_qubits=4)
+        evo = PauliEvolutionGate([pauli, op, obs], time=1)
+        qc = QuantumCircuit(4)
+        qc.append(evo, [0, 1, 2, 3])
+        default_config = HLSConfig(PauliEvolution=["default"])
+        qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
+        rustiq_config = HLSConfig(PauliEvolution=[("rustiq")])
+        qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
+        self.assertEqual(Operator(qct_default), Operator(qc))
+        self.assertEqual(Operator(qct_rustiq), Operator(qc))
 
 
 class TestAnnotatedSynthesisPlugins(QiskitTestCase):
