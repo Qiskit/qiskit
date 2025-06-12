@@ -27,6 +27,7 @@ ahash.workspace = true
 smallvec.workspace = true
 ndarray.workspace = true
 nalgebra.workspace = true
+hashbrown.workspace = true
 
 [build-dependencies]
 cbindgen = "0.29"

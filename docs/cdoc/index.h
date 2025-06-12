@@ -33,3 +33,11 @@
 /**
  * @defgroup QkTargetEntry QkTargetEntry
  */
+
+/**
+ * @defgroup QkTranspilerPassses QkTranspilerPasses
+ */
+
+/**
+ * @defgroup QkVF2LayoutResult QkVF2LayoutResult
+ */
