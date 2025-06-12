@@ -2724,6 +2724,8 @@ class QuantumCircuit:
             if copy and is_parameter:
                 operation = _copy.deepcopy(operation)
         if isinstance(operation, ControlFlowOp):
+            if operation.name == "box" and operation.unit == "expr":
+                _validate_expr(circuit_scope, operation.duration)
             # Verify that any variable bindings are valid.  Control-flow ops are already enforced
             # by the class not to contain 'input' variables.
             if bad_captures := {
@@ -4808,7 +4810,7 @@ class QuantumCircuit:
             target._name_update()
 
         if isinstance(parameters, collections.abc.Mapping):
-            raw_mapping = parameters if flat_input else self._unroll_param_dict(parameters)
+            raw_mapping = parameters if flat_input else self._unroll_param_dict(parameters, strict)
             if strict and (
                 extras := [
                     parameter for parameter in raw_mapping if not self.has_parameter(parameter)
@@ -4831,7 +4833,7 @@ class QuantumCircuit:
         return self._data.has_control_flow_op()
 
     def _unroll_param_dict(
-        self, parameter_binds: Mapping[Parameter, ParameterValueType]
+        self, parameter_binds: Mapping[Parameter, ParameterValueType], strict: bool = True
     ) -> Mapping[Parameter, ParameterValueType]:
         out = {}
         for parameter, value in parameter_binds.items():
@@ -4843,7 +4845,10 @@ class QuantumCircuit:
                     )
                 out.update(zip(parameter, value))
             elif isinstance(parameter, str):
-                out[self.get_parameter(parameter)] = value
+                if strict:
+                    out[self.get_parameter(parameter)] = value
+                if not strict and self.has_parameter(parameter):
+                    out[self.get_parameter(parameter)] = value
             else:
                 out[parameter] = value
         return out
@@ -6721,7 +6726,7 @@ class QuantumCircuit:
         *,
         label: str | None = None,
         duration: None = None,
-        unit: Literal["dt", "s", "ms", "us", "ns", "ps"] = "dt",
+        unit: Literal["dt", "s", "ms", "us", "ns", "ps", "expr"] | None = None,
         annotations: typing.Iterable[Annotation] = ...,
     ):
         """Create a ``box`` of operations on this circuit that are treated atomically in the greater

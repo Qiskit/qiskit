@@ -172,9 +172,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.23.0"
+version = "1.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9134a6ef01ce4b366b50689c94f82c14bc72bc5d0386829828a2e2752ef7958c"
+checksum = "5c76a5792e44e4abe34d3abf15636779261d45a7450612059293d1d2cfc63422"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -1457,7 +1457,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "approx",
  "hashbrown 0.15.3",
@@ -1481,7 +1481,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-cext"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "cbindgen",
@@ -1499,7 +1499,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1524,7 +1524,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
@@ -1539,7 +1539,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "hashbrown 0.15.3",
  "num-bigint",
@@ -1549,7 +1549,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "hashbrown 0.15.3",
@@ -1565,7 +1565,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-quantum-info"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1591,7 +1591,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-synthesis"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1624,7 +1624,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-transpiler"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -2030,9 +2030,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.15.0"
+version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
+checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "smol_str"
