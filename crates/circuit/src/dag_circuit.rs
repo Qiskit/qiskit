@@ -2352,8 +2352,8 @@ impl DAGCircuit {
                 2,
             ))?;
         }
-        let (node_index, bound_node) = match node.downcast::<DAGOpNode>() {
-            Ok(bound_node) => (bound_node.borrow().as_ref().node.unwrap(), bound_node),
+        let node_index = match node.downcast::<DAGOpNode>() {
+            Ok(bound_node) => bound_node.borrow().as_ref().node.unwrap(),
             Err(_) => return Err(DAGCircuitError::new_err("expected node DAGOpNode")),
         };
 
@@ -2369,23 +2369,23 @@ impl DAGCircuit {
         );
 
         let build_wire_map = |wires: &Bound<PyList>| -> PyResult<WireMapsTuple> {
-            let qargs_list = imports::BUILTIN_LIST
-                .get_bound(py)
-                .call1((bound_node.borrow().get_qargs(py),))?;
-            let qargs_list = qargs_list.downcast::<PyList>().unwrap();
-            let cargs_list = imports::BUILTIN_LIST
-                .get_bound(py)
-                .call1((bound_node.borrow().get_cargs(py),))?;
-            let cargs_list = cargs_list.downcast::<PyList>().unwrap();
-            let cargs_set = imports::BUILTIN_SET.get_bound(py).call1((cargs_list,))?;
-            let cargs_set = cargs_set.downcast::<PySet>().unwrap();
+            let qargs_list: Vec<&ShareableQubit> = self
+                .qubits
+                .map_indices(self.qargs_interner.get(node.qubits))
+                .collect();
+            let mut cargs_list: Vec<&ShareableClbit> = self
+                .clbits
+                .map_indices(self.cargs_interner.get(node.clbits))
+                .collect();
+            let cargs_set: HashSet<&ShareableClbit> =
+                HashSet::from_iter(cargs_list.iter().cloned());
             if self.may_have_additional_wires(node.op.view()) {
                 let (add_cargs, _add_vars) =
                     Python::with_gil(|py| self.additional_wires(py, node.op.view()))?;
-                for wire in add_cargs.iter() {
-                    let clbit = self.clbits.get(*wire).unwrap();
-                    if !cargs_set.contains(clbit)? {
-                        cargs_list.append(clbit)?;
+                for wire in add_cargs {
+                    let clbit = self.clbits.get(wire).unwrap();
+                    if !cargs_set.contains(clbit) {
+                        cargs_list.push(clbit);
                     }
                 }
             }
@@ -2411,10 +2411,7 @@ impl DAGCircuit {
                         .qubits
                         .find(&wire.extract::<ShareableQubit>()?)
                         .unwrap();
-                    let self_qubit: Qubit = self
-                        .qubits
-                        .find(&qargs_list.get_item(index)?.extract::<ShareableQubit>()?)
-                        .unwrap();
+                    let self_qubit: Qubit = self.qubits.find(qargs_list[index]).unwrap();
                     qubit_wire_map.insert(input_qubit, self_qubit);
                 } else if wire.downcast::<PyClbit>().is_ok() {
                     if index < qargs_len {
@@ -2425,13 +2422,7 @@ impl DAGCircuit {
                             .clbits
                             .find(&wire.extract::<ShareableClbit>()?)
                             .unwrap(),
-                        self.clbits
-                            .find(
-                                &cargs_list
-                                    .get_item(index - qargs_len)?
-                                    .extract::<ShareableClbit>()?,
-                            )
-                            .unwrap(),
+                        self.clbits.find(cargs_list[index - qargs_len]).unwrap(),
                     );
                 } else {
                     return Err(DAGCircuitError::new_err(
