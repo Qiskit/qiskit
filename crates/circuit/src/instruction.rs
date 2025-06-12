@@ -285,13 +285,6 @@ pub enum InstructionView<'a, T> {
 }
 
 impl<'a, T> InstructionView<'a, T> {
-    pub fn standard_gate(self) -> Option<StandardGateView<'a>> {
-        match self {
-            InstructionView::StandardGate(standard) => Some(standard),
-            _ => None,
-        }
-    }
-
     pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self {
             InstructionView::StandardGate(g) => g.matrix(),
