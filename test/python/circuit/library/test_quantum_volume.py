@@ -14,9 +14,10 @@
 
 import unittest
 
+from test.utils.base import QiskitTestCase
+
 import numpy as np
 
-from test.utils.base import QiskitTestCase
 from qiskit.circuit.library import QuantumVolume
 from qiskit.circuit.library.quantum_volume import quantum_volume
 
