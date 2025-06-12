@@ -354,15 +354,13 @@ def loads(
            :alt: Circuit diagram output by the previous code.
            :include-source:
 
-           from qiskit import QuantumCircuit
-           from qiskit_ibm_runtime import QiskitRuntimeService
-           from qiskit import generate_preset_pass_manager
+           from qiskit import QuantumCircuit, transpile
+           from qiskit.providers.fake_provider import GenericBackendV2
            from qiskit.qasm3 import dumps,loads
            import numpy as np
 
            # specify backend
-           service = QiskitRuntimeService()
-           backend = service.backend("ibm_sherbrooke")
+           backend = GenericBackendV2(num_qubits=127)
 
            # create a quantum circuit
            qc = QuantumCircuit(20)
@@ -374,8 +372,7 @@ def loads(
            qc.draw('mpl')
 
            # transpile the circuit
-           pm = generate_preset_pass_manager(optimization_level=2,backend=backend)
-           isa_qc = pm.run(qc)
+           isa_qc = transpile(qc, backend, optimization_level=2)
 
            # serialize the quantum circuit in an OpenQASM3 string
            qc_ser = dumps(isa_qc)
