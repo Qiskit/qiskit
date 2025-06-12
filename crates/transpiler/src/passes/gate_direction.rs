@@ -358,11 +358,10 @@ fn replace_dag(std_gate: StandardGate, inst: &DAGInstruction) -> PyResult<DAGCir
         StandardGate::ECR => ecr_replacement_dag(),
         StandardGate::CZ => cz_replacement_dag(),
         StandardGate::Swap => swap_replacement_dag(),
-        // TODO: is this correct?
-        StandardGate::RXX => rxx_replacement_dag(inst.try_view_standard_gate().unwrap().1),
-        StandardGate::RYY => ryy_replacement_dag(inst.try_view_standard_gate().unwrap().1),
-        StandardGate::RZZ => rzz_replacement_dag(inst.try_view_standard_gate().unwrap().1),
-        StandardGate::RZX => rzx_replacement_dag(inst.try_view_standard_gate().unwrap().1),
+        StandardGate::RXX => rxx_replacement_dag(inst.try_legacy_params().unwrap()),
+        StandardGate::RYY => ryy_replacement_dag(inst.try_legacy_params().unwrap()),
+        StandardGate::RZZ => rzz_replacement_dag(inst.try_legacy_params().unwrap()),
+        StandardGate::RZX => rzx_replacement_dag(inst.try_legacy_params().unwrap()),
         _ => panic!("Mismatch in supported gates assumption"),
     };
 
