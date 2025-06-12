@@ -1,0 +1,12 @@
+---
+features_primitives:
+  - |
+    Pub types for the estimator and the sampler now support an extra value where 
+    the shape of the pub can be explicitly set instead of inferred from the other
+    values.
+  - |
+    The containers :class:`~.EstimatorPub`, :class:`~.SamplerPub`, 
+    :class:`~.BindingsArray`, :class:`~ObservablesArray` were added to the public interface.
+    These can be used as inputs to primitives deriving from :class:`~BaseEstimatorV2` and 
+    :class:`~BaseSamplerV2`, whereas before, they were an internal implementation detail 
+    of the primitive input type coersion process.
