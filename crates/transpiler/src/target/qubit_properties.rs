@@ -34,8 +34,9 @@ impl QubitProperties {
     ///     t2 (Option<f64>): The T2 dephasing time for the qubit, in seconds.
     ///     frequency (Option<f64>): The resonance frequency of the qubit, in Hz.
     #[new]
+    #[pyo3(signature = (t1=None, t2=None, frequency=None))]
     pub fn new(t1: Option<f64>, t2: Option<f64>, frequency: Option<f64>) -> Self {
-        QubitProperties { t1, t2, frequency }
+        Self { t1, t2, frequency }
     }
 
     fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>, Option<f64>)> {

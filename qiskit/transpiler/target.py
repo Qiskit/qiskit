@@ -31,9 +31,12 @@ import inspect
 import rustworkx as rx
 
 # import target class from the rust side
+# import QubitProperties here to provide convenience alias for building a
+# full target
 from qiskit._accelerate.target import (
     BaseTarget,
     BaseInstructionProperties,
+    QubitProperties,
 )
 
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -42,10 +45,6 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
-
-# import QubitProperties here to provide convenience alias for building a
-# full target
-from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 
 logger = logging.getLogger(__name__)
 
