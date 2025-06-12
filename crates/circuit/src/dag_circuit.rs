@@ -417,10 +417,7 @@ impl<'a> IntoInstructionView<'a> for &'a DAGInstruction {
                 }
                 _ => Some(&[]),
             },
-            _ => panic!(
-                "legacy parameters not supported for operation {:?}",
-                self.op.view()
-            ),
+            _ => None,
         }
     }
 }

@@ -268,10 +268,7 @@ impl<'a, T: Instruction> IntoInstructionView<'a> for &'a T {
                 }
                 _ => Some(&[]),
             },
-            _ => panic!(
-                "legacy parameters not supported for operation {:?}",
-                self.op()
-            ),
+            _ => None,
         }
     }
 }
