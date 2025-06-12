@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue in the `circuit_drawer` layout where control-flow annotations
+    (e.g., "If", "While") were not rendered properly when the control-flow operations
+    were nested inside a `BoxOp`. This ensures flow text is always visible where expected.
+    

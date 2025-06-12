@@ -53,6 +53,3 @@ class TestControlFlowAnnotationBox(unittest.TestCase):
 
         # Ensure the nested structure is drawn correctly
         self.assertIsNotNone(fig)
-
-        # Optional: Save output for manual inspection
-        # fig.savefig("/tmp/test_nested_boxop_ifelse.png")
