@@ -1623,6 +1623,17 @@ class MatplotlibDrawer:
                 op_spacer = 0.0
                 expr_spacer = 0.0
                 empty_default_spacer = 0.0
+
+                if hasattr(node.op, "annotations") and node.op.annotations:
+                   annotation_str = ", ".join(f"{k}: {v}" for k, v in node.op.annotations.items())
+                   ax.text(
+                        xpos + 0.3, ypos - 0.4,  # Adjust position as needed
+                        annotation_str,
+                        fontsize=6,
+                        color="dimgray",
+                        ha="center",
+                        va="center"
+                    )
             else:
                 op_spacer = 0.08
                 expr_spacer = 0.02
