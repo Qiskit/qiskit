@@ -14,7 +14,9 @@
 
 use hashbrown::HashMap;
 use num_complex::Complex64;
-use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
+use pyo3::exceptions::{
+    PyNotImplementedError, PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError,
+};
 use pyo3::types::{IntoPyDict, PyDict, PySet, PyString};
 use thiserror::Error;
 use uuid::Uuid;
@@ -31,7 +33,7 @@ use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 
-use super::symbol_expr::{Symbol, SYMEXPR_EPSILON};
+use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
 
 #[derive(Error, Debug)]
 pub enum ParameterError {
@@ -336,6 +338,10 @@ impl PyParameterExpression {
         }
     }
 
+    pub fn sympify(&self) -> PyResult<()> {
+        Err(PyNotImplementedError::new_err("sympify is todo!"))
+    }
+
     #[getter]
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
         let py_parameters: Vec<Py<PyParameter>> = self
@@ -459,40 +465,39 @@ impl PyParameterExpression {
         let map = parameter_dict
             .iter()
             .map(|(param, value)| {
-                let value = if let Ok(i) = value.extract::<i64>() {
-                    Ok(symbol_expr::Value::from(i))
-                } else if let Ok(r) = value.extract::<f64>() {
-                    Ok(symbol_expr::Value::from(r))
-                } else if let Ok(c) = value.extract::<Complex64>() {
-                    Ok(symbol_expr::Value::from(c))
-                } else {
-                    Err(PyValueError::new_err("Invalid value in bind."))
-                };
-
-                Ok((param.symbol.clone(), value?))
+                // let value = if let Ok(i) = value.extract::<i64>() {
+                //     Ok(symbol_expr::Value::from(i))
+                // } else if let Ok(r) = value.extract::<f64>() {
+                //     Ok(symbol_expr::Value::from(r))
+                // } else if let Ok(c) = value.extract::<Complex64>() {
+                //     Ok(symbol_expr::Value::from(c))
+                // } else {
+                //     Err(PyValueError::new_err("Invalid value in bind."))
+                // };
+                let value = value.extract()?;
+                Ok((param.symbol.clone(), value))
             })
             .collect::<PyResult<_>>()?;
 
         self.bind(&map).map_err(|e| e.into())
     }
-    // pub fn py_bind(&self, map: HashMap<PyParameter, Bound<PyAny>>) -> PyResult<Self> {
-    //     let map: HashMap<Parameter, symbol_expr::Value> = map
-    //         .into_iter()
-    //         .filter_map(|(key, val)| {
-    //             let key = key.symbol;
-    //             if let Ok(i) = val.extract::<i64>() {
-    //                 Some((key, symbol_expr::Value::from(i)))
-    //             } else if let Ok(r) = val.extract::<f64>() {
-    //                 Some((key, symbol_expr::Value::from(r)))
-    //             } else if let Ok(c) = val.extract::<Complex64>() {
-    //                 Some((key, symbol_expr::Value::from(c)))
-    //             } else {
-    //                 // if unsupported data type, insert nothing
-    //                 None
-    //             }
-    //         })
-    //         .collect();
-    // pub fn py_bind(&self, parameter_dict: &Bound<'_, PyDict>) -> PyResult<Self> {
+
+    #[pyo3(name = "assign")]
+    pub fn py_assign(&self, parameter: PyParameter, value: &Bound<PyAny>) -> PyResult<Self> {
+        let symbol = param.symbol.clone();
+
+        if let Ok(expr) = replacement.downcast::<Self>() {
+            let map = [(symbol, expr.borrow().clone())].collect();
+            Ok(self.subs(&map))
+        } else if let Ok(value) = replacement.extract::<Value>() {
+            let map = [(symbol, value)].collect();
+            self.bind(&map)
+        } else {
+            Err(PyValueError::new_err(
+                "Unexpected value in assign: {replacement:?}",
+            ))
+        }
+    }
 
     // ====================================
     // operator overrides
@@ -840,9 +845,4 @@ impl PyParameterVectorElement {
     pub fn vector(&self, py: Python<'_>) -> PyObject {
         self.vector.clone_ref(py)
     }
-
-    // pub fn __getstate__(self_: PyRef<Self>) {
-    //     let super_ = self_.as_ref();
-    //     super_.__getstate__()
-    // }
 }

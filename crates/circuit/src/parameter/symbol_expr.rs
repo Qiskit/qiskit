@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
+use pyo3::exceptions::PyValueError;
 use pyo3::types::PyString;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
@@ -96,6 +97,22 @@ pub enum Value {
     Real(f64),
     Int(i64),
     Complex(Complex64),
+}
+
+impl<'py> FromPyObject<'py> for Value {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(i) = ob.extract::<i64>() {
+            Ok(Value::Int(i))
+        } else if let Ok(r) = ob.extract::<f64>() {
+            Ok(Value::Real(r))
+        } else if let Ok(c) = ob.extract::<Complex64>() {
+            Ok(Value::Complex(c))
+        } else {
+            Err(PyValueError::new_err(
+                "Could not cast Bound<PyAny> to Value.",
+            ))
+        }
+    }
 }
 
 /// definition of unary operations
