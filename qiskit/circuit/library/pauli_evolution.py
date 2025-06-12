@@ -129,7 +129,8 @@ class PauliEvolutionGate(Gate):
             for op in operator[1:]:
                 if op.num_qubits != num_qubits:
                     raise ValueError(
-                        "When represented as a list of operators, all of these operators must have the same number of qubits."
+                        "When represented as a list of operators, all of these operators "
+                        "must have the same number of qubits."
                     )
         else:
             num_qubits = operator.num_qubits
