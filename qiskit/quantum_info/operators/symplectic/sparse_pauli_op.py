@@ -449,7 +449,7 @@ class SparsePauliOp(LinearOp):
             rtol = self.rtol
 
         # Compose with adjoint
-         val = self.compose(self.adjoint()).simplify()
+        val = self.compose(self.adjoint()).simplify()
         # See if the result is an identity
         return (
             val.size == 1
