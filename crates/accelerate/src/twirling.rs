@@ -346,7 +346,19 @@ fn generate_twirled_circuit(
         }
     }
     if optimizer_target.is_some() {
-        let mut dag = DAGCircuit::from_circuit_data(out_circ, false)?;
+        let mut dag = DAGCircuit::from_circuit_data(
+            &out_circ,
+            false,
+            None,
+            None,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            None,
+            None,
+        )?;
         run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
         dag_to_circuit(py, &dag, false)
     } else {

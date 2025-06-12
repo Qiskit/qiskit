@@ -6608,11 +6608,41 @@ impl DAGCircuit {
     ) -> PyResult<DAGCircuit> {
         // Extract necessary attributes
         let qc_data = qc.data;
+        Self::from_circuit_data(
+            &qc_data,
+            copy_op,
+            qc.name,
+            qc.metadata.map(|x| x.unbind()),
+            qc.input_vars,
+            qc.captured_vars,
+            qc.declared_vars,
+            qc.captured_stretches,
+            qc.declared_stretches,
+            qubit_order,
+            clbit_order,
+        )
+    }
+
+    /// Builds a [DAGCircuit] based on an instance of [CircuitData].
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_circuit_data(
+        qc_data: &CircuitData,
+        copy_op: bool,
+        name: Option<String>,
+        metadata: Option<PyObject>,
+        input_vars: Vec<expr::Var>,
+        captured_vars: Vec<expr::Var>,
+        declared_vars: Vec<expr::Var>,
+        captured_stretches: Vec<expr::Stretch>,
+        declared_stretches: Vec<expr::Stretch>,
+        qubit_order: Option<Vec<Bound<PyAny>>>,
+        clbit_order: Option<Vec<Bound<PyAny>>>,
+    ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
         let num_ops = qc_data.__len__();
-        let num_vars = qc.declared_vars.len() + qc.input_vars.len() + qc.captured_vars.len();
-        let num_stretches = qc.declared_stretches.len() + qc.captured_stretches.len();
+        let num_vars = declared_vars.len() + input_vars.len() + captured_vars.len();
+        let num_stretches = declared_stretches.len() + captured_stretches.len();
 
         // Build DAGCircuit with capacity
         let mut new_dag = DAGCircuit::with_capacity(
@@ -6625,7 +6655,7 @@ impl DAGCircuit {
         )?;
 
         // Assign other necessary data
-        new_dag.name = qc.name;
+        new_dag.name = name;
 
         // Avoid manually acquiring the GIL.
         new_dag.global_phase = match qc_data.global_phase() {
@@ -6636,7 +6666,7 @@ impl DAGCircuit {
             _ => unreachable!("Incorrect parameter assigned for global phase"),
         };
 
-        new_dag.metadata = qc.metadata.map(|meta| meta.unbind());
+        new_dag.metadata = metadata;
 
         // Add the qubits depending on order, and produce the qargs map.
         let qarg_map = if let Some(qubit_ordering) = qubit_order {
@@ -6707,23 +6737,23 @@ impl DAGCircuit {
         };
 
         // Add all of the new vars.
-        for var in qc.declared_vars {
+        for var in declared_vars {
             new_dag.add_var(var, DAGVarType::Declare)?;
         }
 
-        for var in qc.input_vars {
+        for var in input_vars {
             new_dag.add_var(var, DAGVarType::Input)?;
         }
 
-        for var in qc.captured_vars {
+        for var in captured_vars {
             new_dag.add_var(var, DAGVarType::Capture)?;
         }
 
-        for stretch in qc.captured_stretches {
+        for stretch in captured_stretches {
             new_dag.add_captured_stretch(stretch)?;
         }
 
-        for stretch in qc.declared_stretches {
+        for stretch in declared_stretches {
             new_dag.add_declared_stretch(stretch)?;
         }
 
@@ -6769,21 +6799,6 @@ impl DAGCircuit {
             })
         }))?;
         Ok(new_dag)
-    }
-
-    /// Builds a [DAGCircuit] based on an instance of [CircuitData].
-    pub fn from_circuit_data(circuit_data: CircuitData, copy_op: bool) -> PyResult<Self> {
-        let circ = QuantumCircuitData {
-            data: circuit_data,
-            name: None,
-            metadata: None,
-            input_vars: Vec::new(),
-            captured_vars: Vec::new(),
-            declared_vars: Vec::new(),
-            captured_stretches: Vec::new(),
-            declared_stretches: Vec::new(),
-        };
-        Self::from_circuit(circ, copy_op, None, None)
     }
 
     #[allow(clippy::too_many_arguments)]
