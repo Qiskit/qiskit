@@ -1331,7 +1331,6 @@ from qiskit.passmanager import (
     DoWhileController,
 )
 from qiskit.passmanager.compilation_status import PropertySet
-
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
 from .exceptions import (
@@ -1349,4 +1348,3 @@ from .instruction_durations import InstructionDurations
 from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
-from .target import QubitProperties
