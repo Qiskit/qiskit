@@ -9,13 +9,14 @@
    :show-inheritance:
 
 {% block attributes_summary %}
-  {% if attributes %}
+  {% set wanted_attributes = (attributes | reject('in', inherited_members) | reject('==', '__init__') | list) %}
+  {% if wanted_attributes %}
    .. rubric:: Attributes
-    {% for item in attributes %}
+    {% for item in wanted_attributes %}
    .. autoattribute:: {{ item }}
     {%- endfor %}
   {% endif %}
-{% endblock -%}
+{% endblock %}
 
 {% block methods_summary %}
   {% set wanted_methods = (methods | reject('in', inherited_members) | reject('==', '__init__') | list) %}
@@ -26,3 +27,4 @@
     {%- endfor %}
   {% endif %}
 {% endblock %}
+
