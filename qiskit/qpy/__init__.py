@@ -404,13 +404,17 @@ encoding scheme used for symbolic expressions:
     }
 
 From V16 on, the file header struct is immediately followed by a circuit start table 
-containing the byte offsets of each circuit payload in the file (as an ``uint64_t``).
+containing the byte offsets of each circuit payload in the file. There are ``num_circuits``
+entries in the circuit start table, each of which is of type ``uint64_t``. In all previous 
+versions, the file header is immediately followed by the circuit payloads (do not have a 
+circuit start table).
 
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
 
-The circuit start table is immediately followed by the circuit payloads.
-Each individual circuit is composed of the following parts in order from top to bottom:
+The circuit start table (as of QPY version 16) or file header (prior to QPY version 16)
+is immediately followed by the circuit payloads. Each individual circuit is composed of 
+the following parts in order from top to bottom:
 
 .. code-block:: text
 
