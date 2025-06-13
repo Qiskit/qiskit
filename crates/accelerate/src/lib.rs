@@ -74,7 +74,20 @@ pub fn getenv_use_multiple_threads() -> bool {
         .unwrap_or_else(|_| "FALSE".to_string())
         .to_uppercase()
         == "TRUE";
-    !parallel_context || force_threads
+    
+    let result = !parallel_context || force_threads;
+    
+    // Log threading decision if debug logging is enabled
+    if env::var("QISKIT_DEBUG_THREADING").is_ok() {
+        eprintln!(
+            "Rust threading decision: {} (parallel_context={}, force_threads={})",
+            if result { "MULTI_THREADED" } else { "SINGLE_THREADED" },
+            parallel_context,
+            force_threads
+        );
+    }
+    
+    result
 }
 
 import_exception!(qiskit.exceptions, QiskitError);

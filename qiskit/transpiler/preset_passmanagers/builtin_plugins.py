@@ -12,8 +12,11 @@
 
 """Built-in transpiler stage plugins for preset pass managers."""
 
+import logging
 import os
 import warnings
+
+logger = logging.getLogger(__name__)
 
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
@@ -1024,6 +1027,12 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
 
 
 def _get_trial_count(default_trials=5):
-    if CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS"):
-        return max(CPU_COUNT, default_trials)
-    return default_trials
+    use_all_threads = CONFIG.get("sabre_all_threads", None) or os.getenv("QISKIT_SABRE_ALL_THREADS")
+    if use_all_threads:
+        trial_count = max(CPU_COUNT, default_trials)
+        logger.debug("SABRE using all threads: %d trials (CPU_COUNT=%d, default=%d)", 
+                    trial_count, CPU_COUNT, default_trials)
+        return trial_count
+    else:
+        logger.debug("SABRE using default thread configuration: %d trials", default_trials)
+        return default_trials

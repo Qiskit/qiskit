@@ -50,6 +50,7 @@ from the multiprocessing library.
 
 from __future__ import annotations
 
+import logging
 import os
 from concurrent.futures import ProcessPoolExecutor
 import sys
@@ -57,6 +58,8 @@ import sys
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit import user_config
+
+logger = logging.getLogger(__name__)
 
 
 def get_platform_parallel_default():
@@ -111,11 +114,24 @@ def should_run_in_parallel(num_processes: int | None = None) -> bool:
         num_processes: the number of processes requested for use (if given).
     """
     num_processes = CPU_COUNT if num_processes is None else num_processes
-    return (
+    in_parallel = os.getenv("QISKIT_IN_PARALLEL", "FALSE") == "TRUE"
+    parallel_enabled = CONFIG.get("parallel_enabled", PARALLEL_DEFAULT)
+    
+    result = (
         num_processes > 1
-        and os.getenv("QISKIT_IN_PARALLEL", "FALSE") == "FALSE"
-        and CONFIG.get("parallel_enabled", PARALLEL_DEFAULT)
+        and not in_parallel
+        and parallel_enabled
     )
+    
+    logger.debug(
+        "Parallelization decision: %s (num_processes=%d, in_parallel=%s, parallel_enabled=%s)",
+        "PARALLEL" if result else "SERIAL",
+        num_processes,
+        in_parallel,
+        parallel_enabled
+    )
+    
+    return result
 
 
 def parallel_map(  # pylint: disable=dangerous-default-value
@@ -164,6 +180,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         return [task(values[0], *task_args, **task_kwargs)]
 
     if should_run_in_parallel(num_processes):
+        logger.debug("Executing parallel_map with %d processes for %d items", num_processes, len(values))
         os.environ["QISKIT_IN_PARALLEL"] = "TRUE"
         try:
             results = []
@@ -172,8 +189,10 @@ def parallel_map(  # pylint: disable=dangerous-default-value
                 future = executor.map(_task_wrapper, param)
 
             results = list(future)
+            logger.debug("Parallel execution completed successfully")
 
         except (KeyboardInterrupt, Exception) as error:
+            logger.debug("Parallel execution failed: %s", str(error))
             if isinstance(error, KeyboardInterrupt):
                 os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
                 raise QiskitError("Keyboard interrupt in parallel_map.") from error
@@ -184,6 +203,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
         return results
 
+    logger.debug("Executing parallel_map serially for %d items", len(values))
     results = []
     for _, value in enumerate(values):
         result = task(value, *task_args, **task_kwargs)

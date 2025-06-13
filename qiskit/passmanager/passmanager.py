@@ -21,7 +21,7 @@ from typing import Any
 
 import dill
 
-from qiskit.utils.parallel import parallel_map, should_run_in_parallel
+from qiskit.utils.parallel import parallel_map, should_run_in_parallel, CPU_COUNT
 from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
@@ -227,7 +227,12 @@ class BasePassManager(ABC):
 
         # If we're not going to run in parallel, we want to avoid spending time `dill` serializing
         # ourselves, since that can be quite expensive.
-        if len(in_programs) == 1 or not should_run_in_parallel(num_processes):
+        use_parallel = should_run_in_parallel(num_processes)
+        if len(in_programs) == 1 or not use_parallel:
+            if len(in_programs) == 1:
+                logger.debug("PassManager running single program serially")
+            else:
+                logger.debug("PassManager running %d programs serially (parallel disabled)", len(in_programs))
             out = [
                 _run_workflow(program=program, pass_manager=self, callback=callback, **kwargs)
                 for program in in_programs
@@ -239,6 +244,9 @@ class BasePassManager(ABC):
         del callback
         del kwargs
 
+        logger.debug("PassManager running %d programs in parallel with %d processes", 
+                    len(in_programs), num_processes or CPU_COUNT)
+        
         # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
