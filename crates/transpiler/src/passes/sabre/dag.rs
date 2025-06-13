@@ -117,11 +117,6 @@ impl From<SabreDAGError> for PyErr {
 
 /// A DAG representation of the logical circuit to be routed.
 ///
-/// This interaction representation retains only information about routing necessities; when
-/// possible, nodes in the input [DAGCircuit] are combined into a single node for routing purposes
-/// (for example, 1q gates are always folded into a preceding node and runs of 2q gates on the same
-/// qubits are combined).
-///
 /// Note that all the qubit references here are to "virtual" qubits, that is, the qubits are those
 /// specified by the user.  This DAG does not need to be full-width on the hardware.
 #[derive(Clone, Debug)]
