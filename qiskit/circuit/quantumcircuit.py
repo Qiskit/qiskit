@@ -3487,6 +3487,10 @@ class QuantumCircuit:
         if duplicate_bits:
             raise CircuitError(f"Attempted to add bits found already in circuit: {duplicate_bits}")
 
+        if hasattr(self, "layout"):
+            if self.layout is not None:
+                warnings.warn("The`layout` attribute is not `None`", UserWarning)
+
         for bit in bits:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
