@@ -110,6 +110,7 @@ class MatplotlibDrawer:
         cregbundle=None,
         with_layout=False,
         expr_len=30,
+        measure_arrows=True,
     ):
         self._circuit = circuit
         self._qubits = qubits
@@ -139,6 +140,7 @@ class MatplotlibDrawer:
         self._global_phase = self._circuit.global_phase
         self._expr_len = expr_len
         self._cregbundle = cregbundle
+        self._measure_arrows = measure_arrows
 
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5
@@ -582,7 +584,7 @@ class MatplotlibDrawer:
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
                         qubits, clbits, flow_nodes = _get_layered_instructions(
-                            circuit, wire_map=flow_wire_map, drawer="mpl"
+                            circuit, wire_map=flow_wire_map
                         )
                         flow_drawer = MatplotlibDrawer(
                             qubits,

@@ -714,6 +714,7 @@ class TextDrawing:
         encoding=None,
         with_layout=False,
         expr_len=30,
+        measure_arrows=True,
     ):
         self.qubits = qubits
         self.clbits = clbits

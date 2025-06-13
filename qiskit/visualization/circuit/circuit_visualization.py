@@ -74,6 +74,7 @@ def circuit_drawer(
     cregbundle: bool | None = None,
     wire_order: list[int] | None = None,
     expr_len: int = 30,
+    measure_arrows=True,
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -171,6 +172,9 @@ def circuit_drawer(
         expr_len: The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
+        measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+            or register where the measure value is placed. If False, do not draw arrow, but
+            instead place the name of the bit or register in the measure box.
 
     Returns:
         :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -304,6 +308,7 @@ def circuit_drawer(
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
             expr_len=expr_len,
+            measure_arrows=measure_arrows,
         )
     elif output == "latex":
         image = _latex_circuit_drawer(
@@ -352,6 +357,7 @@ def circuit_drawer(
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
             expr_len=expr_len,
+            measure_arrows=measure_arrows,
         )
     else:
         raise VisualizationError(
@@ -383,6 +389,7 @@ def _text_circuit_drawer(
     encoding=None,
     wire_order=None,
     expr_len=30,
+    measure_arrows=True,
 ):
     """Draws a circuit using ascii art.
 
@@ -415,6 +422,9 @@ def _text_circuit_drawer(
         expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
+        measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+            or register where the measure value is placed. If False, do not draw arrow, but
+            instead place the name of the bit or register in the measure box.
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
@@ -428,7 +438,6 @@ def _text_circuit_drawer(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
-        drawer="text",
     )
     text_drawing = _text.TextDrawing(
         qubits,
@@ -441,6 +450,7 @@ def _text_circuit_drawer(
         encoding=encoding,
         with_layout=with_layout,
         expr_len=expr_len,
+        measure_arrows=measure_arrows,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -624,7 +634,6 @@ def _generate_latex_source(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
-        drawer="latex",
     )
     qcimg = _latex.QCircuitImage(
         qubits,
@@ -668,6 +677,7 @@ def _matplotlib_circuit_drawer(
     cregbundle=None,
     wire_order=None,
     expr_len=30,
+    measure_arrows=True,
 ):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -702,6 +712,9 @@ def _matplotlib_circuit_drawer(
         expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
+        measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+            or register where the measure value is placed. If False, do not draw arrow, but
+            instead place the name of the bit or register in the measure box.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
@@ -714,7 +727,6 @@ def _matplotlib_circuit_drawer(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
-        drawer="mpl",
     )
     if fold is None:
         fold = 25
@@ -734,5 +746,6 @@ def _matplotlib_circuit_drawer(
         cregbundle=cregbundle,
         with_layout=with_layout,
         expr_len=expr_len,
+        measure_arrows=measure_arrows,
     )
     return qcd.draw(filename)
