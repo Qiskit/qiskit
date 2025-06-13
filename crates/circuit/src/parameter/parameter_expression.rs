@@ -484,14 +484,14 @@ impl PyParameterExpression {
 
     #[pyo3(name = "assign")]
     pub fn py_assign(&self, parameter: PyParameter, value: &Bound<PyAny>) -> PyResult<Self> {
-        let symbol = param.symbol.clone();
+        let symbol = parameter.symbol.clone();
 
-        if let Ok(expr) = replacement.downcast::<Self>() {
-            let map = [(symbol, expr.borrow().clone())].collect();
+        if let Ok(expr) = value.downcast::<Self>() {
+            let map = [(symbol, expr.borrow().clone())].into_iter().collect();
             Ok(self.subs(&map))
-        } else if let Ok(value) = replacement.extract::<Value>() {
-            let map = [(symbol, value)].collect();
-            self.bind(&map)
+        } else if let Ok(value) = value.extract::<Value>() {
+            let map = [(symbol, value)].into_iter().collect();
+            self.bind(&map).map_err(|e| e.into())
         } else {
             Err(PyValueError::new_err(
                 "Unexpected value in assign: {replacement:?}",
