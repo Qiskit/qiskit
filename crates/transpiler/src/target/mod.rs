@@ -12,6 +12,7 @@
 
 #![allow(clippy::too_many_arguments)]
 
+mod bounds;
 mod errors;
 mod instruction_properties;
 mod qargs;
@@ -23,26 +24,25 @@ pub use qargs::{Qargs, QargsRef};
 use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
-
+use hashbrown::HashMap;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use smallvec::SmallVec;
 
-use pyo3::{
-    exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
-    prelude::*,
-    pyclass,
-    types::{PyDict, PyList, PySet},
-    IntoPyObjectExt,
-};
+use pyo3::exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError};
+use pyo3::prelude::*;
+use pyo3::pyclass;
+use pyo3::types::{PyDict, PyList, PySet};
+use pyo3::IntoPyObjectExt;
+
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
-
 use qiskit_circuit::PhysicalQubit;
 
 use crate::TranspilerError;
+use bounds::AngleBound;
 
 // Custom types
 type GateMap = IndexMap<String, PropsMap, RandomState>;
@@ -219,6 +219,7 @@ pub struct Target {
     qarg_gate_map: IndexMap<Qargs, Option<HashSet<String>>, RandomState>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
+    angle_bounds: HashMap<String, AngleBound>,
 }
 
 #[pymethods]
@@ -314,6 +315,7 @@ impl Target {
             qarg_gate_map: IndexMap::default(),
             non_global_basis: None,
             non_global_strict_basis: None,
+            angle_bounds: HashMap::new(),
         })
     }
 
@@ -324,16 +326,24 @@ impl Target {
     ///         if representing a variadic.
     ///     properties: A mapping of qargs and ``InstructionProperties``.
     ///     name: A name assigned to the provided gate.
+    ///     bound_list: The bounds on the parameters for a given gate. This is specified by a list
+    ///         of tuples (low, high) which represent the low and high bound (inclusively) on what
+    ///         float values are allowed for the parameter in that position. If a parameter
+    ///         doesn't have an angle bound you can use ``None`` to represent that. For example if
+    ///         a 3 parameter gate only had a bound on the second parameter you would represent
+    ///         that with: ``[None, [0, 3.14], None]`` which means the first and third parameter
+    ///         allow any value but the second parameter only accepts values between 0 and 3.14.
     /// Raises:
     ///     AttributeError: If gate is already in map
     ///     TranspilerError: If an operation class is passed in for ``instruction`` and no name
     ///         is specified or ``properties`` is set.
-    #[pyo3(name="add_instruction", signature = (instruction, name, properties=None))]
+    #[pyo3(name="add_instruction", signature = (instruction, name, properties=None, *, angle_bounds=None))]
     fn py_add_instruction(
         &mut self,
         instruction: TargetOperation,
         name: String,
         properties: Option<PropsMap>,
+        angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
@@ -347,8 +357,14 @@ impl Target {
             IndexMap::from_iter([(Qargs::Global, None)])
         };
 
-        self.inner_add_instruction(instruction, name, props_map)
-            .map_err(|err| TranspilerError::new_err(err.to_string()))
+        self.inner_add_instruction(instruction, name.clone(), props_map)
+            .map_err(|err| TranspilerError::new_err(err.to_string()))?;
+
+        if let Some(bounds) = angle_bounds {
+            self.add_owned_angle_bound(name, bounds)
+                .map_err(|err| TranspilerError::new_err(err.to_string()))?;
+        }
+        Ok(())
     }
 
     /// Update the property object for an instruction qarg pair already in the `Target`
@@ -511,12 +527,17 @@ impl Target {
     ///             target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
     ///
     ///         will return ``True`` if an RXGate(pi/4) exists on qubit 0.
+    ///     check_angle_bounds (bool): If set to True (the default) the value of ``parameters`` will
+    ///         be validated against any angle bounds set in the target.
+    ///         If any of the values in ``parameters`` are set to be :class:`.ParameterExpression`
+    ///         instances this flag will have no effect as angle bounds only impact
+    ///         non-parameterized operations in the circuit.
     ///
     /// Returns:
     ///     bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
     #[pyo3(
         name = "instruction_supported",
-        signature = (operation_name=None, qargs=Qargs::Global, operation_class=None, parameters=None)
+        signature = (operation_name=None, qargs=Qargs::Global, operation_class=None, parameters=None, check_angle_bounds=true)
     )]
     pub fn py_instruction_supported(
         &self,
@@ -525,6 +546,7 @@ impl Target {
         qargs: Qargs,
         operation_class: Option<&Bound<PyAny>>,
         parameters: Option<Vec<Param>>,
+        check_angle_bounds: bool,
     ) -> PyResult<bool> {
         let mut qargs = qargs;
         if self.num_qubits.is_none() {
@@ -617,6 +639,23 @@ impl Target {
                             matching_params = true;
                         }
                         if !matching_params {
+                            return Ok(false);
+                        }
+                    }
+                    if check_angle_bounds
+                        && self.has_angle_bounds()
+                        && parameters.iter().all(|x| matches!(x, Param::Float(_)))
+                    {
+                        let params: Vec<f64> = parameters
+                            .iter()
+                            .map(|x| {
+                                let Param::Float(val) = x else { unreachable!() };
+                                *val
+                            })
+                            .collect();
+                        if self.angle_bounds.contains_key(&operation_name)
+                            && !self.gate_supported_angle_bound(&operation_name, &params)
+                        {
                             return Ok(false);
                         }
                     }
@@ -831,6 +870,11 @@ impl Target {
             "non_global_strict_basis",
             self.non_global_strict_basis.clone(),
         )?;
+        let bounds_dict = PyDict::new(py);
+        for (gate, bounds) in self.angle_bounds.iter() {
+            bounds_dict.set_item(gate, bounds.bounds().to_vec())?;
+        }
+        result_list.set_item("angle_bounds", bounds_dict)?;
         Ok(result_list.unbind())
     }
 
@@ -885,7 +929,63 @@ impl Target {
             .get_item("non_global_strict_basis")?
             .unwrap()
             .extract::<Option<Vec<String>>>()?;
+        let angle_bounds_raw = state.get_item("angle_bounds")?.unwrap();
+        let angle_bounds_dict = angle_bounds_raw.downcast::<PyDict>()?;
+        type AngleBoundIterList = Vec<(String, SmallVec<[Option<[f64; 2]>; 3]>)>;
+        let angle_bounds_list: AngleBoundIterList = angle_bounds_dict.items().extract()?;
+        for (gate, bounds) in angle_bounds_list {
+            self.add_owned_angle_bound(gate, bounds)
+                .map_err(|err| TranspilerError::new_err(err.to_string()))?;
+        }
         Ok(())
+    }
+
+    /// Check if there are any angle bounds set in the target
+    ///
+    /// Returns:
+    ///     bool: This will return ``True`` if there are angle bounds set on any instructions in
+    ///     the circuit
+    pub fn has_angle_bounds(&self) -> bool {
+        !self.angle_bounds.is_empty()
+    }
+
+    /// Check if a specific gate gate has an angle bound set
+    ///
+    /// Args:
+    ///     name (str): The instruction name to check if it has an angle bound set
+    ///
+    /// Returns:
+    ///     bool: This will return ``True`` if the gate is in the target and has angle bounds
+    ///     defined. It will return ``False`` if the gate does not have angle bounds defined
+    ///     or is not in the target.
+    pub fn gate_has_angle_bounds(&self, name: &str) -> bool {
+        self.angle_bounds.contains_key(name)
+    }
+
+    /// Check that parameters on a specific gate conform to the angle bounds
+    ///
+    /// Args:
+    ///     name (str): The instruction name to check the angle bounds of
+    ///     angles (list): A list of float parameter values for ``name``
+    ///         to see if they conform to the defined angle bounds.
+    ///
+    /// Returns:
+    ///     bool: Returns ``True`` if the parameter values specified are compatible with the
+    ///     angle bounds. ``False`` is returned if the any of the parameters
+    ///     are outside the defined bounds.
+    ///
+    /// Raises:
+    ///     TranspilerError: If ``name`` is not in the target or does not
+    ///     have angle bounds defined.
+    ///
+    pub fn supported_angle_bound(&self, name: &str, angles: Vec<f64>) -> PyResult<bool> {
+        if !self.gate_has_angle_bounds(name) {
+            Err(TranspilerError::new_err(format!(
+                "The specified gate {name} does not have angle bounds defined or is not in the Target"
+            )))
+        } else {
+            Ok(self.angle_bounds[name].angles_supported(&angles))
+        }
     }
 }
 
@@ -1413,6 +1513,72 @@ impl Target {
     pub fn is_empty(&self) -> bool {
         self.gate_map.is_empty()
     }
+
+    fn check_bounds_inputs(
+        &self,
+        name: &str,
+        bounds: &[Option<[f64; 2]>],
+    ) -> Result<(), TargetError> {
+        let num_bounds = bounds.len();
+        let operation = self.operation_from_name(name);
+        let num_params = match operation {
+            Some(op) => {
+                let params = op.params();
+                if params
+                    .iter()
+                    .zip(bounds)
+                    .any(|(param, bound)| bound.is_some() && matches!(param, Param::Float(_)))
+                {
+                    return Err(TargetError::InvalidKey(
+                        "Angle bound set on a fixed value".to_string(),
+                    ));
+                }
+                params.len()
+            }
+            None => {
+                return Err(TargetError::InvalidKey(format!(
+                    "{} is not an instruction in the target.",
+                    name
+                )))
+            }
+        };
+        if num_bounds != num_params {
+            return Err(TargetError::InvalidKey(format!(
+                "The number of bounds {} doesn't match the gate's {}",
+                num_bounds, num_params
+            )));
+        }
+        Ok(())
+    }
+
+    /// Add an angle bound to the parameter of a gate in the target
+    pub fn add_angle_bound(
+        &mut self,
+        name: String,
+        bounds: &[Option<[f64; 2]>],
+    ) -> Result<(), TargetError> {
+        self.check_bounds_inputs(&name, bounds)?;
+        let new_bound = AngleBound::new(bounds.iter().copied().collect())?;
+        self.angle_bounds.insert(name, new_bound);
+        Ok(())
+    }
+
+    /// Add an owned angle bound constraint on gate.
+    fn add_owned_angle_bound(
+        &mut self,
+        name: String,
+        bounds: SmallVec<[Option<[f64; 2]>; 3]>,
+    ) -> Result<(), TargetError> {
+        self.check_bounds_inputs(&name, &bounds)?;
+        let new_bound = AngleBound::new(bounds)?;
+        self.angle_bounds.insert(name, new_bound);
+        Ok(())
+    }
+
+    /// Check that a gates angle bounds are supported
+    pub fn gate_supported_angle_bound(&self, name: &str, angles: &[f64]) -> bool {
+        self.angle_bounds[name].angles_supported(angles)
+    }
 }
 
 // To access the Target's gate map by gate name.
@@ -1441,6 +1607,7 @@ impl Default for Target {
             qarg_gate_map: Default::default(),
             non_global_strict_basis: None,
             non_global_basis: None,
+            angle_bounds: Default::default(),
         }
     }
 }
