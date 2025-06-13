@@ -15,6 +15,9 @@
 import unittest
 
 from test.utils.base import QiskitTestCase
+
+import numpy as np
+
 from qiskit.circuit.library import QuantumVolume
 from qiskit.circuit.library.quantum_volume import quantum_volume
 
@@ -48,6 +51,12 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
 
         left = quantum_volume(10, 10, seed=4196)
         right = quantum_volume(10, 10, seed=4196)
+        self.assertEqual(left, right)
+
+        rng = np.random.default_rng(256)
+        left = quantum_volume(10, 10, seed=rng)
+        rng = np.random.default_rng(256)
+        right = quantum_volume(10, 10, seed=rng)
         self.assertEqual(left, right)
 
 
