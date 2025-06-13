@@ -205,7 +205,10 @@ class SabreLayout(TransformationPass):
         if self.target.num_qubits is None:
             raise TranspilerError("given 'Target' was not initialized with a qubit count")
         if len(dag.qubits) > self.target.num_qubits:
-            raise TranspilerError("More virtual qubits exist than physical.")
+            raise TranspilerError(
+                f"More virtual qubits ({len(dag.qubits)}) exist"
+                f" than physical ({self.target.num_qubits})."
+            )
 
         if self.routing_pass is not None:
             if not self.coupling_map.is_connected():

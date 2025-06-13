@@ -17,6 +17,7 @@ import unittest
 import math
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import library as lib, Parameter
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import efficient_su2, quantum_volume
 from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager, Target, Layout
@@ -350,6 +351,26 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         )
         _ = pm.run(qc)
         self.assertIsNotNone(pm.property_set.get("layout"))
+
+    def test_all_to_all(self):
+        """An implicitly all-to-all backend should just become physical with the trivial layout."""
+        qc = QuantumCircuit(QuantumRegister(5, "virtuals"))
+        for target in qc.qubits[1:]:
+            qc.cx(qc.qubits[0], target)
+        # No qargs in the instruction properties => implicitly all-to-all.
+        target = Target(num_qubits=10)
+        target.add_instruction(lib.RZGate(Parameter("t")))
+        target.add_instruction(lib.SXGate())
+        target.add_instruction(lib.CXGate())
+        pass_ = SabreLayout(target, seed=0)
+        out = pass_(qc)
+        self.assertEqual(out.layout.initial_index_layout(), list(range(10)))
+        self.assertEqual(out.layout.routing_permutation(), list(range(10)))
+
+        expected = QuantumCircuit(QuantumRegister(10, "q"))
+        for target in range(1, qc.num_qubits):
+            expected.cx(0, target)
+        self.assertEqual(out, expected)
 
 
 class DensePartialSabreTrial(AnalysisPass):

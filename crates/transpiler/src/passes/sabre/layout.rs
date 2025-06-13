@@ -68,7 +68,12 @@ pub fn sabre_layout_and_routing(
     let allow_parallel = getenv_use_multiple_threads();
     let coupling = match target.coupling_graph() {
         Ok(coupling) => coupling,
-        Err(TargetCouplingError::AllToAll) => todo!(),
+        Err(TargetCouplingError::AllToAll) => {
+            let mut out = dag.clone();
+            out.make_physical(num_physical_qubits);
+            let trivial = NLayout::generate_trivial_layout(num_physical_qubits as u32);
+            return Ok((out, trivial.clone(), trivial));
+        }
         Err(e @ TargetCouplingError::MultiQ) => {
             return Err(TranspilerError::new_err(e.to_string()))
         }
