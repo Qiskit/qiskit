@@ -39,15 +39,14 @@ impl QubitProperties {
         Self { t1, t2, frequency }
     }
 
-    fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>, Option<f64>)> {
-        Ok((self.t1, self.t2, self.frequency))
+    fn __getstate__(&self) -> (Option<f64>, Option<f64>, Option<f64>) {
+        (self.t1, self.t2, self.frequency)
     }
 
-    fn __setstate__(&mut self, state: (Option<f64>, Option<f64>, Option<f64>)) -> PyResult<()> {
+    fn __setstate__(&mut self, state: (Option<f64>, Option<f64>, Option<f64>)) {
         self.t1 = state.0;
         self.t2 = state.1;
         self.frequency = state.2;
-        Ok(())
     }
 
     fn __repr__(&self) -> String {
