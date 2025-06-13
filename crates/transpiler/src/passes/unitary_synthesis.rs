@@ -276,7 +276,6 @@ pub fn run_unitary_synthesis(
                 let res = run_unitary_synthesis(
                     py,
                     &mut circuit_to_dag(
-                        py,
                         QuantumCircuitData::extract_bound(&raw_block?)?,
                         false,
                         None,
@@ -438,7 +437,6 @@ pub fn run_unitary_synthesis(
                         },
                     };
                     let synth_dag = circuit_to_dag(
-                        py,
                         QuantumCircuitData::extract_bound(&synth_circ)?,
                         false,
                         None,

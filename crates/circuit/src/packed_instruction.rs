@@ -452,42 +452,46 @@ impl PackedOperation {
     }
 
     /// Copy this operation, including a Python-space deep copy, if required.
-    pub fn py_deepcopy<'py>(
-        &self,
-        py: Python<'py>,
-        memo: Option<&Bound<'py, PyDict>>,
-    ) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
+    pub fn py_deepcopy(&self, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
         match self.view() {
             OperationRef::StandardGate(standard) => Ok(standard.into()),
             OperationRef::StandardInstruction(instruction) => {
                 Ok(Self::from_standard_instruction(instruction))
             }
-            OperationRef::Gate(gate) => Ok(PyGate {
-                gate: deepcopy.call1((&gate.gate, memo))?.unbind(),
-                qubits: gate.qubits,
-                clbits: gate.clbits,
-                params: gate.params,
-                op_name: gate.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Instruction(instruction) => Ok(PyInstruction {
-                instruction: deepcopy.call1((&instruction.instruction, memo))?.unbind(),
-                qubits: instruction.qubits,
-                clbits: instruction.clbits,
-                params: instruction.params,
-                control_flow: instruction.control_flow,
-                op_name: instruction.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Operation(operation) => Ok(PyOperation {
-                operation: deepcopy.call1((&operation.operation, memo))?.unbind(),
-                qubits: operation.qubits,
-                clbits: operation.clbits,
-                params: operation.params,
-                op_name: operation.op_name.clone(),
-            }
-            .into()),
+            OperationRef::Gate(gate) => Python::with_gil(|py| {
+                let deepcopy = DEEPCOPY.get_bound(py);
+                Ok(PyGate {
+                    gate: deepcopy.call1((&gate.gate, memo))?.unbind(),
+                    qubits: gate.qubits,
+                    clbits: gate.clbits,
+                    params: gate.params,
+                    op_name: gate.op_name.clone(),
+                }
+                .into())
+            }),
+            OperationRef::Instruction(instruction) => Python::with_gil(|py| {
+                let deepcopy = DEEPCOPY.get_bound(py);
+                Ok(PyInstruction {
+                    instruction: deepcopy.call1((&instruction.instruction, memo))?.unbind(),
+                    qubits: instruction.qubits,
+                    clbits: instruction.clbits,
+                    params: instruction.params,
+                    control_flow: instruction.control_flow,
+                    op_name: instruction.op_name.clone(),
+                }
+                .into())
+            }),
+            OperationRef::Operation(operation) => Python::with_gil(|py| {
+                let deepcopy = DEEPCOPY.get_bound(py);
+                Ok(PyOperation {
+                    operation: deepcopy.call1((&operation.operation, memo))?.unbind(),
+                    qubits: operation.qubits,
+                    clbits: operation.clbits,
+                    params: operation.params,
+                    op_name: operation.op_name.clone(),
+                }
+                .into())
+            }),
             OperationRef::Unitary(unitary) => Ok(unitary.clone().into()),
         }
     }

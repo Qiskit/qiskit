@@ -227,7 +227,7 @@ impl DAGOpNode {
         deepcopy: bool,
     ) -> PyResult<PyObject> {
         if deepcopy {
-            instruction.operation = instruction.operation.py_deepcopy(py, None)?;
+            instruction.operation = instruction.operation.py_deepcopy(None)?;
             #[cfg(feature = "cache_pygates")]
             {
                 instruction.py_op = OnceLock::new();
@@ -265,7 +265,7 @@ impl DAGOpNode {
     fn _to_circuit_instruction(&self, py: Python, deepcopy: bool) -> PyResult<CircuitInstruction> {
         Ok(CircuitInstruction {
             operation: if deepcopy {
-                self.instruction.operation.py_deepcopy(py, None)?
+                self.instruction.operation.py_deepcopy(None)?
             } else {
                 self.instruction.operation.clone()
             },

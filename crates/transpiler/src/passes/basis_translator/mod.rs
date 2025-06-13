@@ -497,8 +497,7 @@ fn apply_translation(
                 let blocks = bound_obj.getattr("blocks")?;
                 for block in blocks.try_iter()? {
                     let block = block?;
-                    let dag_block: DAGCircuit =
-                        circuit_to_dag(py, block.extract()?, true, None, None)?;
+                    let dag_block: DAGCircuit = circuit_to_dag(block.extract()?, true, None, None)?;
                     let updated_dag: DAGCircuit;
                     (updated_dag, is_updated) = apply_translation(
                         py,

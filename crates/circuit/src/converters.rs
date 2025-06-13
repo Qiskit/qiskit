@@ -75,19 +75,12 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
 
 #[pyfunction(signature = (quantum_circuit, copy_operations = true, qubit_order = None, clbit_order = None))]
 pub fn circuit_to_dag(
-    py: Python,
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
     qubit_order: Option<Vec<Bound<PyAny>>>,
     clbit_order: Option<Vec<Bound<PyAny>>>,
 ) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_circuit(
-        py,
-        quantum_circuit,
-        copy_operations,
-        qubit_order,
-        clbit_order,
-    )
+    DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
@@ -113,7 +106,7 @@ pub fn dag_to_circuit(
                 )
             };
             if copy_operations {
-                let op = instr.op.py_deepcopy(py, None)?;
+                let op = instr.op.py_deepcopy(None)?;
                 Ok(PackedInstruction {
                     op,
                     qubits: instr.qubits,
