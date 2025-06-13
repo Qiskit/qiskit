@@ -61,6 +61,7 @@ operands = [
     ParameterVector("b", 1)[0] + (0 * 1) * Parameter("ZERO"),
     nested_expr,
     nested_vector_expr,
+    Parameter("a0") / int(3) + int(2) * Parameter("a1") / int(3),
 ]
 
 bind_values = [math.pi, -math.pi, 5, -5, complex(2, 1), complex(-1, 2), 0, complex(0, 0)]
