@@ -226,7 +226,7 @@ def dump(
         # Write the byte offsets for each program
         file_obj.seek(table_start)
         for offset in byte_offsets:
-            file_obj.write(struct.pack(formats.CIRCUIT_TABLE_ENTRY_PACK, offset))
+            file_obj.write(struct.pack(formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset) ))
         # Seek to the end of the file
         file_obj.seek(0, 2)
 
