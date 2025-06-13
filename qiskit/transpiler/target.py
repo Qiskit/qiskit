@@ -43,6 +43,10 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 
+# import QubitProperties here to provide convenience alias for building a
+# full target
+from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
+
 logger = logging.getLogger(__name__)
 
 
