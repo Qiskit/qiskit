@@ -9,7 +9,7 @@ features_transpiler:
     :func:`.get_clifford_gate_names`.
 
     For example::
-  
+
       from qiskit.circuit import QuantumCircuit
       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
       from qiskit.quantum_info import get_clifford_gate_names
@@ -32,8 +32,8 @@ features_transpiler:
     translation into Clifford+T gates.
 
     It is important to note that the specified Clifford+T basis gate set should be
-    universal, or else transpilation might not succeed. While the gate set 
-    ``["h", "t", "tdg"]``or even ``["h", "t"]`` is sufficient for universality,
+    universal, or else transpilation might not succeed. While the gate set
+    ``["h", "t", "tdg"]`` or even ``["h", "t"]`` is sufficient for universality,
     it is recommended to add more Clifford gates to the set if possible, as
     otherwise the translation might be less efficient. For example, not including
     S-gate might trigger decomposing S-gates into pairs of T-gates (that is,

@@ -1,15 +1,15 @@
 ---
 features_circuits:
   - |
-    A new module :mod:`qiskit.circuit.annotation` and principle object :class:`.Annotation` have
-    been added.
+    A new module :mod:`qiskit.circuit.annotation` and principle object :class:`.Annotation`
+    have been added.
 
     Annotations are a way of tagging instructions (currently only :class:`.BoxOp`, in the initial
     implementation) with local, user-custom data.  This data is intended to be consumed by custom
     transpiler passes.  Annotations provide a way to attach data to specific instructions, rather
     than using the global-context object :class:`.PropertySet` during compilation.
 
-    All :class:`.Annotation` objects have a :attr:`~.Annotation.namespace`. This string key is used
+    All :class:`.Annotation` objects have a ``namespace`` field. This string key is used
     for lookups, so consumers can tell if they handle a particular annotation or not.  There are
     currently no methods for querying any abstract semantics of an :class:`.Annotation` subclass,
     but these are expected to expand in the future.
