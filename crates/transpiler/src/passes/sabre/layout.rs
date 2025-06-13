@@ -95,7 +95,7 @@ pub fn sabre_layout_and_routing(
         layout: &NLayout,
         mut qubit_fn: impl FnMut(PhysicalQubit) -> PhysicalQubit,
     ) -> NLayout {
-        assert!(layout.num_qubits() <= num_qubits as usize);
+        debug_assert!(layout.num_qubits() <= num_qubits as usize);
         let max = VirtualQubit(u32::MAX);
         let mut virtuals = vec![max; num_qubits as usize];
         for (virt, phys) in layout.iter_virtual() {
