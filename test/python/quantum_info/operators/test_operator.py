@@ -28,7 +28,7 @@ import scipy.linalg
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import library
-from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
+from qiskit.circuit.library import HGate, CHGate, CXGate, QFTGate
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators import Operator, ScalarOp
@@ -36,7 +36,8 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
-from qiskit.circuit.library import Permutation, PermutationGate
+from qiskit.circuit.library import PermutationGate
+from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
@@ -522,8 +523,16 @@ class TestOperator(OperatorTestCase):
         expected = Operator([[1.0 + 0.0j, 0.5 - 0.5j], [0.0 + 0.0j, 0.0 + 1.0j]])
         assert_allclose(powered.data, expected.data)
 
-    @ddt.data(0.5, 1.0 / 3.0, 0.25)
-    def test_root_stability(self, root):
+    @ddt.data(
+        (0.5, False),
+        (1.0 / 3.0, False),
+        (0.25, False),
+        (0.5, True),
+        (1.0 / 3.0, True),
+        (0.25, True),
+    )
+    @ddt.unpack
+    def test_root_stability(self, root, assume_unitary):
         """Test that the root of operators that have eigenvalues that are -1 up to floating-point
         imprecision stably choose the positive side of the principal-root branch cut."""
         rng = np.random.default_rng(2024_10_22)
@@ -540,17 +549,24 @@ class TestOperator(OperatorTestCase):
         matrices = [basis.conj().T @ np.diag(eigenvalues) @ basis for basis in bases]
         expected = [basis.conj().T @ np.diag(root_eigenvalues) @ basis for basis in bases]
         self.assertEqual(
-            [Operator(matrix).power(root) for matrix in matrices],
+            [Operator(matrix).power(root, assume_unitary=assume_unitary) for matrix in matrices],
             [Operator(single) for single in expected],
         )
 
-    def test_root_branch_cut(self):
+    @ddt.data(True, False)
+    def test_root_branch_cut(self, assume_unitary):
         """Test that we can choose where the branch cut appears in the root."""
         z_op = Operator(library.ZGate())
         # Depending on the direction we move the branch cut, we should be able to select the root to
         # be either of the two valid options.
-        self.assertEqual(z_op.power(0.5, branch_cut_rotation=1e-3), Operator(library.SGate()))
-        self.assertEqual(z_op.power(0.5, branch_cut_rotation=-1e-3), Operator(library.SdgGate()))
+        self.assertEqual(
+            z_op.power(0.5, branch_cut_rotation=1e-3, assume_unitary=assume_unitary),
+            Operator(library.SGate()),
+        )
+        self.assertEqual(
+            z_op.power(0.5, branch_cut_rotation=-1e-3, assume_unitary=assume_unitary),
+            Operator(library.SdgGate()),
+        )
 
     def test_expand(self):
         """Test expand method."""
@@ -728,16 +744,17 @@ class TestOperator(OperatorTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = Operator(circ1)
         state2 = Operator(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         op = Operator.from_circuit(qc1)
         with self.subTest(msg="str(operator)"):
             str(op)
@@ -1175,7 +1192,7 @@ class TestOperator(OperatorTestCase):
         # Compose the operator with the operator constructed from the
         # permutation circuit.
         op2 = op.copy()
-        perm_op = Operator(Permutation(6, pattern))
+        perm_op = Operator(PermutationGate(pattern))
         op2 &= perm_op
 
         # Compose the operator with the operator constructed from the
@@ -1203,7 +1220,7 @@ class TestOperator(OperatorTestCase):
         # Compose the operator with the operator constructed from the
         # permutation circuit.
         op2 = op.copy()
-        perm_op = Operator(Permutation(6, pattern))
+        perm_op = Operator(PermutationGate(pattern))
         op2 = perm_op & op2
 
         # Compose the operator with the operator constructed from the

@@ -34,8 +34,9 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
-from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
+from qiskit.circuit.library.templates import rzx
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils import optionals
 from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
     random_clifford_circuit,
 )
@@ -61,6 +62,7 @@ def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
     return PassManager(TemplateOptimization([template], user_cost_dict=costs))
 
 
+@unittest.skipUnless(optionals.HAS_SYMPY, "sympy required for template optimization")
 class TestTemplateMatching(QiskitTestCase):
     """Test the TemplateOptimization pass."""
 
@@ -374,7 +376,7 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertEqual(out, expected)
 
         def symbolic_library(expr):
-            """Get the symbolic library of the expression - 'sympy' or 'symengine'."""
+            """Get the symbolic library of the expression - 'sympy' or 'qiskit'."""
             return type(expr._symbol_expr).__module__.split(".")[0]
 
         out_exprs = [expr for instruction in out.data for expr in instruction.operation.params]
@@ -428,7 +430,11 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.p(2 * theta, 1)
         circuit_in.cx(0, 1)
 
-        pass_ = TemplateOptimization(**rzx_templates(["zz2"]))
+        pass_ = TemplateOptimization(
+            template_list=[rzx.rzx_zz2()],
+            user_cost_dict={"rzx": 0, "cx": 6, "rz": 0, "sx": 1, "p": 0, "h": 1, "rx": 1, "ry": 1},
+        )
+
         circuit_out = PassManager(pass_).run(circuit_in)
 
         # these are NOT equal if template optimization works
@@ -444,7 +450,7 @@ class TestTemplateMatching(QiskitTestCase):
 
     def test_two_parameter_template(self):
         """
-        Test a two-Parameter template based on rzx_templates(["zz3"]),
+        Test a two-Parameter template based on rzx.rzx_zz3()
 
                                 ┌───┐┌───────┐┌───┐┌────────────┐»
         q_0: ──■─────────────■──┤ X ├┤ Rz(φ) ├┤ X ├┤ Rz(-1.0*φ) ├»

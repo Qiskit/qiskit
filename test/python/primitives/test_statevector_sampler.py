@@ -21,7 +21,7 @@ from numpy.typing import NDArray
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import RealAmplitudes, UnitaryGate
+from qiskit.circuit.library import real_amplitudes, UnitaryGate
 from qiskit.primitives import PrimitiveResult, PubResult
 from qiskit.primitives.containers import BitArray
 from qiskit.primitives.containers.data_bin import DataBin
@@ -51,14 +51,16 @@ class TestStatevectorSampler(QiskitTestCase):
         bell.measure_all()
         self._cases.append((bell, None, {0: 5000, 3: 5000}))  # case 1
 
-        pqc = RealAmplitudes(num_qubits=2, reps=2)
+        pqc = QuantumCircuit(2)
+        pqc.append(real_amplitudes(num_qubits=2, reps=2), range(2))
         pqc.measure_all()
         self._cases.append((pqc, [0] * 6, {0: 10000}))  # case 2
         self._cases.append((pqc, [1] * 6, {0: 168, 1: 3389, 2: 470, 3: 5973}))  # case 3
         self._cases.append((pqc, [0, 1, 1, 2, 3, 5], {0: 1339, 1: 3534, 2: 912, 3: 4215}))  # case 4
         self._cases.append((pqc, [1, 2, 3, 4, 5, 6], {0: 634, 1: 291, 2: 6039, 3: 3036}))  # case 5
 
-        pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+        pqc2 = QuantumCircuit(2)
+        pqc2.append(real_amplitudes(num_qubits=2, reps=3), range(2))
         pqc2.measure_all()
         self._cases.append(
             (pqc2, [0, 1, 2, 3, 4, 5, 6, 7], {0: 1898, 1: 6864, 2: 928, 3: 311})
@@ -275,17 +277,13 @@ class TestStatevectorSampler(QiskitTestCase):
         """Test for errors with run method"""
         qc1 = QuantumCircuit(1)
         qc1.measure_all()
-        qc2 = RealAmplitudes(num_qubits=1, reps=1)
+
+        qc2 = QuantumCircuit(1)
+        qc2.append(real_amplitudes(num_qubits=1, reps=1), [0])
         qc2.measure_all()
         qc3 = QuantumCircuit(1, 1)
         with qc3.for_loop(range(5)):
             qc3.h(0)
-        qc4 = QuantumCircuit(2, 2)
-        qc4.h(0)
-        qc4.measure(1, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc4.x(0).c_if(1, 1)
-        qc4.measure(0, 0)
 
         sampler = StatevectorSampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -307,9 +305,6 @@ class TestStatevectorSampler(QiskitTestCase):
         with self.subTest("with control flow"):
             with self.assertRaises(QiskitError):
                 _ = sampler.run([qc3]).result()
-        with self.subTest("with c_if"):
-            with self.assertRaises(QiskitError):
-                _ = sampler.run([qc4]).result()
         with self.subTest("negative shots, run arg"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc1], shots=-1).result()
@@ -354,7 +349,8 @@ class TestStatevectorSampler(QiskitTestCase):
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), range(2))
         qc.measure_all()
         k = 5
         params_array = np.linspace(0, 1, k * qc.num_parameters).reshape((k, qc.num_parameters))
@@ -593,10 +589,10 @@ class TestStatevectorSampler(QiskitTestCase):
         c2 = ClassicalRegister(1, "c2")
 
         qc = QuantumCircuit(q, c1, c2)
-        with self.assertWarns(DeprecationWarning):
-            qc.z(2).c_if(c1, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.x(2).c_if(c2, 1)
+        with qc.if_test((c1, 1)):
+            qc.z(2)
+        with qc.if_test((c2, 1)):
+            qc.x(2)
         qc2 = QuantumCircuit(5, 5)
         qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
         # Note: qc2 has aliased cregs, c0 -> c[2] and c1 -> c[4].

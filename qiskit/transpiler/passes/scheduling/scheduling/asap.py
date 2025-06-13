@@ -20,9 +20,8 @@ from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseSc
 class ASAPScheduleAnalysis(BaseScheduler):
     """ASAP Scheduling pass, which schedules the start time of instructions as early as possible.
 
-    See the :ref:`scheduling_stage` section in the :mod:`qiskit.transpiler`
-    module documentation for the detailed behavior of the control flow
-    operation, i.e. ``c_if``.
+    See the :ref:`transpiler-scheduling-description` section in the :mod:`qiskit.transpiler`
+    module documentation for a more detailed description.
     """
 
     def run(self, dag):
@@ -40,8 +39,9 @@ class ASAPScheduleAnalysis(BaseScheduler):
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ASAP schedule runs on physical circuits only")
+        if self.property_set["time_unit"] == "stretch":
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
-        conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         node_start_time = {}
@@ -54,40 +54,9 @@ class ASAPScheduleAnalysis(BaseScheduler):
             # t1: end time of instruction
             if isinstance(node.op, self.CONDITIONAL_SUPPORTED):
                 t0q = max(idle_after[q] for q in node.qargs)
-                if node.op.condition_bits:
-                    # conditional is bit tricky due to conditional_latency
-                    t0c = max(idle_after[bit] for bit in node.op.condition_bits)
-                    if t0q > t0c:
-                        # This is situation something like below
-                        #
-                        #           |t0q
-                        # Q ▒▒▒▒▒▒▒▒▒░░
-                        # C ▒▒▒░░░░░░░░
-                        #     |t0c
-                        #
-                        # In this case, you can insert readout access before tq0
-                        #
-                        #           |t0q
-                        # Q ▒▒▒▒▒▒▒▒▒▒▒
-                        # C ▒▒▒░░░▒▒░░░
-                        #         |t0q - conditional_latency
-                        #
-                        t0c = max(t0q - conditional_latency, t0c)
-                    t1c = t0c + conditional_latency
-                    for bit in node.op.condition_bits:
-                        # Lock clbit until state is read
-                        idle_after[bit] = t1c
-                    # It starts after register read access
-                    t0 = max(t0q, t1c)
-                else:
-                    t0 = t0q
+                t0 = t0q
                 t1 = t0 + op_duration
             else:
-                if node.op.condition_bits:
-                    raise TranspilerError(
-                        f"Conditional instruction {node.op.name} is not supported in ASAP scheduler."
-                    )
-
                 if isinstance(node.op, Measure):
                     # measure instruction handling is bit tricky due to clbit_write_latency
                     t0q = max(idle_after[q] for q in node.qargs)

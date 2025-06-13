@@ -142,7 +142,9 @@ class Pauli(BasePauli):
 
     For example
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.quantum_info import Pauli
 
@@ -583,7 +585,7 @@ class Pauli(BasePauli):
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
             frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for
-            Schrödinger framework.
+                Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C^\dagger.P.C` (Heisenberg picture)
@@ -706,7 +708,7 @@ class Pauli(BasePauli):
     def apply_layout(
         self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> Pauli:
-        """Apply a transpiler layout to this :class:`~.Pauli`
+        """Apply a transpiler layout to this :class:`~.quantum_info.Pauli`
 
         Args:
             layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
@@ -720,7 +722,7 @@ class Pauli(BasePauli):
                 None, the operator will be expanded to the given number of qubits.
 
         Returns:
-            A new :class:`.Pauli` with the provided layout applied
+            A new :class:`~.quantum_info.Pauli` with the provided layout applied
         """
         from qiskit.transpiler.layout import TranspileLayout
 

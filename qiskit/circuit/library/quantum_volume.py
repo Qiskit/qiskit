@@ -20,6 +20,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.generalized_gates import PermutationGate, UnitaryGate
 from qiskit._accelerate.circuit_library import quantum_volume as qv_rs
+from qiskit.utils.deprecation import deprecate_func
 
 
 class QuantumVolume(QuantumCircuit):
@@ -35,6 +36,7 @@ class QuantumVolume(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QuantumVolume
        circuit = QuantumVolume(5, 6, seed=10)
@@ -43,6 +45,7 @@ class QuantumVolume(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import QuantumVolume
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -56,6 +59,11 @@ class QuantumVolume(QuantumCircuit):
     [`arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`_]
     """
 
+    @deprecate_func(
+        since="2.2",
+        additional_msg="Use the function qiskit.circuit.library.quantum_volume instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         num_qubits: int,
@@ -147,9 +155,19 @@ def quantum_volume(
     environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
     to 4 threads.
 
+    Args:
+        num_qubits: The number qubits to use for the generated circuit.
+        depth: The number of layers for the generated circuit. If this
+            is not specified it will default to ``num_qubits`` layers.
+        seed: An optional RNG seed used for generating the random SU(4)
+            matrices used in the output circuit. This can be either an
+            integer or a numpy generator. If an integer is specfied it must
+            be an value between 0 and 2**64 - 1.
+
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import quantum_volume
        circuit = quantum_volume(5, 6, seed=10)
@@ -162,6 +180,7 @@ def quantum_volume(
     `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
     """
     if isinstance(seed, np.random.Generator):
-        seed = seed.integers(0, dtype=np.uint64)
+        max_value = np.iinfo(np.int64).max
+        seed = seed.integers(max_value, dtype=np.int64)
     depth = depth or num_qubits
     return QuantumCircuit._from_circuit_data(qv_rs(num_qubits, depth, seed))

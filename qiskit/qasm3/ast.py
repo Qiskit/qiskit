@@ -14,6 +14,8 @@
 
 """QASM3 AST Nodes"""
 
+from __future__ import annotations
+
 import enum
 from typing import Optional, List, Union, Iterable, Tuple, Sequence
 
@@ -50,6 +52,16 @@ class Pragma(ASTNode):
 
     def __init__(self, content):
         self.content = content
+
+
+class Annotation(ASTNode):
+    """An annotation."""
+
+    __slots__ = ("namespace", "payload")
+
+    def __init__(self, namespace: str, payload: str):
+        self.namespace = namespace
+        self.payload = payload
 
 
 class CalibrationGrammarDeclaration(Statement):
@@ -173,6 +185,12 @@ class BitType(ClassicalType):
     __slots__ = ()
 
 
+class DurationType(ClassicalType):
+    """Type information for a duration."""
+
+    __slots__ = ()
+
+
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
 
@@ -242,6 +260,13 @@ class IntegerLiteral(Expression):
         self.value = value
 
 
+class FloatLiteral(Expression):
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = value
+
+
 class BooleanLiteral(Expression):
     __slots__ = ("value",)
 
@@ -304,6 +329,10 @@ class Binary(Expression):
         NOT_EQUAL = "!="
         SHIFT_LEFT = "<<"
         SHIFT_RIGHT = ">>"
+        ADD = "+"
+        SUB = "-"
+        MUL = "*"
+        DIV = "/"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op
@@ -387,6 +416,17 @@ class ClassicalDeclaration(Statement):
         self.type = type_
         self.identifier = identifier
         self.initializer = initializer
+
+
+class StretchDeclaration(Statement):
+    """Declaration of a stretch variable, optionally with a lower bound
+    expression."""
+
+    __slots__ = ("identifier", "bound")
+
+    def __init__(self, identifier: Identifier, bound=None):
+        self.identifier = identifier
+        self.bound = bound
 
 
 class AssignmentStatement(Statement):
@@ -666,6 +706,24 @@ class WhileLoopStatement(Statement):
     def __init__(self, condition: Expression, body: ProgramBlock):
         self.condition = condition
         self.body = body
+
+
+class BoxStatement(Statement):
+    """Like ``box[duration] { statements* }``."""
+
+    # TODO: the `annotations` field maybe should move to `Statement` if it becomes more generally
+    # supported.
+    __slots__ = ("annotations", "duration", "body")
+
+    def __init__(
+        self,
+        body: ProgramBlock,
+        duration: Expression | None = None,
+        annotations: Sequence[Annotation] = (),
+    ):
+        self.body = body
+        self.duration = duration
+        self.annotations = tuple(annotations)
 
 
 class BreakStatement(Statement):

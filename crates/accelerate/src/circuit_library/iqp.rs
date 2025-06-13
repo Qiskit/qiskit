@@ -27,7 +27,7 @@ use smallvec::{smallvec, SmallVec};
 use crate::CircuitError;
 
 const PI2: f64 = PI / 2.0;
-const PI8: f64 = PI / 8.0;
+const PI4: f64 = PI / 4.0;
 
 fn iqp(
     interactions: ArrayView2<i64>,
@@ -36,10 +36,10 @@ fn iqp(
 
     // The initial and final Hadamard layer.
     let h_layer =
-        (0..num_qubits).map(|i| (StandardGate::HGate, smallvec![], smallvec![Qubit(i as u32)]));
+        (0..num_qubits).map(|i| (StandardGate::H, smallvec![], smallvec![Qubit(i as u32)]));
 
-    // The circuit interactions are powers of the CSGate, which is implemented by calling
-    // the CPhaseGate with angles of Pi/2 times the power. The gate powers are given by the
+    // The circuit interactions are powers of the CS gate, which is implemented by calling
+    // the CPhase gate with angles of Pi/2 times the power. The gate powers are given by the
     // upper triangular part of the symmetric ``interactions`` matrix.
     let connections = (0..num_qubits).flat_map(move |i| {
         (i + 1..num_qubits)
@@ -47,14 +47,14 @@ fn iqp(
             .filter(move |(_, value)| value % 4 != 0)
             .map(move |(j, value)| {
                 (
-                    StandardGate::CPhaseGate,
+                    StandardGate::CPhase,
                     smallvec![Param::Float(PI2 * value as f64)],
                     smallvec![Qubit(i as u32), Qubit(j as u32)],
                 )
             })
     });
 
-    // The layer of T gates. Again we use the PhaseGate, now with powers of Pi/8. The powers
+    // The layer of T gates. Again we use the Phase gate, now with powers of Pi/4. The powers
     // are given by the diagonal of the ``interactions`` matrix.
     let shifts = (0..num_qubits)
         .map(move |i| interactions[(i, i)])
@@ -62,8 +62,8 @@ fn iqp(
         .filter(|(_, value)| value % 8 != 0)
         .map(|(i, value)| {
             (
-                StandardGate::PhaseGate,
-                smallvec![Param::Float(PI8 * value as f64)],
+                StandardGate::Phase,
+                smallvec![Param::Float(PI4 * value as f64)],
                 smallvec![Qubit(i as u32)],
             )
         });
@@ -80,14 +80,14 @@ fn generate_random_interactions(num_qubits: u32, seed: Option<u64>) -> Array2<i6
     let num_qubits = num_qubits as usize;
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_entropy(),
+        None => Pcg64Mcg::from_os_rng(),
     };
 
     let mut mat = Array2::zeros((num_qubits, num_qubits));
     for i in 0..num_qubits {
-        mat[[i, i]] = rng.gen_range(0..8) as i64;
+        mat[[i, i]] = rng.random_range(0..8) as i64;
         for j in 0..i {
-            mat[[i, j]] = rng.gen_range(0..8) as i64;
+            mat[[i, j]] = rng.random_range(0..8) as i64;
             mat[[j, i]] = mat[[i, j]];
         }
     }

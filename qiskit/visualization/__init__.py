@@ -18,7 +18,7 @@ Visualizations (:mod:`qiskit.visualization`)
 .. currentmodule:: qiskit.visualization
 
 The visualization module contain functions that visualizes measurement outcome counts, quantum
-states, circuits, pulses, devices and more.
+states, circuits, devices and more.
 
 To use visualization functions, you are required to install visualization optionals to your
 development environment:
@@ -47,6 +47,7 @@ individual documentation for exact details.
 The following example demonstrates the common usage of these arguments:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_histogram
@@ -60,7 +61,9 @@ The following example demonstrates the common usage of these arguments:
 You can specify ``legend``, ``title``, ``figsize`` and ``color`` by passing to the kwargs.
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
+   :context: reset
 
    from qiskit.visualization import plot_histogram
 
@@ -85,6 +88,7 @@ You can save the figure to file either by passing the file name to ``filename`` 
    hist = plot_histogram(data)
    hist.savefig('new_hist.png')
 
+
 Counts Visualizations
 =====================
 
@@ -101,6 +105,7 @@ Example Usage
 Here is an example of using :func:`plot_histogram` to visualize measurement outcome counts:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_histogram
@@ -142,6 +147,7 @@ Example Usage
 Here is an example of using :func:`plot_state_city` to visualize a quantum state:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_state_city
@@ -155,6 +161,7 @@ The state can be array-like list of lists, ``numpy.array``, or more commonly
 obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -170,6 +177,7 @@ obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
    plot_state_city(state)
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -273,8 +281,6 @@ from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_c
 from .pass_manager_visualization import pass_manager_drawer
 from .pass_manager_visualization import staged_pass_manager_drawer
 
-from .pulse_v2 import draw as pulse_drawer
-
 from .timeline import draw as timeline_drawer
 
 from .exceptions import VisualizationError
@@ -282,7 +288,3 @@ from .exceptions import VisualizationError
 # These modules aren't part of the public interface, and were moved in Terra 0.22.  They're
 # re-imported here to allow a backwards compatible path, and should be deprecated in Terra 0.23.
 from .circuit import text, matplotlib, latex
-
-# Prepare for migration of old versioned name to unversioned name.  The `pulse_drawer_v2` name can
-# be deprecated in Terra 0.24, as `pulse_drawer` became available by that name in Terra 0.23.
-pulse_drawer_v2 = pulse_drawer

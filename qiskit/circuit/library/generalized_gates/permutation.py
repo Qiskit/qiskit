@@ -28,7 +28,11 @@ from qiskit.utils.deprecation import deprecate_func
 class Permutation(QuantumCircuit):
     """An n_qubit circuit that permutes qubits."""
 
-    @deprecate_func(since="1.3", pending=True, additional_msg="Use PermutationGate instead.")
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use PermutationGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         num_qubits: int,
@@ -54,6 +58,7 @@ class Permutation(QuantumCircuit):
 
         Reference Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                from qiskit.circuit.library import Permutation
                A = [2,4,3,0,1]
@@ -62,6 +67,7 @@ class Permutation(QuantumCircuit):
 
         Expanded Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                from qiskit.circuit.library import Permutation
                from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -116,6 +122,7 @@ class PermutationGate(Gate):
 
         Reference Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                 from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import PermutationGate
@@ -127,6 +134,7 @@ class PermutationGate(Gate):
 
         Expanded Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                 from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import PermutationGate
@@ -182,7 +190,7 @@ class PermutationGate(Gate):
 
         return PermutationGate(pattern=_inverse_pattern(self.pattern))
 
-    def _qasm2_decomposition(self):
+    def _qasm_decomposition(self):
         # pylint: disable=cyclic-import
         from qiskit.synthesis.permutation import synth_permutation_basic
 

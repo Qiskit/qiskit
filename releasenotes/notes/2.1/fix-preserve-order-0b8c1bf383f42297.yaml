@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.PauliEvolutionSynthesisDefault` and :class:`.PauliEvolutionSynthesisRustiq` plugins that 
+    modified the `.synthesis` attribute of the original circuit when setting ``preserve_order=False``. The behavior of the
+    plugins has been restored and the original circuit is now preserved throughout the transpilation pipeline.

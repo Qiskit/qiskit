@@ -60,9 +60,9 @@ class UnitaryOverlap(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.unitary_overlap instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -128,13 +128,14 @@ def unitary_overlap(
     **Reference Circuit:**
 
     .. plot::
+        :alt: Circuit diagram output by the previous code.
         :include-source:
 
         import numpy as np
-        from qiskit.circuit.library import EfficientSU2, unitary_overlap
+        from qiskit.circuit.library import efficient_su2, unitary_overlap
 
         # get two circuit to prepare states of which we compute the overlap
-        circuit = EfficientSU2(2, reps=1)
+        circuit = efficient_su2(2, reps=1)
         unitary1 = circuit.assign_parameters(np.random.random(circuit.num_parameters))
         unitary2 = circuit.assign_parameters(np.random.random(circuit.num_parameters))
 

@@ -17,7 +17,8 @@ import unittest
 import ddt
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Parameter
+from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Parameter, Gate
+from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.circuit.library.standard_gates import (
     UGate,
     SXGate,
@@ -29,6 +30,7 @@ from qiskit.circuit.library.standard_gates import (
     RXGate,
     RYGate,
     HGate,
+    SGate,
 )
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler import transpile
@@ -193,37 +195,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
 
         self.assertTrue(Operator(circuit).equiv(Operator(result)))
         self.assertLessEqual(result.depth(), circuit.depth())
-
-    @ddt.data(
-        ["cx", "u3"],
-        ["cz", "u3"],
-        ["cx", "u"],
-        ["p", "sx", "u", "cx"],
-        ["cz", "rx", "rz"],
-        ["rxx", "rx", "ry"],
-        ["iswap", "rx", "rz"],
-        ["rz", "rx"],
-        ["rz", "sx"],
-        ["p", "sx"],
-        ["r"],
-    )
-    def test_ignores_conditional_rotations(self, basis):
-        """Conditional rotations should not be considered in the chain."""
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.p(0.1, qr).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.p(0.2, qr).c_if(cr, 3)
-        circuit.p(0.3, qr)
-        circuit.p(0.4, qr)
-
-        passmanager = PassManager()
-        passmanager.append(Optimize1qGatesDecomposition(basis))
-        result = passmanager.run(circuit)
-        with self.assertWarns(DeprecationWarning):
-            self.assertTrue(Operator(circuit).equiv(Operator(result)))
 
     @ddt.data(
         ["cx", "u3"],
@@ -760,6 +731,56 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         opt_pass = Optimize1qGatesDecomposition(target)
         res = opt_pass(qc)
         self.assertEqual(res, qc)
+
+    def test_custom_gate(self):
+        """Test that pass handles custom single-qubit gates."""
+
+        class CustomGate(Gate):
+            """Custom u1 gate."""
+
+            def __init__(self, lam):
+                super().__init__("custom_u1", 1, [lam])
+
+            def __array__(self, dtype=None, _copy=None):
+                return U1Gate(*self.params).__array__(dtype=dtype)
+
+        qc = QuantumCircuit(1)
+        qc.append(CustomGate(0.5), [0])
+        result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
+
+        expected = QuantumCircuit(1)
+        expected.u(0, 0, 0.5, [0])
+
+        self.assertEqual(result, expected)
+
+    def test_unitary_gate_row_major(self):
+        """
+        Test that pass handles unitary single-qubit gates constructed
+        using the default row-major ordering.
+        """
+
+        qc = QuantumCircuit(1)
+        mat = np.asarray(SGate().to_matrix(), dtype=complex)
+        qc.append(UnitaryGate(mat), [0])
+        result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
+
+        expected = QuantumCircuit(1)
+        expected.u(0, 0, np.pi / 2, [0])
+        self.assertEqual(result, expected)
+
+    def test_unitary_gate_column_major(self):
+        """
+        Test that pass handles unitary single-qubit gates constructed
+        using the column-major ordering.
+        """
+        qc = QuantumCircuit(1)
+        mat = np.asarray(SGate().to_matrix(), dtype=complex, order="f")
+        qc.append(UnitaryGate(mat), [0])
+        result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
+
+        expected = QuantumCircuit(1)
+        expected.u(0, 0, np.pi / 2, [0])
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

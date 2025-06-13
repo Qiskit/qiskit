@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug where the barrier labels were incorrectly positioned when
+    using the ``reverse_bits = True`` parameter in the :meth:`.QuantumCircuit.draw`
+    method. The bug caused the labels on barrier operations to be misaligned,
+    leading to potential confusion in circuit visualizations.
+    Fixed `#13609 <https://github.com/Qiskit/qiskit/issues/13609>`__.

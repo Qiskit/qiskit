@@ -15,7 +15,6 @@
 import unittest
 import cmath
 import math
-import copy
 import pickle
 from operator import add, mul, sub, truediv
 import numpy
@@ -28,10 +27,9 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.compiler import assemble, transpile
-from qiskit import pulse
+from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
-from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
@@ -361,6 +359,28 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc.assign_parameters(dict(zip(qc.parameters, binds)).values()), expected)
         self.assertEqual(qc.assign_parameters(bind for bind in binds), expected)
 
+    def test_assign_parameters_with_cache(self):
+        """Test assigning parameters on a circuit with already triggered cache."""
+        x = Parameter("x")
+        qc = QuantumCircuit(1)
+        qc.append(RZGate(x), [0])  # add via ``append`` to create a CircuitInstruction
+
+        _ = qc.data[0].operation.definition  # trigger building the cache
+
+        binds = [1.2]
+        qc.assign_parameters(binds, inplace=True)
+
+        self.assertAlmostEqual(binds[0], qc.data[0].operation.params[0])
+
+    def test_assign_parameters_with_string_values_and_strict_equals_false(self):
+        """Test that a string parameter with strict=False does not return an error"""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        qc.rz(a, 0)
+        bound = qc.assign_parameters({"a": 1.0, "b": 2.0}, strict=False)
+        expected = qc.assign_parameters({a: 1.0})
+        self.assertEqual(bound, expected)
+
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
         x = Parameter("x")
@@ -586,7 +606,7 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(pqc.parameters, {phi})
 
         self.assertTrue(isinstance(pqc.data[0].operation.params[0], ParameterExpression))
-        self.assertEqual(str(pqc.data[0].operation.params[0]), "phi + 2")
+        self.assertEqual(str(pqc.data[0].operation.params[0]), "2 + phi")
 
         fbqc = pqc.assign_parameters({phi: 1.0})
 
@@ -710,165 +730,6 @@ class TestParameters(QiskitTestCase):
         for instruction in qc2.data:
             self.assertEqual(float(instruction.operation.params[0]), 1.0)
 
-    def test_calibration_assignment(self):
-        """That that calibration mapping and the schedules they map are assigned together."""
-        theta = Parameter("theta")
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("rxt", 1, [theta]), [0])
-        circ.measure(0, 0)
-
-        with self.assertWarns(DeprecationWarning):
-            rxt_q0 = pulse.Schedule(
-                pulse.Play(
-                    pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
-                    pulse.DriveChannel(0),
-                )
-            )
-
-            circ.add_calibration("rxt", [0], rxt_q0, [theta])
-        circ = circ.assign_parameters({theta: 3.14})
-
-        instruction = circ.data[0]
-        cal_key = (
-            tuple(circ.find_bit(q).index for q in instruction.qubits),
-            tuple(instruction.operation.params),
-        )
-        self.assertEqual(cal_key, ((0,), (3.14,)))
-
-        with self.assertWarns(DeprecationWarning):
-            # Make sure that key from instruction data matches the calibrations dictionary
-            self.assertIn(cal_key, circ.calibrations["rxt"])
-            sched = circ.calibrations["rxt"][cal_key]
-        self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
-
-    def test_calibration_assignment_doesnt_mutate(self):
-        """That that assignment doesn't mutate the original circuit."""
-        theta = Parameter("theta")
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("rxt", 1, [theta]), [0])
-        circ.measure(0, 0)
-
-        with self.assertWarns(DeprecationWarning):
-            rxt_q0 = pulse.Schedule(
-                pulse.Play(
-                    pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
-                    pulse.DriveChannel(0),
-                )
-            )
-
-            circ.add_calibration("rxt", [0], rxt_q0, [theta])
-        circ_copy = copy.deepcopy(circ)
-        assigned_circ = circ.assign_parameters({theta: 3.14})
-
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(circ.calibrations, circ_copy.calibrations)
-            self.assertNotEqual(assigned_circ.calibrations, circ.calibrations)
-
-    def test_calibration_assignment_w_expressions(self):
-        """That calibrations with multiple parameters are assigned correctly"""
-        theta = Parameter("theta")
-        sigma = Parameter("sigma")
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("rxt", 1, [theta / 2, sigma]), [0])
-        circ.measure(0, 0)
-
-        with self.assertWarns(DeprecationWarning):
-            rxt_q0 = pulse.Schedule(
-                pulse.Play(
-                    pulse.library.Gaussian(duration=128, sigma=4 * sigma, amp=0.2 * theta / 3.14),
-                    pulse.DriveChannel(0),
-                )
-            )
-
-            circ.add_calibration("rxt", [0], rxt_q0, [theta / 2, sigma])
-        circ = circ.assign_parameters({theta: 3.14, sigma: 4})
-
-        instruction = circ.data[0]
-        cal_key = (
-            tuple(circ.find_bit(q).index for q in instruction.qubits),
-            tuple(instruction.operation.params),
-        )
-        self.assertEqual(cal_key, ((0,), (3.14 / 2, 4)))
-        with self.assertWarns(DeprecationWarning):
-            # Make sure that key from instruction data matches the calibrations dictionary
-            self.assertIn(cal_key, circ.calibrations["rxt"])
-            sched = circ.calibrations["rxt"][cal_key]
-        self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
-        self.assertEqual(sched.instructions[0][1].pulse.sigma, 16)
-
-    def test_substitution(self):
-        """Test Parameter substitution (vs bind)."""
-        alpha = Parameter("⍺")
-        beta = Parameter("beta")
-        with self.assertWarns(DeprecationWarning):
-            schedule = pulse.Schedule(pulse.ShiftPhase(alpha, pulse.DriveChannel(0)))
-
-        circ = QuantumCircuit(3, 3)
-        circ.append(Gate("my_rz", 1, [alpha]), [0])
-        with self.assertWarns(DeprecationWarning):
-            circ.add_calibration("my_rz", [0], schedule, [alpha])
-
-        circ = circ.assign_parameters({alpha: 2 * beta})
-
-        circ = circ.assign_parameters({beta: 1.57})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = circ.calibrations["my_rz"][((0,), (3.14,))]
-        self.assertEqual(float(cal_sched.instructions[0][1].phase), 3.14)
-
-    def test_partial_assignment(self):
-        """Expressions of parameters with partial assignment."""
-        alpha = Parameter("⍺")
-        beta = Parameter("beta")
-        gamma = Parameter("γ")
-        phi = Parameter("ϕ")
-
-        with self.assertWarns(DeprecationWarning):
-            with pulse.build() as my_cal:
-                pulse.set_frequency(alpha + beta, pulse.DriveChannel(0))
-                pulse.shift_frequency(gamma + beta, pulse.DriveChannel(0))
-                pulse.set_phase(phi, pulse.DriveChannel(1))
-
-        circ = QuantumCircuit(2, 2)
-        circ.append(Gate("custom", 2, [alpha, beta, gamma, phi]), [0, 1])
-        with self.assertWarns(DeprecationWarning):
-            circ.add_calibration("custom", [0, 1], my_cal, [alpha, beta, gamma, phi])
-
-        # Partial bind
-        delta = 1e9
-        freq = 4.5e9
-        shift = 0.5e9
-        phase = 3.14 / 4
-
-        circ = circ.assign_parameters({alpha: freq - delta})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = list(circ.calibrations["custom"].values())[0]
-        with self.assertWarns(DeprecationWarning):
-            # instructions triggers conversion to Schedule
-            self.assertEqual(cal_sched.instructions[0][1].frequency, freq - delta + beta)
-
-        circ = circ.assign_parameters({beta: delta})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = list(circ.calibrations["custom"].values())[0]
-        with self.assertWarns(DeprecationWarning):
-            # instructions triggers conversion to Schedule
-            self.assertEqual(float(cal_sched.instructions[0][1].frequency), freq)
-            self.assertEqual(cal_sched.instructions[1][1].frequency, gamma + delta)
-
-        circ = circ.assign_parameters({gamma: shift - delta})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = list(circ.calibrations["custom"].values())[0]
-        with self.assertWarns(DeprecationWarning):
-            # instructions triggers conversion to Schedule
-            self.assertEqual(float(cal_sched.instructions[1][1].frequency), shift)
-            self.assertEqual(cal_sched.instructions[2][1].phase, phi)
-
-        circ = circ.assign_parameters({phi: phase})
-        with self.assertWarns(DeprecationWarning):
-            cal_sched = list(circ.calibrations["custom"].values())[0]
-        with self.assertWarns(DeprecationWarning):
-            # instructions triggers conversion to Schedule
-            self.assertEqual(float(cal_sched.instructions[2][1].phase), phase)
-
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
         theta = Parameter("θ")
@@ -883,10 +744,9 @@ class TestParameters(QiskitTestCase):
         theta_list = numpy.linspace(0, numpy.pi, 20)
         for theta_i in theta_list:
             circs.append(qc_aer.assign_parameters({theta: theta_i}))
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(circs)
+
         for index, theta_i in enumerate(theta_list):
-            res = float(qobj.experiments[index].instructions[0].params[0])
+            res = float(circs[index].data[0].params[0])
             self.assertTrue(math.isclose(res, theta_i), f"{res} != {theta_i}")
 
     def test_circuit_composition(self):
@@ -1071,46 +931,6 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(hash(x1), hash(x1_expr))
         self.assertEqual(hash(x2), hash(x2_expr))
 
-    def test_binding_parameterized_circuits_built_in_multiproc_(self):
-        """Verify subcircuits built in a subprocess can still be bound.
-        REMOVE this test once assemble is REMOVED"""
-        # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
-
-        num_processes = 4
-
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(3)
-
-        circuit = QuantumCircuit(qr, cr)
-        parameters = [Parameter(f"x{i}") for i in range(num_processes)]
-
-        results = parallel_map(
-            _construct_circuit, parameters, task_args=(qr,), num_processes=num_processes
-        )
-
-        for qc in results:
-            circuit.compose(qc, inplace=True)
-
-        parameter_values = [{x: 1.0 for x in parameters}]
-
-        with self.assertWarns(DeprecationWarning):
-            qobj = assemble(
-                circuit,
-                backend=BasicSimulator(),
-                parameter_binds=parameter_values,
-            )
-
-        self.assertEqual(len(qobj.experiments), 1)
-        self.assertEqual(len(qobj.experiments[0].instructions), 4)
-        self.assertTrue(
-            all(
-                len(inst.params) == 1
-                and isinstance(inst.params[0], float)
-                and float(inst.params[0]) == 1
-                for inst in qobj.experiments[0].instructions
-            )
-        )
-
     def test_binding_parameterized_circuits_built_in_multiproc(self):
         """Verify subcircuits built in a subprocess can still be bound."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
@@ -1157,37 +977,15 @@ class TestParameters(QiskitTestCase):
         qc1.u(theta, 0, 0, qr[0])
         qc2.u(theta, 3.14, 0, qr[0])
 
+        qc1 = qc1.assign_parameters({theta: 1})
+        qc2 = qc2.assign_parameters({theta: 1})
+
         circuits = [qc1, qc2]
 
         backend = BasicSimulator()
-        job = backend.run(transpile(circuits, backend), shots=512, parameter_binds=[{theta: 1}])
+        job = backend.run(transpile(circuits, backend), shots=512)
 
         self.assertTrue(len(job.result().results), 2)
-
-    @data(0, 1, 2, 3)
-    def test_transpile_across_optimization_levelsV1(self, opt_level):
-        """Verify parameterized circuits can be transpiled with all default pass managers.
-        To remove once Fake5QV1 gets removed"""
-
-        qc = QuantumCircuit(5, 5)
-
-        theta = Parameter("theta")
-        phi = Parameter("phi")
-
-        qc.rx(theta, 0)
-        qc.x(0)
-        for i in range(5 - 1):
-            qc.rxx(phi, i, i + 1)
-
-        qc.measure(range(5 - 1), range(5 - 1))
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake5QV1()
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `transpile` function will "
-            "stop supporting inputs of type `BackendV1`",
-        ):
-            transpile(qc, backend, optimization_level=opt_level)
 
     @data(0, 1, 2, 3)
     def test_transpile_across_optimization_levels(self, opt_level):
@@ -1232,6 +1030,18 @@ class TestParameters(QiskitTestCase):
 
         bound_test_qc = test_qc.assign_parameters({theta: 1})
         self.assertEqual(len(bound_test_qc.parameters), 0)
+
+    def test_global_phase_to_dag_and_back(self):
+        """Test global phase parameters are correctly handled to dag and back."""
+        from qiskit.converters import circuit_to_dag, dag_to_circuit
+
+        theta = Parameter("theta")
+        qc = QuantumCircuit(global_phase=theta)
+
+        test_qc = dag_to_circuit(circuit_to_dag(qc))
+
+        bound_test_qc = test_qc.assign_parameters({theta: 1})
+        self.assertEqual(bound_test_qc.global_phase, 1)
 
     def test_rebinding_instruction_copy(self):
         """Test rebinding a copied instruction does not modify the original."""
@@ -1409,20 +1219,6 @@ class TestParameters(QiskitTestCase):
             qc = QuantumCircuit(1)
             qc.x(0)
             self.assertEqual(qc.num_parameters, 0)
-
-    def test_execute_result_names(self):
-        """Test unique names for list of parameter binds."""
-        theta = Parameter("θ")
-        reps = 5
-        qc = QuantumCircuit(1, 1)
-        qc.rx(theta, 0)
-        qc.measure(0, 0)
-
-        plist = [{theta: i} for i in range(reps)]
-        simulator = BasicSimulator()
-        result = simulator.run(transpile(qc, simulator), parameter_binds=plist).result()
-        result_names = {res.name for res in result.results}
-        self.assertEqual(reps, len(result_names))
 
     def test_to_instruction_after_inverse(self):
         """Verify converting an inverse generates a valid ParameterTable"""
@@ -1604,6 +1400,22 @@ class TestParameters(QiskitTestCase):
         subbed = x.subs({y: z}, allow_unknown_parameters=True)
         self.assertEqual(subbed, x)
 
+    def test_decompose_with_global_phase(self):
+        """Test decomposing a circuit which introduces a global phase is correctly bound.
+
+        Regression test of #13534.
+        """
+        x = Parameter("x")
+        qc = QuantumCircuit(1)
+        qc.rz(x, 0)
+
+        bound = qc.decompose().assign_parameters([1])
+
+        expect = QuantumCircuit(1)
+        expect.rz(1, 0)
+
+        self.assertEqual(expect.decompose(), bound)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
@@ -1693,8 +1505,8 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_cast_to_float_intermediate_complex_value(self):
         """Verify expression can be cast to a float when it is fully bound, but an intermediate part
-        of the expression evaluation involved complex types.  Sympy is generally more permissive
-        than symengine here, and sympy's tends to be the expected behavior for our users."""
+        of the expression evaluation involved complex types.
+        """
         x = Parameter("x")
         bound_expr = (x + 1.0 + 1.0j).bind({x: -1.0j})
         self.assertEqual(float(bound_expr), 1.0)
@@ -2304,12 +2116,8 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertIsInstance(one_imaginary.numeric(), complex)
         self.assertEqual(one_imaginary.numeric(), 1j)
 
-        # This is one particular case where symengine 0.9.2 (and probably others) struggles when
-        # evaluating in the complex domain, but gets the right answer if forced to the real domain.
-        # It appears more commonly because `symengine.Basic.subs` does not simplify the expression
-        # tree eagerly, so the `_symbol_expr` is `0.5 * (0.5)**2`.  Older symengines then introduce
-        # a spurious small imaginary component when evaluating this `Mul(x, Pow(y, z))` pattern in
-        # the complex domain.
+        # This is one particular case where symbolic libraries struggled (e.g. symengine 0.9.2) when
+        # evaluating in the complex domain, but got the right answer if forced to the real domain.
         problem = (0.5 * a * b).assign(b, 0.5).assign(a, 0.5)
         self.assertIsInstance(problem.numeric(), float)
         self.assertEqual(problem.numeric(), 0.125)
@@ -2352,6 +2160,14 @@ class TestParameterEquality(QiskitTestCase):
         theta = Parameter("theta")
         expr1 = 2.0 * theta
         expr2 = 2 * theta
+
+        self.assertEqual(expr1, expr2)
+
+    def test_parameter_expression_equal_floats_to_divide_by_int(self):
+        """Verify an expression with float and division by int is identical."""
+        theta = Parameter("theta")
+        expr1 = 0.25 * theta
+        expr2 = theta / 4
 
         self.assertEqual(expr1, expr2)
 

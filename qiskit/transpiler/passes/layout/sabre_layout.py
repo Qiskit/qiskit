@@ -29,17 +29,17 @@ from qiskit.transpiler.passes.layout.set_layout import SetLayout
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
-from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit._accelerate import disjoint_utils
 from qiskit._accelerate.nlayout import NLayout
 from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, NeighborTable, SetScaling
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.utils.parallel import CPU_COUNT
+from qiskit.utils import default_num_processes
 
 logger = logging.getLogger(__name__)
 
@@ -176,11 +176,11 @@ class SabreLayout(TransformationPass):
         self.max_iterations = max_iterations
         self.trials = swap_trials
         if swap_trials is None:
-            self.swap_trials = CPU_COUNT
+            self.swap_trials = default_num_processes()
         else:
             self.swap_trials = swap_trials
         if layout_trials is None:
-            self.layout_trials = CPU_COUNT
+            self.layout_trials = default_num_processes()
         else:
             self.layout_trials = layout_trials
         self.skip_routing = skip_routing
@@ -267,7 +267,24 @@ class SabreLayout(TransformationPass):
             inner_run = functools.partial(
                 self._inner_run, starting_layouts=self.property_set["sabre_starting_layouts"]
             )
-        components = disjoint_utils.run_pass_over_connected_components(dag, target, inner_run)
+        if self.target is not None:
+            components = disjoint_utils.run_pass_over_connected_components(
+                dag, self.target, inner_run
+            )
+            # If components is None we can't build a coupling map from the target so we must have
+            # one provided:
+            if components is None:
+                temp_target = Target.from_configuration(
+                    basis_gates=["u", "cx"], coupling_map=target
+                )
+                components = disjoint_utils.run_pass_over_connected_components(
+                    dag, temp_target, inner_run
+                )
+        else:
+            temp_target = Target.from_configuration(basis_gates=["u", "cx"], coupling_map=target)
+            components = disjoint_utils.run_pass_over_connected_components(
+                dag, temp_target, inner_run
+            )
         self.property_set["layout"] = Layout(
             {
                 component.dag.qubits[logic]: component.coupling_map.graph[phys]
@@ -305,6 +322,9 @@ class SabreLayout(TransformationPass):
         # the layout and routing together as part of resolving the Sabre result.
         physical_qubits = QuantumRegister(self.coupling_map.size(), "q")
         mapped_dag = DAGCircuit()
+        mapped_dag.name = dag.name
+        mapped_dag.metadata = dag.metadata
+        mapped_dag.global_phase = dag.global_phase
         mapped_dag.add_qreg(physical_qubits)
         mapped_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
@@ -315,7 +335,10 @@ class SabreLayout(TransformationPass):
             mapped_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             mapped_dag.add_declared_var(var)
-        mapped_dag.global_phase = dag.global_phase
+        for stretch in dag.iter_captured_stretches():
+            mapped_dag.add_captured_stretch(stretch)
+        for stretch in dag.iter_declared_stretches():
+            mapped_dag.add_declared_stretch(stretch)
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
@@ -328,6 +351,19 @@ class SabreLayout(TransformationPass):
                 for initial, final in enumerate(component.final_permutation)
             }
         )
+
+        # The coupling map may have been split into more components than the DAG.  In this case,
+        # there will be some physical qubits unaccounted for in our `final_layout`.  Strictly the
+        # `if` check is unnecessary, but we can avoid the loop for most circuits and backends.
+        if len(final_layout) != len(physical_qubits):
+            used_qubits = {
+                qubit for component in components for qubit in component.coupling_map.graph.nodes()
+            }
+            for index, qubit in enumerate(physical_qubits):
+                if index in used_qubits:
+                    continue
+                final_layout[qubit] = index
+
         if self.property_set["final_layout"] is None:
             self.property_set["final_layout"] = final_layout
         else:
@@ -394,9 +430,11 @@ class SabreLayout(TransformationPass):
             coupling_map.size(),
             original_qubit_indices,
         )
+        # In our defaults, the basic heuristic shouldn't scale by size; if it does, it's liable to
+        # get the algorithm stuck.  See https://github.com/Qiskit/qiskit/pull/14458 for more.
         heuristic = (
             Heuristic(attempt_limit=10 * coupling_map.size())
-            .with_basic(1.0, SetScaling.Size)
+            .with_basic(1.0, SetScaling.Constant)
             .with_lookahead(0.5, 20, SetScaling.Size)
             .with_decay(0.001, 5)
         )

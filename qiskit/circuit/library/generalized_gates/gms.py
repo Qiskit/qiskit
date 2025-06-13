@@ -20,7 +20,7 @@ from collections.abc import Sequence
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.circuit.gate import Gate
@@ -45,6 +45,7 @@ class GMS(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GMS
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -77,7 +78,11 @@ class GMS(QuantumCircuit):
     `arXiv:1707.06356 <https://arxiv.org/abs/1707.06356>`_
     """
 
-    @deprecate_func(since="1.3", additional_msg="Use the MSGate instead.", pending=True)
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use the MSGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(self, num_qubits: int, theta: list[list[float]] | np.ndarray) -> None:
         """Create a new Global Mølmer–Sørensen (GMS) gate.
 

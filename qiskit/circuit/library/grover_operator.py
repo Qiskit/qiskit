@@ -103,6 +103,7 @@ def grover_operator(
         We can construct a Grover operator just from the phase oracle:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -117,8 +118,9 @@ def grover_operator(
         We can also modify the state preparation:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             oracle = QuantumCircuit(1)
             oracle.z(0)  # the qubit state |1> is the good state
@@ -132,8 +134,9 @@ def grover_operator(
         the oracle:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             oracle = QuantumCircuit(4)
             oracle.z(3)
@@ -149,8 +152,9 @@ def grover_operator(
         objects:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             from qiskit.quantum_info import Statevector, DensityMatrix, Operator
 
@@ -424,9 +428,9 @@ class GroverOperator(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.grover_operator instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,

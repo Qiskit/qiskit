@@ -30,10 +30,10 @@ class XOR(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Instead, for xor-ing with a specified amount, use BitwiseXorGate,"
         "and for xor-ing with a random amount, use random_bitwise_xor.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -53,6 +53,7 @@ class XOR(QuantumCircuit):
 
         Reference Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                from qiskit.circuit.library import XOR
                from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -88,6 +89,7 @@ class BitwiseXorGate(Gate):
     Reference Circuit:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit import QuantumCircuit
        from qiskit.circuit.library import BitwiseXorGate

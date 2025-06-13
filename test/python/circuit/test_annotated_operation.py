@@ -158,6 +158,16 @@ class TestAnnotatedOperationClass(QiskitTestCase):
         expected_list = []
         self.assertEqual(canonical_list, expected_list)
 
+    def test_canonicalize_controls(self):
+        """Test that ``canonicalize_modifiers`` works correctly."""
+        original_list = [
+            ControlModifier(num_ctrl_qubits=2, ctrl_state=2),
+            ControlModifier(num_ctrl_qubits=3, ctrl_state=7),
+        ]
+        canonical_list = _canonicalize_modifiers(original_list)
+        expected_list = [ControlModifier(num_ctrl_qubits=5, ctrl_state=23)]
+        self.assertEqual(canonical_list, expected_list)
+
     def test_params_access(self):
         """Test access to the params field."""
         p, q = Parameter("p"), Parameter("q")

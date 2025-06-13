@@ -14,10 +14,8 @@
 
 from __future__ import annotations
 
-from math import pi
 from typing import Optional, Union
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -65,29 +63,27 @@ class SXGate(SingletonGate):
 
     """
 
-    _standard_gate = StandardGate.SXGate
+    _standard_gate = StandardGate.SX
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
-        super().__init__("sx", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("sx", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate sx a { rz(-pi/2) a; h a; rz(-pi/2); }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .s import SdgGate
-        from .h import HGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=pi / 4)
-        rules = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], []), (SdgGate(), [q[0]], [])]
-        for operation, qubits, clbits in rules:
-            qc._append(operation, qubits, clbits)
-        self.definition = qc
+        # global phase: π/4
+        #    ┌─────┐┌───┐┌─────┐
+        # q: ┤ Sdg ├┤ H ├┤ Sdg ├
+        #    └─────┘└───┘└─────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.SX._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse SX gate (i.e. SXdg).
@@ -169,29 +165,27 @@ class SXdgGate(SingletonGate):
                     = e^{-i \pi/4} \sqrt{X}^{\dagger}
     """
 
-    _standard_gate = StandardGate.SXdgGate
+    _standard_gate = StandardGate.SXdg
 
-    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
+    def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
-        super().__init__("sxdg", 1, [], label=label, duration=duration, unit=unit)
+        super().__init__("sxdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate sxdg a { rz(pi/2) a; h a; rz(pi/2); }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .s import SGate
-        from .h import HGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=-pi / 4)
-        rules = [(SGate(), [q[0]], []), (HGate(), [q[0]], []), (SGate(), [q[0]], [])]
-        for operation, qubits, clbits in rules:
-            qc._append(operation, qubits, clbits)
-        self.definition = qc
+        # global phase: 7π/4
+        #    ┌───┐┌───┐┌───┐
+        # q: ┤ S ├┤ H ├┤ S ├
+        #    └───┘└───┘└───┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.SXdg._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse SXdg gate (i.e. SX).
@@ -269,15 +263,13 @@ class CSXGate(SingletonControlledGate):
 
     """
 
-    _standard_gate = StandardGate.CSXGate
+    _standard_gate = StandardGate.CSX
 
     def __init__(
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CSX gate."""
@@ -289,27 +281,23 @@ class CSXGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SXGate(label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
-        """
-        gate csx a,b { h b; cu1(pi/2) a,b; h b; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .h import HGate
-        from .u1 import CU1Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[1]], []), (CU1Gate(pi / 2), [q[0], q[1]], []), (HGate(), [q[1]], [])]
-        for operation, qubits, clbits in rules:
-            qc._append(operation, qubits, clbits)
-        self.definition = qc
+        # q_0: ───────■───────
+        #      ┌───┐┌─┴─┐┌───┐
+        # q_1: ┤ H ├┤ S ├┤ H ├
+        #      └───┘└───┘└───┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CSX._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def __eq__(self, other):
         return isinstance(other, CSXGate) and self.ctrl_state == other.ctrl_state

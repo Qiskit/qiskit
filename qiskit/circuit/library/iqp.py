@@ -38,6 +38,7 @@ class IQP(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import IQP
        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
@@ -47,6 +48,7 @@ class IQP(QuantumCircuit):
     **Expanded Circuit:**
 
         .. plot::
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit.library import IQP
            from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -63,9 +65,9 @@ class IQP(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use the qiskit.circuit.library.iqp function instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, interactions: list | np.ndarray) -> None:
         """Create IQP circuit.
@@ -97,6 +99,7 @@ def iqp(
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import iqp
        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
@@ -106,6 +109,7 @@ def iqp(
     **Expanded Circuit:**
 
         .. plot::
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit.library import iqp
            from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -154,6 +158,7 @@ def random_iqp(
     Example:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit.library import random_iqp

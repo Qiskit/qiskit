@@ -119,6 +119,7 @@ Two-Qubit Synthesis
    TwoQubitBasisDecomposer
    XXDecomposer
    TwoQubitWeylDecomposition
+   TwoQubitControlledUDecomposer
 
 .. autofunction:: two_qubit_cnot_decompose
 
@@ -126,6 +127,10 @@ Multi Controlled Synthesis
 ==========================
 
 .. autofunction:: synth_mcmt_vchain
+.. autofunction:: synth_mcx_1_clean_kg24
+.. autofunction:: synth_mcx_1_dirty_kg24
+.. autofunction:: synth_mcx_2_clean_kg24
+.. autofunction:: synth_mcx_2_dirty_kg24
 .. autofunction:: synth_mcx_n_dirty_i15
 .. autofunction:: synth_mcx_n_clean_m15
 .. autofunction:: synth_mcx_1_clean_b95
@@ -133,6 +138,38 @@ Multi Controlled Synthesis
 .. autofunction:: synth_mcx_gray_code
 .. autofunction:: synth_c3x
 .. autofunction:: synth_c4x
+
+Binary Arithmetic Synthesis
+===========================
+
+Adders
+------
+
+.. autofunction:: adder_qft_d00
+.. autofunction:: adder_ripple_c04
+.. autofunction:: adder_ripple_v95
+.. autofunction:: adder_ripple_r25
+
+Multipliers
+-----------
+
+.. autofunction:: multiplier_cumulative_h18
+.. autofunction:: multiplier_qft_r17
+
+Sums
+----
+
+.. autofunction:: synth_weighted_sum_carry
+
+
+Unary Arithmetic Synthesis
+==========================
+
+Integer comparators
+-------------------
+
+.. autofunction:: synth_integer_comparator_2s
+.. autofunction:: synth_integer_comparator_greedy
 
 """
 
@@ -184,9 +221,14 @@ from .two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     two_qubit_cnot_decompose,
     TwoQubitWeylDecomposition,
+    TwoQubitControlledUDecomposer,
 )
 from .multi_controlled import (
     synth_mcmt_vchain,
+    synth_mcx_1_clean_kg24,
+    synth_mcx_1_dirty_kg24,
+    synth_mcx_2_clean_kg24,
+    synth_mcx_2_dirty_kg24,
     synth_mcx_n_dirty_i15,
     synth_mcx_n_clean_m15,
     synth_mcx_1_clean_b95,
@@ -194,4 +236,15 @@ from .multi_controlled import (
     synth_mcx_gray_code,
     synth_c3x,
     synth_c4x,
+)
+from .arithmetic import (
+    adder_qft_d00,
+    adder_ripple_c04,
+    adder_ripple_v95,
+    adder_ripple_r25,
+    multiplier_cumulative_h18,
+    multiplier_qft_r17,
+    synth_integer_comparator_greedy,
+    synth_integer_comparator_2s,
+    synth_weighted_sum_carry,
 )

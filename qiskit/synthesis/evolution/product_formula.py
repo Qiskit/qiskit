@@ -14,20 +14,26 @@
 
 from __future__ import annotations
 
-import inspect
-from collections.abc import Callable
+import warnings
+import itertools
+from collections.abc import Callable, Sequence
+from collections import defaultdict
+from itertools import combinations
 import typing
 import numpy as np
+import rustworkx as rx
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
-from qiskit.quantum_info import SparsePauliOp, Pauli
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.quantum_info import SparsePauliOp, SparseObservable
 from qiskit._accelerate.circuit_library import pauli_evolution
+import qiskit.quantum_info
 
 from .evolution_synthesis import EvolutionSynthesis
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
+
+SparsePauliLabel = typing.Tuple[str, list[int], ParameterValueType]
 
 
 class ProductFormula(EvolutionSynthesis):
@@ -36,21 +42,6 @@ class ProductFormula(EvolutionSynthesis):
     :obj:`.LieTrotter` and :obj:`.SuzukiTrotter` inherit from this class.
     """
 
-    @deprecate_arg(
-        name="atomic_evolution",
-        since="1.2",
-        predicate=lambda callable: callable is not None
-        and len(inspect.signature(callable).parameters) == 2,
-        deprecation_description=(
-            "The 'Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]' signature of the "
-            "'atomic_evolution' argument"
-        ),
-        additional_msg=(
-            "Instead you should update your 'atomic_evolution' function to be of the following "
-            "type: 'Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]'."
-        ),
-        pending=True,
-    )
     def __init__(
         self,
         order: int,
@@ -58,13 +49,15 @@ class ProductFormula(EvolutionSynthesis):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[Pauli | SparsePauliOp, float], QuantumCircuit]
-            | Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None]
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
             | None
         ) = None,
         wrap: bool = False,
+        preserve_order: bool = True,
+        *,
+        atomic_evolution_sparse_observable: bool = False,
     ) -> None:
-        """
+        r"""
         Args:
             order: The order of the product formula.
             reps: The number of time steps.
@@ -73,22 +66,29 @@ class ProductFormula(EvolutionSynthesis):
                 ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
                 where all qubits are connected to one. This only takes effect when
                 ``atomic_evolution is None``.
-            atomic_evolution: A function to apply the evolution of a single :class:`.Pauli`, or
-                :class:`.SparsePauliOp` of only commuting terms, to a circuit. The function takes in
-                three arguments: the circuit to append the evolution to, the Pauli operator to
-                evolve, and the evolution time. By default, a single Pauli evolution is decomposed
-                into a chain of ``CX`` gates and a single ``RZ`` gate.
-                Alternatively, the function can also take Pauli operator and evolution time as
-                inputs and returns the circuit that will be appended to the overall circuit being
-                built.
+            atomic_evolution: A function to apply the evolution of a single
+                :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
+                to a circuit. The function takes in three arguments: the circuit to append the
+                evolution to, the Pauli operator to evolve, and the evolution time. By default, a
+                single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
+                ``RZ`` gate.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. Note that setting
                 this to ``True`` is slower than ``False``. This only takes effect when
                 ``atomic_evolution is None``.
+            preserve_order: If ``False``, allows reordering the terms of the operator to
+                potentially yield a shallower evolution circuit. Not relevant
+                when synthesizing operator with a single term.
+            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+                which does not yet support :class:`.SparseObservable`\ s as input, set this
+                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+                are required to support :class:`.SparseObservable`\ s as input.
         """
         super().__init__()
         self.order = order
         self.reps = reps
         self.insert_barriers = insert_barriers
+        self.preserve_order = preserve_order
 
         # user-provided atomic evolution, stored for serialization
         self._atomic_evolution = atomic_evolution
@@ -102,17 +102,10 @@ class ProductFormula(EvolutionSynthesis):
         # if atomic evolution is not provided, set a default
         if atomic_evolution is None:
             self.atomic_evolution = None
-
-        elif len(inspect.signature(atomic_evolution).parameters) == 2:
-
-            def wrap_atomic_evolution(output, operator, time):
-                definition = atomic_evolution(operator, time)
-                output.compose(definition, wrap=wrap, inplace=True)
-
-            self.atomic_evolution = wrap_atomic_evolution
-
         else:
-            self.atomic_evolution = atomic_evolution
+            self.atomic_evolution = wrap_custom_atomic_evolution(
+                atomic_evolution, atomic_evolution_sparse_observable
+            )
 
     def expand(
         self, evolution: PauliEvolutionGate
@@ -177,13 +170,8 @@ class ProductFormula(EvolutionSynthesis):
             "insert_barriers": self.insert_barriers,
             "cx_structure": self._cx_structure,
             "wrap": self._wrap,
+            "preserve_order": self.preserve_order,
         }
-
-    def _normalize_coefficients(
-        self, paulis: list[str | list[int], float | complex | ParameterExpression]
-    ) -> list[str | list[int] | ParameterValueType]:
-        """Ensure the coefficients are real (or parameter expressions)."""
-        return [[(op, qubits, real_or_fail(coeff)) for op, qubits, coeff in ops] for ops in paulis]
 
     def _custom_evolution(self, num_qubits, pauli_rotations):
         """Implement the evolution for the non-standard path.
@@ -198,7 +186,7 @@ class ProductFormula(EvolutionSynthesis):
         for i, pauli_rotation in enumerate(pauli_rotations):
             if self._atomic_evolution is not None:
                 # use the user-provided evolution with a global operator
-                operator = SparsePauliOp.from_sparse_list([pauli_rotation], num_qubits)
+                operator = SparseObservable.from_sparse_list([pauli_rotation], num_qubits)
                 self.atomic_evolution(circuit, operator, time=1)  # time is inside the Pauli coeff
 
             else:  # this means self._wrap is True
@@ -239,3 +227,90 @@ def real_or_fail(value, tol=100):
         return np.real(value)
 
     raise ValueError(f"Encountered complex value {value}, but expected real.")
+
+
+def reorder_paulis(
+    paulis: Sequence[SparsePauliLabel],
+    strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation,
+) -> list[SparsePauliLabel]:
+    r"""
+    Creates an equivalent operator by reordering terms in order to yield a
+    shallower circuit after evolution synthesis. The original operator remains
+    unchanged.
+
+    This method works in three steps. First, a graph is constructed, where the
+    nodes are the terms of the operator and where two nodes are connected if
+    their terms act on the same qubit (for example, the terms :math:`IXX` and
+    :math:`IYI` would be connected, but not :math:`IXX` and :math:`YII`). Then,
+    the graph is colored.  Two terms with the same color thus do not act on the
+    same qubit, and in particular, their evolution subcircuits can be run in
+    parallel in the greater evolution circuit of ``paulis``.
+
+    This method is deterministic and invariant under permutation of the Pauli
+    term in ``paulis``.
+
+    Args:
+        paulis: The operator whose terms to reorder.
+        strategy: The coloring heuristic to use, see ``ColoringStrategy`` [#].
+            Default is ``ColoringStrategy.Saturation``.
+
+    .. [#] https://www.rustworkx.org/apiref/rustworkx.ColoringStrategy.html#coloringstrategy
+
+    """
+
+    def _term_sort_key(term: SparsePauliLabel) -> typing.Any:
+        # sort by index, then by pauli
+        return (term[1], term[0])
+
+    # Do nothing in trivial cases
+    if len(paulis) <= 1:
+        return paulis
+
+    terms = sorted(paulis, key=_term_sort_key)
+    graph = rx.PyGraph()
+    graph.add_nodes_from(terms)
+    indexed_nodes = list(enumerate(graph.nodes()))
+    for (idx1, (_, ind1, _)), (idx2, (_, ind2, _)) in combinations(indexed_nodes, 2):
+        # Add an edge between two terms if they touch the same qubit
+        if len(set(ind1).intersection(ind2)) > 0:
+            graph.add_edge(idx1, idx2, None)
+
+    # rx.graph_greedy_color is supposed to be deterministic
+    coloring = rx.graph_greedy_color(graph, strategy=strategy)
+    terms_by_color = defaultdict(list)
+
+    for term_idx, color in sorted(coloring.items()):
+        term = graph.nodes()[term_idx]
+        terms_by_color[color].append(term)
+
+    terms = list(itertools.chain(*terms_by_color.values()))
+    return terms
+
+
+def wrap_custom_atomic_evolution(atomic_evolution, support_sparse_observable):
+    r"""Wrap a custom atomic evolution into compatible format for the product formula.
+
+    This includes an inplace action, i.e. the signature is (circuit, operator, time) and
+    ensuring that ``SparseObservable``\ s are supported.
+    """
+    # next, enable backward compatible use of atomic evolutions, that did not support
+    # SparseObservable inputs
+    if support_sparse_observable is False:
+        warnings.warn(
+            "The atomic_evolution should support SparseObservables as operator input. "
+            "Until Qiskit 2.2, an automatic conversion to SparsePauliOp is done, which can "
+            "be turned off by passing the argument atomic_evolution_sparse_observable=True.",
+            category=PendingDeprecationWarning,
+            stacklevel=2,
+        )
+
+        def sparseobs_atomic_evolution(output, operator, time):
+            if isinstance(operator, SparseObservable):
+                operator = SparsePauliOp.from_sparse_observable(operator)
+
+            atomic_evolution(output, operator, time)
+
+    else:
+        sparseobs_atomic_evolution = atomic_evolution
+
+    return sparseobs_atomic_evolution

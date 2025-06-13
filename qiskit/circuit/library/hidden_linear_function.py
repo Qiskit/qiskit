@@ -55,6 +55,7 @@ class HiddenLinearFunction(QuantumCircuit):
     **Reference Circuit:**
 
         .. plot::
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit.library import HiddenLinearFunction
            from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -69,9 +70,9 @@ class HiddenLinearFunction(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.hidden_linear_function instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
         """Create new HLF circuit.
@@ -123,6 +124,7 @@ def hidden_linear_function(adjacency_matrix: list | np.ndarray) -> QuantumCircui
     **Reference Circuit:**
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit.library import hidden_linear_function
