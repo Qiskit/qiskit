@@ -35,6 +35,8 @@ use rustworkx_core::petgraph::visit::{IntoNeighbors, NodeCompactIndexable};
 // handling of `StableGraph`, minimise allocations in the `bfs_traversal` call, and use a bitmap
 // data structure to track "seenness" rather than `HashSet`.
 
+// This file may be obsoleted and/or upstreamed into Rustworkx in the future.
+
 pub fn distance_matrix<G>(graph: G, parallel_threshold: usize, null_value: f64) -> Array2<f64>
 where
     G: NodeCompactIndexable + IntoNeighbors,
