@@ -51,6 +51,8 @@ def get_gate_ctrl_text(op, drawer, style=None):
     # The measure doesn't have any text since it uses a dial icon
     if drawer == "mpl" and isinstance(op, Measure):
         return "", "", ""
+    elif drawer == "text" and isinstance(op, Measure):
+        return "M-", "", ""
 
     anno_list = []
     anno_text = ""
