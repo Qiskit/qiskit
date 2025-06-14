@@ -518,7 +518,9 @@ def _get_gate_span(qubits, node, measure_arrows):
         # type of op must be the only op in the layer
         # BoxOps are excepted because they have one block executed unconditionally
         span = qubits
-    elif node.cargs and ((measure_arrows and isinstance(node.op, Measure)) or getattr(node.op, "condition", None)):
+    elif node.cargs and (
+        (measure_arrows and isinstance(node.op, Measure)) or getattr(node.op, "condition", None)
+    ):
         span = qubits[min_index : len(qubits)]
     else:
         span = qubits[min_index : max_index + 1]
@@ -530,7 +532,9 @@ def _any_crossover(qubits, node, nodes, measure_arrows):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
     return bool(
         set(_get_gate_span(qubits, node, measure_arrows)).intersection(
-            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node, measure_arrows)
+            bit
+            for check_node in nodes
+            for bit in _get_gate_span(qubits, check_node, measure_arrows)
         )
     )
 

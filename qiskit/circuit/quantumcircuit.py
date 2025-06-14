@@ -3676,7 +3676,7 @@ class QuantumCircuit:
         cregbundle: bool | None = None,
         wire_order: list[int] | None = None,
         expr_len: int = 30,
-        measure_arrows = True,
+        measure_arrows: bool | None = None,
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -3776,6 +3776,8 @@ class QuantumCircuit:
             measure_arrows: If True, draw an arrow from each measure box down the the classical bit
                 or register where the measure value is placed. If False, do not draw arrow, but
                 instead place the name of the bit or register in the measure box.
+                Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
+                has an alternative value set. For example, ``circuit_measure_arrows = False``.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or

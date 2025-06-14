@@ -714,7 +714,7 @@ class TextDrawing:
         encoding=None,
         with_layout=False,
         expr_len=30,
-        measure_arrows=True,
+        measure_arrows=None,
     ):
         self.qubits = qubits
         self.clbits = clbits
@@ -1183,7 +1183,9 @@ class TextDrawing:
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
-        elif (len(node.qargs) == 1 and not node.cargs) or (not self.measure_arrows and isinstance(op, Measure)):
+        elif (len(node.qargs) == 1 and not node.cargs) or (
+            not self.measure_arrows and isinstance(op, Measure)
+        ):
             # unitary gate
             layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 

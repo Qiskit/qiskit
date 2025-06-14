@@ -110,7 +110,7 @@ class MatplotlibDrawer:
         cregbundle=None,
         with_layout=False,
         expr_len=30,
-        measure_arrows=True,
+        measure_arrows=None,
     ):
         self._circuit = circuit
         self._qubits = qubits
@@ -421,7 +421,11 @@ class MatplotlibDrawer:
                 node_data[node] = NodeData()
                 node_data[node].width = WID
                 num_ctrl_qubits = getattr(op, "num_ctrl_qubits", 0)
-                if getattr(op, "_directive", False) and (not op.label or not self._plot_barriers) or (self._measure_arrows and isinstance(op, Measure)):
+                if (
+                    getattr(op, "_directive", False)
+                    and (not op.label or not self._plot_barriers)
+                    or (self._measure_arrows and isinstance(op, Measure))
+                ):
                     node_data[node].raw_gate_text = op.name
                     continue
 

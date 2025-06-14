@@ -74,7 +74,7 @@ def circuit_drawer(
     cregbundle: bool | None = None,
     wire_order: list[int] | None = None,
     expr_len: int = 30,
-    measure_arrows=True,
+    measure_arrows=None,
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -175,6 +175,8 @@ def circuit_drawer(
         measure_arrows: If True, draw an arrow from each measure box down the the classical bit
             or register where the measure value is placed. If False, do not draw arrow, but
             instead place the name of the bit or register in the measure box.
+            Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
+            has an alternative value set. For example, ``circuit_measure_arrows = False``.
 
     Returns:
         :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -212,6 +214,7 @@ def circuit_drawer(
     default_output = "text"
     default_reverse_bits = False
     default_idle_wires = config.get("circuit_idle_wires", "auto")
+    default_measure_arrows = config.get("circuit_measure_arrows", True)
     if config:
         default_output = config.get("circuit_drawer", "text")
         if default_output == "auto":
@@ -234,6 +237,10 @@ def circuit_drawer(
             idle_wires = hasattr(circuit, "_layout") and circuit._layout is None
         else:
             raise VisualizationError(f"Parameter idle_wires={idle_wires} unrecognized.")
+
+    print(measure_arrows, default_measure_arrows)
+    if measure_arrows is None:
+        measure_arrows = default_measure_arrows
 
     if wire_order is not None and reverse_bits:
         raise VisualizationError(
@@ -389,7 +396,7 @@ def _text_circuit_drawer(
     encoding=None,
     wire_order=None,
     expr_len=30,
-    measure_arrows=True,
+    measure_arrows=None,
 ):
     """Draws a circuit using ascii art.
 
@@ -679,7 +686,7 @@ def _matplotlib_circuit_drawer(
     cregbundle=None,
     wire_order=None,
     expr_len=30,
-    measure_arrows=True,
+    measure_arrows=None,
 ):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
