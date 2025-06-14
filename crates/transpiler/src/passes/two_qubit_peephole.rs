@@ -430,7 +430,9 @@ pub fn two_qubit_unitary_peephole_optimize(
                         ),
                     ),
                 };
-            if !outside_target && new_score > original_score {
+            // If the we are not outside the target and the new score isn't any better just use the
+            // original (this includes a tie).
+            if !outside_target && new_score >= original_score {
                 return Ok(None);
             }
             // This is done at the end of the map in some attempt to minimize

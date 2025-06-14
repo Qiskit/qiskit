@@ -28,7 +28,12 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
-from qiskit.transpiler.passes import TwoQubitPeepholeOptimization, TrivialLayout
+from qiskit.transpiler.passes import (
+    TwoQubitPeepholeOptimization,
+    TrivialLayout,
+    ConsolidateBlocks,
+    UnitarySynthesis,
+)
 from qiskit.circuit.library import (
     IGate,
     CXGate,
@@ -43,6 +48,13 @@ from qiskit.circuit.library import (
     RYYGate,
     CZGate,
     RXXGate,
+    RZZGate,
+    RZXGate,
+    CPhaseGate,
+    CRZGate,
+    CRXGate,
+    CRYGate,
+    CUGate,
 )
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
@@ -561,3 +573,154 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
                     f"{inst.name} {tuple(circuit.find_bit(x).index for x in inst.qubits)} not supported"
                 )
         return True
+
+    @combine(
+        gate=[
+            RXXGate(0.1),
+            RYYGate(0.1),
+            RZZGate(0.1),
+            RZXGate(0.1),
+            CPhaseGate(0.1),
+            CRZGate(0.1),
+            CRXGate(0.1),
+            CRYGate(0.1),
+            CUGate(0.1, 0.2, 0.3, 0.4),
+        ],
+        target_gate=[
+            CXGate(),
+            CZGate(),
+            ECRGate(),
+        ],
+        add_noise=[True, False],
+        name="{gate}_{target_gate}_noise={add_noise}",
+    )
+    def test_two_qubit_parametrized_gates_basis_decomp_target(self, gate, target_gate, add_noise):
+        """Test the synthesis of a circuit containing a 2-qubit parametrized gate
+        on a target with a CX gate"""
+        theta = Parameter("θ")
+        target = Target(num_qubits=2)
+        if add_noise:
+            target.add_instruction(
+                target_gate, {(i, i + 1): InstructionProperties(error=0.001) for i in [0]}
+            )
+            target.add_instruction(RZGate(theta))
+            target.add_instruction(
+                SXGate(), {(i,): InstructionProperties(error=0.0001) for i in [0, 1]}
+            )
+        else:
+            target.add_instruction(target_gate)
+            target.add_instruction(RZGate(theta))
+            target.add_instruction(SXGate())
+
+        qc = QuantumCircuit(2)
+        qc.append(gate, [0, 1])
+
+        peephole = TwoQubitPeepholeOptimization(target)
+        transpiled_circuit = peephole(qc)
+
+        legacy_path = PassManager(
+            [
+                ConsolidateBlocks(target=target),
+                UnitarySynthesis(
+                    target=target,
+                ),
+            ]
+        )
+
+        legacy = legacy_path.run(qc)
+        self.all_inst_in_target(transpiled_circuit, target)
+        self.assertEqual(Operator(transpiled_circuit), Operator(qc))
+        self.assertDictEqual(
+            dict(sorted(transpiled_circuit.count_ops().items())),
+            dict(sorted(legacy.count_ops().items())),
+        )
+
+    @combine(
+        gate=[
+            RXXGate(0.1),
+            RYYGate(0.1),
+            RZZGate(0.1),
+            RZXGate(0.1),
+            CPhaseGate(0.1),
+            CRZGate(0.1),
+            CRXGate(0.1),
+            CRYGate(0.1),
+            CUGate(0.1, 0.2, 0.3, 0.4),
+        ],
+        target_gate_cls=[
+            RZZGate,
+            RXXGate,
+            RZXGate,
+            RYYGate,
+        ],
+        add_noise=[True, False],
+        name="{gate}_{target_gate_cls}_noise={add_noise}",
+    )
+    def test_two_qubit_parametrized_gates_controlled_u_target(
+        self, gate, target_gate_cls, add_noise
+    ):
+        """Test the synthesis of a circuit containing a 2-qubit parametrized gate
+        on a target with a RZZ gate"""
+        theta = Parameter("θ")
+        lam = Parameter("λ")
+        phi = Parameter("ϕ")
+        target = Target(num_qubits=2)
+        target_gate = target_gate_cls(phi)
+        if add_noise:
+            target.add_instruction(
+                RXGate(lam), {(i,): InstructionProperties(error=0.0001) for i in [0, 1]}
+            )
+            target.add_instruction(RZGate(theta))
+            target.add_instruction(
+                target_gate, {(i, i + 1): InstructionProperties(error=0.001) for i in [0]}
+            )
+        else:
+            target.add_instruction(RXGate(lam))
+            target.add_instruction(RZGate(theta))
+            target.add_instruction(target_gate)
+
+        qc = QuantumCircuit(2)
+        qc.append(gate, [0, 1])
+
+        peephole = TwoQubitPeepholeOptimization(target)
+        transpiled_circuit = peephole(qc)
+
+        legacy_path = PassManager(
+            [
+                ConsolidateBlocks(target=target),
+                UnitarySynthesis(
+                    target=target,
+                ),
+            ]
+        )
+
+        legacy = legacy_path.run(qc)
+        self.all_inst_in_target(transpiled_circuit, target)
+        self.assertEqual(Operator(transpiled_circuit), Operator(qc))
+        self.assertDictEqual(
+            dict(sorted(transpiled_circuit.count_ops().items())),
+            dict(sorted(legacy.count_ops().items())),
+        )
+
+    def test_two_qubit_rzz_cz_gates_rzz_target(self):
+        """Test the synthesis of a circuit containing a RZZ and CZ gates
+        on a target with RZZ and CZ gates"""
+        theta = Parameter("θ")
+        lam = Parameter("λ")
+        phi = Parameter("ϕ")
+        target = Target(num_qubits=2)
+        target.add_instruction(RXGate(lam))
+        target.add_instruction(RZGate(theta))
+        target.add_instruction(RZZGate(phi))
+        target.add_instruction(CZGate())
+
+        qc = QuantumCircuit(2)
+        qc.rzz(0.2, 0, 1)
+        qc.cz(0, 1)
+
+        peephole = TwoQubitPeepholeOptimization(target)
+        transpiled_circuit = peephole(qc)
+        self.all_inst_in_target(transpiled_circuit, target)
+        self.assertEqual(Operator(transpiled_circuit), Operator(qc))
+        self.assertTrue(set(transpiled_circuit.count_ops()).issubset({"rz", "rx", "rzz"}))
+        self.assertEqual(transpiled_circuit.count_ops()["rzz"], 1)
