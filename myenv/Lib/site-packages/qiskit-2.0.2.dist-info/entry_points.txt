@@ -1,0 +1,82 @@
+[qiskit.synthesis]
+FullAdder.default = qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisDefault
+FullAdder.ripple_c04 = qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisC04
+FullAdder.ripple_v95 = qiskit.transpiler.passes.synthesis.hls_plugins:FullAdderSynthesisV95
+HalfAdder.default = qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisDefault
+HalfAdder.qft_d00 = qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisD00
+HalfAdder.ripple_c04 = qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisC04
+HalfAdder.ripple_v95 = qiskit.transpiler.passes.synthesis.hls_plugins:HalfAdderSynthesisV95
+IntComp.default = qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisDefault
+IntComp.noaux = qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesisNoAux
+IntComp.twos = qiskit.transpiler.passes.synthesis.hls_plugins:IntComparatorSynthesis2s
+ModularAdder.default = qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisDefault
+ModularAdder.qft_d00 = qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisD00
+ModularAdder.ripple_c04 = qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisC04
+ModularAdder.ripple_v95 = qiskit.transpiler.passes.synthesis.hls_plugins:ModularAdderSynthesisV95
+Multiplier.cumulative_h18 = qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisH18
+Multiplier.default = qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17
+Multiplier.qft_r17 = qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17
+PauliEvolution.default = qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisDefault
+PauliEvolution.rustiq = qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisRustiq
+WeightedSum.default = qiskit.transpiler.passes.synthesis.hls_plugins:WeightedSumSynthesisDefault
+annotated.default = qiskit.transpiler.passes.synthesis.hls_plugins:AnnotatedSynthesisDefault
+clifford.ag = qiskit.transpiler.passes.synthesis.hls_plugins:AGSynthesisClifford
+clifford.bm = qiskit.transpiler.passes.synthesis.hls_plugins:BMSynthesisClifford
+clifford.default = qiskit.transpiler.passes.synthesis.hls_plugins:DefaultSynthesisClifford
+clifford.greedy = qiskit.transpiler.passes.synthesis.hls_plugins:GreedySynthesisClifford
+clifford.layers = qiskit.transpiler.passes.synthesis.hls_plugins:LayerSynthesisClifford
+clifford.lnn = qiskit.transpiler.passes.synthesis.hls_plugins:LayerLnnSynthesisClifford
+linear_function.default = qiskit.transpiler.passes.synthesis.hls_plugins:DefaultSynthesisLinearFunction
+linear_function.kms = qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisLinearFunction
+linear_function.pmh = qiskit.transpiler.passes.synthesis.hls_plugins:PMHSynthesisLinearFunction
+mcmt.default = qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisDefault
+mcmt.noaux = qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisNoAux
+mcmt.vchain = qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisVChain
+mcx.1_clean_b95 = qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis1CleanB95
+mcx.default = qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisDefault
+mcx.gray_code = qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisGrayCode
+mcx.n_clean_m15 = qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNCleanM15
+mcx.n_dirty_i15 = qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNDirtyI15
+mcx.noaux_v24 = qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxV24
+permutation.acg = qiskit.transpiler.passes.synthesis.hls_plugins:ACGSynthesisPermutation
+permutation.basic = qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation
+permutation.default = qiskit.transpiler.passes.synthesis.hls_plugins:BasicSynthesisPermutation
+permutation.kms = qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisPermutation
+permutation.token_swapper = qiskit.transpiler.passes.synthesis.hls_plugins:TokenSwapperSynthesisPermutation
+qft.default = qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisFull
+qft.full = qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisFull
+qft.line = qiskit.transpiler.passes.synthesis.hls_plugins:QFTSynthesisLine
+
+[qiskit.transpiler.init]
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager
+
+[qiskit.transpiler.layout]
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager
+dense = qiskit.transpiler.preset_passmanagers.builtin_plugins:DenseLayoutPassManager
+sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreLayoutPassManager
+trivial = qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPassManager
+
+[qiskit.transpiler.optimization]
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager
+
+[qiskit.transpiler.routing]
+basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultRoutingPassManager
+lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager
+none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager
+sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager
+
+[qiskit.transpiler.scheduling]
+alap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager
+asap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultSchedulingPassManager
+
+[qiskit.transpiler.translation]
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultTranslationPassManager
+synthesis = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager
+translator = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager
+
+[qiskit.unitary_synthesis]
+aqc = qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin
+default = qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin:DefaultUnitarySynthesis
+sk = qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis
