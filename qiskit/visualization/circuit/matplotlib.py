@@ -421,7 +421,7 @@ class MatplotlibDrawer:
                 node_data[node] = NodeData()
                 node_data[node].width = WID
                 num_ctrl_qubits = getattr(op, "num_ctrl_qubits", 0)
-                if getattr(op, "_directive", False) and (not op.label or not self._plot_barriers):
+                if getattr(op, "_directive", False) and (not op.label or not self._plot_barriers) or (self._measure_arrows and isinstance(op, Measure)):
                     node_data[node].raw_gate_text = op.name
                     continue
 
@@ -584,7 +584,7 @@ class MatplotlibDrawer:
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
                         qubits, clbits, flow_nodes = _get_layered_instructions(
-                            circuit, wire_map=flow_wire_map
+                            circuit, wire_map=flow_wire_map, measure_arrows=self._measure_arrows
                         )
                         flow_drawer = MatplotlibDrawer(
                             qubits,
@@ -638,7 +638,7 @@ class MatplotlibDrawer:
                 # This section gets the layer width for a measure based on the width of
                 # register_bit and puts it into the param_width. If the register_bit is small
                 # enough, the gate will just use the WID width.
-                elif isinstance(op, Measure):
+                elif not self._measure_arrows and isinstance(op, Measure):
                     register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
                     if register is not None:
                         param_text = f"{register.name}_{reg_index}"
@@ -1337,17 +1337,19 @@ class MatplotlibDrawer:
         qx, qy = node_data[node].q_xy[0]
         cx, cy = node_data[node].c_xy[0]
         register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
-        if register is not None:
-            label = f"{register.name}_{reg_index}"
-        else:
-            label = f"{reg_index}"
+        if not self._measure_arrows:
+            if register is not None:
+                label = f"{register.name}_{reg_index}"
+            else:
+                label = f"{reg_index}"
 
         # draw gate box
         self._gate(node, node_data, glob_data)
 
         # add measure symbol
+        qy_adj1 = 0.15 if self._measure_arrows else 0.05
         arc = glob_data["patches_mod"].Arc(
-            xy=(qx, qy - 0.05 * HIG),
+            xy=(qx, qy - qy_adj1 * HIG),
             width=WID * 0.7,
             height=HIG * 0.7,
             theta1=0,
@@ -1358,24 +1360,56 @@ class MatplotlibDrawer:
             zorder=PORDER_GATE,
         )
         self._ax.add_patch(arc)
+        qy_adj2 = 0.2 if self._measure_arrows else 0.3
         self._ax.plot(
             [qx, qx + 0.35 * WID],
-            [qy - 0.05 * HIG, qy + 0.3 * HIG],
+            [qy - qy_adj1 * HIG, qy + qy_adj2 * HIG],
             color=node_data[node].gt,
             linewidth=self._lwidth2,
             zorder=PORDER_GATE,
         )
-        self._ax.text(
-            qx,
-            qy - 0.42 * HIG,
-            label,
-            ha="center",
-            va="bottom",
-            fontsize=self._style["sfs"],
-            color=self._style["tc"],
-            clip_on=True,
-            zorder=PORDER_TEXT,
-        )
+        if self._measure_arrows:
+            self._line(
+                node_data[node].q_xy[0],
+                [cx, cy + 0.35 * WID],
+                lc=self._style["cc"],
+                ls=self._style["cline"],
+            )
+            arrowhead = glob_data["patches_mod"].Polygon(
+                (
+                    (cx - 0.20 * WID, cy + 0.35 * WID),
+                    (cx + 0.20 * WID, cy + 0.35 * WID),
+                    (cx, cy + 0.04),
+                ),
+                fc=self._style["cc"],
+                ec=None,
+            )
+            self._ax.add_artist(arrowhead)
+            # target
+            if self._cregbundle and register is not None:
+                self._ax.text(
+                    cx + 0.25,
+                    cy + 0.1,
+                    str(reg_index),
+                    ha="left",
+                    va="bottom",
+                    fontsize=0.8 * self._style["fs"],
+                    color=self._style["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+        else:
+            self._ax.text(
+                qx,
+                qy - 0.42 * HIG,
+                label,
+                ha="center",
+                va="bottom",
+                fontsize=self._style["sfs"],
+                color=self._style["tc"],
+                clip_on=True,
+                zorder=PORDER_TEXT,
+            )
 
     def _barrier(self, node, node_data, glob_data):
         """Draw a barrier"""

@@ -3676,6 +3676,7 @@ class QuantumCircuit:
         cregbundle: bool | None = None,
         wire_order: list[int] | None = None,
         expr_len: int = 30,
+        measure_arrows = True,
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -3772,6 +3773,9 @@ class QuantumCircuit:
             expr_len: The number of characters to display if an :class:`~.expr.Expr`
                 is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
                 the string will be truncated at that number and '...' added to the end.
+            measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+                or register where the measure value is placed. If False, do not draw arrow, but
+                instead place the name of the bit or register in the measure box.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -3824,6 +3828,7 @@ class QuantumCircuit:
             cregbundle=cregbundle,
             wire_order=wire_order,
             expr_len=expr_len,
+            measure_arrows=measure_arrows,
         )
 
     def size(
