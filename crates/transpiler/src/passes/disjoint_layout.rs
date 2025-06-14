@@ -28,7 +28,7 @@ use uuid::Uuid;
 use crate::target::{Qargs, Target};
 use crate::TranspilerError;
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, VarsMode};
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
@@ -435,7 +435,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
     let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
         .into_iter()
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
-            let mut new_dag = dag.copy_empty_like("alike")?;
+            let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;

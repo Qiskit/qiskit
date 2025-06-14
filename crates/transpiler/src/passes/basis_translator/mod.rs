@@ -27,7 +27,7 @@ mod compose_transforms;
 
 use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
-use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
+use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction, VarsMode};
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
 use qiskit_circuit::operations::Param;
@@ -341,7 +341,7 @@ fn apply_translation(
     >,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
-    let out_dag = dag.copy_empty_like("alike")?;
+    let out_dag = dag.copy_empty_like(VarsMode::Alike)?;
     let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();

@@ -20,7 +20,6 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::{IntoPyArray, ToPyArray};
-use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction};
 use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
 use smallvec::SmallVec;
 
@@ -31,7 +30,9 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{
+    DAGCircuit, DAGCircuitBuilder, DAGInstruction, NodeType, VarsMode,
+};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -246,7 +247,7 @@ pub fn run_unitary_synthesis(
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
 ) -> PyResult<DAGCircuit> {
-    let out_dag = dag.copy_empty_like("alike")?;
+    let out_dag = dag.copy_empty_like(VarsMode::Alike)?;
     let mut out_dag = out_dag.into_builder();
 
     // Iterate over dag nodes and determine unitary synthesis approach
@@ -1108,7 +1109,7 @@ fn reversed_synth_su4_dag(
         unreachable!("reversed_synth_su4_dag should only be called for XXDecomposer")
     };
 
-    let target_dag = synth_dag.copy_empty_like("alike")?;
+    let target_dag = synth_dag.copy_empty_like(VarsMode::Alike)?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     let mut target_dag_builder = target_dag.into_builder();
     for node in synth_dag.topological_op_nodes()? {

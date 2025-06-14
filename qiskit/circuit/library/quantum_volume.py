@@ -180,6 +180,7 @@ def quantum_volume(
     `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
     """
     if isinstance(seed, np.random.Generator):
-        seed = seed.integers(0, dtype=np.uint64)
+        max_value = np.iinfo(np.int64).max
+        seed = seed.integers(max_value, dtype=np.int64)
     depth = depth or num_qubits
     return QuantumCircuit._from_circuit_data(qv_rs(num_qubits, depth, seed))
