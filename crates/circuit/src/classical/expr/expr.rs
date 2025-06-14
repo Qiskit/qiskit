@@ -72,6 +72,20 @@ impl Expr {
     pub fn vars(&self) -> impl Iterator<Item = &Var> {
         VarIterator(ExprIterator { stack: vec![self] })
     }
+
+    pub fn structurally_equivalent<F1, F2, K1, K2>(
+        &self,
+        self_var_key: F1,
+        other: &Expr,
+        other_var_key: F2,
+    ) -> bool
+    where
+        F1: FnMut(&Var) -> K1,
+        F2: FnMut(&Var) -> K2,
+        K1: PartialEq<K2>,
+    {
+        todo!()
+    }
 }
 
 /// A private iterator over the [Expr] nodes of an expression

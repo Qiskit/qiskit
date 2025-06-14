@@ -21,7 +21,7 @@ import rustworkx
 from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit.controlflow import node_resources
-from qiskit.converters import dag_to_circuit
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
@@ -432,7 +432,11 @@ def _apply_sabre_result(
                 }
                 block_dag, block_layout = recurse(
                     empty_dag(block),
-                    circuit_to_dag_dict[id(block)],
+                    # TODO: id(block) doesn't work anymore since blocks are created on the fly, so we
+                    #   need to run `circuit_to_dag` every time.
+                    #   This shouldn't be an issue probably once Sabre Swap is fully ported to Rust.
+                    # circuit_to_dag_dict[id(block)],
+                    circuit_to_dag(block),
                     (
                         block_result.result.map,
                         block_result.result.node_order,

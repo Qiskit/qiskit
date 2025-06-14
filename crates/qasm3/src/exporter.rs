@@ -29,12 +29,13 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
+use qiskit_circuit::operations::DelayUnit;
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
+use qiskit_circuit::instruction::{IntoInstructionView, StandardInstructionView};
 use regex::Regex;
 
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
@@ -1037,7 +1038,7 @@ impl<'a> QASM3Builder {
     ) -> ExporterResult<()> {
         let name = instruction.op.name();
 
-        if instruction.op.control_flow() {
+        if instruction.op.try_control_flow().is_some() {
             Err(QASM3ExporterError::Error(format!(
                 "Control flow {} is not supported",
                 name
@@ -1182,15 +1183,16 @@ impl<'a> QASM3Builder {
     }
 
     fn build_delay(&self, instr: &PackedInstruction) -> ExporterResult<Delay> {
-        let standard_instr = instr.op.standard_instruction();
-        let delay_unit = if let StandardInstruction::Delay(delay) = standard_instr {
-            delay
-        } else {
+        let Some(StandardInstructionView::Delay {
+            duration: param,
+            unit: delay_unit,
+        }) = instr.try_view_standard_instruction()
+        else {
             return Err(QASM3ExporterError::Error(
                 "Expected Delay instruction, but got wrong instruction".to_string(),
             ));
         };
-        let param = &instr.params_view()[0];
+
         let duration: f64 = Python::with_gil(|py| match param {
             Param::Float(val) => *val,
             Param::ParameterExpression(p) => {
@@ -1279,7 +1281,8 @@ impl<'a> QASM3Builder {
         let params = if self.disable_constants {
             Python::with_gil(|_py| {
                 instr
-                    .params_view()
+                    .try_legacy_params()
+                    .unwrap()
                     .iter()
                     .map(|param| match param {
                         Param::Float(val) => Expression::Parameter(Parameter {
@@ -1297,7 +1300,7 @@ impl<'a> QASM3Builder {
                             });
                             Expression::Parameter(Parameter { obj: name })
                         }
-                        Param::Obj(_) => panic!("Objects not supported yet"),
+                        _ => panic!("Objects not supported yet"),
                     })
                     .collect::<Vec<_>>()
             })
@@ -1340,7 +1343,7 @@ impl<'a> QASM3Builder {
                 .getattr("Parameter")
                 .expect("No Parameter class in qiskit.circuit");
 
-            (0..instr.params_view().len())
+            (0..instr.op.num_params())
                 .map(|i| {
                     let name = format!("{}_{}", self._gate_param_prefix, i);
                     let py_param = parameter_class
@@ -1350,7 +1353,7 @@ impl<'a> QASM3Builder {
                 })
                 .collect()
         });
-        if let Some(instruction) = operation.definition(&params) {
+        if let Some(instruction) = instr.view().try_definition() {
             let params_def = params
                 .iter()
                 .enumerate()
