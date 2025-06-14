@@ -74,7 +74,7 @@ def circuit_drawer(
     cregbundle: bool | None = None,
     wire_order: list[int] | None = None,
     expr_len: int = 30,
-    measure_arrows=None,
+    measure_arrows: bool | None = None,
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -238,7 +238,6 @@ def circuit_drawer(
         else:
             raise VisualizationError(f"Parameter idle_wires={idle_wires} unrecognized.")
 
-    print(measure_arrows, default_measure_arrows)
     if measure_arrows is None:
         measure_arrows = default_measure_arrows
 
@@ -642,7 +641,6 @@ def _generate_latex_source(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
-        measure_arrows=measure_arrows,
     )
     qcimg = _latex.QCircuitImage(
         qubits,

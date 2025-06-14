@@ -1341,6 +1341,7 @@ class MatplotlibDrawer:
         qx, qy = node_data[node].q_xy[0]
         cx, cy = node_data[node].c_xy[0]
         register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
+        label = ""
         if not self._measure_arrows:
             if register is not None:
                 label = f"{register.name}_{reg_index}"
