@@ -524,6 +524,11 @@ pub struct TwoQubitWeylDecomposition {
 }
 
 impl TwoQubitWeylDecomposition {
+    #[inline]
+    pub fn is_supercontrolled(&self) -> bool {
+        relative_eq!(self.a, PI4) && relative_eq!(self.c, 0.0)
+    }
+
     pub fn a(&self) -> f64 {
         self.a
     }

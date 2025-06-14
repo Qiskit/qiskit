@@ -26,6 +26,7 @@ use qiskit_circuit::Qubit;
 
 use super::two_qubit_unitary_synthesis_utils::{
     preferred_direction, synth_su4_sequence, DecomposerElement, DecomposerType,
+    TwoQubitUnitarySequence,
 };
 use crate::target::{Qargs, Target, TargetOperation};
 use crate::TranspilerError;
@@ -36,7 +37,8 @@ use qiskit_synthesis::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, EULER_BASES, EULER_BASIS_NAMES,
 };
 use qiskit_synthesis::two_qubit_decompose::{
-    RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
+    RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
+    TwoQubitWeylDecomposition,
 };
 
 fn get_decomposers_from_target(
@@ -75,8 +77,41 @@ fn get_decomposers_from_target(
             Some(raw_op) => {
                 if let TargetOperation::Normal(op) = raw_op {
                     match op.operation.view() {
-                        OperationRef::StandardGate(_) | OperationRef::Gate(_) => {
-                            Some((*name, &op.operation, op.params.as_slice()))
+                        OperationRef::StandardGate(gate) => {
+                            if matches!(
+                                gate,
+                                StandardGate::CX | StandardGate::CZ | StandardGate::ECR
+                            ) {
+                                Some((*name, &op.operation, op.params.as_slice()))
+                            } else if let Some(matrix) = gate.matrix(&op.params) {
+                                if let Ok(weyl) =
+                                    TwoQubitWeylDecomposition::new_inner(matrix.view(), None, None)
+                                {
+                                    if weyl.is_supercontrolled() {
+                                        Some((*name, &op.operation, op.params.as_slice()))
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                        OperationRef::Gate(gate) => {
+                            if let Some(matrix) = gate.matrix(&op.params) {
+                                let weyl =
+                                    TwoQubitWeylDecomposition::new_inner(matrix.view(), None, None)
+                                        .unwrap();
+                                if weyl.is_supercontrolled() {
+                                    Some((*name, &op.operation, op.params.as_slice()))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
                         }
                         _ => None,
                     }
@@ -138,6 +173,7 @@ fn get_decomposers_from_target(
                                 decomposer: DecomposerType::TwoQubitBasis(Box::new(decomp)),
                                 packed_op: (*two_qubit_gate).clone(),
                                 params: params.iter().cloned().collect(),
+                                target_name: two_qubit_name.to_string(),
                             })
                         }
                     })
@@ -170,7 +206,13 @@ fn get_decomposers_from_target(
                             )?,
                         )),
                         packed_op: gate.into(),
-                        params: op.params().iter().cloned().collect(),
+                        // TODO: Add param when ParameterExpression doesn't
+                        // need python. This is a corrupt param for the gates
+                        // here, but it unused in the passes and needs to be
+                        // an unbound  parameter. Do not use this value for
+                        // constructing a circuit.
+                        params: smallvec![],
+                        target_name: gate.name().to_string(),
                     });
                 }
             }
@@ -209,7 +251,7 @@ fn score_sequence<'a>(
     (gate_count, 1. - fidelity)
 }
 
-type MappingIterItem = Option<((TwoQubitGateSequence, String), [Qubit; 2])>;
+type MappingIterItem = Option<(TwoQubitUnitarySequence, [Qubit; 2])>;
 
 /// This transpiler pass can only run in a context where we've translated the circuit gates (or
 /// where we know all gates have a matrix). If any gate identified in the run fails to have a
@@ -225,21 +267,21 @@ pub fn two_qubit_unitary_peephole_optimize(
     let node_mapping: HashMap<NodeIndex, usize> =
         HashMap::with_capacity(runs.iter().map(|run| run.len()).sum());
     let locked_node_mapping = Mutex::new(node_mapping);
-    let coupling_edges = target
-        .qargs()
-        .unwrap()
-        .filter_map(|qargs| match qargs {
-            Qargs::Concrete(qargs) => {
-                if qargs.len() == 2 {
-                    Some([qargs[0], qargs[1]])
-                } else {
-                    None
+    let coupling_edges = match target.qargs() {
+        Some(qargs) => qargs
+            .filter_map(|qargs| match qargs {
+                Qargs::Concrete(qargs) => {
+                    if qargs.len() == 2 {
+                        Some([qargs[0], qargs[1]])
+                    } else {
+                        None
+                    }
                 }
-            }
-            Qargs::Global => None,
-        })
-        .collect();
-
+                Qargs::Global => None,
+            })
+            .collect(),
+        None => HashSet::new(),
+    };
     let find_best_sequence =
         |run_index: usize, node_indices: &[NodeIndex]| -> PyResult<MappingIterItem> {
             let block_qubit_map = node_indices
@@ -263,16 +305,16 @@ pub fn two_qubit_unitary_peephole_optimize(
             let mut decomposer_scores: Vec<Option<(usize, f64)>> = vec![None; decomposers.len()];
 
             let order_sequence =
-                |(index_a, sequence_a): &(usize, (TwoQubitGateSequence, String)),
-                 (index_b, sequence_b): &(usize, (TwoQubitGateSequence, String))| {
+                |(index_a, sequence_a): &(usize, TwoQubitUnitarySequence),
+                 (index_b, sequence_b): &(usize, TwoQubitUnitarySequence)| {
                     let score_a = (
                         match decomposer_scores[*index_a] {
                             Some(score) => score,
                             None => {
                                 let score: (usize, f64) = score_sequence(
                                     target,
-                                    sequence_a.1.as_str(),
-                                    sequence_a.0.gates.iter().map(
+                                    sequence_a.target_name.as_str(),
+                                    sequence_a.gate_sequence.gates.iter().map(
                                         |(gate, _params, local_qubits)| {
                                             let qubits = local_qubits
                                                 .iter()
@@ -295,8 +337,8 @@ pub fn two_qubit_unitary_peephole_optimize(
                             None => {
                                 let score: (usize, f64) = score_sequence(
                                     target,
-                                    sequence_b.1.as_str(),
-                                    sequence_b.0.gates.iter().map(
+                                    sequence_b.target_name.as_str(),
+                                    sequence_b.gate_sequence.gates.iter().map(
                                         |(gate, _params, local_qubits)| {
                                             let qubits = local_qubits
                                                 .iter()
@@ -328,13 +370,9 @@ pub fn two_qubit_unitary_peephole_optimize(
                         Some(target),
                         decomposer,
                     )
-                    .unwrap();
-                    (
-                        synth_su4_sequence(matrix.view(), decomposer, dir, Some(fidelity))
-                            .unwrap()
-                            .gate_sequence,
-                        decomposer.packed_op.name().to_string(),
-                    )
+                    .ok()
+                    .flatten();
+                    synth_su4_sequence(matrix.view(), decomposer, dir, Some(fidelity)).unwrap()
                 })
                 .enumerate()
                 .min_by(order_sequence);
@@ -375,25 +413,23 @@ pub fn two_qubit_unitary_peephole_optimize(
                 original_fidelity *= gate_fidelity;
             }
             let original_score = (original_count, 1. - original_fidelity);
-            let new_score: (usize, f64) = match decomposer_scores[sequence.0] {
-                Some(score) => score,
-                None => score_sequence(
-                    target,
-                    sequence.1 .1.as_str(),
-                    sequence
-                        .1
-                         .0
-                        .gates
-                        .iter()
-                        .map(|(gate, _params, local_qubits)| {
-                            let qubits = local_qubits
-                                .iter()
-                                .map(|qubit| block_qubit_map[*qubit as usize])
-                                .collect();
-                            (*gate, qubits)
-                        }),
-                ),
-            };
+            let new_score: (usize, f64) =
+                match decomposer_scores[sequence.0] {
+                    Some(score) => score,
+                    None => score_sequence(
+                        target,
+                        sequence.1.target_name.as_str(),
+                        sequence.1.gate_sequence.gates.iter().map(
+                            |(gate, _params, local_qubits)| {
+                                let qubits = local_qubits
+                                    .iter()
+                                    .map(|qubit| block_qubit_map[*qubit as usize])
+                                    .collect();
+                                (*gate, qubits)
+                            },
+                        ),
+                    ),
+                };
             if !outside_target && new_score > original_score {
                 return Ok(None);
             }
@@ -444,7 +480,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                     continue;
                 }
                 let (sequence, qubit_map) = run.unwrap();
-                for (gate, params, local_qubits) in &sequence.0.gates {
+                for (gate, params, local_qubits) in &sequence.gate_sequence.gates {
                     let qubits: Vec<Qubit> = local_qubits
                         .iter()
                         .map(|index| qubit_map[*index as usize])
@@ -465,25 +501,19 @@ pub fn two_qubit_unitary_peephole_optimize(
                             #[cfg(feature = "cache_pygates")]
                             None,
                         ),
-                        None => {
-                            let Some(TargetOperation::Normal(gate)) =
-                                target.operation_from_name(sequence.1.as_str())
-                            else {
-                                unreachable!()
-                            };
-                            out_dag_builder.apply_operation_back(
-                                gate.operation.clone(),
-                                &qubits,
-                                &[],
-                                Some(out_params.unwrap_or(gate.params.clone())),
-                                None,
-                                #[cfg(feature = "cache_pygates")]
-                                None,
-                            )
-                        }
+                        None => out_dag_builder.apply_operation_back(
+                            sequence.decomp_op.clone(),
+                            &qubits,
+                            &[],
+                            Some(out_params.unwrap_or(sequence.decomp_params.clone())),
+                            None,
+                            #[cfg(feature = "cache_pygates")]
+                            None,
+                        ),
                     }?;
                 }
-                out_dag_builder.add_global_phase(&Param::Float(sequence.0.global_phase))?;
+                out_dag_builder
+                    .add_global_phase(&Param::Float(sequence.gate_sequence.global_phase))?;
                 processed_runs.insert(*run_index);
             }
             None => {

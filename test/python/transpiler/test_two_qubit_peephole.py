@@ -527,7 +527,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         peephole = TwoQubitPeepholeOptimization(target)
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
-        qc = transpile(qc, target=target, seed_transpiler=1234, optimization_level=0)
+        qc = transpile(qc, target=target, seed_transpiler=1234, optimization_level=2)
         res = peephole(qc)
         self.assertTrue(self.all_inst_in_target(res, target))
         self.assertEqual(res, qc)
@@ -540,7 +540,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         )
         res = peephole(qc_duplicated)
         self.assertTrue(self.all_inst_in_target(res, target))
-        self.assertEqual(Operator(res), QuantumCircuit(2))
+        self.assertEqual(Operator(res), Operator(QuantumCircuit(2)))
 
         qc_duplicated = QuantumCircuit(2)
         for _ in range(101):
@@ -550,7 +550,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         )
         res = peephole(qc_duplicated)
         self.assertTrue(self.all_inst_in_target(res, target))
-        self.assertEqual(Operator(res), Operator(qc))
+        self.assertEqual(Operator(res), Operator(qc_duplicated))
 
     def all_inst_in_target(self, circuit: QuantumCircuit, target: Target):
         for inst in circuit.data:

@@ -41,6 +41,7 @@ pub(crate) struct DecomposerElement {
     pub(crate) decomposer: DecomposerType,
     pub(crate) packed_op: PackedOperation,
     pub(crate) params: SmallVec<[Param; 3]>,
+    pub(crate) target_name: String,
 }
 
 #[derive(Clone, Debug)]
@@ -48,6 +49,7 @@ pub(crate) struct TwoQubitUnitarySequence {
     pub(crate) gate_sequence: TwoQubitGateSequence,
     pub(crate) decomp_op: PackedOperation,
     pub(crate) decomp_params: SmallVec<[Param; 3]>,
+    pub(crate) target_name: String,
 }
 
 /// Function to evaluate hardware-native direction, this allows to correct
@@ -162,6 +164,7 @@ pub(crate) fn synth_su4_sequence(
         gate_sequence: synth,
         decomp_op: decomposer_2q.packed_op.clone(),
         decomp_params: decomposer_2q.params.clone(),
+        target_name: decomposer_2q.target_name.clone(),
     };
     match preferred_direction {
         None => Ok(sequence),
@@ -239,6 +242,7 @@ fn reversed_synth_su4_sequence(
         gate_sequence: reversed_synth,
         decomp_op: decomposer_2q.packed_op.clone(),
         decomp_params: decomposer_2q.params.clone(),
+        target_name: decomposer_2q.target_name.clone(),
     };
     Ok(sequence)
 }

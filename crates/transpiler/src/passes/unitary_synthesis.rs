@@ -54,7 +54,6 @@ use qiskit_synthesis::two_qubit_decompose::{
 };
 
 const PI2: f64 = PI / 2.;
-const PI4: f64 = PI / 4.;
 
 // These two variables are used to exit the decomposer search early in
 // `get_2q_decomposers_from_target`.
@@ -496,6 +495,7 @@ fn get_2q_decomposer_from_basis(
                 decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
                 packed_op: PackedOperation::from_standard_gate(std_gate),
                 params: SmallVec::new(),
+                target_name: kak_gates[0].to_string(),
             }));
         };
     };
@@ -521,6 +521,7 @@ fn get_2q_decomposer_from_basis(
             decomposer: DecomposerType::TwoQubitBasis(Box::new(decomposer)),
             packed_op: PackedOperation::from_standard_gate(std_gate),
             params: SmallVec::new(),
+            target_name: kak_gates[0].to_string(),
         }));
     }
     Ok(None)
@@ -647,6 +648,7 @@ fn get_2q_decomposers_from_target(
                         decomposer: DecomposerType::TwoQubitControlledU(Box::new(decomposer)),
                         packed_op: gate.operation.clone(),
                         params: gate.params.clone(),
+                        target_name: gate.operation.name().to_string(),
                     });
                 }
                 Err(_) => continue,
@@ -668,9 +670,9 @@ fn get_2q_decomposers_from_target(
         match op.operation.matrix(&op.params) {
             None => false,
             Some(unitary_matrix) => {
-                let kak = TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
-                    .unwrap();
-                relative_eq!(kak.a(), PI4) && relative_eq!(kak.c(), 0.0)
+                TwoQubitWeylDecomposition::new_inner(unitary_matrix.view(), None, None)
+                    .unwrap()
+                    .is_supercontrolled()
             }
         }
     }
@@ -704,6 +706,7 @@ fn get_2q_decomposers_from_target(
                 decomposer: DecomposerType::TwoQubitBasis(Box::new(decomposer)),
                 packed_op: gate.operation.clone(),
                 params: gate.params.clone(),
+                target_name: gate.operation.name().to_string(),
             });
         }
     }
@@ -809,11 +812,12 @@ fn get_2q_decomposers_from_target(
             let decomposer_gate = decomposer
                 .getattr(intern!(py, "gate"))?
                 .extract::<NormalOperation>()?;
-
+            let gate_name = decomposer_gate.operation.name().to_string();
             decomposers.push(DecomposerElement {
                 decomposer: DecomposerType::XX(decomposer.into()),
                 packed_op: decomposer_gate.operation,
                 params: decomposer_gate.params.clone(),
+                target_name: gate_name,
             });
         }
     }
