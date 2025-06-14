@@ -90,6 +90,7 @@ Optimizations
    OptimizeAnnotated
    Split2QUnitaries
    RemoveIdentityEquivalent
+   TwoQubitPeepholeOptimization
    ContractIdleWiresInControlFlow
 
 Scheduling
@@ -225,6 +226,7 @@ from .optimization import ElidePermutations
 from .optimization import OptimizeAnnotated
 from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
+from .optimization import TwoQubitPeepholeOptimization
 from .optimization import ContractIdleWiresInControlFlow
 from .optimization import OptimizeCliffordT
 
