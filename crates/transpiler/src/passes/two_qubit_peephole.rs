@@ -19,7 +19,7 @@ use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{smallvec, SmallVec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, VarsMode};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
@@ -462,7 +462,7 @@ pub fn two_qubit_unitary_peephole_optimize(
     let run_mapping = run_mapping?;
     // After we've computed all the sequences to execute now serially build up a new dag.
     let mut processed_runs: HashSet<usize> = HashSet::with_capacity(run_mapping.len());
-    let out_dag = dag.copy_empty_like("alike")?;
+    let out_dag = dag.copy_empty_like(VarsMode::Alike)?;
     let mut out_dag_builder = out_dag.into_builder();
     let node_mapping = locked_node_mapping.into_inner().unwrap();
     for node in dag.topological_op_nodes()? {
