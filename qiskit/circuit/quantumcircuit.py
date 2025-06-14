@@ -2112,7 +2112,7 @@ class QuantumCircuit:
 
         if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit which has more 'in' edges."
+                "A circuit with {other.num_qubits} qubit(s) cannot be composed into a circuit with {self.num_qubits} qubit(s). Tip: make sure both circuits have matching registers."
             )
 
         # Maps bits in 'other' to bits in 'dest'.
