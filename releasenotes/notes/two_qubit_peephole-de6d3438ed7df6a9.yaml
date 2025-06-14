@@ -11,7 +11,7 @@ features_transpiler:
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.transpiler.passes import TwoQubitPeepholeOptimization
-        from qiskit.providers import GenericBackendV2
+        from qiskit.providers.fake_provider import GenericBackendV2
 
         # Build an unoptimized 2 qubit circuit
         unoptimized = QuantumCircuit(2)
