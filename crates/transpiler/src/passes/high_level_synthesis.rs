@@ -26,7 +26,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, VarsMode};
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
@@ -993,7 +993,7 @@ fn convert_circuit_to_dag_with_data(
 ) -> PyResult<DAGCircuit> {
     // Calling copy_empty_like makes sure that all the python-space information (qregs, cregs, input variables)
     // get copied correctly.
-    let mut new_dag = dag.copy_empty_like("alike")?;
+    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
     new_dag.set_global_phase(circuit.global_phase().clone())?;
     let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
     let carg_map = new_dag.merge_cargs(circuit.cargs_interner(), |bit: &Clbit| Some(*bit));
