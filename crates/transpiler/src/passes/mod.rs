@@ -41,6 +41,7 @@ mod remove_identity_equiv;
 pub mod sabre;
 mod split_2q_unitaries;
 mod two_qubit_peephole;
+mod two_qubit_unitary_synthesis_utils;
 mod unitary_synthesis;
 mod vf2;
 
