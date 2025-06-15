@@ -54,7 +54,7 @@ pub struct Clbit(pub u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Var(u32);
 
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Stretch(u32);
 
 pub use nlayout::PhysicalQubit;
