@@ -4,8 +4,8 @@ features_circuits:
     A new module :mod:`qiskit.circuit.annotation` and principle object :class:`.Annotation`
     have been added.
 
-    Annotations are a way of tagging instructions (currently only :class:`.BoxOp`, in the initial
-    implementation) with local, user-custom data.  This data is intended to be consumed by custom
+    Annotations are a way of tagging instructions (currently only :class:`.BoxOp`)
+    with local, user-custom data.  This data is intended to be consumed by custom
     transpiler passes.  Annotations provide a way to attach data to specific instructions, rather
     than using the global-context object :class:`.PropertySet` during compilation.
 

@@ -1,7 +1,7 @@
 ---
 features_c:
   - |
-    Added support for querying the Qiskit version information from the C API via the following macros:
+    Added support for querying the Qiskit version information from the C API by using the following macros:
 
     * ``QISKIT_VERSION_MAJOR`` : Contains the major version number.
     * ``QISKIT_VERSION_MINOR`` : Contains the minor version number.

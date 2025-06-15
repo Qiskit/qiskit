@@ -2,7 +2,7 @@
 fixes:
   - |
     Fixed a bug in the :func:`.qpy.load` function where it could fail to deserialize
-    circuits whose parameters had been re-assigned to parameters with the same names.
+    circuits whose parameters had been reassigned to parameters with the same names.
     Fixed `#13720 <https://github.com/Qiskit/qiskit/issues/13720>`__,
     `#13720 <https://github.com/Qiskit/qiskit/issues/14088>`__, and
     `#13720 <https://github.com/Qiskit/qiskit/issues/14089>`__.

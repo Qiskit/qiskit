@@ -5,12 +5,12 @@ features_circuits:
     induces the same interaction graph as the interaction graph specified by `interaction_graph`.
 
     The probability of randomly drawing an edge from the interaction graph as a two-qubit gate can be set by the
-    user in the weight attribute of an edge in the input interaction graph. If the user does not set the probability,
-    each edge is drawn uniformly, i.e. each two-qubit gate represented by an edge in the interaction graph has the
+    user in an edge's weight attribute in the input interaction graph. If the user does not set the probability,
+    each edge is drawn uniformly.  That is, each two-qubit gate represented by an edge in the interaction graph has the
     same probability of getting added to the random circuit. If only a subset of edge probabilities are set,
     `ValueError` will be raised.
 
-    This is an example where 'cp_map' is a list of edges with some arbitrary weights.
+    In this example, 'cp_map' is a list of edges with arbitrary weights.
 
     .. plot::
       :include-source:
