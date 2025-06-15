@@ -2,7 +2,7 @@
 features_circuits:
   - |
     Added a function :func:`~qiskit.circuit.random.random_circuit_from_graph` that generates a random circuit that
-    induces the same interaction graph as the interaction graph specified by `interaction_graph`.
+    induces the same interaction graph as the one specified by `interaction_graph`.
 
     The probability of randomly drawing an edge from the interaction graph as a two-qubit gate can be set by the
     user in an edge's weight attribute in the input interaction graph. If the user does not set the probability,
