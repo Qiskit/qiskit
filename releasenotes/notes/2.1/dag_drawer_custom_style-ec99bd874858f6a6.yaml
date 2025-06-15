@@ -1,14 +1,14 @@
 ---
 features_visualization:
   - |
-    Introduced custom styles for the dag_drawer() function. This allows you
-    to pass a dictionary to the `style` parameter with custom attributes that
+    Introduced custom styles for the :func:`~qiskit.visualization.dag_drawer` function. This allows you
+    to pass a dictionary to the ``style`` parameter with custom attributes that
     changes the style of the DAG the function returns. For example::
 
       from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
       from qiskit.converters import circuit_to_dag
       from qiskit.visualization import dag_drawer
-       
+
       q = QuantumRegister(3, 'q')
       c = ClassicalRegister(3, 'c')
       circ = QuantumCircuit(q, c)
@@ -28,6 +28,6 @@ features_visualization:
       dag_drawer(dag, style=style)
 fixes:
   - |
-    Fixes a bug where `style=plain` did not show circuit labels for the nodes
+    Fixes a bug where ``style=plain`` did not show circuit labels for the nodes
     of the DAG.
 
