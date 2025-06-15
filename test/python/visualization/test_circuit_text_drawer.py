@@ -378,9 +378,18 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.measure(2, 2)
 
         self.assertEqual(
-            str(circuit_drawer(circuit, output="text", initial_state=True, cregbundle=True, measure_arrows=False)),
+            str(
+                circuit_drawer(
+                    circuit,
+                    output="text",
+                    initial_state=True,
+                    cregbundle=True,
+                    measure_arrows=False,
+                )
+            ),
             expected,
         )
+
     def test_wire_order(self):
         """Test the wire_order option"""
         expected = "\n".join(
