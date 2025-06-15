@@ -1042,6 +1042,33 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
+    def test_measure_arrows_false(self):
+        """Test measure_arrows set to False"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "c")
+        qc = QuantumCircuit(qr, cr)
+        qc.x(0)
+        qc.h(0)
+        qc.measure(0, 0)
+        qc.x(1)
+        qc.h(1)
+        qc.measure(1, 1)
+        qc.x(2)
+        qc.h(2)
+        qc.measure(2, 2)
+
+        fname = "measure_arrows_false.png"
+        self.circuit_drawer(circuit, output="mpl", measure_arrows=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
     def test_user_ax_subplot(self):
         """Test for when user supplies ax for a subplot"""
         import matplotlib.pyplot as plt

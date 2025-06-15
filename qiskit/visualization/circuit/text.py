@@ -1186,7 +1186,7 @@ class TextDrawing:
         elif (len(node.qargs) == 1 and not node.cargs) or (
             not self.measure_arrows and isinstance(op, Measure)
         ):
-            # unitary gate
+            # single qubit gate or measure with measure_arrows False
             layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 
         elif isinstance(op, ControlledGate) or mod_control:

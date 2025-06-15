@@ -639,9 +639,9 @@ class MatplotlibDrawer:
                         else:
                             node_data[node].width.append(raw_gate_width)
 
-                # This section gets the layer width for a measure based on the width of
-                # register_bit and puts it into the param_width. If the register_bit is small
-                # enough, the gate will just use the WID width.
+                # If measure_arrows is False, this section gets the layer width for a measure
+                # based on the width of register_bit and puts it into the param_width. If the
+                # register_bit is small enough, the gate will just use the WID width.
                 elif not self._measure_arrows and isinstance(op, Measure):
                     register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
                     if register is not None:
@@ -1341,12 +1341,6 @@ class MatplotlibDrawer:
         qx, qy = node_data[node].q_xy[0]
         cx, cy = node_data[node].c_xy[0]
         register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
-        label = ""
-        if not self._measure_arrows:
-            if register is not None:
-                label = f"{register.name}_{reg_index}"
-            else:
-                label = f"{reg_index}"
 
         # draw gate box
         self._gate(node, node_data, glob_data)
@@ -1373,6 +1367,7 @@ class MatplotlibDrawer:
             linewidth=self._lwidth2,
             zorder=PORDER_GATE,
         )
+        # If measure_arrows, draw the down arrow to the clbit
         if self._measure_arrows:
             self._line(
                 node_data[node].q_xy[0],
@@ -1404,6 +1399,11 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
         else:
+            # If not measure_arrows, write the reg_bit into the measure box
+            if register is not None:
+                label = f"{register.name}_{reg_index}"
+            else:
+                label = f"{reg_index}"
             self._ax.text(
                 qx,
                 qy - 0.42 * HIG,

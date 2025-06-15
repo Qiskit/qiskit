@@ -48,7 +48,7 @@ def _is_boolean_expression(gate_text, op):
 def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
 
-    # The measure doesn't have any text since it uses a dial icon
+    # if measure_arrows is False, gate_text will be empty for mpl and M- for text drawer
     if drawer == "mpl" and isinstance(op, Measure):
         return "", "", ""
     elif drawer == "text" and isinstance(op, Measure):
