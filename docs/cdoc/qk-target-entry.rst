@@ -3,7 +3,7 @@
 QkTargetEntry
 =============
 
-.. code-block:: C
+.. code-block:: c
 
     typedef struct QkTargetEntry QkTargetEntry
 
@@ -13,7 +13,7 @@ from C.
 
 Here's an example of how this structure works:
 
-.. code-block:: C
+.. code-block:: c
 
     #include <qiskit.h>
     #include <math.h>
