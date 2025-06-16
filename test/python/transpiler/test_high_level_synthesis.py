@@ -2235,6 +2235,48 @@ class TestUnrollerCompatability(QiskitTestCase):
 
         self.assertEqual(block, out)
 
+    def test_unroll_with_clbit_mapping(self):
+        """Test unrolling a custom definition that has qubits and clbits
+        that require mapping to the global clbits.
+        Regression test for: https://github.com/Qiskit/qiskit/issues/14569
+        """
+        block = QuantumCircuit(2, 2)
+        block.h(0)
+        block.measure([0, 1], [0, 1])
+
+        circuit = QuantumCircuit(6, 6)
+        circuit.append(block.to_instruction(), [0, 1], [0, 1])
+        circuit.append(block.to_instruction(), [2, 3], [3, 2])
+        circuit.append(block.to_instruction(), [4, 5], [4, 5])
+
+        hls = HighLevelSynthesis(basis_gates=["h", "measure"])
+        out = hls(circuit)
+
+        self.assertEqual(
+            (out.find_bit(out.data[3].qubits[0]).index, out.find_bit(out.data[3].clbits[0]).index),
+            (0, 0),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[4].qubits[0]).index, out.find_bit(out.data[4].clbits[0]).index),
+            (1, 1),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[5].qubits[0]).index, out.find_bit(out.data[5].clbits[0]).index),
+            (3, 2),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[6].qubits[0]).index, out.find_bit(out.data[6].clbits[0]).index),
+            (2, 3),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[7].qubits[0]).index, out.find_bit(out.data[7].clbits[0]).index),
+            (4, 4),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[8].qubits[0]).index, out.find_bit(out.data[8].clbits[0]).index),
+            (5, 5),
+        )
+
 
 class TestGate(Gate):
     """Mock one qubit zero param gate."""
