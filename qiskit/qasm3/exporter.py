@@ -1225,9 +1225,7 @@ class QASM3Builder:
                 indexset_ast = ast.Range(
                     start=self.build_expression(indexset.start),
                     end=self.build_expression(indexset.stop),
-                    step=(
-                        self.build_expression(indexset.step) if indexset.step is not None else None
-                    ),
+                    step=self.build_expression(indexset.step) if indexset.step is not None else None,
                 )
                 type_ = _build_ast_type(indexset.type)
             else:

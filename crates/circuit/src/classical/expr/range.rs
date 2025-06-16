@@ -10,13 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::cast::Cast;
 use crate::classical::expr::{Expr, ExprKind, PyExpr, Value};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use pyo3::{intern, IntoPyObjectExt};
-use std::boxed::Box;
 
 /// A range expression that represents a sequence of values.
 #[derive(Clone, Debug, PartialEq)]
@@ -46,49 +44,24 @@ impl<'py> FromPyObject<'py> for Range {
 }
 
 /// Helper function to convert Python values to Expr::Value
-fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
+fn py_value_to_expr(py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
     if let Ok(raw) = value.extract::<i64>() {
-        if raw < 0 {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "Range values must be non-negative integers",
-            ));
-        }
-        Ok(Value::Uint {
-            raw: raw as u64,
-            ty: Type::Uint(64),
-        }
-        .into())
+        Ok(Value::Uint { 
+            raw: raw as u64, 
+            ty: Type::Uint(64) 
+        }.into())
+    } else if let Ok(raw) = value.extract::<f64>() {
+        Ok(Value::Float { 
+            raw, 
+            ty: Type::Float 
+        }.into())
     } else if let Ok(expr) = value.extract::<Expr>() {
-        // Ensure the expression is of unsigned integer type
-        if !matches!(expr.ty(), Type::Uint(_)) {
-            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                "Range values must be of unsigned integer type",
-            ));
-        }
         Ok(expr)
     } else {
-        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
-            "Expected non-negative integer or Expr of unsigned integer type, got {}",
-            value.get_type().name()?
-        )))
+        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+            format!("Expected integer, float, or Expr, got {}", value.get_type().name()?)
+        ))
     }
-}
-
-/// Helper function to determine the common type with maximum bit width
-fn determine_common_max_type(types: &[Type]) -> Type {
-    let mut max_type = types[0];
-
-    for &ty in types.iter().skip(1) {
-        if let (Type::Uint(max_width), Type::Uint(width)) = (&max_type, &ty) {
-            // If both types are Uint, take the one with the largest bit width
-            if width > max_width {
-                max_type = ty;
-            }
-        }
-        // For any other type combinations, keep the first type
-    }
-
-    max_type
 }
 
 /// A range expression.
@@ -113,13 +86,7 @@ pub struct PyRange(pub Range);
 impl PyRange {
     #[new]
     #[pyo3(signature=(start, stop, step=None, ty=None), text_signature="(start, stop, step=None, type=None)")]
-    fn new(
-        py: Python,
-        start: &Bound<PyAny>,
-        stop: &Bound<PyAny>,
-        step: Option<&Bound<PyAny>>,
-        ty: Option<Type>,
-    ) -> PyResult<(Self, PyExpr)> {
+    fn new(py: Python, start: &Bound<PyAny>, stop: &Bound<PyAny>, step: Option<&Bound<PyAny>>, ty: Option<Type>) -> PyResult<(Self, PyExpr)> {
         let start_expr = py_value_to_expr(py, start)?;
         let stop_expr = py_value_to_expr(py, stop)?;
         let step_expr = if let Some(step) = step {
@@ -127,94 +94,17 @@ impl PyRange {
         } else {
             None
         };
-        let constant = start_expr.is_const()
-            && stop_expr.is_const()
-            && step_expr.as_ref().map_or(true, |s| s.is_const());
-
-        // Store whether the type was explicitly specified or implicitly determined
-        let is_implicit_promotion = ty.is_none();
-
-        // Determine the target type for the Range and its expressions
-        let target_ty = match ty {
-            Some(explicit_ty) => explicit_ty,
-            None => {
-                // Collect all types into a Vec
-                let mut types = vec![start_expr.ty(), stop_expr.ty()];
-                if let Some(step) = &step_expr {
-                    types.push(step.ty());
-                }
-
-                // Determine the common type with maximum bit width
-                determine_common_max_type(&types)
-            }
-        };
-
-        // Apply casts to any expressions with types different from the target type
-        let (start_expr, stop_expr, step_expr) = {
-            // For Range expressions, we only handle Uint types
-            match target_ty {
-                Type::Uint(_) => {
-                    // Create necessary Cast expressions for start if needed
-                    let start_expr = if target_ty != start_expr.ty() {
-                        Expr::Cast(Box::new(Cast {
-                            operand: start_expr.clone(),
-                            ty: target_ty,
-                            constant: start_expr.is_const(),
-                            // Mark as implicit if the type was determined via promotion
-                            implicit: is_implicit_promotion,
-                        }))
-                    } else {
-                        start_expr.clone()
-                    };
-
-                    // Create necessary Cast expressions for stop if needed
-                    let stop_expr = if target_ty != stop_expr.ty() {
-                        Expr::Cast(Box::new(Cast {
-                            operand: stop_expr.clone(),
-                            ty: target_ty,
-                            constant: stop_expr.is_const(),
-                            // Mark as implicit if the type was determined via promotion
-                            implicit: is_implicit_promotion,
-                        }))
-                    } else {
-                        stop_expr.clone()
-                    };
-
-                    // Create necessary Cast expressions for step if needed
-                    let step_expr = step_expr.map(|s| {
-                        if target_ty != s.ty() {
-                            Expr::Cast(Box::new(Cast {
-                                operand: s.clone(),
-                                ty: target_ty,
-                                constant: s.is_const(),
-                                // Mark as implicit if the type was determined via promotion
-                                implicit: is_implicit_promotion,
-                            }))
-                        } else {
-                            s.clone()
-                        }
-                    });
-
-                    (start_expr, stop_expr, step_expr)
-                }
-                _ => {
-                    // If not a Uint type, we can't cast
-                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                        "Range type must be an unsigned integer type",
-                    ));
-                }
-            }
-        };
-
+        let constant = start_expr.is_const() && stop_expr.is_const() && step_expr.as_ref().map_or(true, |s| s.is_const());
+        let ty = ty.unwrap_or_else(|| start_expr.ty());
         Ok((
             PyRange(Range {
                 start: start_expr,
                 stop: stop_expr,
                 step: step_expr,
-                ty: target_ty,
+                ty,
                 constant,
             }),
-            PyExpr(ExprKind::Range),
+            PyExpr(ExprKind::Range)
         ))
     }
 
@@ -246,10 +136,6 @@ impl PyRange {
         self.0.ty.into_py_any(py)
     }
 
-    fn __len__(&self) -> usize {
-        1
-    }
-
     fn accept<'py>(
         slf: PyRef<'py, Self>,
         visitor: &Bound<'py, PyAny>,
@@ -266,30 +152,28 @@ impl PyRange {
             String::new()
         };
         let ty = self.0.ty.into_py_any(py)?.bind(py).repr()?;
-        Ok(format!(
-            "R(start={}, stop={}{}, ty={})",
-            start, stop, step, ty
-        ))
+        Ok(format!("Range(start={}, stop={}{}, ty={})", start, stop, step, ty))
     }
 
     fn __str__(&self, py: Python) -> PyResult<String> {
-        // Create longer-lived bindings for start
-        let start_py = self.0.start.clone().into_py_any(py)?;
-        let start = start_py.bind(py);
-
-        let stop_py = self.0.stop.clone().into_py_any(py)?;
-        let stop = stop_py.bind(py);
+        let start = self.0.start.clone().into_py_any(py)?.bind(py);
+        let stop = self.0.stop.clone().into_py_any(py)?.bind(py);
+        
+        // Try to get name attribute from start
         let start_str = match start.getattr("name") {
             Ok(name) => name.extract::<String>()?,
-            Err(_) => start.str()?.to_string(),
+            Err(_) => start.str()?,
         };
+        
+        // Try to get name attribute from stop
         let stop_str = match stop.getattr("name") {
             Ok(name) => name.extract::<String>()?,
-            Err(_) => stop.str()?.to_string(),
+            Err(_) => stop.str()?,
         };
+        
+        // Try to get name attribute from step if it exists
         let step_str = if let Some(step) = &self.0.step {
-            let step_py = step.clone().into_py_any(py)?;
-            let step = step_py.bind(py);
+            let step = step.clone().into_py_any(py)?.bind(py);
             match step.getattr("name") {
                 Ok(name) => format!(", step={}", name.extract::<String>()?),
                 Err(_) => format!(", step={}", step.str()?),
@@ -297,7 +181,7 @@ impl PyRange {
         } else {
             String::new()
         };
-
-        Ok(format!("R({}, {}{})", start_str, stop_str, step_str))
+        
+        Ok(format!("Range({}, {}{})", start_str, stop_str, step_str))
     }
-}
+} 
