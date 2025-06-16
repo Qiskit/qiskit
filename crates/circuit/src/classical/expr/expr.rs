@@ -32,7 +32,61 @@ pub enum Expr {
     Index(Box<Index>),
 }
 
+#[derive(Debug, PartialEq)]
+pub enum ExprRef<'a> {
+    Unary(&'a Unary),
+    Binary(&'a Binary),
+    Cast(&'a Cast),
+    Value(&'a Value),
+    Var(&'a Var),
+    Stretch(&'a Stretch),
+    Index(&'a Index),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ExprRefMut<'a> {
+    Unary(&'a mut Unary),
+    Binary(&'a mut Binary),
+    Cast(&'a mut Cast),
+    Value(&'a mut Value),
+    Var(&'a mut Var),
+    Stretch(&'a mut Stretch),
+    Index(&'a mut Index),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum IdentifierRef<'a> {
+    Var(&'a Var),
+    Stretch(&'a Stretch),
+}
+
 impl Expr {
+    /// Converts from `&Expr` to `ExprRef`.
+    pub fn as_ref(&self) -> ExprRef<'_> {
+        match self {
+            Expr::Unary(u) => ExprRef::Unary(u.as_ref()),
+            Expr::Binary(b) => ExprRef::Binary(b.as_ref()),
+            Expr::Cast(c) => ExprRef::Cast(c.as_ref()),
+            Expr::Value(v) => ExprRef::Value(v),
+            Expr::Var(v) => ExprRef::Var(v),
+            Expr::Stretch(s) => ExprRef::Stretch(s),
+            Expr::Index(i) => ExprRef::Index(i.as_ref()),
+        }
+    }
+
+    /// Converts from `&mut Expr` to `ExprRefMut`.
+    pub fn as_mut(&mut self) -> ExprRefMut<'_> {
+        match self {
+            Expr::Unary(u) => ExprRefMut::Unary(u.as_mut()),
+            Expr::Binary(b) => ExprRefMut::Binary(b.as_mut()),
+            Expr::Cast(c) => ExprRefMut::Cast(c.as_mut()),
+            Expr::Value(v) => ExprRefMut::Value(v),
+            Expr::Var(v) => ExprRefMut::Var(v),
+            Expr::Stretch(s) => ExprRefMut::Stretch(s),
+            Expr::Index(i) => ExprRefMut::Index(i.as_mut()),
+        }
+    }
+
     /// The const-ness of the expression.
     pub fn is_const(&self) -> bool {
         match self {
@@ -67,10 +121,52 @@ impl Expr {
         }
     }
 
+    /// Returns an iterator over the identifier nodes in this expression in some
+    /// deterministic order.
+    pub fn identifiers(&self) -> impl Iterator<Item = IdentifierRef<'_>> {
+        IdentIterator(ExprIterator { stack: vec![self] })
+    }
+
     /// Returns an iterator over the [Var] nodes in this expression in some
     /// deterministic order.
     pub fn vars(&self) -> impl Iterator<Item = &Var> {
         VarIterator(ExprIterator { stack: vec![self] })
+    }
+
+    /// Returns an iterator over all nodes in this expression in some deterministic
+    /// order.
+    pub fn iter(&self) -> impl Iterator<Item = ExprRef> {
+        ExprIterator { stack: vec![self] }
+    }
+
+    /// Visits all nodes by mutable reference, in a post-order traversal.
+    pub fn visit_mut<F>(&mut self, mut visitor: F) -> PyResult<()>
+    where
+        F: FnMut(ExprRefMut) -> PyResult<()>,
+    {
+        self.visit_mut_impl(&mut visitor)
+    }
+
+    fn visit_mut_impl<F>(&mut self, visitor: &mut F) -> PyResult<()>
+    where
+        F: FnMut(ExprRefMut) -> PyResult<()>,
+    {
+        match self {
+            Expr::Unary(u) => u.operand.visit_mut_impl(visitor)?,
+            Expr::Binary(b) => {
+                b.left.visit_mut_impl(visitor)?;
+                b.right.visit_mut_impl(visitor)?;
+            }
+            Expr::Cast(c) => c.operand.visit_mut_impl(visitor)?,
+            Expr::Value(_) => {}
+            Expr::Var(_) => {}
+            Expr::Stretch(_) => {}
+            Expr::Index(i) => {
+                i.target.visit_mut_impl(visitor)?;
+                i.index.visit_mut_impl(visitor)?;
+            }
+        }
+        visitor(self.as_mut())
     }
 }
 
@@ -83,7 +179,7 @@ struct ExprIterator<'a> {
 }
 
 impl<'a> Iterator for ExprIterator<'a> {
-    type Item = &'a Expr;
+    type Item = ExprRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let expr = self.stack.pop()?;
@@ -104,7 +200,7 @@ impl<'a> Iterator for ExprIterator<'a> {
                 self.stack.push(&i.target);
             }
         }
-        Some(expr)
+        Some(expr.as_ref())
     }
 }
 
@@ -116,8 +212,27 @@ impl<'a> Iterator for VarIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for expr in self.0.by_ref() {
-            if let Expr::Var(v) = expr {
+            if let ExprRef::Var(v) = expr {
                 return Some(v);
+            }
+        }
+        None
+    }
+}
+
+/// A private iterator over the [Var] and [Stretch] nodes contained within an [Expr].
+struct IdentIterator<'a>(ExprIterator<'a>);
+
+impl<'a> Iterator for IdentIterator<'a> {
+    type Item = IdentifierRef<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for expr in self.0.by_ref() {
+            if let ExprRef::Var(v) = expr {
+                return Some(IdentifierRef::Var(v));
+            }
+            if let ExprRef::Stretch(s) = expr {
+                return Some(IdentifierRef::Stretch(s));
             }
         }
         None
@@ -274,5 +389,286 @@ impl<'py> FromPyObject<'py> for Expr {
             ExprKind::Stretch => Ok(Expr::Stretch(ob.extract()?)),
             ExprKind::Index => Ok(Expr::Index(Box::new(ob.extract()?))),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::bit::ShareableClbit;
+    use crate::classical::expr::{
+        Binary, BinaryOp, Expr, ExprRef, ExprRefMut, IdentifierRef, Stretch, Unary, UnaryOp, Value,
+        Var,
+    };
+    use crate::classical::types::Type;
+    use crate::duration::Duration;
+    use pyo3::PyResult;
+    use uuid::Uuid;
+
+    #[test]
+    fn test_vars() {
+        let expr: Expr = Binary {
+            op: BinaryOp::BitAnd,
+            left: Unary {
+                op: UnaryOp::BitNot,
+                operand: Var::Standalone {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                    ty: Type::Bool,
+                }
+                .into(),
+                ty: Type::Bool,
+                constant: false,
+            }
+            .into(),
+            right: Var::Bit {
+                bit: ShareableClbit::new_anonymous(),
+            }
+            .into(),
+            ty: Type::Bool,
+            constant: false,
+        }
+        .into();
+
+        let vars: Vec<&Var> = expr.vars().collect();
+        assert!(matches!(
+            vars.as_slice(),
+            [Var::Bit { .. }, Var::Standalone { .. }]
+        ));
+    }
+
+    #[test]
+    fn test_identifiers() {
+        let expr: Expr = Binary {
+            op: BinaryOp::Mul,
+            left: Binary {
+                op: BinaryOp::Add,
+                left: Var::Standalone {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                    ty: Type::Duration,
+                }
+                .into(),
+                right: Stretch {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                }
+                .into(),
+                ty: Type::Duration,
+                constant: false,
+            }
+            .into(),
+            right: Binary {
+                op: BinaryOp::Div,
+                left: Stretch {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                }
+                .into(),
+                right: Value::Duration(Duration::dt(1000)).into(),
+                ty: Type::Float,
+                constant: true,
+            }
+            .into(),
+            ty: Type::Bool,
+            constant: false,
+        }
+        .into();
+
+        let identifiers: Vec<IdentifierRef> = expr.identifiers().collect();
+        assert!(matches!(
+            identifiers.as_slice(),
+            [
+                IdentifierRef::Stretch(Stretch { .. }),
+                IdentifierRef::Stretch(Stretch { .. }),
+                IdentifierRef::Var(Var::Standalone { .. }),
+            ]
+        ));
+    }
+
+    #[test]
+    fn test_iter() {
+        let expr: Expr = Binary {
+            op: BinaryOp::Mul,
+            left: Binary {
+                op: BinaryOp::Add,
+                left: Var::Standalone {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                    ty: Type::Duration,
+                }
+                .into(),
+                right: Stretch {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                }
+                .into(),
+                ty: Type::Duration,
+                constant: false,
+            }
+            .into(),
+            right: Binary {
+                op: BinaryOp::Div,
+                left: Stretch {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                }
+                .into(),
+                right: Value::Duration(Duration::dt(1000)).into(),
+                ty: Type::Float,
+                constant: true,
+            }
+            .into(),
+            ty: Type::Bool,
+            constant: false,
+        }
+        .into();
+
+        let exprs: Vec<ExprRef> = expr.iter().collect();
+        assert!(matches!(
+            exprs.as_slice(),
+            [
+                ExprRef::Binary(Binary {
+                    op: BinaryOp::Mul,
+                    ..
+                }),
+                ExprRef::Binary(Binary {
+                    op: BinaryOp::Div,
+                    ..
+                }),
+                ExprRef::Value(Value::Duration(..)),
+                ExprRef::Stretch(Stretch { .. }),
+                ExprRef::Binary(Binary {
+                    op: BinaryOp::Add,
+                    ..
+                }),
+                ExprRef::Stretch(Stretch { .. }),
+                ExprRef::Var(Var::Standalone { .. }),
+            ]
+        ));
+    }
+
+    #[test]
+    fn test_visit_mut_ordering() -> PyResult<()> {
+        let mut expr: Expr = Binary {
+            op: BinaryOp::Mul,
+            left: Binary {
+                op: BinaryOp::Add,
+                left: Var::Standalone {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                    ty: Type::Duration,
+                }
+                .into(),
+                right: Stretch {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                }
+                .into(),
+                ty: Type::Duration,
+                constant: false,
+            }
+            .into(),
+            right: Binary {
+                op: BinaryOp::Div,
+                left: Stretch {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                }
+                .into(),
+                right: Value::Duration(Duration::dt(1000)).into(),
+                ty: Type::Float,
+                constant: true,
+            }
+            .into(),
+            ty: Type::Bool,
+            constant: false,
+        }
+        .into();
+
+        // These get *consumed* by every visit, so by the end we expect this
+        // iterator to be empty. The ordering here is post-order, LRN.
+        let mut order = [
+            |x: &ExprRefMut| matches!(x, ExprRefMut::Var(Var::Standalone { .. })),
+            |x: &ExprRefMut| matches!(x, ExprRefMut::Stretch(Stretch { .. })),
+            |x: &ExprRefMut| {
+                matches!(
+                    x,
+                    ExprRefMut::Binary(Binary {
+                        op: BinaryOp::Add,
+                        ..
+                    })
+                )
+            },
+            |x: &ExprRefMut| matches!(x, ExprRefMut::Stretch(Stretch { .. })),
+            |x: &ExprRefMut| matches!(x, ExprRefMut::Value(Value::Duration(..))),
+            |x: &ExprRefMut| {
+                matches!(
+                    x,
+                    ExprRefMut::Binary(Binary {
+                        op: BinaryOp::Div,
+                        ..
+                    })
+                )
+            },
+            |x: &ExprRefMut| {
+                matches!(
+                    x,
+                    ExprRefMut::Binary(Binary {
+                        op: BinaryOp::Mul,
+                        ..
+                    })
+                )
+            },
+        ]
+        .into_iter();
+
+        expr.visit_mut(|x| {
+            assert!(order.next().unwrap()(&x));
+            Ok(())
+        })?;
+
+        assert!(order.next().is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn test_visit_mut() -> PyResult<()> {
+        let mut expr: Expr = Binary {
+            op: BinaryOp::BitAnd,
+            left: Unary {
+                op: UnaryOp::BitNot,
+                operand: Var::Standalone {
+                    uuid: Uuid::new_v4().as_u128(),
+                    name: "test".to_string(),
+                    ty: Type::Bool,
+                }
+                .into(),
+                ty: Type::Bool,
+                constant: false,
+            }
+            .into(),
+            right: Value::Uint {
+                raw: 1,
+                ty: Type::Bool,
+            }
+            .into(),
+            ty: Type::Bool,
+            constant: false,
+        }
+        .into();
+
+        expr.visit_mut(|x| match x {
+            ExprRefMut::Var(Var::Standalone { name, .. }) => {
+                *name = "updated".to_string();
+                Ok(())
+            }
+            _ => Ok(()),
+        })?;
+
+        let Var::Standalone { name, .. } = expr.vars().next().unwrap() else {
+            panic!("wrong var type")
+        };
+        assert_eq!(name.as_str(), "updated");
+        Ok(())
     }
 }
