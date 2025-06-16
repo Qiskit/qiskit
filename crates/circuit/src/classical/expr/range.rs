@@ -50,19 +50,20 @@ fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
             raw: raw as u64,
             ty: Type::Uint(64),
         }
-    .into())
+        .into())
     } else if let Ok(raw) = value.extract::<f64>() {
         Ok(Value::Float {
             raw,
             ty: Type::Float,
-        }.into())
+        }
+        .into())
     } else if let Ok(expr) = value.extract::<Expr>() {
         Ok(expr)
     } else {
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
             "Expected integer, float, or Expr, got {}",
-             value.get_type().name()?
-             )))
+            value.get_type().name()?
+        )))
     }
 }
 
@@ -88,11 +89,12 @@ pub struct PyRange(pub Range);
 impl PyRange {
     #[new]
     #[pyo3(signature=(start, stop, step=None, ty=None), text_signature="(start, stop, step=None, type=None)")]
-    fn new(py: Python,
+    fn new(
+        py: Python,
         start: &Bound<PyAny>,
         stop: &Bound<PyAny>,
         step: Option<&Bound<PyAny>>,
-        ty: Option<Type>
+        ty: Option<Type>,
     ) -> PyResult<(Self, PyExpr)> {
         let start_expr = py_value_to_expr(py, start)?;
         let stop_expr = py_value_to_expr(py, stop)?;
@@ -161,9 +163,10 @@ impl PyRange {
             String::new()
         };
         let ty = self.0.ty.into_py_any(py)?.bind(py).repr()?;
-        Ok(format!("Range(start={}, stop={}{}, ty={})",
-         start, stop, step, ty
-         ))
+        Ok(format!(
+            "Range(start={}, stop={}{}, ty={})",
+            start, stop, step, ty
+        ))
     }
 
     fn __str__(&self, py: Python) -> PyResult<String> {
