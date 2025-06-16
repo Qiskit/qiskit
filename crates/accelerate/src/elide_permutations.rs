@@ -58,17 +58,13 @@ fn run(py: Python, dag: &mut DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usi
                             .map(|q| q.index())
                             .collect();
 
-                        let remapped_qindices: Vec<usize> = (0..qindices.len())
-                            .map(|i| pattern[i])
-                            .map(|i| qindices[i as usize])
+                        let new_values: Vec<usize> = (0..qindices.len())
+                            .map(|i| mapping[qindices[pattern[i] as usize]])
                             .collect();
 
-                        qindices
-                            .iter()
-                            .zip(remapped_qindices.iter())
-                            .for_each(|(old, new)| {
-                                mapping[*old] = *new;
-                            });
+                        for i in 0..qindices.len() {
+                            mapping[qindices[i]] = new_values[i];
+                        }
                     } else {
                         unreachable!();
                     }
