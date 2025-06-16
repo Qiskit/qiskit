@@ -1443,7 +1443,7 @@ box[a] {
                 "  rx(0.5) _gate_q_0;",
                 "}",
                 "qubit[1] q;",
-                "for b in [0:1] {",
+                "for int b in [0:1] {",
                 "  custom q[0];",
                 "}",
                 "",
