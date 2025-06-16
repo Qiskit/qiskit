@@ -36,7 +36,7 @@ from qiskit._accelerate.circuit.classical.expr import (
     Unary,
     Binary,
     Index,
-    Range,
+    Range
 )  # pylint: disable=unused-import
 
 
