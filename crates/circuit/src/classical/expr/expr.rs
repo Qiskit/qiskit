@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
+use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var, Range};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::{intern, IntoPyObjectExt};
@@ -30,6 +30,7 @@ pub enum Expr {
     Var(Var),
     Stretch(Stretch),
     Index(Box<Index>),
+    Range(Box<Range>),
 }
 
 impl Expr {
@@ -43,6 +44,7 @@ impl Expr {
             Expr::Var(_) => false,
             Expr::Stretch(_) => true,
             Expr::Index(i) => i.constant,
+            Expr::Range(r) => r.constant,
         }
     }
 
@@ -64,6 +66,7 @@ impl Expr {
             },
             Expr::Stretch(_) => Type::Duration,
             Expr::Index(i) => i.ty,
+            Expr::Range(r) => r.ty,
         }
     }
 
@@ -102,6 +105,13 @@ impl<'a> Iterator for ExprIterator<'a> {
             Expr::Index(i) => {
                 self.stack.push(&i.index);
                 self.stack.push(&i.target);
+            }
+            Expr::Range(r) => {
+                self.stack.push(&r.stop);
+                self.stack.push(&r.start);
+                if let Some(step) = &r.step {
+                    self.stack.push(step);
+                }
             }
         }
         Some(expr)
@@ -190,6 +200,18 @@ impl From<Box<Index>> for Expr {
     }
 }
 
+impl From<Range> for Expr {
+    fn from(value: Range) -> Self {
+        Expr::Range(Box::new(value))
+    }
+}
+
+impl From<Box<Range>> for Expr {
+    fn from(value: Box<Range>) -> Self {
+        Expr::Range(value)
+    }
+}
+
 /// Root base class of all nodes in the expression tree.  The base case should never be
 /// instantiated directly.
 ///
@@ -242,6 +264,7 @@ pub enum ExprKind {
     Cast,
     Stretch,
     Index,
+    Range,
 }
 
 impl<'py> IntoPyObject<'py> for Expr {
@@ -258,6 +281,7 @@ impl<'py> IntoPyObject<'py> for Expr {
             Expr::Var(v) => v.into_bound_py_any(py),
             Expr::Stretch(s) => s.into_bound_py_any(py),
             Expr::Index(i) => i.into_bound_py_any(py),
+            Expr::Range(r) => r.into_bound_py_any(py),
         }
     }
 }
@@ -273,6 +297,7 @@ impl<'py> FromPyObject<'py> for Expr {
             ExprKind::Cast => Ok(Expr::Cast(Box::new(ob.extract()?))),
             ExprKind::Stretch => Ok(Expr::Stretch(ob.extract()?)),
             ExprKind::Index => Ok(Expr::Index(Box::new(ob.extract()?))),
+            ExprKind::Range => Ok(Expr::Range(Box::new(ob.extract()?))),
         }
     }
 }
