@@ -4,7 +4,7 @@ features_transpiler:
     The function :func:`.generate_preset_pass_manager` now generates a special
     pass manager when the basis set consists only of Clifford+T gates.
     Formally, a Clifford+T basis set must contain only Clifford gates, along
-    with a :class:.TGate, :class:.TdgGate, or both. The full list of supported
+    with a :class:`.TGate`, :class:`.TdgGate`, or both. The full list of supported
     Clifford gates can be obtained by using :func:`.get_clifford_gate_names`.
 
     For example::
@@ -32,7 +32,7 @@ features_transpiler:
 
     It is important to note that the specified Clifford+T basis gate set should be
     universal, or else transpilation might not succeed. While the gate set
-    ``["h", "t", "tdg"]``or even ``["h", "t"]`` is sufficient for universality,
+    ``["h", "t", "tdg"]`` or even ``["h", "t"]`` is sufficient for universality,
     it is recommended to add more Clifford gates to the set if possible, as
     otherwise the translation might be less efficient. For example, if S-gate is not included,
     S-gates might be decomposed into pairs of T-gates (that is,

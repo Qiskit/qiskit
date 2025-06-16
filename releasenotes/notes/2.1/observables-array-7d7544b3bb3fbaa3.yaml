@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Estimator pubs can now be defined using :class:`SparseObservable` objects, in addition to
+    Estimator PUBs can now be defined using :class:`.SparseObservable` objects, in addition to
     the existing options of `str`, `Pauli`, `SparsePauliOp`, and `Mapping[Union[str, Pauli], float]`.
     However, projective observables are not yet supported when executing circuits. Projective
-    observables are `0, 1, +, -, r, l`. Currently only Pauli's are supported: `I, X, Y, Z`.
+    observables are `0, 1, +, -, r, l`. Currently only Paulis are supported: `I, X, Y, Z`.
