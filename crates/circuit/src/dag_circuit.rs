@@ -1289,8 +1289,8 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     DAGCircuit: An empty copy of self.
-    #[pyo3(signature = (*, vars_mode="alike"))]
-    pub fn copy_empty_like(&self, vars_mode: &str) -> PyResult<Self> {
+    #[pyo3(signature = (*, vars_mode=VarsMode::Alike))]
+    pub fn copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
         self.copy_empty_like_with_capacity(0, 0, vars_mode)
     }
 
@@ -2751,12 +2751,12 @@ impl DAGCircuit {
     /// Each :class:`~.DAGCircuit` instance returned by this method will contain the same number of
     /// clbits as ``self``. The global phase information in ``self`` will not be maintained
     /// in the subcircuits returned by this method.
-    #[pyo3(signature = (remove_idle_qubits=false, *, vars_mode="alike"))]
+    #[pyo3(signature = (remove_idle_qubits=false, *, vars_mode=VarsMode::Alike))]
     fn separable_circuits(
         &self,
         py: Python,
         remove_idle_qubits: bool,
-        vars_mode: &str,
+        vars_mode: VarsMode,
     ) -> PyResult<Py<PyList>> {
         let connected_components = rustworkx_core::connectivity::connected_components(&self.dag);
         let dags = PyList::empty(py);
@@ -3492,8 +3492,8 @@ impl DAGCircuit {
     /// TODO: Gates that use the same cbits will end up in different
     /// layers as this is currently implemented. This may not be
     /// the desired behavior.
-    #[pyo3(signature = (*, vars_mode="captures"))]
-    fn layers(&self, py: Python, vars_mode: &str) -> PyResult<Py<PyIterator>> {
+    #[pyo3(signature = (*, vars_mode=VarsMode::Captures))]
+    fn layers(&self, py: Python, vars_mode: VarsMode) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty(py);
         let mut graph_layers = self.multigraph_layers();
         if graph_layers.next().is_none() {
@@ -3550,8 +3550,8 @@ impl DAGCircuit {
     ///
     /// A serial layer is a circuit with one gate. The layers have the
     /// same structure as in layers().
-    #[pyo3(signature = (*, vars_mode="captures"))]
-    fn serial_layers(&self, py: Python, vars_mode: &str) -> PyResult<Py<PyIterator>> {
+    #[pyo3(signature = (*, vars_mode=VarsMode::Captures))]
+    fn serial_layers(&self, py: Python, vars_mode: VarsMode) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty(py);
         for next_node in self.topological_op_nodes()? {
             let retrieved_node: &PackedInstruction = match self.dag.node_weight(next_node) {
@@ -4378,7 +4378,7 @@ impl DAGCircuit {
     ///
     /// This method clones both the `qargs_interner` and `cargs_interner` of `self`;
     /// `Interned<[Qubit]>` and `Interned<[Clbit]>` keys from `self` are valid in the output DAG.
-    pub fn copy_empty_like_with_same_capacity(&self, vars_mode: &str) -> PyResult<Self> {
+    pub fn copy_empty_like_with_same_capacity(&self, vars_mode: VarsMode) -> PyResult<Self> {
         self.copy_empty_like_with_capacity(
             self.dag.node_count().saturating_sub(2 * self.width()),
             self.dag.edge_count(),
@@ -4395,7 +4395,7 @@ impl DAGCircuit {
         &self,
         num_ops: usize,
         num_edges: usize,
-        vars_mode: &str,
+        vars_mode: VarsMode,
     ) -> PyResult<Self> {
         let mut out = self.qubitless_empty_like_with_capacity(
             self.num_qubits(),
@@ -4418,7 +4418,7 @@ impl DAGCircuit {
     /// Create an empty DAG with the canonical "physical" register of the correct length, with all
     /// classical data and metadata retained.
     ///
-    /// This is similar to [copy_empty_like_with_capacity] with `vars_mode="alike"`, and copies the
+    /// This is similar to [copy_empty_like_with_capacity] with [VarsMode::Alike], and copies the
     /// same things over (global phase, metadata, etc) it does, except for replacing the qubits.
     ///
     /// This method clones the `cargs_interner` of `self`; `Interned<[Clbit]>` keys from `self` are
@@ -4432,8 +4432,12 @@ impl DAGCircuit {
         num_ops: usize,
         num_edges: usize,
     ) -> PyResult<Self> {
-        let mut out =
-            self.qubitless_empty_like_with_capacity(num_qubits, num_ops, num_edges, "alike")?;
+        let mut out = self.qubitless_empty_like_with_capacity(
+            num_qubits,
+            num_ops,
+            num_edges,
+            VarsMode::Alike,
+        )?;
         out.add_qreg(QuantumRegister::new_owning("q", num_qubits as u32))?;
         Ok(out)
     }
@@ -4459,15 +4463,19 @@ impl DAGCircuit {
         num_qubits: usize,
         num_ops: usize,
         num_edges: usize,
-        vars_mode: &str,
+        vars_mode: VarsMode,
     ) -> PyResult<Self> {
+        let (num_vars, num_stretches) = match vars_mode {
+            VarsMode::Drop => (0, 0),
+            _ => (self.num_vars(), self.num_stretches()),
+        };
         let mut target_dag = Self::with_capacity(
             num_qubits,
             self.num_clbits(),
-            (vars_mode != "drop").then_some(self.num_vars()),
+            Some(num_vars),
             Some(num_ops),
             Some(num_edges),
-            (vars_mode != "drop").then_some(self.num_stretches()),
+            Some(num_stretches),
         )?;
         target_dag.name.clone_from(&self.name);
         target_dag.global_phase = self.global_phase.clone();
@@ -4484,46 +4492,44 @@ impl DAGCircuit {
         for reg in self.cregs.registers() {
             target_dag.add_creg(reg.clone())?;
         }
-        if vars_mode == "alike" {
-            for info in self.identifier_info.values() {
-                match info {
-                    DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, type_ }) => {
-                        let stretch = self.stretches.get(*stretch).unwrap().clone();
-                        match type_ {
-                            DAGStretchType::Capture => {
-                                target_dag.add_captured_stretch(stretch)?;
-                            }
-                            DAGStretchType::Declare => {
-                                target_dag.add_declared_stretch(stretch)?;
+        match vars_mode {
+            VarsMode::Alike => {
+                for info in self.identifier_info.values() {
+                    match info {
+                        DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, type_ }) => {
+                            let stretch = self.stretches.get(*stretch).unwrap().clone();
+                            match type_ {
+                                DAGStretchType::Capture => {
+                                    target_dag.add_captured_stretch(stretch)?;
+                                }
+                                DAGStretchType::Declare => {
+                                    target_dag.add_declared_stretch(stretch)?;
+                                }
                             }
                         }
-                    }
-                    DAGIdentifierInfo::Var(DAGVarInfo { var, type_, .. }) => {
-                        let var = self.vars.get(*var).unwrap().clone();
-                        target_dag.add_var(var, *type_)?;
-                    }
-                }
-            }
-        } else if vars_mode == "captures" {
-            for info in self.identifier_info.values() {
-                match info {
-                    DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, .. }) => {
-                        let stretch = self.stretches.get(*stretch).unwrap().clone();
-                        target_dag.add_captured_stretch(stretch)?;
-                    }
-                    DAGIdentifierInfo::Var(DAGVarInfo { var, .. }) => {
-                        let var = self.vars.get(*var).unwrap().clone();
-                        target_dag.add_var(var, DAGVarType::Capture)?;
+                        DAGIdentifierInfo::Var(DAGVarInfo { var, type_, .. }) => {
+                            let var = self.vars.get(*var).unwrap().clone();
+                            target_dag.add_var(var, *type_)?;
+                        }
                     }
                 }
             }
-        } else if vars_mode != "drop" {
-            return Err(PyValueError::new_err(format!(
-                "unknown vars_mode: '{}'",
-                vars_mode
-            )));
-        }
-
+            VarsMode::Captures => {
+                for info in self.identifier_info.values() {
+                    match info {
+                        DAGIdentifierInfo::Stretch(DAGStretchInfo { stretch, .. }) => {
+                            let stretch = self.stretches.get(*stretch).unwrap().clone();
+                            target_dag.add_captured_stretch(stretch)?;
+                        }
+                        DAGIdentifierInfo::Var(DAGVarInfo { var, .. }) => {
+                            let var = self.vars.get(*var).unwrap().clone();
+                            target_dag.add_var(var, DAGVarType::Capture)?;
+                        }
+                    }
+                }
+            }
+            VarsMode::Drop => (),
+        };
         Ok(target_dag)
     }
 
@@ -7488,6 +7494,31 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
+
+/// The mode to copy the classical [Var]s in, for operations that create a new [DAGCircuit] based on
+/// an existing one.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum VarsMode {
+    /// Each [Var] has the same type it had in the input.
+    Alike,
+    /// Each [Var] becomes a "capture".  This is useful when building a [DAGCircuit] to compose back
+    /// onto the original base.
+    Captures,
+    /// Do not copy the [Var] data over.
+    Drop,
+}
+impl<'py> FromPyObject<'py> for VarsMode {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        match &*ob.downcast::<PyString>()?.to_string_lossy() {
+            "alike" => Ok(VarsMode::Alike),
+            "captures" => Ok(VarsMode::Captures),
+            "drop" => Ok(VarsMode::Drop),
+            mode => Err(PyValueError::new_err(format!(
+                "unknown vars_mode: '{mode}'"
+            ))),
+        }
+    }
+}
 
 #[cfg(all(test, not(miri)))]
 mod test {
