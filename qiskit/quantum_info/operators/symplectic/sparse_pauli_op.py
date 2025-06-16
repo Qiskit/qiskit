@@ -1181,9 +1181,8 @@ class SparsePauliOp(LinearOp):
                     coeff = complex(coeff)
                 bound.coeffs[i] = coeff
 
-        if (
-            bound.coeffs.dtype == object
-            and not any(isinstance(c, ParameterExpression) for c in bound.coeffs)
+        if bound.coeffs.dtype == object and not any(
+            isinstance(c, ParameterExpression) for c in bound.coeffs
         ):
             bound._coeffs = bound.coeffs.astype(complex)
 
