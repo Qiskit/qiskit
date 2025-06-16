@@ -34,7 +34,7 @@ class TestRange(QiskitTestCase):
         self.assertEqual(range_expr.stop, stop)
         self.assertEqual(range_expr.step, step)
         self.assertEqual(range_expr.type, types.Uint(8))
-        self.assertTrue(range_expr.constant)
+        self.assertTrue(range_expr.const)
 
     def test_range_with_float(self):
         """Test creating a Range with Float values."""
@@ -48,7 +48,7 @@ class TestRange(QiskitTestCase):
         self.assertEqual(range_expr.stop, stop)
         self.assertEqual(range_expr.step, step)
         self.assertEqual(range_expr.type, types.Float())
-        self.assertTrue(range_expr.constant)
+        self.assertTrue(range_expr.const)
 
     def test_range_without_step(self):
         """Test creating a Range without a step value."""
@@ -61,7 +61,7 @@ class TestRange(QiskitTestCase):
         self.assertEqual(range_expr.stop, stop)
         self.assertIsNone(range_expr.step)
         self.assertEqual(range_expr.type, types.Uint(8))
-        self.assertTrue(range_expr.constant)
+        self.assertTrue(range_expr.const)
 
     def test_range_with_mixed_types(self):
         """Test that creating a Range with mixed types raises an error."""
@@ -86,4 +86,4 @@ class TestRange(QiskitTestCase):
         self.assertEqual(range_expr.stop, stop)
         self.assertIsNone(range_expr.step)
         self.assertEqual(range_expr.type, types.Uint(8))
-        self.assertFalse(range_expr.constant)
+        self.assertFalse(range_expr.const)
