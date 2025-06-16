@@ -122,7 +122,19 @@ class PauliEvolutionGate(Gate):
         if label is None:
             label = _get_default_label(operator)
 
-        num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
+        if isinstance(operator, list):
+            if len(operator) == 0:
+                raise ValueError("The argument 'operator' cannot be an empty list.")
+            num_qubits = operator[0].num_qubits
+            for op in operator[1:]:
+                if op.num_qubits != num_qubits:
+                    raise ValueError(
+                        "When represented as a list of operators, all of these operators "
+                        "must have the same number of qubits."
+                    )
+        else:
+            num_qubits = operator.num_qubits
+
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
         self.operator = operator
 
