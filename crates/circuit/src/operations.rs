@@ -269,11 +269,12 @@ pub(crate) enum ControlFlowType {
     WhileLoop = 6,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 #[repr(align(8))]
 pub enum ControlFlow {
     Box {
         duration: Option<Duration>,
+        annotations: Vec<PyObject>,
         qubits: u32,
         clbits: u32,
     },
@@ -306,6 +307,123 @@ pub enum ControlFlow {
         qubits: u32,
         clbits: u32,
     },
+}
+
+impl ControlFlow {
+    /// Check if another control flow operations is equivalent to this one.
+    ///
+    /// This can be removed and [ControlFlow] can be made to implement [PartialEq]
+    /// instead once `annotations` gets moved to the instruction.
+    pub fn py_eq(&self, py: Python, other: &ControlFlow) -> PyResult<bool> {
+        match self {
+            ControlFlow::Box {
+                duration: self_duration,
+                annotations: self_annotations,
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::Box {
+                    duration: other_duration,
+                    annotations: other_annotations,
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => {
+                    if self_clbits != other_clbits
+                        || self_qubits != other_qubits
+                        || self_duration != other_duration
+                        || self_annotations.len() != other_annotations.len()
+                    {
+                        return Ok(false);
+                    }
+                    for (a, b) in self_annotations.iter().zip(other_annotations) {
+                        if !a.bind(py).eq(b)? {
+                            return Ok(false);
+                        }
+                    }
+                    Ok(true)
+                }
+                _ => Ok(false),
+            },
+            ControlFlow::BreakLoop {
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::BreakLoop {
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+                _ => Ok(false),
+            },
+            ControlFlow::ContinueLoop {
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::ContinueLoop {
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+                _ => Ok(false),
+            },
+            ControlFlow::ForLoop {
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::ForLoop {
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits && self_clbits == other_clbits),
+                _ => Ok(false),
+            },
+            ControlFlow::IfElse {
+                condition: self_condition,
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::IfElse {
+                    condition: other_condition,
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits
+                    && self_clbits == other_clbits
+                    && self_condition == other_condition),
+                _ => Ok(false),
+            },
+            ControlFlow::Switch {
+                target: self_target,
+                label_spec: self_label_spec,
+                qubits: self_qubits,
+                clbits: self_clbits,
+                cases: self_cases,
+            } => match other {
+                ControlFlow::Switch {
+                    target: other_target,
+                    label_spec: other_label_spec,
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                    cases: other_cases,
+                } => Ok(self_qubits == other_qubits
+                    && self_clbits == other_clbits
+                    && self_cases == other_cases
+                    && self_target == other_target
+                    && self_label_spec == other_label_spec),
+                _ => Ok(false),
+            },
+            ControlFlow::While {
+                condition: self_condition,
+                qubits: self_qubits,
+                clbits: self_clbits,
+            } => match other {
+                ControlFlow::While {
+                    condition: other_condition,
+                    qubits: other_qubits,
+                    clbits: other_clbits,
+                } => Ok(self_qubits == other_qubits
+                    && self_clbits == other_clbits
+                    && self_condition == other_condition),
+                _ => Ok(false),
+            },
+        }
+    }
 }
 
 impl Operation for ControlFlow {

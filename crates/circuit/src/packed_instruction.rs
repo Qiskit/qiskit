@@ -457,7 +457,7 @@ impl PackedOperation {
     pub fn py_eq(&self, py: Python, other: &PackedOperation) -> PyResult<bool> {
         match (self.view(), other.view()) {
             (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
-                Ok(left == right)
+                left.py_eq(py, right)
             }
             (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
                 Ok(left == right)

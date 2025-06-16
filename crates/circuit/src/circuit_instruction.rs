@@ -13,7 +13,7 @@
 use itertools::Itertools;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::basic::CompareOp;
-use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
+use pyo3::exceptions::{PyDeprecationWarning, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
@@ -825,13 +825,20 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                             "us" => Duration::us(py_duration.extract()?),
                             "ns" => Duration::ns(py_duration.extract()?),
                             // TODO: handle "ps"
-                            _ => panic!("invalid duration"), // TODO: return Err
+                            _ => {
+                                return Err(PyValueError::new_err(format!(
+                                    "duration unit '{}' is unsupported",
+                                    unit.unwrap()
+                                )))
+                            }
                         })
                     } else {
                         None
                     };
+                    let annotations = ob.getattr(intern!(py, "annotations"))?.extract()?;
                     ControlFlow::Box {
                         duration,
+                        annotations,
                         qubits: ob.getattr("num_qubits")?.extract()?,
                         clbits: ob.getattr("num_clbits")?.extract()?,
                     }

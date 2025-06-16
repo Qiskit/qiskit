@@ -44,7 +44,8 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 
 use pyo3::exceptions::{
-    PyDeprecationWarning, PyIndexError, PyRuntimeError, PyTypeError, PyValueError,
+    PyDeprecationWarning, PyIndexError, PyNotImplementedError, PyRuntimeError, PyTypeError,
+    PyValueError,
 };
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -255,7 +256,7 @@ impl DAGInstruction {
     fn py_op_eq(&self, py: Python, other: &Self) -> PyResult<bool> {
         match (self.view_operation(), other.view_operation()) {
             (OperationRef::ControlFlow(left), OperationRef::ControlFlow(right)) => {
-                Ok(left == right)
+                left.py_eq(py, right)
             }
             (OperationRef::StandardGate(left), OperationRef::StandardGate(right)) => {
                 Ok(left == right)
@@ -7552,7 +7553,9 @@ impl DAGCircuit {
 
                     let instr = if inst.op.try_control_flow().is_some() {
                         let OperationRef::Instruction(op) = inst.op.view() else {
-                            unreachable!("All control_flow ops should be PyInstruction");
+                            return Err(PyNotImplementedError::new_err(
+                                "control flow needs porting in DAGCircuit::compose",
+                            ));
                         };
                         Python::with_gil(|py| -> PyResult<DAGInstruction> {
                             let py_op = op.instruction.bind(py);
