@@ -22,6 +22,7 @@ __all__ = [
     "Unary",
     "Binary",
     "Index",
+    "Range",
 ]
 
 import enum
@@ -35,6 +36,7 @@ from qiskit._accelerate.circuit.classical.expr import (
     Unary,
     Binary,
     Index,
+    Range
 )  # pylint: disable=unused-import
 
 
