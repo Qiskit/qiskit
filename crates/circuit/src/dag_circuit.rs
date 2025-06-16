@@ -30,7 +30,7 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, Condition, ControlFlow, Operation, OperationRef, Param, PyInstruction, StandardGate,
+    ArrayType, Condition, ControlFlow, Operation, OperationRef, Param, StandardGate,
     StandardInstruction, Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -45,8 +45,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 
 use pyo3::exceptions::{
-    PyDeprecationWarning, PyIndexError, PyNotImplementedError, PyRuntimeError, PyTypeError,
-    PyValueError,
+    PyDeprecationWarning, PyIndexError, PyRuntimeError, PyTypeError, PyValueError,
 };
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -3050,78 +3049,75 @@ impl DAGCircuit {
                 None => &input_dag.dag[*old_node_index],
             };
             if let NodeType::Operation(old_inst) = old_node {
-                if let OperationRef::Instruction(old_op) = old_inst.op.view() {
-                    if old_op.name() == "switch_case" {
-                        let target = old_op.instruction.bind(py).getattr("target")?.extract()?;
-                        let kwargs = PyDict::new(py);
-                        kwargs.set_item(
-                            "label",
-                            old_inst
-                                .label
-                                .as_ref()
-                                .map(|x| PyString::new(py, x.as_str())),
-                        )?;
+                if let OperationRef::ControlFlow(cf) = old_inst.op.view() {
+                    match cf {
+                        ControlFlow::Switch {
+                            target,
+                            label_spec,
+                            qubits,
+                            clbits,
+                            cases,
+                        } => {
+                            let mapped_target = variable_mapper
+                                .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
 
-                        let mapped_target = variable_mapper
-                            .map_target(&target, |new_reg| self.add_creg(new_reg.clone()))?;
-                        let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
-                            (
-                                mapped_target,
-                                old_op.instruction.call_method0(py, "cases_specifier")?,
-                            ),
-                            Some(&kwargs),
-                        )?;
-
-                        if let NodeType::Operation(ref mut new_inst) =
-                            &mut self.dag[*new_node_index]
-                        {
-                            new_inst.op = PyInstruction {
-                                qubits: old_op.num_qubits(),
-                                clbits: old_op.num_clbits(),
-                                params: old_op.num_params(),
-                                op_name: old_op.name().to_string(),
-                                instruction: new_op.clone().unbind(),
-                            }
-                            .into();
-                            #[cfg(feature = "cache_pygates")]
+                            if let NodeType::Operation(ref mut new_inst) =
+                                &mut self.dag[*new_node_index]
                             {
-                                new_inst.py_op = new_op.unbind().into();
+                                #[cfg(feature = "cache_pygates")]
+                                {
+                                    new_inst.py_op.take();
+                                }
+                                new_inst.op = ControlFlow::Switch {
+                                    target: mapped_target,
+                                    label_spec: label_spec.clone(),
+                                    qubits: *qubits,
+                                    clbits: *clbits,
+                                    cases: *cases,
+                                }
+                                .into();
                             }
                         }
-                    } else if old_inst.op.try_control_flow().is_some() {
-                        if let Ok(condition) = old_op
-                            .instruction
-                            .bind(py)
-                            .getattr(intern!(py, "condition"))
-                            .and_then(|c| c.extract())
-                        {
-                            if old_inst.op.name() != "switch_case" {
-                                let new_condition = variable_mapper.map_condition(
-                                    &condition,
-                                    false,
-                                    |new_reg| self.add_creg(new_reg.clone()),
-                                )?;
+                        ControlFlow::IfElse {
+                            condition,
+                            qubits,
+                            clbits,
+                        }
+                        | ControlFlow::While {
+                            condition,
+                            qubits,
+                            clbits,
+                        } => {
+                            let mapped_condition =
+                                variable_mapper.map_condition(condition, false, |new_reg| {
+                                    self.add_creg(new_reg.clone())
+                                })?;
 
-                                if let NodeType::Operation(ref mut new_inst) =
-                                    &mut self.dag[*new_node_index]
+                            if let NodeType::Operation(ref mut new_inst) =
+                                &mut self.dag[*new_node_index]
+                            {
+                                #[cfg(feature = "cache_pygates")]
                                 {
-                                    #[cfg(feature = "cache_pygates")]
-                                    {
-                                        new_inst.py_op.take();
+                                    new_inst.py_op.take();
+                                }
+                                if matches!(cf, ControlFlow::While { .. }) {
+                                    new_inst.op = ControlFlow::While {
+                                        condition: mapped_condition,
+                                        qubits: *qubits,
+                                        clbits: *clbits,
                                     }
-                                    match new_inst.op.view() {
-                                        OperationRef::Instruction(py_inst) => {
-                                            py_inst.instruction.setattr(
-                                                py,
-                                                "condition",
-                                                new_condition,
-                                            )?;
-                                        }
-                                        _ => panic!("Instruction mismatch"),
+                                    .into();
+                                } else {
+                                    new_inst.op = ControlFlow::IfElse {
+                                        condition: mapped_condition,
+                                        qubits: *qubits,
+                                        clbits: *clbits,
                                     }
+                                    .into();
                                 }
                             }
                         }
+                        _ => (),
                     }
                 }
             }
@@ -5679,11 +5675,11 @@ impl DAGCircuit {
         instr: &DAGInstruction,
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(&instr) {
+            if self.may_have_additional_wires(instr) {
                 let mut clbits: HashSet<Clbit> =
                     HashSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
-                    Python::with_gil(|py| self.additional_wires(py, &instr))?;
+                    Python::with_gil(|py| self.additional_wires(py, instr))?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -6731,8 +6727,8 @@ impl DAGCircuit {
             }
         }
 
-        if self.may_have_additional_wires(&inst) {
-            let (clbits, vars) = Python::with_gil(|py| self.additional_wires(py, &inst))?;
+        if self.may_have_additional_wires(inst) {
+            let (clbits, vars) = Python::with_gil(|py| self.additional_wires(py, inst))?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
                     return Err(DAGCircuitError::new_err(format!(
@@ -7530,80 +7526,77 @@ impl DAGCircuit {
                         .map(|bit| self.clbits.find(&clbit_map[bit]).unwrap())
                         .collect::<Vec<Clbit>>();
 
-                    let instr = if inst.op.try_control_flow().is_some() {
-                        let OperationRef::Instruction(op) = inst.op.view() else {
-                            return Err(PyNotImplementedError::new_err(
-                                "control flow needs porting in DAGCircuit::compose",
-                            ));
-                        };
-                        let py_op = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-                            let py_op = op.instruction.bind(py);
-                            let py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
-                            if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
-                                || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
-                            {
-                                if let Ok(condition) = py_op
-                                    .getattr(intern!(py, "condition"))
-                                    .and_then(|c| c.extract())
-                                {
-                                    match variable_mapper {
-                                        Some(ref variable_mapper) => {
-                                            let condition = variable_mapper.map_condition(
-                                                &condition,
-                                                true,
-                                                reject_new_register,
-                                            )?;
-                                            py_op.setattr(intern!(py, "condition"), condition)?;
-                                        }
+                    let instr = if let Some(cf) = inst.op.try_control_flow() {
+                        let new_cf =
+                            match cf {
+                                ControlFlow::IfElse {
+                                    condition,
+                                    qubits,
+                                    clbits,
+                                }
+                                | ControlFlow::While {
+                                    condition,
+                                    qubits,
+                                    clbits,
+                                } => {
+                                    let mapped_condition = match variable_mapper {
+                                        Some(ref variable_mapper) => variable_mapper
+                                            .map_condition(condition, true, reject_new_register)?,
                                         None => {
                                             let var_mapper = build_var_mapper(&self.cregs);
                                             let condition = var_mapper.map_condition(
-                                                &condition,
+                                                condition,
                                                 true,
                                                 reject_new_register,
                                             )?;
-                                            py_op.setattr(intern!(py, "condition"), condition)?;
                                             variable_mapper = Some(var_mapper);
+                                            condition
+                                        }
+                                    };
+                                    if matches!(cf, ControlFlow::While { .. }) {
+                                        ControlFlow::While {
+                                            condition: mapped_condition,
+                                            qubits: *qubits,
+                                            clbits: *clbits,
+                                        }
+                                    } else {
+                                        ControlFlow::IfElse {
+                                            condition: mapped_condition,
+                                            qubits: *qubits,
+                                            clbits: *clbits,
                                         }
                                     }
                                 }
-                            } else if py_op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
-                                match variable_mapper {
-                                    Some(ref variable_mapper) => {
-                                        py_op.setattr(
-                                            intern!(py, "target"),
-                                            variable_mapper.map_target(
-                                                &py_op.getattr(intern!(py, "target"))?.extract()?,
-                                                reject_new_register,
-                                            )?,
-                                        )?;
-                                    }
-                                    None => {
-                                        let var_mapper = build_var_mapper(&self.cregs);
-                                        py_op.setattr(
-                                            intern!(py, "target"),
-                                            var_mapper.map_target(
-                                                &py_op.getattr(intern!(py, "target"))?.extract()?,
-                                                reject_new_register,
-                                            )?,
-                                        )?;
-                                        variable_mapper = Some(var_mapper);
+                                ControlFlow::Switch {
+                                    target,
+                                    label_spec,
+                                    qubits,
+                                    clbits,
+                                    cases,
+                                } => {
+                                    let mapped_target = match variable_mapper {
+                                        Some(ref variable_mapper) => variable_mapper
+                                            .map_target(target, reject_new_register)?,
+                                        None => {
+                                            let var_mapper = build_var_mapper(&self.cregs);
+                                            let target = var_mapper
+                                                .map_target(target, reject_new_register)?;
+                                            variable_mapper = Some(var_mapper);
+                                            target
+                                        }
+                                    };
+                                    ControlFlow::Switch {
+                                        target: mapped_target,
+                                        label_spec: label_spec.clone(),
+                                        qubits: *qubits,
+                                        clbits: *clbits,
+                                        cases: *cases,
                                     }
                                 }
-                            }
-                            Ok(py_op.unbind())
-                        })?;
+                                _ => cf.clone(),
+                            };
                         DAGInstruction {
-                            op: PackedOperation::from_instruction(
-                                PyInstruction {
-                                    qubits: op.qubits,
-                                    clbits: op.clbits,
-                                    params: op.params,
-                                    op_name: op.op_name.clone(),
-                                    instruction: py_op,
-                                }
-                                .into(),
-                            ),
+                            op: new_cf.into(),
                             qubits: self.qargs_interner.insert_owned(mapped_qargs),
                             clbits: self.cargs_interner.insert_owned(mapped_cargs),
                             params: inst.params.clone(),
