@@ -13,9 +13,9 @@
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, VarsMode};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param};
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{Qubit, VarsMode};
 
 /// Run the ElidePermutations pass on `dag`.
 ///

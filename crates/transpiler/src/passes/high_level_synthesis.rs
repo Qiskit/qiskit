@@ -22,11 +22,11 @@ use pyo3::types::PyTuple;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::{CircuitData, VarsCopyMode};
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, VarsMode};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
@@ -35,8 +35,7 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{radd_param, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Clbit;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -465,7 +464,7 @@ fn run_on_circuitdata(
     // It does not distribute ancilla qubits between different operations present in the circuit.
 
     let mut output_circuit: CircuitData =
-        CircuitData::copy_empty_like(input_circuit, VarsCopyMode::Alike)?;
+        CircuitData::copy_empty_like(input_circuit, VarsMode::Alike)?;
     let mut output_qubits = input_qubits.to_vec();
 
     // The "inverse" map from the global qubits to the output circuit's qubits.

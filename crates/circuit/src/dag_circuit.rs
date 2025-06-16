@@ -35,7 +35,7 @@ use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
-use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var};
+use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -7658,31 +7658,6 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
-
-/// The mode to copy the classical [Var]s in, for operations that create a new [DAGCircuit] based on
-/// an existing one.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum VarsMode {
-    /// Each [Var] has the same type it had in the input.
-    Alike,
-    /// Each [Var] becomes a "capture".  This is useful when building a [DAGCircuit] to compose back
-    /// onto the original base.
-    Captures,
-    /// Do not copy the [Var] data over.
-    Drop,
-}
-impl<'py> FromPyObject<'py> for VarsMode {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        match &*ob.downcast::<PyString>()?.to_string_lossy() {
-            "alike" => Ok(VarsMode::Alike),
-            "captures" => Ok(VarsMode::Captures),
-            "drop" => Ok(VarsMode::Drop),
-            mode => Err(PyValueError::new_err(format!(
-                "unknown vars_mode: '{mode}'"
-            ))),
-        }
-    }
-}
 
 #[cfg(all(test, not(miri)))]
 mod test {

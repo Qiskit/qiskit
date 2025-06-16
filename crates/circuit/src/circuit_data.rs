@@ -31,7 +31,7 @@ use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
-use crate::{Clbit, Qubit, Stretch, Var};
+use crate::{Clbit, Qubit, Stretch, Var, VarsMode};
 
 use numpy::PyReadonlyArray1;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
@@ -276,14 +276,6 @@ impl CircuitIdentifierInfo {
             _ => Err(PyValueError::new_err("Invalid identifier info type")),
         }
     }
-}
-
-/// Used for specifying the copy mode of realtime variables.
-/// See [CircuitData::copy_empty_like] for details about the modes.
-pub enum VarsCopyMode {
-    Alike = 0,
-    Captures = 1,
-    Drop = 2,
 }
 
 /// A convenience enum used in [CircuitData::from_packed_instructions]
@@ -706,7 +698,7 @@ impl CircuitData {
     ///     CircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = self.copy_empty_like(VarsCopyMode::Alike)?;
+        let mut res = self.copy_empty_like(VarsMode::Alike)?;
         res.qargs_interner = self.qargs_interner.clone();
         res.cargs_interner = self.cargs_interner.clone();
         res.reserve(self.data().len());
@@ -746,29 +738,77 @@ impl CircuitData {
 
     /// Performs a copy with no instructions.
     ///
-    /// Args:
-    ///     vars_mode (str): the mode to handle realtime variables copying. Should be one of the following:
-    ///         alike - the variables in the output circuit will have the same declaration semantics as in self.
-    ///         captures - all variables in self will be copied as captured variables in the output circuit.
-    ///         drop - variables will not be copied.
+    /// # Arguments:
     ///
-    /// Returns:
-    ///     CircuitData: The empty copy like self.
-    #[pyo3(name = "copy_empty_like", signature = (*, vars_mode="alike"))]
-    fn py_copy_empty_like(&self, vars_mode: &str) -> PyResult<Self> {
-        let vars_mode = match vars_mode {
-            "alike" => VarsCopyMode::Alike,
-            "captures" => VarsCopyMode::Captures,
-            "drop" => VarsCopyMode::Drop,
-            _ => {
-                return Err(PyValueError::new_err(format!(
-                    "unknown vars_mode: '{}'",
-                    vars_mode
-                )))
+    /// * vars_mode: specifies realtime variables copy mode.
+    ///     * VarsMode::Alike: variables will be copied following declaration semantics in self.
+    ///     * VarsMode::Captures: variables will be copied as captured variables.
+    ///     * VarsMode::Drop: variables will not be copied.
+    ///
+    /// # Returns:
+    ///
+    /// CircuitData: The empty copy like self.
+    #[pyo3(signature = (*, vars_mode=VarsMode::Alike))]
+    pub fn copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
+        let mut res = CircuitData::new(
+            Some(self.qubits.objects().clone()),
+            Some(self.clbits.objects().clone()),
+            None,
+            0,
+            self.global_phase.clone(),
+        )?;
+
+        res.qargs_interner = self.qargs_interner.clone();
+        res.cargs_interner = self.cargs_interner.clone();
+
+        // After initialization, copy register info.
+        res.qregs = self.qregs.clone();
+        res.cregs = self.cregs.clone();
+        res.qubit_indices = self.qubit_indices.clone();
+        res.clbit_indices = self.clbit_indices.clone();
+
+        if let VarsMode::Drop = vars_mode {
+            return Ok(res);
+        }
+
+        let map_stretch_type = |type_| {
+            if let VarsMode::Captures = vars_mode {
+                CircuitStretchType::Capture
+            } else {
+                type_
             }
         };
 
-        self.copy_empty_like(vars_mode)
+        let map_var_type = |type_| {
+            if let VarsMode::Captures = vars_mode {
+                CircuitVarType::Capture
+            } else {
+                type_
+            }
+        };
+
+        for info in self.identifier_info.values() {
+            match info {
+                CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, type_ }) => {
+                    let stretch = self
+                        .stretches
+                        .get(*stretch)
+                        .expect("Stretch not found for the specified index")
+                        .clone();
+                    res.add_stretch(stretch, map_stretch_type(*type_))?;
+                }
+                CircuitIdentifierInfo::Var(CircuitVarInfo { var, type_, .. }) => {
+                    let var = self
+                        .vars
+                        .get(*var)
+                        .expect("Var not found for the specified index")
+                        .clone();
+                    res.add_var(var, map_var_type(*type_))?;
+                }
+            }
+        }
+
+        Ok(res)
     }
 
     /// Reserves capacity for at least ``additional`` more
@@ -2660,80 +2700,6 @@ impl CircuitData {
         }
         .iter()
         .map(|stretch| self.stretches.get(*stretch).unwrap())
-    }
-
-    /// Perform a copy with no instructions.
-    ///
-    /// # Arguments:
-    ///
-    /// * vars_copy_mode: specifies realtime variables copy mode.
-    ///     * VarsCopyMode::Alike: variables will be copied following declaration semantics in self.
-    ///     * VarsCopyMode::Captures: variables will be copied as captured variables.
-    ///     * VarsCopyMode::Drop: variables will not be copied.
-    ///
-    /// # Returns:
-    ///
-    /// CircuitData: The shallow copy.
-    pub fn copy_empty_like(&self, vars_copy_mode: VarsCopyMode) -> PyResult<Self> {
-        let mut res = CircuitData::new(
-            Some(self.qubits.objects().clone()),
-            Some(self.clbits.objects().clone()),
-            None,
-            0,
-            self.global_phase.clone(),
-        )?;
-
-        res.qargs_interner = self.qargs_interner.clone();
-        res.cargs_interner = self.cargs_interner.clone();
-
-        // After initialization, copy register info.
-        res.qregs = self.qregs.clone();
-        res.cregs = self.cregs.clone();
-        res.qubit_indices = self.qubit_indices.clone();
-        res.clbit_indices = self.clbit_indices.clone();
-
-        if let VarsCopyMode::Drop = vars_copy_mode {
-            return Ok(res);
-        }
-
-        let map_stretch_type = |type_| {
-            if let VarsCopyMode::Captures = vars_copy_mode {
-                CircuitStretchType::Capture
-            } else {
-                type_
-            }
-        };
-
-        let map_var_type = |type_| {
-            if let VarsCopyMode::Captures = vars_copy_mode {
-                CircuitVarType::Capture
-            } else {
-                type_
-            }
-        };
-
-        for info in self.identifier_info.values() {
-            match info {
-                CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, type_ }) => {
-                    let stretch = self
-                        .stretches
-                        .get(*stretch)
-                        .expect("Stretch not found for the specified index")
-                        .clone();
-                    res.add_stretch(stretch, map_stretch_type(*type_))?;
-                }
-                CircuitIdentifierInfo::Var(CircuitVarInfo { var, type_, .. }) => {
-                    let var = self
-                        .vars
-                        .get(*var)
-                        .expect("Var not found for the specified index")
-                        .clone();
-                    res.add_var(var, map_var_type(*type_))?;
-                }
-            }
-        }
-
-        Ok(res)
     }
 }
 

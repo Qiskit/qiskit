@@ -41,8 +41,9 @@ pub mod util;
 
 pub mod rustworkx_core_vnext;
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PySequence, PyTuple};
+use pyo3::types::{PySequence, PyString, PyTuple};
 use pyo3::PyTypeInfo;
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
@@ -153,6 +154,32 @@ macro_rules! impl_intopyobject_for_copy_pyclass {
             }
         }
     };
+}
+
+/// The mode to copy the classical [Var]s in, for operations that create a new [dag_circuit::DAGCircuit] or
+/// [circuit_data::CircuitData] based on an existing one.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum VarsMode {
+    /// Each [Var] has the same type it had in the input.
+    Alike,
+    /// Each [Var] becomes a "capture".  This is useful when building a [dag_circuit::DAGCircuit] or
+    /// [circuit_data::CircuitData] to compose back onto the original base.
+    Captures,
+    /// Do not copy the [Var] data over.
+    Drop,
+}
+
+impl<'py> FromPyObject<'py> for VarsMode {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        match &*ob.downcast::<PyString>()?.to_string_lossy() {
+            "alike" => Ok(VarsMode::Alike),
+            "captures" => Ok(VarsMode::Captures),
+            "drop" => Ok(VarsMode::Drop),
+            mode => Err(PyValueError::new_err(format!(
+                "unknown vars_mode: '{mode}'"
+            ))),
+        }
+    }
 }
 
 #[inline]
