@@ -63,6 +63,9 @@ class ExprVisitor(typing.Generic[_T_co]):
     def visit_index(self, node: expr.Index, /) -> _T_co:  # pragma: no cover
         return self.visit_generic(node)
 
+    def visit_range(self, node: expr.Range, /) -> _T_co:  # pragma: no cover
+        return self.visit_generic(node)
+
 
 class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
     # We don't want docstrings for the inherited visitor methods, which are self-explanatory and
@@ -96,6 +99,12 @@ class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
         yield from node.target.accept(self)
         yield from node.index.accept(self)
 
+    def visit_range(self, node, /):
+        yield from node.start.accept(self)
+        yield from node.stop.accept(self)
+        if node.step is not None:
+            yield from node.step.accept(self)
+
 
 class _IdentWalkerImpl(ExprVisitor[typing.Iterable[typing.Union[expr.Var, expr.Stretch]]]):
     __slots__ = ()
@@ -122,6 +131,12 @@ class _IdentWalkerImpl(ExprVisitor[typing.Iterable[typing.Union[expr.Var, expr.S
     def visit_index(self, node, /):
         yield from node.target.accept(self)
         yield from node.index.accept(self)
+
+    def visit_range(self, node, /):
+        yield from node.start.accept(self)
+        yield from node.stop.accept(self)
+        if node.step is not None:
+            yield from node.step.accept(self)
 
 
 _VAR_WALKER = _VarWalkerImpl()
