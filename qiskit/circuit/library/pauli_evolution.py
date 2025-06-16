@@ -124,7 +124,7 @@ class PauliEvolutionGate(Gate):
 
         if isinstance(operator, list):
             if len(operator) == 0:
-                raise ValueError("Operator cannot be represented using an empty list.")
+                raise ValueError("The argument 'operator' cannot be an empty list.")
             num_qubits = operator[0].num_qubits
             for op in operator[1:]:
                 if op.num_qubits != num_qubits:
