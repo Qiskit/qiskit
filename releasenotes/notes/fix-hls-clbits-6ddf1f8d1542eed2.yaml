@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed a bug in the :class:`.HighLevelSynthesis` pass when unrolling nested/custom :class:`.Instruction objects. If the
+    Fixed a bug in the :class:`.HighLevelSynthesis` pass when unrolling nested/custom :class:`.Instruction` objects. If the
     :class:`.QuantumCircuit` returned by :attr:`.Instruction.definition` of a custom object contained any :class:`.Clbit`
     objects, these classical bits would incorrectly use the internal index inside the  :attr:`.Instruction.definition`
     :class:`.QuantumCircuit` instead of mapping them to the corresponding index in the outer :class:`.QuantumCircuit`.
