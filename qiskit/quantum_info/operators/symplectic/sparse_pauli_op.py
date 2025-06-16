@@ -1152,6 +1152,10 @@ class SparsePauliOp(LinearOp):
         Returns:
             A copy of the operator with bound parameters, if ``inplace`` is ``False``, otherwise
             ``None``.
+
+        Notes:
+            When all parameters have been bound, the coefficients array will
+            automatically be converted to a ``complex`` dtype.
         """
         if inplace:
             bound = self
@@ -1176,6 +1180,9 @@ class SparsePauliOp(LinearOp):
                 if len(coeff.parameters) == 0:
                     coeff = complex(coeff)
                 bound.coeffs[i] = coeff
+
+        if bound.coeffs.dtype == object and not any(isinstance(c, ParameterExpression) for c in bound.coeffs):
+            bound._coeffs = bound.coeffs.astype(complex)
 
         return None if inplace else bound
 
