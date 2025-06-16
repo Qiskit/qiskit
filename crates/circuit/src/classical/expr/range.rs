@@ -44,7 +44,7 @@ impl<'py> FromPyObject<'py> for Range {
 }
 
 /// Helper function to convert Python values to Expr::Value
-fn py_value_to_expr(py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
+fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
     if let Ok(raw) = value.extract::<i64>() {
         Ok(Value::Uint { 
             raw: raw as u64, 
@@ -156,27 +156,33 @@ impl PyRange {
     }
 
     fn __str__(&self, py: Python) -> PyResult<String> {
-        let start = self.0.start.clone().into_py_any(py)?.bind(py);
-        let stop = self.0.stop.clone().into_py_any(py)?.bind(py);
+        // Create longer-lived bindings for start
+        let start_py = self.0.start.clone().into_py_any(py)?;
+        let start = start_py.bind(py);
+        
+        // Create longer-lived bindings for stop
+        let stop_py = self.0.stop.clone().into_py_any(py)?;
+        let stop = stop_py.bind(py);
         
         // Try to get name attribute from start
         let start_str = match start.getattr("name") {
             Ok(name) => name.extract::<String>()?,
-            Err(_) => start.str()?,
+            Err(_) => start.str()?.to_string(),
         };
         
         // Try to get name attribute from stop
         let stop_str = match stop.getattr("name") {
             Ok(name) => name.extract::<String>()?,
-            Err(_) => stop.str()?,
+            Err(_) => stop.str()?.to_string(),
         };
         
         // Try to get name attribute from step if it exists
         let step_str = if let Some(step) = &self.0.step {
-            let step = step.clone().into_py_any(py)?.bind(py);
+            let step_py = step.clone().into_py_any(py)?;
+            let step = step_py.bind(py);
             match step.getattr("name") {
                 Ok(name) => format!(", step={}", name.extract::<String>()?),
-                Err(_) => format!(", step={}", step.str()?),
+                Err(_) => format!(", step={}", step.str()?.to_string()),
             }
         } else {
             String::new()
