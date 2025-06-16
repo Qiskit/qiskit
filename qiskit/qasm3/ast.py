@@ -704,7 +704,7 @@ class ForLoopStatement(Statement):
         indexset: Union[Identifier, IndexSet, Range],
         parameter: Identifier,
         body: ProgramBlock,
-        type: ClassicalType
+        type: ClassicalType,
     ):
         self.indexset = indexset
         self.parameter = parameter

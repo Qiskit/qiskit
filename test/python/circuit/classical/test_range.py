@@ -27,9 +27,9 @@ class TestRange(QiskitTestCase):
         start = expr.lift(5, types.Uint(8))
         stop = expr.lift(10, types.Uint(8))
         step = expr.lift(2, types.Uint(8))
-        
+
         range_expr = expr.Range(start, stop, step)
-        
+
         self.assertEqual(range_expr.start, start)
         self.assertEqual(range_expr.stop, stop)
         self.assertEqual(range_expr.step, step)
@@ -41,9 +41,9 @@ class TestRange(QiskitTestCase):
         start = expr.lift(1.5, types.Float())
         stop = expr.lift(5.0, types.Float())
         step = expr.lift(0.5, types.Float())
-        
+
         range_expr = expr.Range(start, stop, step)
-        
+
         self.assertEqual(range_expr.start, start)
         self.assertEqual(range_expr.stop, stop)
         self.assertEqual(range_expr.step, step)
@@ -54,9 +54,9 @@ class TestRange(QiskitTestCase):
         """Test creating a Range without a step value."""
         start = expr.lift(0, types.Uint(8))
         stop = expr.lift(5, types.Uint(8))
-        
+
         range_expr = expr.Range(start, stop)
-        
+
         self.assertEqual(range_expr.start, start)
         self.assertEqual(range_expr.stop, stop)
         self.assertIsNone(range_expr.step)
@@ -67,22 +67,23 @@ class TestRange(QiskitTestCase):
         """Test that creating a Range with mixed types raises an error."""
         start = expr.lift(5, types.Uint(8))
         stop = expr.lift(10.0, types.Float())
-        
+
         with self.assertRaisesRegex(TypeError, "invalid types for range"):
             expr.Range(start, stop)
 
     def test_range_with_non_constant_values(self):
         """Test creating a Range with non-constant values."""
         from qiskit.circuit import ClassicalRegister
+
         cr = ClassicalRegister(8, "c")
-        
+
         start = expr.lift(cr)
         stop = expr.lift(10, types.Uint(8))
-        
+
         range_expr = expr.Range(start, stop)
-        
+
         self.assertEqual(range_expr.start, start)
         self.assertEqual(range_expr.stop, stop)
         self.assertIsNone(range_expr.step)
         self.assertEqual(range_expr.type, types.Uint(8))
-        self.assertFalse(range_expr.constant) 
+        self.assertFalse(range_expr.constant)
