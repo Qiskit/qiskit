@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed a bug in the :class:`.HighLevelSynthesis` pass where, if the circuit contained high level objects
-    with classical registers, these would get mapped to the relative index in the object instead of the
-    corresponding index in the outer circuit. The classical registers are now correctly mapped to the outer 
-    circuit index.
+    Fixed a bug in the :class:`.HighLevelSynthesis` pass when unrolling nested/custom :class:`.Instruction objects. If the
+    :class:`.QuantumCircuit` returned by :attr:`.Instruction.definition` of a custom object contained any :class:`.Clbit`
+    objects, these classical bits would incorrectly use the internal index inside the  :attr:`.Instruction.definition`
+    :class:`.QuantumCircuit` instead of mapping them to the corresponding index in the outer :class:`.QuantumCircuit`.
