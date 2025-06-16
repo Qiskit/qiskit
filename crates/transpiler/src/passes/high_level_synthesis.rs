@@ -479,11 +479,7 @@ fn run_on_circuitdata(
             .iter()
             .map(|q| input_qubits[q.index()])
             .collect::<Vec<usize>>();
-        let op_clbits = input_circuit
-            .get_cargs(inst.clbits)
-            .iter()
-            .map(|c| c.index())
-            .collect::<Vec<usize>>();
+        let op_clbits = input_circuit.get_cargs(inst.clbits);
 
         // Start by handling special operations.
         // In the future, we can also consider other possible optimizations, e.g.:
@@ -638,7 +634,7 @@ fn run_on_circuitdata(
                         .collect();
                     let inst_outer_clbits: Vec<Clbit> = inst_inner_clbits
                         .iter()
-                        .map(|c| Clbit(op_clbits[c.0 as usize] as u32))
+                        .map(|c| op_clbits[c.0 as usize])
                         .collect();
 
                     output_circuit.push_packed_operation(
