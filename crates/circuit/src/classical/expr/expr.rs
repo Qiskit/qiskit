@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var, Range};
+use crate::classical::expr::{Binary, Cast, Index, Range, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::{IntoPyObjectExt, intern};
