@@ -406,8 +406,8 @@ encoding scheme used for symbolic expressions:
 From V16 on, the file header struct is immediately followed by a circuit start table 
 containing the byte offsets of each circuit payload in the file. There are ``num_circuits``
 entries in the circuit start table, each of which is of type ``uint64_t``. In all previous 
-versions, the file header is immediately followed by the circuit payloads (do not have a 
-circuit start table).
+versions, the file header is immediately followed by the circuit payloads in sequence
+without any padding in-between.
 
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
