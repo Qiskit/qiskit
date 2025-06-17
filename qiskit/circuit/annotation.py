@@ -89,8 +89,8 @@ used to pass serializers.
 Examples
 ========
 
-A toy block-collection transpiler pass
---------------------------------------
+A block-collection transpiler pass
+----------------------------------
 
 A principal goal of the annotation framework is to allow custom analyses and commands to be stored
 on circuits in an instruction-local manner, either by the user on entry to the compiler, or for one
