@@ -1,0 +1,6 @@
+---
+features_transpiler:
+  - |
+    A new method :meth:`.DAGCircuit.make_physical` is provided, which efficiently replaces the
+    qubits in the :class:`.DAGCircuit` with the canonical physical-qubit register, potentially
+    including expansion.

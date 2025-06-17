@@ -25,11 +25,9 @@ pub use qubit_properties::QubitProperties;
 use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
-
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
-
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
@@ -37,10 +35,13 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
+use rustworkx_core::petgraph::prelude::*;
+use smallvec::SmallVec;
+use thiserror::Error;
+
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
 
 use qiskit_circuit::PhysicalQubit;
 
@@ -1387,6 +1388,45 @@ impl Target {
         false
     }
 
+    /// Get a directionless coupling-graph representation of the target connectivity.
+    ///
+    /// This only makes sense for targets without all-to-all connectivity, and that do not have any
+    /// interactions that are more than 2q.  In either of these cases, the relevant error state is
+    /// returned.
+    ///
+    /// Since information about the actual instructions is erased, it does not make sense to attempt
+    /// to preserve directionality.
+    pub fn coupling_graph(&self) -> Result<Graph<(), (), Undirected>, TargetCouplingError> {
+        let Some(num_qubits) = self.num_qubits else {
+            // Actually, this mostly means that nothing has set it yet, so there's no explicit
+            // number given, and the only possible operations are all-to-all.  It doesn't matter a
+            // lot, though, because `None` mostly just means that nothing has initialised it, so
+            // construction of the object isn't complete.
+            return Err(TargetCouplingError::AllToAll);
+        };
+        let num_qubits = num_qubits as usize;
+        let mut coupling = Graph::with_capacity(num_qubits, num_qubits);
+        for _ in 0..num_qubits {
+            coupling.add_node(());
+        }
+        let Some(qargs) = self.qargs() else {
+            return Err(TargetCouplingError::AllToAll);
+        };
+        for qargs in qargs {
+            let Qargs::Concrete(qargs) = qargs else {
+                return Err(TargetCouplingError::AllToAll);
+            };
+            match qargs.as_slice() {
+                &[] | &[_] => (),
+                &[a, b] => {
+                    coupling.update_edge(NodeIndex::new(a.index()), NodeIndex::new(b.index()), ());
+                }
+                _ => return Err(TargetCouplingError::MultiQ),
+            }
+        }
+        Ok(coupling)
+    }
+
     // IndexMap methods
 
     /// Retreive all the gate names in the Target
@@ -1445,6 +1485,14 @@ impl Default for Target {
             non_global_basis: None,
         }
     }
+}
+
+#[derive(Error, Debug)]
+pub enum TargetCouplingError {
+    #[error("target contains short-hand all-to-all connectivity")]
+    AllToAll,
+    #[error("target contains multi-qubit operations")]
+    MultiQ,
 }
 
 // For instruction_supported
