@@ -1,5 +1,5 @@
 ---
-features_transpiler:
+features_c:
   - |
     Extended the C API to support creation and interaction with of a :class:`~.Target`
     instance.

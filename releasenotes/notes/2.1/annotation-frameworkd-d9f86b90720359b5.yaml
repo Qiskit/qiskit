@@ -37,7 +37,7 @@ features_circuits:
 
 features_qpy:
   - |
-    QPY version 15 is released, including support for the new :class:`.Annotation` objects, with
+    Added a new QPY format version 15 which includes support for the new :class:`.Annotation` objects, with
     support from external serializers and deserializers.  The format allows such serializers to be
     stateful, and safe places in the binary format are allocated for the custom state objects and
     custom annotation representations.
@@ -47,6 +47,11 @@ features_qpy:
     handle :class:`.Annotation` subclasses.  These must be supplied by the user, similar to
     ``metadata_serializer``, as in general, Qiskit cannot know about all possible externally-defined
     :class:`.Annotation` objects.
+upgrade_qpy:
+  - |
+    The default QPY version emitted by :func:`.qpy.dump` has been changed to the latest QPY version 15.
+    If you need to generate an older format version for some reason you can use the ``version`` keyword
+    argument on :func:`.qpy.dump` to specify an older version to generate.
 
 features_qasm:
   - |

@@ -1,7 +1,10 @@
 ---
-features:
+features_synthesis:
   - |
-    Improved synthesis of multi-controlled :class:`.CZGate` gates.
+    The synthesis of multi-controlled :class:`.CZGate` gates has been improved to reduce
+    the synthesized gate count, in some cases as much as 99% reduction is
+    possible. This was accomplished by leveraging the improved synthesis around the
+    :class:`.MCXGate` with controlled :class:`.CZGate` synthesis too.
   - |
     Improved the default plugin for synthesizing :class:`~.AnnotatedOperation` objects.
     The improvement is especially useful when creating and transpiling controlled circuits

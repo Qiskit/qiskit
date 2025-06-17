@@ -1,4 +1,4 @@
 features_circuits:
   - |
-    Added :meth:`.QuantumCircuit.has_control_flow_op` to check if a circuit
-    contains any control flow operations.
+    Added a new :class:`.QuantumCircuit` method: :meth:`.QuantumCircuit.has_control_flow_op` to
+    check if a :class:`.QuantumCircuit` object contains any control flow operations.

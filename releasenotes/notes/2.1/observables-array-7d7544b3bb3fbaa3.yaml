@@ -1,7 +1,14 @@
 ---
-features:
+features_primitives:
   - |
-    Estimator PUBs can now be defined using :class:`.SparseObservable` objects, in addition to
-    the existing options of `str`, :class:`~qiskit.quantum_info.Pauli`, :class:`.SparsePauliOp`, and ``Mapping[Union[str, Pauli], float]``.
-    However, projective observables are not yet supported when executing circuits. Projective
-    observables are `0, 1, +, -, r, l`. Currently only Paulis are supported: `I, X, Y, Z`.
+    Estimator PUBs used as the input to :meth:`.BaseEstimatorV2.run` can now be
+    defined using :class:`.SparseObservable` objects for the observable component of the PUB.
+    This is in addition to the existing supported types of: ``str``,
+    :class:`~qiskit.quantum_info.Pauli`, :class:`.SparsePauliOp`, and
+    a mapping of ``str`` or :class`~qiskit.quantum_info.Pauli` to ``float`` values.
+    However, if the :class:`.SparseObservable` contains
+    projectors, support for handling that depends on the primitive implementation. As of this release the implementations
+    in Qiskit (:class:`.StatevectorEstimator` and :class:`.BackendEstimatorV2`), ``qiskit-ibm-runtime``
+    (:class:`qiskit_ibm_runtime.EstimatorV2`), and Qiskit Aer's
+    (:class:`qiskit_aer.primitives.EstimatorV2`) primitive implementations do no support projective observables yet.
+    Projective observables are those that contain the terms: ``0``, ``1``, ``+``, ``-``, ``r``, or ``l``.

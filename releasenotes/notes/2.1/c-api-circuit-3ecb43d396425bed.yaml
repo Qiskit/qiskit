@@ -1,5 +1,48 @@
 ---
-features_circuits:
+features_c:
   - |
-    The C API for Qiskit has been extended with support for building and
-    interacting with quantum circuits.
+    The :ref:`C_API` now supports building and interacting with Quantum
+    Circuits. The circuits C API centers around the :cpp:class:`QkCircuit`
+    opaque type that represents the circuit. The :cpp:class:`QkCircuit` type
+    enables buildign a circuit with any circuit element defined natively
+    in Qiskit's internal Rust data model for :class:`.QuantumCircuit`. This
+    currently includes :ref:`Standard gates <standard-gates>`,
+    :class:`.Measure`, :class:`.Delay`, :class:`.Reset`, :class:`.Barrier`,
+    and :class:`.UnitaryGate`. The capabilities of the circuits C API will
+    expand in future release as more of the Qiskit data model is added
+    natively to the internal Rust data model enabling it to be used in the C
+    API.
+
+    For example, you can use the C API to build a 1000 qubit GHZ state:
+
+    .. code-block:: c
+
+        #include <qiskit.h>
+
+        int main() {
+            // Create an empty circuit with 1000 qubits and 1000 clbits
+            QkCircuit *qc = qk_circuit_new(1000, 1000);
+
+            // Add a Hadamard Gate on Qubit 0
+            uint32_t one_qubit[1] = {0,};
+            qk_circuit_gate(qc, QkGate_H, one_qubit, NULL); // The NULL pointer is for the parameter array.
+                                                            // Since Hadamard doesn't have parameters it
+                                                            // is never accessed.
+
+            // Add the CX Gates:
+            uint32_t qubits[2] = {0, 0};
+            uint32_t num_qubits = qk_circuit_num_qubits(qc);
+            for (int i = 1; i<num_qubits; i++) {
+                qubits[1] = i;
+                qk_circuit_gate(qc, QkGate_CX, qubits, NULL);
+            }
+
+            // Add the measurements:
+            uint32_t num_clbits = qk_circuit_num_clbits(qc);
+
+            for (uint32_t i = 0; i<num_clbits; i++) {
+                qk_circuit_measure(qc, i, i);
+            }
+            qk_circuit_free(qc);
+            return 0;
+        }

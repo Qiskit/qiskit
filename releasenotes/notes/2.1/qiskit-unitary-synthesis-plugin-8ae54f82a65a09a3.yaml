@@ -15,7 +15,10 @@ features_transpiler:
     * min_qubits: the minimum number of qubits to consider (the default value is 1).
     * max_qubits: the maximum number of qubits to consider (the default value is 3).
 
-    For example::
+    For example:
+
+    .. plot::
+      :include-source:
 
       import math
 
@@ -45,6 +48,7 @@ features_transpiler:
       qc.append(un2, [0, 2])
 
       transpiled = UnitarySynthesis(method="clifford")(qc)
+      transpiled.draw("mpl")
 
     Executing the code above re-synthesizes the first unitary gate into
     Clifford gates, while the second gate remains unchanged.
