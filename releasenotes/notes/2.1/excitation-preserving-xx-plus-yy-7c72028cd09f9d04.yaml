@@ -1,6 +1,9 @@
 ---
 upgrade_circuits:
   - |
-    :func:`~.circuit.library.excitation_preserving` and :class:`~.circuit.library.ExcitationPreserving` now use a
-    single :class:`~.circuit.library.XXPlusYYGate` where before it used an :class:`~.circuit.library.RXXGate`
-    followed by an :class:`~.circuit.library.RYYGate`.
+    The circuit returned by the :func:`.excitation_preserving` function
+    and :class:`.ExcitationPreserving` class now are built using a single
+    :class:`.XXPlusYYGate`. This is a change from previous releases that
+    used an :class:`.RXXGate` followed by an :class:`.RYYGate`. This new
+    circuit construction is equivalent but uses fewer gates that are
+    all excitation preserving by definition simpler.

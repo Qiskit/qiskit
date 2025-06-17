@@ -28,4 +28,7 @@ upgrade:
     deserializing those formats. The dependency on symengine for :func:`.qpy.load` was made
     explicitly optional in 2.0.0, but if you were previously relying on symengine getting
     installed by default for this functionality you will now need to manually install it
-    to load the payload.
+    to load the payload. If you were using :meth:`.ParameterExpression.sympify` to get a
+    symengine expression object from a :class:`.ParameterExpression` that will now return
+    a ``sympy`` expression. If you need to use this with symengine you can leverage
+    ``symengine.sympify`` to convert the ``sympy`` expression to a symengine one.

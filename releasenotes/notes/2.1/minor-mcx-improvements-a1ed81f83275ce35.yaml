@@ -3,10 +3,6 @@ features_synthesis:
   - |
     The synthesis function :func:`.synth_mcx_1_clean_b95` now produces a circuit
     with fewer CX-gates.
-upgrade_synthesis:
-  - |
-    The synthesis function :func:`.synth_mcx_1_clean_b95` now produces a circuit
-    with fewer layers of wrappings.
 fixes:
   - |
     When synthesizing an :class:`.MCXGate` gate with 3 controls, the synthesis

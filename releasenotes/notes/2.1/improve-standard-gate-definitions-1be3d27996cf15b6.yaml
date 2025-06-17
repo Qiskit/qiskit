@@ -1,16 +1,19 @@
 ---
 upgrade_circuits:
   - |
-    The definitions of certain standard gates have been updated
-    according to the following principles:
+    The :attr:`~.Gate.definition` atributes of several :ref:`standard gates <standard-gates>`
+    have been updated according to the following principles:
 
     * When available, a definition using Clifford gates is preferred over
-      one that includes non-Clifford gates.
+      definitions that includes non-Clifford gates.
     * When available, a definition using Clifford+T gates is preferred over
-      one that includes :class:`.UGate`.
+      one that uses a :class:`.UGate`.
     * The use of :class:`.PhaseGate` is preferred over :class:`.U1Gate`.
     * The use of :class:`.UGate` is preferred over :class:`.`U2Gate` and :class:`.`U3Gate`.
 
     Crucially, the following invariant still holds: by recursively expanding
     gate definitions, any gate can be ultimately expressed using only the
-    ``["cx", "u"]`` basis.
+    ``["cx", "u"]`` basis. The definitions of all the standard gates are
+    all equivalent so no semantics behind the gates change, just the exact
+    circuit construction returned for some gates is no longer exactly the
+    same. This change was necessary to support Clifford+T transpilation.
