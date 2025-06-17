@@ -148,6 +148,16 @@ pub enum UnaryOp {
     Default,
 }
 
+impl UnaryOp {
+    pub fn binding_power(&self) -> (u8, u8) {
+        match self {
+            UnaryOp::LogicNot => (0, 22),
+            UnaryOp::BitNot => (0, 22),
+            UnaryOp::Default => (0, 0),
+        }
+    }
+}
+
 impl Display for UnaryOp {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let op_str = match self {
@@ -181,6 +191,26 @@ pub enum BinaryOp {
     NotEqual,
     ShiftLeft,
     ShiftRight,
+}
+
+impl BinaryOp {
+    pub fn binding_power(&self) -> (u8, u8) {
+        match self {
+            BinaryOp::ShiftLeft => (15, 16),
+            BinaryOp::ShiftRight => (15, 16),
+            BinaryOp::Less => (13, 14),
+            BinaryOp::LessEqual => (13, 14),
+            BinaryOp::Greater => (13, 14),
+            BinaryOp::GreaterEqual => (13, 14),
+            BinaryOp::Equal => (11, 12),
+            BinaryOp::NotEqual => (11, 12),
+            BinaryOp::BitAnd => (9, 10),
+            BinaryOp::BitXor => (7, 8),
+            BinaryOp::BitOr => (5, 6),
+            BinaryOp::LogicAnd => (3, 4),
+            BinaryOp::LogicOr => (1, 2),
+        }
+    }
 }
 
 impl Display for BinaryOp {
@@ -422,8 +452,3 @@ pub struct Break {}
 #[derive(Debug, Clone)]
 pub struct Continue {}
 
-#[derive(Debug, Hash, Eq, PartialEq)]
-pub enum OP<'a> {
-    UnaryOp(&'a UnaryOp),
-    BinaryOp(&'a BinaryOp),
-}

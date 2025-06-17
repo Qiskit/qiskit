@@ -15,26 +15,15 @@ use hashbrown::HashMap;
 use std::fmt::Write;
 
 use crate::ast::{
-    Alias, Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast,
+    Alias, Assignment, Barrier, Binary, BitArray, BooleanLiteral, Cast,
     ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float,
     GateCall, Header, Identifier, Include, Index, IndexSet, Int,
     IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
     QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature,
     QuantumInstruction, QuantumMeasurementAssignment, Range, Reset, Statement,
-    Uint, Unary, UnaryOp, Version, OP,
+    Uint, Unary, Version,
 };
 
-#[derive(Debug)]
-struct BindingPower {
-    left: u8,
-    right: u8,
-}
-
-impl BindingPower {
-    fn new(left: u8, right: u8) -> Self {
-        BindingPower { left, right }
-    }
-}
 
 pub struct BasicPrinter<'a> {
     stream: &'a mut String,
@@ -44,7 +33,6 @@ pub struct BasicPrinter<'a> {
     constant_lookup: HashMap<Constant, &'static str>,
     modifier_lookup: HashMap<QuantumGateModifierName, &'static str>,
     float_width_lookup: HashMap<Float, String>,
-    binding_power: HashMap<OP<'a>, BindingPower>,
 }
 
 impl<'a> BasicPrinter<'a> {
@@ -62,35 +50,6 @@ impl<'a> BasicPrinter<'a> {
 
         let float_width_lookup = Float::iter().map(|t| (t, t.to_string())).collect();
 
-        let mut binding_power = HashMap::new();
-        binding_power.insert(OP::UnaryOp(&UnaryOp::LogicNot), BindingPower::new(0, 22));
-        binding_power.insert(OP::UnaryOp(&UnaryOp::BitNot), BindingPower::new(0, 22));
-        binding_power.insert(
-            OP::BinaryOp(&BinaryOp::ShiftLeft),
-            BindingPower::new(15, 16),
-        );
-        binding_power.insert(
-            OP::BinaryOp(&BinaryOp::ShiftRight),
-            BindingPower::new(15, 16),
-        );
-        binding_power.insert(OP::BinaryOp(&BinaryOp::Less), BindingPower::new(13, 14));
-        binding_power.insert(
-            OP::BinaryOp(&BinaryOp::LessEqual),
-            BindingPower::new(13, 14),
-        );
-        binding_power.insert(OP::BinaryOp(&BinaryOp::Greater), BindingPower::new(13, 14));
-        binding_power.insert(
-            OP::BinaryOp(&BinaryOp::GreaterEqual),
-            BindingPower::new(13, 14),
-        );
-        binding_power.insert(OP::BinaryOp(&BinaryOp::Equal), BindingPower::new(11, 12));
-        binding_power.insert(OP::BinaryOp(&BinaryOp::NotEqual), BindingPower::new(11, 12));
-        binding_power.insert(OP::BinaryOp(&BinaryOp::BitAnd), BindingPower::new(9, 10));
-        binding_power.insert(OP::BinaryOp(&BinaryOp::BitXor), BindingPower::new(7, 8));
-        binding_power.insert(OP::BinaryOp(&BinaryOp::BitOr), BindingPower::new(5, 6));
-        binding_power.insert(OP::BinaryOp(&BinaryOp::LogicAnd), BindingPower::new(3, 4));
-        binding_power.insert(OP::BinaryOp(&BinaryOp::LogicOr), BindingPower::new(1, 2));
-
         BasicPrinter {
             stream,
             indent,
@@ -99,7 +58,6 @@ impl<'a> BasicPrinter<'a> {
             constant_lookup,
             modifier_lookup,
             float_width_lookup,
-            binding_power,
         }
     }
 
@@ -251,11 +209,11 @@ impl<'a> BasicPrinter<'a> {
 
     fn visit_unary(&mut self, expression: &Unary) {
         write!(self.stream, "{}", expression.op).unwrap();
-        let op = OP::UnaryOp(&expression.op);
+        let (left, right) = expression.op.binding_power();
         if matches!(
             *expression.operand,
             Expression::Unary(_) | Expression::Binary(_)
-        ) && self.binding_power[&op].left < self.binding_power[&op].right
+        ) && left < right
         {
             write!(self.stream, "(").unwrap();
             self.visit_expression(&expression.operand);
@@ -266,11 +224,11 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_binary(&mut self, expression: &Binary) {
-        let op = OP::BinaryOp(&expression.op);
+        let (left, right) = expression.op.binding_power();
         if matches!(
             *expression.left,
             Expression::Unary(_) | Expression::Binary(_)
-        ) && self.binding_power[&op].left < self.binding_power[&op].right
+        ) && left < right
         {
             write!(self.stream, "(").unwrap();
             self.visit_expression(&expression.left);
@@ -282,7 +240,7 @@ impl<'a> BasicPrinter<'a> {
         if matches!(
             *expression.right,
             Expression::Unary(_) | Expression::Binary(_)
-        ) && self.binding_power[&op].left < self.binding_power[&op].right
+        ) && left < right
         {
             write!(self.stream, "(").unwrap();
             self.visit_expression(&expression.right);
