@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed a bug in the :class:`.ElidePermutation` transpiler pass, where
+    Fixed a bug in the :class:`.ElidePermutations` transpiler pass, where
     the qubit mapping was not updated correctly in the presence of
     :class:`.PermutationGate`\s, leading to incorrect circuits and
     updates to the pass manager's property set.
