@@ -441,7 +441,7 @@ Version 16
 
 Version 16 adds a circuit start table to the QPY file format. It serves as an index of the
 byte offsets of each circuit payload in the file. The motivation for this change is to
-enable a more efficient loading of circuits using multi-threading in a future rust
+enable a more efficient loading of circuits using multi-threading in a future Rust
 implementation of the QPY deserializer.
 
 .. _qpy_version_15:
