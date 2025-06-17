@@ -1360,17 +1360,21 @@ impl DAGCircuit {
     ///         qubits is unchanged.
     #[pyo3(name = "make_physical", signature = (num_qubits=None))]
     pub fn py_make_physical(&mut self, num_qubits: Option<u32>) -> PyResult<()> {
-        let ancillas = match num_qubits {
-            Some(total) => total.checked_sub(self.num_qubits() as u32).ok_or_else(|| {
-                PyValueError::new_err(format!(
-                    "cannot have fewer physical qubits ({}) than virtual ({})",
-                    total,
-                    self.num_qubits()
-                ))
-            })?,
-            None => 0,
+        //let num_qubits = num_qubits.map(|x| x as usize).unwrap_or(self.num_qubits());
+        let num_qubits = match num_qubits {
+            Some(num_qubits) => {
+                if (num_qubits as usize) < self.num_qubits() {
+                    return Err(PyValueError::new_err(format!(
+                        "cannot have fewer physical qubits ({}) than virtual ({})",
+                        num_qubits,
+                        self.num_qubits()
+                    )));
+                }
+                num_qubits as usize
+            }
+            None => self.num_qubits(),
         };
-        self.make_physical(ancillas as usize);
+        self.make_physical(num_qubits);
         Ok(())
     }
 
@@ -4636,17 +4640,21 @@ impl DAGCircuit {
     /// The qubit indices all stay the same; effectively, this is the application of the "trivial"
     /// layout.  If the incoming DAG is supposed to be considered physical, this method can be used
     /// to ensure it is in the canonical physical form.
-    pub fn make_physical(&mut self, ancillas: usize) {
-        let virtuals = self.num_qubits() as u32;
+    ///
+    /// # Panics
+    ///
+    /// If `num_qubits` is less than the number of qubits in the DAG already.
+    pub fn make_physical(&mut self, num_qubits: usize) {
+        assert!(
+            num_qubits >= self.num_qubits(),
+            "number of qubits {num_qubits} too small for DAG"
+        );
+        let num_virtuals = self.num_qubits() as u32;
+        let num_qubits: u32 = num_qubits
+            .try_into()
+            .expect("number of qubits must fit in a u32");
         // The strategy here is just to modify the qubit and quantum register objects entirely
         // inplace; we maintain all relative indices, so we don't need to modify any interner keys.
-        let num_qubits = virtuals
-            .checked_add(
-                ancillas
-                    .try_into()
-                    .expect("number of ancillas should fit in a u32"),
-            )
-            .expect("total number of qubits should fit in a u32");
         let register = QuantumRegister::new_owning("q", num_qubits);
         let mut registry = ObjectRegistry::with_capacity(num_qubits as usize);
         let mut locator = BitLocator::with_capacity(num_qubits as usize);
@@ -4663,7 +4671,7 @@ impl DAGCircuit {
         register_data
             .add_register(register, false)
             .expect("infallible when 'strict=false'");
-        for qubit in virtuals..num_qubits {
+        for qubit in num_virtuals..num_qubits {
             self.add_wire(Wire::Qubit(Qubit(qubit)))
                 .expect("this qubit has the next sequential index");
         }
