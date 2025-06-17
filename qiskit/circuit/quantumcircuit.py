@@ -3429,9 +3429,11 @@ class QuantumCircuit:
     def add_register(self, *regs: Register | int | Sequence[Bit]) -> None:
         """Add registers.
 
-        Raises:
-            UserWarning: if the quantum circuit has an existing layout attribute, adding a QuantumRegister
-            will only increase the number of qubits. It will not update the layout.
+        .. warning::
+
+            UserWarning: if the quantum circuit has an existing layout attribute, adding a
+            QuantumRegister will only increase the number of qubits. It will not update the
+            layout.
         """
         if not regs:
             return
@@ -3494,10 +3496,11 @@ class QuantumCircuit:
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit.
 
-        Raises:
-            UserWarning: if the quantum circuit has an existing layout attribute, adding a Qubit
-            will only increase the number of qubits. It will not update the layout.
+        .. warning::
 
+            UserWarning: if the quantum circuit has an existing layout attribute,
+            adding a Qubit will only increase the number of qubits. It will not update
+            the layout.
         """
         duplicate_bits = {
             bit for bit in bits if bit in self._qubit_indices or bit in self._clbit_indices

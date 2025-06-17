@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test operations on circuit.data."""
+import warnings
 import pickle
 import ddt
 
@@ -30,7 +31,6 @@ from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit import transpile
-import warnings
 
 
 @ddt.ddt
