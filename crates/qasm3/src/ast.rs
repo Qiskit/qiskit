@@ -21,7 +21,6 @@ pub enum Node<'a> {
     Expression(&'a Expression),
     ProgramBlock(&'a ProgramBlock),
     QuantumBlock(&'a QuantumBlock),
-    QuantumMeasurement(&'a QuantumMeasurement),
     QuantumGateModifier(&'a QuantumGateModifier),
     QuantumGateSignature(&'a QuantumGateSignature),
     ClassicalType(&'a ClassicalType),
@@ -293,11 +292,6 @@ pub struct QuantumBlock {
 }
 
 #[derive(Debug, Clone)]
-pub struct QuantumMeasurement {
-    pub identifier_list: Vec<Expression>,
-}
-
-#[derive(Debug, Clone)]
 pub struct QuantumGateModifier {
     pub modifier: QuantumGateModifierName,
     pub argument: Option<Expression>,
@@ -393,8 +387,8 @@ pub struct Delay {
 
 #[derive(Debug, Clone)]
 pub struct QuantumMeasurementAssignment {
-    pub identifier: Expression,
-    pub quantum_measurement: QuantumMeasurement,
+    pub target: Expression,  // classical bit to store result
+    pub qubits: Vec<Expression>,  // qubits to measure
 }
 
 #[derive(Debug, Clone)]

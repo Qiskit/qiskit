@@ -15,7 +15,7 @@ use crate::ast::{
     Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
     IOModifier, Identifier, Include, Index, IndexSet, IntegerLiteral, Node,
     Parameter, Program, QuantumBlock, QuantumDeclaration, QuantumGateDefinition,
-    QuantumGateSignature, QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment,
+    QuantumGateSignature, QuantumInstruction, QuantumMeasurementAssignment,
     Reset, Statement, Version,
 };
 use std::io::Write;
@@ -221,20 +221,20 @@ impl BuildScope {
         let mut bit_map: HashMap<BitType, BitType> = HashMap::new();
         for q in qubits.iter() {
             if let Some(qubit_index) = circuit_data.qubits().find(q) {
-                bit_map.insert(
+            bit_map.insert(
                     BitType::Qubit(qubit_index),
                     BitType::Qubit(qubit_index),
-                );
-            }
+            );
+        }
         }
 
         for c in clbits.iter() {
             if let Some(clbit_index) = circuit_data.clbits().find(c) {
-                bit_map.insert(
+            bit_map.insert(
                     BitType::Clbit(clbit_index),
                     BitType::Clbit(clbit_index),
-                );
-            }
+            );
+        }
         }
         Self {
             circuit_data: circuit_data.clone(),
@@ -1159,9 +1159,6 @@ impl<'a> QASM3Builder {
             let id = self.lookup_bit(&BitType::Qubit(*q))?;
             qubits.push(id.to_owned());
         }
-        let measurement = QuantumMeasurement {
-            identifier_list: qubits,
-        };
 
         let cargs = self
             .circuit_scope
@@ -1171,8 +1168,8 @@ impl<'a> QASM3Builder {
         let id = self.lookup_bit(&BitType::Clbit(cargs[0]))?;
         stmts.push(Statement::QuantumMeasurementAssignment(
             QuantumMeasurementAssignment {
-                identifier: id.to_owned(),
-                quantum_measurement: measurement,
+                target: id.to_owned(),
+                qubits,
             },
         ));
         Ok(())
@@ -1405,7 +1402,7 @@ impl<'a> QASM3Builder {
                 for param in &params_def {
                     let _ = builder.symbol_table.bind(&param.string);
                 }
-                for (i, q) in instruction.qubits().objects().iter().enumerate() {
+                for (i, _q) in instruction.qubits().objects().iter().enumerate() {
                     let name = format!("{}_{}", builder._gate_qubit_prefix, i);
                     let qid = Identifier {
                         string: name.clone(),

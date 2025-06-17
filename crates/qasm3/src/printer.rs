@@ -20,7 +20,7 @@ use crate::ast::{
     GateCall, Header, Identifier, Include, Index, IndexSet, Int,
     IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
     QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature,
-    QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment, Range, Reset, Statement,
+    QuantumInstruction, QuantumMeasurementAssignment, Range, Reset, Statement,
     Uint, Unary, UnaryOp, Version, OP,
 };
 
@@ -112,7 +112,6 @@ impl<'a> BasicPrinter<'a> {
             Node::Expression(node) => self.visit_expression(node),
             Node::ProgramBlock(node) => self.visit_program_block(node),
             Node::QuantumBlock(node) => self.visit_quantum_block(node),
-            Node::QuantumMeasurement(node) => self.visit_quantum_measurement(node),
             Node::QuantumGateModifier(node) => self.visit_quantum_gate_modifier(node),
             Node::QuantumGateSignature(node) => self.visit_quantum_gate_signature(node),
             Node::ClassicalType(node) => self.visit_classical_type(node),
@@ -342,16 +341,6 @@ impl<'a> BasicPrinter<'a> {
         write!(self.stream, "}}").unwrap();
     }
 
-    fn visit_quantum_measurement(&mut self, node: &QuantumMeasurement) {
-        write!(self.stream, "measure ").unwrap();
-        let identifier_vec: Vec<Expression> = node
-            .identifier_list
-            .iter()
-            .cloned()
-            .collect();
-        let identifier_list = &identifier_vec;
-        self.visit_expression_sequence(identifier_list, "", "", ", ");
-    }
 
     fn visit_expression_sequence(
         &mut self,
@@ -550,9 +539,9 @@ impl<'a> BasicPrinter<'a> {
 
     fn visit_quantum_measurement_assignment(&mut self, node: &QuantumMeasurementAssignment) {
         self.start_line();
-        self.visit_expression(&node.identifier);
-        write!(self.stream, " = ").unwrap();
-        self.visit_quantum_measurement(&node.quantum_measurement);
+        self.visit_expression(&node.target);
+        write!(self.stream, " = measure ").unwrap();
+        self.visit_expression_sequence(&node.qubits, "", "", ", ");
         self.end_statement();
     }
 
