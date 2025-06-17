@@ -1360,7 +1360,6 @@ impl DAGCircuit {
     ///         qubits is unchanged.
     #[pyo3(name = "make_physical", signature = (num_qubits=None))]
     pub fn py_make_physical(&mut self, num_qubits: Option<u32>) -> PyResult<()> {
-        //let num_qubits = num_qubits.map(|x| x as usize).unwrap_or(self.num_qubits());
         let num_qubits = match num_qubits {
             Some(num_qubits) => {
                 if (num_qubits as usize) < self.num_qubits() {
