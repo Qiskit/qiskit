@@ -49,6 +49,47 @@ use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VirtualQubit, getenv_use_
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
 
+mod sealed {
+    use super::{RoutingProblem, RoutingResult};
+    use qiskit_circuit::{PhysicalQubit, nlayout::NLayout};
+    use rustworkx_core::petgraph::graph::NodeIndex;
+
+    // The "construction" logic of the analysis is encapsulated to this private module for now,
+    // because it's very tied to how the internals of the Sabre routing algorithm work, and it's
+    // best not to let it proliferate outside the crate for now.  If it becomes useful to add custom
+    // analysis methods to Sabre, we can
+
+    /// Specialisation of how an analysis is updated as new objects are pushed to it.
+    pub trait TrackingAnalysis<'a>: Sized {
+        /// Create the analysis-tracking object.
+        fn begin_tracking(problem: RoutingProblem<'a>, initial_layout: &NLayout) -> Self;
+        /// Push a simple control-flow node into the analysis.
+        ///
+        /// The `initial_swaps` vector can be taken and used in any manner.
+        fn push_simple(
+            &mut self,
+            node: NodeIndex,
+            initial_swaps: Option<&mut Vec<[PhysicalQubit; 2]>>,
+        );
+        /// Push a control-flow operation with the given blocks onto the analysis.
+        ///
+        /// The `initial_swaps` vector can be taken and used in any manner.
+        fn push_control_flow(
+            &mut self,
+            node: NodeIndex,
+            initial_swaps: Option<&mut Vec<[PhysicalQubit; 2]>>,
+            blocks: impl IntoIterator<Item = RoutingResult<Self>>,
+        );
+        /// Set the finalising sequence of swaps in the analysis.
+        fn set_final_swaps(&mut self, final_swaps: Vec<[PhysicalQubit; 2]>);
+    }
+}
+use sealed::TrackingAnalysis;
+pub trait Analysis<'a>: TrackingAnalysis<'a> {
+    /// How many swaps are in this analysis?
+    fn swap_count(&self) -> usize;
+}
+
 /// The number of control-flow blocks to take off the stack.
 ///
 /// This funky struct is just a trick to get the Rust compiler to use the niche optimisation for
@@ -73,7 +114,6 @@ impl From<u32> for ControlFlowBlockCount {
         Self((!val).try_into().expect("cannot store u32::MAX blocks"))
     }
 }
-
 enum RoutedItemKind {
     Simple,
     /// How many blocks out of [RoutingResult::control_flow] we need to take.  This is stored
@@ -94,65 +134,66 @@ impl RoutedItem {
     }
 }
 
-/// The final analysis of the Sabre routing algorithm.
+/// The regular, complete Sabre tracking of swap insertion.
 ///
-/// This represents a total order of instructions to be applied, including swaps, to produce a
-/// circuit that is fully routed.  This structure alone is insufficient; it contains references to a
-/// [SabreDAG], which in turn contains references to a [DAGCircuit], and you need the initial
-/// [NLayout] object to know where the virtual qubits in the input [DAGCircuit] should be mapped to
-/// at the start of the circuit.  The [RoutingResult] object wraps up this object with the other
-/// necessary components.
-struct Order<'a> {
+/// This can be used to completely rebuild a routed circuit (when combined with the rest of a
+/// [RoutingResult]).
+pub struct FullRouting<'a> {
+    problem: RoutingProblem<'a>,
     order: Vec<RoutedItem>,
     final_swaps: Vec<[PhysicalQubit; 2]>,
-    control_flow: Vec<RoutingResult<'a>>,
+    control_flow: Vec<RoutingResult<FullRouting<'a>>>,
+    pub initial_layout: NLayout,
 }
-impl<'a> Order<'a> {
-    /// Initialize an empty `Order` with suitable capacity for the given problem.
-    #[inline]
-    pub fn for_problem(problem: RoutingProblem<'a>) -> Self {
+impl<'a> TrackingAnalysis<'a> for FullRouting<'a> {
+    fn begin_tracking(problem: RoutingProblem<'a>, initial_layout: &NLayout) -> Self {
         Self {
+            problem,
             order: Vec::with_capacity(problem.sabre.dag.node_count()),
             final_swaps: Vec::new(),
             control_flow: Vec::new(),
+            initial_layout: initial_layout.to_owned(),
         }
     }
-
-    /// Count the number of swaps inserted at the top level (i.e. without recursing into
-    /// control-flow operations).
-    #[inline]
-    pub fn swap_count(&self) -> usize {
+    fn push_simple(
+        &mut self,
+        node: NodeIndex,
+        initial_swaps: Option<&mut Vec<[PhysicalQubit; 2]>>,
+    ) {
+        self.order.push(RoutedItem {
+            node,
+            initial_swaps: initial_swaps.map(|swaps| ::std::mem::take(swaps).into()),
+            kind: RoutedItemKind::Simple,
+        })
+    }
+    fn push_control_flow(
+        &mut self,
+        node: NodeIndex,
+        initial_swaps: Option<&mut Vec<[PhysicalQubit; 2]>>,
+        blocks: impl IntoIterator<Item = RoutingResult<Self>>,
+    ) {
+        let start = self.control_flow.len();
+        self.control_flow.extend(blocks);
+        self.order.push(RoutedItem {
+            node,
+            initial_swaps: initial_swaps.map(|swaps| ::std::mem::take(swaps).into()),
+            kind: RoutedItemKind::ControlFlow(((self.control_flow.len() - start) as u32).into()),
+        });
+    }
+    fn set_final_swaps(&mut self, final_swaps: Vec<[PhysicalQubit; 2]>) {
+        self.final_swaps = final_swaps;
+    }
+}
+impl<'a> Analysis<'a> for FullRouting<'a> {
+    fn swap_count(&self) -> usize {
         self.order
             .iter()
             .map(|item| item.initial_swaps().len())
-            .sum()
+            .sum::<usize>()
+            + self.final_swaps.len()
     }
 }
-
-/// A complete result from the Sabre routing algorithm, including the initial problem and layout
-/// that it searched from.
-///
-/// The [Order] is the calculated result from the analysis (and the [final_layout] field is a
-/// derived quantity that we simply get for free at the end of the algorithm, so store here), and
-/// this struct wraps it up with the problem description and initial layout necessary to fully
-/// interpret it.
-pub struct RoutingResult<'a> {
-    problem: RoutingProblem<'a>,
-    order: Order<'a>,
-    /// The initial layout that the routing algorithm started from.
-    pub initial_layout: NLayout,
-    /// The layout after the routing algorithm had finished.  This can be rederived from [order] and
-    /// [initial_layout], but we get it for free anyway.
-    pub final_layout: NLayout,
-}
-impl RoutingResult<'_> {
-    /// Count the number of swaps inserted at the top level (i.e. without recursing into
-    /// control-flow operations).
-    #[inline]
-    pub fn swap_count(&self) -> usize {
-        self.order.swap_count()
-    }
-
+impl FullRouting<'_> {
     fn num_qubits(&self) -> usize {
         self.initial_layout.num_qubits()
     }
@@ -164,7 +205,7 @@ impl RoutingResult<'_> {
     /// device.  If the device was subset (such as for disjoint handling), use [rebuild_onto] with
     /// suitable mappings back to the full-width [PhysicalQubit] instances instead.
     pub fn rebuild(&self) -> PyResult<DAGCircuit> {
-        let num_swaps = self.order.swap_count();
+        let num_swaps = self.swap_count();
         let dag = self.problem.dag.physical_empty_like_with_capacity(
             self.num_qubits(),
             self.problem.dag.num_ops() + num_swaps,
@@ -219,14 +260,14 @@ impl RoutingResult<'_> {
 
         let mut dag = dag.into_builder();
         let mut layout = self.initial_layout.clone();
-        let mut blocks = self.order.control_flow.iter();
+        let mut blocks = self.control_flow.iter();
         for node in &self.problem.sabre.initial {
             let NodeType::Operation(inst) = &self.problem.dag[*node] else {
                 panic!("Sabre DAG should only contain op nodes");
             };
             apply_op(inst, &layout, &mut dag)?;
         }
-        for item in &self.order.order {
+        for item in &self.order {
             for swap in item.initial_swaps() {
                 apply_swap(swap, &mut layout, &mut dag)?;
             }
@@ -249,7 +290,7 @@ impl RoutingResult<'_> {
                     let mut blocks = blocks
                         .by_ref()
                         .take(num_blocks.get() as usize)
-                        .map(|block| block.rebuild())
+                        .map(|block| block.analysis.rebuild())
                         .collect::<Result<Vec<_>, _>>()?;
                     let explicit = self
                         .problem
@@ -308,15 +349,68 @@ impl RoutingResult<'_> {
                 apply_op(inst, &layout, &mut dag)?;
             }
         }
-        for swap in &self.order.final_swaps {
+        for swap in &self.final_swaps {
             apply_swap(swap, &mut layout, &mut dag)?;
         }
-        debug_assert_eq!(layout, self.final_layout);
         Ok(dag.build())
     }
 }
 
-/// A description of the QPU that we're routing to.
+/// Simple Sabre analysis of the total swap count that would have been inserted.
+///
+/// This does not store enough information to do an entire DAG rebuild afterwards.
+pub struct SwapCount {
+    routing: usize,
+    finals: usize,
+}
+impl<'a> TrackingAnalysis<'a> for SwapCount {
+    fn begin_tracking(_problem: RoutingProblem<'a>, _layout: &NLayout) -> Self {
+        Self {
+            routing: 0,
+            finals: 0,
+        }
+    }
+    fn push_simple(
+        &mut self,
+        _node: NodeIndex,
+        initial_swaps: Option<&mut Vec<[PhysicalQubit; 2]>>,
+    ) {
+        if let Some(initial_swaps) = initial_swaps {
+            self.routing += initial_swaps.len();
+            initial_swaps.clear();
+        }
+    }
+    fn push_control_flow(
+        &mut self,
+        _node: NodeIndex,
+        initial_swaps: Option<&mut Vec<[PhysicalQubit; 2]>>,
+        _blocks: impl IntoIterator<Item = RoutingResult<Self>>,
+    ) {
+        if let Some(initial_swaps) = initial_swaps {
+            self.routing += initial_swaps.len();
+            initial_swaps.clear();
+        }
+    }
+    fn set_final_swaps(&mut self, final_swaps: Vec<[PhysicalQubit; 2]>) {
+        self.finals = final_swaps.len()
+    }
+}
+impl Analysis<'_> for SwapCount {
+    fn swap_count(&self) -> usize {
+        self.routing + self.finals
+    }
+}
+
+/// The return value from a routing trial.  The capabilities are largely tied up in the compile-time
+/// selected analysis object.
+///
+/// In particular, if you just need to calculate the swap count that Sabre _would_ insert, then the
+/// analysis can be [SwapCount].  If you need to completely route a [DAGCircuit], use [FullRouting].
+pub struct RoutingResult<A> {
+    pub final_layout: NLayout,
+    pub analysis: A,
+}
+
 #[derive(Clone, Debug)]
 pub struct RoutingTarget {
     pub neighbors: Neighbors,
@@ -435,23 +529,27 @@ impl<'a> RoutingProblem<'a> {
 /// is required because a control-flow operation may need to be recursively routed.
 ///
 /// Returns `Ok` if the node was routed, and `Err` with the unroutable 2q pair if not.
-fn try_route<'a>(
+fn try_route<'a, A: Analysis<'a>>(
     node_id: NodeIndex,
-    initial_swaps: &mut Option<Vec<[PhysicalQubit; 2]>>,
+    initial_swaps: &mut Option<&mut Vec<[PhysicalQubit; 2]>>,
     problem: RoutingProblem<'a>,
-    order: &mut Order<'a>,
+    analysis: &mut A,
     layout: &NLayout,
     seed: u64,
 ) -> Result<(), [VirtualQubit; 2]> {
     let node = &problem.sabre.dag[node_id];
-    let kind = match &node.kind {
-        InteractionKind::Synchronize => RoutedItemKind::Simple,
-        InteractionKind::TwoQ([a, b]) => problem
-            .target
-            .neighbors
-            .contains_edge(layout[*a], layout[*b])
-            .then_some(RoutedItemKind::Simple)
-            .ok_or([*a, *b])?,
+    match &node.kind {
+        InteractionKind::Synchronize => analysis.push_simple(node_id, initial_swaps.take()),
+        InteractionKind::TwoQ([a, b]) => {
+            if !problem
+                .target
+                .neighbors
+                .contains_edge(layout[*a], layout[*b])
+            {
+                return Err([*a, *b]);
+            }
+            analysis.push_simple(node_id, initial_swaps.take());
+        }
         InteractionKind::ControlFlow(blocks) => {
             let dag_node_id = *node
                 .indices
@@ -474,58 +572,58 @@ fn try_route<'a>(
                 let actual = VirtualQubit::new(outer.index() as u32).to_phys(layout);
                 inner_layout.swap_physical(dummy, actual);
             }
-            order.control_flow.extend(blocks.iter().map(|(sabre, dag)| {
-                let problem = RoutingProblem {
-                    sabre,
-                    dag,
-                    ..problem
-                };
-                route_control_flow_block(problem, &inner_layout, seed)
-            }));
-            RoutedItemKind::ControlFlow((blocks.len() as u32).into())
+            analysis.push_control_flow(
+                node_id,
+                initial_swaps.take(),
+                blocks.iter().map(|(sabre, dag)| {
+                    let problem = RoutingProblem {
+                        sabre,
+                        dag,
+                        ..problem
+                    };
+                    route_control_flow_block::<A>(problem, &inner_layout, seed)
+                }),
+            )
         }
-    };
-    order.order.push(RoutedItem {
-        initial_swaps: initial_swaps.take().map(Vec::into_boxed_slice),
-        node: node_id,
-        kind,
-    });
+    }
     Ok(())
 }
 
 /// Inner worker to route a control-flow block.  Since control-flow blocks are routed to
 /// restore the layout at the end of themselves, and the recursive calls spawn their own
 /// tracking states, this does not affect the outer state.
-fn route_control_flow_block<'a>(
+fn route_control_flow_block<'a, A: Analysis<'a>>(
     problem: RoutingProblem<'a>,
     layout: &NLayout,
     seed: u64,
-) -> RoutingResult<'a> {
-    let mut result = swap_map_trial(problem, layout, seed);
+) -> RoutingResult<A> {
+    let mut result = swap_map_trial::<A>(problem, layout, seed);
     // For now, we always append a swap circuit that gets the inner block back to the
     // parent's layout.
-    result.order.final_swaps = token_swapper(
-        &problem.target.neighbors,
-        // Map physical location in the final layout from the inner routing to the current
-        // location in the outer routing.
-        result
-            .final_layout
-            .iter_physical()
-            .map(|(p, v)| (p, v.to_phys(layout)))
-            .collect(),
-        Some(SWAP_EPILOGUE_TRIALS),
-        Some(seed),
-        None,
-    )
-    .unwrap()
-    .into_iter()
-    .map(|(l, r)| {
-        [
-            PhysicalQubit::new(l.index() as u32),
-            PhysicalQubit::new(r.index() as u32),
-        ]
-    })
-    .collect();
+    result.analysis.set_final_swaps(
+        token_swapper(
+            &problem.target.neighbors,
+            // Map physical location in the final layout from the inner routing to the current
+            // location in the outer routing.
+            result
+                .final_layout
+                .iter_physical()
+                .map(|(p, v)| (p, v.to_phys(layout)))
+                .collect(),
+            Some(SWAP_EPILOGUE_TRIALS),
+            Some(seed),
+            None,
+        )
+        .unwrap()
+        .into_iter()
+        .map(|(l, r)| {
+            [
+                PhysicalQubit::new(l.index() as u32),
+                PhysicalQubit::new(r.index() as u32),
+            ]
+        })
+        .collect(),
+    );
     result.final_layout = layout.clone();
     result
 }
@@ -584,8 +682,12 @@ impl State {
     ///
     /// This routes all initially routable instructions, and fully prepares the layer structures for
     /// subsequent delta updating.
-    fn begin(problem: RoutingProblem, layout: NLayout, seed: u64) -> (Self, Order) {
-        let mut order = Order::for_problem(problem);
+    fn begin<'a, A: Analysis<'a>>(
+        problem: RoutingProblem<'a>,
+        layout: NLayout,
+        seed: u64,
+    ) -> (Self, A) {
+        let mut analysis = A::begin_tracking(problem, &layout);
         let num_qubits: u32 = problem.target.num_qubits().try_into().unwrap();
         let num_layers = 1 + problem
             .heuristic
@@ -616,7 +718,7 @@ impl State {
         // Route any available initial gates, to populate the front layer.
         visit.extend(problem.sabre.first_layer.iter().copied());
         while let Some(node) = visit.pop_front() {
-            match try_route(node, &mut None, problem, &mut order, &layout, seed) {
+            match try_route(node, &mut None, problem, &mut analysis, &layout, seed) {
                 Ok(()) => satisfy_successor_edges(
                     node,
                     problem.sabre,
@@ -673,7 +775,7 @@ impl State {
             rng: Pcg64Mcg::seed_from_u64(seed),
             seed,
         };
-        (state, order)
+        (state, analysis)
     }
 
     /// Apply a swap to the program-state structures (front layer, extended set and current
@@ -709,13 +811,13 @@ impl State {
     ///
     /// # Panics
     ///
-    /// If any node in `nodes` is not both in the front layer and routable.
-    fn update_route<'a>(
+    /// If [initial_swaps] is given, but no nodes can be routed.
+    fn update_route<'a, A: Analysis<'a>>(
         &mut self,
         problem: RoutingProblem<'a>,
-        order: &mut Order<'a>,
+        analysis: &mut A,
         nodes: &[NodeIndex],
-        mut initial_swaps: Option<Vec<[PhysicalQubit; 2]>>,
+        mut initial_swaps: Option<&mut Vec<[PhysicalQubit; 2]>>,
     ) {
         // The delta-updates to layers only works if we know that we're starting the update from a
         // set of nodes that are in the front layer, and the rest of the layer structure is already
@@ -730,7 +832,7 @@ impl State {
                 node,
                 &mut initial_swaps,
                 problem,
-                order,
+                analysis,
                 &self.layout,
                 self.seed,
             )
@@ -754,7 +856,7 @@ impl State {
                 node,
                 &mut initial_swaps,
                 problem,
-                order,
+                analysis,
                 &self.layout,
                 self.seed,
             ) {
@@ -971,7 +1073,7 @@ pub fn sabre_routing(
         return Ok((dag.clone(), initial_layout.clone()));
     };
     let sabre = SabreDAG::from_dag(dag)?;
-    let result = swap_map(
+    let result = swap_map::<FullRouting>(
         RoutingProblem {
             target,
             sabre: &sabre,
@@ -983,18 +1085,21 @@ pub fn sabre_routing(
         num_trials,
         run_in_parallel,
     );
-    result.rebuild().map(|dag| (dag, result.final_layout))
+    result
+        .analysis
+        .rebuild()
+        .map(|dag| (dag, result.final_layout))
 }
 
 /// Run (potentially in parallel) several trials of the Sabre routing algorithm on the given
 /// problem and return the one with fewest swaps.
-pub fn swap_map<'a>(
+pub fn swap_map<'a, A: Analysis<'a> + Send>(
     problem: RoutingProblem<'a>,
     initial_layout: &'_ NLayout,
     seed: Option<u64>,
     num_trials: usize,
     run_in_parallel: Option<bool>,
-) -> RoutingResult<'a> {
+) -> RoutingResult<A> {
     let seeds = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_os_rng(),
@@ -1008,27 +1113,36 @@ pub fn swap_map<'a>(
         num_trials > 1
             && run_in_parallel.unwrap_or_else(|| getenv_use_multiple_threads() && num_trials > 1),
     )
-    .map(|seed| swap_map_trial(problem, initial_layout, seed))
+    .map(|seed| swap_map_trial::<A>(problem, initial_layout, seed))
     .enumerate()
-    .min_by_key(|(index, result)| (result.order.swap_count(), *index))
+    .min_by_key(|(index, result)| (result.analysis.swap_count(), *index))
     .map(|(_, result)| result)
     .expect("must have at least one trial")
 }
 
 /// Run a single trial of the Sabre routing algorithm.
-pub fn swap_map_trial<'a>(
+///
+/// To call this, you typically have to use a turbofish generic specifier, in order to select the
+/// type of analysis you want.  A "regular" run of Sabre routing uses [FullRouting], which can
+/// rebuild an entire routed [DAGCircuit], whereas an exploratory "find the swap count" run can use
+/// [SwapCount] as the analysis, which stores only the swap count, and not the actual swaps or
+/// routing order.
+///
+/// In all cases, the final [NLayout] object is available.
+pub fn swap_map_trial<'a, A: Analysis<'a>>(
     problem: RoutingProblem<'a>,
     initial_layout: &NLayout,
     seed: u64,
-) -> RoutingResult<'a> {
-    let (mut state, mut order) = State::begin(problem, initial_layout.clone(), seed);
+) -> RoutingResult<A> {
+    let (mut state, mut analysis) = State::begin(problem, initial_layout.clone(), seed);
 
     let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
     let mut num_search_steps = 0;
+    let mut current_swaps = Vec::<[PhysicalQubit; 2]>::new();
+
     // The front layer only becomes empty when all nodes have been routed.  At each iteration of
     // this loop, we route either one or two gates.
     while !state.layers.front().is_empty() {
-        let mut current_swaps: Vec<[PhysicalQubit; 2]> = Vec::new();
         // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
         // either successfully route a node, or exceed the maximum number of attempts.
         while routable_nodes.is_empty() && current_swaps.len() <= problem.heuristic.attempt_limit {
@@ -1066,7 +1180,12 @@ pub fn swap_map_trial<'a>(
             let force_routed = state.force_enable_closest_node(problem, &mut current_swaps);
             routable_nodes.extend(force_routed);
         }
-        state.update_route(problem, &mut order, &routable_nodes, Some(current_swaps));
+        state.update_route(
+            problem,
+            &mut analysis,
+            &routable_nodes,
+            (!current_swaps.is_empty()).then_some(&mut current_swaps),
+        );
 
         if problem.heuristic.decay.is_some() {
             state.decay.fill(1.);
@@ -1074,9 +1193,7 @@ pub fn swap_map_trial<'a>(
         routable_nodes.clear();
     }
     RoutingResult {
-        problem,
-        order,
-        initial_layout: initial_layout.clone(),
+        analysis,
         final_layout: state.layout,
     }
 }

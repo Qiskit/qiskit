@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    :class:`.SabreLayout` now uses a more lightweight routing analysis during its "layout improvement"
+    phase.  This will not affect the results, but should improve runtime performance slightly and
+    reduce intermediate memory use of the pass.
