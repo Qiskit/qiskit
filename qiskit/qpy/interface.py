@@ -288,12 +288,10 @@ def load(
     config = user_config.get_config()
 
     min_qpy_version = config.get("min_qpy_version")
-
     if min_qpy_version is not None and data.qpy_version < min_qpy_version:
-
-        raise QiskitError(
+        raise QpyError(
             f"QPY version {data.qpy_version} is lower than the configured minimum "
-            f"version {min_qpy_version}. Aborting load for security reasons."
+            f"version {min_qpy_version}."
         )
 
     if data.preface.decode(common.ENCODE) != "QISKIT":
