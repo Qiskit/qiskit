@@ -121,16 +121,21 @@ pub enum DurationUnit {
     Sample,
 }
 
-impl Display for DurationUnit {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let unit_str = match self {
+impl DurationUnit {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             DurationUnit::Nanosecond => "ns",
             DurationUnit::Microsecond => "us",
-            DurationUnit::Millisecond => "us",
+            DurationUnit::Millisecond => "ms",
             DurationUnit::Second => "s",
             DurationUnit::Sample => "dt",
-        };
-        write!(f, "{}", unit_str)
+        }
+    }
+}
+
+impl Display for DurationUnit {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -158,14 +163,19 @@ impl UnaryOp {
     }
 }
 
-impl Display for UnaryOp {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let op_str = match self {
+impl UnaryOp {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             UnaryOp::LogicNot => "!",
             UnaryOp::BitNot => "~",
             UnaryOp::Default => "",
-        };
-        write!(f, "{}", op_str)
+        }
+    }
+}
+
+impl Display for UnaryOp {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -213,9 +223,9 @@ impl BinaryOp {
     }
 }
 
-impl Display for BinaryOp {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let op_str = match self {
+impl BinaryOp {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             BinaryOp::BitAnd => "&",
             BinaryOp::BitOr => "|",
             BinaryOp::BitXor => "^",
@@ -229,8 +239,13 @@ impl Display for BinaryOp {
             BinaryOp::NotEqual => "!=",
             BinaryOp::ShiftLeft => "<<",
             BinaryOp::ShiftRight => ">>",
-        };
-        write!(f, "{}", op_str)
+        }
+    }
+}
+
+impl Display for BinaryOp {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -261,29 +276,20 @@ pub enum Float {
 }
 
 impl Float {
-    pub fn iter() -> impl Iterator<Item = Float> {
-        [
-            Float::Half,
-            Float::Single,
-            Float::Double,
-            Float::Quad,
-            Float::Oct,
-        ]
-        .iter()
-        .copied()
-    }
-}
-
-impl Display for Float {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let float_str = match self {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             Float::Half => "16",
             Float::Single => "32",
             Float::Double => "64",
             Float::Quad => "128",
             Float::Oct => "256",
-        };
-        write!(f, "{}", float_str)
+        }
+    }
+}
+
+impl Display for Float {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 

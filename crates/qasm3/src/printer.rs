@@ -32,7 +32,6 @@ pub struct BasicPrinter<'a> {
     _chain_else_if: bool,
     constant_lookup: HashMap<Constant, &'static str>,
     modifier_lookup: HashMap<QuantumGateModifierName, &'static str>,
-    float_width_lookup: HashMap<Float, String>,
 }
 
 impl<'a> BasicPrinter<'a> {
@@ -48,7 +47,6 @@ impl<'a> BasicPrinter<'a> {
         modifier_lookup.insert(QuantumGateModifierName::Inv, "inv");
         modifier_lookup.insert(QuantumGateModifierName::Pow, "pow");
 
-        let float_width_lookup = Float::iter().map(|t| (t, t.to_string())).collect();
 
         BasicPrinter {
             stream,
@@ -57,7 +55,6 @@ impl<'a> BasicPrinter<'a> {
             _chain_else_if,
             constant_lookup,
             modifier_lookup,
-            float_width_lookup,
         }
     }
 
@@ -204,11 +201,11 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_duration_literal(&mut self, expression: &DurationLiteral) {
-        write!(self.stream, "{}{}", expression.value, expression.unit).unwrap();
+        write!(self.stream, "{}{}", expression.value, expression.unit.as_str()).unwrap();
     }
 
     fn visit_unary(&mut self, expression: &Unary) {
-        write!(self.stream, "{}", expression.op).unwrap();
+        write!(self.stream, "{}", expression.op.as_str()).unwrap();
         let (left, right) = expression.op.binding_power();
         if matches!(
             *expression.operand,
@@ -236,7 +233,7 @@ impl<'a> BasicPrinter<'a> {
         } else {
             self.visit_expression(&expression.left);
         }
-        write!(self.stream, "{}", expression.op).unwrap();
+        write!(self.stream, "{}", expression.op.as_str()).unwrap();
         if matches!(
             *expression.right,
             Expression::Unary(_) | Expression::Binary(_)
@@ -365,7 +362,7 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_float_type(&mut self, type_: &Float) {
-        write!(self.stream, "float[{}]", self.float_width_lookup[type_]).unwrap()
+        write!(self.stream, "float[{}]", type_.as_str()).unwrap()
     }
 
     fn visit_bool_type(&mut self) {
