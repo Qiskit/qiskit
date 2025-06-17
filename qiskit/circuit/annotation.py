@@ -162,7 +162,7 @@ Finally, this can be put together, showing the output OpenQASM 3.
     dumped = qasm3.dumps(collected, annotation_handlers=handlers)
     print(dumped)
 
-,. code-block:: openqasm3
+.. code-block:: openqasm3
 
     OPENQASM 3.0;
     include "stdgates.inc";
