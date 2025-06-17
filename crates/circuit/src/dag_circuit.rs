@@ -3365,6 +3365,28 @@ impl DAGCircuit {
             .unbind())
     }
 
+    /// Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
+    /// and [DAGNode] is its precessors in  BFS order.
+    #[pyo3(name = "bfs_predecessors")]
+    fn py_bfs_predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+        let predecessor_index: PyResult<Vec<(PyObject, Vec<PyObject>)>> = self
+            .bfs_predecessors(node.node.unwrap())
+            .map(|(node, nodes)| -> PyResult<(PyObject, Vec<PyObject>)> {
+                Ok((
+                    self.get_node(py, node)?,
+                    nodes
+                        .iter()
+                        .map(|sub_node| self.get_node(py, *sub_node))
+                        .collect::<PyResult<Vec<_>>>()?,
+                ))
+            })
+            .collect();
+        Ok(PyList::new(py, predecessor_index?)?
+            .into_any()
+            .try_iter()?
+            .unbind())
+    }
+
     /// Returns iterator of the successors of a node that are
     /// connected by a classical edge as DAGOpNodes and DAGOutNodes.
     fn classical_successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
