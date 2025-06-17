@@ -17,10 +17,10 @@ deprecations_circuits:
     common circuits and their replacements follow:
 
       * :class:`.QFT` → :class:`.QFTGate`
-      * :class:`.TwoLocal` → :func:`~qiskit.circuit.library.n_local.n_local`
+      * :class:`.TwoLocal` → :func:`.n_local`
         (this is not a typo, this function covers the :class:`.NLocal` and :class:`.TwoLocal` functionality)
-      * :class:`.EfficientSU2` → :func:`~qiskit.circuit.library.efficient_su2.efficient_su2`
-      * :class:`.RealAmplitudes` → :func:`~qiskit.circuit.library.real_amplitudes.real_amplitudes`
+      * :class:`.EfficientSU2` → :func:`.efficient_su2`
+      * :class:`.RealAmplitudes` → :func:`.real_amplitudes`
       * :class:`.ZZFeatureMap` → :func:`.zz_feature_map`
       * :class:`.QuantumVolume` → :func:`.quantum_volume`
       * :class:`.EvolvedOperatorAnsatz` → :func:`.evolved_operator_ansatz`
