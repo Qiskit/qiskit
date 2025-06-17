@@ -241,10 +241,25 @@ impl BuildScope {
     }
 }
 
+#[derive(Debug)]
+struct LocalSymbols {
+    symbols: HashMap<String, Identifier>,
+    bitinfo: HashMap<BitType, IdentifierOrSubscripted>,
+    reginfo: HashMap<RegisterType, IdentifierOrSubscripted>,
+}
+
+impl LocalSymbols {
+    fn new() -> Self {
+        Self {
+            symbols: HashMap::new(),
+            bitinfo: HashMap::new(),
+            reginfo: HashMap::new(),
+        }
+    }
+}
+
 struct SymbolTable {
-    symbols: Vec<HashMap<String, Identifier>>,
-    bitinfo: Vec<HashMap<BitType, IdentifierOrSubscripted>>,
-    reginfo: Vec<HashMap<RegisterType, IdentifierOrSubscripted>>,
+    scopes: Vec<LocalSymbols>,
     gates: IndexMap<String, QuantumGateDefinition>,
     stdgates: HashSet<String>,
     _counter: Counter,
@@ -252,13 +267,8 @@ struct SymbolTable {
 
 impl SymbolTable {
     fn new() -> Self {
-        let symbols = vec![HashMap::new()];
-        let bitinfo = vec![HashMap::new()];
-        let reginfo = vec![HashMap::new()];
         Self {
-            symbols,
-            bitinfo,
-            reginfo,
+            scopes: vec![LocalSymbols::new()],
             gates: IndexMap::new(),
             stdgates: HashSet::new(),
             _counter: Counter::new(),
@@ -266,8 +276,8 @@ impl SymbolTable {
     }
 
     fn bind(&mut self, name: &str) -> ExporterResult<()> {
-        if let Some(symbols) = self.symbols.last() {
-            if !symbols.contains_key(name) {
+        if let Some(scope) = self.scopes.last() {
+            if !scope.symbols.contains_key(name) {
                 self.bind_no_check(name);
             }
         } else {
@@ -284,14 +294,14 @@ impl SymbolTable {
         let id = Identifier {
             string: name.to_string(),
         };
-        if let Some(last) = self.symbols.last_mut() {
-            last.insert(name.to_string(), id);
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.symbols.insert(name.to_string(), id);
         }
     }
 
     fn contains_name(&self, name: &str) -> bool {
-        if let Some(symbols) = self.symbols.last() {
-            symbols.contains_key(name)
+        if let Some(scope) = self.scopes.last() {
+            scope.symbols.contains_key(name)
         } else {
             false
         }
@@ -301,14 +311,14 @@ impl SymbolTable {
         RESERVED_KEYWORDS.contains(name)
             || self.gates.contains_key(name)
             || self
-                .symbols
+                .scopes
                 .iter()
                 .rev()
-                .any(|symbol| symbol.contains_key(name))
+                .any(|scope| scope.symbols.contains_key(name))
     }
 
     fn can_shadow_symbol(&self, name: &str) -> bool {
-        !self.symbols.last().unwrap().contains_key(name)
+        !self.scopes.last().unwrap().symbols.contains_key(name)
             && !self.gates.contains_key(name)
             && !RESERVED_KEYWORDS.contains(name)
     }
@@ -355,8 +365,8 @@ impl SymbolTable {
                 )));
             }
 
-            for scope in self.symbols.iter().rev() {
-                if let Some(other) = scope.get(&name) {
+            for scope in self.scopes.iter().rev() {
+                if let Some(other) = scope.symbols.get(&name) {
                     return Err(QASM3ExporterError::Error(format!(
                         "cannot shadow variable '{}', as it is already defined as '{:?}'",
                         name, other
@@ -380,17 +390,17 @@ impl SymbolTable {
     }
 
     fn set_bitinfo(&mut self, id: IdentifierOrSubscripted, bit: BitType) {
-        if self.bitinfo.is_empty() {
-            self.bitinfo.push(HashMap::new());
+        if self.scopes.is_empty() {
+            self.scopes.push(LocalSymbols::new());
         }
-        if let Some(last) = self.bitinfo.last_mut() {
-            last.insert(bit, id);
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.bitinfo.insert(bit, id);
         }
     }
 
     fn get_bitinfo(&self, bit: &BitType) -> Option<&IdentifierOrSubscripted> {
-        for info in self.bitinfo.iter().rev() {
-            if let Some(id) = info.get(bit) {
+        for scope in self.scopes.iter().rev() {
+            if let Some(id) = scope.bitinfo.get(bit) {
                 return Some(id);
             }
         }
@@ -398,11 +408,11 @@ impl SymbolTable {
     }
 
     fn set_reginfo(&mut self, id: IdentifierOrSubscripted, reg: RegisterType) {
-        if self.reginfo.is_empty() {
-            self.reginfo.push(HashMap::new());
+        if self.scopes.is_empty() {
+            self.scopes.push(LocalSymbols::new());
         }
-        if let Some(last) = self.reginfo.last_mut() {
-            last.insert(reg, id);
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.reginfo.insert(reg, id);
         }
     }
 
@@ -485,15 +495,11 @@ impl SymbolTable {
     }
 
     fn push_scope(&mut self) {
-        self.symbols.push(HashMap::new());
-        self.bitinfo.push(HashMap::new());
-        self.reginfo.push(HashMap::new());
+        self.scopes.push(LocalSymbols::new());
     }
 
     fn pop_scope(&mut self) {
-        self.symbols.pop();
-        self.bitinfo.pop();
-        self.reginfo.pop();
+        self.scopes.pop();
     }
 
     fn new_context(&mut self) -> Self {
