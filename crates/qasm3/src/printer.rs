@@ -232,9 +232,11 @@ impl<'a> BasicPrinter<'a> {
         if !start.is_empty() {
             write!(self.stream, "{}", start).unwrap();
         }
-        for node in nodes.iter().take(nodes.len() - 1) {
-            self.visit_quantum_gate_modifier(node);
-            write!(self.stream, "{}", separator).unwrap();
+        if nodes.len() > 1 {
+            for node in nodes.iter().take(nodes.len() - 1) {
+                self.visit_quantum_gate_modifier(node);
+                write!(self.stream, "{}", separator).unwrap();
+            }
         }
         if let Some(last) = nodes.last() {
             self.visit_quantum_gate_modifier(last);
@@ -361,9 +363,11 @@ impl<'a> BasicPrinter<'a> {
         if !start.is_empty() {
             write!(self.stream, "{}", start).unwrap();
         }
-        for node in nodes.iter().take(nodes.len() - 1) {
-            self.visit_expression(node);
-            write!(self.stream, "{}", separator).unwrap();
+        if nodes.len() > 1 {
+            for node in nodes.iter().take(nodes.len() - 1) {
+                self.visit_expression(node);
+                write!(self.stream, "{}", separator).unwrap();
+            }
         }
         if let Some(last) = nodes.last() {
             self.visit_expression(last);
