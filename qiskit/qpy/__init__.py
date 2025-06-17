@@ -412,9 +412,7 @@ without any padding in-between.
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
 
-The circuit start table (as of QPY version 16) or file header (prior to QPY version 16)
-is immediately followed by the circuit payloads. Each individual circuit is composed of 
-the following parts in order from top to bottom:
+Each individual circuit is composed of the following parts in order from top to bottom:
 
 .. code-block:: text
 
