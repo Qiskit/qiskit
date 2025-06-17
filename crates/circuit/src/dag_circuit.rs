@@ -1345,8 +1345,9 @@ impl DAGCircuit {
 
     /// Put ``self`` into the canonical physical form, with the given number of qubits.
     ///
-    /// This acts in place and is cheap.  It is intended for use when the DAG is known to already
-    /// represent a physical circuit, and we just need to assert that it is canonical physical form.
+    /// This acts in place, and does not need to traverse the DAG.  It is intended for use when the
+    /// DAG is known to already represent a physical circuit, and we just need to assert that it is
+    /// canonical physical form.
     ///
     /// This erases any information about virtual qubits in the :class:`DAGCircuit`; if using this
     /// yourself, you may need to ensure you have created and stored a suitable :class:`.Layout`.
