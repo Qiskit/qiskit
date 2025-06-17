@@ -562,7 +562,8 @@ happen incoherently and to collapse any entanglement.
 
 Hardware can be instructed to apply a real-time idle period on a given qubit.  A scheduled circuit
 (see :mod:`qiskit.transpiler`) will include all the idle times on qubits explicitly in terms of this
-:class:`Delay`.  :class:`.BoxOp` can also have an explicit delay attached.
+:class:`Delay`.  :class:`.BoxOp` can also have an explicit duration attached, in its
+:attr:`.BoxOp.duration` field.
 
 .. autoclass:: Delay
     :show-inheritance:
