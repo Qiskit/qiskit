@@ -13,10 +13,10 @@
 use crate::ast::{
     Alias, Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Continue, Delay,
     Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
-    IOModifier, Identifier, IdentifierOrSubscripted, Include, IndexSet, IntegerLiteral, Node,
+    IOModifier, Identifier, Include, Index, IndexSet, IntegerLiteral, Node,
     Parameter, Program, QuantumBlock, QuantumDeclaration, QuantumGateDefinition,
     QuantumGateSignature, QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment,
-    Reset, Statement, SubscriptedIdentifier, Version,
+    Reset, Statement, Version,
 };
 use std::io::Write;
 
@@ -244,8 +244,8 @@ impl BuildScope {
 #[derive(Debug)]
 struct LocalSymbols {
     symbols: HashMap<String, Identifier>,
-    bitinfo: HashMap<BitType, IdentifierOrSubscripted>,
-    reginfo: HashMap<RegisterType, IdentifierOrSubscripted>,
+    bitinfo: HashMap<BitType, Expression>,
+    reginfo: HashMap<RegisterType, Expression>,
 }
 
 impl LocalSymbols {
@@ -389,7 +389,7 @@ impl SymbolTable {
         }
     }
 
-    fn set_bitinfo(&mut self, id: IdentifierOrSubscripted, bit: BitType) {
+    fn set_bitinfo(&mut self, id: Expression, bit: BitType) {
         if self.scopes.is_empty() {
             self.scopes.push(LocalSymbols::new());
         }
@@ -398,7 +398,7 @@ impl SymbolTable {
         }
     }
 
-    fn get_bitinfo(&self, bit: &BitType) -> Option<&IdentifierOrSubscripted> {
+    fn get_bitinfo(&self, bit: &BitType) -> Option<&Expression> {
         for scope in self.scopes.iter().rev() {
             if let Some(id) = scope.bitinfo.get(bit) {
                 return Some(id);
@@ -407,7 +407,7 @@ impl SymbolTable {
         None
     }
 
-    fn set_reginfo(&mut self, id: IdentifierOrSubscripted, reg: RegisterType) {
+    fn set_reginfo(&mut self, id: Expression, reg: RegisterType) {
         if self.scopes.is_empty() {
             self.scopes.push(LocalSymbols::new());
         }
@@ -436,9 +436,9 @@ impl SymbolTable {
                         params_def
                             .into_iter()
                             .map(|id| {
-                                Expression::IdentifierOrSubscripted(
-                                    IdentifierOrSubscripted::Identifier(id),
-                                )
+                                Expression::Parameter(Parameter {
+                                    obj: id.string.clone(),
+                                })
                             })
                             .collect(),
                     ),
@@ -471,7 +471,9 @@ impl SymbolTable {
         };
         let _ = self.bind(&name);
         self.set_bitinfo(
-            IdentifierOrSubscripted::Identifier(identifier.clone()),
+            Expression::Parameter(Parameter {
+                obj: identifier.string.clone(),
+            }),
             (*bit).to_owned(),
         );
         Ok(identifier)
@@ -488,7 +490,9 @@ impl SymbolTable {
         };
         let _ = self.bind(&name);
         self.set_reginfo(
-            IdentifierOrSubscripted::Identifier(identifier.clone()),
+            Expression::Parameter(Parameter {
+                obj: identifier.string.clone(),
+            }),
             (*register).to_owned(),
         );
         Ok(identifier)
@@ -733,7 +737,7 @@ impl<'a> QASM3Builder {
         Ok(result)
     }
 
-    fn lookup_bit(&self, bit: &BitType) -> ExporterResult<&IdentifierOrSubscripted> {
+    fn lookup_bit(&self, bit: &BitType) -> ExporterResult<&Expression> {
         let qubit_ref = self.circuit_scope.bit_map.get(bit).ok_or_else(|| {
             QASM3ExporterError::Error(format!("Bit mapping not found for {:?}", bit))
         })?;
@@ -891,9 +895,11 @@ impl<'a> QASM3Builder {
 
             for (i, clbit) in creg.bits().enumerate() {
                 self.symbol_table.set_bitinfo(
-                    IdentifierOrSubscripted::Subscripted(SubscriptedIdentifier {
-                        string: identifier.string.to_string(),
-                        subscript: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+                    Expression::Index(Index {
+                        target: Box::new(Expression::Parameter(Parameter {
+                            obj: identifier.string.to_string(),
+                        })),
+                        index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
                     }),
                     BitType::ShareableClbit(clbit),
                 )
@@ -987,9 +993,11 @@ impl<'a> QASM3Builder {
             )?;
             for (i, qubit) in qreg.bits().enumerate() {
                 self.symbol_table.set_bitinfo(
-                    IdentifierOrSubscripted::Subscripted(SubscriptedIdentifier {
-                        string: identifier.string.to_string(),
-                        subscript: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+                    Expression::Index(Index {
+                        target: Box::new(Expression::Parameter(Parameter {
+                            obj: identifier.string.to_string(),
+                        })),
+                        index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
                     }),
                     BitType::ShareableQubit(qubit),
                 )
@@ -1014,12 +1022,14 @@ impl<'a> QASM3Builder {
                 let temp_id = self.lookup_bit(bit)?;
                 temp_id.clone()
             };
-            let id2 = IdentifierOrSubscripted::Subscripted(SubscriptedIdentifier {
-                string: name.string.clone(),
-                subscript: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+            let id2 = Expression::Index(Index {
+                target: Box::new(Expression::Parameter(Parameter {
+                    obj: name.string.clone(),
+                })),
+                index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
             });
             self.symbol_table.set_bitinfo(id2, bit.clone());
-            elements.push(Expression::IdentifierOrSubscripted(id.clone()));
+            elements.push(id.clone());
         }
         Ok(Alias {
             identifier: name,
@@ -1387,7 +1397,9 @@ impl<'a> QASM3Builder {
                     };
                     let _ = builder.symbol_table.bind(&qid.string);
                     builder.symbol_table.set_bitinfo(
-                        IdentifierOrSubscripted::Identifier(qid.clone()),
+                        Expression::Parameter(Parameter {
+                            obj: qid.string.clone(),
+                        }),
                         BitType::ShareableQubit(q.to_owned()),
                     );
                 }

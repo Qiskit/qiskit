@@ -57,7 +57,6 @@ pub enum Expression {
     Constant(Constant),
     Parameter(Parameter),
     Range(Range),
-    IdentifierOrSubscripted(IdentifierOrSubscripted),
     IntegerLiteral(IntegerLiteral),
     BooleanLiteral(BooleanLiteral),
     BitstringLiteral(BitstringLiteral),
@@ -88,22 +87,12 @@ pub struct Range {
     pub step: Option<Box<Expression>>,
 }
 
-#[derive(Debug, Clone)]
-pub enum IdentifierOrSubscripted {
-    Identifier(Identifier),
-    Subscripted(SubscriptedIdentifier),
-}
 
 #[derive(Debug, Clone)]
 pub struct Identifier {
     pub string: String,
 }
 
-#[derive(Debug, Clone)]
-pub struct SubscriptedIdentifier {
-    pub string: String,
-    pub subscript: Box<Expression>,
-}
 
 #[derive(Debug, Clone)]
 pub struct IntegerLiteral(pub(crate) i32);
@@ -305,7 +294,7 @@ pub struct QuantumBlock {
 
 #[derive(Debug, Clone)]
 pub struct QuantumMeasurement {
-    pub identifier_list: Vec<IdentifierOrSubscripted>,
+    pub identifier_list: Vec<Expression>,
 }
 
 #[derive(Debug, Clone)]
@@ -380,31 +369,31 @@ pub enum QuantumInstruction {
 #[derive(Debug, Clone)]
 pub struct GateCall {
     pub quantum_gate_name: Identifier,
-    pub index_identifier_list: Vec<IdentifierOrSubscripted>,
+    pub index_identifier_list: Vec<Expression>,
     pub parameters: Vec<Expression>,
     pub modifiers: Option<Vec<QuantumGateModifier>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Reset {
-    pub identifier: IdentifierOrSubscripted,
+    pub identifier: Expression,
 }
 
 #[derive(Debug, Clone)]
 pub struct Barrier {
-    pub index_identifier_list: Vec<IdentifierOrSubscripted>,
+    pub index_identifier_list: Vec<Expression>,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Delay {
     pub duration: DurationLiteral,
-    pub qubits: Vec<IdentifierOrSubscripted>,
+    pub qubits: Vec<Expression>,
 }
 
 #[derive(Debug, Clone)]
 pub struct QuantumMeasurementAssignment {
-    pub identifier: IdentifierOrSubscripted,
+    pub identifier: Expression,
     pub quantum_measurement: QuantumMeasurement,
 }
 
