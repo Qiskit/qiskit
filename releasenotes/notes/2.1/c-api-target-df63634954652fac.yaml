@@ -1,8 +1,8 @@
 ---
 features_transpiler:
   - |
-    Support for creation and interaction with the :class:`~.Target` have
-    been added to the Qiskit C API.
+    Extended the C API to support creation and interaction with of a :class:`~.Target`
+    instance.
 
     Here's an example of how it is used:
 

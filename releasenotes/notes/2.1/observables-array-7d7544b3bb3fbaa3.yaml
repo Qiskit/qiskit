@@ -2,6 +2,6 @@
 features:
   - |
     Estimator PUBs can now be defined using :class:`.SparseObservable` objects, in addition to
-    the existing options of `str`, `Pauli`, `SparsePauliOp`, and `Mapping[Union[str, Pauli], float]`.
+    the existing options of `str`, :class:`~qiskit.quantum_info.Pauli`, :class:`.SparsePauliOp`, and ``Mapping[Union[str, Pauli], float]``.
     However, projective observables are not yet supported when executing circuits. Projective
     observables are `0, 1, +, -, r, l`. Currently only Paulis are supported: `I, X, Y, Z`.

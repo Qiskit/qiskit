@@ -2,10 +2,10 @@
 features_transpiler:
   - |
     Added a new :class:`.OptimizeCliffordT` transpiler optimization pass that
-    merges pairs of consecutive ``T``-gates into ``S``-gates and pairs of
-    consecutive ``Tdg``-gates into ``Sdg``-gates. This optimization is particularly
+    merges pairs of consecutive T-gates into S-gates and pairs of
+    consecutive Tdg-gates into Sdg-gates. This optimization is particularly
     effective for reducing T-count following Solovay-Kitaev decomposition, which
-    produces multiple consecutive ``T`` or ``Tdg`` gates. For example::
+    produces multiple consecutive T or Tdg gates. For example::
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.transpiler.passes import SolovayKitaev, OptimizeCliffordT

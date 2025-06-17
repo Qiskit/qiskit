@@ -1,5 +1,5 @@
 ---
-other:
+features_visualization:
   - |
     The Matplotlib circuit drawer will now insert less extraneous space inside the left edge when
     drawing :class:`.BoxOp` instances in circuits.

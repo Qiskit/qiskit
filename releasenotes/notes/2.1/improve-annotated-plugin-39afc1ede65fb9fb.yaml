@@ -27,7 +27,7 @@ features:
     6-controlled X-gate, and to choose the best synthesis method available for
     multi-controlled X-gates, in particular utilizing available ancilla qubits.
   - |
-    The function :func:`.adder_qft_d00` used for synthesize :class:`.ModularAdderGate`
-    and :class:`.HalfAdderGate` gates now accepts an addional parameter ``annotated``. If
+    The function :func:`.adder_qft_d00`, used for synthesizing :class:`.ModularAdderGate`
+    and :class:`.HalfAdderGate` gates, now accepts an additional parameter ``annotated``. If
     ``True``, the inverse-QFT-gate within the adders is implemented as an annotated
     operations, allowing the transpiler to apply additional optimizations.

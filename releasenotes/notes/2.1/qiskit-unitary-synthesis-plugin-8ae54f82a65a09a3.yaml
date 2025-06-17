@@ -46,7 +46,7 @@ features_transpiler:
 
       transpiled = UnitarySynthesis(method="clifford")(qc)
 
-    Executing the code above resynthesized the first unitary gate into
+    Executing the code above re-synthesizes the first unitary gate into
     Clifford gates, while the second gate remains unchanged.
 
     If we modify the example above as follows::

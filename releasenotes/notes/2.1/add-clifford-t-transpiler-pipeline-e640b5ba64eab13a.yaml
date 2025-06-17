@@ -4,7 +4,7 @@ features_transpiler:
     The function :func:`.generate_preset_pass_manager` now generates a special
     pass manager when the basis set consists only of Clifford+T gates.
     Formally, a Clifford+T basis set must contain only Clifford gates, along
-    with a :class:`.TGate`, :class:`.TdgGate`, or both. The full list of supported
+    with either :class:`.TGate`, :class:`.TdgGate`, or both. The full list of supported
     Clifford gates can be obtained by using :func:`.get_clifford_gate_names`.
 
     For example::
@@ -22,7 +22,7 @@ features_transpiler:
       print(qct.count_ops())
 
     Previously, the generated pass manager could not handle the example above
-    because it couldn't decompose single-qubit :class:.UGate rotation gates into
+    because it couldn't decompose single-qubit :class:`.UGate` rotation gates into
     Clifford+T gates. However, the new pass manager uses the
     Solovay-Kitaev decomposition to approximate single-qubit rotation gates
     using ``H``, ``T`` and ``Tdg`` gates, and calls the :class:`~.BasisTranslator`

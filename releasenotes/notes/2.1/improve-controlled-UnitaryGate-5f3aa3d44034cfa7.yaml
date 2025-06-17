@@ -1,7 +1,7 @@
 ---
 features_synthesis:
   - |
-    The Quantum Shannon Decomposition (:func:`.qs_decomposition`) includes an optimization that reduces
+    The Quantum Shannon Decomposition (:func:`.qs_decomposition`) now includes an optimization that reduces
     the :class:`.CXGate` count in the case that the input unitary is a controlled unitary.
 upgrade_circuits:
   - |
