@@ -1,7 +1,7 @@
 ---
 upgrade_c:
   - |
-    The way complex numbers are exposed in Qiskit's C API has been upgraded.
+    The way complex numbers are exposed in Qiskit's C API has changed.
     Previously, ``QkComplex64`` was a compiler-dependent typedef that allowed to pass
     native complex types by pointer to Qiskit's API (for example as ``double complex*``).
     While this was convenient, this approach implictly relied on memory-layout assumptions
