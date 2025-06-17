@@ -837,7 +837,6 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 /// @param operation The instruction to check for.
 /// @param qargs The pointer to the array of ``uint32_t`` values to use as
 /// qargs. Can be ``NULL`` if global.
-/// @param num_qubits The number of qubits in the array.
 ///
 /// @return Whether the instruction is supported or not.
 ///
@@ -856,24 +855,22 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
 /// The ``qargs`` type is expected to be a pointer to an array of ``u32int_t`` where the length
-/// matches is specified by ``num_qubits`` and has to match the expectation of the gate. If the
-/// array is insufficently long the behavior of this function is undefined as this will read
-/// outside the bounds of the array. It can be a null pointer if there are no qubits for
-/// a given gate. You can check `qk_gate_num_qubits` to determine how many qubits are required
-/// for a given gate.
+/// matches the expectation of the gate. If the array is insufficently long the behavior of this
+/// function is undefined as this will read outside the bounds of the array. It can be a null
+/// pointer if there are no qubits for a given gate. You can check `qk_gate_num_qubits` to
+/// determine how many qubits are required for a given gate.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_instruction_supported(
     target: *const Target,
     operation: StandardGate,
     qargs: *mut u32,
-    num_qubits: u32,
 ) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
 
     // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
-    let qargs: Qargs = unsafe { parse_qargs(qargs, num_qubits) };
+    let qargs: Qargs = unsafe { parse_qargs(qargs, operation.num_qubits()) };
 
     target.instruction_supported(operation.name(), &qargs)
 }

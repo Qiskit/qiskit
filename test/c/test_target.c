@@ -433,7 +433,7 @@ int test_target_instruction_supported(void) {
         for (int j = 0; j < 5; j++) {
             // If i == 4 condition should be false unless we try with the y gate
             // since y is added as a global gate.
-            if (!(qk_target_instruction_supported(sample_target, single_qubit_gates[j], qargs, 1) ==
+            if (!(qk_target_instruction_supported(sample_target, single_qubit_gates[j], qargs) ==
                   should_be_true) &&
                 j != 1) {
                 printf("This target did not correctly demonstrate compatibility with %s and qargs "
@@ -468,7 +468,7 @@ int test_target_instruction_supported(void) {
         {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
     };
     for (int i = 0; i < 8; i++) {
-        if (!qk_target_instruction_supported(sample_target, QkGate_CX, qarg_samples[i], 2)) {
+        if (!qk_target_instruction_supported(sample_target, QkGate_CX, qarg_samples[i])) {
             printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [%d, "
                    "%d]",
                    qarg_samples[i][0], qarg_samples[i][1]);
@@ -479,7 +479,7 @@ int test_target_instruction_supported(void) {
 
     uint32_t cx_qargs[2] = {3, 2};
     // Instruction should not show compatibility with (3, 2)
-    if (qk_target_instruction_supported(sample_target, QkGate_CX, cx_qargs, 2)) {
+    if (qk_target_instruction_supported(sample_target, QkGate_CX, cx_qargs)) {
         printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [3, 2]");
         result = RuntimeError;
         goto cleanup;
