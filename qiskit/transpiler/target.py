@@ -161,7 +161,7 @@ class Target(BaseTarget):
 
     This class can be queried via the mapping protocol, using the
     instruction's name as a key. You can modify any property for an
-    instruction via the :meth:`.Target.update_instruction_properties` method.
+    instruction via the :meth:`.update_instruction_properties` method.
     Modification via the mapping protocol or mutating the attributes of
     a :class:`.InstructionProperties` object is **not** supported and
     doing so will invalidate the internal state of the object.
