@@ -56,8 +56,7 @@ type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 #[allow(clippy::too_many_arguments)]
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
 pub fn run_basis_translator(
-    py: Python<'_>,
-    dag: &DAGCircuit,
+    dag: DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     qargs_with_non_global_operation: HashMap<Qargs, HashSet<String>>,
     min_qubits: usize,
@@ -120,7 +119,7 @@ pub fn run_basis_translator(
             .into_iter()
             .map(|x| x.to_string())
             .collect();
-        source_basis = extract_basis(py, dag, min_qubits)?;
+        source_basis = extract_basis(&dag, min_qubits)?;
         new_target_basis = target_basis.unwrap().into_iter().collect();
     }
     new_target_basis = new_target_basis
@@ -199,20 +198,19 @@ pub fn run_basis_translator(
         )));
     };
 
-    let instr_map: InstMap = compose_transforms(py, &basis_transforms, &source_basis, dag)?;
+    let instr_map: InstMap = compose_transforms(&basis_transforms, &source_basis, &dag)?;
     let extra_inst_map: ExtraInstructionMap = qarg_local_basis_transforms
         .iter()
         .map(|(qarg, transform)| -> PyResult<_> {
             Ok((
                 *qarg,
-                compose_transforms(py, transform, &qargs_local_source_basis[*qarg], dag)?,
+                compose_transforms(transform, &qargs_local_source_basis[*qarg], &dag)?,
             ))
         })
         .collect::<PyResult<_>>()?;
 
     let (out_dag, _) = apply_translation(
-        py,
-        dag,
+        &dag,
         &new_target_basis,
         &instr_map,
         &extra_inst_map,
@@ -224,14 +222,12 @@ pub fn run_basis_translator(
 
 /// Method that extracts all gate instances identifiers from a DAGCircuit.
 fn extract_basis(
-    py: Python,
     circuit: &DAGCircuit,
     min_qubits: usize,
 ) -> PyResult<IndexSet<GateIdentifier, ahash::RandomState>> {
     let mut basis = IndexSet::default();
     // Recurse for DAGCircuit
     fn recurse_dag(
-        py: Python,
         circuit: &DAGCircuit,
         basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
@@ -241,12 +237,8 @@ fn extract_basis(
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
             if operation.op.control_flow() {
-                let OperationRef::Instruction(inst) = operation.op.view() else {
-                    unreachable!("Control flow operation is not an instance of PyInstruction.")
-                };
-                let inst_bound = inst.instruction.bind(py);
-                for block in inst_bound.getattr("blocks")?.try_iter()? {
-                    recurse_circuit(py, block?, basis, min_qubits)?;
+                for block in operation.op.blocks() {
+                    recurse_circuit(&block, basis, min_qubits)?;
                 }
             }
         }
@@ -255,32 +247,24 @@ fn extract_basis(
 
     // Recurse for QuantumCircuit
     fn recurse_circuit(
-        py: Python,
-        circuit: Bound<PyAny>,
+        circuit: &CircuitData,
         basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
     ) -> PyResult<()> {
-        let circuit_data: PyRef<CircuitData> = circuit
-            .getattr(intern!(py, "_data"))?
-            .downcast_into()?
-            .borrow();
-        for (index, inst) in circuit_data.iter().enumerate() {
-            let instruction_object = circuit.get_item(index)?;
-            if circuit_data.get_qargs(inst.qubits).len() >= min_qubits {
+        for inst in circuit.iter() {
+            if circuit.get_qargs(inst.qubits).len() >= min_qubits {
                 basis.insert((inst.op.name().to_string(), inst.op.num_qubits()));
             }
             if inst.op.control_flow() {
-                let operation_ob = instruction_object.getattr(intern!(py, "operation"))?;
-                let blocks = operation_ob.getattr("blocks")?;
-                for block in blocks.try_iter()? {
-                    recurse_circuit(py, block?, basis, min_qubits)?;
+                for block in inst.op.blocks() {
+                    recurse_circuit(&block, basis, min_qubits)?;
                 }
             }
         }
         Ok(())
     }
 
-    recurse_dag(py, circuit, &mut basis, min_qubits)?;
+    recurse_dag(circuit, &mut basis, min_qubits)?;
     Ok(basis)
 }
 
@@ -289,7 +273,6 @@ fn extract_basis(
 /// When dealing with `ControlFlowOp` instances the function will perform a recursion call
 /// to a variant design to handle instances of `QuantumCircuit`.
 fn extract_basis_target(
-    py: Python,
     dag: &DAGCircuit,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
@@ -352,17 +335,9 @@ fn extract_basis_target(
             source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
         }
         if node_obj.op.control_flow() {
-            let OperationRef::Instruction(op) = node_obj.op.view() else {
-                unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
-            };
-            let bound_inst = op.instruction.bind(py);
-            // TODO: Use Rust method `op.blocks` instead of Python side extraction now that
-            // the python-space method `QuantumCircuit.has_calibration_for`
-            // has been removed and we don't need to account for it.
-            let blocks = bound_inst.getattr("blocks")?.try_iter()?;
-            for block in blocks {
+            for block in node_obj.op.blocks() {
                 extract_basis_target_circ(
-                    &block?,
+                    &block,
                     source_basis,
                     qargs_local_source_basis,
                     min_qubits,
@@ -380,7 +355,7 @@ fn extract_basis_target(
 /// this API will be removed with the deprecation of `Pulse`.
 /// TODO: pulse is removed, we can use op.blocks
 fn extract_basis_target_circ(
-    circuit: &Bound<PyAny>,
+    circuit: &CircuitData,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
         PhysicalQargs,
@@ -394,11 +369,8 @@ fn extract_basis_target_circ(
         ahash::RandomState,
     >,
 ) -> PyResult<()> {
-    let py = circuit.py();
-    let circ_data_bound = circuit.getattr("_data")?.downcast_into::<CircuitData>()?;
-    let circ_data = circ_data_bound.borrow();
-    for node_obj in circ_data.iter() {
-        let qargs = circ_data.get_qargs(node_obj.qubits);
+    for node_obj in circuit.iter() {
+        let qargs = circuit.get_qargs(node_obj.qubits);
         if qargs.len() < min_qubits {
             continue;
         }
@@ -445,14 +417,9 @@ fn extract_basis_target_circ(
             source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
         }
         if node_obj.op.control_flow() {
-            let OperationRef::Instruction(op) = node_obj.op.view() else {
-                unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
-            };
-            let bound_inst = op.instruction.bind(py);
-            let blocks = bound_inst.getattr("blocks")?.try_iter()?;
-            for block in blocks {
+            for block in node_obj.op.blocks() {
                 extract_basis_target_circ(
-                    &block?,
+                    &block,
                     source_basis,
                     qargs_local_source_basis,
                     min_qubits,
@@ -489,6 +456,9 @@ fn apply_translation(
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
+                // This part is only executed through python because `ControlFlowOp`
+                // does not exist in Rust space yet, and we need the method `replace_blocks`.
+                // TODO: Refactor this condition block once https://github.com/Qiskit/qiskit/pull/14568 merges.
                 let OperationRef::Instruction(control_op) = node_obj.op.view() else {
                     unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op.name())
                 };
@@ -567,7 +537,6 @@ fn apply_translation(
         let unique_qargs: PhysicalQargs = qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect();
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
-                py,
                 &mut out_dag_builder,
                 node_obj.clone(),
                 &extra_inst_map[&unique_qargs],
@@ -575,7 +544,7 @@ fn apply_translation(
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(py, &mut out_dag_builder, node_obj.clone(), instr_map)?;
+            replace_node(&mut out_dag_builder, node_obj.clone(), instr_map)?;
         } else {
             return Err(TranspilerError::new_err(format!(
                 "BasisTranslator did not map {}",
@@ -588,7 +557,6 @@ fn apply_translation(
 }
 
 fn replace_node(
-    py: Python,
     dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
     instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
