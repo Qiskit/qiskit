@@ -3427,7 +3427,12 @@ class QuantumCircuit:
         return var
 
     def add_register(self, *regs: Register | int | Sequence[Bit]) -> None:
-        """Add registers."""
+        """Add registers.
+
+        Raises:
+            UserWarning: if the quantum circuit has an existing layout attribute, adding a QuantumRegister
+            will only increase the number of qubits. It will not update the layout.
+        """
         if not regs:
             return
 
@@ -3469,6 +3474,13 @@ class QuantumCircuit:
                         self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
+                if hasattr(self, "layout"):
+                    if self.layout is not None:
+                        warnings.warn(
+                            "Trying to add QuantumRegister to a QuantumCircuit having a layout",
+                            UserWarning,
+                            stacklevel=2,
+                        )
                 self._data.add_qreg(register)
 
             elif isinstance(register, ClassicalRegister):
@@ -3480,21 +3492,30 @@ class QuantumCircuit:
                 raise CircuitError("expected a register")
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
-        """Add Bits to the circuit."""
+        """Add Bits to the circuit.
+
+        Raises:
+            UserWarning: if the quantum circuit has an existing layout attribute, adding a Qubit
+            will only increase the number of qubits. It will not update the layout.
+
+        """
         duplicate_bits = {
             bit for bit in bits if bit in self._qubit_indices or bit in self._clbit_indices
         }
         if duplicate_bits:
             raise CircuitError(f"Attempted to add bits found already in circuit: {duplicate_bits}")
 
-        if hasattr(self, "layout"):
-            if self.layout is not None:
-                warnings.warn("The`layout` attribute is not `None`", UserWarning)
-
         for bit in bits:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
             if isinstance(bit, Qubit):
+                if hasattr(self, "layout"):
+                    if self.layout is not None:
+                        warnings.warn(
+                            "Trying to add bits to a QuantumCircuit having a layout",
+                            UserWarning,
+                            stacklevel=2,
+                        )
                 self._data.add_qubit(bit)
             elif isinstance(bit, Clbit):
                 self._data.add_clbit(bit)
