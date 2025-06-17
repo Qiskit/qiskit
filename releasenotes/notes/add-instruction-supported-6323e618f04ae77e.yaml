@@ -1,7 +1,7 @@
 ---
 features_transpiler:
   - |
-    Add functions ``qk_target_instruction_supported`, ``qk_target_reset_supported``, and
+    Add functions ``qk_target_instruction_supported``, ``qk_target_reset_supported``, and
     ``qk_target_measure_supported`` to check the compatibility of a ``QkGate``, a :class:`.Reset`
     instruction, or a :class:`.Measure` with the instance of ``QkTarget``
 

@@ -848,7 +848,7 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 ///     qk_target_add_instruction(target, crx_entry);
 ///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
-///     qk_target_instruction_supported(target, QkGate_CRX, [0, 1], 2)
+///     qk_target_instruction_supported(target, QkGate_CRX, [0, 1])
 ///
 /// # Safety
 ///
