@@ -508,7 +508,6 @@ int test_target(void) {
 QkTarget *create_sample_target(bool std_inst) {
     // Build sample target
     QkTarget *target = qk_target_new(0);
-    int result = Ok;
     QkTargetEntry *i_entry = qk_target_entry_new(QkGate_I);
     for (int i = 0; i < 4; i++) {
         uint32_t qargs[1] = {i};
