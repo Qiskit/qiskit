@@ -10,11 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::classical::expr::cast::Cast;
 use crate::classical::expr::{Expr, ExprKind, PyExpr, Value};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use pyo3::{intern, IntoPyObjectExt};
+use std::boxed::Box;
 
 /// A range expression that represents a sequence of values.
 #[derive(Clone, Debug, PartialEq)]
@@ -51,17 +53,17 @@ fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
             ty: Type::Uint(64),
         }
         .into())
-    } else if let Ok(raw) = value.extract::<f64>() {
-        Ok(Value::Float {
-            raw,
-            ty: Type::Float,
-        }
-        .into())
     } else if let Ok(expr) = value.extract::<Expr>() {
+        // Ensure the expression is of integer type
+        if !matches!(expr.ty(), Type::Uint(_)) {
+            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Range values must be of integer type",
+            ));
+        }
         Ok(expr)
     } else {
         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
-            "Expected integer, float, or Expr, got {}",
+            "Expected integer or Expr of integer type, got {}",
             value.get_type().name()?
         )))
     }
@@ -106,7 +108,72 @@ impl PyRange {
         let constant = start_expr.is_const()
             && stop_expr.is_const()
             && step_expr.as_ref().map_or(true, |s| s.is_const());
+        // Use the type of start as the default type
         let ty = ty.unwrap_or_else(|| start_expr.ty());
+        // Ensure the specified type is a Uint type if provided
+        if !matches!(ty, Type::Uint(_)) {
+            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Range type must be an unsigned integer type",
+            ));
+        }
+
+        // If a type was specified, cast all values to that type
+        let (start_expr, stop_expr, step_expr) = if ty != start_expr.ty() {
+            // Get the Python types module
+            let types = py.import("qiskit.circuit.classical.types")?;
+            let cast_kind = types.getattr("cast_kind")?;
+            let NONE = types.getattr("NONE")?.clone();
+
+            // Check if casts are valid
+            let start_ty = start_expr.ty().into_py_any(py)?;
+            let stop_ty = stop_expr.ty().into_py_any(py)?;
+            let target_ty = ty.clone().into_py_any(py)?;
+
+            let start_cast = cast_kind.call1((start_ty, target_ty.clone()))?;
+            let stop_cast = cast_kind.call1((stop_ty, target_ty.clone()))?;
+            let step_cast = step_expr
+                .as_ref()
+                .map(|s| {
+                    let s_ty = s.ty().into_py_any(py)?;
+                    let result = cast_kind.call1((s_ty, target_ty.clone()))?;
+                    result.eq(NONE.clone())
+                })
+                .transpose()?;
+
+            if start_cast.eq(NONE.clone())?
+                || stop_cast.eq(NONE.clone())?
+                || step_cast.unwrap_or(false)
+            {
+                return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                    "Cannot cast range values to the specified type",
+                ));
+            }
+
+            let start_expr = Expr::Cast(Box::new(Cast {
+                operand: start_expr.clone(),
+                ty: ty.clone(),
+                constant: start_expr.is_const(),
+                implicit: false,
+            }));
+            let stop_expr = Expr::Cast(Box::new(Cast {
+                operand: stop_expr.clone(),
+                ty: ty.clone(),
+                constant: stop_expr.is_const(),
+                implicit: false,
+            }));
+            let step_expr = step_expr.map(|s| {
+                Expr::Cast(Box::new(Cast {
+                    operand: s.clone(),
+                    ty: ty.clone(),
+                    constant: s.is_const(),
+                    implicit: false,
+                }))
+            });
+            (start_expr, stop_expr, step_expr)
+        } else {
+            (start_expr, stop_expr, step_expr)
+        };
+
         Ok((
             PyRange(Range {
                 start: start_expr,
@@ -164,7 +231,7 @@ impl PyRange {
         };
         let ty = self.0.ty.into_py_any(py)?.bind(py).repr()?;
         Ok(format!(
-            "Range(start={}, stop={}{}, ty={})",
+            "R(start={}, stop={}{}, ty={})",
             start, stop, step, ty
         ))
     }
@@ -189,12 +256,15 @@ impl PyRange {
             let step = step_py.bind(py);
             match step.getattr("name") {
                 Ok(name) => format!(", step={}", name.extract::<String>()?),
-                Err(_) => format!(", step={}", step.str()?.to_string()),
+                Err(_) => format!(", step={}", step.str()?),
             }
         } else {
             String::new()
         };
 
-        Ok(format!("Range({}, {}{})", start_str, stop_str, step_str))
+        Ok(format!("R({}, {}{})", start_str, stop_str, step_str))
     }
 }
+
+
+
