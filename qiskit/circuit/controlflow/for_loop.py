@@ -19,8 +19,9 @@ from typing import Iterable, Optional, Union, TYPE_CHECKING
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from .control_flow import ControlFlowOp
 from qiskit.circuit.classical.expr import Range
+from .control_flow import ControlFlowOp
+
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
