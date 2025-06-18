@@ -26,7 +26,7 @@ use indexmap::IndexMap;
 use pyo3::prelude::*;
 use pyo3::Python;
 use qiskit_circuit::bit::{
-    ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
+    ClassicalRegister, QuantumRegister, Register,
 };
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_circuit::circuit_data::CircuitData;
@@ -215,27 +215,27 @@ struct BuildScope {
 impl BuildScope {
     fn new(
         circuit_data: &CircuitData,
-        qubits: &[ShareableQubit],
-        clbits: &[ShareableClbit],
     ) -> Self {
         let mut bit_map: HashMap<BitType, BitType> = HashMap::new();
-        for q in qubits.iter() {
-            if let Some(qubit_index) = circuit_data.qubits().find(q) {
+        
+        // Map all qubits in the circuit
+        for i in 0..circuit_data.num_qubits() {
+            let qubit = Qubit(i as u32);
             bit_map.insert(
-                    BitType::Qubit(qubit_index),
-                    BitType::Qubit(qubit_index),
+                BitType::Qubit(qubit),
+                BitType::Qubit(qubit),
             );
-        }
         }
 
-        for c in clbits.iter() {
-            if let Some(clbit_index) = circuit_data.clbits().find(c) {
+        // Map all clbits in the circuit
+        for i in 0..circuit_data.num_clbits() {
+            let clbit = Clbit(i as u32);
             bit_map.insert(
-                    BitType::Clbit(clbit_index),
-                    BitType::Clbit(clbit_index),
+                BitType::Clbit(clbit),
+                BitType::Clbit(clbit),
             );
         }
-        }
+        
         Self {
             circuit_data: circuit_data.clone(),
             bit_map,
@@ -640,8 +640,6 @@ impl<'a> QASM3Builder {
             _gate_qubit_prefix: &GATE_QUBIT_PREFIX,
             circuit_scope: BuildScope::new(
                 circuit_data,
-                circuit_data.qubits().objects(),
-                circuit_data.clbits().objects(),
             ),
             is_layout,
             symbol_table: SymbolTable::new(),
@@ -686,21 +684,19 @@ impl<'a> QASM3Builder {
 
         let mut new_bit_map = HashMap::new();
 
-        for q in circuit_data.qubits().objects().iter() {
-            if let Some(qubit_index) = circuit_data.qubits().find(q) {
-                new_bit_map.insert(
-                    BitType::Qubit(qubit_index),
-                    BitType::Qubit(qubit_index),
-                );
-            }
+        for i in 0..circuit_data.num_qubits() {
+            let qubit = Qubit(i as u32);
+            new_bit_map.insert(
+                BitType::Qubit(qubit),
+                BitType::Qubit(qubit),
+            );
         }
-        for c in circuit_data.clbits().objects().iter() {
-            if let Some(clbit_index) = circuit_data.clbits().find(c) {
-                new_bit_map.insert(
-                    BitType::Clbit(clbit_index),
-                    BitType::Clbit(clbit_index),
-                );
-            }
+        for i in 0..circuit_data.num_clbits() {
+            let clbit = Clbit(i as u32);
+            new_bit_map.insert(
+                BitType::Clbit(clbit),
+                BitType::Clbit(clbit),
+            );
         }
 
         self.symbol_table.push_scope();
@@ -723,21 +719,19 @@ impl<'a> QASM3Builder {
     {
         let mut bit_map = HashMap::new();
 
-        for q in body.qubits().objects().iter() {
-            if let Some(qubit_index) = body.qubits().find(q) {
-                bit_map.insert(
-                    BitType::Qubit(qubit_index),
-                    BitType::Qubit(qubit_index),
-                );
-            }
+        for i in 0..body.num_qubits() {
+            let qubit = Qubit(i as u32);
+            bit_map.insert(
+                BitType::Qubit(qubit),
+                BitType::Qubit(qubit),
+            );
         }
-        for c in body.clbits().objects().iter() {
-            if let Some(clbit_index) = body.clbits().find(c) {
-                bit_map.insert(
-                    BitType::Clbit(clbit_index),
-                    BitType::Clbit(clbit_index),
-                );
-            }
+        for i in 0..body.num_clbits() {
+            let clbit = Clbit(i as u32);
+            bit_map.insert(
+                BitType::Clbit(clbit),
+                BitType::Clbit(clbit),
+            );
         }
 
         let new_table = self.symbol_table.new_context();
@@ -847,17 +841,25 @@ impl<'a> QASM3Builder {
     }
 
     fn hoist_classical_bits(&mut self) -> ExporterResult<Vec<Statement>> {
-        let clbit_indices = self.circuit_scope.circuit_data.clbit_indices();
-        let clbits = self.circuit_scope.circuit_data.clbits().objects();
-        let has_multiple_registers = clbits.iter().any(|clbit| {
-            let bit_info = self
-                .circuit_scope
-                .circuit_data
-                .clbit_indices()
-                .get(clbit)
-                .unwrap();
-            bit_info.registers().len() > 1
-        });
+        let num_clbits = self.circuit_scope.circuit_data.num_clbits();
+        
+        let mut has_multiple_registers = false;
+        let registers: Vec<_> = self.circuit_scope.circuit_data.cregs().to_vec();
+        let mut bit_register_count = vec![0; num_clbits];
+        for register in &registers {
+            for shareable_clbit in register.bits() {
+                if let Some(clbit_index) = self.circuit_scope.circuit_data.clbits().find(&shareable_clbit) {
+                    bit_register_count[clbit_index.0 as usize] += 1;
+                    if bit_register_count[clbit_index.0 as usize] > 1 {
+                        has_multiple_registers = true;
+                        break;
+                    }
+                }
+            }
+            if has_multiple_registers {
+                break;
+            }
+        }
 
         let mut decls = Vec::new();
         if has_multiple_registers {
@@ -866,13 +868,11 @@ impl<'a> QASM3Builder {
                     "Some Classical registers in this circuit overlap.".to_string(),
                 ));
             }
-            for (i, clbit) in clbits.iter().enumerate() {
-                // Get the actual circuit index for this clbit
-                let circuit_index = self.circuit_scope.circuit_data.clbits().find(clbit)
-                    .ok_or_else(|| QASM3ExporterError::Error(format!("Clbit not found in circuit data: {:?}", clbit)))?;
+            for i in 0..num_clbits {
+                let clbit = Clbit(i as u32);
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_bit_prefix, i),
-                    &BitType::Clbit(circuit_index),
+                    &BitType::Clbit(clbit),
                     true,
                     false,
                 )?;
@@ -889,17 +889,23 @@ impl<'a> QASM3Builder {
             }
             return Ok(decls);
         }
-        for (i, clbit) in clbits.iter().enumerate() {
-            if clbit_indices
-                .get(clbit)
-                .map_or(true, |bit_info| bit_info.registers().is_empty())
-            {
-                // Get the actual circuit index for this clbit
-                let circuit_index = self.circuit_scope.circuit_data.clbits().find(clbit)
-                    .ok_or_else(|| QASM3ExporterError::Error(format!("Clbit not found in circuit data: {:?}", clbit)))?;
+        
+        let mut clbits_in_registers = HashSet::new();
+        for creg in self.circuit_scope.circuit_data.cregs() {
+            for shareable_clbit in creg.bits() {
+                if let Some(clbit_index) = self.circuit_scope.circuit_data.clbits().find(&shareable_clbit) {
+                    clbits_in_registers.insert(clbit_index.0);
+                }
+            }
+        }
+
+        // Declare loose clbits (not in any register)
+        for i in 0..num_clbits {
+            if !clbits_in_registers.contains(&(i as u32)) {
+                let clbit = Clbit(i as u32);
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_bit_prefix, i),
-                    &BitType::Clbit(circuit_index),
+                    &BitType::Clbit(clbit),
                     true,
                     false,
                 )?;
@@ -910,6 +916,8 @@ impl<'a> QASM3Builder {
                 }));
             }
         }
+        
+        // Declare registers
         for creg in self.circuit_scope.circuit_data.cregs() {
             let identifier = self.symbol_table.register_registers(
                 creg.name().to_string(),
@@ -938,27 +946,35 @@ impl<'a> QASM3Builder {
     }
 
     fn build_qubit_decls(&mut self) -> ExporterResult<Vec<Statement>> {
-        let qubits = self.circuit_scope.circuit_data.qubits().objects().clone();
-        let has_multiple_registers = qubits.iter().any(|qubit| {
-            let bit_info = self
-                .circuit_scope
-                .circuit_data
-                .qubit_indices()
-                .get(qubit)
-                .unwrap();
-            bit_info.registers().len() > 1
-        });
+        let num_qubits = self.circuit_scope.circuit_data.num_qubits();
+        
+        let mut has_multiple_registers = false;
+        let registers: Vec<_> = self.circuit_scope.circuit_data.qregs().to_vec();
+        let mut bit_register_count = vec![0; num_qubits];
+        for register in &registers {
+            for shareable_qubit in register.bits() {
+                if let Some(qubit_index) = self.circuit_scope.circuit_data.qubits().find(&shareable_qubit) {
+                    bit_register_count[qubit_index.0 as usize] += 1;
+                    if bit_register_count[qubit_index.0 as usize] > 1 {
+                        has_multiple_registers = true;
+                        break;
+                    }
+                }
+            }
+            if has_multiple_registers {
+                break;
+            }
+        }
 
         let mut decls: Vec<Statement> = Vec::new();
 
         if self.is_layout {
             self.loose_qubit_prefix = "$";
-            for (i, qubit) in qubits.iter().enumerate() {
-                let circuit_index = self.circuit_scope.circuit_data.qubits().find(qubit)
-                    .ok_or_else(|| QASM3ExporterError::Error(format!("Qubit not found in circuit data: {:?}", qubit)))?;
+            for i in 0..num_qubits {
+                let qubit = Qubit(i as u32);
                 self.symbol_table.register_bits(
                     format!("${}", i),
-                    &BitType::Qubit(circuit_index),
+                    &BitType::Qubit(qubit),
                     false,
                     true,
                 )?;
@@ -973,12 +989,11 @@ impl<'a> QASM3Builder {
                 ));
             }
 
-            for (i, qubit) in qubits.iter().enumerate() {
-                let circuit_index = self.circuit_scope.circuit_data.qubits().find(qubit)
-                    .ok_or_else(|| QASM3ExporterError::Error(format!("Qubit not found in circuit data: {:?}", qubit)))?;
+            for i in 0..num_qubits {
+                let qubit = Qubit(i as u32);
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_qubit_prefix, i),
-                    &BitType::Qubit(circuit_index),
+                    &BitType::Qubit(qubit),
                     true,
                     false,
                 )?;
@@ -996,18 +1011,21 @@ impl<'a> QASM3Builder {
             return Ok(decls);
         }
 
-        let qubit_indices = self.circuit_scope.circuit_data.qubit_indices();
+        let mut qubits_in_registers = HashSet::new();
+        for qreg in self.circuit_scope.circuit_data.qregs() {
+            for shareable_qubit in qreg.bits() {
+                if let Some(qubit_index) = self.circuit_scope.circuit_data.qubits().find(&shareable_qubit) {
+                    qubits_in_registers.insert(qubit_index.0);
+                }
+            }
+        }
 
-        for (i, qubit) in qubits.iter().enumerate() {
-            if qubit_indices
-                .get(qubit)
-                .map_or(true, |bit_info| bit_info.registers().is_empty())
-            {
-                let circuit_index = self.circuit_scope.circuit_data.qubits().find(qubit)
-                    .ok_or_else(|| QASM3ExporterError::Error(format!("Qubit not found in circuit data: {:?}", qubit)))?;
+        for i in 0..num_qubits {
+            if !qubits_in_registers.contains(&(i as u32)) {
+                let qubit = Qubit(i as u32);
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_qubit_prefix, i),
-                    &BitType::Qubit(circuit_index),
+                    &BitType::Qubit(qubit),
                     true,
                     false,
                 )?;
@@ -1017,6 +1035,7 @@ impl<'a> QASM3Builder {
                 }));
             }
         }
+        
         for qreg in self.circuit_scope.circuit_data.qregs() {
             let identifier = self.symbol_table.register_registers(
                 qreg.name().to_string(),
