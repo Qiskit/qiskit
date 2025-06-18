@@ -28,6 +28,7 @@ use pyo3::Python;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
+use qiskit_circuit::{Clbit, Qubit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
 use qiskit_circuit::operations::{Operation, Param};
@@ -149,8 +150,8 @@ impl From<PyErr> for QASM3ExporterError {
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 enum BitType {
-    ShareableQubit(ShareableQubit),
-    ShareableClbit(ShareableClbit),
+    Qubit(Qubit),
+    Clbit(Clbit),
 }
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
@@ -167,15 +168,19 @@ impl RegisterType {
         }
     }
 
-    fn bits(&self) -> Vec<BitType> {
+    fn bits(&self, circuit_data: &CircuitData) -> Vec<BitType> {
         match self {
             RegisterType::QuantumRegister(quantum_register) => quantum_register
                 .bits()
-                .map(BitType::ShareableQubit)
+                .filter_map(|shareable_qubit| {
+                    circuit_data.qubits().find(&shareable_qubit).map(BitType::Qubit)
+                })
                 .collect(),
             RegisterType::ClassicalRegister(classical_register) => classical_register
                 .bits()
-                .map(BitType::ShareableClbit)
+                .filter_map(|shareable_clbit| {
+                    circuit_data.clbits().find(&shareable_clbit).map(BitType::Clbit)
+                })
                 .collect(),
         }
     }
@@ -215,17 +220,21 @@ impl BuildScope {
     ) -> Self {
         let mut bit_map: HashMap<BitType, BitType> = HashMap::new();
         for q in qubits.iter() {
-            bit_map.insert(
-                BitType::ShareableQubit(q.clone()),
-                BitType::ShareableQubit(q.clone()),
-            );
+            if let Some(qubit_index) = circuit_data.qubits().find(q) {
+                bit_map.insert(
+                    BitType::Qubit(qubit_index),
+                    BitType::Qubit(qubit_index),
+                );
+            }
         }
 
         for c in clbits.iter() {
-            bit_map.insert(
-                BitType::ShareableClbit(c.clone()),
-                BitType::ShareableClbit(c.clone()),
-            );
+            if let Some(clbit_index) = circuit_data.clbits().find(c) {
+                bit_map.insert(
+                    BitType::Clbit(clbit_index),
+                    BitType::Clbit(clbit_index),
+                );
+            }
         }
         Self {
             circuit_data: circuit_data.clone(),
@@ -678,16 +687,20 @@ impl<'a> QASM3Builder {
         let mut new_bit_map = HashMap::new();
 
         for q in circuit_data.qubits().objects().iter() {
-            new_bit_map.insert(
-                BitType::ShareableQubit(q.clone()),
-                BitType::ShareableQubit(q.clone()),
-            );
+            if let Some(qubit_index) = circuit_data.qubits().find(q) {
+                new_bit_map.insert(
+                    BitType::Qubit(qubit_index),
+                    BitType::Qubit(qubit_index),
+                );
+            }
         }
         for c in circuit_data.clbits().objects().iter() {
-            new_bit_map.insert(
-                BitType::ShareableClbit(c.clone()),
-                BitType::ShareableClbit(c.clone()),
-            );
+            if let Some(clbit_index) = circuit_data.clbits().find(c) {
+                new_bit_map.insert(
+                    BitType::Clbit(clbit_index),
+                    BitType::Clbit(clbit_index),
+                );
+            }
         }
 
         self.symbol_table.push_scope();
@@ -711,16 +724,20 @@ impl<'a> QASM3Builder {
         let mut bit_map = HashMap::new();
 
         for q in body.qubits().objects().iter() {
-            bit_map.insert(
-                BitType::ShareableQubit(q.clone()),
-                BitType::ShareableQubit(q.clone()),
-            );
+            if let Some(qubit_index) = body.qubits().find(q) {
+                bit_map.insert(
+                    BitType::Qubit(qubit_index),
+                    BitType::Qubit(qubit_index),
+                );
+            }
         }
         for c in body.clbits().objects().iter() {
-            bit_map.insert(
-                BitType::ShareableClbit(c.clone()),
-                BitType::ShareableClbit(c.clone()),
-            );
+            if let Some(clbit_index) = body.clbits().find(c) {
+                bit_map.insert(
+                    BitType::Clbit(clbit_index),
+                    BitType::Clbit(clbit_index),
+                );
+            }
         }
 
         let new_table = self.symbol_table.new_context();
@@ -744,7 +761,7 @@ impl<'a> QASM3Builder {
         let id = self
             .symbol_table
             .get_bitinfo(qubit_ref)
-            .ok_or_else(|| QASM3ExporterError::Error(format!("Bit not found: {:?}", bit)))?;
+            .ok_or_else(|| QASM3ExporterError::Error(format!("Bit not found: {:?}, qubit_ref: {:?}", bit, qubit_ref)))?;
         Ok(id)
     }
 
@@ -850,9 +867,12 @@ impl<'a> QASM3Builder {
                 ));
             }
             for (i, clbit) in clbits.iter().enumerate() {
+                // Get the actual circuit index for this clbit
+                let circuit_index = self.circuit_scope.circuit_data.clbits().find(clbit)
+                    .ok_or_else(|| QASM3ExporterError::Error(format!("Clbit not found in circuit data: {:?}", clbit)))?;
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_bit_prefix, i),
-                    &BitType::ShareableClbit(clbit.clone()),
+                    &BitType::Clbit(circuit_index),
                     true,
                     false,
                 )?;
@@ -874,9 +894,12 @@ impl<'a> QASM3Builder {
                 .get(clbit)
                 .map_or(true, |bit_info| bit_info.registers().is_empty())
             {
+                // Get the actual circuit index for this clbit
+                let circuit_index = self.circuit_scope.circuit_data.clbits().find(clbit)
+                    .ok_or_else(|| QASM3ExporterError::Error(format!("Clbit not found in circuit data: {:?}", clbit)))?;
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_bit_prefix, i),
-                    &BitType::ShareableClbit(clbit.clone()),
+                    &BitType::Clbit(circuit_index),
                     true,
                     false,
                 )?;
@@ -893,16 +916,18 @@ impl<'a> QASM3Builder {
                 &RegisterType::ClassicalRegister(creg.clone()),
             )?;
 
-            for (i, clbit) in creg.bits().enumerate() {
-                self.symbol_table.set_bitinfo(
-                    Expression::Index(Index {
-                        target: Box::new(Expression::Parameter(Parameter {
-                            obj: identifier.string.to_string(),
-                        })),
-                        index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
-                    }),
-                    BitType::ShareableClbit(clbit),
-                )
+            for (i, shareable_clbit) in creg.bits().enumerate() {
+                if let Some(clbit) = self.circuit_scope.circuit_data.clbits().find(&shareable_clbit) {
+                    self.symbol_table.set_bitinfo(
+                        Expression::Index(Index {
+                            target: Box::new(Expression::Parameter(Parameter {
+                                obj: identifier.string.to_string(),
+                            })),
+                            index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+                        }),
+                        BitType::Clbit(clbit),
+                    )
+                }
             }
             decls.push(Statement::ClassicalDeclaration(ClassicalDeclaration {
                 type_: ClassicalType::BitArray(BitArray(creg.len() as u32)),
@@ -929,9 +954,11 @@ impl<'a> QASM3Builder {
         if self.is_layout {
             self.loose_qubit_prefix = "$";
             for (i, qubit) in qubits.iter().enumerate() {
+                let circuit_index = self.circuit_scope.circuit_data.qubits().find(qubit)
+                    .ok_or_else(|| QASM3ExporterError::Error(format!("Qubit not found in circuit data: {:?}", qubit)))?;
                 self.symbol_table.register_bits(
                     format!("${}", i),
-                    &BitType::ShareableQubit(qubit.clone()),
+                    &BitType::Qubit(circuit_index),
                     false,
                     true,
                 )?;
@@ -947,9 +974,11 @@ impl<'a> QASM3Builder {
             }
 
             for (i, qubit) in qubits.iter().enumerate() {
+                let circuit_index = self.circuit_scope.circuit_data.qubits().find(qubit)
+                    .ok_or_else(|| QASM3ExporterError::Error(format!("Qubit not found in circuit data: {:?}", qubit)))?;
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_qubit_prefix, i),
-                    &BitType::ShareableQubit(qubit.clone()),
+                    &BitType::Qubit(circuit_index),
                     true,
                     false,
                 )?;
@@ -974,9 +1003,11 @@ impl<'a> QASM3Builder {
                 .get(qubit)
                 .map_or(true, |bit_info| bit_info.registers().is_empty())
             {
+                let circuit_index = self.circuit_scope.circuit_data.qubits().find(qubit)
+                    .ok_or_else(|| QASM3ExporterError::Error(format!("Qubit not found in circuit data: {:?}", qubit)))?;
                 let identifier = self.symbol_table.register_bits(
                     format!("{}{}", self.loose_qubit_prefix, i),
-                    &BitType::ShareableQubit(qubit.clone()),
+                    &BitType::Qubit(circuit_index),
                     true,
                     false,
                 )?;
@@ -991,16 +1022,18 @@ impl<'a> QASM3Builder {
                 qreg.name().to_string(),
                 &RegisterType::QuantumRegister(qreg.clone()),
             )?;
-            for (i, qubit) in qreg.bits().enumerate() {
-                self.symbol_table.set_bitinfo(
-                    Expression::Index(Index {
-                        target: Box::new(Expression::Parameter(Parameter {
-                            obj: identifier.string.to_string(),
-                        })),
-                        index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
-                    }),
-                    BitType::ShareableQubit(qubit),
-                )
+            for (i, shareable_qubit) in qreg.bits().enumerate() {
+                if let Some(qubit) = self.circuit_scope.circuit_data.qubits().find(&shareable_qubit) {
+                    self.symbol_table.set_bitinfo(
+                        Expression::Index(Index {
+                            target: Box::new(Expression::Parameter(Parameter {
+                                obj: identifier.string.to_string(),
+                            })),
+                            index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+                        }),
+                        BitType::Qubit(qubit),
+                    )
+                }
             }
             decls.push(Statement::QuantumDeclaration(QuantumDeclaration {
                 identifier,
@@ -1017,7 +1050,7 @@ impl<'a> QASM3Builder {
             .symbol_table
             .register_registers(register.name().to_string(), register)?;
         let mut elements = Vec::new();
-        for (i, bit) in register.bits().iter().enumerate() {
+        for (i, bit) in register.bits(&self.circuit_scope.circuit_data).iter().enumerate() {
             let id = {
                 let temp_id = self.lookup_bit(bit)?;
                 temp_id.clone()
@@ -1097,12 +1130,9 @@ impl<'a> QASM3Builder {
             .qargs_interner()
             .get(instr.qubits);
         let mut qubit_ids = Vec::new();
-        let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
-            let id = self.lookup_bit(&BitType::ShareableQubit(
-                qubits_registry.get(*q).unwrap().clone(),
-            ))?;
+            let id = self.lookup_bit(&BitType::Qubit(*q))?;
             qubit_ids.push(id.to_owned());
         }
         stmts.push(Statement::QuantumInstruction(QuantumInstruction::Barrier(
@@ -1124,12 +1154,9 @@ impl<'a> QASM3Builder {
             .qargs_interner()
             .get(instr.qubits);
         let mut qubits = Vec::new();
-        let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
-            let id = self.lookup_bit(&BitType::ShareableQubit(
-                qubits_registry.get(*q).unwrap().clone(),
-            ))?;
+            let id = self.lookup_bit(&BitType::Qubit(*q))?;
             qubits.push(id.to_owned());
         }
         let measurement = QuantumMeasurement {
@@ -1141,10 +1168,7 @@ impl<'a> QASM3Builder {
             .circuit_data
             .cargs_interner()
             .get(instr.clbits);
-        let clbits_registry = self.circuit_scope.circuit_data.clbits();
-        let id = self.lookup_bit(&BitType::ShareableClbit(
-            clbits_registry.get(cargs[0]).unwrap().clone(),
-        ))?;
+        let id = self.lookup_bit(&BitType::Clbit(cargs[0]))?;
         stmts.push(Statement::QuantumMeasurementAssignment(
             QuantumMeasurementAssignment {
                 identifier: id.to_owned(),
@@ -1164,12 +1188,9 @@ impl<'a> QASM3Builder {
             .circuit_data
             .qargs_interner()
             .get(instr.qubits);
-        let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
-            let id = self.lookup_bit(&BitType::ShareableQubit(
-                qubits_registry.get(*q).unwrap().clone(),
-            ))?;
+            let id = self.lookup_bit(&BitType::Qubit(*q))?;
 
             stmts.push(Statement::QuantumInstruction(QuantumInstruction::Reset(
                 Reset {
@@ -1268,12 +1289,9 @@ impl<'a> QASM3Builder {
             .circuit_data
             .qargs_interner()
             .get(instr.qubits);
-        let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
-            let id = self.lookup_bit(&BitType::ShareableQubit(
-                qubits_registry.get(*q).unwrap().clone(),
-            ))?;
+            let id = self.lookup_bit(&BitType::Qubit(*q))?;
             qubits.push(id.to_owned());
         }
         Ok(Delay {
@@ -1328,12 +1346,9 @@ impl<'a> QASM3Builder {
             .circuit_data
             .qargs_interner()
             .get(instr.qubits);
-        let qubits_registry = self.circuit_scope.circuit_data.qubits();
         let mut qubit_ids = Vec::new();
         for q in qargs {
-            let id = self.lookup_bit(&BitType::ShareableQubit(
-                qubits_registry.get(*q).unwrap().clone(),
-            ))?;
+            let id = self.lookup_bit(&BitType::Qubit(*q))?;
             qubit_ids.push(id.to_owned());
         }
         Ok(GateCall {
@@ -1400,7 +1415,7 @@ impl<'a> QASM3Builder {
                         Expression::Parameter(Parameter {
                             obj: qid.string.clone(),
                         }),
-                        BitType::ShareableQubit(q.to_owned()),
+                        BitType::Qubit(Qubit(i as u32)),
                     );
                 }
 
