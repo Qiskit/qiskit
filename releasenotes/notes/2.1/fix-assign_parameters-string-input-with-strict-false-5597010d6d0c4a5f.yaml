@@ -3,5 +3,5 @@ fixes:
   - |
     Fixed a bug in the :meth:`.QuantumCircuit.assign_parameters` method where parameters
     that were not used in the circuit and were passed as strings were not ignored when
-    the argument `strict=False` was set.
+    the argument ``strict=False`` was set.
     Refer to `issue #13933 <https://github.com/Qiskit/qiskit/issues/13933>`_ for more details.

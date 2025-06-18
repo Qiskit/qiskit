@@ -16,7 +16,9 @@ features_transpiler:
       # Run Solovay-Kitaev pass on qc
       transpiled = SolovayKitaev()(qc)
       print(transpiled.count_ops().get("t", 0) + transpiled.count_ops().get("tdg", 0))
+      # Should print 12779
 
       # Run Clifford+T optimization
       optimized = OptimizeCliffordT()(transpiled)
       print(optimized.count_ops().get("t", 0) + optimized.count_ops().get("tdg", 0))
+      # Should print 9011

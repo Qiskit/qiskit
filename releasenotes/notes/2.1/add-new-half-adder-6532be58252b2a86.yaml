@@ -8,9 +8,8 @@ features_synthesis:
 
 features_transpiler:
   - |
-    Added a new high-level-synthesis plugin for synthesizing a :class:`.HalfAdderGate`:
-
-    * :class:`.HalfAdderSynthesisR25`, based on :func:`.adder_ripple_r25`.
+    Added a new high-level-synthesis plugin :class:`.HalfAdderSynthesisR25` for synthesizing a
+    :class:`.HalfAdderGate`. The new plugin is based on :func:`.adder_ripple_r25`.
 
     The :class:`.HalfAdderSynthesisDefault` has also been updated to follow the following sequence
     of half adder synthesizers: ``"HalfAdder.ripple_r25"`` when there are
@@ -20,8 +19,8 @@ features_transpiler:
 upgrade_circuits:
   - |
     The :attr:`~.HalfAdderGate.definition` attribute of the :class:`.HalfAdderGate`
-    has been changed to internall use :func:`.adder_ripple_r25` to generate the definition
+    has been changed to internally use :func:`.adder_ripple_r25` to generate the definition
     of the gate for a more efficient circuit with no ancillary qubits. If the old definition
-    is desired for some reason you can use the :func:`.adder_qft_d00` function instead which
+    is desired for some reason you can directly use the :func:`.adder_qft_d00` function instead which
     will generate a circuit equivalent to what :attr:`~.HalfAdderGate.definition` would return
     in previous releases.

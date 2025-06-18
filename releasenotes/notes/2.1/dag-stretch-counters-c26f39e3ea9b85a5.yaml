@@ -1,7 +1,6 @@
 ---
 features_transpiler:
   - |
-    Added :class:`~.DAGCircuit` attributes
-    :attr:`~.DAGCircuit.num_stretches`,
-    :attr:`~.DAGCircuit.num_captured_stretches`,
+    Added the following attributes to the :class:`~.DAGCircuit` class to enable querying the number
+    of stretch variables: :attr:`~.DAGCircuit.num_stretches`, :attr:`~.DAGCircuit.num_captured_stretches`
     and :attr:`~.DAGCircuit.num_declared_stretches`.

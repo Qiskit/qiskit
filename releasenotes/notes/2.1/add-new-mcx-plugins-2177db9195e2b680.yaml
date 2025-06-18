@@ -8,6 +8,8 @@ features_transpiler:
     * :class:`.MCXSynthesis2CleanKG24`, based on :func:`.synth_mcx_2_clean_kg24`.
     * :class:`.MCXSynthesis2DirtyKG24`, based on :func:`.synth_mcx_2_dirty_kg24`.
 
-    The :class:`.MCXSynthesisDefault` class has also been updated to follow the following sequence of
-    MCX synthesizers: ``"mcx.2_clean_kg24"``, ``"mcx.1_clean_kg24"``, ``"mcx.n_clean_m15"``, ``"mcx.n_dirty_i15"`,
-    ``"mcx.2_dirty_kg24"``, ``"mcx.1_dirty_kg24"``, ``"mcx.1_clean_b95"``, ``"mcx.noaux_v24"``.
+    The :class:`.MCXSynthesisDefault` class has also been updated to run the following
+    sequence of MCX synthesize methods until the first one succeeds:
+    : ``"mcx.2_clean_kg24"``, ``"mcx.1_clean_kg24"``, ``"mcx.n_clean_m15"``, ``"mcx.n_dirty_i15"`,
+    ``"mcx.2_dirty_kg24"``, ``"mcx.1_dirty_kg24"``, ``"mcx.1_clean_b95"``, ``"mcx.noaux_v24"``. The methods
+    are ordered in a way that the better-quality ones are applied first.

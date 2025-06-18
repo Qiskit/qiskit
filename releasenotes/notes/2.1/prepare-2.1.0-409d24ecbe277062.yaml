@@ -8,8 +8,9 @@ prelude: >
       and interacting with quantum circuits via C API functions, supporting the addition of standard gates, standard
       instructions and unitary gates. Also added in this release is a set of C functions to build and manipulate a
       :class:`.Target` object, as preparation for supporting a complete C API-based transpilation workflow in the next
-      release. In addition, ``QkComplex64`` is now defined as a struct, serving as a compiler-agnostic representation
-      for complex numbers when working with Qiskit's C API. All of the C API functions can now be used natively from C++.
+      release. In addition, :cpp:class:`QkComplex64` is now defined as a struct, serving as a compiler-agnostic representation
+      for complex numbers when working with Qiskit's C API. Note that the C API functions are generally compatible to
+      be used natively in C++.
 
     * *Clifford+T basis set support:* Transpiling circuits for a target with Clifford+T gates is now supported out of
       the box. Under the hood, if the basis set consists only of Clifford+T gates, Qiskit ensures that the appropriate

@@ -21,6 +21,13 @@ features_transpiler:
       qct = pm.run(qc)
       print(qct.count_ops())
 
+    Would result with:
+
+    .. code-block:: text
+
+      OrderedDict([('h', 10210), ('t', 4508), ('tdg', 4503), ('sdg', 943), ('s', 941)])
+
+
     Previously, the generated pass manager could not handle the example above
     because it couldn't decompose single-qubit :class:`.UGate` rotation gates into
     Clifford+T gates. However, the new pass manager uses the
@@ -56,3 +63,9 @@ features_transpiler:
 
       qct = pm.run(qc)
       print(qct.count_ops())
+
+    Would result with:
+
+    .. code-block:: text
+
+      OrderedDict([('h', 96510), ('tdg', 42396), ('t', 42389), ('s', 8240), ('sdg', 8235), ('cx', 12)])

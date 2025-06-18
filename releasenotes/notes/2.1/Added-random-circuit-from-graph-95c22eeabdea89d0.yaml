@@ -20,8 +20,7 @@ features_circuits:
         pydi_graph = rx.PyDiGraph()
         n_q = 5
         cp_map = [(0, 1, 0.18), (1, 2, 0.15), (2, 3, 0.15), (3, 4, 0.22)]
-        pydi_graph.add_nodes_from(range(n_q))
-        pydi_graph.add_edges_from(cp_map)
+        pydi_graph.extend_from_weighted_edge_list(cp_map)
         # cp_map can be passed in directly as interaction_graph
         qc = random_circuit_from_graph(interaction_graph = pydi_graph,
           min_2q_gate_per_edge = 1,
