@@ -395,7 +395,7 @@ def _text_circuit_drawer(
     encoding=None,
     wire_order=None,
     expr_len=30,
-    measure_arrows=None,
+    measure_arrows=True,
 ):
     """Draws a circuit using ascii art.
 

@@ -1110,6 +1110,7 @@ class TextDrawing:
         conditional = False
         base_gate = getattr(op, "base_gate", None)
 
+        # For measure_arrows False, put the reg_bit into the params string
         if isinstance(op, Measure) and not self.measure_arrows:
             register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
             if register is not None:
