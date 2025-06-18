@@ -327,7 +327,9 @@ impl SymbolTable {
     }
 
     fn can_shadow_symbol(&self, name: &str) -> bool {
-        !self.scopes.last().unwrap().symbols.contains_key(name)
+        self.scopes.last()
+            .map(|scope| !scope.symbols.contains_key(name))
+            .unwrap_or(true)
             && !self.gates.contains_key(name)
             && !RESERVED_KEYWORDS.contains(name)
     }
@@ -348,7 +350,7 @@ impl SymbolTable {
                 name = format!("_{}", _BAD_IDENTIFIER_CHARACTERS.replace_all(&name, "_"));
             }
             while !name_allowed(&name, self) {
-                name = format!("{}{}", name, self._counter.next().unwrap());
+                name = format!("{}{}", name, self._counter.next().expect("Counter should never fail"));
             }
             return Ok(name);
         }
@@ -1125,7 +1127,7 @@ impl<'a> QASM3Builder {
                     Ok(())
                 }
                 "store" => {
-                    panic!("Store is not yet supported");
+                    return Err(QASM3ExporterError::Error("Store is not yet supported".to_string()));
                 }
                 _ => {
                     let gate_call = self.build_gate_call(instruction)?;
@@ -1244,33 +1246,29 @@ impl<'a> QASM3Builder {
             ));
         };
         let param = &instr.params_view()[0];
-        let duration: f64 = Python::with_gil(|py| match param {
-            Param::Float(val) => *val,
-            Param::ParameterExpression(p) => {
-                let py_obj = p.bind(py);
-                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                let name = py_str
-                    .str()
-                    .expect("Failed to convert PyString to &str")
-                    .to_string();
-                match name.parse::<f64>() {
-                    Ok(val) => val,
-                    Err(_) => panic!("Failed to parse parameter value"),
+        let duration: f64 = Python::with_gil(|py| -> Result<f64, QASM3ExporterError> {
+            Ok(match param {
+                Param::Float(val) => *val,
+                Param::ParameterExpression(p) => {
+                    let py_obj = p.bind(py);
+                    let py_str = py_obj.str().map_err(|e| QASM3ExporterError::Error(format!("Failed to call str() on Parameter: {}", e)))?;
+                    let name = py_str
+                        .str()
+                        .map_err(|e| QASM3ExporterError::Error(format!("Failed to convert PyString to &str: {}", e)))?
+                        .to_string();
+                    name.parse::<f64>().map_err(|e| QASM3ExporterError::Error(format!("Failed to parse parameter value: {}", e)))?
                 }
-            }
-            Param::Obj(obj) => {
-                let py_obj = obj.bind(py);
-                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                let name = py_str
-                    .str()
-                    .expect("Failed to convert PyString to &str")
-                    .to_string();
-                match name.parse::<f64>() {
-                    Ok(val) => val,
-                    Err(_) => panic!("Failed to parse parameter value"),
+                Param::Obj(obj) => {
+                    let py_obj = obj.bind(py);
+                    let py_str = py_obj.str().map_err(|e| QASM3ExporterError::Error(format!("Failed to call str() on Parameter: {}", e)))?;
+                    let name = py_str
+                        .str()
+                        .map_err(|e| QASM3ExporterError::Error(format!("Failed to convert PyString to &str: {}", e)))?
+                        .to_string();
+                    name.parse::<f64>().map_err(|e| QASM3ExporterError::Error(format!("Failed to parse parameter value: {}", e)))?
                 }
-            }
-        });
+            })
+        })?;
 
         let mut map = HashMap::new();
         map.insert(DelayUnit::NS, DurationUnit::Nanosecond);
@@ -1327,30 +1325,29 @@ impl<'a> QASM3Builder {
             self.define_gate(instr)?;
         }
         let params = if self.disable_constants {
-            Python::with_gil(|_py| {
+            Python::with_gil(|_py| -> Result<Vec<Expression>, QASM3ExporterError> {
                 instr
                     .params_view()
                     .iter()
                     .map(|param| match param {
-                        Param::Float(val) => Expression::Parameter(Parameter {
+                        Param::Float(val) => Ok(Expression::Parameter(Parameter {
                             obj: val.to_string(),
-                        }),
+                        })),
                         Param::ParameterExpression(p) => {
-                            let name = Python::with_gil(|py| {
+                            let name = Python::with_gil(|py| -> Result<String, QASM3ExporterError> {
                                 let py_obj = p.bind(py);
-                                let py_str =
-                                    py_obj.str().expect("Failed to call str() on Parameter");
-                                py_str
+                                let py_str = py_obj.str().map_err(|e| QASM3ExporterError::Error(format!("Failed to call str() on Parameter: {}", e)))?;
+                                Ok(py_str
                                     .str()
-                                    .expect("Failed to convert PyString to &str")
-                                    .to_string()
-                            });
-                            Expression::Parameter(Parameter { obj: name })
+                                    .map_err(|e| QASM3ExporterError::Error(format!("Failed to convert PyString to &str: {}", e)))?
+                                    .to_string())
+                            })?;
+                            Ok(Expression::Parameter(Parameter { obj: name }))
                         }
-                        Param::Obj(_) => panic!("Objects not supported yet"),
+                        Param::Obj(_) => Err(QASM3ExporterError::Error("Objects not supported yet".to_string())),
                     })
-                    .collect::<Vec<_>>()
-            })
+                    .collect::<Result<Vec<_>, _>>()
+            })?
         } else {
             return Err(QASM3ExporterError::Error(
                 "Constant parameters not supported yet".to_string(),
@@ -1380,23 +1377,23 @@ impl<'a> QASM3Builder {
     #[allow(dead_code)]
     fn define_gate(&mut self, instr: &PackedInstruction) -> ExporterResult<()> {
         let operation = &instr.op;
-        let params: Vec<Param> = Python::with_gil(|py| {
-            let qiskit_circuit =
-                PyModule::import(py, "qiskit.circuit").expect("Failed to import qiskit.circuit");
+        let params: Vec<Param> = Python::with_gil(|py| -> Result<Vec<Param>, QASM3ExporterError> {
+            let qiskit_circuit = PyModule::import(py, "qiskit.circuit")
+                .map_err(|e| QASM3ExporterError::Error(format!("Failed to import qiskit.circuit: {}", e)))?;
             let parameter_class = qiskit_circuit
                 .getattr("Parameter")
-                .expect("No Parameter class in qiskit.circuit");
+                .map_err(|e| QASM3ExporterError::Error(format!("No Parameter class in qiskit.circuit: {}", e)))?;
 
             (0..instr.params_view().len())
                 .map(|i| {
                     let name = format!("{}_{}", self._gate_param_prefix, i);
                     let py_param = parameter_class
                         .call1((name,))
-                        .expect("Failed to create Parameter");
-                    Param::ParameterExpression(py_param.into())
+                        .map_err(|e| QASM3ExporterError::Error(format!("Failed to create Parameter: {}", e)))?;
+                    Ok(Param::ParameterExpression(py_param.into()))
                 })
-                .collect()
-        });
+                .collect::<Result<Vec<_>, _>>()
+        })?;
         if let Some(instruction) = operation.definition(&params) {
             let params_def = params
                 .iter()

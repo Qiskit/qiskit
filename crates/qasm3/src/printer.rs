@@ -15,7 +15,7 @@ use hashbrown::HashMap;
 use std::fmt::Write;
 
 use crate::ast::{
-    Alias, Assignment, Barrier, Binary, BitArray, BooleanLiteral, Cast,
+    Alias, Assignment, Barrier, Binary, BitArray, BitstringLiteral, BooleanLiteral, Cast,
     ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float,
     GateCall, Header, Identifier, Include, Index, IndexSet, Int,
     IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
@@ -124,9 +124,7 @@ impl<'a> BasicPrinter<'a> {
             Expression::Range(expression) => self.visit_range(expression),
             Expression::IntegerLiteral(expression) => self.visit_integer_literal(expression),
             Expression::BooleanLiteral(expression) => self.visit_boolean_literal(expression),
-            Expression::BitstringLiteral(_) => {
-                panic!("BasicPrinter: BitStringLiteral has not been supported yet.")
-            }
+            Expression::BitstringLiteral(expression) => self.visit_bitstring_literal(expression),
             Expression::DurationLiteral(expression) => self.visit_duration_literal(expression),
             Expression::Unary(expression) => self.visit_unary(expression),
             Expression::Binary(expression) => self.visit_binary(expression),
@@ -174,6 +172,10 @@ impl<'a> BasicPrinter<'a> {
             if expression.0 { "true" } else { "false" }
         )
         .unwrap();
+    }
+
+    fn visit_bitstring_literal(&mut self, expression: &BitstringLiteral) {
+        write!(self.stream, "\"{}\"", expression.value).unwrap();
     }
 
     fn visit_modifier_sequence(
