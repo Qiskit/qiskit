@@ -22,8 +22,6 @@ This module contains the infrastructure for working with custom circuit annotati
 The main user-facing class is the base class :class:`qiskit.circuit.Annotation`, which is also
 re-exported from this module.
 
-.. autoclass:: Annotation
-
 .. _circuit-annotation-subclassing:
 
 Custom annotation subclasses

@@ -280,11 +280,6 @@ a compiler pass either locally, or in later backend processing.  Currently this 
 :class:`BoxOp`.  These annotations are represented by custom subclasses of :class:`Annotation`, and
 there is further discussion of the support infrastructure in :mod:`qiskit.circuit.annotation`.
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    BoxOp
-
 :ref:`Circuits can include classical expressions that are evaluated in real time
 <circuit-repr-real-time-classical>`, while the QPU is executing a single shot of the circuit.  These
 are primarily documented in the module documentation of :mod:`qiskit.circuit.classical`.  You might
