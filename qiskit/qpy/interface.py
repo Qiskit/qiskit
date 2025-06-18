@@ -366,12 +366,14 @@ def load(
         # Obtain the byte offsets for each program
         program_offsets = []
         for _ in range(data.num_programs):
-            program_offsets.append(
-                struct.unpack(
+        program_offsets.append(
+            formats.CIRCUIT_TABLE_ENTRY(
+                *struct.unpack(
                     formats.CIRCUIT_TABLE_ENTRY_PACK,
                     file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
-                ).offset
-            )
+                )
+            ).offset
+        )
 
     programs = []
     for i in range(data.num_programs):
