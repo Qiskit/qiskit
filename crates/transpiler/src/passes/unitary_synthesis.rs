@@ -32,7 +32,7 @@ use pyo3::Python;
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, VarsMode};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::Qubit;
 
@@ -179,9 +179,10 @@ fn apply_synth_sequence(
             }
         };
 
-        let new_op: PackedOperation = match packed_op.py_copy(py)?.view() {
+        let new_op: PackedOperation = match packed_op.view() {
             OperationRef::Gate(gate) => {
-                gate.gate.setattr(
+                let new_gate = gate.py_copy(py)?;
+                new_gate.gate.setattr(
                     py,
                     "params",
                     new_params
@@ -191,14 +192,7 @@ fn apply_synth_sequence(
                         .map(|param| param.clone_ref(py))
                         .collect::<SmallVec<[Param; 3]>>(),
                 )?;
-                Box::new(PyGate {
-                    gate: gate.gate.clone(),
-                    qubits: gate.qubits,
-                    clbits: gate.clbits,
-                    params: gate.params,
-                    op_name: gate.op_name.clone(),
-                })
-                .into()
+                Box::new(new_gate).into()
             }
             OperationRef::StandardGate(_) => packed_op.clone(),
             _ => {

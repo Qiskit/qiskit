@@ -19,6 +19,7 @@ use pyo3::prelude::*;
 use crate::circuit_data::CircuitData;
 use crate::classical::expr;
 use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::operations::{OperationRef, PythonOperation};
 use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
@@ -106,7 +107,16 @@ pub fn dag_to_circuit(
                 )
             };
             if copy_operations {
-                let op = instr.op.py_deepcopy(None)?;
+                let op = match instr.op.view() {
+                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        instruction.py_deepcopy(py, None)?.into()
+                    }
+                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                };
                 Ok(PackedInstruction {
                     op,
                     qubits: instr.qubits,
