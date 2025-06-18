@@ -1,4 +1,4 @@
-upgrade_qpy:
+features_qpy:
   - |
     The QPY format has been upgraded to version 16, which includes a new circuit start table
     which contains the byte offsets of the start of each circuit in a QPY file. This allows
