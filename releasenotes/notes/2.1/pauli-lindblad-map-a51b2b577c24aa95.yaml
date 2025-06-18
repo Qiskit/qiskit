@@ -1,7 +1,12 @@
 ---
 features_quantum_info:
   - |
-    Introduced the :class:`.QubitSparsePauli`, :class:`.QubitSparsePauliList`, and
-    :class:`.PauliLindbladMap` classes. These classes represent, respectively, a single phase-less
-    Pauli operator, a list of phase-less Pauli operators, and a Pauli Lindblad map, all stored
-    in qubit-sparse format.
+    A new class, :class:`.PauliLindbladMap`, is added, which is a Pauli-based parametrization of
+    a subset of linear maps of multi-qubit operators, used in noise-learning applications.
+    This class is expected to form the backbone of enhanced noise-learning algorithms, and provide
+    better and more efficient control over noise models in future versions of Qiskit.
+  - |
+    Introduced the :class:`.QubitSparsePauli` and :class:`.QubitSparsePauliList` classes, which
+    represent the same concepts as :class:`.Pauli` and :class:`.PauliList` respectively, but only
+    store non-identity terms, in a manner analogous to :class:`.SparseObservable`.  These classes
+    are primarily intended to be used with the new :class:`.PauliLindbladMap`.
