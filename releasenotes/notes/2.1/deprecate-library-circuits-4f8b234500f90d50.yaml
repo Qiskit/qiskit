@@ -13,7 +13,7 @@ deprecations_circuits:
 
     The ``BlueprintCircuit`` class does not have a direct replacement, instead use
     a :class:`.QuantumCircuit` directly or a function that generates circuits.
-    See :mod:`qiskit.circuit.library` and the migration guide for more details, but some
+    See :mod:`qiskit.circuit.library` for more details, but some
     common circuits and their replacements follow:
 
       * :class:`.QFT` → :class:`.QFTGate`
