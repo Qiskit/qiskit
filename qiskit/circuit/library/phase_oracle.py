@@ -62,7 +62,7 @@ class PhaseOracle(QuantumCircuit):
     ) -> None:
         """
         Args:
-            expression: A Python-like boolean expression.
+            expression: A Python-like boolean expression string or a `BooleanExpression` object.
             var_order: A list with the order in which variables will be created.
                (default: by appearance)
         """
@@ -176,7 +176,7 @@ class PhaseOracleGate(Gate):
     ) -> None:
         """
         Args:
-            expression: A Python-like boolean expression.
+            expression: A Python-like boolean expression string or a `BooleanExpression` object.
             var_order: A list with the order in which variables will be created.
                (default: by appearance)
             label: A label for the gate to display in visualizations. Per default, the label is
