@@ -1,5 +1,6 @@
 ---
 features_primitives:
   - |
-    To make :class:`.PrimitiveJob` serializable, :class:`.DataBin` has been 
-    updated to be pickleable. As a result, :class:`.PrimitiveResult` is now also pickleable.
+    Add support to the :class:`.DataBin` class to make it serializable with
+    :mod:`pickle`. This enables making the :class:`.PrimitiveJob` and
+    :class:`.PrimitiveResult` class serializable with :mod:`pickle` as well.

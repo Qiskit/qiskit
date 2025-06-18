@@ -377,7 +377,7 @@ class PiecewiseChebyshevGate(Gate):
             from qiskit import QuantumCircuit
             from qiskit.circuit.library.arithmetic import PiecewiseChebyshevGate
 
-            f_x, num_state_qubits, degree, breakpoints = lambda x: np.arcsin(1 / x), 2, 2, [2, 4]
+            f_x, num_state_qubits, degree, breakpoints = lambda x: np.sin(1 / x), 2, 2, [2, 4]
             pw_approximation = PiecewiseChebyshevGate(f_x, num_state_qubits, degree, breakpoints)
 
             qc = QuantumCircuit(pw_approximation.num_qubits)

@@ -1,0 +1,28 @@
+---
+prelude: >
+  The Qiskit v2.1 release introduces several important enhancements in key areas including the C API, transpiler
+  capabilities and quantum circuit usability. In addition, it includes many general improvements and bug fixes.
+  The major highlights include:
+
+    * *C API extensions:* Building on the work started in the previous release, Qiskit v2.1 adds support for creating
+      and interacting with quantum circuits via C API functions, supporting the addition of standard gates, standard
+      instructions and unitary gates. Also added in this release is a set of C functions to build and manipulate a
+      :class:`.Target` object, as preparation for supporting a complete C API-based transpilation workflow in the next
+      release. In addition, :cpp:class:`QkComplex64` is now defined as a struct, serving as a compiler-agnostic representation
+      for complex numbers when working with Qiskit's C API. The C API's header file has also been updated so that
+      it is generally compatible to be used natively in C++.
+
+    * *Clifford+T basis set support:* Transpiling circuits for a target with Clifford+T gates is now supported out of
+      the box. Under the hood, if the basis set consists only of Clifford+T gates, Qiskit ensures that the appropriate
+      passes for handling these gates are added to the preset pass managers. This is an initial step toward supporting
+      transpilation for fault-tolerant backends.
+
+    * *Enhancements to* :class:`.BoxOp`: This version adds the ability to attach custom annotations to :class:`.BoxOp`
+      instructions, further supporting the concept of box statements from OpenQASM 3 in Qiskit. This also includes annotation
+      serialization in both the QASM and QPY formats. Additionally, support for using stretch durations in boxes has
+      been added.
+
+    * *Python 3.9 deprecation:* Python 3.9 is deprecated starting with Qiskit v2.1 and will no longer be supported in
+      Qiskit v2.3.
+
+  For more details about the above and much more, please see the release notes below and visit the updated documentation.

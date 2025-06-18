@@ -361,6 +361,10 @@ Unitary Synthesis Plugins
    :no-inherited-members:
    :no-special-members:
 
+.. automodule:: qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin
+   :no-inherited-members:
+   :no-special-members:
+
 
 High Level Synthesis
 --------------------

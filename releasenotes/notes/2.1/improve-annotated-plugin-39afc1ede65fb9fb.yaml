@@ -1,7 +1,10 @@
 ---
-features:
+features_synthesis:
   - |
-    Improved synthesis of multi-controlled :class:`.CZGate` gates.
+    The synthesis of multi-controlled :class:`.CZGate` gates has been improved to reduce
+    the synthesized gate count, in some cases as much as 99% reduction is
+    possible. This was accomplished by leveraging the improved synthesis around the
+    :class:`.MCXGate` with controlled :class:`.CZGate` synthesis too.
   - |
     Improved the default plugin for synthesizing :class:`~.AnnotatedOperation` objects.
     The improvement is especially useful when creating and transpiling controlled circuits
@@ -27,7 +30,7 @@ features:
     6-controlled X-gate, and to choose the best synthesis method available for
     multi-controlled X-gates, in particular utilizing available ancilla qubits.
   - |
-    The function :func:`.adder_qft_d00` used for synthesize :class:`.ModularAdderGate`
-    and :class:`.HalfAdderGate` gates now accepts an addional parameter ``annotated``. If
+    The function :func:`.adder_qft_d00`, used for synthesizing :class:`.ModularAdderGate`
+    and :class:`.HalfAdderGate` gates, now accepts an additional parameter ``annotated``. If
     ``True``, the inverse-QFT-gate within the adders is implemented as an annotated
     operations, allowing the transpiler to apply additional optimizations.

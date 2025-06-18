@@ -1,24 +1,26 @@
 ---
 features_synthesis:
   - |
-    Added new synthesis algorithm for :class:`.HalfAdderGate` that requires no ancillary qubits
+    Added a new synthesis algorithm for :class:`.HalfAdderGate` that requires no ancillary qubits
     and has better CX count compared to :func:`.adder_qft_d00`:
 
     * :func:`.adder_ripple_r25`
 
 features_transpiler:
   - |
-    Added new high-level-synthesis plugin for synthesizing a :class:`.HalfAdderGate`:
-
-    * :class:`.HalfAdderSynthesisR25`, based on :func:`.adder_ripple_rv_25`.
+    Added a new high-level-synthesis plugin :class:`.HalfAdderSynthesisR25` for synthesizing a
+    :class:`.HalfAdderGate`. The new plugin is based on :func:`.adder_ripple_r25`.
 
     The :class:`.HalfAdderSynthesisDefault` has also been updated to follow the following sequence
-    of half adder synthesizers: ``"HalfAdder.ripple_r25"`` when the number of qubits is 
-    :math:`\leq 3`, ``"HalfAdder.ripple_c04"`` when 1 ancillary qubit is available, 
+    of half adder synthesizers: ``"HalfAdder.ripple_r25"`` when there are
+    :math:`\leq 3` qubits, ``"HalfAdder.ripple_c04"`` when one ancillary qubit is available, and
     ``"HalfAdder.ripple_r25"`` in all remaining cases.
 
 upgrade_circuits:
   - |
-    The circuit definition of :class:`.HalfAdderGate` has been upgraded to use
-    :func:`.adder_ripple_r25`. To obtain the old behaviour, use the definition of
-    :func:`.adder_qft_d00` instead.
+    The :attr:`~.HalfAdderGate.definition` attribute of the :class:`.HalfAdderGate`
+    has been changed to internally use :func:`.adder_ripple_r25` to generate the definition
+    of the gate for a more efficient circuit with no ancillary qubits. If the old definition
+    is desired for some reason you can directly use the :func:`.adder_qft_d00` function instead which
+    will generate a circuit equivalent to what :attr:`~.HalfAdderGate.definition` would return
+    in previous releases.

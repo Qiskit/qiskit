@@ -8,19 +8,26 @@ features_transpiler:
     and ECR gates. See `arXiv:2403.06852 <https://arxiv.org/abs/2403.06852>`_
     for more information.
 
-    Example::
+    Example:
+
+    .. plot::
+        :include-source:
 
         from qiskit.circuit.library import QFT
-        from qiskit.transpiler import PassManager
+        from qiskit.transpiler import PassManager, CouplingMap
         from qiskit.transpiler.passes import ALAPScheduleAnalysis, ContextAwareDynamicalDecoupling
         from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-        from qiskit_ibm_runtime.fake_provider import FakeSherbrooke
+        from qiskit.providers.fake_provider import GenericBackendV2
 
         num_qubits = 10
         circuit = QFT(num_qubits)
         circuit.measure_all()
 
-        target = FakeSherbrooke().target
+        target = GenericBackendV2(
+            100,
+            basis_gates=["id", "rz", "sx", "x", "ecr"],
+            coupling_map=CouplingMap.from_grid(10, 10)
+        ).target
 
         pm = generate_preset_pass_manager(optimization_level=2, target=target)
         dd = PassManager([
@@ -31,5 +38,5 @@ features_transpiler:
         transpiled = pm.run(circuit)
         with_dd = dd.run(transpiled)
 
-        print(with_dd.draw(idle_wires=False))
+        with_dd.draw("mpl", idle_wires=False)
 

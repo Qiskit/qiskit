@@ -1,4 +1,5 @@
 ---
-features_visualization:
+fixes:
   - |
-    Box instructions whose vertical spans do not overlap are now rendered in the same vertical slice, when possible.
+    The :meth:`.QuantumCircuit.draw` and :func:`.circuit_drawer` function will now render :class:`.BoxOp` instructions in a :class:`.QuantumCircuit`
+    in the same vertical slice if the vertical spans do not overlap are now rendered in the same vertical slice, when possible.

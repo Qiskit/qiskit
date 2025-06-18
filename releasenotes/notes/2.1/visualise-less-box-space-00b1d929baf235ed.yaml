@@ -1,5 +1,6 @@
 ---
-other:
+fixes:
   - |
-    The Matplotlib circuit drawer will now insert less extraneous space inside the left edge when
-    drawing :class:`.BoxOp` instances in circuits.
+    Fixed the :meth:`.QuantumCircuit.draw` method and :func:`.circuit_drawer`
+    function in ``"mpl"`` mode to insert less extraneous space inside the
+    left edge when drawing :class:`.BoxOp` instances in a :class:`.QuantumCircuit`.

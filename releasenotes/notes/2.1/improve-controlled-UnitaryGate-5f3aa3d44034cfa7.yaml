@@ -1,9 +1,13 @@
 ---
 features_synthesis:
   - |
-    The Quantum Shannon Decomposition (:func:`.qs_decomposition`) includes an optimization that reduces
-    the :class:`.CXGate` count in the case that the input unitary happens to be a controlled unitary.
-upgrade_circuits:
+    The Quantum Shannon Decomposition (:func:`.qs_decomposition`) now includes an optimization that reduces
+    the :class:`.CXGate` count in the case that the input unitary is a controlled unitary.
+features_circuits:
   - |
-    The `control` method of :class:`.UnitaryGate` now uses :func:`.qs_decomposition` instead of :class:`.Isometry` for decomposition.
-    This change reduces the number of :class:`.CXGate` by approximately 2x.
+    The :meth:`.UnitaryGate.control` method now internally uses
+    :func:`.qs_decomposition` instead of :class:`.Isometry` for the
+    decomposition used to define the controlled :class:`.UnitaryGate`. This
+    change reduces the number of :class:`.CXGate` used in the
+    :attr:`~.ControlledGate.definition` for the returned :class:`.ControlledGate`
+    by approximately 2x.

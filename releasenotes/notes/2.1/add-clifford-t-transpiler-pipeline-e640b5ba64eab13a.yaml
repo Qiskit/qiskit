@@ -2,14 +2,13 @@
 features_transpiler:
   - |
     The function :func:`.generate_preset_pass_manager` now generates a special
-    pass manager when the basis set consists of Clifford+T gates only.
-    Formally, a Clifford+T basis set must contain either a :class:`.TGate` or
-    :class:`.TdgGate` (or both), and only Clifford gates in addition.
-    The full list of supported Clifford gates can be obtained using
-    :func:`.get_clifford_gate_names`.
+    pass manager when the basis set consists only of Clifford+T gates.
+    Formally, a Clifford+T basis set must contain only Clifford gates, along
+    with either :class:`.TGate`, :class:`.TdgGate`, or both. The full list of supported
+    Clifford gates can be obtained by using :func:`.get_clifford_gate_names`.
 
     For example::
-  
+
       from qiskit.circuit import QuantumCircuit
       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
       from qiskit.quantum_info import get_clifford_gate_names
@@ -22,25 +21,32 @@ features_transpiler:
       qct = pm.run(qc)
       print(qct.count_ops())
 
-    Previously, the generated pass manager was not able to handle the example above,
-    as it was not able to decompose single-qubit rotation gates of type
-    :class:`.UGate` into Clifford+T gates. Instead, the new pass manager uses the
-    the Solovay-Kitaev decomposition to approximate single-qubit rotation gates
+    Would result with:
+
+    .. code-block:: text
+
+      OrderedDict([('h', 10210), ('t', 4508), ('tdg', 4503), ('sdg', 943), ('s', 941)])
+
+
+    Previously, the generated pass manager could not handle the example above
+    because it couldn't decompose single-qubit :class:`.UGate` rotation gates into
+    Clifford+T gates. However, the new pass manager uses the
+    Solovay-Kitaev decomposition to approximate single-qubit rotation gates
     using ``H``, ``T`` and ``Tdg`` gates, and calls the :class:`~.BasisTranslator`
     transpiler pass to further translate the gates into the target basis set.
     The new pass manager also has other changes as to enable a more efficient
     translation into Clifford+T gates.
 
     It is important to note that the specified Clifford+T basis gate set should be
-    universal, or else transpilation might not succeed. While the gate set 
-    ``["h", "t", "tdg"]``or even ``["h", "t"]`` is sufficient for universality,
+    universal, or else transpilation might not succeed. While the gate set
+    ``["h", "t", "tdg"]`` or even ``["h", "t"]`` is sufficient for universality,
     it is recommended to add more Clifford gates to the set if possible, as
-    otherwise the translation might be less efficient. For example, not including
-    S-gate might trigger decomposing S-gates into pairs of T-gates (that is,
-    decomposing Clifford gates into non-Clifford gates, which might not be the
+    otherwise the translation might be less efficient. For example, if S-gate is not included,
+    S-gates might be decomposed into pairs of T-gates (that is,
+    Clifford gates might be decomposed into non-Clifford gates, which might not be the
     desired behavior).
 
-    Here is an additional slightly larger example::
+    Following is a slightly larger example::
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.circuit.library import QFTGate
@@ -57,3 +63,9 @@ features_transpiler:
 
       qct = pm.run(qc)
       print(qct.count_ops())
+
+    Would result with:
+
+    .. code-block:: text
+
+      OrderedDict([('h', 96510), ('tdg', 42396), ('t', 42389), ('s', 8240), ('sdg', 8235), ('cx', 12)])
