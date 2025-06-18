@@ -110,11 +110,15 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_include(&mut self, node: &Include) {
-        self.write_statement(&format!("include \"{}\"", node.filename));
+        self.start_line();
+        write!(self.stream, "include \"{}\"", node.filename).unwrap();
+        self.end_statement();
     }
 
     fn visit_version(&mut self, node: &Version) {
-        self.write_statement(&format!("OPENQASM {}", node.version_number));
+        self.start_line();
+        write!(self.stream, "OPENQASM {}", node.version_number).unwrap();
+        self.end_statement();
     }
 
     fn visit_expression(&mut self, node: &Expression) {
