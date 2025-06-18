@@ -370,7 +370,7 @@ def load(
                 struct.unpack(
                     formats.CIRCUIT_TABLE_ENTRY_PACK,
                     file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
-                )[0]
+                ).offset
             )
 
     programs = []
