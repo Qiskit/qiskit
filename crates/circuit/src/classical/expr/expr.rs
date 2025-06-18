@@ -1074,7 +1074,10 @@ mod tests {
             }
         };
 
-        assert!(left.structurally_equivalent_by_key(key_func, &right, key_func),);
+        assert!(
+            left.structurally_equivalent_by_key(key_func, &right, key_func),
+            "Expressions that only care that their vars are of the same kind should be equivalent"
+        );
 
         Ok(())
     }
