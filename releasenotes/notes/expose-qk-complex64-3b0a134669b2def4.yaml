@@ -1,0 +1,46 @@
+---
+upgrade_c:
+  - |
+    The way complex numbers are exposed in Qiskit's C API has changed.
+    Previously, ``QkComplex64`` was a compiler-dependent typedef that allowed to pass
+    native complex types by pointer to Qiskit's API (for example as ``double complex*``).
+    While this was convenient, this approach implictly relied on memory-layout assumptions
+    that are not strictly guaranteed.
+
+    Qiskit v2.1 now exposes ``QkComplex64 { double re; double im; }`` as a struct, to ensure the
+    memory layout is always compatible and for broader compiler support. For convenience,
+    compiler-dependent converters ``qk_complex64_from_native`` and ``qk_complex64_to_native``
+    are provided, which allows translating from the struct to a native complex number.
+    Note that these only work on platforms supporting ``double complex`` or for MSVC compilers
+    using ``_Dcomplex``.
+
+    For example:
+
+    .. code-block:: c
+
+      #include <qiskit.h>
+      #include <math.h>
+      #include <stdio.h>
+      #include <complex.h>
+
+      int main(int argc, char *argv[]) {
+          // platform-independent constructions:
+          QkComplex64 coeff = {5.0, 3.0};
+
+          // ... or using converter
+          // double complex native = 5.0 + I * 3; // uses C11 standard, does not work on MSVC
+          // QkComplex64 coeff = qk_complex64_from_native(&native);  // convert from native
+
+          uint32_t num_qubits = 100;
+          QkObs *obs = qk_obs_zero(num_qubits);
+          QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+          uint32_t indices[3] = {0, 1, 2};
+          QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
+          qk_obs_add_term(obs, &term);
+          printf("num_qubits: %u\n", qk_obs_num_qubits(obs));
+          printf("num_terms: %lu\n", qk_obs_num_terms(obs));
+
+          qk_obs_free(obs);
+          return 0;
+      }
+
