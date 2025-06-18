@@ -7,6 +7,6 @@ features_quantum_info:
     better and more efficient control over noise models in future versions of Qiskit.
   - |
     Introduced the :class:`.QubitSparsePauli` and :class:`.QubitSparsePauliList` classes, which
-    represent the same concepts as :class:`.Pauli` and :class:`.PauliList` respectively, but only
+    represent the same concepts as :class:`~qiskit.quantum_info.Pauli` and :class:`.PauliList` respectively, but only
     store non-identity terms, in a manner analogous to :class:`.SparseObservable`.  These classes
     are primarily intended to be used with the new :class:`.PauliLindbladMap`.
