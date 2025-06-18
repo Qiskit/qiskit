@@ -40,6 +40,7 @@ pub mod symbol_parser;
 pub mod util;
 
 pub mod rustworkx_core_vnext;
+mod variable_mapper;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
