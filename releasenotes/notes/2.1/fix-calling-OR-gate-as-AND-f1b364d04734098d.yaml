@@ -1,5 +1,9 @@
 ---
 fixes:
   - |
-    Fixed the name of the :class:`.OrGate`, that was set to `"and"` instead of 
-    `"or"`, and could have possibly led to several problems.
+    Fixed the :attr:`~.OrGate.name` attribute of the :class:`.OrGate`, that was
+    previously incorrectly set to the string ``"and"`` instead of the expected
+    value ``"or"`` which is now returned. This incorrect value ``"and"`` conflicted
+    with the :attr:`.AndGate.name` and could have possibly led to several problems
+    around using the :class:`.Orgate` and differentiating it from an
+    :class:`.AndGate`.

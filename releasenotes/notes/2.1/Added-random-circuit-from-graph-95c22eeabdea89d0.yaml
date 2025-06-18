@@ -8,7 +8,7 @@ features_circuits:
     user in an edge's weight attribute in the input interaction graph. If the user does not set the probability,
     each edge is drawn uniformly.  That is, each two-qubit gate represented by an edge in the interaction graph has the
     same probability of getting added to the random circuit. If only a subset of edge probabilities are set,
-    `ValueError` will be raised.
+    ``ValueError`` will be raised.
 
     In this example, ``cp_map`` is a list of edges with arbitrary weights.
 

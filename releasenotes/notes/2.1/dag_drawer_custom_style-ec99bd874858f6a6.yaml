@@ -28,6 +28,8 @@ features_visualization:
       dag_drawer(dag, style=style)
 fixes:
   - |
-    Fixed a bug where ``style=plain`` did not show circuit labels for the nodes
-    of the DAG.
+    Fixed a bug in the :func:`.dag_drawer` function and the
+    :meth:`.DAGCircuit.draw` method where setting the keyword argument
+    ``style=plain`` did not show circuit labels for the nodes of the DAG
+    in the visualization.
 

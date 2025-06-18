@@ -1,4 +1,6 @@
 ---
 fixes:
   - |
-    :class:`.GenericBackendV2` now correctly allows :class:`.BoxOp` when ``control_flow=True``.
+    Fixed the :class:`.GenericBackendV2` to now include :class:`.BoxOp` as
+    a supported instruction type in the generated :attr:`.GenericBackendV2.target`
+    when the keyword argument ``control_flow=True`` is set in the constructor.
