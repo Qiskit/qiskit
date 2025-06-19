@@ -159,6 +159,13 @@ class Target(BaseTarget):
     angle :class:`~qiskit.circuit.library.RXGate` while ``rx`` will get the
     parameterized :class:`~qiskit.circuit.library.RXGate`.
 
+    This class can be queried via the mapping protocol, using the
+    instruction's name as a key. You can modify any property for an
+    instruction via the :meth:`.update_instruction_properties` method.
+    Modification via the mapping protocol or mutating the attributes of
+    a :class:`.InstructionProperties` object is **not** supported and
+    doing so will invalidate the internal state of the object.
+
     .. note::
 
         This class assumes that qubit indices start at 0 and are a contiguous
@@ -167,7 +174,7 @@ class Target(BaseTarget):
 
     .. note::
 
-        This class only supports additions of gates, qargs, and qubits.
+        This class only supports additions of gates, qargs, and properties.
         If you need to remove one of these the best option is to iterate over
         an existing object and create a new subset (or use one of the methods
         to do this). The object internally caches different views and these
@@ -373,7 +380,13 @@ class Target(BaseTarget):
         self._instruction_schedule_map = None
 
     def update_instruction_properties(self, instruction, qargs, properties):
-        """Update the property object for an instruction qarg pair already in the Target
+        """Update the property object for an instruction qarg pair already in the Target.
+
+        For ease of access, a user is able to obtain the mapping between an instruction's
+        applicable qargs and its instruction properties via the mapping protocol (using ``__getitem__``),
+        with the instruction's name as the key. This method is the only way to
+        modify/update the properties of an instruction in the ``Target``. Usage of the mapping protocol
+        for modifications is not supported.
 
         Args:
             instruction (str): The instruction name to update

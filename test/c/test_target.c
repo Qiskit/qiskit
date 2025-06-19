@@ -221,7 +221,7 @@ int test_target_add_instruction(void) {
         goto cleanup;
     }
     size_t current_size = qk_target_num_instructions(target);
-    if (current_num_qubits != 1) {
+    if (current_size != 1) {
         printf("The size of this target is not correct: Expected 1, got %zu", current_size);
         result = EqualityError;
         goto cleanup;
@@ -338,10 +338,10 @@ int test_target_add_instruction(void) {
     QkTargetEntry *reset = qk_target_entry_new_reset();
     for (uint32_t i = 0; i < 3; i++) {
         uint32_t q[1] = {i};
-        qk_target_entry_add_property(meas, q, 1, 2e-6, 2e-4);
+        qk_target_entry_add_property(reset, q, 1, 2e-6, 2e-4);
     }
     uint32_t num_reset = qk_target_entry_num_properties(reset);
-    if (num_meas != 3) {
+    if (num_reset != 3) {
         printf("Expected 3 reset entries but got: %u", num_reset);
         result = EqualityError;
         qk_target_entry_free(reset);

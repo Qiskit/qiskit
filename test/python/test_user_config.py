@@ -157,6 +157,31 @@ class TestUserConfig(QiskitTestCase):
             config.read_config_file()
             self.assertEqual({"num_processes": 31}, config.settings)
 
+    def test_invalid_min_qpy_version(self):
+        test_config = """
+        [default]
+        min_qpy_version = -1
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)
+
+    def test_valid_min_qpy_version(self):
+        test_config = """
+        [default]
+        min_qpy_version = 13
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({"min_qpy_version": 13}, config.settings)
+
     def test_valid_parallel(self):
         test_config = """
         [default]

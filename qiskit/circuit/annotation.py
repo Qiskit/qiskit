@@ -84,6 +84,106 @@ used to pass serializers.
 .. autoclass:: QPYSerializer
 .. autoclass:: QPYFromOpenQASM3Serializer
 .. autoclass:: OpenQASM3Serializer
+
+
+Examples
+========
+
+A block-collection transpiler pass
+----------------------------------
+
+A principal goal of the annotation framework is to allow custom analyses and commands to be stored
+on circuits in an instruction-local manner, either by the user on entry to the compiler, or for one
+compiler pass to store information for later consumption.
+
+For example, we can write a simple transpiler pass that collects runs of single-qubit operations,
+and puts each run into a :class:`.BoxOp`, the calculates the total unitary action and attaches it as
+a custom annotation, so the same analysis does not need to be repeated later, even if the internals
+of each block are optimized.
+
+.. code-block:: python
+
+    from qiskit.circuit import annotation, QuantumCircuit, BoxOp
+    from qiskit.quantum_info import Operator
+    from qiskit.transpiler import TransformationPass
+
+    class PerformsUnitary(annotation.Annotation):
+        namespace = "unitary"
+        def __init__(self, matrix):
+            self.matrix = matrix
+
+    class Collect1qRuns(TransformationPass):
+        def run(self, dag):
+            for run in dag.collect_1q_runs():
+                block = QuantumCircuit(1)
+                for node in run:
+                    block.append(node.op, [0], [])
+                box = BoxOp(block, annotations=[PerformsUnitary(Operator(block).data)])
+                dag.replace_block_with_op(run, box, {run[0].qargs[0]: 0})
+            return dag
+
+In order to serialize the annotation to OpenQASM 3, we must define custom logic, since the analysis
+itself is entirely custom.  The serialization is separate to the annotation; there may be
+circumstances in which serialization should be done differently.
+
+.. code-block:: python
+
+    import ast
+    import numpy as np
+
+    class Serializer(annotation.OpenQASM3Serializer):
+        def dump(self, annotation):
+            if annotation.namespace != "unitary":
+                return NotImplemented
+            line = lambda row: "[" + ", ".join(repr(x) for x in row) + "]"
+            return "[" + ", ".join(line(row) for row in annotation.matrix.tolist()) + "]"
+
+        def load(self, namespace, payload):
+            if namespace != "unitary":
+                return NotImplemented
+            return PerformsUnitary(np.array(ast.literal_eval(payload), dtype=complex))
+
+Finally, this can be put together, showing the output OpenQASM 3.
+
+.. code-block:: python
+
+    from qiskit import qasm3
+
+    qc = QuantumCircuit(3)
+    qc.s(0)
+    qc.t(0)
+    qc.y(1)
+    qc.x(1)
+    qc.h(2)
+    qc.s(2)
+    collected = Collect1qRuns()(qc)
+
+    handlers = {"unitary": Serializer()}
+    dumped = qasm3.dumps(collected, annotation_handlers=handlers)
+    print(dumped)
+
+.. code-block:: openqasm3
+
+    OPENQASM 3.0;
+    include "stdgates.inc";
+    qubit[3] q;
+    @unitary [[(1+0j), 0j], [0j, (-0.7071067811865475+0.7071067811865475j)]]
+    box {
+      s q[0];
+      t q[0];
+    }
+    @unitary [[1j, 0j], [0j, -1j]]
+    box {
+      y q[1];
+      x q[1];
+    }
+    @unitary [[(0.7071067811865475+0j), (0.7071067811865475+0j)], [0.7071067811865475j, \
+-0.7071067811865475j]]
+    box {
+      h q[2];
+      s q[2];
+    }
+
 """
 
 from __future__ import annotations
