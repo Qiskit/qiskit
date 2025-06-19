@@ -144,7 +144,7 @@ impl PyRange {
                     ));
                 }
                 explicit_ty
-            },
+            }
             None => {
                 // Collect all types into a Vec
                 let mut types = vec![start_expr.ty(), stop_expr.ty()];
