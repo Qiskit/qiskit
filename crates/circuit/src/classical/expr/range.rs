@@ -136,7 +136,15 @@ impl PyRange {
 
         // Determine the target type for the Range and its expressions
         let target_ty = match ty {
-            Some(explicit_ty) => explicit_ty,
+            Some(explicit_ty) => {
+                // Vérification que le type explicite est bien un Uint
+                if !matches!(explicit_ty, Type::Uint(_)) {
+                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                        "Range type must be an unsigned integer type",
+                    ));
+                }
+                explicit_ty
+            },
             None => {
                 // Collect all types into a Vec
                 let mut types = vec![start_expr.ty(), stop_expr.ty()];
