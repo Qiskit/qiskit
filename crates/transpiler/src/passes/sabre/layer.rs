@@ -236,14 +236,14 @@ impl ExtendedSet {
     /// Apply a physical swap to the current layout data structure.
     pub fn apply_swap(&mut self, swap: [PhysicalQubit; 2]) {
         let [a, b] = swap;
-        for other in self.qubits[a.index()].iter_mut() {
-            if *other == b {
-                *other = a
-            }
-        }
-        for other in self.qubits[b.index()].iter_mut() {
+        // This effectively iterates twice through each element of the extended set, which is a
+        // complexity bottleneck if the extended set scales with the size of the circuit.  We should
+        // find a new structure that makes these updates more efficient.
+        for other in self.qubits.iter_mut().flat_map(|others| others.iter_mut()) {
             if *other == a {
-                *other = b
+                *other = b;
+            } else if *other == b {
+                *other = a;
             }
         }
         self.qubits.swap(a.index(), b.index());
