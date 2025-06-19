@@ -15,9 +15,6 @@ use std::fmt::{self, Debug, Display, Formatter};
 #[allow(dead_code)]
 pub enum Node<'a> {
     Program(&'a Program),
-    Header(&'a Header),
-    Include(&'a Include),
-    Version(&'a Version),
     Expression(&'a Expression),
     ProgramBlock(&'a ProgramBlock),
     QuantumBlock(&'a QuantumBlock),

@@ -61,9 +61,6 @@ impl<'a> BasicPrinter<'a> {
     pub fn visit(&mut self, node: &Node) {
         match node {
             Node::Program(node) => self.visit_program(node),
-            Node::Header(node) => self.visit_header(node),
-            Node::Include(node) => self.visit_include(node),
-            Node::Version(node) => self.visit_version(node),
             Node::Expression(node) => self.visit_expression(node),
             Node::ProgramBlock(node) => self.visit_program_block(node),
             Node::QuantumBlock(node) => self.visit_quantum_block(node),
@@ -94,7 +91,7 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_program(&mut self, node: &Program) {
-        self.visit(&Node::Header(&node.header));
+        self.visit_header(&node.header);
         for statement in node.statements.iter() {
             self.visit_statement(statement);
         }
@@ -102,10 +99,10 @@ impl<'a> BasicPrinter<'a> {
 
     fn visit_header(&mut self, node: &Header) {
         if let Some(version) = &node.version {
-            self.visit(&Node::Version(version))
-        };
+            self.visit_version(version);
+        }
         for include in node.includes.iter() {
-            self.visit(&Node::Include(include));
+            self.visit_include(include);
         }
     }
 
