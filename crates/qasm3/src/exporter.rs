@@ -41,86 +41,70 @@ use regex::Regex;
 type ExporterResult<T> = Result<T, QASM3ExporterError>;
 
 // These are the prefixes used for the loose qubit and bit names.
-lazy_static! {
-    static ref BIT_PREFIX: &'static str = "_bit";
-}
-lazy_static! {
-    static ref QUBIT_PREFIX: &'static str = "_qubit";
-}
+const BIT_PREFIX: &str = "_bit";
+const QUBIT_PREFIX: &str = "_qubit";
 
 // These are the prefixes used for the gate parameters and qubits.
-lazy_static! {
-    static ref GATE_PARAM_PREFIX: &'static str = "_gate_p";
-}
-lazy_static! {
-    static ref GATE_QUBIT_PREFIX: &'static str = "_gate_q";
-}
+const GATE_PARAM_PREFIX: &str = "_gate_p";
+const GATE_QUBIT_PREFIX: &str = "_gate_q";
 
 // These are the gates that are defined by the standard library.
-lazy_static! {
-    static ref GATES_DEFINED_BY_STDGATES: HashSet<&'static str> = [
-        "p", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz", "cx", "cy", "cz",
-        "rzz", "cp", "crx", "cry", "crz", "ch", "swap", "ccx", "cswap", "cu", "CX", "phase",
-        "cphase", "id", "u1", "u2", "u3",
-    ]
-    .into_iter()
-    .collect();
-}
+const GATES_DEFINED_BY_STDGATES: &[&str] = &[
+    "p", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz", "cx", "cy", "cz",
+    "rzz", "cp", "crx", "cry", "crz", "ch", "swap", "ccx", "cswap", "cu", "CX", "phase",
+    "cphase", "id", "u1", "u2", "u3",
+];
 
 // These are the reserved keywords in QASM3.
-lazy_static! {
-    static ref RESERVED_KEYWORDS: HashSet<&'static str> = [
-        "OPENQASM",
-        "angle",
-        "array",
-        "barrier",
-        "bit",
-        "bool",
-        "box",
-        "break",
-        "cal",
-        "complex",
-        "const",
-        "continue",
-        "creg",
-        "ctrl",
-        "def",
-        "defcal",
-        "defcalgrammar",
-        "delay",
-        "duration",
-        "durationof",
-        "else",
-        "end",
-        "extern",
-        "float",
-        "for",
-        "gate",
-        "gphase",
-        "if",
-        "in",
-        "include",
-        "input",
-        "int",
-        "inv",
-        "let",
-        "measure",
-        "mutable",
-        "negctrl",
-        "output",
-        "pow",
-        "qreg",
-        "qubit",
-        "reset",
-        "return",
-        "sizeof",
-        "stretch",
-        "uint",
-        "while"
-    ]
-    .into_iter()
-    .collect();
-}
+const RESERVED_KEYWORDS: &[&str] = &[
+    "OPENQASM",
+    "angle",
+    "array",
+    "barrier",
+    "bit",
+    "bool",
+    "box",
+    "break",
+    "cal",
+    "complex",
+    "const",
+    "continue",
+    "creg",
+    "ctrl",
+    "def",
+    "defcal",
+    "defcalgrammar",
+    "delay",
+    "duration",
+    "durationof",
+    "else",
+    "end",
+    "extern",
+    "float",
+    "for",
+    "gate",
+    "gphase",
+    "if",
+    "in",
+    "include",
+    "input",
+    "int",
+    "inv",
+    "let",
+    "measure",
+    "mutable",
+    "negctrl",
+    "output",
+    "pow",
+    "qreg",
+    "qubit",
+    "reset",
+    "return",
+    "sizeof",
+    "stretch",
+    "uint",
+    "while"
+];
 
 lazy_static! {
     static ref VALID_IDENTIFIER: Regex = Regex::new(r"(^[\w][\w\d]*$|^\$\d+$)").unwrap();
@@ -317,7 +301,7 @@ impl SymbolTable {
     }
 
     fn symbol_defined(&self, name: &str) -> bool {
-        RESERVED_KEYWORDS.contains(name)
+        RESERVED_KEYWORDS.contains(&name)
             || self.gates.contains_key(name)
             || self
                 .scopes
@@ -331,7 +315,7 @@ impl SymbolTable {
             .map(|scope| !scope.symbols.contains_key(name))
             .unwrap_or(true)
             && !self.gates.contains_key(name)
-            && !RESERVED_KEYWORDS.contains(name)
+            && !RESERVED_KEYWORDS.contains(&name)
     }
 
     fn escaped_declarable_name(
@@ -361,7 +345,7 @@ impl SymbolTable {
             )));
         }
 
-        if RESERVED_KEYWORDS.contains(name.as_str()) {
+        if RESERVED_KEYWORDS.contains(&name.as_str()) {
             return Err(QASM3ExporterError::Error(format!(
                 "cannot use the keyword '{}' as a variable name",
                 name
@@ -620,10 +604,10 @@ impl<'a> QASM3Builder {
             ]
             .into_iter()
             .collect(),
-            loose_bit_prefix: &BIT_PREFIX,
-            loose_qubit_prefix: &QUBIT_PREFIX,
-            _gate_param_prefix: &GATE_PARAM_PREFIX,
-            _gate_qubit_prefix: &GATE_QUBIT_PREFIX,
+            loose_bit_prefix: BIT_PREFIX,
+            loose_qubit_prefix: QUBIT_PREFIX,
+            _gate_param_prefix: GATE_PARAM_PREFIX,
+            _gate_qubit_prefix: GATE_QUBIT_PREFIX,
             circuit_scope: BuildScope::new(
                 circuit_data,
             ),
