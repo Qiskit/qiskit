@@ -207,6 +207,7 @@ __all__ = [
     "Binary",
     "Index",
     "Stretch",
+    "Range",
     "ExprVisitor",
     "iter_vars",
     "iter_identifiers",
@@ -237,7 +238,7 @@ __all__ = [
     "lift_legacy_condition",
 ]
 
-from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch
+from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch, Range
 from .visitors import ExprVisitor, iter_vars, iter_identifiers, structurally_equivalent, is_lvalue
 from .constructors import (
     lift,
