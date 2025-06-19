@@ -25,7 +25,7 @@ use std::path::{Path, PathBuf};
 use hashbrown::HashMap;
 
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict, PyModule};
+use pyo3::types::{PyAny, PyModule};
 
 use oq3_semantics::syntax_to_semantics::parse_source_string;
 use pyo3::pybacked::PyBackedStr;
@@ -175,28 +175,32 @@ impl Default for DumpOptions {
     }
 }
 
-fn extract_dump_options_and_circuit_data(
+#[pyfunction]
+#[pyo3(signature = (circuit, /, *, includes=None, basis_gates=None, disable_constants=None, allow_aliasing=None, indent=None))]
+pub fn dumps(
     circuit: &Bound<PyAny>,
-    kwargs: Option<&Bound<PyDict>>,
-) -> PyResult<(DumpOptions, CircuitData, bool)> {
+    includes: Option<Vec<String>>,
+    basis_gates: Option<Vec<String>>,
+    disable_constants: Option<bool>,
+    allow_aliasing: Option<bool>,
+    indent: Option<String>,
+) -> PyResult<String> {
     let mut options = DumpOptions::default();
-
-    if let Some(kw) = kwargs {
-        if let Some(val) = kw.get_item("includes")? {
-            options.includes = val.extract::<Vec<String>>()?;
-        }
-        if let Some(val) = kw.get_item("basis_gates")? {
-            options.basis_gates = val.extract::<Vec<String>>()?;
-        }
-        if let Some(val) = kw.get_item("disable_constants")? {
-            options.disable_constants = val.extract::<bool>()?;
-        }
-        if let Some(val) = kw.get_item("allow_aliasing")? {
-            options.allow_aliasing = val.extract::<bool>()?;
-        }
-        if let Some(val) = kw.get_item("indent")? {
-            options.indent = val.extract::<String>()?;
-        }
+    
+    if let Some(val) = includes {
+        options.includes = val;
+    }
+    if let Some(val) = basis_gates {
+        options.basis_gates = val;
+    }
+    if let Some(val) = disable_constants {
+        options.disable_constants = val;
+    }
+    if let Some(val) = allow_aliasing {
+        options.allow_aliasing = val;
+    }
+    if let Some(val) = indent {
+        options.indent = val;
     }
     
     let circuit_data = circuit
@@ -206,18 +210,6 @@ fn extract_dump_options_and_circuit_data(
         .clone();
 
     let islayout = !circuit.getattr("layout")?.is_none();
-    
-    Ok((options, circuit_data, islayout))
-}
-
-#[pyfunction]
-#[pyo3(signature = (circuit, /, kwargs=None))]
-pub fn dumps(
-    _py: Python,
-    circuit: &Bound<PyAny>,
-    kwargs: Option<&Bound<PyDict>>,
-) -> PyResult<String> {
-    let (options, circuit_data, islayout) = extract_dump_options_and_circuit_data(circuit, kwargs)?;
 
     let exporter = exporter::Exporter::new(
         options.includes,
@@ -236,14 +228,17 @@ pub fn dumps(
 }
 
 #[pyfunction]
-#[pyo3(signature = (circuit,stream, /, kwargs=None))]
+#[pyo3(signature = (circuit, stream, /, *, includes=None, basis_gates=None, disable_constants=None, allow_aliasing=None, indent=None))]
 pub fn dump(
-    py: Python,
     circuit: &Bound<PyAny>,
     stream: &Bound<PyAny>,
-    kwargs: Option<&Bound<PyDict>>,
+    includes: Option<Vec<String>>,
+    basis_gates: Option<Vec<String>>,
+    disable_constants: Option<bool>,
+    allow_aliasing: Option<bool>,
+    indent: Option<String>,
 ) -> PyResult<()> {
-    let output_str = dumps(py, circuit, kwargs)?;
+    let output_str = dumps(circuit, includes, basis_gates, disable_constants, allow_aliasing, indent)?;
     stream.call_method1("write", (output_str,))?;
     Ok(())
 }
