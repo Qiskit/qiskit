@@ -476,7 +476,6 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
-
         paulis_x = self.paulis.x
         paulis_z = self.paulis.z
         nz_coeffs = self.coeffs
@@ -503,7 +502,6 @@ class SparsePauliOp(LinearOp):
             )
         else:
             non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
-
 
         # Delete zero coefficient rows
         if self.coeffs.dtype == object:
