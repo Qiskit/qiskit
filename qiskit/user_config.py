@@ -36,7 +36,6 @@ class UserConfig:
     parallel = False
     num_processes = 4
     sabre_all_threads = true
-    min_qpy_version = 2
 
     """
 
@@ -53,7 +52,6 @@ class UserConfig:
             self.filename = filename
         self.settings = {}
         self.config_parser = configparser.ConfigParser()
-        self.read_config_file()
 
     def read_config_file(self):
         """Read config file and parse the contents into the settings attr."""
@@ -178,25 +176,6 @@ class UserConfig:
             if sabre_all_threads is not None:
                 self.settings["sabre_all_threads"] = sabre_all_threads
 
-            self.config_parser.read(self.config_file)
-            if "default" in self.config_parser:
-                # Parse min_qpy_version as a positive integer
-                min_qpy_version = self.config_parser.get("default", "min_qpy_version", fallback=None)
-                if min_qpy_version is not None and min_qpy_version.strip() != "":
-                    try:
-                        min_qpy_version = int(min_qpy_version)
-                        if min_qpy_version <= 0:
-                            raise exceptions.QiskitUserConfigError(
-                                f"Invalid min_qpy_version: {min_qpy_version} must be a positive integer"
-                            )
-                        self.settings["min_qpy_version"] = min_qpy_version
-                    except ValueError:
-                        raise exceptions.QiskitUserConfigError(
-                            f"Invalid min_qpy_version: '{min_qpy_version}' must be an integer"
-                        )
-    
-def get(self, key, default=None):
-            return self.settings.get(key, default)
 
 def set_config(key, value, section=None, file_path=None):
     """Adds or modifies a user configuration

@@ -26,8 +26,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
-from qiskit.user_config import get_config
-from packaging.version import parse as parse_version
 
 if TYPE_CHECKING:
     from qiskit.circuit import annotation
@@ -275,23 +273,6 @@ def load(
     # identify file header version
     version = struct.unpack("!6sB", file_obj.read(7))[1]
     file_obj.seek(0)
-    
-    # Enforce min_qpy_version if set in user config
-    qpy_version = _read_qpy_version(file_obj)
-    if not isinstance(qpy_version, int):
-        raise QiskitError(f"Invalid QPY file version: {qpy_version} is not an integer")
-    user_config = get_config()
-    min_qpy_version = user_config.get("min_qpy_version")
-    if min_qpy_version is not None:
-        if not isinstance(min_qpy_version, int) or min_qpy_version <= 0:
-            raise QiskitError(f"Invalid min_qpy_version in config: {min_qpy_version} must be a positive integer")
-        if qpy_version < min_qpy_version:
-            filename = getattr(file_obj, "name", "<unknown>")
-            raise QiskitError(
-                f"QPY file '{filename}' has version {qpy_version}, "
-                f"below the minimum version {min_qpy_version} set in ~/.qiskit/settings.conf. "
-                "Update the QPY file or adjust 'min_qpy_version' to allow older versions"
-            )
 
     if version > common.QPY_VERSION:
         raise QiskitError(
