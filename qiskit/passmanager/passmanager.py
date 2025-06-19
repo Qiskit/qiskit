@@ -248,9 +248,7 @@ class BasePassManager(ABC):
                 return out[0]
             return out
 
-        del callback
         del kwargs
-
         # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
@@ -261,6 +259,7 @@ class BasePassManager(ABC):
             task_kwargs={
                 "pass_manager_bin": dill.dumps(self),
                 "initial_property_set": property_set,
+                "callback": callback,
             },
             num_processes=num_processes,
         )
@@ -350,4 +349,5 @@ def _run_workflow_in_new_process(
         program=program,
         pass_manager=dill.loads(pass_manager_bin),
         initial_property_set=initial_property_set,
+        callback=initial_property_set.get("callback"),
     )
