@@ -569,12 +569,8 @@ impl Exporter {
 
 pub struct QASM3Builder {
     _builtin_instr: HashSet<&'static str>,
-    loose_bit_prefix: &'static str,
-    loose_qubit_prefix: &'static str,
-    _gate_param_prefix: &'static str,
-    _gate_qubit_prefix: &'static str,
-    circuit_scope: BuildScope,
     is_layout: bool,
+    circuit_scope: BuildScope,
     symbol_table: SymbolTable,
     global_io_decls: Vec<IODeclaration>,
     includes: Vec<String>,
@@ -604,10 +600,6 @@ impl<'a> QASM3Builder {
             ]
             .into_iter()
             .collect(),
-            loose_bit_prefix: BIT_PREFIX,
-            loose_qubit_prefix: QUBIT_PREFIX,
-            _gate_param_prefix: GATE_PARAM_PREFIX,
-            _gate_qubit_prefix: GATE_QUBIT_PREFIX,
             circuit_scope: BuildScope::new(
                 circuit_data,
             ),
@@ -841,7 +833,7 @@ impl<'a> QASM3Builder {
             for i in 0..num_clbits {
                 let clbit = Clbit(i as u32);
                 let identifier = self.symbol_table.register_bits(
-                    format!("{}{}", self.loose_bit_prefix, i),
+                    format!("{}{}", BIT_PREFIX, i),
                     &BitType::Clbit(clbit),
                     true,
                     false,
@@ -874,7 +866,7 @@ impl<'a> QASM3Builder {
             if !clbits_in_registers.contains(&(i as u32)) {
                 let clbit = Clbit(i as u32);
                 let identifier = self.symbol_table.register_bits(
-                    format!("{}{}", self.loose_bit_prefix, i),
+                    format!("{}{}", BIT_PREFIX, i),
                     &BitType::Clbit(clbit),
                     true,
                     false,
@@ -939,7 +931,6 @@ impl<'a> QASM3Builder {
         let mut decls: Vec<Statement> = Vec::new();
 
         if self.is_layout {
-            self.loose_qubit_prefix = "$";
             for i in 0..num_qubits {
                 let qubit = Qubit(i as u32);
                 self.symbol_table.register_bits(
@@ -962,7 +953,7 @@ impl<'a> QASM3Builder {
             for i in 0..num_qubits {
                 let qubit = Qubit(i as u32);
                 let identifier = self.symbol_table.register_bits(
-                    format!("{}{}", self.loose_qubit_prefix, i),
+                    format!("{}{}", if self.is_layout { "$" } else { QUBIT_PREFIX }, i),
                     &BitType::Qubit(qubit),
                     true,
                     false,
@@ -994,7 +985,7 @@ impl<'a> QASM3Builder {
             if !qubits_in_registers.contains(&(i as u32)) {
                 let qubit = Qubit(i as u32);
                 let identifier = self.symbol_table.register_bits(
-                    format!("{}{}", self.loose_qubit_prefix, i),
+                    format!("{}{}", if self.is_layout { "$" } else { QUBIT_PREFIX }, i),
                     &BitType::Qubit(qubit),
                     true,
                     false,
@@ -1354,7 +1345,7 @@ impl<'a> QASM3Builder {
 
             (0..instr.params_view().len())
                 .map(|i| {
-                    let name = format!("{}_{}", self._gate_param_prefix, i);
+                    let name = format!("{}_{}", GATE_PARAM_PREFIX, i);
                     let py_param = parameter_class
                         .call1((name,))
                         .map_err(|e| QASM3ExporterError::Error(format!("Failed to create Parameter: {}", e)))?;
@@ -1367,7 +1358,7 @@ impl<'a> QASM3Builder {
                 .iter()
                 .enumerate()
                 .map(|(i, _p)| {
-                    let name = format!("{}_{}", self._gate_param_prefix, i);
+                    let name = format!("{}_{}", GATE_PARAM_PREFIX, i);
                     Identifier {
                         string: name.clone(),
                     }
@@ -1375,7 +1366,7 @@ impl<'a> QASM3Builder {
                 .collect::<Vec<_>>();
             let qubits = (0..instruction.num_qubits())
                 .map(|i| {
-                    let name = format!("{}_{}", self._gate_qubit_prefix, i);
+                    let name = format!("{}_{}", GATE_QUBIT_PREFIX, i);
                     Identifier {
                         string: name.clone(),
                     }
@@ -1387,7 +1378,7 @@ impl<'a> QASM3Builder {
                     let _ = builder.symbol_table.bind(&param.string);
                 }
                 for (i, _q) in instruction.qubits().objects().iter().enumerate() {
-                    let name = format!("{}_{}", builder._gate_qubit_prefix, i);
+                    let name = format!("{}_{}", GATE_QUBIT_PREFIX, i);
                     let qid = Identifier {
                         string: name.clone(),
                     };

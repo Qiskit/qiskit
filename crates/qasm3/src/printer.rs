@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashMap;
-
 use std::fmt::Write;
 
 use crate::ast::{
@@ -30,31 +28,15 @@ pub struct BasicPrinter<'a> {
     indent: String,
     current_indent: usize,
     _chain_else_if: bool,
-    constant_lookup: HashMap<Constant, &'static str>,
-    modifier_lookup: HashMap<QuantumGateModifierName, &'static str>,
 }
 
 impl<'a> BasicPrinter<'a> {
     pub fn new(stream: &'a mut String, indent: String, _chain_else_if: bool) -> Self {
-        let mut constant_lookup = HashMap::new();
-        constant_lookup.insert(Constant::PI, "pi");
-        constant_lookup.insert(Constant::Euler, "euler");
-        constant_lookup.insert(Constant::Tau, "tau");
-
-        let mut modifier_lookup = HashMap::new();
-        modifier_lookup.insert(QuantumGateModifierName::Ctrl, "ctrl");
-        modifier_lookup.insert(QuantumGateModifierName::Negctrl, "negctrl");
-        modifier_lookup.insert(QuantumGateModifierName::Inv, "inv");
-        modifier_lookup.insert(QuantumGateModifierName::Pow, "pow");
-
-
         BasicPrinter {
             stream,
             indent,
             current_indent: 0,
             _chain_else_if,
-            constant_lookup,
-            modifier_lookup,
         }
     }
 
@@ -136,7 +118,12 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_constant(&mut self, expression: &Constant) {
-        write!(self.stream, "{}", self.constant_lookup[expression]).unwrap();
+        let constant_str = match expression {
+            Constant::PI => "pi",
+            Constant::Euler => "euler",
+            Constant::Tau => "tau",
+        };
+        write!(self.stream, "{}", constant_str).unwrap();
     }
 
     fn visit_parameter(&mut self, expression: &Parameter) {
@@ -325,7 +312,13 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_quantum_gate_modifier(&mut self, statement: &QuantumGateModifier) {
-        write!(self.stream, "{}", self.modifier_lookup[&statement.modifier]).unwrap();
+        let modifier_str = match &statement.modifier {
+            QuantumGateModifierName::Ctrl => "ctrl",
+            QuantumGateModifierName::Negctrl => "negctrl",
+            QuantumGateModifierName::Inv => "inv",
+            QuantumGateModifierName::Pow => "pow",
+        };
+        write!(self.stream, "{}", modifier_str).unwrap();
         if let Some(argument) = &statement.argument {
             write!(self.stream, "(").unwrap();
             self.visit_expression(argument);
