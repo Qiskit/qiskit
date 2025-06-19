@@ -576,26 +576,10 @@ impl Exporter {
         islayout: bool,
         writer: &mut W,
     ) -> ExporterResult<()> {
-        let mut builder = QASM3Builder::new(
-            circuit_data,
-            islayout,
-            self.includes.clone(),
-            self.basis_gates.clone(),
-            self.disable_constants,
-            self.allow_aliasing,
-        );
-
-        match builder.build_program() {
-            Ok(program) => {
-                let mut output = String::new();
-                let mut printer = BasicPrinter::new(&mut output, self.indent.to_string(), false);
-                printer.visit(&Node::Program(&program));
-                drop(printer);
-                let _ = writer.write_all(output.as_bytes());
-                Ok(())
-            }
-            Err(e) => Err(QASM3ExporterError::Error(e.to_string())),
-        }
+        let output = self.dumps(circuit_data, islayout)?;
+        writer.write_all(output.as_bytes())
+            .map_err(|e| QASM3ExporterError::Error(format!("Failed to write output: {}", e)))?;
+        Ok(())
     }
 }
 

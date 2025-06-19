@@ -175,6 +175,41 @@ impl Default for DumpOptions {
     }
 }
 
+fn extract_dump_options_and_circuit_data(
+    circuit: &Bound<PyAny>,
+    kwargs: Option<&Bound<PyDict>>,
+) -> PyResult<(DumpOptions, CircuitData, bool)> {
+    let mut options = DumpOptions::default();
+
+    if let Some(kw) = kwargs {
+        if let Some(val) = kw.get_item("includes")? {
+            options.includes = val.extract::<Vec<String>>()?;
+        }
+        if let Some(val) = kw.get_item("basis_gates")? {
+            options.basis_gates = val.extract::<Vec<String>>()?;
+        }
+        if let Some(val) = kw.get_item("disable_constants")? {
+            options.disable_constants = val.extract::<bool>()?;
+        }
+        if let Some(val) = kw.get_item("allow_aliasing")? {
+            options.allow_aliasing = val.extract::<bool>()?;
+        }
+        if let Some(val) = kw.get_item("indent")? {
+            options.indent = val.extract::<String>()?;
+        }
+    }
+    
+    let circuit_data = circuit
+        .getattr("_data")?
+        .downcast::<CircuitData>()?
+        .borrow()
+        .clone();
+
+    let islayout = !circuit.getattr("layout")?.is_none();
+    
+    Ok((options, circuit_data, islayout))
+}
+
 #[pyfunction]
 #[pyo3(signature = (circuit, /, kwargs=None))]
 pub fn dumps(
@@ -182,31 +217,7 @@ pub fn dumps(
     circuit: &Bound<PyAny>,
     kwargs: Option<&Bound<PyDict>>,
 ) -> PyResult<String> {
-    let mut options = DumpOptions::default();
-
-    if let Some(kw) = kwargs {
-        if let Some(val) = kw.get_item("includes")? {
-            options.includes = val.extract::<Vec<String>>()?;
-        }
-        if let Some(val) = kw.get_item("basis_gates")? {
-            options.basis_gates = val.extract::<Vec<String>>()?;
-        }
-        if let Some(val) = kw.get_item("disable_constants")? {
-            options.disable_constants = val.extract::<bool>()?;
-        }
-        if let Some(val) = kw.get_item("allow_aliasing")? {
-            options.allow_aliasing = val.extract::<bool>()?;
-        }
-        if let Some(val) = kw.get_item("indent")? {
-            options.indent = val.extract::<String>()?;
-        }
-    }
-    let circuit_data = circuit
-        .getattr("_data")?
-        .downcast::<CircuitData>()?
-        .borrow();
-
-    let islayout = !circuit.getattr("layout")?.is_none();
+    let (options, circuit_data, islayout) = extract_dump_options_and_circuit_data(circuit, kwargs)?;
 
     let exporter = exporter::Exporter::new(
         options.includes,
@@ -216,73 +227,24 @@ pub fn dumps(
         options.indent,
     );
 
-    let stream = exporter.dumps(&circuit_data, islayout).map_err(|err| {
+    exporter.dumps(&circuit_data, islayout).map_err(|err| {
         QASM3ImporterError::new_err(format!(
             "failed to export circuit using qasm3.dumps_experimental: {:?}",
             err
         ))
-    })?;
-
-    Ok(stream)
+    })
 }
 
 #[pyfunction]
 #[pyo3(signature = (circuit,stream, /, kwargs=None))]
 pub fn dump(
-    _py: Python,
+    py: Python,
     circuit: &Bound<PyAny>,
     stream: &Bound<PyAny>,
     kwargs: Option<&Bound<PyDict>>,
 ) -> PyResult<()> {
-    let mut options = DumpOptions::default();
-
-    if let Some(kw) = kwargs {
-        if let Some(val) = kw.get_item("includes")? {
-            options.includes = val.extract::<Vec<String>>()?;
-        }
-        if let Some(val) = kw.get_item("basis_gates")? {
-            options.basis_gates = val.extract::<Vec<String>>()?;
-        }
-        if let Some(val) = kw.get_item("disable_constants")? {
-            options.disable_constants = val.extract::<bool>()?;
-        }
-        if let Some(val) = kw.get_item("allow_aliasing")? {
-            options.allow_aliasing = val.extract::<bool>()?;
-        }
-        if let Some(val) = kw.get_item("indent")? {
-            options.indent = val.extract::<String>()?;
-        }
-    }
-    let circuit_data = circuit
-        .getattr("_data")?
-        .downcast::<CircuitData>()?
-        .borrow();
-
-    let islayout = !circuit.getattr("layout")?.is_none();
-
-    let exporter = exporter::Exporter::new(
-        options.includes,
-        options.basis_gates,
-        options.disable_constants,
-        options.allow_aliasing,
-        options.indent,
-    );
-
-    let mut output = Vec::new();
-    exporter
-        .dump(&circuit_data, islayout, &mut output)
-        .map_err(|err| {
-            QASM3ImporterError::new_err(format!(
-                "failed to export circuit using qasm3.dump_experimental: {:?}",
-                err
-            ))
-        })?;
-
-    let output_str = String::from_utf8(output)
-        .map_err(|e| QASM3ImporterError::new_err(format!("invalid utf-8 output: {:?}", e)))?;
-
+    let output_str = dumps(py, circuit, kwargs)?;
     stream.call_method1("write", (output_str,))?;
-
     Ok(())
 }
 
