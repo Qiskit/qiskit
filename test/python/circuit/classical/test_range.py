@@ -44,12 +44,21 @@ class TestRange(QiskitTestCase):
 
         range_expr = expr.Range(start, stop, step)
 
-        self.assertEqual(range_expr.start, start)
-        self.assertEqual(range_expr.stop, stop)
-        self.assertEqual(range_expr.step, step)
-        # Type should be the largest of the inputs (Uint(32))
         self.assertEqual(range_expr.type, types.Uint(32))
         self.assertTrue(range_expr.const)
+
+        self.assertIsInstance(range_expr.start, expr.Cast)
+        self.assertEqual(range_expr.start.type, types.Uint(32))
+        self.assertEqual(range_expr.start.operand, start)
+        self.assertTrue(range_expr.start.implicit)
+
+        self.assertIsInstance(range_expr.stop, expr.Cast)
+        self.assertEqual(range_expr.stop.type, types.Uint(32))
+        self.assertEqual(range_expr.stop.operand, stop)
+        self.assertTrue(range_expr.stop.implicit)
+
+        self.assertEqual(range_expr.step, step)
+        self.assertNotIsInstance(range_expr.step, expr.Cast)
 
     def test_range_without_step(self):
         """Test creating a Range without a step value."""
@@ -147,7 +156,7 @@ class TestRange(QiskitTestCase):
 
         # Cast all to Uint(64)
         range_expr = expr.Range(start, stop, step, ty=types.Uint(64))
-        
+
         # Verify all expressions were cast to Uint(64)
         self.assertEqual(range_expr.type, types.Uint(64))
         self.assertEqual(range_expr.start.type, types.Uint(64))
@@ -190,7 +199,7 @@ class TestRange(QiskitTestCase):
 
         # Cast all to Uint(32)
         range_expr = expr.Range(start, stop, step, ty=types.Uint(32))
-        
+
         # Verify all expressions were cast to Uint(32)
         self.assertEqual(range_expr.type, types.Uint(32))
         self.assertEqual(range_expr.start.type, types.Uint(32))
@@ -199,5 +208,5 @@ class TestRange(QiskitTestCase):
 
         # Verify constant flag is preserved
         self.assertFalse(range_expr.start.constant)  # Non-constant
-        self.assertTrue(range_expr.stop.constant)    # Constant
-        self.assertTrue(range_expr.step.constant)    # Constant
+        self.assertTrue(range_expr.stop.constant)  # Constant
+        self.assertTrue(range_expr.step.constant)  # Constant
