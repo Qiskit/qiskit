@@ -452,7 +452,8 @@ class TestParameterExpression(QiskitTestCase):
                 with self.subTest(method=method, value=value):
                     ref = reference(value)
                     if isinstance(d_expr, ParameterExpression):
-                        val = d_expr.bind({x: value}).numeric()
+                        # allow unknown parameters since the derivative could evaluate to a const
+                        val = d_expr.bind({x: value}, allow_unknown_parameters=True).numeric()
                     else:
                         val = d_expr  # d/dx conj(x) == 1
 

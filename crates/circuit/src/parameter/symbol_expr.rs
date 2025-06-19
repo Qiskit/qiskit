@@ -71,7 +71,12 @@ impl Symbol {
 
     pub fn as_expr(&self) -> PyParameterExpression {
         let expr = SymbolExpr::Symbol(self.clone());
-        PyParameterExpression::new(&expr)
+        PyParameterExpression::new(expr)
+    }
+
+    pub fn __str__<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        let str = format!("Symbol({})", self.name());
+        PyString::new(py, str.as_str())
     }
 }
 
@@ -468,6 +473,8 @@ impl SymbolExpr {
     }
 
     /// substitute symbol node to other expression
+    /// allows unknown expressions
+    /// does not allow duplicate names with different UUID
     pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> SymbolExpr {
         match self {
             SymbolExpr::Symbol(e) => match maps.get(e) {
