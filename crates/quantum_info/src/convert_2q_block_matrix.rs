@@ -30,7 +30,7 @@ use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 use crate::QiskitError;
 
 #[inline]
-pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
+pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
     if let Some(mat) = inst.op.matrix(inst.params_view()) {
         Ok(mat)
     } else if inst.op.try_standard_gate().is_some() {
@@ -38,13 +38,15 @@ pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Ar
             "Parameterized gates can't be consolidated",
         ))
     } else if let OperationRef::Gate(gate) = inst.op.view() {
-        Ok(QI_OPERATOR
-            .get_bound(py)
-            .call1((gate.gate.clone_ref(py),))?
-            .getattr(intern!(py, "data"))?
-            .extract::<PyReadonlyArray2<Complex64>>()?
-            .as_array()
-            .to_owned())
+        Python::with_gil(|py| {
+            Ok(QI_OPERATOR
+                .get_bound(py)
+                .call1((gate.gate.clone_ref(py),))?
+                .getattr(intern!(py, "data"))?
+                .extract::<PyReadonlyArray2<Complex64>>()?
+                .as_array()
+                .to_owned())
+        })
     } else {
         Err(QiskitError::new_err(
             "Can't compute matrix of non-unitary op",
@@ -106,7 +108,7 @@ impl Separable1q {
 }
 
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
-fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU2> {
+fn versor_from_1q_gate(inst: &PackedInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
     match inst.op.view() {
         OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
@@ -115,7 +117,7 @@ fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU
             ArrayType::OneQ(arr) => Ok(VersorU2::from_nalgebra_unchecked(arr)),
             ArrayType::TwoQ(_) => Err(VersorU2Error::MultiQubit),
         },
-        _ => VersorU2::from_ndarray(&get_matrix_from_inst(py, inst)?.view(), tol),
+        _ => VersorU2::from_ndarray(&get_matrix_from_inst(inst)?.view(), tol),
     }
     .map_err(|err| QiskitError::new_err(err.to_string()))
 }
@@ -126,7 +128,6 @@ fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU
 ///
 /// If any node in `op_list` is not a 1q or 2q gate.
 pub fn blocks_to_matrix(
-    py: Python,
     dag: &DAGCircuit,
     op_list: &[NodeIndex],
     block_index_map: [Qubit; 2],
@@ -166,14 +167,14 @@ pub fn blocks_to_matrix(
         let qarg = qarg_lookup(inst.qubits);
         match qarg {
             Qarg::Q0 | Qarg::Q1 => {
-                let versor = versor_from_1q_gate(py, inst)?;
+                let versor = versor_from_1q_gate(inst)?;
                 match qubits_1q.as_mut() {
                     Some(sep) => sep.apply_on_qubit(qarg as usize, &versor),
                     None => qubits_1q = Some(Separable1q::from_qubit(qarg as usize, versor)),
                 };
             }
             Qarg::Q01 | Qarg::Q10 => {
-                let mut matrix = get_matrix_from_inst(py, inst)?;
+                let mut matrix = get_matrix_from_inst(inst)?;
                 if qarg == Qarg::Q10 {
                     change_basis_inplace(matrix.view_mut());
                 }

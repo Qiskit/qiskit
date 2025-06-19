@@ -1,0 +1,36 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass :class:`.TwoQubitPeepholeOptimization` which
+    is intended to perform two qubit unitary peephole optimization, where it
+    analyzes the circuit to find two qubit blocks in the circuit, compute
+    the unitary of that subcircuit, and then replace the original block with
+    the synthesized unitary which uses fewer operations. For example:
+
+    .. plot::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler.passes import TwoQubitPeepholeOptimization
+        from qiskit.providers.fake_provider import GenericBackendV2
+
+        # Build an unoptimized 2 qubit circuit
+        unoptimized = QuantumCircuit(2)
+        for i in range(10):
+          if i % 2:
+            unoptimized.cx(0, 1)
+          else:
+            unoptimized.cx(1, 0)
+
+        # Generate a target with random error rates
+        target = GenericBackendV2(2, ["u", "cx"], coupling_map=[0, 1]).target
+        # Instantiate pass
+        peephole_pass = TwoQubitPeepholeOptimization(target)
+        # Run pass and visualize output
+        optimized = peephole_pass(unoptimized)
+        optimized.draw("mpl")
+
+    This functionality can be perfomed by running
+    :class:`.Collect2qBlocks`, :class:`.ConsolidateBlocks`, and
+    :class:`.UnitarySynthesis` sequentially. However this new pass offers
+    improved runtime performance and also better quality output in cases
+    of overcomplete and hetergeneous targets.
