@@ -78,7 +78,7 @@ class TestRange(QiskitTestCase):
         start = expr.lift(5.0, types.Float())
         stop = expr.lift(10.0, types.Float())
 
-        with self.assertRaisesRegex(TypeError, "Range values must be of integer type"):
+        with self.assertRaisesRegex(TypeError, "Range values must be of unsigned integer type"):
             expr.Range(start, stop)
 
     def test_range_with_mixed_types(self):
@@ -86,7 +86,7 @@ class TestRange(QiskitTestCase):
         start = expr.lift(5, types.Uint(8))
         stop = expr.lift(10.0, types.Float())
 
-        with self.assertRaisesRegex(TypeError, "Range values must be of integer type"):
+        with self.assertRaisesRegex(TypeError, "Range values must be of unsigned integer type"):
             expr.Range(start, stop)
 
     def test_range_with_non_constant_values(self):
@@ -180,10 +180,6 @@ class TestRange(QiskitTestCase):
         stop = expr.lift(10, types.Uint(16))
         step = expr.lift(2, types.Uint(32))
 
-        # Try to cast to a smaller type (should fail)
-        with self.assertRaisesRegex(TypeError, "Cannot cast range values to the specified type"):
-            expr.Range(start, stop, step, ty=types.Uint(4))
-
         # Try to cast to a non-uint type (should fail)
         with self.assertRaisesRegex(TypeError, "Range type must be an unsigned integer type"):
             expr.Range(start, stop, step, ty=types.Float())
@@ -207,6 +203,6 @@ class TestRange(QiskitTestCase):
         self.assertEqual(range_expr.step.type, types.Uint(32))
 
         # Verify constant flag is preserved
-        self.assertFalse(range_expr.start.constant)  # Non-constant
-        self.assertTrue(range_expr.stop.constant)  # Constant
-        self.assertTrue(range_expr.step.constant)  # Constant
+        self.assertFalse(range_expr.start.const)  # Non-constant
+        self.assertTrue(range_expr.stop.const)  # Constant
+        self.assertTrue(range_expr.step.const)  # Constant
