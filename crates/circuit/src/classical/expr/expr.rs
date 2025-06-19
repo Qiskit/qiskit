@@ -42,6 +42,7 @@ pub enum ExprRef<'a> {
     Var(&'a Var),
     Stretch(&'a Stretch),
     Index(&'a Index),
+    Range(&'a Range),
 }
 
 #[derive(Debug, PartialEq)]
@@ -53,6 +54,7 @@ pub enum ExprRefMut<'a> {
     Var(&'a mut Var),
     Stretch(&'a mut Stretch),
     Index(&'a mut Index),
+    Range(&'a mut Range),
 }
 
 #[derive(Clone, Debug, PartialEq)]
