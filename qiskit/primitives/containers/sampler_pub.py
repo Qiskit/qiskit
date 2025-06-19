@@ -170,6 +170,7 @@ class SamplerPub(ShapedMixin):
 
 
 SamplerPubLike = Union[
+    SamplerPub,
     QuantumCircuit,
     Tuple[QuantumCircuit],
     Tuple[QuantumCircuit, BindingsArrayLike],
