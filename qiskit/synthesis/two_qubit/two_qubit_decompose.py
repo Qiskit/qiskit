@@ -347,17 +347,10 @@ class TwoQubitBasisDecomposer:
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
-        # Use cx as gate name for pulse optimal decomposition detection
-        # otherwise use USER_GATE as a unique key to support custom gates
-        # including parameterized gates like UnitaryGate.
-        if isinstance(gate, CXGate):
-            gate_name = "cx"
-        else:
-            gate_name = "USER_GATE"
-        self.gate_name = gate_name
+        self.gate_name = gate.name
 
         self._inner_decomposer = two_qubit_decompose.TwoQubitBasisDecomposer(
-            gate_name,
+            gate.name,
             Operator(gate).data,
             basis_fidelity=basis_fidelity,
             euler_basis=euler_basis,
