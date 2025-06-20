@@ -154,9 +154,7 @@ pub fn load(
     loads(py, source, custom_gates, include_path)
 }
 
-#[pyfunction]
-#[pyo3(signature = (circuit, /, *, includes=None, basis_gates=None, disable_constants=None, allow_aliasing=None, indent=None))]
-pub fn dumps(
+fn export_circuit_to_string(
     circuit: &Bound<PyAny>,
     includes: Option<Vec<String>>,
     basis_gates: Option<Vec<String>>,
@@ -182,10 +180,23 @@ pub fn dumps(
 
     exporter.dumps(&circuit_data, islayout).map_err(|err| {
         QASM3ImporterError::new_err(format!(
-            "failed to export circuit using qasm3.dumps_experimental: {:?}",
+            "failed to export circuit: {:?}",
             err
         ))
     })
+}
+
+#[pyfunction]
+#[pyo3(signature = (circuit, /, *, includes=None, basis_gates=None, disable_constants=None, allow_aliasing=None, indent=None))]
+pub fn dumps(
+    circuit: &Bound<PyAny>,
+    includes: Option<Vec<String>>,
+    basis_gates: Option<Vec<String>>,
+    disable_constants: Option<bool>,
+    allow_aliasing: Option<bool>,
+    indent: Option<String>,
+) -> PyResult<String> {
+    export_circuit_to_string(circuit, includes, basis_gates, disable_constants, allow_aliasing, indent)
 }
 
 #[pyfunction]
@@ -199,7 +210,8 @@ pub fn dump(
     allow_aliasing: Option<bool>,
     indent: Option<String>,
 ) -> PyResult<()> {
-    let output_str = dumps(circuit, includes, basis_gates, disable_constants, allow_aliasing, indent)?;
+    // Generate the string directly without going through dumps function
+    let output_str = export_circuit_to_string(circuit, includes, basis_gates, disable_constants, allow_aliasing, indent)?;
     stream.call_method1("write", (output_str,))?;
     Ok(())
 }

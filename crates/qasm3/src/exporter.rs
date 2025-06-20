@@ -18,7 +18,6 @@ use crate::ast::{
     QuantumGateSignature, QuantumInstruction, QuantumMeasurementAssignment,
     Reset, Statement, Version,
 };
-use std::io::Write;
 
 use crate::printer::BasicPrinter;
 use hashbrown::{HashMap, HashSet};
@@ -554,17 +553,6 @@ impl Exporter {
         }
     }
 
-    pub fn dump<W: Write>(
-        &self,
-        circuit_data: &CircuitData,
-        islayout: bool,
-        writer: &mut W,
-    ) -> ExporterResult<()> {
-        let output = self.dumps(circuit_data, islayout)?;
-        writer.write_all(output.as_bytes())
-            .map_err(|e| QASM3ExporterError::Error(format!("Failed to write output: {}", e)))?;
-        Ok(())
-    }
 }
 
 pub struct QASM3Builder {
