@@ -100,16 +100,6 @@ pub static CIRCUIT_TO_DAG: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "circuit_to_dag");
 pub static DAG_TO_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "dag_to_circuit");
-pub static LEGACY_CONDITION_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_legacy_condition_eq");
-pub static CONDITION_OP_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_condition_op_eq");
-pub static SWITCH_CASE_OP_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_switch_case_eq");
-pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
-pub static BOX_OP_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_box_eq");
 pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
 pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
 pub static DELAY: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Delay");
