@@ -154,27 +154,6 @@ pub fn load(
     loads(py, source, custom_gates, include_path)
 }
 
-#[derive(Debug, Clone)]
-struct DumpOptions {
-    includes: Vec<String>,
-    basis_gates: Vec<String>,
-    disable_constants: bool,
-    allow_aliasing: bool,
-    indent: String,
-}
-
-impl Default for DumpOptions {
-    fn default() -> Self {
-        Self {
-            includes: vec!["stdgates.inc".to_string()],
-            basis_gates: vec![],
-            disable_constants: true,
-            allow_aliasing: false,
-            indent: "  ".to_string(),
-        }
-    }
-}
-
 #[pyfunction]
 #[pyo3(signature = (circuit, /, *, includes=None, basis_gates=None, disable_constants=None, allow_aliasing=None, indent=None))]
 pub fn dumps(
@@ -185,24 +164,6 @@ pub fn dumps(
     allow_aliasing: Option<bool>,
     indent: Option<String>,
 ) -> PyResult<String> {
-    let mut options = DumpOptions::default();
-    
-    if let Some(val) = includes {
-        options.includes = val;
-    }
-    if let Some(val) = basis_gates {
-        options.basis_gates = val;
-    }
-    if let Some(val) = disable_constants {
-        options.disable_constants = val;
-    }
-    if let Some(val) = allow_aliasing {
-        options.allow_aliasing = val;
-    }
-    if let Some(val) = indent {
-        options.indent = val;
-    }
-    
     let circuit_data = circuit
         .getattr("_data")?
         .downcast::<CircuitData>()?
@@ -212,11 +173,11 @@ pub fn dumps(
     let islayout = !circuit.getattr("layout")?.is_none();
 
     let exporter = exporter::Exporter::new(
-        options.includes,
-        options.basis_gates,
-        options.disable_constants,
-        options.allow_aliasing,
-        options.indent,
+        includes.unwrap_or_else(|| vec!["stdgates.inc".to_string()]),
+        basis_gates.unwrap_or_default(),
+        disable_constants.unwrap_or(true),
+        allow_aliasing.unwrap_or(false),
+        indent.unwrap_or_else(|| "  ".to_string()),
     );
 
     exporter.dumps(&circuit_data, islayout).map_err(|err| {
