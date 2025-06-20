@@ -78,9 +78,9 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
                     let s = format!("{}[{}]", v, i);
-                    Ok(SymbolExpr::Symbol(Symbol::new(&s, None)))
+                    Ok(SymbolExpr::Symbol(Symbol::new(&s, None, None)))
                 }
-                None => Ok(SymbolExpr::Symbol(Symbol::new(v, None))),
+                None => Ok(SymbolExpr::Symbol(Symbol::new(v, None, None))),
             }
         },
     )(s)

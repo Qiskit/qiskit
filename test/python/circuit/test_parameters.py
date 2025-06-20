@@ -2178,7 +2178,7 @@ class TestParameterEquality(QiskitTestCase):
         and ParameterExpression cos(phi) have the same symbol map"""
         phi = Parameter("phi")
         cos_phi = numpy.cos(phi)
-        self.assertEqual(phi._parameter_symbols, cos_phi._parameter_symbols)
+        self.assertEqual(phi.name_map(), cos_phi.name_map())
 
 
 class TestParameterView(QiskitTestCase):

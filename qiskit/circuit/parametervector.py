@@ -29,7 +29,7 @@ class OldParameterVectorElement(OldParameter):
     ___slots__ = ("_vector", "_index")
 
     def __init__(self, vector, index, uuid=None):
-        super().__init__(f"{vector.name}[{index}]", uuid)
+        super().__init__(f"{vector.name}[{index}]", uuid=uuid)
         self._vector = vector
         self._index = index
 
@@ -109,6 +109,17 @@ class ParameterVector:
 
     def __repr__(self):
         return f"{self.__class__.__name__}(name={repr(self.name)}, length={len(self)})"
+
+    def __getnewargs__(self):
+        return (self._name, len(self._params))
+
+    def __getstate__(self):
+        params = [p.__getstate__() for p in self._params]
+        return (self._name, params, self._root_uuid)
+
+    def __setstate__(self, state):
+        self._name, params, self._root_uuid = state
+        self._params = [ParameterVectorElement(*p) for p in params]
 
     def resize(self, length):
         """Resize the parameter vector.  If necessary, new elements are generated.

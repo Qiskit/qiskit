@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 # pylint: disable=too-many-return-statements
 
-"""Check if number close to values of PI
-"""
+"""Check if number close to values of PI"""
 
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -48,7 +47,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
-        values = inpt._symbol_expr.values()
+        values = inpt.values()
         for val in values:
             pi = pi_check(abs(float(val)), eps=eps, output=output, ndigits=ndigits)
             try:

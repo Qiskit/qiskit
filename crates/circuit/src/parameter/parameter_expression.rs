@@ -96,19 +96,30 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<PyParameterExpression> {
             symbol_expr::Value::from(i),
         )))
     } else if let Ok(c) = value.extract::<Complex64>() {
+        if c.is_infinite() || c.is_nan() {
+            return None;
+        }
         Some(PyParameterExpression::new(SymbolExpr::Value(
             symbol_expr::Value::from(c),
         )))
     } else if let Ok(r) = value.extract::<f64>() {
+        if r.is_infinite() || r.is_nan() {
+            return None;
+        }
         Some(PyParameterExpression::new(SymbolExpr::Value(
             symbol_expr::Value::from(r),
         )))
-    } else if let Ok(s) = value.extract::<String>() {
-        if let Ok(expr) = parse_expression(&s) {
-            Some(PyParameterExpression::new(expr))
-        } else {
-            None
-        }
+    // string values not allowed
+    // } else if let Ok(s) = value.extract::<String>() {
+    //     if let Ok(expr) = parse_expression(&s) {
+    //         Some(PyParameterExpression::new(expr))
+    //     } else {
+    //         None
+    //     }
+    } else if let Ok(parameter) = value.extract::<PyParameter>() {
+        Some(parameter.symbol.as_expr())
+    } else if let Ok(element) = value.extract::<PyParameterVectorElement>() {
+        Some(element.symbol.as_expr())
     } else {
         value.extract::<PyParameterExpression>().ok()
     }
@@ -199,10 +210,8 @@ impl PyParameterExpression {
         }
     }
     /// return derivative of this expression for param
-    pub fn derivative(&self, param: &Self) -> Result<Self, String> {
-        self.expr
-            .derivative(&param.expr)
-            .map(|expr| Self::new(expr))
+    pub fn derivative(&self, param: &Symbol) -> Result<Self, String> {
+        self.expr.derivative(param).map(|expr| Self::new(expr))
     }
 
     /// expand expression
@@ -265,7 +274,7 @@ impl PyParameterExpression {
             .into_iter()
             .map(|(key, val)| {
                 // if we only allow known parameters, check that the symbol exists
-                if allow_unknown_parameters || self.expr.has_symbol(&key.name()) {
+                if allow_unknown_parameters || self.expr.has_symbol(&key) {
                     Ok((key.clone(), val.expr.clone()))
                 } else {
                     Err(ParameterError::UnknownParameter(key.clone()))
@@ -283,7 +292,7 @@ impl PyParameterExpression {
         if !allow_unknown_parameters {
             map.iter()
                 .map(|(symbol, _)| {
-                    if !self.expr.has_symbol(&symbol.name()) {
+                    if !self.expr.has_symbol(&symbol) {
                         Err(ParameterError::UnknownParameter(symbol.clone()))
                     } else {
                         Ok(())
@@ -382,7 +391,7 @@ impl PyParameterExpression {
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
 
-        PyParameterExpression::new(SymbolExpr::Symbol(Symbol::new(&name, None)))
+        PyParameterExpression::new(SymbolExpr::Symbol(Symbol::new(&name, None, None)))
     }
 
     /// TODO remove
@@ -430,9 +439,12 @@ impl PyParameterExpression {
                     }
                 }
             },
-            None => Err(pyo3::exceptions::PyRuntimeError::new_err(
-                "Expression has some undefined symbols.",
-            )),
+            None => {
+                let free_symbols = self.expr.parameters();
+                Err(PyTypeError::new_err(format!(
+                    "Parameter expression with unbound parameters {free_symbols:?} is not numeric."
+                )))
+            }
         }
     }
 
@@ -442,11 +454,18 @@ impl PyParameterExpression {
 
     #[getter]
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
-        let py_parameters: Vec<Py<PyParameter>> = self
+        let py_parameters: Vec<PyObject> = self
             .expr
             .parameters()
             .iter()
-            .map(|s| Py::new(py, PyParameter::from_symbol(s)))
+            .map(|s| match (s.index, &s.vector) {
+                // if index and vector is set, it is an element
+                (Some(_index), Some(_vector)) => {
+                    Ok(Py::new(py, PyParameterVectorElement::from_symbol(s))?.into_any())
+                }
+                // else, a normal parameter
+                _ => Ok(Py::new(py, PyParameter::from_symbol(s))?.into_any()),
+            })
             .collect::<PyResult<_>>()?;
         PySet::new(py, py_parameters)
     }
@@ -523,8 +542,9 @@ impl PyParameterExpression {
     }
 
     /// Return derivative of this expression for param
-    pub fn gradient(&self, param: &Self) -> PyResult<Self> {
-        self.derivative(param).map_err(PyRuntimeError::new_err)
+    pub fn gradient<'py>(&self, param: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let symbol = symbol_from_py_parameter(param)?;
+        self.derivative(&symbol).map_err(PyRuntimeError::new_err)
     }
 
     /// return all values in this equation
@@ -870,23 +890,8 @@ impl PyParameter {
         name: String,
         uuid: Option<PyObject>,
     ) -> PyResult<PyClassInitializer<Self>> {
-        let uuid = if let Some(val) = uuid {
-            // construct from u128
-            let as_u128 = if let Ok(as_u128) = val.extract::<u128>(py) {
-                as_u128
-            // construct from Python UUID type
-            } else if val.bind(py).is_exact_instance(UUID.get_bound(py)) {
-                val.getattr(py, "int")?.extract::<u128>(py)?
-            // invalid format
-            } else {
-                return Err(PyTypeError::new_err("not a UUID!"));
-            };
-            Some(Uuid::from_u128(as_u128))
-        } else {
-            None
-        };
-
-        let symbol = Symbol::new(name.as_str(), uuid);
+        let uuid = uuid_from_py(py, uuid)?;
+        let symbol = Symbol::new(name.as_str(), uuid, None);
         let expr = SymbolExpr::Symbol(symbol.clone());
 
         let py_parameter = Self { symbol };
@@ -898,9 +903,10 @@ impl PyParameter {
     /// The UUID of the parameter.
     #[getter]
     fn uuid(&self, py: Python<'_>) -> PyResult<PyObject> {
-        let uuid = self.symbol.py_uuid();
-        let kwargs = [("int", uuid)].into_py_dict(py)?;
-        Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
+        // let uuid = self.symbol.py_uuid();
+        // let kwargs = [("int", uuid)].into_py_dict(py)?;
+        // Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
+        uuid_to_py(py, self.symbol.uuid)
     }
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
@@ -911,13 +917,38 @@ impl PyParameter {
         );
         PyString::new(py, str.as_str())
     }
+
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<(String, Option<PyObject>)> {
+        Ok((self.symbol.name(), Some(self.uuid(py)?)))
+    }
+
+    // fn __getstate__(&self) -> (String, u128) {
+    //     (self.symbol.name(), self.symbol.py_uuid())
+    // }
+
+    // fn __setstate__(&mut self, state: (String, u128)) -> PyResult<()> {
+    //     let symbol = Symbol::py_new(&state.0, Some(state.1), None, None)?;
+    //     self.symbol = symbol;
+    //     Ok(())
+    // }
 }
 
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
 #[derive(Clone, Debug)]
 pub struct PyParameterVectorElement {
-    index: u64,
-    vector: PyObject,
+    symbol: Symbol, // index: u64,
+                    // vector: PyObject,
+}
+
+impl PyParameterVectorElement {
+    fn from_symbol(symbol: &Symbol) -> PyClassInitializer<Self> {
+        let py_element = Self {
+            symbol: symbol.clone(),
+        };
+        let py_parameter = PyParameter::from_symbol(&symbol);
+
+        py_parameter.add_subclass(py_element)
+    }
 }
 
 #[pymethods]
@@ -927,29 +958,109 @@ impl PyParameterVectorElement {
     pub fn py_new(
         py: Python<'_>,
         vector: PyObject,
-        index: u64,
+        index: u32,
         uuid: Option<PyObject>,
     ) -> PyResult<PyClassInitializer<Self>> {
         let vector_name = vector.getattr(py, "name")?.extract::<String>(py)?;
+        let uuid = uuid_from_py(py, uuid)?.unwrap_or(Uuid::new_v4());
 
-        let name = format!("{}[{}]", vector_name, index);
+        let symbol = Symbol::py_new(
+            &vector_name,
+            Some(uuid.as_u128()),
+            Some(index),
+            Some(vector.clone_ref(py)),
+        )?;
 
-        let py_parameter = PyParameter::py_new(py, name, uuid)?;
-        let py_element = Self {
-            index,
-            vector: vector.clone_ref(py),
-        };
+        // let name = format!("{}[{}]", vector_name, index);
+        let py_parameter = PyParameter::from_symbol(&symbol);
+        let py_element = Self { symbol };
 
         Ok(py_parameter.add_subclass(py_element))
     }
 
-    #[getter]
-    pub fn index(&self) -> u64 {
-        self.index
+    pub fn __getnewargs__(&self, py: Python) -> PyResult<(PyObject, u32, Option<PyObject>)> {
+        let vector = self
+            .symbol
+            .vector
+            .clone()
+            .expect("vector element should have a vector");
+        let index = self
+            .symbol
+            .index
+            .expect("vector element should have an index");
+        let uuid = uuid_to_py(py, self.symbol.uuid)?;
+        Ok((vector, index, Some(uuid)))
+    }
+
+    pub fn __getstate__(&self, py: Python) -> PyResult<(PyObject, u32, Option<PyObject>)> {
+        self.__getnewargs__(py)
+    }
+
+    pub fn __setstate__(
+        &mut self,
+        py: Python,
+        state: (PyObject, u32, Option<PyObject>),
+    ) -> PyResult<()> {
+        let vector = state.0;
+        let index = state.1;
+        let vector_name = vector.getattr(py, "name")?.extract::<String>(py)?;
+        let uuid = uuid_from_py(py, state.2)?.map(|id| id.as_u128());
+        self.symbol = Symbol::py_new(&vector_name, uuid, Some(index), Some(vector))?;
+        Ok(())
     }
 
     #[getter]
-    pub fn vector(&self, py: Python<'_>) -> PyObject {
-        self.vector.clone_ref(py)
+    pub fn index(&self) -> u32 {
+        self.symbol
+            .index
+            .expect("A vector element should have an index")
+    }
+
+    #[getter]
+    pub fn vector(&self) -> PyObject {
+        self.symbol
+            .clone()
+            .vector
+            .expect("A vector element should have a vector")
+    }
+
+    /// wrong backward compatibility -- this should not be used, but some methods do use it
+    #[getter]
+    pub fn _vector(&self) -> PyObject {
+        self.vector()
+    }
+}
+
+fn uuid_from_py(py: Python<'_>, uuid: Option<PyObject>) -> PyResult<Option<Uuid>> {
+    if let Some(val) = uuid {
+        // construct from u128
+        let as_u128 = if let Ok(as_u128) = val.extract::<u128>(py) {
+            as_u128
+        // construct from Python UUID type
+        } else if val.bind(py).is_exact_instance(UUID.get_bound(py)) {
+            val.getattr(py, "int")?.extract::<u128>(py)?
+        // invalid format
+        } else {
+            return Err(PyTypeError::new_err("not a UUID!"));
+        };
+        Ok(Some(Uuid::from_u128(as_u128)))
+    } else {
+        Ok(None)
+    }
+}
+
+fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<PyObject> {
+    let uuid = uuid.as_u128();
+    let kwargs = [("int", uuid)].into_py_dict(py)?;
+    Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
+}
+
+fn symbol_from_py_parameter<'py>(param: &Bound<'py, PyAny>) -> PyResult<Symbol> {
+    if let Ok(element) = param.extract::<PyParameterVectorElement>() {
+        Ok(element.symbol.clone())
+    } else if let Ok(parameter) = param.extract::<PyParameter>() {
+        Ok(parameter.symbol.clone())
+    } else {
+        Err(PyValueError::new_err("Could not extract parameter"))
     }
 }
