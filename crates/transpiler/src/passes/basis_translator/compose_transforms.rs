@@ -10,11 +10,17 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::LazyLock;
+
+use crate::equivalence::CircuitFromPython;
+use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
+use qiskit_circuit::operations::{get_standard_gate_names, StandardGate, StandardInstruction};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
@@ -24,12 +30,20 @@ use qiskit_circuit::{
 };
 use smallvec::SmallVec;
 
-use crate::equivalence::CircuitFromPython;
-
 // Custom types
 pub type GateIdentifier = (String, u32);
 pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
+
+static STD_GATE_MAPPING: LazyLock<HashMap<&str, StandardGate>> = LazyLock::new(|| {
+    get_standard_gate_names()
+        .iter()
+        .enumerate()
+        .map(|(k, v)| (*v, bytemuck::checked::cast(k as u8)))
+        .collect()
+});
+
+static STD_INST_MAPPING: LazyLock<HashMap<&str, StandardInstruction>> =. LazyLock::new(|| get_standard_instruction_gate_names())
 
 pub(super) fn compose_transforms<'a>(
     py: Python,
@@ -46,19 +60,12 @@ pub(super) fn compose_transforms<'a>(
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
 
-        // TODO: Follow-up by replacing with Param::ParamterExpression(Symbol),
-        // as ParameterVector is not exposed in Rust. Maybe we ought to add a function
-        // for convenient construction, if it would be useful.
-        let placeholder_params: SmallVec<[Param; 3]> = PARAMETER_VECTOR
-            .get_bound(py)
-            .call1((&gate_name, num_params))?
-            .extract()?;
+        let placeholder_params: SmallVec<[Param; 3]> = (0..num_params).map(|num| Param::Float(num as f64)).collect();
 
         let mut dag = DAGCircuit::new()?;
         // Create the mock gate and add to the circuit, use Python for this.
         let qubits = QuantumRegister::new_owning("q".to_string(), gate_num_qubits);
         dag.add_qreg(qubits)?;
-
         let gate = GATE.get_bound(py).call1((
             &gate_name,
             gate_num_qubits,
@@ -145,6 +152,9 @@ pub(super) fn compose_transforms<'a>(
     }
     Ok(mapped_instructions)
 }
+
+/// Creates
+fn name_to_packed_operation(name: &str) -> Option<PackedOperation> {}
 
 /// `DAGCircuit` variant.
 ///
