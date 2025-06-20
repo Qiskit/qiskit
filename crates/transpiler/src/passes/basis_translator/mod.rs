@@ -58,6 +58,7 @@ type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 #[allow(clippy::too_many_arguments)]
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
 pub fn run_basis_translator(
+    py: Python,
     dag: DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     qargs_with_non_global_operation: HashMap<Qargs, HashSet<String>>,
@@ -211,6 +212,7 @@ pub fn run_basis_translator(
         .collect::<PyResult<_>>()?;
 
     let (out_dag, _) = apply_translation(
+        py,
         &dag,
         &new_target_basis,
         &instr_map,
