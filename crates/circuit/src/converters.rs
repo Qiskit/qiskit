@@ -10,16 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::circuit_data::CircuitData;
 use crate::classical::expr;
 use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -114,23 +110,12 @@ pub fn dag_to_circuit(
             };
             if copy_operations {
                 let op = instr.op.py_deepcopy(py, None)?;
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(
-                        instr
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                let instr = instr.clone();
+                let mut packed = instr.into_packed(py)?;
+                packed.op = op;
+                Ok(packed)
             } else {
-                Ok(instr.clone())
+                instr.clone().into_packed(py)
             }
         }),
         dag.get_global_phase(),

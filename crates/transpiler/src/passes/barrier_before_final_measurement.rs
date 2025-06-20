@@ -14,9 +14,9 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction, NodeType};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 
 const PARALLEL_THRESHOLD: usize = 150;
@@ -127,7 +127,7 @@ pub fn run_barrier_before_final_measurements(
     if final_ops.is_empty() {
         return Ok(());
     }
-    let final_packed_ops: Vec<PackedInstruction> = final_ops
+    let final_packed_ops: Vec<DAGInstruction> = final_ops
         .into_iter()
         .filter_map(|node| match dag.dag().node_weight(node) {
             Some(weight) => {

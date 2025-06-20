@@ -40,6 +40,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
+use crate::instruction::{Instruction, IntoInstructionView, Parameters};
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -632,7 +633,7 @@ impl CircuitData {
             let py_op = func.call1((inst.unpack_py_op(py)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
             inst.op = result.operation;
-            inst.params = (!result.params.is_empty()).then(|| Box::new(result.params));
+            inst.params = result.params.map(|p| p.into());
             inst.label = result.label;
             #[cfg(feature = "cache_pygates")]
             {
@@ -645,7 +646,9 @@ impl CircuitData {
     /// Checks whether the circuit has an instance of :class:`.ControlFlowOp`
     /// present amongst its operations.
     pub fn has_control_flow_op(&self) -> bool {
-        self.data.iter().any(|inst| inst.op.control_flow())
+        self.data
+            .iter()
+            .any(|inst| inst.op.try_control_flow().is_some())
     }
 
     /// Replaces the bits of this container with the given ``qubits``
@@ -770,7 +773,7 @@ impl CircuitData {
                 clbits: PyTuple::new(py, self.clbits.map_indices(clbits))
                     .unwrap()
                     .unbind(),
-                params: inst.params_view().iter().cloned().collect(),
+                params: inst.parameters().cloned(),
                 label: inst.label.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: inst.py_op.clone(),
@@ -1148,7 +1151,7 @@ impl CircuitData {
                 self.global_phase = angle;
                 Ok(())
             }),
-            Param::Obj(_) => Err(PyTypeError::new_err("invalid type for global phase")),
+            _ => Err(PyTypeError::new_err("invalid type for global phase")),
         }
     }
 
@@ -1238,7 +1241,7 @@ impl CircuitData {
         I: IntoIterator<
             Item = PyResult<(
                 PackedOperation,
-                SmallVec<[Param; 3]>,
+                Option<Parameters<PyObject>>,
                 Vec<Qubit>,
                 Vec<Clbit>,
             )>,
@@ -1256,7 +1259,7 @@ impl CircuitData {
             let (operation, params, qargs, cargs) = item?;
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
-            let params = (!params.is_empty()).then(|| Box::new(params));
+            let params = params.map(Box::new);
             res.data.push(PackedInstruction {
                 op: operation,
                 qubits,
@@ -1379,7 +1382,7 @@ impl CircuitData {
 
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
-            let params = (!params.is_empty()).then(|| Box::new(params));
+            let params = (!params.is_empty()).then(|| Box::new(Parameters::Params(params)));
             res.data.push(PackedInstruction::from_standard_gate(
                 operation, params, qubits,
             ));
@@ -1435,7 +1438,8 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) {
-        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let params = (!params.is_empty())
+            .then(|| Box::new(Parameters::Params(params.iter().cloned().collect())));
         let qubits = self.qargs_interner.insert(qargs);
         self.data.push(PackedInstruction::from_standard_gate(
             operation, params, qubits,
@@ -1446,11 +1450,11 @@ impl CircuitData {
     pub fn push_packed_operation(
         &mut self,
         operation: PackedOperation,
-        params: &[Param],
+        params: Option<Parameters<PyObject>>,
         qargs: &[Qubit],
         cargs: &[Clbit],
     ) {
-        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let params = params.map(Box::new);
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
         self.data.push(PackedInstruction {
@@ -1471,17 +1475,115 @@ impl CircuitData {
         py: Python,
         instruction_index: usize,
     ) -> PyResult<()> {
-        for (index, param) in self.data[instruction_index]
-            .params_view()
-            .iter()
-            .enumerate()
-        {
-            let usage = ParameterUse::Index {
-                instruction: instruction_index,
-                parameter: index as u32,
-            };
-            for param_ob in param.iter_parameters(py)? {
-                self.param_table.track(&param_ob?, Some(usage))?;
+        let Some(parameters) = self.data[instruction_index].parameters() else {
+            return Ok(());
+        };
+
+        match parameters {
+            Parameters::Params(params) => {
+                for (index, param) in params.iter().enumerate() {
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: index as u32,
+                    };
+                    for param_ob in param.iter_parameters(py)? {
+                        self.param_table.track(&param_ob?, Some(usage))?;
+                    }
+                }
+            }
+            Parameters::Box { body } => {
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.track(&param_ob?, Some(usage))?;
+                }
+            }
+            Parameters::ForLoop {
+                loop_param, body, ..
+            } => {
+                if let Some(loop_param) = loop_param {
+                    self.param_table.track(
+                        loop_param.bind(py),
+                        Some(ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: 1,
+                        }),
+                    )?;
+                }
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 2,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.track(&param_ob?, Some(usage))?;
+                }
+            }
+            Parameters::IfElse {
+                true_body,
+                false_body,
+            } => {
+                let true_usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in true_body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.track(&param_ob?, Some(true_usage))?;
+                }
+                if let Some(false_body) = false_body {
+                    let false_usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 1,
+                    };
+                    for param_ob in false_body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.track(&param_ob?, Some(false_usage))?;
+                    }
+                }
+            }
+            Parameters::Switch { cases } => {
+                for (idx, case) in cases.iter().enumerate() {
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: idx as u32,
+                    };
+                    for param_ob in case
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.track(&param_ob?, Some(usage))?;
+                    }
+                }
+            }
+            Parameters::While { body } => {
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.track(&param_ob?, Some(usage))?;
+                }
             }
         }
         Ok(())
@@ -1494,17 +1596,115 @@ impl CircuitData {
         py: Python,
         instruction_index: usize,
     ) -> PyResult<()> {
-        for (index, param) in self.data[instruction_index]
-            .params_view()
-            .iter()
-            .enumerate()
-        {
-            let usage = ParameterUse::Index {
-                instruction: instruction_index,
-                parameter: index as u32,
-            };
-            for param_ob in param.iter_parameters(py)? {
-                self.param_table.untrack(&param_ob?, usage)?;
+        let Some(parameters) = self.data[instruction_index].parameters() else {
+            return Ok(());
+        };
+
+        match parameters {
+            Parameters::Params(params) => {
+                for (index, param) in params.iter().enumerate() {
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: index as u32,
+                    };
+                    for param_ob in param.iter_parameters(py)? {
+                        self.param_table.untrack(&param_ob?, usage)?;
+                    }
+                }
+            }
+            Parameters::Box { body } => {
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.untrack(&param_ob?, usage)?;
+                }
+            }
+            Parameters::ForLoop {
+                loop_param, body, ..
+            } => {
+                if let Some(loop_param) = loop_param {
+                    self.param_table.untrack(
+                        loop_param.bind(py),
+                        ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: 1,
+                        },
+                    )?;
+                }
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 2,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.untrack(&param_ob?, usage)?;
+                }
+            }
+            Parameters::IfElse {
+                true_body,
+                false_body,
+            } => {
+                let true_usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in true_body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.untrack(&param_ob?, true_usage)?;
+                }
+                if let Some(false_body) = false_body {
+                    let false_usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 1,
+                    };
+                    for param_ob in false_body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.untrack(&param_ob?, false_usage)?;
+                    }
+                }
+            }
+            Parameters::Switch { cases } => {
+                for (idx, case) in cases.iter().enumerate() {
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: idx as u32,
+                    };
+                    for param_ob in case
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.untrack(&param_ob?, usage)?;
+                    }
+                }
+            }
+            Parameters::While { body } => {
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: 0,
+                };
+                for param_ob in body
+                    .bind(py)
+                    .getattr(intern!(py, "parameters"))?
+                    .try_iter()?
+                {
+                    self.param_table.untrack(&param_ob?, usage)?;
+                }
             }
         }
         Ok(())
@@ -1556,7 +1756,7 @@ impl CircuitData {
             op: inst.operation.clone(),
             qubits,
             clbits,
-            params: (!inst.params.is_empty()).then(|| Box::new(inst.params.clone())),
+            params: inst.params.clone().map(Box::new),
             label: inst.label.clone(),
             #[cfg(feature = "cache_pygates")]
             py_op: inst.py_op.clone(),
@@ -1708,7 +1908,8 @@ impl CircuitData {
                          value: &Param,
                          coerce: bool|
          -> PyResult<Param> {
-            let new_expr = expr.call_method1(assign_attr, (param_ob, value.into_py_any(py)?))?;
+            let new_expr =
+                expr.call_method1(assign_attr, (param_ob, value.clone().into_py_any(py)?))?;
             if new_expr.getattr(parameters_attr)?.len()? == 0 {
                 let out = new_expr.call_method0(numeric_attr)?;
                 if coerce {
@@ -1748,8 +1949,11 @@ impl CircuitData {
                     } => {
                         let parameter = parameter as usize;
                         let previous = &mut self.data[instruction];
-                        if let Some(standard) = previous.standard_gate() {
-                            let params = previous.params_mut();
+                        if let OperationRef::StandardGate(standard) = previous.op.view() {
+                            let Some(Parameters::Params(params)) = previous.params.as_deref_mut()
+                            else {
+                                return Err(inconsistent());
+                            };
                             let Param::ParameterExpression(expr) = &params[parameter] else {
                                 return Err(inconsistent());
                             };
@@ -1778,6 +1982,50 @@ impl CircuitData {
                                 // https://github.com/Qiskit/qiskit/issues/13504
                                 previous.py_op.take();
                             }
+                        } else if let OperationRef::ControlFlow(_) = previous.op.view() {
+                            let map_block = |obj: &PyObject| -> PyResult<PyObject> {
+                                obj.call_method(
+                                    py,
+                                    assign_parameters_attr,
+                                    ([(&param_ob, value.as_ref().clone_ref(py))]
+                                        .into_py_dict(py)?,),
+                                    Some(
+                                        &[("inplace", false), ("flat_input", true)]
+                                            .into_py_dict(py)?,
+                                    ),
+                                )
+                            };
+                            match (parameter, previous.params.as_deref_mut().unwrap()) {
+                                (0, Parameters::Box { body }) => {
+                                    *body = map_block(body)?;
+                                }
+                                (2, Parameters::ForLoop { body, .. }) => {
+                                    *body = map_block(body)?;
+                                }
+                                (0, Parameters::IfElse { true_body, .. }) => {
+                                    *true_body = map_block(true_body)?;
+                                }
+                                (1, Parameters::IfElse { false_body, .. }) => {
+                                    *false_body = match false_body {
+                                        Some(false_body) => Some(map_block(false_body)?),
+                                        None => None,
+                                    };
+                                }
+                                (_, Parameters::Switch { cases }) if parameter < cases.len() => {
+                                    cases[parameter] = map_block(&cases[parameter])?;
+                                }
+                                (0, Parameters::While { body }) => {
+                                    *body = map_block(body)?;
+                                }
+                                _ => return Err(inconsistent()),
+                            };
+                            for uuid in uuids.iter() {
+                                self.param_table.add_use(*uuid, usage)?
+                            }
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                previous.py_op.take();
+                            }
                         } else {
                             // Track user operations we've seen so we can rebind their definitions.
                             // Strictly this can add the same binding pair more than once, if an
@@ -1789,7 +2037,8 @@ impl CircuitData {
                                 .push((param_ob.clone_ref(py), value.as_ref().clone_ref(py)));
 
                             let op = previous.unpack_py_op(py)?.into_bound(py);
-                            let previous_param = &previous.params_view()[parameter];
+                            // All "user" operations (e.g. PyOperation) use Parameters::Param.
+                            let previous_param = &previous.try_legacy_params().unwrap()[parameter];
                             let new_param = match previous_param {
                                 Param::Float(_) => return Err(inconsistent()),
                                 Param::ParameterExpression(expr) => {
@@ -1819,15 +2068,17 @@ impl CircuitData {
                                         )?)?,
                                     }
                                 }
-                                Param::Obj(obj) => {
-                                    let obj = obj.bind_borrowed(py);
+                                // TODO: remove this, assuming only control flow needed it
+                                Param::Obj(block) => {
+                                    let obj = block.bind_borrowed(py);
                                     if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
                                         return Err(inconsistent());
                                     }
                                     Param::extract_no_coerce(
                                         &obj.call_method(
                                             assign_parameters_attr,
-                                            ([(&param_ob, value.as_ref())].into_py_dict(py)?,),
+                                            ([(&param_ob, value.as_ref().clone_ref(py))]
+                                                .into_py_dict(py)?,),
                                             Some(
                                                 &[("inplace", false), ("flat_input", true)]
                                                     .into_py_dict(py)?,
@@ -1837,9 +2088,9 @@ impl CircuitData {
                                 }
                             };
                             op.getattr(params_attr)?.set_item(parameter, new_param)?;
-                            let mut new_op = op.extract::<OperationFromPython>()?;
+                            let new_op = op.extract::<OperationFromPython>()?;
                             previous.op = new_op.operation;
-                            previous.params_mut().swap_with_slice(&mut new_op.params);
+                            previous.params = new_op.params.map(|p| p.into());
                             previous.label = new_op.label;
                             #[cfg(feature = "cache_pygates")]
                             {

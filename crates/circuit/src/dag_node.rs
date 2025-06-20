@@ -14,7 +14,7 @@ use std::hash::Hasher;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use crate::circuit_instruction::{extract_params, CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::{Operation, Param};
 use crate::TupleLikeArg;
@@ -24,6 +24,7 @@ use approx::relative_eq;
 use num_complex::Complex64;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use crate::instruction::{InstructionView, IntoInstructionView, StandardGateView};
 use numpy::IntoPyArray;
 use numpy::PyArray2;
 use pyo3::exceptions::PyValueError;
@@ -175,35 +176,40 @@ impl DAGOpNode {
         {
             return Ok(false);
         }
-        let params_eq = if slf.instruction.operation.try_standard_gate().is_some() {
-            let mut params_eq = true;
-            for (a, b) in slf
-                .instruction
-                .params
-                .iter()
-                .zip(borrowed_other.instruction.params.iter())
-            {
-                let res = match [a, b] {
-                    [Param::Float(float_a), Param::Float(float_b)] => {
-                        relative_eq!(float_a, float_b, max_relative = 1e-10)
+        let params_eq = match (slf.instruction.view(), borrowed_other.instruction.view()) {
+            (
+                InstructionView::StandardGate(StandardGateView(_, slf_params)),
+                InstructionView::StandardGate(StandardGateView(_, other_params)),
+            ) => {
+                let mut params_eq = true;
+                for (a, b) in slf_params.iter().zip(other_params) {
+                    let res = match [a, b] {
+                        [Param::Float(float_a), Param::Float(float_b)] => {
+                            relative_eq!(float_a, float_b, max_relative = 1e-10)
+                        }
+                        [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => {
+                            param_a.bind(py).eq(param_b)?
+                        }
+                        [Param::Obj(param_a), Param::Obj(param_b)] => {
+                            param_a.bind(py).eq(param_b)?
+                        }
+                        _ => false,
+                    };
+                    if !res {
+                        params_eq = false;
+                        break;
                     }
-                    [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => {
-                        param_a.bind(py).eq(param_b)?
-                    }
-                    [Param::Obj(param_a), Param::Obj(param_b)] => param_a.bind(py).eq(param_b)?,
-                    _ => false,
-                };
-                if !res {
-                    params_eq = false;
-                    break;
                 }
+                params_eq
             }
-            params_eq
-        } else {
-            // We've already evaluated the parameters are equal here via the Python space equality
-            // check so if we're not comparing standard gates and we've reached this point we know
-            // the parameters are already equal.
-            true
+            _ => {
+                // TODO: this is actually no longer true as of StandardInstruction, and is an
+                //       existing bug.
+                // We've already evaluated the parameters are equal here via the Python space equality
+                // check so if we're not comparing standard gates and we've reached this point we know
+                // the parameters are already equal.
+                true
+            }
         };
 
         Ok(params_eq
@@ -333,18 +339,19 @@ impl DAGOpNode {
     }
 
     #[getter]
-    fn get_params(&self) -> &[Param] {
-        self.instruction.params.as_slice()
+    fn get_params(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.instruction.get_params(py)
     }
 
     #[setter]
-    fn set_params(&mut self, val: smallvec::SmallVec<[crate::operations::Param; 3]>) {
-        self.instruction.params = val;
+    fn set_params(&mut self, val: Bound<PyAny>) -> PyResult<()> {
+        self.instruction.params = extract_params(self.instruction.view_operation(), &val)?;
+        Ok(())
     }
 
     #[getter]
     fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = self.instruction.operation.matrix(&self.instruction.params);
+        let matrix = self.instruction.view().try_matrix();
         matrix.map(|mat| mat.into_pyarray(py))
     }
 
@@ -387,8 +394,8 @@ impl DAGOpNode {
     #[getter]
     fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
         self.instruction
-            .operation
-            .definition(&self.instruction.params)
+            .view()
+            .try_definition()
             .map(|data| {
                 QUANTUM_CIRCUIT
                     .get_bound(py)

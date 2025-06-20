@@ -37,12 +37,12 @@ use pyo3::{
     types::{PyDict, PyList, PySet},
     IntoPyObjectExt,
 };
-use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::circuit_instruction::{CreatePythonOperation, OperationFromPython};
+use qiskit_circuit::instruction::{Instruction, IntoInstructionView, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::SmallVec;
-
 use qiskit_circuit::PhysicalQubit;
+use smallvec::SmallVec;
 
 use crate::TranspilerError;
 
@@ -70,9 +70,9 @@ impl TargetOperation {
     }
 
     /// Gets the parameters of a [TargetOperation], will panic if the operation is [TargetOperation::Variadic].
-    pub fn params(&self) -> &[Param] {
+    pub fn params(&self) -> Option<&Parameters<PyObject>> {
         match &self {
-            TargetOperation::Normal(normal) => normal.params.as_slice(),
+            TargetOperation::Normal(normal) => normal.parameters(),
             TargetOperation::Variadic(_) => {
                 panic!("'parameters' property doesn't exist for Variadic operations")
             }
@@ -80,7 +80,10 @@ impl TargetOperation {
     }
 
     /// Creates a [TargetOperation] from an instance of [PackedOperation]
-    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+    pub fn from_packed_operation(
+        operation: PackedOperation,
+        params: Option<Parameters<PyObject>>,
+    ) -> Self {
         NormalOperation::from_packed_operation(operation, params).into()
     }
 }
@@ -96,36 +99,35 @@ impl From<NormalOperation> for TargetOperation {
 #[derive(Debug)]
 pub struct NormalOperation {
     pub operation: PackedOperation,
-    pub params: SmallVec<[Param; 3]>,
+    pub params: Option<Parameters<PyObject>>,
     op_object: OnceLock<PyResult<PyObject>>,
 }
 
 impl NormalOperation {
-    // Creates a python Operation type based on the operation's internal data.
-    #[inline]
-    fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<PyObject> {
-        let obj = match self.operation.view() {
-            OperationRef::StandardGate(standard_gate) => {
-                standard_gate.create_py_op(py, Some(&self.params), label)?
-            }
-            OperationRef::StandardInstruction(standard_instruction) => {
-                standard_instruction.create_py_op(py, Some(&self.params), label)?
-            }
-            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-            OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?,
-        };
-        Ok(obj)
-    }
-
     /// Creates a of [TargetOperation] from an instance of [PackedOperation]
-    pub fn from_packed_operation(operation: PackedOperation, params: SmallVec<[Param; 3]>) -> Self {
+    pub fn from_packed_operation(
+        operation: PackedOperation,
+        params: Option<Parameters<PyObject>>,
+    ) -> Self {
         Self {
             operation,
             params,
             op_object: OnceLock::new(),
         }
+    }
+}
+
+impl Instruction for NormalOperation {
+    fn op(&self) -> OperationRef<'_> {
+        self.operation.view()
+    }
+
+    fn parameters(&self) -> Option<&Parameters<PyObject>> {
+        self.params.as_ref()
+    }
+
+    fn label(&self) -> Option<&str> {
+        None
     }
 }
 
@@ -135,7 +137,7 @@ impl<'py> IntoPyObject<'py> for NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+        match self.op_object.get_or_init(|| self.create_py_op(py)) {
             Ok(op) => Ok(op.bind(py).clone()),
             Err(err) => Err(err.clone_ref(py)),
         }
@@ -148,7 +150,7 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match self.op_object.get_or_init(|| self.create_py_op(py, None)) {
+        match self.op_object.get_or_init(|| self.create_py_op(py)) {
             Ok(op) => Ok(op.bind_borrowed(py)),
             Err(err) => Err(err.clone_ref(py)),
         }
@@ -554,7 +556,7 @@ impl Target {
                     TargetOperation::Normal(normal) => {
                         if normal.into_pyobject(py)?.is_instance(_operation_class)? {
                             if let Some(parameters) = &parameters {
-                                if parameters.len() != normal.params.len() {
+                                if parameters.len() != normal.try_legacy_params().unwrap().len() {
                                     continue;
                                 }
                                 if !check_obj_params(parameters, normal) {
@@ -606,15 +608,22 @@ impl Target {
                         }
                     }
 
-                    let obj_params = obj.params();
+                    let obj_params = match obj {
+                        TargetOperation::Normal(n) => {
+                            n.try_legacy_params().expect("gate operation expected")
+                        }
+                        TargetOperation::Variadic(_) => {
+                            unreachable!("only normal operation expected")
+                        }
+                    };
                     if parameters.len() != obj_params.len() {
                         return Ok(false);
                     }
-                    for (index, params) in parameters.iter().enumerate() {
+                    for (index, param) in parameters.iter().enumerate() {
                         let mut matching_params = false;
                         let obj_at_index = &obj_params[index];
                         if matches!(obj_at_index, Param::ParameterExpression(_))
-                            || python_compare(py, params, &obj_params[index])?
+                            || python_compare(py, param.clone(), obj_params[index].clone())?
                         {
                             matching_params = true;
                         }
@@ -715,9 +724,7 @@ impl Target {
     fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(gate) = self._gate_name_map.get(name) {
             match gate {
-                TargetOperation::Normal(normal_operation) => {
-                    normal_operation.create_py_op(py, None)
-                }
+                TargetOperation::Normal(normal_operation) => normal_operation.create_py_op(py),
                 TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
             }
         } else {
@@ -762,18 +769,7 @@ impl Target {
         let list = PyList::empty(py);
         for (inst, qargs) in self._instructions() {
             let out_inst = match inst {
-                TargetOperation::Normal(op) => match op.operation.view() {
-                    OperationRef::StandardGate(standard) => standard
-                        .create_py_op(py, Some(&op.params), None)?
-                        .into_any(),
-                    OperationRef::StandardInstruction(standard) => standard
-                        .create_py_op(py, Some(&op.params), None)?
-                        .into_any(),
-                    OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-                    OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-                    OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-                    OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
-                },
+                TargetOperation::Normal(op) => op.create_py_op(py)?,
                 TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
             };
             list.append((out_inst, qargs))?;
@@ -902,7 +898,7 @@ impl Target {
     /// # Arguments
     ///
     /// * `operation` - The [PackedOperation] to be added.
-    /// * `params` - The collection of [Param] assigned to the instruction.
+    /// * `params` - The [Parameter]s collection assigned to the instruction.
     /// * `name` - The name of the instruction if differs from the [PackedOperation]
     ///   instance. If set to `None` it defaults to the string returned by [`Operation::name`] for `operation`.
     /// * `props_map`: The optional property mapping between [Qargs] and
@@ -923,7 +919,7 @@ impl Target {
     /// let mut target = Target::default();
     /// let result = target.add_instruction(
     ///     StandardGate::X.into(),
-    ///     &[],
+    ///     None,
     ///     None,
     ///     None,
     /// );
@@ -933,7 +929,7 @@ impl Target {
     pub fn add_instruction(
         &mut self,
         operation: PackedOperation,
-        params: &[Param],
+        params: Option<Parameters<PyObject>>,
         name: Option<&str>,
         props_map: Option<PropsMap>,
     ) -> Result<(), TargetError> {
@@ -945,7 +941,7 @@ impl Target {
         if self.gate_map.contains_key(&parsed_name) {
             return Err(TargetError::AlreadyExists(parsed_name));
         }
-        let operation = TargetOperation::from_packed_operation(operation, params.into());
+        let operation = TargetOperation::from_packed_operation(operation, params);
         let props_map = if let Some(props_map) = props_map {
             props_map
         } else {
@@ -1450,7 +1446,7 @@ impl Default for Target {
 // For instruction_supported
 fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
     for (index, param) in parameters.iter().enumerate() {
-        let param_at_index = &obj.params[index];
+        let param_at_index = &obj.try_legacy_params().expect("expected gate")[index];
         match (param, param_at_index) {
             (Param::Float(p1), Param::Float(p2)) => {
                 if p1 != p2 {
@@ -1485,13 +1481,13 @@ pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
 mod test {
     use std::f64::consts::PI;
 
+    use crate::target::QargsRef;
+    use qiskit_circuit::instruction::Parameters;
     use qiskit_circuit::operations::{
         get_standard_gate_names, Operation, Param, StandardGate, STANDARD_GATE_SIZE,
     };
-    use smallvec::SmallVec;
-
-    use crate::target::QargsRef;
     use qiskit_circuit::PhysicalQubit;
+    use smallvec::SmallVec;
 
     use super::{instruction_properties::InstructionProperties, Qargs, Target};
 
@@ -1503,7 +1499,7 @@ mod test {
         let mut target = Target::default();
         let result = target.add_instruction(
             StandardGate::CZ.into(),
-            &[],
+            None,
             None,
             Some([(qargs.clone().into(), inst_prop)].into_iter().collect()),
         );
@@ -1517,10 +1513,10 @@ mod test {
     #[test]
     fn test_add_invalid_repeated_insruction() {
         let mut target = Target::default();
-        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None);
+        let result = target.add_instruction(StandardGate::CX.into(), None, None, None);
         assert!(result.is_ok());
 
-        let result = target.add_instruction(StandardGate::CX.into(), &[], None, None);
+        let result = target.add_instruction(StandardGate::CX.into(), None, None, None);
         // Re-add instruction
         let Err(res) = result else {
             panic!("The operation did not fail as expected.");
@@ -1547,7 +1543,7 @@ mod test {
 
             let res = all_standard_target.add_instruction(
                 gate.into(),
-                &params,
+                Some(Parameters::Params(params)),
                 None,
                 Some([(qargs, None)].into_iter().collect()),
             );
@@ -1567,7 +1563,7 @@ mod test {
         // Add instruction with None as property
         let result = test_target.add_instruction(
             StandardGate::CX.into(),
-            &[],
+            None,
             None,
             Some([(qargs.clone(), None)].into_iter().collect()),
         );
@@ -1601,7 +1597,7 @@ mod test {
         // Add instruction with None as property
         let result = test_target.add_instruction(
             StandardGate::CX.into(),
-            &[],
+            None,
             None,
             Some([(qargs.clone().into(), None)].into_iter().collect()),
         );
