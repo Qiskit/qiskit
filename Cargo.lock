@@ -1635,7 +1635,7 @@ version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
- "fixedbitset 0.5.7",
+ "bytemuck",
  "hashbrown 0.15.4",
  "indexmap",
  "itertools 0.14.0",
