@@ -17,6 +17,7 @@ from uuid import uuid4, UUID
 from .parameter import Parameter, ParameterExpression
 
 import qiskit._accelerate.circuit
+
 ParameterExpressionBase = qiskit._accelerate.circuit.ParameterExpression
 
 
@@ -30,16 +31,19 @@ class ParameterVectorElement(Parameter):
 
     ___slots__ = ("_vector", "_index")
 
-    def __new__(self, vector = None, index = None, uuid=None):
-        self._vector = vector
-        self._index = index
+    def __new__(cls, vector=None, index=None, uuid=None):
+
         if uuid != None:
             uuid = int(uuid)
         elif vector == None:
-            return super().__new__(self, None, None)
+            return super().__new__(cls, None, None)
 
-        return super().__new__(self, f"{vector.name}[{index}]", uuid=uuid)
-#        return super(Parameter, self).__new__(self, None, ParameterExpressionBase.VectorElement(vector.name, index, uuid=uuid))
+        self = super().__new__(cls, f"{vector.name}[{index}]", uuid=uuid)
+        self._vector = vector
+        self._index = index
+        return self
+
+    #        return super(Parameter, self).__new__(self, None, ParameterExpressionBase.VectorElement(vector.name, index, uuid=uuid))
 
     @property
     def index(self):

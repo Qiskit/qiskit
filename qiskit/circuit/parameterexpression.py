@@ -86,15 +86,18 @@ _OP_CODE_MAP = (
     "__rpow__",
 )
 
+
 def op_code_to_method(op_code: _OPCode):
     """Return the method name for a given op_code."""
     return _OP_CODE_MAP[op_code]
+
 
 def inst_to_parameter_class(expr):
     """Return Python Parameter/ParameterExpression from Rust ParameterExpression"""
     if isinstance(expr, ParameterExpressionBase):
         if expr.is_symbol:
             from .parameter import Parameter
+
             return Parameter(str(expr), UUID(int=p.get_uuid()))
         else:
             return ParameterExpression(None, expr)
@@ -102,10 +105,15 @@ def inst_to_parameter_class(expr):
         # return value as is
         return expr
 
+
 class ParameterExpression(ParameterExpressionBase):
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    def __new__(cls, symbol_map: dict, expr, _qpy_replay=None):
+    __slots__ = [
+        "_parameters",
+    ]
+
+    def __new__(cls, symbol_map: set, expr, _qpy_replay=None):
         """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -122,32 +130,34 @@ class ParameterExpression(ParameterExpressionBase):
         # NOTE: `Parameter.__init__` does not call up to this method, since this method is dependent
         # on `Parameter` instances already being initialized enough to be hashable.  If changing
         # this method, check that `Parameter.__init__` and `__setstate__` are still valid.
-        return super().__new__(cls, symbol_map, expr, _qpy_replay)
+
+        self = super().__new__(cls, symbol_map, expr, _qpy_replay)
+        if symbol_map is not None:
+            self._parameters = symbol_map
+        return self
 
     @property
     def parameters(self) -> set:
         """Returns a set of the unbound Parameters in the expression."""
-        from .parameter import Parameter
-        params = super().parameters
-        output = set()
-        for p in params:
-            output.add(Parameter(str(p), UUID(int=p.get_uuid())))
-        return output
+        return self._parameters
+
+    #        from .parameter import Parameter
+    #        params = super().parameters
+    #        output = set()
+    #        for p in params:
+    ##            if p.is_vector_element:
+    ##                from .parametervector import ParameterVectorElement
+    ##                output.add(ParameterVectorElement(str(p), UUID(int=p.get_uuid())))
+    #            output.add(Parameter(str(p), UUID(int=p.get_uuid())))
+    #        return output
 
     @property
     def _parameter_symbols(self) -> set:
-        return self.parameters
-
-    @property
-    def _names(self) -> dict:
-        """Returns a mapping of parameter names to Parameters in the expression."""
-        if self._name_map is None:
-            self._name_map = {p.name: p for p in self._parameter_symbols}
-        return self._name_map
+        return self._parameters
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
-        return ParameterExpression(None, super().conjugate())
+        return ParameterExpression(self._parameters, super().conjugate())
 
     def assign(self, parameter, value: ParameterValueType) -> "ParameterExpression":
         """
@@ -188,8 +198,9 @@ class ParameterExpression(ParameterExpressionBase):
             A new expression parameterized by any parameters which were not bound by
             parameter_values.
         """
+        parameters = self._parameters - parameter_values.keys()
         return ParameterExpression(
-            None, super().bind(parameter_values, allow_unknown_parameters)
+            parameters, super().bind(parameter_values, allow_unknown_parameters)
         )
 
     def subs(
@@ -213,8 +224,12 @@ class ParameterExpression(ParameterExpressionBase):
         Returns:
             A new expression with the specified parameters replaced.
         """
+        parameters = self._parameters - parameter_map.keys()
+        for old_param, new_param in parameter_map.items():
+            parameters = parameters | new_param._parameters
+
         return ParameterExpression(
-            None, super().subs(parameter_map, allow_unknown_parameters)
+            parameters, super().subs(parameter_map, allow_unknown_parameters)
         )
 
     def gradient(self, param) -> Union["ParameterExpression", complex]:
@@ -235,88 +250,103 @@ class ParameterExpression(ParameterExpressionBase):
         """
         expr_grad = super().gradient(param)
         if isinstance(expr_grad, ParameterExpressionBase):
-            return ParameterExpression(None, expr_grad)
+            parameters = set()
+            params = expr_grad.parameters
+            for p in params:
+                for q in self._parameters:
+                    if str(p) == str(q):
+                        parameters.add(q)
+            return ParameterExpression(parameters, expr_grad)
         return expr_grad
 
+    def _merge_parameters(
+        self,
+        other: ParameterValueType,
+    ) -> set:
+        if isinstance(other, ParameterExpression):
+            return self._parameters | other._parameters
+        else:
+            return self._parameters.copy()
+
     def __add__(self, other):
-        return ParameterExpression(None, super().__add__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__add__(other))
 
     def __radd__(self, other):
-        return ParameterExpression(None, super().__radd__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__radd__(other))
 
     def __sub__(self, other):
-        return ParameterExpression(None, super().__sub__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__sub__(other))
 
     def __rsub__(self, other):
-        return ParameterExpression(None, super().__rsub__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__rsub__(other))
 
     def __mul__(self, other):
-        return ParameterExpression(None, super().__mul__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__mul__(other))
 
     def __pos__(self):
-        return ParameterExpression(None, super().__pos__())
+        return ParameterExpression(self._parameters, super().__pos__())
 
     def __neg__(self):
-        return ParameterExpression(None, super().__neg__())
+        return ParameterExpression(self._parameters, super().__neg__())
 
     def __rmul__(self, other):
         if isinstance(other, np.ndarray):
             return [x * self for x in other]
-        return ParameterExpression(None, super().__rmul__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__rmul__(other))
 
     def __truediv__(self, other):
         if other == 0:
             raise ZeroDivisionError("Division of a ParameterExpression by zero.")
-        return ParameterExpression(None, super().__truediv__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__truediv__(other))
 
     def __rtruediv__(self, other):
-        return ParameterExpression(None, super().__rtruediv__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__rtruediv__(other))
 
     def __pow__(self, other):
-        return ParameterExpression(None, super().__pow__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__pow__(other))
 
     def __rpow__(self, other):
-        return ParameterExpression(None, super().__rpow__(other))
+        return ParameterExpression(self._merge_parameters(other), super().__rpow__(other))
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        return ParameterExpression(None, super().sin())
+        return ParameterExpression(self._parameters, super().sin())
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        return ParameterExpression(None, super().cos())
+        return ParameterExpression(self._parameters, super().cos())
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        return ParameterExpression(None, super().tan())
+        return ParameterExpression(self._parameters, super().tan())
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        return ParameterExpression(None, super().arcsin())
+        return ParameterExpression(self._parameters, super().arcsin())
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        return ParameterExpression(None, super().arccos())
+        return ParameterExpression(self._parameters, super().arccos())
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        return ParameterExpression(None, super().arctan())
+        return ParameterExpression(self._parameters, super().arctan())
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        return ParameterExpression(None, super().exp())
+        return ParameterExpression(self._parameters, super().exp())
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        return ParameterExpression(None, super().log())
+        return ParameterExpression(self._parameters, super().log())
 
     def sign(self):
         """Sign of a ParameterExpression"""
-        return ParameterExpression(None, super().sign())
+        return ParameterExpression(self._parameters, super().sign())
 
     def __abs__(self):
         """Absolute of a ParameterExpression"""
-        return ParameterExpression(None, super().__abs__())
+        return ParameterExpression(self._parameters, super().__abs__())
 
     def abs(self):
         """Absolute of a ParameterExpression"""
@@ -343,8 +373,8 @@ class ParameterExpression(ParameterExpressionBase):
                 sympy_binds = {}
                 for old, new in inst.binds.items():
                     if isinstance(new, ParameterExpressionBase):
-                        new = new.name
-                    sympy_binds[old.name] = new
+                        new = new.sympify()
+                    sympy_binds[old.sympify()] = new
                 output = output.subs(sympy_binds, simultaneous=True)
                 continue
 

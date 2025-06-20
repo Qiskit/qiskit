@@ -62,10 +62,10 @@ class Parameter(ParameterExpression):
            bc.draw('mpl')
     """
 
-    __slots__ = ("_hash")
+    __slots__ = "_hash"
 
     def __new__(
-        self, name: str | None = None, uuid: UUID | None = None
+        cls, name: str | None = None, uuid: UUID | None = None
     ):  # pylint: disable=super-init-not-called
         """
         Args:
@@ -78,13 +78,18 @@ class Parameter(ParameterExpression):
                 field when creating two parameters to the same thing (along with the same name)
                 allows them to be equal.  This is useful during serialization and deserialization.
         """
-        self._hash = None
         if uuid != None:
             uuid = int(uuid)
         elif name == None:
-            return super().__new__(self, symbol_map=None, expr=None)
+            return super().__new__(cls, symbol_map=None, expr=None)
 
-        return super().__new__(self, symbol_map=None, expr=ParameterExpressionBase.Symbol(name, uuid))
+        self = super().__new__(
+            cls, symbol_map=None, expr=ParameterExpressionBase.Symbol(name, uuid)
+        )
+
+        self._hash = None
+        self._parameters = {self}
+        return self
 
     def assign(self, parameter, value):
         if parameter != self:
@@ -127,12 +132,12 @@ class Parameter(ParameterExpression):
         # expression, so its full hash key is split into `(parameter_keys, symbolic_expression)`.
         # This method lets containing expressions get only the bits they need for equality checks in
         # the first value, without wasting time re-hashing individual symbols.
-        return (super().__hash__(), self.uuid)
+        return super().__hash__()
 
     def __hash__(self):
         # This is precached for performance, since it's used a lot and we are immutable.
         if self._hash == None:
-            self._hash = hash(self._hash_key())
+            self._hash = super().__hash__()
         return self._hash
 
     @property
