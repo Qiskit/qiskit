@@ -2545,7 +2545,6 @@ impl DAGCircuit {
                                 };
 
                                 match (cf1, cf2) {
-                                    // TODO: use structural equivalence for target, handle for params
                                     (
                                         ControlFlowView::Box(duration_a, body_a),
                                         ControlFlowView::Box(duration_b, body_b),
@@ -2766,7 +2765,9 @@ impl DAGCircuit {
                                         for ((a_label_spec, a_block), (b_label_spec, b_block)) in
                                             cases_a.iter().zip(cases_b.iter())
                                         {
-                                            if a_label_spec != b_label_spec {
+                                            if a_label_spec.iter().collect::<HashSet<_>>()
+                                                != b_label_spec.iter().collect::<HashSet<_>>()
+                                            {
                                                 return Ok(false);
                                             }
                                             if !block_eq(a_block, b_block)? {

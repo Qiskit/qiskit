@@ -527,7 +527,7 @@ impl<'py> FromPyObject<'py> for Target {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CaseSpecifier {
     Bool(bool),
     Uint(usize),
