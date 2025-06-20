@@ -27,6 +27,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import (
     ParameterExpression,
     op_code_to_method,
+    inst_to_parameter_class,
     _OPCode,
     _SUBS,
 )
@@ -125,7 +126,7 @@ def _encode_replay_subs(subs, file_obj, version):
         if version < 15:
             subs_dict = {k.name: v for k, v in subs.binds.items()}
         else:
-            subs_dict = {k.uuid.bytes: v for k, v in subs.binds.items()}
+            subs_dict = {uuid.UUID(int=k.uuid).bytes: v for k, v in subs.binds.items()}
         common.write_mapping(
             mapping_buf, mapping=subs_dict, serializer=dumps_value, version=version
         )
@@ -151,8 +152,8 @@ def _write_parameter_expression_v13(file_obj, obj, version):
         if isinstance(inst, _SUBS):
             symbol_map.update(_encode_replay_subs(inst, file_obj, version))
             continue
-        lhs_type, lhs = _encode_replay_entry(inst.lhs, file_obj, version)
-        rhs_type, rhs = _encode_replay_entry(inst.rhs, file_obj, version, True)
+        lhs_type, lhs = _encode_replay_entry(inst_to_parameter_class(inst.lhs), file_obj, version)
+        rhs_type, rhs = _encode_replay_entry(inst_to_parameter_class(inst.rhs), file_obj, version, True)
         entry = struct.pack(
             formats.PARAM_EXPR_ELEM_V13_PACK,
             inst.op,

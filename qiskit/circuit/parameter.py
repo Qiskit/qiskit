@@ -23,8 +23,7 @@ from qiskit.utils.optionals import HAS_SYMPY
 
 from .parameterexpression import ParameterExpression
 
-
-SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
+ParameterExpressionBase = qiskit._accelerate.circuit.ParameterExpression
 
 
 class Parameter(ParameterExpression):
@@ -63,14 +62,10 @@ class Parameter(ParameterExpression):
            bc.draw('mpl')
     """
 
-    __slots__ = ("_uuid", "_hash")
+    __slots__ = "_hash"
 
-    # This `__init__` does not call the super init, because we can't construct the
-    # `_parameter_symbols` dictionary we need to pass to it before we're entirely initialized
-    # anyway, because `ParameterExpression` depends heavily on the structure of `Parameter`.
-
-    def __init__(
-        self, name: str, *, uuid: UUID | None = None
+    def __new__(
+        cls, name: str | None = None, uuid: UUID | None = None
     ):  # pylint: disable=super-init-not-called
         """
         Args:
@@ -83,16 +78,18 @@ class Parameter(ParameterExpression):
                 field when creating two parameters to the same thing (along with the same name)
                 allows them to be equal.  This is useful during serialization and deserialization.
         """
-        self._uuid = uuid4() if uuid is None else uuid
-        symbol = SymbolExpr.Symbol(name)
+        if uuid != None:
+            uuid = int(uuid)
+        elif name == None:
+            return super().__new__(cls, symbol_map=None, expr=None)
 
-        self._symbol_expr = symbol
-        self._parameter_keys = frozenset((self._hash_key(),))
-        self._hash = hash((self._parameter_keys, self._symbol_expr))
-        self._parameter_symbols = {self: symbol}
-        self._name_map = None
-        self._qpy_replay = []
-        self._standalone_param = True
+        self = super().__new__(
+            cls, symbol_map=None, expr=ParameterExpressionBase.Symbol(name, uuid)
+        )
+
+        self._hash = None
+        self._parameters = {self}
+        return self
 
     def assign(self, parameter, value):
         if parameter != self:
@@ -106,7 +103,7 @@ class Parameter(ParameterExpression):
             return value
         # This is the `super().bind` case, where we're required to return a `ParameterExpression`,
         # so we need to lift the given value to a symbolic expression.
-        return ParameterExpression({}, SymbolExpr.Value(value))
+        return ParameterExpressionBase.Value(value)
 
     def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""
@@ -120,11 +117,6 @@ class Parameter(ParameterExpression):
         )
 
     @property
-    def name(self):
-        """Returns the name of the :class:`Parameter`."""
-        return self._symbol_expr.name
-
-    @property
     def uuid(self) -> UUID:
         """Returns the :class:`~uuid.UUID` of the :class:`Parameter`.
 
@@ -132,27 +124,7 @@ class Parameter(ParameterExpression):
         :class:`Parameter` constructor to produce an instance that compares
         equal to another instance.
         """
-        return self._uuid
-
-    def __str__(self):
-        return self.name
-
-    def __copy__(self):
-        return self
-
-    def __deepcopy__(self, memo=None):
-        return self
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.name})"
-
-    def __eq__(self, other):
-        if isinstance(other, Parameter):
-            return (self._uuid, self._symbol_expr) == (other._uuid, other._symbol_expr)
-        elif isinstance(other, ParameterExpression):
-            return super().__eq__(other)
-        else:
-            return False
+        return UUID(int=self.get_uuid())
 
     def _hash_key(self):
         # `ParameterExpression` needs to be able to hash all its contained `Parameter` instances in
@@ -160,26 +132,18 @@ class Parameter(ParameterExpression):
         # expression, so its full hash key is split into `(parameter_keys, symbolic_expression)`.
         # This method lets containing expressions get only the bits they need for equality checks in
         # the first value, without wasting time re-hashing individual symbols.
-        return (self._symbol_expr, self._uuid)
+        return super().__hash__()
 
     def __hash__(self):
         # This is precached for performance, since it's used a lot and we are immutable.
+        if self._hash == None:
+            self._hash = super().__hash__()
         return self._hash
 
-    # We have to manually control the pickling so that the hash is computable before the unpickling
-    # operation attempts to put this parameter into a hashmap.
-
-    def __getstate__(self):
-        return (self.name, self._uuid, self._symbol_expr)
-
-    def __setstate__(self, state):
-        _, self._uuid, self._symbol_expr = state
-        self._parameter_keys = frozenset((self._hash_key(),))
-        self._hash = hash((self._parameter_keys, self._symbol_expr))
-        self._parameter_symbols = {self: self._symbol_expr}
-        self._name_map = None
-        self._qpy_replay = []
-        self._standalone_param = True
+    @property
+    def _uuid(self) -> UUID:
+        """Returns UUID property of the :class:`Parameter`"""
+        return UUID(int=self.get_uuid())
 
     @HAS_SYMPY.require_in_call
     def sympify(self):
