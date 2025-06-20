@@ -48,11 +48,11 @@ class ApplyLayout(TransformationPass):
             TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
         """
         layout = self.property_set["layout"]
-        if not layout:
+        if layout is None:
             raise TranspilerError(
                 "No 'layout' is found in property_set. Please run a Layout pass in advance."
             )
-        if len(layout) != (1 + max(layout.get_physical_bits())):
+        if len(layout) != (1 + max(layout.get_physical_bits(), default=-1)):
             raise TranspilerError("The 'layout' must be full (with ancilla).")
 
         post_layout = self.property_set["post_layout"]
