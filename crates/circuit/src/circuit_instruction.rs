@@ -33,8 +33,9 @@ use crate::instruction::{
     StandardGateView, StandardInstructionView,
 };
 use crate::operations::{
-    ArrayType, ControlFlow, ControlFlowType, Operation, OperationRef, Param, PyGate, PyInstruction,
-    PyOperation, StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
+    ArrayType, BoxDuration, ControlFlow, ControlFlowType, Operation, OperationRef, Param, PyGate,
+    PyInstruction, PyOperation, StandardGate, StandardInstruction, StandardInstructionType,
+    UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
@@ -569,8 +570,15 @@ impl<T: Instruction> CreatePythonOperation for T {
                 match cf {
                     ControlFlowView::Box(duration, body) => {
                         let (duration, unit) = match duration {
-                            Some(duration) => (Some(duration.py_value(py)?), duration.unit()),
-                            None => (None, "dt"),
+                            Some(duration) => match duration {
+                                BoxDuration::Duration(duration) => {
+                                    (Some(duration.py_value(py)?), Some(duration.unit()))
+                                }
+                                BoxDuration::Expr(expr) => {
+                                    (Some(expr.clone().into_py_any(py)?), Some("expr"))
+                                }
+                            },
+                            None => (None, None),
                         };
                         BOX_OP
                             .get(py)
@@ -819,12 +827,13 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     let unit: Option<String> = ob.getattr(intern!(py, "unit"))?.extract()?;
                     let duration = if let Some(py_duration) = py_duration {
                         Some(match unit.as_deref().unwrap_or("dt") {
-                            "dt" => Duration::dt(py_duration.extract()?),
-                            "s" => Duration::s(py_duration.extract()?),
-                            "ms" => Duration::ms(py_duration.extract()?),
-                            "us" => Duration::us(py_duration.extract()?),
-                            "ns" => Duration::ns(py_duration.extract()?),
+                            "dt" => BoxDuration::Duration(Duration::dt(py_duration.extract()?)),
+                            "s" => BoxDuration::Duration(Duration::s(py_duration.extract()?)),
+                            "ms" => BoxDuration::Duration(Duration::ms(py_duration.extract()?)),
+                            "us" => BoxDuration::Duration(Duration::us(py_duration.extract()?)),
+                            "ns" => BoxDuration::Duration(Duration::ns(py_duration.extract()?)),
                             // TODO: handle "ps"
+                            "expr" => BoxDuration::Expr(py_duration.extract()?),
                             _ => {
                                 return Err(PyValueError::new_err(format!(
                                     "duration unit '{}' is unsupported",

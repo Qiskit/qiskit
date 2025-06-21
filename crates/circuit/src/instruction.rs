@@ -1,8 +1,19 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2025
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
 use crate::circuit_data::CircuitData;
-use crate::duration::Duration;
 use crate::operations::{
-    CaseSpecifier, Condition, ControlFlow, DelayUnit, OperationRef, Param, PyGate, PyInstruction,
-    PyOperation, StandardGate, StandardInstruction, Target, UnitaryGate,
+    BoxDuration, CaseSpecifier, Condition, ControlFlow, DelayUnit, OperationRef, Param, PyGate,
+    PyInstruction, PyOperation, StandardGate, StandardInstruction, Target, UnitaryGate,
 };
 use nalgebra::Matrix2;
 use ndarray::Array2;
@@ -327,7 +338,7 @@ impl<'a, T> InstructionView<'a, T> {
 
 #[derive(Clone, Debug)]
 pub enum ControlFlowView<'a, T> {
-    Box(Option<&'a Duration>, &'a T),
+    Box(Option<&'a BoxDuration>, &'a T),
     BreakLoop,
     ContinueLoop,
     ForLoop {

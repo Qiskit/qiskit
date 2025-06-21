@@ -269,11 +269,17 @@ pub(crate) enum ControlFlowType {
     WhileLoop = 6,
 }
 
+#[derive(Clone, Debug, IntoPyObject, PartialEq)]
+pub enum BoxDuration {
+    Duration(Duration),
+    Expr(expr::Expr),
+}
+
 #[derive(Clone, Debug)]
 #[repr(align(8))]
 pub enum ControlFlow {
     Box {
-        duration: Option<Duration>,
+        duration: Option<BoxDuration>,
         annotations: Vec<PyObject>,
         qubits: u32,
         clbits: u32,

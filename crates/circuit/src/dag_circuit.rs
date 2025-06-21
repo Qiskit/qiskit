@@ -30,7 +30,7 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, Condition, ControlFlow, Operation, OperationRef, Param, StandardGate,
+    ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param, StandardGate,
     StandardInstruction, Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -2548,7 +2548,30 @@ impl DAGCircuit {
                                     (
                                         ControlFlowView::Box(duration_a, body_a),
                                         ControlFlowView::Box(duration_b, body_b),
-                                    ) => Ok(duration_a == duration_b && block_eq(body_a, body_b)?),
+                                    ) => {
+                                        let duration_eq = match duration_a {
+                                            Some(BoxDuration::Expr(duration_a)) => match duration_b
+                                            {
+                                                Some(BoxDuration::Expr(duration_b)) => duration_a
+                                                    .structurally_equivalent_by_key(
+                                                        &slf_var_key,
+                                                        duration_b,
+                                                        &other_var_key,
+                                                    ),
+                                                _ => false,
+                                            },
+                                            Some(BoxDuration::Duration(duration_a)) => {
+                                                match duration_b {
+                                                    Some(BoxDuration::Duration(duration_b)) => {
+                                                        duration_a == duration_b
+                                                    }
+                                                    _ => false,
+                                                }
+                                            }
+                                            None => duration_b.is_none(),
+                                        };
+                                        Ok(duration_eq && block_eq(body_a, body_b)?)
+                                    }
                                     (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
                                         Ok(true)
                                     }
