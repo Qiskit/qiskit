@@ -30,7 +30,7 @@ from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate
 from qiskit.circuit.library.generalized_gates.ucry import UCRYGate
 from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
-from qiskit._accelerate.cos_sin_decomp import cossin
+from qiskit._accelerate import qsd
 
 
 def qs_decomposition(
@@ -94,6 +94,13 @@ def qs_decomposition(
         1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
            `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
     """
+    if decomposer_1q is None and decomposer_2q is None:
+        array = np.asarray(mat, dtype=complex)
+        return QuantumCircuit._from_circuit_data(qsd.qs_decomposition(array, opt_a1, opt_a2))
+
+    # TODO call rust if decomposer_1q or decomposer_2q are OneQubitEulerDecomposer or TwoQubitBasisDecomposer
+    # deprecate otherwise
+
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
     nqubits = dim.bit_length() - 1
