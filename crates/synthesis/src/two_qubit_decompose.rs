@@ -2181,8 +2181,8 @@ impl TwoQubitBasisDecomposer {
             // Skip four-parameter gates for now due to SmallVec size limit
 
             // Non-parameterized gates
-            _ => smallvec![],  
-        }  
+            _ => smallvec![],
+        }
     }
 
     /// Decompose a two-qubit ``unitary`` over fixed basis and :math:`SU(2)` using the best
