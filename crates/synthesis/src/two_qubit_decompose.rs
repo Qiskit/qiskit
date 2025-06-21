@@ -2124,60 +2124,60 @@ impl TwoQubitBasisDecomposer {
             .collect()
     }
 
-    fn get_basis_gate_params(&self) -> SmallVec<[f64; 3]> {  
-        match self.basis_gate {   
-            // Single-parameter gates  
-            Some(StandardGate::GlobalPhase) => smallvec![self.basis_decomposer.global_phase],  
-            Some(StandardGate::Phase) => smallvec![self.basis_decomposer.a * 2.0],  
-            Some(StandardGate::RX) => smallvec![self.basis_decomposer.a * 2.0],  
-            Some(StandardGate::RY) => smallvec![self.basis_decomposer.b * 2.0],  
-            Some(StandardGate::RZ) => smallvec![self.basis_decomposer.c * 2.0],  
-            Some(StandardGate::U1) => smallvec![self.basis_decomposer.c * 2.0],  
-            Some(StandardGate::CPhase) => smallvec![self.basis_decomposer.a * 2.0],  
-            Some(StandardGate::CRX) => smallvec![self.basis_decomposer.a * 2.0],  
-            Some(StandardGate::CRY) => smallvec![self.basis_decomposer.b * 2.0],  
-            Some(StandardGate::CRZ) => smallvec![self.basis_decomposer.c * 2.0],  
-            Some(StandardGate::CU1) => smallvec![self.basis_decomposer.c * 2.0],  
-            Some(StandardGate::RXX) => smallvec![self.basis_decomposer.a * 2.0],  
-            Some(StandardGate::RYY) => smallvec![self.basis_decomposer.b * 2.0],  
-            Some(StandardGate::RZZ) => smallvec![self.basis_decomposer.c * 2.0],  
-            Some(StandardGate::RZX) => smallvec![self.basis_decomposer.a * 2.0],  
-    
-            // Two-parameter gates  
-            Some(StandardGate::R) => smallvec![  
-                self.basis_decomposer.a * 2.0,  
-                self.basis_decomposer.global_phase  
-            ],  
-            Some(StandardGate::U2) => smallvec![  
-                self.basis_decomposer.b * 2.0,  
-                self.basis_decomposer.c * 2.0  
-            ],  
-            Some(StandardGate::XXMinusYY) => smallvec![  
-                self.basis_decomposer.a * 2.0,  
-                self.basis_decomposer.global_phase  
-            ],  
-            Some(StandardGate::XXPlusYY) => smallvec![  
-                self.basis_decomposer.a * 2.0,  
-                self.basis_decomposer.global_phase  
-            ],  
-    
-            // Three-parameter gates  
-            Some(StandardGate::U) => smallvec![  
-                self.basis_decomposer.a * 2.0,  
-                self.basis_decomposer.b * 2.0,  
-                self.basis_decomposer.c * 2.0  
-            ],  
-            Some(StandardGate::U3) => smallvec![  
-                self.basis_decomposer.a * 2.0,  
-                self.basis_decomposer.b * 2.0,  
-                self.basis_decomposer.c * 2.0  
-            ],  
-            Some(StandardGate::CU3) => smallvec![  
-                self.basis_decomposer.a * 2.0,  
-                self.basis_decomposer.b * 2.0,  
-                self.basis_decomposer.c * 2.0  
-            ],  
-    
+    fn get_basis_gate_params(&self) -> SmallVec<[f64; 3]> {
+        match self.basis_gate {
+            // Single-parameter gates
+            Some(StandardGate::GlobalPhase) => smallvec![self.basis_decomposer.global_phase],
+            Some(StandardGate::Phase) => smallvec![self.basis_decomposer.a * 2.0],
+            Some(StandardGate::RX) => smallvec![self.basis_decomposer.a * 2.0],
+            Some(StandardGate::RY) => smallvec![self.basis_decomposer.b * 2.0],
+            Some(StandardGate::RZ) => smallvec![self.basis_decomposer.c * 2.0],
+            Some(StandardGate::U1) => smallvec![self.basis_decomposer.c * 2.0],
+            Some(StandardGate::CPhase) => smallvec![self.basis_decomposer.a * 2.0],
+            Some(StandardGate::CRX) => smallvec![self.basis_decomposer.a * 2.0],
+            Some(StandardGate::CRY) => smallvec![self.basis_decomposer.b * 2.0],
+            Some(StandardGate::CRZ) => smallvec![self.basis_decomposer.c * 2.0],
+            Some(StandardGate::CU1) => smallvec![self.basis_decomposer.c * 2.0],
+            Some(StandardGate::RXX) => smallvec![self.basis_decomposer.a * 2.0],
+            Some(StandardGate::RYY) => smallvec![self.basis_decomposer.b * 2.0],
+            Some(StandardGate::RZZ) => smallvec![self.basis_decomposer.c * 2.0],
+            Some(StandardGate::RZX) => smallvec![self.basis_decomposer.a * 2.0],
+
+            // Two-parameter gates
+            Some(StandardGate::R) => smallvec![
+                self.basis_decomposer.a * 2.0,
+                self.basis_decomposer.global_phase
+            ],
+            Some(StandardGate::U2) => smallvec![
+                self.basis_decomposer.b * 2.0,
+                self.basis_decomposer.c * 2.0
+            ],
+            Some(StandardGate::XXMinusYY) => smallvec![
+                self.basis_decomposer.a * 2.0,
+                self.basis_decomposer.global_phase
+            ],
+            Some(StandardGate::XXPlusYY) => smallvec![
+                self.basis_decomposer.a * 2.0,
+                self.basis_decomposer.global_phase
+            ],
+
+            // Three-parameter gates
+            Some(StandardGate::U) => smallvec![
+                self.basis_decomposer.a * 2.0,
+                self.basis_decomposer.b * 2.0,
+                self.basis_decomposer.c * 2.0
+            ],
+            Some(StandardGate::U3) => smallvec![
+                self.basis_decomposer.a * 2.0,
+                self.basis_decomposer.b * 2.0,
+                self.basis_decomposer.c * 2.0
+            ],
+            Some(StandardGate::CU3) => smallvec![
+                self.basis_decomposer.a * 2.0,
+                self.basis_decomposer.b * 2.0,
+                self.basis_decomposer.c * 2.0
+            ],
+
             // Skip four-parameter gates for now due to SmallVec size limit
 
             // Non-parameterized gates
