@@ -23,7 +23,11 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
 
-from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
+from .builder import (
+    InstructionPlaceholder,
+    InstructionResources,
+    ControlFlowBuilderBlock,
+)
 from .control_flow import ControlFlowOp
 from ._builder_utils import unify_circuit_resources, partition_registers, node_resources
 
@@ -324,7 +328,9 @@ class SwitchContext:
         return label in self._label_set
 
     def add_case(
-        self, labels: Tuple[Union[int, Literal[CASE_DEFAULT]], ...], block: ControlFlowBuilderBlock
+        self,
+        labels: Tuple[Union[int, Literal[CASE_DEFAULT]], ...],
+        block: ControlFlowBuilderBlock,
     ):
         """Add a sequence of conditions and the single block that should be run if they are
         triggered to the context.  The labels are assumed to have already been validated using
@@ -355,6 +361,10 @@ class SwitchContext:
             operation, resources = placeholder.concrete_instruction(
                 set(initial_resources.qubits), set(initial_resources.clbits)
             )
+            for case in operation.blocks:
+                # We need to copy the calibrations from the original circuit, because the
+                # placeholder doesn't have any.
+                case.calibrations = self.circuit.calibrations
             self.circuit.append(operation, resources.qubits, resources.clbits)
         return False
 
