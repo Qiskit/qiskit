@@ -833,6 +833,15 @@ impl StandardGate {
             Self::RC3X => None, // the inverse in not a StandardGate
         }
     }
+
+    pub fn standard_gate_from_name(name: &str) -> Option<StandardGate> {
+        for (index, &gate_name) in STANDARD_GATE_NAME.iter().enumerate() {
+            if gate_name == name {
+                return Some(bytemuck::checked::cast::<u8, StandardGate>(index as u8));
+            }
+        }
+        None
+    }
 }
 
 #[pymethods]

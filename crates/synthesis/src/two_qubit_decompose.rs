@@ -1345,6 +1345,7 @@ impl TwoQubitGateSequence {
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitBasisDecomposer {
     gate: String,
+    basis_gate: Option<StandardGate>,
     basis_fidelity: f64,
     euler_basis: EulerBasis,
     pulse_optimize: Option<bool>,
@@ -1752,6 +1753,9 @@ impl TwoQubitBasisDecomposer {
         let super_controlled = relative_eq!(basis_decomposer.a, PI4, max_relative = 1e-09)
             && relative_eq!(basis_decomposer.c, 0.0, max_relative = 1e-09);
 
+        // Determine whether the gate is a basis gate from its name, else None
+        let basis_gate = StandardGate::standard_gate_from_name(&gate);
+
         // Create some useful matrices U1, U2, U3 are equivalent to the basis,
         // expand as Ui = Ki1.Ubasis.Ki2
         let b = basis_decomposer.b;
@@ -1850,6 +1854,7 @@ impl TwoQubitBasisDecomposer {
 
         Ok(TwoQubitBasisDecomposer {
             gate,
+            basis_gate,
             basis_fidelity,
             euler_basis: EulerBasis::__new__(euler_basis)?,
             pulse_optimize,
@@ -2119,6 +2124,67 @@ impl TwoQubitBasisDecomposer {
             .collect()
     }
 
+    fn get_basis_gate_params(&self) -> SmallVec<[f64; 3]> {  
+        match self.basis_gate {   
+            // Single-parameter gates  
+            Some(StandardGate::GlobalPhase) => smallvec![self.basis_decomposer.global_phase],  
+            Some(StandardGate::Phase) => smallvec![self.basis_decomposer.a * 2.0],  
+            Some(StandardGate::RX) => smallvec![self.basis_decomposer.a * 2.0],  
+            Some(StandardGate::RY) => smallvec![self.basis_decomposer.b * 2.0],  
+            Some(StandardGate::RZ) => smallvec![self.basis_decomposer.c * 2.0],  
+            Some(StandardGate::U1) => smallvec![self.basis_decomposer.c * 2.0],  
+            Some(StandardGate::CPhase) => smallvec![self.basis_decomposer.a * 2.0],  
+            Some(StandardGate::CRX) => smallvec![self.basis_decomposer.a * 2.0],  
+            Some(StandardGate::CRY) => smallvec![self.basis_decomposer.b * 2.0],  
+            Some(StandardGate::CRZ) => smallvec![self.basis_decomposer.c * 2.0],  
+            Some(StandardGate::CU1) => smallvec![self.basis_decomposer.c * 2.0],  
+            Some(StandardGate::RXX) => smallvec![self.basis_decomposer.a * 2.0],  
+            Some(StandardGate::RYY) => smallvec![self.basis_decomposer.b * 2.0],  
+            Some(StandardGate::RZZ) => smallvec![self.basis_decomposer.c * 2.0],  
+            Some(StandardGate::RZX) => smallvec![self.basis_decomposer.a * 2.0],  
+    
+            // Two-parameter gates  
+            Some(StandardGate::R) => smallvec![  
+                self.basis_decomposer.a * 2.0,  
+                self.basis_decomposer.global_phase  
+            ],  
+            Some(StandardGate::U2) => smallvec![  
+                self.basis_decomposer.b * 2.0,  
+                self.basis_decomposer.c * 2.0  
+            ],  
+            Some(StandardGate::XXMinusYY) => smallvec![  
+                self.basis_decomposer.a * 2.0,  
+                self.basis_decomposer.global_phase  
+            ],  
+            Some(StandardGate::XXPlusYY) => smallvec![  
+                self.basis_decomposer.a * 2.0,  
+                self.basis_decomposer.global_phase  
+            ],  
+    
+            // Three-parameter gates  
+            Some(StandardGate::U) => smallvec![  
+                self.basis_decomposer.a * 2.0,  
+                self.basis_decomposer.b * 2.0,  
+                self.basis_decomposer.c * 2.0  
+            ],  
+            Some(StandardGate::U3) => smallvec![  
+                self.basis_decomposer.a * 2.0,  
+                self.basis_decomposer.b * 2.0,  
+                self.basis_decomposer.c * 2.0  
+            ],  
+            Some(StandardGate::CU3) => smallvec![  
+                self.basis_decomposer.a * 2.0,  
+                self.basis_decomposer.b * 2.0,  
+                self.basis_decomposer.c * 2.0  
+            ],  
+    
+            // Skip four-parameter gates for now due to SmallVec size limit
+
+            // Non-parameterized gates
+            _ => smallvec![],  
+        }  
+    }
+
     /// Decompose a two-qubit ``unitary`` over fixed basis and :math:`SU(2)` using the best
     /// approximation given that each basis application has a finite ``basis_fidelity``.
     #[pyo3(signature = (unitary, basis_fidelity=None, approximate=true, _num_basis_uses=None))]
@@ -2201,7 +2267,10 @@ impl TwoQubitBasisDecomposer {
                 }
                 global_phase += euler_decomp.global_phase
             }
-            gates.push((None, smallvec![], smallvec![0, 1]));
+
+            // Obtain parameter list for StandardGates if applicable
+            let params = self.get_basis_gate_params();
+            gates.push((self.basis_gate, params, smallvec![0, 1]));
         }
         if let Some(euler_decomp) = &euler_decompositions[2 * best_nbasis as usize] {
             for gate in &euler_decomp.gates {
