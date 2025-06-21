@@ -59,4 +59,4 @@ features = ["rayon"]
 pyo3 = { workspace = true, features = ["auto-initialize"] }
 
 [features]
-cache_pygates = ["qiskit-circuit/cache_pygates"]
+cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-synthesis/cache_pygates"]
