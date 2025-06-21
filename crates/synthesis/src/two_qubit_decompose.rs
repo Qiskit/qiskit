@@ -2148,10 +2148,9 @@ impl TwoQubitBasisDecomposer {
                 self.basis_decomposer.a * 2.0,
                 self.basis_decomposer.global_phase
             ],
-            Some(StandardGate::U2) => smallvec![
-                self.basis_decomposer.b * 2.0,
-                self.basis_decomposer.c * 2.0
-            ],
+            Some(StandardGate::U2) => {
+                smallvec![self.basis_decomposer.b * 2.0, self.basis_decomposer.c * 2.0]
+            }
             Some(StandardGate::XXMinusYY) => smallvec![
                 self.basis_decomposer.a * 2.0,
                 self.basis_decomposer.global_phase
