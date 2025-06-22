@@ -580,9 +580,26 @@ impl<T: Instruction> CreatePythonOperation for T {
                             },
                             None => (None, None),
                         };
-                        BOX_OP
-                            .get(py)
-                            .call(py, (body, duration, unit), kwargs.as_ref())
+                        // Note: we don't expose the annotations on ControlFlowView::Box currently
+                        // because they will move out of the operation and onto our concrete
+                        // instruction types (e.g. PackedInstruction) once we support them on other
+                        // operations.
+                        let annotations = match self.op() {
+                            OperationRef::ControlFlow(ControlFlow::Box { annotations, .. }) => {
+                                annotations
+                            }
+                            _ => panic!("expected control flow"),
+                        };
+                        BOX_OP.get(py).call1(
+                            py,
+                            (
+                                body,
+                                duration,
+                                unit,
+                                self.label(),
+                                PyTuple::new(py, annotations)?,
+                            ),
+                        )
                     }
                     ControlFlowView::BreakLoop => {
                         BREAK_LOOP_OP
