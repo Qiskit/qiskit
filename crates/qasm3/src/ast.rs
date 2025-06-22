@@ -91,7 +91,7 @@ pub struct Identifier {
 
 
 #[derive(Debug, Clone)]
-pub struct IntegerLiteral(pub(crate) i32);
+pub struct IntegerLiteral(pub(crate) i64);
 
 #[derive(Debug, Clone)]
 pub struct BooleanLiteral(pub(crate) bool);
@@ -100,7 +100,7 @@ pub struct BooleanLiteral(pub(crate) bool);
 #[derive(Debug, Clone)]
 pub struct BitstringLiteral {
     pub value: String,
-    pub width: u32,
+    pub width: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -265,11 +265,11 @@ pub enum ClassicalType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Float {
-    Half = 16,
-    Single = 32,
-    Double = 64,
-    Quad = 128,
-    Oct = 256,
+    Half,
+    Single,
+    Double,
+    Quad,
+    Oct,
 }
 
 impl Float {
@@ -292,16 +292,16 @@ impl Display for Float {
 
 #[derive(Debug, Clone)]
 pub struct Int {
-    pub size: Option<u32>,
+    pub size: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Uint {
-    pub size: Option<u32>,
+    pub size: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
-pub struct BitArray(pub(crate) u32);
+pub struct BitArray(pub(crate) u64);
 
 #[derive(Debug, Clone)]
 pub struct Index {

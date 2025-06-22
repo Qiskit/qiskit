@@ -881,14 +881,14 @@ impl<'a> QASM3Builder {
                             target: Box::new(Expression::Parameter(Parameter {
                                 obj: identifier.string.to_string(),
                             })),
-                            index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+                            index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i64))),
                         }),
                         BitType::Clbit(clbit),
                     )
                 }
             }
             decls.push(Statement::ClassicalDeclaration(ClassicalDeclaration {
-                type_: ClassicalType::BitArray(BitArray(creg.len() as u32)),
+                type_: ClassicalType::BitArray(BitArray(creg.len() as u64)),
                 identifier,
             }))
         }
@@ -997,7 +997,7 @@ impl<'a> QASM3Builder {
                             target: Box::new(Expression::Parameter(Parameter {
                                 obj: identifier.string.to_string(),
                             })),
-                            index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+                            index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i64))),
                         }),
                         BitType::Qubit(qubit),
                     )
@@ -1006,7 +1006,7 @@ impl<'a> QASM3Builder {
             decls.push(Statement::QuantumDeclaration(QuantumDeclaration {
                 identifier,
                 designator: Some(Designator {
-                    expression: Expression::IntegerLiteral(IntegerLiteral(qreg.len() as i32)),
+                    expression: Expression::IntegerLiteral(IntegerLiteral(qreg.len() as i64)),
                 }),
             }))
         }
@@ -1027,7 +1027,7 @@ impl<'a> QASM3Builder {
                 target: Box::new(Expression::Parameter(Parameter {
                     obj: name.string.clone(),
                 })),
-                index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i32))),
+                index: Box::new(Expression::IntegerLiteral(IntegerLiteral(i as i64))),
             });
             self.symbol_table.set_bitinfo(id2, bit.clone());
             elements.push(id.clone());
