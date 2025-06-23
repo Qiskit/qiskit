@@ -475,24 +475,7 @@ class SparsePauliOp(LinearOp):
             atol = self.atol
         if rtol is None:
             rtol = self.rtol
-<<<<<<< HEAD
 
-=======
-
-
-        paulis_x = self.paulis.x
-        paulis_z = self.paulis.z
-        nz_coeffs = self.coeffs
-
-        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
-            paulis_z, axis=1
-        )
-        indexes, inverses = unordered_unique(array)
-
-        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
-        np.add.at(coeffs, inverses, nz_coeffs)
-
->>>>>>> 682e695c8 (removed unwanted changes)
         # Filter non-zero coefficients
         if self.coeffs.dtype == object:
 
@@ -507,7 +490,7 @@ class SparsePauliOp(LinearOp):
             )
         else:
             non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
-<<<<<<< HEAD
+
         paulis_x = self.paulis.x[non_zero]
         paulis_z = self.paulis.z[non_zero]
         nz_coeffs = self.coeffs[non_zero]
@@ -523,10 +506,7 @@ class SparsePauliOp(LinearOp):
 
         coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
         np.add.at(coeffs, inverses, nz_coeffs)
-=======
 
-
->>>>>>> 682e695c8 (removed unwanted changes)
         # Delete zero coefficient rows
         if self.coeffs.dtype == object:
             is_zero = np.array(
@@ -537,10 +517,6 @@ class SparsePauliOp(LinearOp):
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if np.all(is_zero):
-<<<<<<< HEAD
-=======
-            print(self.num_qubits)
->>>>>>> 682e695c8 (removed unwanted changes)
             x = np.zeros((1, self.num_qubits), dtype=bool)
             z = np.zeros((1, self.num_qubits), dtype=bool)
             coeffs = np.array([0j], dtype=self.coeffs.dtype)
