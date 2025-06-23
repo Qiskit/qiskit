@@ -248,8 +248,6 @@ class BasePassManager(ABC):
                 return out[0]
             return out
 
-        property_set["callback"] = callback
-
         del kwargs
         # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
@@ -260,7 +258,8 @@ class BasePassManager(ABC):
             values=in_programs,
             task_kwargs={
                 "pass_manager_bin": dill.dumps(self),
-                "initial_property_set": property_set
+                "callback": callback,
+                "initial_property_set": property_set,
             },
             num_processes=num_processes,
         )
@@ -336,6 +335,7 @@ def _run_workflow_in_new_process(
     pass_manager_bin: bytes,
     *,
     initial_property_set: dict[str, object] | None,
+    callback: Callable = None,
 ) -> Any:
     """Run single program optimization in new process.
 
@@ -350,5 +350,5 @@ def _run_workflow_in_new_process(
         program=program,
         pass_manager=dill.loads(pass_manager_bin),
         initial_property_set=initial_property_set,
-        callback=initial_property_set.get("callback"),
+        callback=callback,
     )
