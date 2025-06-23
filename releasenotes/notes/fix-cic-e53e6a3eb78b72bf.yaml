@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed several problems in the :class:`.CommutativeInverseCancellation`
+    transpiler pass: the pass now works correctly on circuits containing
+    :class:`.Clifford` operations, control-flow operations, and non-invertible
+    operations such as :class:`.Initialize`.
+
+    Fixed `#14407 <https://github.com/Qiskit/qiskit-terra/issues/14407>`__
+    Fixed `#14645 <https://github.com/Qiskit/qiskit-terra/issues/14645>`__
+    Fixed `#14645 <https://github.com/Qiskit/qiskit-terra/issues/14645>`__
