@@ -100,7 +100,7 @@ pub struct BooleanLiteral(pub(crate) bool);
 #[derive(Debug, Clone)]
 pub struct BitstringLiteral {
     pub value: String,
-    pub width: u64,
+    pub width: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -292,16 +292,16 @@ impl Display for Float {
 
 #[derive(Debug, Clone)]
 pub struct Int {
-    pub size: Option<u64>,
+    pub size: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Uint {
-    pub size: Option<u64>,
+    pub size: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
-pub struct BitArray(pub(crate) u64);
+pub struct BitArray(pub(crate) usize);
 
 #[derive(Debug, Clone)]
 pub struct Index {

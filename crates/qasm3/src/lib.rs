@@ -13,10 +13,12 @@
 mod ast;
 mod build;
 mod circuit;
+mod circuit_builder;
 mod error;
 mod exporter;
 mod expr;
 mod printer;
+mod symbol_table;
 
 use std::ffi::OsString;
 use std::ops::Deref;
