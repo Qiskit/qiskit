@@ -14,6 +14,8 @@ use crate::bit::{ClassicalRegister, Register, ShareableClbit};
 use crate::classical::expr;
 use crate::operations::{Condition, Target};
 use hashbrown::{HashMap, HashSet};
+use num_bigint::BigUint;
+use num_traits::Num;
 use pyo3::prelude::*;
 use pyo3::PyResult;
 use std::cell::RefCell;
@@ -75,7 +77,7 @@ impl VariableMapper {
                 if !allow_reorder {
                     return Ok(Condition::Register(
                         self.map_register(target, &mut add_register)?,
-                        *value,
+                        value.clone(),
                     ));
                 }
                 // This is maintaining the legacy behavior of `DAGCircuit.compose`.  We don't
@@ -128,7 +130,7 @@ impl VariableMapper {
 
                 Condition::Register(
                     mapped_theirs,
-                    usize::from_str_radix(&mapped_str, 2).unwrap(),
+                    BigUint::from_str_radix(&mapped_str, 2).unwrap(),
                 )
             }
         })

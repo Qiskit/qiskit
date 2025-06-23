@@ -21,6 +21,7 @@ use std::{fmt, vec};
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{array, aview2, Array2, ArrayView2, Dim, ShapeBuilder};
+use num_bigint::BigUint;
 use num_complex::Complex64;
 use smallvec::{smallvec, SmallVec};
 
@@ -494,7 +495,7 @@ impl Operation for ControlFlow {
 #[derive(Clone, Debug, PartialEq, IntoPyObject)]
 pub enum Condition {
     Bit(ShareableClbit, usize),
-    Register(ClassicalRegister, usize),
+    Register(ClassicalRegister, BigUint),
     Expr(expr::Expr),
 }
 
@@ -502,7 +503,7 @@ impl<'py> FromPyObject<'py> for Condition {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
             Ok(Condition::Bit(bit, value))
-        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, usize)>() {
+        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, BigUint)>() {
             Ok(Condition::Register(register, value))
         } else {
             let Ok(condition) = ob.extract() else {

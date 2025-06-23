@@ -1018,7 +1018,9 @@ pub fn extract_params(
                     // The indexset is an iterable of ints, so we extract each
                     // and store them all in a Vec.
                     let indexset = params.next().unwrap()?.try_iter()?;
-                    indexset.map(|index| index?.extract()).collect::<PyResult<_>>()?
+                    indexset
+                        .map(|index| index?.extract())
+                        .collect::<PyResult<_>>()?
                 };
                 Some(Parameters::ForLoop {
                     indexset,
