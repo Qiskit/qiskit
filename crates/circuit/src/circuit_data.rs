@@ -1382,7 +1382,6 @@ impl CircuitData {
 
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
-            let params = (!params.is_empty()).then(|| Box::new(Parameters::Params(params)));
             res.data.push(PackedInstruction::from_standard_gate(
                 operation, params, qubits,
             ));
@@ -1438,8 +1437,7 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) {
-        let params = (!params.is_empty())
-            .then(|| Box::new(Parameters::Params(params.iter().cloned().collect())));
+        let params = SmallVec::from(params);
         let qubits = self.qargs_interner.insert(qargs);
         self.data.push(PackedInstruction::from_standard_gate(
             operation, params, qubits,

@@ -21,9 +21,6 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
-use rand::prelude::*;
-use rand_pcg::Pcg64Mcg;
-
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
@@ -36,6 +33,9 @@ use qiskit_circuit::instruction::{
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use rand::prelude::*;
+use rand_pcg::Pcg64Mcg;
+use smallvec::smallvec;
 
 use crate::QiskitError;
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
@@ -203,21 +203,21 @@ fn twirl_gate(
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
     out_circ.push(
         py,
-        PackedInstruction::from_standard_gate(twirl[0], None, bit_zero),
+        PackedInstruction::from_standard_gate(twirl[0], smallvec![], bit_zero),
     )?;
     out_circ.push(
         py,
-        PackedInstruction::from_standard_gate(twirl[1], None, bit_one),
+        PackedInstruction::from_standard_gate(twirl[1], smallvec![], bit_one),
     )?;
 
     out_circ.push(py, inst.clone())?;
     out_circ.push(
         py,
-        PackedInstruction::from_standard_gate(twirl[2], None, bit_zero),
+        PackedInstruction::from_standard_gate(twirl[2], smallvec![], bit_zero),
     )?;
     out_circ.push(
         py,
-        PackedInstruction::from_standard_gate(twirl[3], None, bit_one),
+        PackedInstruction::from_standard_gate(twirl[3], smallvec![], bit_one),
     )?;
 
     if *twirl_phase != 0. {

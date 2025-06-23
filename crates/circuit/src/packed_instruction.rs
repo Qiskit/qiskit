@@ -13,10 +13,6 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use pyo3::intern;
-use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyType};
-
 use crate::circuit_instruction::CreatePythonOperation;
 use crate::imports::{
     get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY,
@@ -29,6 +25,10 @@ use crate::operations::{
     StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
+use pyo3::intern;
+use pyo3::prelude::*;
+use pyo3::types::{PyDict, PyType};
+use smallvec::SmallVec;
 
 /// The logical discriminant of `PackedOperation`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -768,17 +768,16 @@ impl Instruction for PackedInstruction {
 
 impl PackedInstruction {
     /// Pack a [StandardGate] into a complete instruction.
-    // TODO: I think this should take SmallVec<[Param; 3]>
     pub fn from_standard_gate(
         gate: StandardGate,
-        params: Option<Box<Parameters<PyObject>>>,
+        params: SmallVec<[Param; 3]>,
         qubits: Interned<[Qubit]>,
     ) -> Self {
         Self {
             op: gate.into(),
             qubits,
             clbits: Default::default(),
-            params,
+            params: (!params.is_empty()).then(|| Box::new(Parameters::Params(params))),
             label: None,
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
