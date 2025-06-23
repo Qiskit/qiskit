@@ -237,7 +237,7 @@ Initialization stage
 --------------------
 
 .. seealso::
-    `Init stage explanation <https://docs.quantum.ibm.com/guides/transpiler-stages#init-stage>`__
+    `Init stage explanation <https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#init-stage>`__
         Higher-level user-facing explanation of the init stage in the IBM Quantum guide.
 
 The ``init`` stage is responsible for high-level, logical optimizations on abstract circuits, and
@@ -291,8 +291,10 @@ Layout stage
 ------------
 
 .. seealso::
-    `Layout stage explanation <https://docs.quantum.ibm.com/guides/transpiler-stages#layout-stage>`__
+    `Layout stage explanation`__
         Higher-level user-facing explanation of the layout stage in the IBM Quantum guide.
+
+__ https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#layout-stage
 
 The layout stage is responsible for making an initial mapping between the virtual qubits of the
 input circuit, and the hardware qubits of the target.  This includes expanding the input circuit
@@ -452,8 +454,10 @@ Routing stage
 -------------
 
 .. seealso::
-    `Routing stage explanation <https://docs.quantum.ibm.com/guides/transpiler-stages#routing-stage>`__
+    `Routing stage explanation`__
         Higher-level user-facing explanation of the routing stage in the IBM Quantum guide.
+
+__ https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#routing-stage
 
 The routing stage ensures that the virtual connectivity graph of the circuit is compatible with the
 hardware connectivity graph of the target.  In simpler terms, the routing stage makes sure that all
@@ -598,7 +602,7 @@ Translation stage
     `Translation stage explanation`__
         Higher-level user-facing explanation of the translation stage in the IBM Quantum guide.
 
-.. __: https://docs.quantum.ibm.com/guides/transpiler-stages#translation-stage
+.. __: https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#translation-stage
 
 The translation stage is responsible for rewriting all gates in the circuit into ones that are
 supported by the target ISA.  For example, if a ``cx`` is requested on hardware qubits 0 and 1, but
@@ -673,6 +677,9 @@ At a high level, this starts from the set of gates requested by the circuit, and
 given :class:`.EquivalenceLibrary` (typically the :data:`.SessionEquivalenceLibrary`) to move
 towards the ISA.
 
+For a Clifford+T basis set, the single-qubit rotation gates are approximated using the
+:class:`.SolovayKitaevDecomposition` algorithm.
+
 This is the default translation method.
 
 The optimization level has no effect on this plugin.
@@ -687,7 +694,7 @@ Optimization stage
     `Optimization stage explanation`__
         Higher-level user-facing explanation of the optimization stage in the IBM Quantum guide.
 
-.. __: https://docs.quantum.ibm.com/guides/transpiler-stages#optimization-stage
+.. __: https://quantum.cloud.ibm.com/docs/guides/transpiler-stages#optimization-stage
 
 The optimization stage is for low-level hardware-aware optimizations.  Unlike :ref:`the init stage
 <transpiler-preset-stage-init>`, the input to this stage is a circuit that is already
@@ -700,7 +707,7 @@ as a fix-up pipeline.
 
 Qiskit's built-in optimization plugins are general, and apply well to most real-world ISAs for
 non-error-corrected devices.  The built-in plugins are less well-suited to ISAs that have no
-continuously parametrized single-qubit gate, such as a Clifford+T basis set.
+continuously parametrized single-qubit gate.
 
 When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry point for
 ``optimization`` is ``qiskit.transpiler.optimization``.  The built-in plugins are:
@@ -720,10 +727,12 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
 Built-in ``default`` plugin
 ...........................
 
-This varies significantly between optimization levels.
+This varies significantly depending on the optimization level and whether the basis set is of the
+form Clifford+T.
 
 The specifics of this pipeline are subject to change between Qiskit versions. The broad principles
-are described below.
+are described below. First, consider the more common case that the basis set is not of the form
+Clifford+T.
 
 At optimization level 0, the stage is empty.
 
@@ -739,6 +748,8 @@ At optimization level 3, the two-qubit matrix-based resynthesis runs inside the 
 The optimization loop condition also tries multiple runs and chooses the minimum point in the case
 of fluctuating output; this is necessary because matrix-based resynthesis is relatively unstable in
 terms of concrete gates.
+
+For a Clifford+T basis set, two-qubit matrix based resynthesis is not applied.
 
 Optimization level 3 is typically very expensive for large circuits.
 
