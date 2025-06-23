@@ -51,7 +51,7 @@ class CommutativeInverseCancellation(TransformationPass):
             return True
         if getattr(node, "condition", None):
             return True
-        if node.op.is_parameterized():
+        if getattr(node.op, "is_parameterized", None) is not None and node.op.is_parameterized():
             return True
         return False
 
