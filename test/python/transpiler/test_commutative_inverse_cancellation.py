@@ -19,7 +19,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.library import RZGate, UnitaryGate, U2Gate
+from qiskit.circuit.library import RZGate, UnitaryGate, U2Gate, Initialize
 from qiskit.quantum_info import Operator, Clifford
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutativeInverseCancellation
@@ -903,6 +903,21 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
 
         with circuit.for_loop(range(3)):
             circuit.cx(1, 0)
+
+        pm = PassManager(CommutativeInverseCancellation())
+        tqc = pm.run(circuit)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(circuit, tqc)
+
+    def test_initialize(self):
+        """Test a circuit with Initialize instruction."""
+        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        initialize = Initialize(desired_vector)
+
+        circuit = QuantumCircuit(2)
+        circuit.append(initialize, [0, 1])
+        circuit.x(1)
 
         pm = PassManager(CommutativeInverseCancellation())
         tqc = pm.run(circuit)

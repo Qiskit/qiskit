@@ -66,7 +66,7 @@ class CommutativeInverseCancellation(TransformationPass):
         # Some instructions (such as Initialize) cannot be inverted
         try:
             inverse = op.inverse()
-        except CircuitError:
+        except (CircuitError, AttributeError):
             inverse = None
         return inverse
 
@@ -112,8 +112,15 @@ class CommutativeInverseCancellation(TransformationPass):
         phase_update = 0
 
         for idx1 in range(0, circ_size):
+            # if the node should be skipped or does not have an inverse, continue
             if self._skip_node(topo_sorted_nodes[idx1]):
                 continue
+            if (op1_inverse := self._get_inverse(topo_sorted_nodes[idx1].op)) is None:
+                continue
+
+            matrix_based = (
+                self._matrix_based and len(topo_sorted_nodes[idx1].qargs) <= self._max_qubits
+            )
 
             matched_idx2 = -1
 
@@ -126,12 +133,8 @@ class CommutativeInverseCancellation(TransformationPass):
                     and topo_sorted_nodes[idx2].qargs == topo_sorted_nodes[idx1].qargs
                     and topo_sorted_nodes[idx2].cargs == topo_sorted_nodes[idx1].cargs
                 ):
-                    matrix_based = (
-                        self._matrix_based
-                        and len(topo_sorted_nodes[idx2].qargs) <= self._max_qubits
-                    )
                     is_inverse, phase = self._check_equal_upto_phase(
-                        topo_sorted_nodes[idx1].op.inverse(),
+                        op1_inverse,
                         topo_sorted_nodes[idx2].op,
                         matrix_based,
                     )
