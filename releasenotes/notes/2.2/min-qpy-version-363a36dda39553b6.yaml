@@ -2,5 +2,5 @@
 features_qpy:
   - |
     Added a setting named ``min_qpy_version`` in the user config file. When set, it defines the minimum allowed QPY version
-    For :func:`.qpy.load`. If the format version of a QPY file s lower than the ``minimum_qpy_version``
-    setting it will raise an exception.
+    For :func:`.qpy.load`. If the format version of a QPY file is lower than the ``minimum_qpy_version``
+    setting, an exception will be raised.

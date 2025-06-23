@@ -2,4 +2,4 @@
 fixes:
   - |
     Fixed a bug in :class:`.PhaseOracle`, :class:`.PhaseOracleGate` and :class:`.BitFlipOracleGate`
-    where trying to load from dimacs file raised a TypeError.
+    where trying to load from dimacs file raised a ``TypeError``.
