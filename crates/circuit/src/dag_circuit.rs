@@ -137,6 +137,22 @@ impl DAGInstruction {
         }
     }
 
+    pub fn from_standard_gate(
+        gate: StandardGate,
+        params: SmallVec<[Param; 3]>,
+        qubits: Interned<[Qubit]>,
+    ) -> Self {
+        Self {
+            op: gate.into(),
+            qubits,
+            clbits: Default::default(),
+            params: (!params.is_empty()).then(|| Box::new(Parameters::Params(params))),
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        }
+    }
+
     // TODO: remove Python token once Instruction holds CircuitData instead
     pub fn from_packed(py: Python, instr: PackedInstruction) -> PyResult<Self> {
         let params: Option<Parameters<DAGCircuit>> = match instr.params.map(|p| *p) {
@@ -8401,12 +8417,13 @@ mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
     use crate::dag_circuit::{DAGCircuit, DAGInstruction, Wire};
     use crate::operations::{StandardGate, StandardInstruction};
-    use crate::packed_instruction::{PackedInstruction, PackedOperation};
+    use crate::packed_instruction::PackedOperation;
     use crate::{Clbit, Qubit};
     use hashbrown::HashSet;
     use pyo3::prelude::*;
     use rustworkx_core::petgraph::prelude::*;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
+    use smallvec::smallvec;
 
     fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
         let qreg = QuantumRegister::new_owning("q".to_owned(), qubits);
@@ -8419,9 +8436,9 @@ mod test {
 
     macro_rules! cx_gate {
         ($dag:expr, $q0:expr, $q1:expr) => {
-            PackedInstruction::from_standard_gate(
+            DAGInstruction::from_standard_gate(
                 StandardGate::CX,
-                None,
+                smallvec![],
                 $dag.qargs_interner
                     .insert_owned(vec![Qubit($q0), Qubit($q1)]),
             )
