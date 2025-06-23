@@ -892,8 +892,23 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         pm = PassManager(CommutativeInverseCancellation())
         tqc = pm.run(circuit)
 
-        # The S and Sdg gates should cancel.
+        # The S and Sdg gates should cancel
         self.assertEqual(tqc.count_ops(), {"clifford": 1})
+
+    def test_control_flow(self):
+        """Test a circuit that contains a control-flow operation."""
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+
+        with circuit.for_loop(range(3)):
+            circuit.cx(1, 0)
+
+        pm = PassManager(CommutativeInverseCancellation())
+        tqc = pm.run(circuit)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(circuit, tqc)
 
 
 if __name__ == "__main__":

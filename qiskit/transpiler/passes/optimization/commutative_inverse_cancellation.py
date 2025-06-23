@@ -12,6 +12,7 @@
 
 """Cancel pairs of inverse gates exploiting commutation relations."""
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit.circuit import CircuitError
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.quantum_info import Operator
@@ -51,9 +52,23 @@ class CommutativeInverseCancellation(TransformationPass):
             return True
         if getattr(node, "condition", None):
             return True
+        if node.is_control_flow():
+            return True
         if getattr(node.op, "is_parameterized", None) is not None and node.op.is_parameterized():
             return True
         return False
+
+    def _get_inverse(self, op):
+        """
+        Returns an inverse of the given op, or ``None`` if the inverse
+        does not exist or is too expensive to compute.
+        """
+        # Some instructions (such as Initialize) cannot be inverted
+        try:
+            inverse = op.inverse()
+        except CircuitError:
+            inverse = None
+        return inverse
 
     def _check_inverse(self, node1, node2):
         """Checks whether op1 and op2 are inverse up to a phase, that is whether
