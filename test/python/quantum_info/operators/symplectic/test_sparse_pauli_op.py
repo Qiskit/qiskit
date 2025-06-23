@@ -1326,5 +1326,6 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             res = op.apply_layout(layout=layout, num_qubits=5)
             self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
 
+
 if __name__ == "__main__":
     unittest.main()
