@@ -535,16 +535,13 @@ impl<'py> FromPyObject<'py> for Target {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CaseSpecifier {
-    Bool(bool),
     Uint(usize),
     Default,
 }
 
 impl<'py> FromPyObject<'py> for CaseSpecifier {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(b) = ob.extract::<bool>() {
-            Ok(CaseSpecifier::Bool(b))
-        } else if let Ok(i) = ob.extract::<usize>() {
+        if let Ok(i) = ob.extract::<usize>() {
             Ok(CaseSpecifier::Uint(i))
         } else if ob.is(imports::SWITCH_CASE_DEFAULT.get_bound(ob.py())) {
             Ok(CaseSpecifier::Default)
@@ -561,7 +558,6 @@ impl<'py> IntoPyObject<'py> for CaseSpecifier {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         match self {
-            CaseSpecifier::Bool(b) => b.into_bound_py_any(py),
             CaseSpecifier::Uint(u) => u.into_bound_py_any(py),
             CaseSpecifier::Default => Ok(imports::SWITCH_CASE_DEFAULT.get_bound(py).clone()),
         }
