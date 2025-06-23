@@ -50,6 +50,7 @@ if sys.version_info < (3, 10):
         "Support for running Qiskit with Python 3.9 will be removed in the "
         "2.3.0 release, which coincides with when Python 3.9 goes end of life.",
         DeprecationWarning,
+        stacklevel=2,
     )
 
 from . import _accelerate
