@@ -1014,8 +1014,14 @@ pub fn extract_params(
             ControlFlow::ContinueLoop { .. } => None,
             ControlFlow::ForLoop { .. } => {
                 let mut params = params.try_iter()?;
+                let indexset = {
+                    // The indexset is an iterable of ints, so we extract each
+                    // and store them all in a Vec.
+                    let indexset = params.next().unwrap()?.try_iter()?;
+                    indexset.map(|index| index?.extract()).collect::<PyResult<_>>()?
+                };
                 Some(Parameters::ForLoop {
-                    indexset: params.next().unwrap()?.extract()?,
+                    indexset,
                     loop_param: params
                         .next()
                         .unwrap()?
