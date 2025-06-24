@@ -2199,6 +2199,18 @@ impl TwoQubitBasisDecomposer {
             .collect()
     }
 
+    /// Synthesizes a two qubit unitary matrix into a :class:`.DAGCircuit` object
+    ///
+    /// Args:
+    ///     unitary (ndarray): A 4x4 unitary matrix in the form of a numply complex array
+    ///         representing the gate to synthesize
+    ///     basis_fidelity (float): The target fidelity of the synthesis This is a floating point
+    ///         value between
+    ///     approximate (bool): Whether to enable approximation. If set to false this is equivalent
+    ///         to setting basis_fidelity to 1.0.
+    ///
+    /// Returns:
+    ///     DAGCircuit: The decomposed circuit for the given unitary.
     #[pyo3(signature = (unitary, basis_fidelity=None, approximate=true, _num_basis_uses=None))]
     fn to_dag(
         &self,
@@ -2231,6 +2243,18 @@ impl TwoQubitBasisDecomposer {
         Ok(builder.build())
     }
 
+    /// Synthesizes a two qubit unitary matrix into a :class:`.CircuitData` object
+    ///
+    /// Args:
+    ///     unitary (ndarray): A 4x4 unitary matrix in the form of a numply complex array
+    ///         representing the gate to synthesize
+    ///     basis_fidelity (float): The target fidelity of the synthesis This is a floating point
+    ///         value between
+    ///     approximate (bool): Whether to enable approximation. If set to false this is equivalent
+    ///         to setting basis_fidelity to 1.0.
+    ///
+    /// Returns:
+    ///     CircuitData: The decomposed circuit for the given unitary.
     #[pyo3(signature = (unitary, basis_fidelity=None, approximate=true, _num_basis_uses=None))]
     fn to_circuit(
         &self,
