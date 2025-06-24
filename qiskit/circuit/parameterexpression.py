@@ -18,16 +18,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Callable, Union
+from uuid import uuid4, UUID
 import numbers
 import operator
 
-import numpy
+import numpy as np
 
 from qiskit.utils.optionals import HAS_SYMPY
 from qiskit.circuit.exceptions import CircuitError
 import qiskit._accelerate.circuit
 
-SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
+ParameterExpressionBase = qiskit._accelerate.circuit.ParameterExpression
+OPReplay = qiskit._accelerate.circuit.OPReplay
+
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -89,32 +92,28 @@ def op_code_to_method(op_code: _OPCode):
     return _OP_CODE_MAP[op_code]
 
 
-@dataclass
-class _INSTRUCTION:
-    op: _OPCode
-    lhs: ParameterValueType | None
-    rhs: ParameterValueType | None = None
+def inst_to_parameter_class(expr):
+    """Return Python Parameter/ParameterExpression from Rust ParameterExpression"""
+    if isinstance(expr, ParameterExpressionBase):
+        if expr.is_symbol:
+            from .parameter import Parameter
+
+            return Parameter(str(expr), UUID(int=p.get_uuid()))
+        else:
+            return ParameterExpression(None, expr)
+    else:
+        # return value as is
+        return expr
 
 
-@dataclass
-class _SUBS:
-    binds: dict
-    op: _OPCode = _OPCode.SUBSTITUTE
-
-
-class ParameterExpression:
+class ParameterExpression(ParameterExpressionBase):
     """ParameterExpression class to enable creating expressions of Parameters."""
 
     __slots__ = [
-        "_parameter_symbols",
-        "_parameter_keys",
-        "_symbol_expr",
-        "_name_map",
-        "_qpy_replay",
-        "_standalone_param",
+        "_parameters",
     ]
 
-    def __init__(self, symbol_map: dict, expr, *, _qpy_replay=None):
+    def __new__(cls, symbol_map: set, expr, _qpy_replay=None):
         """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -131,48 +130,34 @@ class ParameterExpression:
         # NOTE: `Parameter.__init__` does not call up to this method, since this method is dependent
         # on `Parameter` instances already being initialized enough to be hashable.  If changing
         # this method, check that `Parameter.__init__` and `__setstate__` are still valid.
-        if isinstance(expr, SymbolExpr):
-            self._parameter_symbols = symbol_map
-            self._symbol_expr = expr
-        else:
-            self._symbol_expr = SymbolExpr.Expression(expr)
-            self._parameter_symbols = {}
-            # reconstruct symbols from input parameters
-            for param in symbol_map.keys():
-                self._parameter_symbols[param] = SymbolExpr.Symbol(param.name)
-        self._name_map: dict | None = None
-        self._parameter_keys = frozenset(p._hash_key() for p in self._parameter_symbols)
 
-        self._standalone_param = False
-        if _qpy_replay is not None:
-            self._qpy_replay = _qpy_replay
-        else:
-            self._qpy_replay = []
+        self = super().__new__(cls, symbol_map, expr, _qpy_replay)
+        if symbol_map is not None:
+            self._parameters = symbol_map
+        return self
 
     @property
     def parameters(self) -> set:
         """Returns a set of the unbound Parameters in the expression."""
-        return self._parameter_symbols.keys()
+        return self._parameters
+
+    #        from .parameter import Parameter
+    #        params = super().parameters
+    #        output = set()
+    #        for p in params:
+    ##            if p.is_vector_element:
+    ##                from .parametervector import ParameterVectorElement
+    ##                output.add(ParameterVectorElement(str(p), UUID(int=p.get_uuid())))
+    #            output.add(Parameter(str(p), UUID(int=p.get_uuid())))
+    #        return output
 
     @property
-    def _names(self) -> dict:
-        """Returns a mapping of parameter names to Parameters in the expression."""
-        if self._name_map is None:
-            self._name_map = {p.name: p for p in self._parameter_symbols}
-        return self._name_map
+    def _parameter_symbols(self) -> set:
+        return self._parameters
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
-        if self._standalone_param:
-            new_op = _INSTRUCTION(_OPCode.CONJ, self)
-        else:
-            new_op = _INSTRUCTION(_OPCode.CONJ, None)
-        new_replay = self._qpy_replay.copy()
-        new_replay.append(new_op)
-        conjugated = ParameterExpression(
-            self._parameter_symbols, self._symbol_expr.conjugate(), _qpy_replay=new_replay
-        )
-        return conjugated
+        return ParameterExpression(self._parameters, super().conjugate())
 
     def assign(self, parameter, value: ParameterValueType) -> "ParameterExpression":
         """
@@ -213,42 +198,9 @@ class ParameterExpression:
             A new expression parameterized by any parameters which were not bound by
             parameter_values.
         """
-        if not allow_unknown_parameters:
-            self._raise_if_passed_unknown_parameters(parameter_values.keys())
-        self._raise_if_passed_nan(parameter_values)
-
-        new_op = _SUBS(parameter_values)
-        symbol_values = {}
-        for parameter, value in parameter_values.items():
-            if (param_expr := self._parameter_symbols.get(parameter)) is not None:
-                symbol_values[str(param_expr)] = value
-
-        bound_symbol_expr = self._symbol_expr.bind(symbol_values)
-
-        # Don't use sympy.free_symbols to count remaining parameters here.
-        # sympy will in some cases reduce the expression and remove even
-        # unbound symbols.
-        # e.g. (sympy.Symbol('s') * 0).free_symbols == set()
-
-        free_parameters = self.parameters - parameter_values.keys()
-        free_parameter_symbols = {
-            p: s for p, s in self._parameter_symbols.items() if p in free_parameters
-        }
-
-        if (
-            hasattr(bound_symbol_expr, "is_infinite") and bound_symbol_expr.is_infinite
-        ) or bound_symbol_expr == float("inf"):
-            raise ZeroDivisionError(
-                "Binding provided for expression "
-                "results in division by zero "
-                f"(Expression: {self}, Bindings: {parameter_values})."
-            )
-
-        new_replay = self._qpy_replay.copy()
-        new_replay.append(new_op)
-
+        parameters = self._parameters - parameter_values.keys()
         return ParameterExpression(
-            free_parameter_symbols, bound_symbol_expr, _qpy_replay=new_replay
+            parameters, super().bind(parameter_values, allow_unknown_parameters)
         )
 
     def subs(
@@ -272,139 +224,13 @@ class ParameterExpression:
         Returns:
             A new expression with the specified parameters replaced.
         """
-        if not allow_unknown_parameters:
-            self._raise_if_passed_unknown_parameters(parameter_map.keys())
-
-        inbound_names = {
-            p.name: p
-            for replacement_expr in parameter_map.values()
-            for p in replacement_expr.parameters
-        }
-        self._raise_if_parameter_names_conflict(inbound_names, parameter_map.keys())
-        new_op = _SUBS(parameter_map)
-
-        # Include existing parameters in self not set to be replaced.
-        new_parameter_symbols = {
-            p: s for p, s in self._parameter_symbols.items() if p not in parameter_map
-        }
-        symbol_type = SymbolExpr.Symbol
-
-        # If new_param is an expr, we'll need to construct a matching sympy expr
-        # but with our sympy symbols instead of theirs.
-        symbol_map = {}
+        parameters = self._parameters - parameter_map.keys()
         for old_param, new_param in parameter_map.items():
-            if (old_symbol := self._parameter_symbols.get(old_param)) is not None:
-                symbol_map[str(old_symbol)] = new_param._symbol_expr
-                for p in new_param.parameters:
-                    new_parameter_symbols[p] = symbol_type(p.name)
-
-        substituted_symbol_expr = self._symbol_expr.subs(symbol_map)
-        new_replay = self._qpy_replay.copy()
-        new_replay.append(new_op)
+            parameters = parameters | new_param._parameters
 
         return ParameterExpression(
-            new_parameter_symbols, substituted_symbol_expr, _qpy_replay=new_replay
+            parameters, super().subs(parameter_map, allow_unknown_parameters)
         )
-
-    def _raise_if_passed_unknown_parameters(self, parameters):
-        unknown_parameters = parameters - self.parameters
-        if unknown_parameters:
-            raise CircuitError(
-                f"Cannot bind Parameters ({[str(p) for p in unknown_parameters]}) not present in "
-                "expression."
-            )
-
-    def _raise_if_passed_nan(self, parameter_values):
-        nan_parameter_values = {
-            p: v for p, v in parameter_values.items() if not isinstance(v, numbers.Number)
-        }
-        if nan_parameter_values:
-            raise CircuitError(
-                f"Expression cannot bind non-numeric values ({nan_parameter_values})"
-            )
-
-    def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
-        if outbound_parameters is None:
-            outbound_parameters = set()
-            outbound_names = {}
-        else:
-            outbound_names = {p.name: p for p in outbound_parameters}
-
-        inbound_names = inbound_parameters
-        conflicting_names = []
-        for name, param in inbound_names.items():
-            if name in self._names and name not in outbound_names:
-                if param != self._names[name]:
-                    conflicting_names.append(name)
-        if conflicting_names:
-            raise CircuitError(
-                f"Name conflict applying operation for parameters: {conflicting_names}"
-            )
-
-    def _apply_operation(
-        self,
-        operation: Callable,
-        other: ParameterValueType,
-        reflected: bool = False,
-        op_code: _OPCode = None,
-    ) -> "ParameterExpression":
-        """Base method implementing math operations between Parameters and
-        either a constant or a second ParameterExpression.
-
-        Args:
-            operation: An operator, such as add, sub, mul, and truediv.
-            other: The second argument to be used with self in operation.
-            reflected: Optional - The default ordering is "self operator other".
-                       If reflected is True, this is switched to "other operator self".
-                       For use in e.g. __radd__, ...
-
-        Raises:
-            CircuitError:
-                - If parameter_map contains Parameters outside those in self.
-                - If the replacement Parameters in parameter_map would result in
-                  a name conflict in the generated expression.
-
-        Returns:
-            A new expression describing the result of the operation.
-        """
-        self_expr = self._symbol_expr
-        if isinstance(other, ParameterExpression):
-            self._raise_if_parameter_names_conflict(other._names)
-            parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
-            other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Number) and numpy.isfinite(other):
-            parameter_symbols = self._parameter_symbols.copy()
-            other_expr = other
-        else:
-            return NotImplemented
-
-        if reflected:
-            expr = operation(other_expr, self_expr)
-            if op_code in {_OPCode.RSUB, _OPCode.RDIV, _OPCode.RPOW}:
-                if self._standalone_param:
-                    new_op = _INSTRUCTION(op_code, self, other)
-                else:
-                    new_op = _INSTRUCTION(op_code, None, other)
-            else:
-                if self._standalone_param:
-                    new_op = _INSTRUCTION(op_code, other, self)
-                else:
-                    new_op = _INSTRUCTION(op_code, other, None)
-        else:
-            expr = operation(self_expr, other_expr)
-            if self._standalone_param:
-                new_op = _INSTRUCTION(op_code, self, other)
-            else:
-                new_op = _INSTRUCTION(op_code, None, other)
-        new_replay = self._qpy_replay.copy()
-        new_replay.append(new_op)
-
-        out_expr = ParameterExpression(parameter_symbols, expr, _qpy_replay=new_replay)
-        out_expr._name_map = self._names.copy()
-        if isinstance(other, ParameterExpression):
-            out_expr._names.update(other._names.copy())
-
-        return out_expr
 
     def gradient(self, param) -> Union["ParameterExpression", complex]:
         """Get the derivative of a real parameter expression w.r.t. a specified parameter.
@@ -422,248 +248,109 @@ class ParameterExpression:
             ParameterExpression representing the gradient of param_expr w.r.t. param
             or complex or float number
         """
-        # Check if the parameter is contained in the parameter expression
-        if param not in self._parameter_symbols.keys():
-            # If it is not contained then return 0
-            return 0.0
+        expr_grad = super().gradient(param)
+        if isinstance(expr_grad, ParameterExpressionBase):
+            parameters = set()
+            params = expr_grad.parameters
+            for p in params:
+                for q in self._parameters:
+                    if str(p) == str(q):
+                        parameters.add(q)
+            return ParameterExpression(parameters, expr_grad)
+        return expr_grad
 
-        if self._standalone_param:
-            new_op = _INSTRUCTION(_OPCode.GRAD, self, param)
+    def _merge_parameters(
+        self,
+        other: ParameterValueType,
+    ) -> set:
+        if isinstance(other, ParameterExpression):
+            return self._parameters | other._parameters
         else:
-            new_op = _INSTRUCTION(_OPCode.GRAD, None, param)
-        qpy_replay = self._qpy_replay.copy()
-        qpy_replay.append(new_op)
-
-        # Compute the gradient of the parameter expression w.r.t. param
-        key = self._parameter_symbols[param]
-        expr_grad = self._symbol_expr.derivative(key)
-
-        # generate the new dictionary of symbols
-        # this needs to be done since in the derivative some symbols might disappear (e.g.
-        # when deriving linear expression)
-        parameter_symbols = {}
-        for parameter, symbol in self._parameter_symbols.items():
-            if symbol.name in expr_grad.symbols():
-                parameter_symbols[parameter] = symbol
-        # If the gradient corresponds to a parameter expression then return the new expression.
-        if len(parameter_symbols) > 0:
-            return ParameterExpression(parameter_symbols, expr=expr_grad, _qpy_replay=qpy_replay)
-        # If no free symbols left, return a complex or float gradient
-        return expr_grad.value()
+            return self._parameters.copy()
 
     def __add__(self, other):
-        return self._apply_operation(operator.add, other, op_code=_OPCode.ADD)
+        return ParameterExpression(self._merge_parameters(other), super().__add__(other))
 
     def __radd__(self, other):
-        return self._apply_operation(operator.add, other, reflected=True, op_code=_OPCode.ADD)
+        return ParameterExpression(self._merge_parameters(other), super().__radd__(other))
 
     def __sub__(self, other):
-        return self._apply_operation(operator.sub, other, op_code=_OPCode.SUB)
+        return ParameterExpression(self._merge_parameters(other), super().__sub__(other))
 
     def __rsub__(self, other):
-        return self._apply_operation(operator.sub, other, reflected=True, op_code=_OPCode.RSUB)
+        return ParameterExpression(self._merge_parameters(other), super().__rsub__(other))
 
     def __mul__(self, other):
-        return self._apply_operation(operator.mul, other, op_code=_OPCode.MUL)
+        return ParameterExpression(self._merge_parameters(other), super().__mul__(other))
 
     def __pos__(self):
-        return self._apply_operation(operator.mul, 1, op_code=_OPCode.MUL)
+        return ParameterExpression(self._parameters, super().__pos__())
 
     def __neg__(self):
-        return self._apply_operation(operator.mul, -1, op_code=_OPCode.MUL)
+        return ParameterExpression(self._parameters, super().__neg__())
 
     def __rmul__(self, other):
-        return self._apply_operation(operator.mul, other, reflected=True, op_code=_OPCode.MUL)
+        if isinstance(other, np.ndarray):
+            return [x * self for x in other]
+        return ParameterExpression(self._merge_parameters(other), super().__rmul__(other))
 
     def __truediv__(self, other):
         if other == 0:
             raise ZeroDivisionError("Division of a ParameterExpression by zero.")
-        return self._apply_operation(operator.truediv, other, op_code=_OPCode.DIV)
+        return ParameterExpression(self._merge_parameters(other), super().__truediv__(other))
 
     def __rtruediv__(self, other):
-        return self._apply_operation(operator.truediv, other, reflected=True, op_code=_OPCode.RDIV)
+        return ParameterExpression(self._merge_parameters(other), super().__rtruediv__(other))
 
     def __pow__(self, other):
-        return self._apply_operation(pow, other, op_code=_OPCode.POW)
+        return ParameterExpression(self._merge_parameters(other), super().__pow__(other))
 
     def __rpow__(self, other):
-        return self._apply_operation(pow, other, reflected=True, op_code=_OPCode.RPOW)
-
-    def _call(self, ufunc, op_code):
-        if self._standalone_param:
-            new_op = _INSTRUCTION(op_code, self)
-        else:
-            new_op = _INSTRUCTION(op_code, None)
-        new_replay = self._qpy_replay.copy()
-        new_replay.append(new_op)
-        return ParameterExpression(
-            self._parameter_symbols, ufunc(self._symbol_expr), _qpy_replay=new_replay
-        )
+        return ParameterExpression(self._merge_parameters(other), super().__rpow__(other))
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        return self._call(SymbolExpr.sin, op_code=_OPCode.SIN)
+        return ParameterExpression(self._parameters, super().sin())
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        return self._call(SymbolExpr.cos, op_code=_OPCode.COS)
+        return ParameterExpression(self._parameters, super().cos())
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        return self._call(SymbolExpr.tan, op_code=_OPCode.TAN)
+        return ParameterExpression(self._parameters, super().tan())
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        return self._call(SymbolExpr.asin, op_code=_OPCode.ASIN)
+        return ParameterExpression(self._parameters, super().arcsin())
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        return self._call(SymbolExpr.acos, op_code=_OPCode.ACOS)
+        return ParameterExpression(self._parameters, super().arccos())
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        return self._call(SymbolExpr.atan, op_code=_OPCode.ATAN)
+        return ParameterExpression(self._parameters, super().arctan())
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        return self._call(SymbolExpr.exp, op_code=_OPCode.EXP)
+        return ParameterExpression(self._parameters, super().exp())
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        return self._call(SymbolExpr.log, op_code=_OPCode.LOG)
+        return ParameterExpression(self._parameters, super().log())
 
     def sign(self):
         """Sign of a ParameterExpression"""
-        return self._call(SymbolExpr.sign, op_code=_OPCode.SIGN)
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({str(self)})"
-
-    def __str__(self):
-        return str(self._symbol_expr)
-
-    def __complex__(self):
-        try:
-            return complex(self._symbol_expr.value())
-        # TypeError is for sympy, RuntimeError for symengine
-        except (TypeError, RuntimeError) as exc:
-            if self.parameters:
-                raise TypeError(
-                    f"ParameterExpression with unbound parameters ({self.parameters}) "
-                    "cannot be cast to a complex."
-                ) from None
-            raise TypeError("could not cast expression to complex") from exc
-
-    def __float__(self):
-        try:
-            return float(self._symbol_expr.value())
-        # TypeError is for sympy, RuntimeError for symengine
-        except (TypeError, RuntimeError) as exc:
-            if self.parameters:
-                raise TypeError(
-                    f"ParameterExpression with unbound parameters ({self.parameters}) "
-                    "cannot be cast to a float."
-                ) from None
-            # In symengine, if an expression was complex at any time, its type is likely to have
-            # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
-            # cancelled out.  Sympy tends to more aggressively recognize these as symbolically
-            # real.  This second attempt at a cast is a way of unifying the behavior to the
-            # more expected form for our users.
-            cval = complex(self)
-            if cval.imag == 0.0:
-                return cval.real
-            raise TypeError("could not cast expression to float") from exc
-
-    def __int__(self):
-        try:
-            return int(self._symbol_expr.value())
-        # TypeError is for backwards compatibility, RuntimeError is raised by symengine
-        except RuntimeError as exc:
-            if self.parameters:
-                raise TypeError(
-                    f"ParameterExpression with unbound parameters ({self.parameters}) "
-                    "cannot be cast to an int."
-                ) from None
-            raise TypeError("could not cast expression to int") from exc
-
-    def __hash__(self):
-        if not self._parameter_symbols:
-            # For fully bound expressions, fall back to the underlying value
-            return hash(self.numeric())
-        return hash((self._parameter_keys, self._symbol_expr))
-
-    def __copy__(self):
-        return self
-
-    def __deepcopy__(self, memo=None):
-        return self
+        return ParameterExpression(self._parameters, super().sign())
 
     def __abs__(self):
         """Absolute of a ParameterExpression"""
-        return self._call(SymbolExpr.abs, _OPCode.ABS)
+        return ParameterExpression(self._parameters, super().__abs__())
 
     def abs(self):
         """Absolute of a ParameterExpression"""
         return self.__abs__()
-
-    def __eq__(self, other):
-        """Check if this parameter expression is equal to another parameter expression
-           or a fixed value (only if this is a bound expression).
-        Args:
-            other (ParameterExpression or a number):
-                Parameter expression or numeric constant used for comparison
-        Returns:
-            bool: result of the comparison
-        """
-        if isinstance(other, ParameterExpression):
-            if self.parameters != other.parameters:
-                return False
-
-            return self._symbol_expr == other._symbol_expr
-        elif isinstance(other, numbers.Number):
-            return self._symbol_expr == other
-        return False
-
-    def is_real(self):
-        """Return whether the expression is real"""
-        try:
-            val = self._symbol_expr.value()
-            return not isinstance(val, complex)
-        except RuntimeError:
-            return None
-
-    def numeric(self) -> int | float | complex:
-        """Return a Python number representing this object, using the most restrictive of
-        :class:`int`, :class:`float` and :class:`complex` that is valid for this object.
-
-        In general, an :class:`int` is only returned if the expression only involved symbolic
-        integers.  If floating-point values were used during the evaluation, the return value will
-        be a :class:`float` regardless of whether the represented value is an integer.  This is
-        because floating-point values "infect" symbolic computations by their inexact nature, and
-        symbolic libraries will use inexact floating-point semantics not exact real-number semantics
-        when they are involved.  If you want to assert that all floating-point calculations *were*
-        carried out at infinite precision (i.e. :class:`float` could represent every intermediate
-        value exactly), you can use :meth:`float.is_integer` to check if the return float represents
-        an integer and cast it using :class:`int` if so.  This would be an unusual pattern;
-        typically one requires this by only ever using explicitly :class:`~numbers.Rational` objects
-        while working with symbolic expressions.
-
-        This is more reliable and performant than using :meth:`is_real` followed by calling
-        :class:`float` or :class:`complex`, as in some cases :meth:`is_real` needs to force a
-        floating-point evaluation to determine an accurate result to work around bugs in the
-        upstream symbolic libraries.
-
-        Returns:
-            A Python number representing the object.
-
-        Raises:
-            TypeError: if there are unbound parameters.
-        """
-        if self._parameter_symbols:
-            raise TypeError(
-                f"Expression with unbound parameters '{self.parameters}' is not numeric"
-            )
-        return self._symbol_expr.value()
 
     @HAS_SYMPY.require_in_call
     def sympify(self):
@@ -677,55 +364,64 @@ class ParameterExpression:
         """
         import sympy
 
+        if self._qpy_replay is None:
+            return None
+
         output = None
         for inst in self._qpy_replay:
-            if isinstance(inst, _SUBS):
+            if isinstance(inst, OPReplay._SUBS):
                 sympy_binds = {}
                 for old, new in inst.binds.items():
-                    if isinstance(new, ParameterExpression):
+                    if isinstance(new, ParameterExpressionBase):
                         new = new.sympify()
                     sympy_binds[old.sympify()] = new
                 output = output.subs(sympy_binds, simultaneous=True)
                 continue
 
-            if isinstance(inst.lhs, ParameterExpression):
-                lhs = inst.lhs.sympify()
+            if isinstance(inst.lhs, ParameterExpressionBase):
+                if inst.lhs._qpy_replay is None:
+                    lhs = sympy.sympify(inst.lhs.sympify())
+                else:
+                    lhs = ParameterExpression(None, inst.lhs).sympify()
             elif inst.lhs is None:
                 lhs = output
             else:
                 lhs = inst.lhs
 
-            method_str = _OP_CODE_MAP[inst.op]
-            if inst.op in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
+            method_str = _OP_CODE_MAP[int(inst.op)]
+            if int(inst.op) in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
                 if inst.rhs is None:
                     rhs = output
-                elif isinstance(inst.rhs, ParameterExpression):
-                    rhs = inst.rhs.sympify()
+                elif isinstance(inst.rhs, ParameterExpressionBase):
+                    if inst.rhs._qpy_replay is None:
+                        rhs = sympy.sympify(inst.rhs.sympify())
+                    else:
+                        rhs = ParameterExpression(None, inst.rhs).sympify()
                 else:
                     rhs = inst.rhs
 
                 if (
                     not isinstance(lhs, sympy.Basic)
                     and isinstance(rhs, sympy.Basic)
-                    and inst.op in [0, 2]
+                    and int(inst.op) in [0, 2]
                 ):
-                    if inst.op == 0:
+                    if int(inst.op) == 0:
                         method_str = "__radd__"
-                    elif inst.op == 2:
+                    elif int(inst.op) == 2:
                         method_str = "__rmul__"
                     output = getattr(rhs, method_str)(lhs)
-                elif inst.op == _OPCode.GRAD:
+                elif int(inst.op) == _OPCode.GRAD:
                     output = getattr(lhs, "diff")(rhs)
                 else:
                     output = getattr(lhs, method_str)(rhs)
             else:
-                if inst.op == _OPCode.ACOS:
+                if int(inst.op) == _OPCode.ACOS:
                     output = getattr(sympy, "acos")(lhs)
-                elif inst.op == _OPCode.ASIN:
+                elif int(inst.op) == _OPCode.ASIN:
                     output = getattr(sympy, "asin")(lhs)
-                elif inst.op == _OPCode.ATAN:
+                elif int(inst.op) == _OPCode.ATAN:
                     output = getattr(sympy, "atan")(lhs)
-                elif inst.op == _OPCode.ABS:
+                elif int(inst.op) == _OPCode.ABS:
                     output = getattr(sympy, "Abs")(lhs)
                 else:
                     output = getattr(sympy, method_str)(lhs)

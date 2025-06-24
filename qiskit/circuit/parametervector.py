@@ -14,7 +14,11 @@
 
 from uuid import uuid4, UUID
 
-from .parameter import Parameter
+from .parameter import Parameter, ParameterExpression
+
+import qiskit._accelerate.circuit
+
+ParameterExpressionBase = qiskit._accelerate.circuit.ParameterExpression
 
 
 class ParameterVectorElement(Parameter):
@@ -27,10 +31,19 @@ class ParameterVectorElement(Parameter):
 
     ___slots__ = ("_vector", "_index")
 
-    def __init__(self, vector, index, uuid=None):
-        super().__init__(f"{vector.name}[{index}]", uuid=uuid)
+    def __new__(cls, vector=None, index=None, uuid=None):
+
+        if uuid != None:
+            uuid = int(uuid)
+        elif vector == None:
+            return super().__new__(cls, None, None)
+
+        self = super().__new__(cls, f"{vector.name}[{index}]", uuid=uuid)
         self._vector = vector
         self._index = index
+        return self
+
+    #        return super(Parameter, self).__new__(self, None, ParameterExpressionBase.VectorElement(vector.name, index, uuid=uuid))
 
     @property
     def index(self):
@@ -43,10 +56,10 @@ class ParameterVectorElement(Parameter):
         return self._vector
 
     def __getstate__(self):
-        return super().__getstate__() + (self._vector, self._index)
+        return (super().__getstate__(), self._vector, self._index)
 
     def __setstate__(self, state):
-        *super_state, vector, index = state
+        (super_state, vector, index) = state
         super().__setstate__(super_state)
         self._vector = vector
         self._index = index
