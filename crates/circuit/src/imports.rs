@@ -131,6 +131,8 @@ pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
 );
+pub static MCPHASE_GATE: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
 pub static PAULI_EVOLUTION_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "PauliEvolutionGate");
 pub static MCMT_GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "MCMTGate");

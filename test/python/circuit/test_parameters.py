@@ -372,6 +372,15 @@ class TestParameters(QiskitTestCase):
 
         self.assertAlmostEqual(binds[0], qc.data[0].operation.params[0])
 
+    def test_assign_parameters_with_string_values_and_strict_equals_false(self):
+        """Test that a string parameter with strict=False does not return an error"""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        qc.rz(a, 0)
+        bound = qc.assign_parameters({"a": 1.0, "b": 2.0}, strict=False)
+        expected = qc.assign_parameters({a: 1.0})
+        self.assertEqual(bound, expected)
+
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
         x = Parameter("x")
@@ -597,7 +606,7 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(pqc.parameters, {phi})
 
         self.assertTrue(isinstance(pqc.data[0].operation.params[0], ParameterExpression))
-        self.assertEqual(str(pqc.data[0].operation.params[0]), "phi + 2")
+        self.assertEqual(str(pqc.data[0].operation.params[0]), "2 + phi")
 
         fbqc = pqc.assign_parameters({phi: 1.0})
 
@@ -1496,8 +1505,8 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_cast_to_float_intermediate_complex_value(self):
         """Verify expression can be cast to a float when it is fully bound, but an intermediate part
-        of the expression evaluation involved complex types.  Sympy is generally more permissive
-        than symengine here, and sympy's tends to be the expected behavior for our users."""
+        of the expression evaluation involved complex types.
+        """
         x = Parameter("x")
         bound_expr = (x + 1.0 + 1.0j).bind({x: -1.0j})
         self.assertEqual(float(bound_expr), 1.0)
@@ -2107,12 +2116,8 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertIsInstance(one_imaginary.numeric(), complex)
         self.assertEqual(one_imaginary.numeric(), 1j)
 
-        # This is one particular case where symengine 0.9.2 (and probably others) struggles when
-        # evaluating in the complex domain, but gets the right answer if forced to the real domain.
-        # It appears more commonly because `symengine.Basic.subs` does not simplify the expression
-        # tree eagerly, so the `_symbol_expr` is `0.5 * (0.5)**2`.  Older symengines then introduce
-        # a spurious small imaginary component when evaluating this `Mul(x, Pow(y, z))` pattern in
-        # the complex domain.
+        # This is one particular case where symbolic libraries struggled (e.g. symengine 0.9.2) when
+        # evaluating in the complex domain, but got the right answer if forced to the real domain.
         problem = (0.5 * a * b).assign(b, 0.5).assign(a, 0.5)
         self.assertIsInstance(problem.numeric(), float)
         self.assertEqual(problem.numeric(), 0.125)
@@ -2155,6 +2160,14 @@ class TestParameterEquality(QiskitTestCase):
         theta = Parameter("theta")
         expr1 = 2.0 * theta
         expr2 = 2 * theta
+
+        self.assertEqual(expr1, expr2)
+
+    def test_parameter_expression_equal_floats_to_divide_by_int(self):
+        """Verify an expression with float and division by int is identical."""
+        theta = Parameter("theta")
+        expr1 = 0.25 * theta
+        expr2 = theta / 4
 
         self.assertEqual(expr1, expr2)
 
