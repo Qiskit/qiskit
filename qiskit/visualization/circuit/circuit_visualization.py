@@ -429,7 +429,7 @@ def _text_circuit_drawer(
         idle_wires=idle_wires,
         wire_order=wire_order,
     )
-    print("TEXT DRAWING?")
+    # print("TEXT DRAWING?")
     text_drawing = _text.TextDrawing(
         qubits,
         clbits,

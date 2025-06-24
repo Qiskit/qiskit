@@ -1139,9 +1139,9 @@ class TextDrawing:
                     mod_control = modifier
                     break
         
-        print("OP", isinstance(op, Measure), op)
+        # print("OP", isinstance(op, Measure), op)
         if isinstance(op, Measure):
-            print("MEASURE?")
+            # print("MEASURE?")
             gate = MeasureFrom(label=op.name)
             layer.set_qubit(node.qargs[0], gate)
             register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
