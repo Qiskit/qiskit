@@ -758,6 +758,22 @@ class TestDagApplyOperation(QiskitTestCase):
         self.assertIsInstance(node.op.target, expr.Expr)
         self.assertEqual(test_wires, expected_wires)
 
+    def test_apply_operation_back_with_generator(self):
+        """Test that apply_operation_back works with generator arguments."""
+        cx_qargs = (self.dag.qubits[qarg] for qarg in range(2))
+        self.dag.apply_operation_back(CXGate(), qargs=cx_qargs)
+
+        cx_nodes = self.dag.op_nodes(op=CXGate)
+        self.assertEqual(len(cx_nodes), 1)
+
+    def test_apply_operation_front_with_generator(self):
+        """Test that apply_operation_front works with generator arguments."""
+        cx_qargs = (self.dag.qubits[qarg] for qarg in range(2))
+        self.dag.apply_operation_front(CXGate(), qargs=cx_qargs)
+
+        cx_nodes = self.dag.op_nodes(op=CXGate)
+        self.assertEqual(len(cx_nodes), 1)
+
 
 class TestDagNodeSelection(QiskitTestCase):
     """Test methods that select certain dag nodes"""

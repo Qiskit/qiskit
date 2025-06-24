@@ -431,6 +431,32 @@ impl DAGIdentifierInfo {
     }
 }
 
+/// This function extracts the quantum and classical arguments from generator arguments.
+/// It is designed to handle the borrowing conflicts that can occur when passing generator arguments
+/// for :class:`.DAGCircuit` ``quargs`` and ``cargs``.
+fn extract_generator_args(
+    _py: Python,
+    qargs: Option<TupleLikeArg>,
+    cargs: Option<TupleLikeArg>,
+) -> PyResult<(Option<Vec<ShareableQubit>>, Option<Vec<ShareableClbit>>)> {
+    let extracted_qargs = match qargs {
+        Some(q) => {
+            let items: Vec<ShareableQubit> = q.value.extract()?;
+            Some(items)
+        }
+        None => None,
+    };
+
+    let extracted_cargs = match cargs {
+        Some(c) => {
+            let items: Vec<ShareableClbit> = c.value.extract()?;
+            Some(items)
+        }
+        None => None,
+    };
+    Ok((extracted_qargs, extracted_cargs))
+}
+
 #[pymethods]
 impl DAGCircuit {
     #[new]
@@ -1314,6 +1340,10 @@ impl DAGCircuit {
     }
 
     /// Apply an operation to the output of the circuit.
+    /// Passes a Bound<'_, Self> to the implementation to avoid borrowing a mutable reference to self
+    /// and avoid a source of bugs by means of borrow conflicts between the Python space generators
+    /// and the Rust implementation. Once the generator is consumed, a mutable borrow is acquired
+    /// to perform the operation.
     ///
     /// Args:
     ///     op (qiskit.circuit.Operation): the operation associated with the DAG node
@@ -1331,20 +1361,31 @@ impl DAGCircuit {
     ///     DAGCircuitError: if a leaf node is connected to multiple outputs
     #[pyo3(name = "apply_operation_back", signature = (op, qargs=None, cargs=None, *, check=true))]
     pub fn py_apply_operation_back(
-        &mut self,
+        slf: Bound<'_, Self>,
         py: Python,
         op: Bound<PyAny>,
         qargs: Option<TupleLikeArg>,
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
+        // Extract the operation and arguments from the Python space.
         let py_op = op.extract::<OperationFromPython>()?;
-        let qargs = qargs
-            .map(|q| q.value.extract::<Vec<ShareableQubit>>())
-            .transpose()?;
-        let cargs = cargs
-            .map(|c| c.value.extract::<Vec<ShareableClbit>>())
-            .transpose()?;
+        let (extracted_qargs, extracted_cargs) = extract_generator_args(py, qargs, cargs)?;
+
+        // Use a mutable borrow to apply the operation.
+        let mut dag = slf.borrow_mut();
+        dag.apply_operation_back_impl(py, py_op, extracted_qargs, extracted_cargs, check, op)
+    }
+
+    fn apply_operation_back_impl(
+        &mut self,
+        py: Python,
+        py_op: OperationFromPython,
+        qargs: Option<Vec<ShareableQubit>>,
+        cargs: Option<Vec<ShareableClbit>>,
+        check: bool,
+        #[allow(unused_variables)] original_op: Bound<PyAny>,
+    ) -> PyResult<Py<PyAny>> {
         let node = {
             let qubits_id = self.qargs_interner.insert_owned(
                 self.qubits
@@ -1356,6 +1397,7 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
+
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1363,7 +1405,7 @@ impl DAGCircuit {
                 params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
-                py_op: op.unbind().into(),
+                py_op: original_op.unbind().into(),
             };
 
             if check {
@@ -1376,6 +1418,7 @@ impl DAGCircuit {
     }
 
     /// Apply an operation to the input of the circuit.
+    /// Follows the same implementation pattern as :meth:`.apply_operation_back`.
     ///
     /// Args:
     ///     op (qiskit.circuit.Operation): the operation associated with the DAG node
@@ -1392,21 +1435,32 @@ impl DAGCircuit {
     /// Raises:
     ///     DAGCircuitError: if initial nodes connected to multiple out edges
     #[pyo3(name = "apply_operation_front", signature = (op, qargs=None, cargs=None, *, check=true))]
-    fn py_apply_operation_front(
-        &mut self,
+    pub fn py_apply_operation_front(
+        slf: Bound<'_, Self>,
         py: Python,
         op: Bound<PyAny>,
         qargs: Option<TupleLikeArg>,
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
+        // Extract the operation and arguments from the Python space.
         let py_op = op.extract::<OperationFromPython>()?;
-        let qargs = qargs
-            .map(|q| q.value.extract::<Vec<ShareableQubit>>())
-            .transpose()?;
-        let cargs = cargs
-            .map(|c| c.value.extract::<Vec<ShareableClbit>>())
-            .transpose()?;
+        let (extracted_qargs, extracted_cargs) = extract_generator_args(py, qargs, cargs)?;
+
+        // Use a mutable borrow to apply the operation.
+        let mut dag = slf.borrow_mut();
+        dag.apply_operation_front_impl(py, py_op, extracted_qargs, extracted_cargs, check, op)
+    }
+
+    fn apply_operation_front_impl(
+        &mut self,
+        py: Python,
+        py_op: OperationFromPython,
+        qargs: Option<Vec<ShareableQubit>>,
+        cargs: Option<Vec<ShareableClbit>>,
+        check: bool,
+        #[allow(unused_variables)] original_op: Bound<PyAny>,
+    ) -> PyResult<Py<PyAny>> {
         let node = {
             let qubits_id = self.qargs_interner.insert_owned(
                 self.qubits
@@ -1418,6 +1472,7 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
+
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
@@ -1425,7 +1480,7 @@ impl DAGCircuit {
                 params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
-                py_op: op.unbind().into(),
+                py_op: original_op.unbind().into(),
             };
 
             if check {
