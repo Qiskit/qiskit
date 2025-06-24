@@ -37,7 +37,7 @@ class ALAPScheduleAnalysis(BaseScheduler):
             TranspilerError: if the circuit is not mapped on physical qubits.
             TranspilerError: if conditional bit is added to non-supported instruction.
         """
-    
+
         if self.property_set["time_unit"] == "stretch":
             raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
