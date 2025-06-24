@@ -2090,15 +2090,19 @@ impl TwoQubitBasisDecomposer {
         euler_basis: &str,
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
+        let gate_params: PyResult<SmallVec<[f64; 3]>> = gate
+            .params
+            .iter()
+            .map(|x| match x {
+                Param::Float(val) => Ok(*val),
+                _ => Err(PyValueError::new_err(
+                    "Only unparameterized gates are supported as KAK gate",
+                )),
+            })
+            .collect();
         TwoQubitBasisDecomposer::new_inner(
             gate.operation,
-            gate.params
-                .iter()
-                .map(|x| match x {
-                    Param::Float(val) => *val,
-                    _ => unreachable!("Only fixed angle gates are supported as the KAK gate"),
-                })
-                .collect(),
+            gate_params?,
             gate_matrix.as_array(),
             basis_fidelity,
             euler_basis,
