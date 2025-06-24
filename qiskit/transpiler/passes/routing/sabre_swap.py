@@ -284,8 +284,6 @@ class SabreSwap(TransformationPass):
 
 
 def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
-    from qiskit.converters import circuit_to_dag
-
     # Maps id(block): circuit_to_dag(block) for all descendant blocks
     circuit_to_dag_dict = {}
 
@@ -339,7 +337,7 @@ def _apply_sabre_result(
     sabre_result,
     initial_layout,
     physical_qubits,
-    circuit_to_dag_dict,
+    _circuit_to_dag_dict,
 ):
     """Apply the ``SabreResult`` to ``out_dag``, mutating it in place.  This function in effect
     performs the :class:`.ApplyLayout` transpiler pass with ``initial_layout`` and the Sabre routing
@@ -359,7 +357,7 @@ def _apply_sabre_result(
         physical_qubits (list[Qubit]): an indexable sequence of :class:`.circuit.Qubit` objects
             representing the physical qubits of the circuit.  Note that disjoint-coupling
             handling can mean that these are not strictly a "canonical physical register" in order.
-        circuit_to_dag_dict (Mapping[int, DAGCircuit]): a mapping of the Python object identity
+        _circuit_to_dag_dict (Mapping[int, DAGCircuit]): a mapping of the Python object identity
             (as returned by :func:`id`) of a control-flow block :class:`.QuantumCircuit` to a
             :class:`.DAGCircuit` that represents the same thing.
     """
