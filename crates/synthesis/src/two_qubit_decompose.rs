@@ -2096,7 +2096,7 @@ impl TwoQubitBasisDecomposer {
                 .iter()
                 .map(|x| match x {
                     Param::Float(val) => *val,
-                    _ => unreachable!(),
+                    _ => unreachable!("Only fixed angle gates are supported as the KAK gate"),
                 })
                 .collect(),
             gate_matrix.as_array(),
@@ -2558,7 +2558,9 @@ impl TwoQubitControlledUDecomposer {
                     Ok((inverse.operation, inverse.params))
                 })?
             }
-            _ => unreachable!(),
+            // UnitaryGate isn't applicable here as the 2q gate here is the parameterized
+            // ControlledU equivalent used in the decomposition. This precludes UnitaryGate
+            _ => unreachable!("Only 2q gate objects can be inverted in the decomposer"),
         };
         let inv_gate_params = inv_gate
             .1
