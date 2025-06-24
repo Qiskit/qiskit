@@ -431,6 +431,7 @@ impl DAGIdentifierInfo {
     }
 }
 
+type ExtractedArgs = (Option<Vec<ShareableQubit>>, Option<Vec<ShareableClbit>>);
 /// This function extracts the quantum and classical arguments from generator arguments.
 /// It is designed to handle the borrowing conflicts that can occur when passing generator arguments
 /// for :class:`.DAGCircuit` ``quargs`` and ``cargs``.
@@ -438,7 +439,7 @@ fn extract_generator_args(
     _py: Python,
     qargs: Option<TupleLikeArg>,
     cargs: Option<TupleLikeArg>,
-) -> PyResult<(Option<Vec<ShareableQubit>>, Option<Vec<ShareableClbit>>)> {
+) -> PyResult<ExtractedArgs> {
     let extracted_qargs = match qargs {
         Some(q) => {
             let items: Vec<ShareableQubit> = q.value.extract()?;
