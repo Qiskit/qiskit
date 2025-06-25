@@ -73,9 +73,9 @@ class CommutativeInverseCancellation(TransformationPass):
     def _check_equal_upto_phase(self, op1, op2, matrix_based):
         """
         Checks whether op1 and op2 are equal up to a phase, that is whether
-        ``op2 = e^{i * d} op1)`` for some phase difference ``d``.
+        ``op2 = e^{i * d} op1`` for some phase difference ``d``.
 
-        If this is the case, we can replace ``op2 * op1^{-1}`` by `e^{i * d} I``.
+        If this is the case, we can replace ``op2 * op1^{-1}`` by ``e^{i * d} I``.
 
         The output is a tuple representing whether the two ops
         are equal up to a phase and that phase difference.
@@ -119,7 +119,7 @@ class CommutativeInverseCancellation(TransformationPass):
                 continue
 
             matrix_based = (
-                self._matrix_based and len(topo_sorted_nodes[idx1].qargs) <= self._max_qubits
+                self._matrix_based and topo_sorted_nodes[idx1].num_qubits <= self._max_qubits
             )
 
             matched_idx2 = -1
