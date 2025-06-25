@@ -334,7 +334,7 @@ def _run_workflow_in_new_process(
     pass_manager_bin: bytes,
     *,
     initial_property_set: dict[str, object] | None,
-    serialized_callback: bytes,
+    callback: bytes,
 ) -> Any:
     """Run single program optimization in new process.
 
@@ -349,5 +349,5 @@ def _run_workflow_in_new_process(
         program=program,
         pass_manager=dill.loads(pass_manager_bin),
         initial_property_set=initial_property_set,
-        callback=dill.loads(serialized_callback),
+        callback=dill.loads(callback),
     )
