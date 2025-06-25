@@ -1003,7 +1003,22 @@ class QASM3Builder:
                     [self._lookup_bit(operand) for operand in instruction.qubits]
                 )
                 clbit = self._lookup_bit(instruction.clbits[0])
-                nodes = [ast.QuantumMeasurementAssignment(clbit, measurement)]
+                nodes = [
+                    ast.QuantumMeasurementAssignment(
+                        clbit,
+                        measurement,
+                    )
+                ]
+                if hasattr(instruction.operation, "annotations"):
+                    annotations = [
+                        self.build_annotation(annotation)
+                        for annotation in instruction.operation.annotations
+                    ]
+                else:
+                    annotations = []
+                nodes = [
+                    ast.QuantumMeasurementAssignment(clbit, measurement, annotations=annotations)
+                ]
             elif isinstance(instruction.operation, Reset):
                 nodes = [
                     ast.QuantumReset(self._lookup_bit(operand)) for operand in instruction.qubits

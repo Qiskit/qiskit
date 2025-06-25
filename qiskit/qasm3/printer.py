@@ -273,6 +273,8 @@ class BasicPrinter:
         self._visit_sequence(node.identifierList, separator=", ")
 
     def _visit_QuantumMeasurementAssignment(self, node: ast.QuantumMeasurementAssignment) -> None:
+        for annotation in reversed(node.annotations):
+            self.visit(annotation)
         self._start_line()
         self.visit(node.identifier)
         self.stream.write(" = ")
