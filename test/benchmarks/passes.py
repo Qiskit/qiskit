@@ -19,7 +19,7 @@ from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
-
+from qiskit.transpiler.instruction_durations import InstructionDurations
 from .utils import random_circuit
 
 
@@ -43,6 +43,24 @@ class Collect2QPassBenchmarks:
         _pass = ConsolidateBlocks()
         _pass.property_set["block_list"] = self.block_list
         _pass.run(self.dag)
+
+class ALAPScheduleAnalysisPassBenchmarks:
+    params = ([5, 14, 20], [1024])
+
+    param_names = ["n_qubits", "depth"]
+    timeout = 300
+
+    def setup(self, n_qubits, depth):
+        seed = 42
+        self.circuit = random_circuit(
+            n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed
+        )
+        self.dag = circuit_to_dag(self.circuit)
+        gate_names = {inst[0].name for inst in self.circuit.data}
+        self.durations = InstructionDurations([(name, None, 1000) for name in gate_names], dt=1e-7)
+
+    def time_alap_schedule_analysis(self, _, __):
+        ALAPScheduleAnalysis(durations=self.durations).run(self.dag)
 
 
 class CommutativeAnalysisPassBenchmarks:
@@ -172,7 +190,6 @@ class PassBenchmarks:
 
     def time_remove_barriers(self, _, __):
         RemoveBarriers().run(self.dag)
-
 
 class MultiQBlockPassBenchmarks:
     params = ([5, 14, 20], [1024], [1, 2, 3, 4, 5])
