@@ -316,6 +316,26 @@ class TestVF2LayoutLattice(LayoutTestCase):
         pass_.run(dag)
         self.assertLayout(dag, self.cmap25, pass_.property_set)
 
+    def test_hexagonal_lattice_graph_9_in_25_no_trial_limit(self):
+        """A 9x9 interaction map in 25x25 coupling map"""
+        graph_9_9 = rustworkx.generators.hexagonal_lattice_graph(9, 9)
+        circuit = self.graph_state_from_pygraph(graph_9_9)
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(self.cmap25, seed=self.seed, max_trials=-1)
+        pass_.run(dag)
+        self.assertLayout(dag, self.cmap25, pass_.property_set)
+
+    def test_hexagonal_lattice_graph_9_in_25_default_trial_limit(self):
+        """A 9x9 interaction map in 25x25 coupling map"""
+        graph_9_9 = rustworkx.generators.hexagonal_lattice_graph(9, 9)
+        circuit = self.graph_state_from_pygraph(graph_9_9)
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(self.cmap25, seed=self.seed, max_trials=None)
+        pass_.run(dag)
+        self.assertLayout(dag, self.cmap25, pass_.property_set)
+
 
 class TestVF2LayoutBackend(LayoutTestCase):
     """Tests VF2Layout against backends"""
