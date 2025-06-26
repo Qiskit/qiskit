@@ -1254,7 +1254,9 @@ class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
             return None
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
-        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0) + options.get(
+            "num_clean_ancillas", 0
+        )
 
         if num_dirty_ancillas < 2:
             return None
@@ -1338,7 +1340,9 @@ class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
             return None
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
-        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0) + options.get(
+            "num_clean_ancillas", 0
+        )
 
         if num_dirty_ancillas < 1:
             return None

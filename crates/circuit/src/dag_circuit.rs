@@ -446,8 +446,8 @@ impl DAGCircuit {
         self.qregs.cached(py)
     }
 
-    /// Returns a dict mapping Clbit instances to tuple comprised of 0) the
-    /// corresponding index in circuit.clbits and 1) a list of
+    /// Returns a dict mapping Qubit instances to tuple comprised of 0) the
+    /// corresponding index in circuit.qubits and 1) a list of
     /// Register-int pairs for each Register containing the Bit and its index
     /// within that register.
     #[getter("_qubit_indices")]
@@ -455,7 +455,7 @@ impl DAGCircuit {
         self.qubit_locations.cached(py)
     }
 
-    /// Returns the dict containing the QuantumRegisters in the circuit
+    /// Returns the dict containing the ClassicalRegisters in the circuit
     #[getter]
     fn get_cregs(&self, py: Python) -> &Py<PyDict> {
         self.cregs.cached(py)
@@ -1031,7 +1031,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Add individual qubit wires.
+    /// Add individual clbit wires.
     fn add_clbits(&mut self, clbits: Vec<Bound<'_, PyAny>>) -> PyResult<()> {
         for bit in clbits.into_iter() {
             let Ok(bit) = bit.extract::<ShareableClbit>() else {

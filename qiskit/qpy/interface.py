@@ -25,6 +25,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
+from qiskit import user_config
 from qiskit.version import __version__
 
 if TYPE_CHECKING:
@@ -200,7 +201,19 @@ def dump(
     file_obj.write(header)
     common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
 
+    # Table of byte offsets for each program (supported in QPY v16+)
+    byte_offsets = []
+    table_start = None
+    if version >= 16:
+        table_start = file_obj.tell()
+        # Skip the file position to write the byte offsets later
+        file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
+
+    # Serialize each program and write it to the file
     for program in programs:
+        if version >= 16:
+            # Determine the byte offset before writing each program
+            byte_offsets.append(file_obj.tell())
         binary_io.write_circuit(
             file_obj,
             program,
@@ -209,6 +222,16 @@ def dump(
             version=version,
             annotation_factories=annotation_factories,
         )
+
+    if version >= 16:
+        # Write the byte offsets for each program
+        file_obj.seek(table_start)
+        for offset in byte_offsets:
+            file_obj.write(
+                struct.pack(formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset))
+            )
+        # Seek to the end of the file
+        file_obj.seek(0, 2)
 
 
 def load(
@@ -295,6 +318,14 @@ def load(
             )
         )
 
+    config = user_config.get_config()
+    min_qpy_version = config.get("min_qpy_version")
+    if min_qpy_version is not None and data.qpy_version < min_qpy_version:
+        raise QpyError(
+            f"QPY version {data.qpy_version} is lower than the configured minimum "
+            f"version {min_qpy_version}."
+        )
+
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
     version_match = VERSION_PATTERN_REGEX.search(__version__)
@@ -340,8 +371,24 @@ def load(
     else:
         use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
 
+    if data.qpy_version >= 16:
+        # Obtain the byte offsets for each program
+        program_offsets = []
+        for _ in range(data.num_programs):
+            program_offsets.append(
+                formats.CIRCUIT_TABLE_ENTRY(
+                    *struct.unpack(
+                        formats.CIRCUIT_TABLE_ENTRY_PACK,
+                        file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
+                    )
+                ).offset
+            )
+
     programs = []
-    for _ in range(data.num_programs):
+    for i in range(data.num_programs):
+        if data.qpy_version >= 16:
+            # Deserialize each program using their byte offsets
+            file_obj.seek(program_offsets[i])
         programs.append(
             binary_io.read_circuit(
                 file_obj,
