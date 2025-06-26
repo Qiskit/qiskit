@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    A logic bug in the extended-set tracking for the ``lookahead`` heuristic in Sabre routing
+    previously causing its tracking to become self-inconsistent has been fixed.  This did not affect
+    the correctness of the compiler, but caused the heuristic to not measure what it was intended to
+    measure.  See `#14244 <https://github.com/Qiskit/qiskit/issues/14244>`__ for more detail.
