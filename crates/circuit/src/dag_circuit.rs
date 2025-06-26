@@ -1345,22 +1345,32 @@ impl DAGCircuit {
         let qargs = qargs.map(|q| q.value);
         let cargs = cargs.map(|c| c.value);
 
-        // Acquire a mutable borrow to apply the operation.
-        // This is done after extracting the arguments to avoid borrow conflicts.
         let mut dag = slf.borrow_mut();
 
+        dag.apply_operation_back_impl(py, py_op, qargs, cargs, check, op)
+    }
+
+    fn apply_operation_back_impl(
+        &mut self,
+        py: Python,
+        py_op: OperationFromPython,
+        qargs: Option<Vec<ShareableQubit>>,
+        cargs: Option<Vec<ShareableClbit>>,
+        check: bool,
+        #[allow(unused_variables)] original_op: Bound<PyAny>,
+    ) -> PyResult<Py<PyAny>> {
         let node = {
-            let qubit_iter = dag
+            let qubit_iter = self
                 .qubits
                 .map_objects(qargs.into_iter().flatten())?
                 .collect::<Vec<_>>();
-            let qubits_id = dag.qargs_interner.insert_owned(qubit_iter);
+            let qubits_id = self.qargs_interner.insert_owned(qubit_iter);
 
-            let clbit_iter = dag
+            let clbit_iter = self
                 .clbits
                 .map_objects(cargs.into_iter().flatten())?
                 .collect::<Vec<_>>();
-            let clbits_id = dag.cargs_interner.insert_owned(clbit_iter);
+            let clbits_id = self.cargs_interner.insert_owned(clbit_iter);
 
             let instr = PackedInstruction {
                 op: py_op.operation,
@@ -1369,16 +1379,16 @@ impl DAGCircuit {
                 params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
-                py_op: op.unbind().into(),
+                py_op: original_op.unbind().into(),
             };
 
             if check {
-                dag.check_op_addition(&instr)?;
+                self.check_op_addition(&instr)?;
             }
-            dag.push_back(instr)?
+            self.push_back(instr)?
         };
 
-        dag.get_node(py, node)
+        self.get_node(py, node)
     }
 
     /// Apply an operation to the input of the circuit.
@@ -1407,6 +1417,7 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg<ShareableClbit>>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
+        // Extract the operation and arguments from the Python space.
         let py_op = op.extract::<OperationFromPython>()?;
         let qargs = qargs.map(|q| q.value);
         let cargs = cargs.map(|c| c.value);
@@ -1415,18 +1426,31 @@ impl DAGCircuit {
         // This is done after extracting the arguments to avoid borrow conflicts.
         let mut dag = slf.borrow_mut();
 
+        // Call the inner implementation function with the mutable borrow
+        dag.apply_operation_front_impl(py, py_op, qargs, cargs, check, op)
+    }
+
+    fn apply_operation_front_impl(
+        &mut self,
+        py: Python,
+        py_op: OperationFromPython,
+        qargs: Option<Vec<ShareableQubit>>,
+        cargs: Option<Vec<ShareableClbit>>,
+        check: bool,
+        #[allow(unused_variables)] original_op: Bound<PyAny>,
+    ) -> PyResult<Py<PyAny>> {
         let node = {
-            let qubit_iter = dag
+            let qubit_iter = self
                 .qubits
                 .map_objects(qargs.into_iter().flatten())?
                 .collect::<Vec<_>>();
-            let qubits_id = dag.qargs_interner.insert_owned(qubit_iter);
+            let qubits_id = self.qargs_interner.insert_owned(qubit_iter);
 
-            let clbit_iter = dag
+            let clbit_iter = self
                 .clbits
                 .map_objects(cargs.into_iter().flatten())?
                 .collect::<Vec<_>>();
-            let clbits_id = dag.cargs_interner.insert_owned(clbit_iter);
+            let clbits_id = self.cargs_interner.insert_owned(clbit_iter);
 
             let instr = PackedInstruction {
                 op: py_op.operation,
@@ -1435,16 +1459,16 @@ impl DAGCircuit {
                 params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
-                py_op: op.unbind().into(),
+                py_op: original_op.unbind().into(),
             };
 
             if check {
-                dag.check_op_addition(&instr)?;
+                self.check_op_addition(&instr)?;
             }
-            dag.push_front(instr)?
+            self.push_front(instr)?
         };
 
-        dag.get_node(py, node)
+        self.get_node(py, node)
     }
 
     /// Compose the ``other`` circuit onto the output of this circuit.
