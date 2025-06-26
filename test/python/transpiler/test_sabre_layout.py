@@ -17,9 +17,10 @@ import unittest
 import math
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import library as lib, Parameter
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import efficient_su2, quantum_volume
-from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
+from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager, Target, Layout
 from qiskit.transpiler.passes import SabreLayout, DenseLayout, Unroll3qOrMore, BasicSwap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
@@ -311,6 +312,27 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         layout = pass_.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 4, 2, 5, 1])
 
+    def test_uninitialized_target(self):
+        """We shouldn't panic if the target isn't initialized."""
+        target = Target(num_qubits=None)
+        qc = QuantumCircuit(2)
+        pass_ = SabreLayout(target, seed=0)
+        with self.assertRaisesRegex(TranspilerError, "not initialized"):
+            pass_(qc)
+
+    def test_out_of_range_partials(self):
+        """We should safely reject partial layouts that are invalid."""
+        pass_ = SabreLayout(
+            Target.from_configuration(
+                num_qubits=5, coupling_map=CouplingMap.from_line(5), basis_gates=["sx", "rz", "cx"]
+            ),
+            seed=0,
+        )
+        qc = QuantumCircuit(2)
+        partial = Layout(dict(zip(qc.qubits, [1, 5])))
+        with self.assertRaisesRegex(TranspilerError, "out-of-range physical qubits"):
+            pass_(qc, property_set={"sabre_starting_layouts": [partial]})
+
     @slow_test
     def test_release_valve_routes_multiple(self):
         """Test Sabre works if the release valve routes more than 1 operation.
@@ -329,6 +351,26 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         )
         _ = pm.run(qc)
         self.assertIsNotNone(pm.property_set.get("layout"))
+
+    def test_all_to_all(self):
+        """An implicitly all-to-all backend should just become physical with the trivial layout."""
+        qc = QuantumCircuit(QuantumRegister(5, "virtuals"))
+        for target in qc.qubits[1:]:
+            qc.cx(qc.qubits[0], target)
+        # No qargs in the instruction properties => implicitly all-to-all.
+        target = Target(num_qubits=10)
+        target.add_instruction(lib.RZGate(Parameter("t")))
+        target.add_instruction(lib.SXGate())
+        target.add_instruction(lib.CXGate())
+        pass_ = SabreLayout(target, seed=0)
+        out = pass_(qc)
+        self.assertEqual(out.layout.initial_index_layout(), list(range(10)))
+        self.assertEqual(out.layout.routing_permutation(), list(range(10)))
+
+        expected = QuantumCircuit(QuantumRegister(10, "q"))
+        for target in range(1, qc.num_qubits):
+            expected.cx(0, target)
+        self.assertEqual(out, expected)
 
 
 class DensePartialSabreTrial(AnalysisPass):
