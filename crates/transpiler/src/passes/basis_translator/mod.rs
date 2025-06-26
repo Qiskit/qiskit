@@ -606,10 +606,8 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-            let new_params: SmallVec<[Param; 3]> = inner_node
-                .params_view()
-                .iter().cloned()
-                .collect();
+            let new_params: SmallVec<[Param; 3]> =
+                inner_node.params_view().iter().cloned().collect();
             dag.apply_operation_back(
                 new_op,
                 &new_qubits,
@@ -649,11 +647,8 @@ fn replace_node(
             } else {
                 inner_node.op.clone()
             };
-
-            let mut new_params: SmallVec<[Param; 3]> = inner_node
-                .params_view()
-                .iter().cloned()
-                .collect();
+            let mut new_params: SmallVec<[Param; 3]> =
+                inner_node.params_view().iter().cloned().collect();
             if inner_node
                 .params_view()
                 .iter()

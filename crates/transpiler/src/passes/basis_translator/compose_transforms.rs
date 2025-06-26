@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::LazyLock;
+use std::sync::OnceLock;
 
 use crate::equivalence::CircuitFromPython;
 use hashbrown::{HashMap, HashSet};
@@ -40,16 +40,9 @@ pub type GateIdentifier = (String, u32);
 pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
-static STD_GATE_MAPPING: LazyLock<HashMap<&str, StandardGate>> = LazyLock::new(|| {
-    get_standard_gate_names()
-        .iter()
-        .enumerate()
-        .map(|(k, v)| (*v, bytemuck::checked::cast(k as u8)))
-        .collect()
-});
+static STD_GATE_MAPPING: OnceLock<HashMap<&str, StandardGate>> = OnceLock::new();
 
-static STD_INST_MAPPING: LazyLock<HashSet<&str>> =
-    LazyLock::new(|| HashSet::from_iter(["barrier", "delay", "measure", "reset"]));
+static STD_INST_MAPPING: OnceLock<HashSet<&str>> = OnceLock::new();
 
 pub(super) fn compose_transforms<'a>(
     py: Python,
@@ -117,7 +110,8 @@ pub(super) fn compose_transforms<'a>(
                     (
                         node,
                         op.params_view()
-                            .iter().cloned()
+                            .iter()
+                            .cloned()
                             .collect::<SmallVec<[Param; 3]>>(),
                     )
                 })
@@ -148,9 +142,18 @@ pub(super) fn compose_transforms<'a>(
 
 /// Creates
 fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperation> {
-    if let Some(operation) = STD_GATE_MAPPING.get(name) {
+    let std_gate_mapping = STD_GATE_MAPPING.get_or_init(|| {
+        get_standard_gate_names()
+            .iter()
+            .enumerate()
+            .map(|(k, v)| (*v, bytemuck::checked::cast(k as u8)))
+            .collect()
+    });
+    let std_instruction_mapping = STD_INST_MAPPING
+        .get_or_init(|| HashSet::from_iter(["barrier", "delay", "measure", "reset"]));
+    if let Some(operation) = std_gate_mapping.get(name) {
         Some((*operation).into())
-    } else if STD_INST_MAPPING.contains(name) {
+    } else if std_instruction_mapping.contains(name) {
         let inst = match name {
             "barrier" => StandardInstruction::Barrier(num_qubits),
             "delay" => StandardInstruction::Delay(qiskit_circuit::operations::DelayUnit::DT),
