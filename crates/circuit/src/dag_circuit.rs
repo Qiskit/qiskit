@@ -1337,29 +1337,27 @@ impl DAGCircuit {
         slf: Bound<'_, Self>,
         py: Python,
         op: Bound<PyAny>,
-        qargs: Option<TupleLikeArg>,
-        cargs: Option<TupleLikeArg>,
+        qargs: Option<TupleLikeArg<ShareableQubit>>,
+        cargs: Option<TupleLikeArg<ShareableClbit>>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
         let py_op = op.extract::<OperationFromPython>()?;
-        let qargs = qargs
-            .map(|q| q.value.extract::<Vec<ShareableQubit>>())
-            .transpose()?;
-        let cargs = cargs
-            .map(|c| c.value.extract::<Vec<ShareableClbit>>())
-            .transpose()?;
-        
+        let qargs = qargs.map(|q| q.value);
+        let cargs = cargs.map(|c| c.value);
+
         // Acquire a mutable borrow to apply the operation.
         // This is done after extracting the arguments to avoid borrow conflicts.
         let mut dag = slf.borrow_mut();
 
         let node = {
-            let qubit_iter = dag.qubits
+            let qubit_iter = dag
+                .qubits
                 .map_objects(qargs.into_iter().flatten())?
                 .collect::<Vec<_>>();
             let qubits_id = dag.qargs_interner.insert_owned(qubit_iter);
 
-            let clbit_iter = dag.clbits
+            let clbit_iter = dag
+                .clbits
                 .map_objects(cargs.into_iter().flatten())?
                 .collect::<Vec<_>>();
             let clbits_id = dag.cargs_interner.insert_owned(clbit_iter);
@@ -1410,24 +1408,22 @@ impl DAGCircuit {
         check: bool,
     ) -> PyResult<Py<PyAny>> {
         let py_op = op.extract::<OperationFromPython>()?;
-        let qargs = qargs
-            .map(|q| q.value.extract::<Vec<ShareableQubit>>())
-            .transpose()?;
-        let cargs = cargs
-            .map(|c| c.value.extract::<Vec<ShareableClbit>>())
-            .transpose()?;
+        let qargs = qargs.map(|q| q.value);
+        let cargs = cargs.map(|c| c.value);
 
         // Acquire a mutable borrow to apply the operation.
         // This is done after extracting the arguments to avoid borrow conflicts.
         let mut dag = slf.borrow_mut();
 
         let node = {
-            let qubit_iter = dag.qubits
+            let qubit_iter = dag
+                .qubits
                 .map_objects(qargs.into_iter().flatten())?
                 .collect::<Vec<_>>();
             let qubits_id = dag.qargs_interner.insert_owned(qubit_iter);
 
-            let clbit_iter = dag.clbits
+            let clbit_iter = dag
+                .clbits
                 .map_objects(cargs.into_iter().flatten())?
                 .collect::<Vec<_>>();
             let clbits_id = dag.cargs_interner.insert_owned(clbit_iter);

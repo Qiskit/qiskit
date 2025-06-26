@@ -104,21 +104,28 @@ impl_circuit_identifier!(Var);
 impl_circuit_identifier!(Stretch);
 
 pub struct TupleLikeArg<'py> {
-    value: Bound<'py, PyTuple>,
+    value: Vec<T>,
 }
 
-impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
+impl<'py, T> FromPyObject<'py> for TupleLikeArg<T>
+where
+    T: FromPyObject<'py>,
+{
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let value = match ob.downcast::<PySequence>() {
-            Ok(seq) => seq.to_tuple()?,
-            Err(_) => PyTuple::new(
-                ob.py(),
-                ob.try_iter()?
-                    .map(|o| Ok(o?.unbind()))
-                    .collect::<PyResult<Vec<PyObject>>>()?,
-            )?,
+        let items = match ob.downcast::<PySequence>() {
+            Ok(seq) => {
+                let tuple = seq.to_tuple()?;
+                tuple
+                    .iter()
+                    .map(|item| item.extract())
+                    .collect::<PyResult<Vec<T>>>()?
+            }
+            Err(_) => ob
+                .try_iter()?
+                .map(|item| item?.extract())
+                .collect::<PyResult<Vec<T>>>()?,
         };
-        Ok(TupleLikeArg { value })
+        Ok(TupleLikeArg { value: items })
     }
 }
 
