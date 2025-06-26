@@ -540,6 +540,7 @@ fn apply_translation(
         let unique_qargs: PhysicalQargs = qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect();
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
+                py,
                 &mut out_dag_builder,
                 node_obj.clone(),
                 &extra_inst_map[&unique_qargs],
@@ -547,7 +548,7 @@ fn apply_translation(
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(&mut out_dag_builder, node_obj.clone(), instr_map)?;
+            replace_node(py, &mut out_dag_builder, node_obj.clone(), instr_map)?;
         } else {
             return Err(TranspilerError::new_err(format!(
                 "BasisTranslator did not map {}",
@@ -560,6 +561,7 @@ fn apply_translation(
 }
 
 fn replace_node(
+    py: Python<'_>,
     dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
     instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
@@ -606,8 +608,7 @@ fn replace_node(
             };
             let new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
-                .iter()
-                .map(|param| param.clone())
+                .iter().cloned()
                 .collect();
             dag.apply_operation_back(
                 new_op,
@@ -625,17 +626,10 @@ fn replace_node(
         }
         dag.add_global_phase(target_dag.global_phase())?;
     } else {
-        // If the global phase contains anything that is not a float, create a dict.
-        let parameter_map = if !matches!(target_dag.global_phase(), Param::Float(_)) {
-            Some(Python::with_gil(|py| {
-                target_params
-                    .iter()
-                    .zip(node.params_view())
-                    .into_py_dict(py).map(|dict| dict.unbind())
-            })?)
-        } else {
-            None
-        };
+        let parameter_map = target_params
+            .iter()
+            .zip(node.params_view())
+            .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
@@ -658,8 +652,7 @@ fn replace_node(
 
             let mut new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
-                .iter()
-                .map(|param| param.clone())
+                .iter().cloned()
                 .collect();
             if inner_node
                 .params_view()
@@ -678,10 +671,7 @@ fn replace_node(
                             for key in exp_params {
                                 let key = key?;
                                 // Dict is guaranteed to have been built due to the type of Param.
-                                bind_dict.set_item(
-                                    &key,
-                                    parameter_map.as_ref().unwrap().bind(py).get_item(&key)?,
-                                )?;
+                                bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
                             }
                             let mut new_value: Bound<PyAny>;
                             let comparison = bind_dict.values().iter().any(|param| {
@@ -754,39 +744,40 @@ fn replace_node(
                 // TODO: Remove this.
                 // If we are using a ParameterExpression, acquire the gil.
                 let new_phase: Param = Python::with_gil(|py| {
-                let bound_old_phase = old_phase.bind(py);
-                let bind_dict = PyDict::new(py);
-                for key in target_dag.global_phase().iter_parameters(py)? {
-                    let key = key?;
-                    // If the target_dag's phase is a ParameterExpression, the dict will
-                    // have been built.
-                    bind_dict.set_item(&key, parameter_map.as_ref().unwrap().bind(py).get_item(&key)?)?;
-                }
-                let mut new_phase: Bound<PyAny>;
-                if bind_dict.values().iter().any(|param| {
-                    param
-                        .is_instance(PARAMETER_EXPRESSION.get_bound(py))
-                        .is_ok_and(|x| x)
-                }) {
-                    new_phase = bound_old_phase.clone();
-                    for key_val in bind_dict.items() {
+                    let bound_old_phase = old_phase.bind(py);
+                    let bind_dict = PyDict::new(py);
+                    for key in target_dag.global_phase().iter_parameters(py)? {
+                        let key = key?;
+                        // If the target_dag's phase is a ParameterExpression, the dict will
+                        // have been built.
+                        bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                    }
+                    let mut new_phase: Bound<PyAny>;
+                    if bind_dict.values().iter().any(|param| {
+                        param
+                            .is_instance(PARAMETER_EXPRESSION.get_bound(py))
+                            .is_ok_and(|x| x)
+                    }) {
+                        new_phase = bound_old_phase.clone();
+                        for key_val in bind_dict.items() {
+                            new_phase = new_phase
+                                .call_method1(intern!(py, "assign"), key_val.downcast()?)?;
+                        }
+                    } else {
                         new_phase =
-                            new_phase.call_method1(intern!(py, "assign"), key_val.downcast()?)?;
+                            bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
                     }
-                } else {
-                    new_phase = bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
-                }
-                if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
-                    new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
-                    if new_phase.is_instance(&PyComplex::type_object(py))? {
-                        return Err(TranspilerError::new_err(format!(
-                            "Global phase must be real, but got {}",
-                            new_phase.repr()?
-                        )));
+                    if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
+                        new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
+                        if new_phase.is_instance(&PyComplex::type_object(py))? {
+                            return Err(TranspilerError::new_err(format!(
+                                "Global phase must be real, but got {}",
+                                new_phase.repr()?
+                            )));
+                        }
                     }
-                }
-                new_phase.extract()
-            })?;
+                    new_phase.extract()
+                })?;
                 dag.add_global_phase(&new_phase)?;
             }
 
