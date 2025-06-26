@@ -21,6 +21,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
 from .utils import random_circuit
 
+
 class Collect2QPassBenchmarks:
     params = ([5, 14, 20], [1024])
 
