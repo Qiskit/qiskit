@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug in :class:`.DAGCircuit` where generator arguments could not be
-    passed as arguments to the :meth:`.apply_operation_back` and the
-    :meth:`.apply_operation_front` methods. Refer to
-    `#14544 <https://github.com/Qiskit/qiskit/issues/14544>` for more
-    details.

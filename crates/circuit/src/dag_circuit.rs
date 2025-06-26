@@ -431,33 +431,6 @@ impl DAGIdentifierInfo {
     }
 }
 
-type ExtractedArgs = (Option<Vec<ShareableQubit>>, Option<Vec<ShareableClbit>>);
-/// This function extracts the quantum and classical arguments from generator arguments.
-/// It is designed to handle the borrowing conflicts that can occur when passing generator arguments
-/// for :class:`.DAGCircuit` ``quargs`` and ``cargs``.
-fn extract_generator_args(
-    _py: Python,
-    qargs: Option<TupleLikeArg>,
-    cargs: Option<TupleLikeArg>,
-) -> PyResult<ExtractedArgs> {
-    let extracted_qargs = match qargs {
-        Some(q) => {
-            let items: Vec<ShareableQubit> = q.value.extract()?;
-            Some(items)
-        }
-        None => None,
-    };
-
-    let extracted_cargs = match cargs {
-        Some(c) => {
-            let items: Vec<ShareableClbit> = c.value.extract()?;
-            Some(items)
-        }
-        None => None,
-    };
-    Ok((extracted_qargs, extracted_cargs))
-}
-
 #[pymethods]
 impl DAGCircuit {
     #[new]
@@ -1342,9 +1315,8 @@ impl DAGCircuit {
 
     /// Apply an operation to the output of the circuit.
     /// Passes a Bound<'_, Self> to the implementation to avoid borrowing a mutable reference to self
-    /// and avoid a source of bugs by means of borrow conflicts between the Python space generators
-    /// and the Rust implementation. Once the generator is consumed, a mutable borrow is acquired
-    /// to perform the operation.
+    /// and avoid a source of bugs by means of borrow conflicts when generators are passed as ``qargs``
+    /// and ``cargs``.
     ///
     /// Args:
     ///     op (qiskit.circuit.Operation): the operation associated with the DAG node
@@ -1369,35 +1341,28 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
-        // Extract the operation and arguments from the Python space.
         let py_op = op.extract::<OperationFromPython>()?;
-        let (extracted_qargs, extracted_cargs) = extract_generator_args(py, qargs, cargs)?;
-
-        // Use a mutable borrow to apply the operation.
+        let qargs = qargs
+            .map(|q| q.value.extract::<Vec<ShareableQubit>>())
+            .transpose()?;
+        let cargs = cargs
+            .map(|c| c.value.extract::<Vec<ShareableClbit>>())
+            .transpose()?;
+        
+        // Acquire a mutable borrow to apply the operation.
+        // This is done after extracting the arguments to avoid borrow conflicts.
         let mut dag = slf.borrow_mut();
-        dag.apply_operation_back_impl(py, py_op, extracted_qargs, extracted_cargs, check, op)
-    }
 
-    fn apply_operation_back_impl(
-        &mut self,
-        py: Python,
-        py_op: OperationFromPython,
-        qargs: Option<Vec<ShareableQubit>>,
-        cargs: Option<Vec<ShareableClbit>>,
-        check: bool,
-        #[allow(unused_variables)] original_op: Bound<PyAny>,
-    ) -> PyResult<Py<PyAny>> {
         let node = {
-            let qubits_id = self.qargs_interner.insert_owned(
-                self.qubits
-                    .map_objects(qargs.into_iter().flatten())?
-                    .collect(),
-            );
-            let clbits_id = self.cargs_interner.insert_owned(
-                self.clbits
-                    .map_objects(cargs.into_iter().flatten())?
-                    .collect(),
-            );
+            let qubit_iter = dag.qubits
+                .map_objects(qargs.into_iter().flatten())?
+                .collect::<Vec<_>>();
+            let qubits_id = dag.qargs_interner.insert_owned(qubit_iter);
+
+            let clbit_iter = dag.clbits
+                .map_objects(cargs.into_iter().flatten())?
+                .collect::<Vec<_>>();
+            let clbits_id = dag.cargs_interner.insert_owned(clbit_iter);
 
             let instr = PackedInstruction {
                 op: py_op.operation,
@@ -1406,16 +1371,16 @@ impl DAGCircuit {
                 params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
-                py_op: original_op.unbind().into(),
+                py_op: op.unbind().into(),
             };
 
             if check {
-                self.check_op_addition(&instr)?;
+                dag.check_op_addition(&instr)?;
             }
-            self.push_back(instr)?
+            dag.push_back(instr)?
         };
 
-        self.get_node(py, node)
+        dag.get_node(py, node)
     }
 
     /// Apply an operation to the input of the circuit.
@@ -1444,35 +1409,28 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
-        // Extract the operation and arguments from the Python space.
         let py_op = op.extract::<OperationFromPython>()?;
-        let (extracted_qargs, extracted_cargs) = extract_generator_args(py, qargs, cargs)?;
+        let qargs = qargs
+            .map(|q| q.value.extract::<Vec<ShareableQubit>>())
+            .transpose()?;
+        let cargs = cargs
+            .map(|c| c.value.extract::<Vec<ShareableClbit>>())
+            .transpose()?;
 
-        // Use a mutable borrow to apply the operation.
+        // Acquire a mutable borrow to apply the operation.
+        // This is done after extracting the arguments to avoid borrow conflicts.
         let mut dag = slf.borrow_mut();
-        dag.apply_operation_front_impl(py, py_op, extracted_qargs, extracted_cargs, check, op)
-    }
 
-    fn apply_operation_front_impl(
-        &mut self,
-        py: Python,
-        py_op: OperationFromPython,
-        qargs: Option<Vec<ShareableQubit>>,
-        cargs: Option<Vec<ShareableClbit>>,
-        check: bool,
-        #[allow(unused_variables)] original_op: Bound<PyAny>,
-    ) -> PyResult<Py<PyAny>> {
         let node = {
-            let qubits_id = self.qargs_interner.insert_owned(
-                self.qubits
-                    .map_objects(qargs.into_iter().flatten())?
-                    .collect(),
-            );
-            let clbits_id = self.cargs_interner.insert_owned(
-                self.clbits
-                    .map_objects(cargs.into_iter().flatten())?
-                    .collect(),
-            );
+            let qubit_iter = dag.qubits
+                .map_objects(qargs.into_iter().flatten())?
+                .collect::<Vec<_>>();
+            let qubits_id = dag.qargs_interner.insert_owned(qubit_iter);
+
+            let clbit_iter = dag.clbits
+                .map_objects(cargs.into_iter().flatten())?
+                .collect::<Vec<_>>();
+            let clbits_id = dag.cargs_interner.insert_owned(clbit_iter);
 
             let instr = PackedInstruction {
                 op: py_op.operation,
@@ -1481,16 +1439,16 @@ impl DAGCircuit {
                 params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
-                py_op: original_op.unbind().into(),
+                py_op: op.unbind().into(),
             };
 
             if check {
-                self.check_op_addition(&instr)?;
+                dag.check_op_addition(&instr)?;
             }
-            self.push_front(instr)?
+            dag.push_front(instr)?
         };
 
-        self.get_node(py, node)
+        dag.get_node(py, node)
     }
 
     /// Compose the ``other`` circuit onto the output of this circuit.
