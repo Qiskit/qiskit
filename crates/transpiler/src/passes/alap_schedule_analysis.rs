@@ -93,11 +93,12 @@ pub fn run_alap_schedule_analysis(
         // Get operation type
         let op_name = op.op.name();
         let op_view = op.op.view();
-        let is_gate_or_delay = match op_view {
-            OperationRef::Gate(_) | OperationRef::StandardGate(_) => true,
-            OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => true,
-            _ => false,
-        };
+        let is_gate_or_delay = matches!(
+            op_view,
+            OperationRef::Gate(_)
+                | OperationRef::StandardGate(_)
+                | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
+        );
 
         let t1 = if is_gate_or_delay {
             // Gate or Delay operation

@@ -19,9 +19,7 @@ from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
-from qiskit.transpiler.instruction_durations import InstructionDurations
 from .utils import random_circuit
-
 
 class Collect2QPassBenchmarks:
     params = ([5, 14, 20], [1024])
@@ -43,7 +41,7 @@ class Collect2QPassBenchmarks:
         _pass = ConsolidateBlocks()
         _pass.property_set["block_list"] = self.block_list
         _pass.run(self.dag)
-        
+
 
 class CommutativeAnalysisPassBenchmarks:
     params = ([5, 14, 20], [1024])
@@ -172,6 +170,7 @@ class PassBenchmarks:
 
     def time_remove_barriers(self, _, __):
         RemoveBarriers().run(self.dag)
+
 
 class MultiQBlockPassBenchmarks:
     params = ([5, 14, 20], [1024], [1, 2, 3, 4, 5])
