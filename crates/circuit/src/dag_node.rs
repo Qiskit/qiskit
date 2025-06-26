@@ -14,7 +14,6 @@ use std::hash::Hasher;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::{Operation, Param};
@@ -124,18 +123,12 @@ impl DAGOpNode {
     pub fn py_new(
         py: Python,
         op: Bound<PyAny>,
-        qargs: Option<TupleLikeArg<ShareableQubit>>,
-        cargs: Option<TupleLikeArg<ShareableClbit>>,
+        qargs: Option<TupleLikeArg>,
+        cargs: Option<TupleLikeArg>,
     ) -> PyResult<Py<Self>> {
         let py_op = op.extract::<OperationFromPython>()?;
-        let qargs = qargs.map_or_else(
-            || PyTuple::empty(py),
-            |q| PyTuple::new(py, q.value).unwrap(),
-        );
-        let cargs = cargs.map_or_else(
-            || PyTuple::empty(py),
-            |c| PyTuple::new(py, c.value).unwrap(),
-        );
+        let qargs = qargs.map_or_else(|| PyTuple::empty(py), |q| q.value);
+        let cargs = cargs.map_or_else(|| PyTuple::empty(py), |c| c.value);
         let instruction = CircuitInstruction {
             operation: py_op.operation,
             qubits: qargs.unbind(),

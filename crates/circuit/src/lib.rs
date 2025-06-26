@@ -43,7 +43,7 @@ pub mod rustworkx_core_vnext;
 mod variable_mapper;
 
 use pyo3::prelude::*;
-use pyo3::types::PySequence;
+use pyo3::types::{PySequence, PyTuple};
 use pyo3::PyTypeInfo;
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
@@ -103,29 +103,22 @@ impl_circuit_identifier!(Clbit);
 impl_circuit_identifier!(Var);
 impl_circuit_identifier!(Stretch);
 
-pub struct TupleLikeArg<T> {
-    value: Vec<T>,
+pub struct TupleLikeArg<'py> {
+    value: Bound<'py, PyTuple>,
 }
 
-impl<'py, T> FromPyObject<'py> for TupleLikeArg<T>
-where
-    T: FromPyObject<'py>,
-{
+impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let items = match ob.downcast::<PySequence>() {
-            Ok(seq) => {
-                let tuple = seq.to_tuple()?;
-                tuple
-                    .iter()
-                    .map(|item| item.extract())
-                    .collect::<PyResult<Vec<T>>>()?
-            }
-            Err(_) => ob
-                .try_iter()?
-                .map(|item| item?.extract())
-                .collect::<PyResult<Vec<T>>>()?,
+        let value = match ob.downcast::<PySequence>() {
+            Ok(seq) => seq.to_tuple()?,
+            Err(_) => PyTuple::new(
+                ob.py(),
+                ob.try_iter()?
+                    .map(|o| Ok(o?.unbind()))
+                    .collect::<PyResult<Vec<PyObject>>>()?,
+            )?,
         };
-        Ok(TupleLikeArg { value: items })
+        Ok(TupleLikeArg { value })
     }
 }
 
