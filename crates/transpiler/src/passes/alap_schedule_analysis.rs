@@ -44,6 +44,11 @@ pub fn run_alap_schedule_analysis(
         idle_before.insert(Wire::Clbit(Clbit::new(index)), 0.0);
     }
 
+    /*
+        Since this is alap scheduling, node is scheduled in reversed topological ordering
+        and nodes are packed from the very end of the circuit.
+        The physical meaning of t0 and t1 is flipped here.
+     */
     for node_index in dag
         .topological_op_nodes()?
         .collect::<Vec<_>>()
@@ -80,16 +85,6 @@ pub fn run_alap_schedule_analysis(
             .map(|&c| Wire::Clbit(c))
             .collect();
 
-        /*
-         compute t0, t1: instruction interval, note that
-         t0: start time of instruction
-         t1: end time of instruction
-
-         since this is alap scheduling, node is scheduled in reversed topological ordering
-         and nodes are packed from the very end of the circuit.
-         the physical meaning of t0 and t1 is flipped here.
-        */
-
         // Get operation type
         let op_name = op.op.name();
         let op_view = op.op.view();
@@ -100,6 +95,12 @@ pub fn run_alap_schedule_analysis(
                 | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
         );
 
+        /*
+            compute t0, t1: instruction interval, note that
+            t0: start time of instruction
+            t1: end time of instruction
+        */
+        
         let t1 = if is_gate_or_delay {
             // Gate or Delay operation
             let t0 = qargs
@@ -153,7 +154,6 @@ pub fn run_alap_schedule_analysis(
         .unwrap_or(&0.0);
     // Note that ALAP pass is inversely schedule, thus
     // t0 is computed by subtracting entire circuit duration from t1.
-
     let py_dict = PyDict::new(py);
     for (node_idx, t1) in node_start_time {
         let node = dag.get_node(py, node_idx)?;
