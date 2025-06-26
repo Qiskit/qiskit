@@ -475,7 +475,7 @@ impl GeneratorTermView<'_> {
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
             .join(" ");
-        format!("({})L({})", rate, paulis)
+        format!("({rate})L({paulis})")
     }
 }
 
@@ -1639,8 +1639,7 @@ impl PyPauliLindbladMap {
                 .join(" + ")
         };
         Ok(format!(
-            "<PauliLindbladMap with {} on {}: {}>",
-            str_num_terms, str_num_qubits, str_terms
+            "<PauliLindbladMap with {str_num_terms} on {str_num_qubits}: {str_terms}>"
         ))
     }
 }

@@ -935,13 +935,12 @@ impl<'py> FromPyObject<'py> for Pauli {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
-                Ok(repr) => PyTypeError::new_err(format!("bad type for 'Pauli': {}", repr)),
+                Ok(repr) => PyTypeError::new_err(format!("bad type for 'Pauli': {repr}")),
                 Err(err) => err,
             })?;
         let value_error = || {
             PyValueError::new_err(format!(
-                "value {} is not a valid letter of the single-qubit alphabet for 'Pauli'",
-                value
+                "value {value} is not a valid letter of the single-qubit alphabet for 'Pauli'"
             ))
         };
         let value: u8 = value.try_into().map_err(|_| value_error())?;
@@ -2153,8 +2152,7 @@ impl PyQubitSparsePauliList {
                 .join(", ")
         };
         Ok(format!(
-            "<QubitSparsePauliList with {} on {}: [{}]>",
-            str_num_terms, str_num_qubits, str_terms
+            "<QubitSparsePauliList with {str_num_terms} on {str_num_qubits}: [{str_terms}]>"
         ))
     }
 }
