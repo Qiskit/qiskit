@@ -1,0 +1,15 @@
+---
+features_transpiler:
+  - |
+    Added a new synthesis algorithm :func:`.synth_mcx_noaux_hp24` for :class:`.MCXGate`
+    that does not require any auxiliary qubits, and produces fewer CX gates than
+    the existing `synth_mcx_noaux_v24` algorithm when the number of control qubits is
+    greater than 5. The algorithm is based on the paper "Compiling Conditional Quantum
+    Gates without Using Helper Qubits" by Huang and Palsberg
+    (https://dl.acm.org/doi/10.1145/3656436).
+  - |
+    Added a new high-level synthesis plugin :class:`.MCXSynthesisNoAuxHP24` for
+    :class:`.MCXGate` objects. Furthermore, the default synthesis plugin
+    :class:`.MCXSynthesisDefault` for :class:`.MCXGate` objects was updated to
+    always choose the best synthesis method depending on the available number of
+    auxiliary qubits.
