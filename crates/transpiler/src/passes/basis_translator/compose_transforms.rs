@@ -21,8 +21,10 @@ use numpy::Complex64;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::GATE;
-use qiskit_circuit::operations::{get_standard_gate_names, ArrayType, StandardGate, StandardInstruction, UnitaryGate};
+use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
+use qiskit_circuit::operations::{
+    get_standard_gate_names, ArrayType, StandardGate, StandardInstruction, UnitaryGate,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
@@ -46,7 +48,8 @@ static STD_GATE_MAPPING: LazyLock<HashMap<&str, StandardGate>> = LazyLock::new(|
         .collect()
 });
 
-static STD_INST_MAPPING: LazyLock<HashSet<&str>> = LazyLock::new(|| HashSet::from_iter(["barrier", "delay", "measure", "reset"]));
+static STD_INST_MAPPING: LazyLock<HashSet<&str>> =
+    LazyLock::new(|| HashSet::from_iter(["barrier", "delay", "measure", "reset"]));
 
 pub(super) fn compose_transforms<'a>(
     py: Python,
@@ -63,7 +66,14 @@ pub(super) fn compose_transforms<'a>(
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
 
-        let placeholder_params: SmallVec<[Param; 3]> = (0..num_params).map(|num| Param::Float(num as f64)).collect();
+        let placeholder_params: SmallVec<[Param; 3]> = if num_params == 0 {
+            Default::default()
+        } else {
+            PARAMETER_VECTOR
+                .get_bound(py)
+                .call1((&gate_name, num_params))?
+                .extract()?
+        };
 
         let mut dag = DAGCircuit::new()?;
         // Create the mock gate and add to the circuit, use Python for this.
@@ -71,16 +81,13 @@ pub(super) fn compose_transforms<'a>(
         dag.add_qreg(qubits)?;
         let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
             op
-        }
-        else {
+        } else {
             Python::with_gil(|py| -> PyResult<OperationFromPython> {
-                    GATE.get_bound(py).call1((
-                        &gate_name,
-                        gate_num_qubits,
-                        &placeholder_params,
-                    ))?.extract()
-                }
-            )?.operation
+                GATE.get_bound(py)
+                    .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
+                    .extract()
+            })?
+            .operation
         };
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
         dag.apply_operation_back(
@@ -104,15 +111,13 @@ pub(super) fn compose_transforms<'a>(
             let nodes_to_replace = dag
                 .op_nodes(true)
                 .filter(|(_, op)| {
-                    (op.op.num_qubits() == *gate_num_qubits)
-                        && (op.op.name() == gate_name.as_str())
+                    (op.op.num_qubits() == *gate_num_qubits) && (op.op.name() == gate_name.as_str())
                 })
                 .map(|(node, op)| {
                     (
                         node,
                         op.params_view()
-                            .iter()
-                            .map(|x| x.clone())
+                            .iter().cloned()
                             .collect::<SmallVec<[Param; 3]>>(),
                     )
                 })
@@ -134,13 +139,7 @@ pub(super) fn compose_transforms<'a>(
                 let replace_dag: DAGCircuit =
                     DAGCircuit::from_circuit_data(py, replacement.0, true)?;
                 let op_node = dag.get_node(py, node)?;
-                dag.py_substitute_node_with_dag(
-                    py,
-                    op_node.bind(py),
-                    &replace_dag,
-                    None,
-                    None,
-                )?;
+                dag.py_substitute_node_with_dag(py, op_node.bind(py), &replace_dag, None, None)?;
             }
         }
     }
@@ -157,20 +156,22 @@ fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperati
             "delay" => StandardInstruction::Delay(qiskit_circuit::operations::DelayUnit::DT),
             "measure" => StandardInstruction::Measure,
             "reset" => StandardInstruction::Reset,
-            _ => unreachable!()
+            _ => unreachable!(),
         };
         Some(inst.into())
     } else if name == "unitary" {
         let matrix = match num_qubits {
             1 => ArrayType::OneQ(matrix![Complex64::new(1., 0.), Complex64::new(0., 0.);
                                          Complex64::new(0., 0.), Complex64::new(1., 0.)]),
-            2 => ArrayType::TwoQ(matrix![Complex64::new(1., 0.), Complex64::new(0., 0.), Complex64::new(0., 0.), Complex64::new(0., 0.);
+            2 => ArrayType::TwoQ(
+                matrix![Complex64::new(1., 0.), Complex64::new(0., 0.), Complex64::new(0., 0.), Complex64::new(0., 0.);
                                          Complex64::new(0., 0.), Complex64::new(1., 0.), Complex64::new(0., 0.), Complex64::new(0., 0.);
                                          Complex64::new(0., 0.), Complex64::new(0., 0.), Complex64::new(1., 0.), Complex64::new(0., 0.);
-                                         Complex64::new(0., 0.), Complex64::new(0., 0.), Complex64::new(0., 0.), Complex64::new(1., 0.);]),
+                                         Complex64::new(0., 0.), Complex64::new(0., 0.), Complex64::new(0., 0.), Complex64::new(1., 0.);],
+            ),
             _ => ArrayType::NDArray(Array::eye(2_usize.pow(num_qubits))),
         };
-        Some(UnitaryGate{array: matrix}.into())
+        Some(UnitaryGate { array: matrix }.into())
     } else {
         None
     }
