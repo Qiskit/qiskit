@@ -683,8 +683,8 @@ class ParameterExpression:
                 sympy_binds = {}
                 for old, new in inst.binds.items():
                     if isinstance(new, ParameterExpression):
-                        new = new.name
-                    sympy_binds[old.name] = new
+                        new = new.sympify()
+                    sympy_binds[old.sympify()] = new
                 output = output.subs(sympy_binds, simultaneous=True)
                 continue
 

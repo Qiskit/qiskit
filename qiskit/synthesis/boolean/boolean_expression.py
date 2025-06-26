@@ -191,8 +191,9 @@ class BooleanExpression:
         """
         header_regex = re.compile(r"p\s+cnf\s+(\d+)\s+(\d+)")
         clause_regex = re.compile(r"(-?\d+)")
+        lines = [line.strip() for line in dimacs.split("\n")]
         lines = [
-            line for line in dimacs.split("\n") if not line.startswith("c") and line != ""
+            line for line in lines if not line.startswith("c") and line != ""
         ]  # DIMACS comment line start with c
         header_match = header_regex.match(lines[0])
         if not header_match:
