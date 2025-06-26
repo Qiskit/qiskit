@@ -1403,8 +1403,8 @@ impl DAGCircuit {
         slf: Bound<'_, Self>,
         py: Python,
         op: Bound<PyAny>,
-        qargs: Option<TupleLikeArg>,
-        cargs: Option<TupleLikeArg>,
+        qargs: Option<TupleLikeArg<ShareableQubit>>,
+        cargs: Option<TupleLikeArg<ShareableClbit>>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
         let py_op = op.extract::<OperationFromPython>()?;

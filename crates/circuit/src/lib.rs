@@ -43,7 +43,7 @@ pub mod rustworkx_core_vnext;
 mod variable_mapper;
 
 use pyo3::prelude::*;
-use pyo3::types::{PySequence, PyTuple};
+use pyo3::types::PySequence;
 use pyo3::PyTypeInfo;
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
@@ -103,7 +103,7 @@ impl_circuit_identifier!(Clbit);
 impl_circuit_identifier!(Var);
 impl_circuit_identifier!(Stretch);
 
-pub struct TupleLikeArg<'py> {
+pub struct TupleLikeArg<T> {
     value: Vec<T>,
 }
 
