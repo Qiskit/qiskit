@@ -1464,7 +1464,7 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             return None
 
         # Iteratively run other synthesis methods available
-
+        # (note that all of these methods require at least one auxiliary qubit)
         for synthesis_method in [
             MCXSynthesis2CleanKG24,
             MCXSynthesis1CleanKG24,
@@ -1481,10 +1481,14 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             ) is not None:
                 return decomposition
 
-        # If no synthesis method was successful, fall back to the default
-        return MCXSynthesisNoAuxV24().run(
-            high_level_object, coupling_map, target, qubits, **options
+        # If no synthesis method was successful, use the methods that do not
+        # require auxiliary qubits
+        no_aux_method = (
+            MCXSynthesisNoAuxV24
+            if high_level_object.num_ctrl_qubits <= 5
+            else MCXSynthesisNoAuxHP24
         )
+        return no_aux_method().run(high_level_object, coupling_map, target, qubits, **options)
 
 
 class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
