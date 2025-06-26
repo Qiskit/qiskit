@@ -107,12 +107,12 @@ where
             self.cached_registers.take();
             Ok(true)
         } else if strict {
-            return Err(CircuitError::new_err(format!(
+            Err(CircuitError::new_err(format!(
                 "register name \"{}\" already exists",
                 register.name()
-            )));
+            )))
         } else {
-            return Ok(false);
+            Ok(false)
         }
     }
 
