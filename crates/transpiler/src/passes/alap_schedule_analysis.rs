@@ -15,7 +15,7 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
@@ -27,7 +27,7 @@ pub fn run_alap_schedule_analysis(
     clbit_write_latency: u64,
     node_durations: &Bound<PyDict>,
 ) -> PyResult<Py<PyDict>> {
-    if dag.qregs().len() != 1 || !dag.qregs().iter().any(|reg| reg.name() == "q") {
+    if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
         return Err(TranspilerError::new_err(
             "ALAP schedule runs on physical circuits only",
         ));
@@ -36,12 +36,12 @@ pub fn run_alap_schedule_analysis(
     let mut node_start_time: HashMap<NodeIndex, f64> = HashMap::new();
     let mut idle_before: HashMap<Wire, f64> = HashMap::new();
 
-    for (i, _) in dag.qubits().objects().iter().enumerate() {
-        idle_before.insert(Wire::Qubit(Qubit::new(i)), 0.0);
+    for index in 0..dag.qubits().len() {
+        idle_before.insert(Wire::Qubit(Qubit::new(index)), 0.0);
     }
 
-    for (i, _) in dag.clbits().objects().iter().enumerate() {
-        idle_before.insert(Wire::Clbit(Clbit::new(i)), 0.0);
+    for index in 0..dag.clbits().len() {
+        idle_before.insert(Wire::Clbit(Clbit::new(index)), 0.0);
     }
 
     for node_index in dag
@@ -64,7 +64,7 @@ pub fn run_alap_schedule_analysis(
 
         let op = match dag.dag().node_weight(node_index) {
             Some(NodeType::Operation(op)) => op,
-            _ => continue,
+            _ => panic!("topological_op_nodes() should only return instances of DagOpNode."),
         };
 
         let qargs: Vec<Wire> = dag
@@ -93,13 +93,13 @@ pub fn run_alap_schedule_analysis(
         // Get operation type
         let op_name = op.op.name();
         let op_view = op.op.view();
-        let (is_gate, is_delay) = match op_view {
-            OperationRef::Gate(_) => (true, false),
-            OperationRef::StandardGate(_) => (true, false),
-            _ => (false, op_name == "delay"),
+        let is_gate_or_delay = match op_view {
+            OperationRef::Gate(_) | OperationRef::StandardGate(_) => true,
+            OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => true,
+            _ => false,
         };
 
-        let t1 = if is_gate || is_delay {
+        let t1 = if is_gate_or_delay {
             // Gate or Delay operation
             let t0 = qargs
                 .iter()
@@ -152,15 +152,11 @@ pub fn run_alap_schedule_analysis(
         .unwrap_or(&0.0);
     // Note that ALAP pass is inversely schedule, thus
     // t0 is computed by subtracting entire circuit duration from t1.
-    let node_start_time_final: HashMap<NodeIndex, f64> = node_start_time
-        .into_iter()
-        .map(|(n, t1)| (n, circuit_duration - t1))
-        .collect();
 
-    // Create a Python dictionary to return
     let py_dict = PyDict::new(py);
-    for (node_idx, time) in node_start_time_final {
+    for (node_idx, t1) in node_start_time {
         let node = dag.get_node(py, node_idx)?;
+        let time = circuit_duration - t1;
         if time.fract() == 0.0 {
             py_dict.set_item(node, time as u64)?;
         } else {
