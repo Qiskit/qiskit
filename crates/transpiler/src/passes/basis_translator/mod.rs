@@ -29,7 +29,7 @@ use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
+use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, VarsMode};
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
@@ -174,7 +174,7 @@ pub fn run_basis_translator(
             basis: {:?}. This likely means the target basis is not universal \
             or there are additional equivalence rules needed in the EquivalenceLibrary being \
             used. For more details on this error see: \
-            https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.passes.\
+            https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.transpiler.passes.\
             BasisTranslator#translation-errors",
                 local_source_basis
                     .iter()
@@ -192,7 +192,7 @@ pub fn run_basis_translator(
         basis: {:?}. This likely means the target basis is not universal \
         or there are additional equivalence rules needed in the EquivalenceLibrary being \
         used. For more details on this error see: \
-        https://docs.quantum.ibm.com/api/qiskit/qiskit.transpiler.passes. \
+        https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.transpiler.passes. \
         BasisTranslator#translation-errors",
             source_basis.iter().map(|x| x.0.as_str()).collect_vec(),
             &new_target_basis
@@ -478,7 +478,7 @@ fn apply_translation(
     >,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
-    let out_dag = dag.copy_empty_like("alike")?;
+    let out_dag = dag.copy_empty_like(VarsMode::Alike)?;
     let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();

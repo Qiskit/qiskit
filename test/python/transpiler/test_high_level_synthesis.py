@@ -55,7 +55,14 @@ from qiskit.circuit.library import (
     GlobalPhaseGate,
 )
 from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
-from qiskit.quantum_info import Clifford, Operator, Statevector, SparsePauliOp
+from qiskit.quantum_info import (
+    Pauli,
+    Clifford,
+    Operator,
+    Statevector,
+    SparsePauliOp,
+    SparseObservable,
+)
 from qiskit.synthesis.evolution import synth_pauli_network_rustiq
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.synthesis.arithmetic import adder_qft_d00
@@ -2235,6 +2242,48 @@ class TestUnrollerCompatability(QiskitTestCase):
 
         self.assertEqual(block, out)
 
+    def test_unroll_with_clbit_mapping(self):
+        """Test unrolling a custom definition that has qubits and clbits
+        that require mapping to the global clbits.
+        Regression test for: https://github.com/Qiskit/qiskit/issues/14569
+        """
+        block = QuantumCircuit(2, 2)
+        block.h(0)
+        block.measure([0, 1], [0, 1])
+
+        circuit = QuantumCircuit(6, 6)
+        circuit.append(block.to_instruction(), [0, 1], [0, 1])
+        circuit.append(block.to_instruction(), [2, 3], [3, 2])
+        circuit.append(block.to_instruction(), [4, 5], [4, 5])
+
+        hls = HighLevelSynthesis(basis_gates=["h", "measure"])
+        out = hls(circuit)
+
+        self.assertEqual(
+            (out.find_bit(out.data[3].qubits[0]).index, out.find_bit(out.data[3].clbits[0]).index),
+            (0, 0),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[4].qubits[0]).index, out.find_bit(out.data[4].clbits[0]).index),
+            (1, 1),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[5].qubits[0]).index, out.find_bit(out.data[5].clbits[0]).index),
+            (3, 2),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[6].qubits[0]).index, out.find_bit(out.data[6].clbits[0]).index),
+            (2, 3),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[7].qubits[0]).index, out.find_bit(out.data[7].clbits[0]).index),
+            (4, 4),
+        )
+        self.assertEqual(
+            (out.find_bit(out.data[8].qubits[0]).index, out.find_bit(out.data[8].clbits[0]).index),
+            (5, 5),
+        )
+
 
 class TestGate(Gate):
     """Mock one qubit zero param gate."""
@@ -2696,12 +2745,15 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
-        with self.subTest(method="2_clean_kg24", num_clean_ancillas=1, num_dirty_ancillas=0):
+        with self.subTest(method="2_clean_kg24", num_clean_ancillas=1, num_dirty_ancillas=1):
             # should not have a decomposition
             decomposition = MCXSynthesis2CleanKG24().run(
-                gate, num_clean_ancillas=1, num_dirty_ancillas=0
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
             )
             self.assertIsNone(decomposition)
+
+        with self.subTest(method="2_clean_kg24", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should not have a decomposition
             decomposition = MCXSynthesis2CleanKG24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=0
             )
@@ -2714,12 +2766,22 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
+        with self.subTest(method="2_dirty_kg24", num_clean_ancillas=1, num_dirty_ancillas=1):
+            # should have a decomposition
+            decomposition = MCXSynthesis2DirtyKG24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
         with self.subTest(method="2_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=1):
             # should not have a decomposition
             decomposition = MCXSynthesis2DirtyKG24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=1
             )
             self.assertIsNone(decomposition)
+
+        with self.subTest(method="2_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should not have a decomposition
             decomposition = MCXSynthesis2DirtyKG24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=0
             )
@@ -2745,6 +2807,14 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
                 gate, num_clean_ancillas=0, num_dirty_ancillas=1
             )
             self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="1_dirty_kg24", num_clean_ancillas=1, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesis1DirtyKG24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
         with self.subTest(method="1_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=0):
             # should not have a decomposition
             decomposition = MCXSynthesis1DirtyKG24().run(
@@ -2905,6 +2975,22 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(qct))
         self.assertEqual(count_rotation_gates(qct), 1)
 
+    def test_default_preserve_order(self):
+        """Test that option preserve_order is reset."""
+        op = SparsePauliOp(["IIIX", "IIXX", "IYYI", "IIZZ"], coeffs=[1, 2, 3, 4])
+        qc = QuantumCircuit(6)
+        qc.append(PauliEvolutionGate(op), [1, 2, 3, 4])
+        with self.subTest("preserve_order_is_reset"):
+            hls_config = HLSConfig(PauliEvolution=[("default", {"preserve_order": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            self.assertEqual(qct.depth(), 3)
+            # check that preserve_order is reset and is no longer False
+            hls_config = HLSConfig(PauliEvolution=[("default", {})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            self.assertEqual(qct.depth(), 4)
+
     def test_rustiq_upto_options(self):
         """Test non-default Rustiq options upto_phase and upto_clifford."""
         op = SparsePauliOp(["XXXX", "YYYY", "ZZZZ"], coeffs=[1, 2, 3])
@@ -2957,6 +3043,20 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             cnt_ops = qct.count_ops()
             self.assertEqual(count_rotation_gates(qct), 6)
             self.assertEqual(cnt_ops["cx"], 4)
+        with self.subTest("preserve_order_is_reset"):
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {"preserve_order": False})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 6)
+            self.assertEqual(cnt_ops["cx"], 4)
+            # check that preserve_order is reset and is no longer False
+            hls_config = HLSConfig(PauliEvolution=[("rustiq", {})])
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            qct = hls_pass(qc)
+            cnt_ops = qct.count_ops()
+            self.assertEqual(count_rotation_gates(qct), 6)
+            self.assertEqual(cnt_ops["cx"], 16)
 
     def test_rustiq_upto_phase(self):
         """Check that Rustiq synthesis with ``upto_phase=True`` produces a correct
@@ -3001,6 +3101,41 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         )
         self.assertEqual(count_rotation_gates(qct), 2)
         self.assertEqual(set(qct.parameters), {alpha, beta})
+
+    def test_rustiq_raises_on_invalid_input(self):
+        """Test that we get an error on invalid input."""
+        # The Pauli string "1Y" is invalid
+        pauli_network = [("XXX", [0, 1, 2], 0.5), ("1Y", [1, 2], -0.5)]
+        with self.assertRaises(QiskitError):
+            synth_pauli_network_rustiq(num_qubits=4, pauli_network=pauli_network)
+
+    def test_on_sparse_observable(self):
+        """Test that plugins handle operators with SparseObservables."""
+        obs = SparseObservable.from_sparse_list([("1+XY", (0, 1, 2, 3), 1.5)], num_qubits=4)
+        evo = PauliEvolutionGate(obs, time=1)
+        qc = QuantumCircuit(4)
+        qc.append(evo, [0, 1, 2, 3])
+        default_config = HLSConfig(PauliEvolution=["default"])
+        qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
+        rustiq_config = HLSConfig(PauliEvolution=[("rustiq")])
+        qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
+        self.assertEqual(Operator(qct_default), Operator(qc))
+        self.assertEqual(Operator(qct_rustiq), Operator(qc))
+
+    def test_on_list_with_sparse_observable(self):
+        """Test that plugins handle operators with SparseObservables."""
+        pauli = Pauli("-XYZI")
+        op = SparsePauliOp(["IZXY"], 1)
+        obs = SparseObservable.from_sparse_list([("1+XY", (0, 1, 2, 3), 1.5)], num_qubits=4)
+        evo = PauliEvolutionGate([pauli, op, obs], time=1)
+        qc = QuantumCircuit(4)
+        qc.append(evo, [0, 1, 2, 3])
+        default_config = HLSConfig(PauliEvolution=["default"])
+        qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
+        rustiq_config = HLSConfig(PauliEvolution=[("rustiq")])
+        qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
+        self.assertEqual(Operator(qct_default), Operator(qc))
+        self.assertEqual(Operator(qct_rustiq), Operator(qc))
 
 
 class TestAnnotatedSynthesisPlugins(QiskitTestCase):

@@ -55,7 +55,8 @@ from qiskit.qasm3.printer import BasicPrinter
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
 
-from .qcstyle import load_style
+from qiskit.visualization.style import load_style
+from qiskit.visualization.circuit.qcstyle import MPLDefaultStyle, MPLStyleDict
 from ._utils import (
     get_gate_ctrl_text,
     get_param_str,
@@ -266,7 +267,13 @@ class MatplotlibDrawer:
         glob_data["patches_mod"] = patches
         plt_mod = plt
 
-        self._style, def_font_ratio = load_style(self._style)
+        self._style, def_font_ratio = load_style(
+            self._style,
+            style_dict=MPLStyleDict,
+            default_style=MPLDefaultStyle(),
+            user_config_opt="circuit_mpl_style",
+            user_config_path_opt="circuit_mpl_style_path",
+        )
 
         # If font/subfont ratio changes from default, have to scale width calculations for
         # subfont. Font change is auto scaled in the mpl_figure.set_size_inches call in draw()
@@ -608,6 +615,10 @@ class MatplotlibDrawer:
                         for width, layer_num, flow_parent in flow_widths.values():
                             if layer_num != -1 and flow_parent == flow_drawer._flow_parent:
                                 raw_gate_width += width
+                                # This is necessary to prevent 1 being added to the width of a
+                                # BoxOp in layer_widths at the end of this method
+                                if isinstance(node.op, BoxOp):
+                                    raw_gate_width -= 0.001
 
                         # Need extra incr of 1.0 for else and case boxes
                         gate_width += raw_gate_width + (1.0 if circ_num > 0 else 0.0)
@@ -740,7 +751,13 @@ class MatplotlibDrawer:
                 # increment by if/switch width. If more cases increment by width of previous cases.
                 if flow_parent is not None:
                     node_data[node].inside_flow = True
-                    node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
+                    # front_space provides a space for 'If', 'While', etc. which is not
+                    # necessary for a BoxOp
+                    front_space = 0 if isinstance(flow_parent.op, BoxOp) else 1
+                    node_data[node].x_index = (
+                        node_data[flow_parent].x_index + curr_x_index + front_space
+                    )
+
                     # If an else or case
                     if node_data[node].circ_num > 0:
                         for width in node_data[flow_parent].width[: node_data[node].circ_num]:
@@ -1548,7 +1565,9 @@ class MatplotlibDrawer:
         ypos = min(y[1] for y in xy)
         ypos_max = max(y[1] for y in xy)
 
-        if_width = node_data[node].width[0] + WID
+        # If a BoxOp, bring the right side back tight against the gates to allow for
+        # better spacing
+        if_width = node_data[node].width[0] + (WID if not isinstance(node.op, BoxOp) else -0.19)
         box_width = if_width
         # Add the else and case widths to the if_width
         for ewidth in node_data[node].width[1:]:
@@ -1598,6 +1617,9 @@ class MatplotlibDrawer:
                 expr_spacer = 0.0
                 empty_default_spacer = 0.3 if len(node.op.blocks[-1]) == 0 else 0.0
             elif isinstance(node.op, BoxOp):
+                # Move the X start position back for a BoxOp, since there is no
+                # leading text. This tightens the BoxOp with other ops.
+                xpos -= 0.15
                 op_spacer = 0.0
                 expr_spacer = 0.0
                 empty_default_spacer = 0.0

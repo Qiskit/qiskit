@@ -28,7 +28,7 @@ use uuid::Uuid;
 
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::converters::circuit_to_dag;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, VarsMode};
 use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -291,7 +291,7 @@ fn map_components(
 }
 
 fn build_coupling_map(target: &Target) -> Option<UnGraph<PhysicalQubit, ()>> {
-    let num_qubits = target.num_qubits.unwrap_or_default();
+    let num_qubits = target.num_qubits.unwrap_or_default() as usize;
     if target.num_qargs() == 0 {
         return None;
     }
@@ -446,7 +446,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
     let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
         .into_iter()
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
-            let mut new_dag = dag.copy_empty_like("alike")?;
+            let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;

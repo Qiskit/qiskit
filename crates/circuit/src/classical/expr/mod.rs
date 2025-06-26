@@ -24,7 +24,7 @@ mod var;
 
 pub use binary::{Binary, BinaryOp};
 pub use cast::Cast;
-pub use expr::Expr;
+pub use expr::{Expr, ExprRef, ExprRefMut, IdentifierRef};
 pub use index::Index;
 pub use stretch::Stretch;
 pub use unary::{Unary, UnaryOp};

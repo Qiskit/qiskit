@@ -12,6 +12,7 @@
 
 use std::env;
 
+pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
 pub mod circuit_data;
@@ -39,6 +40,7 @@ pub mod symbol_parser;
 pub mod util;
 
 pub mod rustworkx_core_vnext;
+mod variable_mapper;
 
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
@@ -168,6 +170,7 @@ pub fn getenv_use_multiple_threads() -> bool {
 }
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<annotation::PyAnnotation>()?;
     m.add_class::<bit::PyBit>()?;
     m.add_class::<bit::PyClbit>()?;
     m.add_class::<bit::PyQubit>()?;

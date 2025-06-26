@@ -1254,7 +1254,9 @@ class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
             return None
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
-        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0) + options.get(
+            "num_clean_ancillas", 0
+        )
 
         if num_dirty_ancillas < 2:
             return None
@@ -1338,7 +1340,9 @@ class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
             return None
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
-        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0) + options.get(
+            "num_clean_ancillas", 0
+        )
 
         if num_dirty_ancillas < 1:
             return None
@@ -1431,11 +1435,11 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
         # Iteratively run other synthesis methods available
 
         for synthesis_method in [
+            MCXSynthesis2CleanKG24,
+            MCXSynthesis1CleanKG24,
             MCXSynthesisNCleanM15,
             MCXSynthesisNDirtyI15,
-            MCXSynthesis2CleanKG24,
             MCXSynthesis2DirtyKG24,
-            MCXSynthesis1CleanKG24,
             MCXSynthesis1DirtyKG24,
             MCXSynthesis1CleanB95,
         ]:
@@ -1917,13 +1921,15 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             # Don't do anything if a gate is called "evolution" but is not an
             # actual PauliEvolutionGate
             return None
-
         algo = high_level_object.synthesis
 
+        original_preserve_order = algo.preserve_order
         if "preserve_order" in options and isinstance(algo, ProductFormula):
             algo.preserve_order = options["preserve_order"]
 
-        return algo.synthesize(high_level_object)
+        synth_object = algo.synthesize(high_level_object)
+        algo.preserve_order = original_preserve_order
+        return synth_object
 
 
 class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
@@ -1964,7 +1970,34 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             # actual PauliEvolutionGate
             return None
 
-        algo = high_level_object.synthesis
+        from qiskit.quantum_info import SparsePauliOp, SparseObservable
+
+        # The synthesis function synth_pauli_network_rustiq does not support SparseObservables,
+        # so we need to convert them to SparsePauliOps.
+        if isinstance(high_level_object.operator, SparsePauliOp):
+            pauli_op = high_level_object.operator
+
+        elif isinstance(high_level_object.operator, SparseObservable):
+            pauli_op = SparsePauliOp.from_sparse_observable(high_level_object.operator)
+
+        elif isinstance(high_level_object.operator, list):
+            pauli_op = []
+            for op in high_level_object.operator:
+                if isinstance(op, SparseObservable):
+                    pauli_op.append(SparsePauliOp.from_sparse_observable(op))
+                else:
+                    pauli_op.append(op)
+
+        else:
+            raise TranspilerError("Invalid PauliEvolutionGate.")
+
+        evo = PauliEvolutionGate(
+            pauli_op,
+            time=high_level_object.time,
+            label=high_level_object.label,
+            synthesis=high_level_object.synthesis,
+        )
+        algo = evo.synthesis
 
         if not isinstance(algo, ProductFormula):
             warnings.warn(
@@ -1974,19 +2007,19 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             )
             return None
 
+        original_preserve_order = algo.preserve_order
         if "preserve_order" in options:
             algo.preserve_order = options["preserve_order"]
 
-        num_qubits = high_level_object.num_qubits
-        pauli_network = algo.expand(high_level_object)
-
+        num_qubits = evo.num_qubits
+        pauli_network = algo.expand(evo)
         optimize_count = options.get("optimize_count", True)
         preserve_order = options.get("preserve_order", True)
         upto_clifford = options.get("upto_clifford", False)
         upto_phase = options.get("upto_phase", False)
         resynth_clifford_method = options.get("resynth_clifford_method", 1)
 
-        return synth_pauli_network_rustiq(
+        synth_object = synth_pauli_network_rustiq(
             num_qubits=num_qubits,
             pauli_network=pauli_network,
             optimize_count=optimize_count,
@@ -1995,6 +2028,8 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+        algo.preserve_order = original_preserve_order
+        return synth_object
 
 
 class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
