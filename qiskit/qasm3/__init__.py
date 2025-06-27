@@ -309,15 +309,18 @@ def dump(circuit, stream, **kwargs) -> None:
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
 def load(
-    filename: str, *, annotation_handlers: dict[str, annotation.OpenQASM3Serializer] | None = None
+    filename: str,
+    *,
+    num_qubits: int | None = None,
+    annotation_handlers: dict[str, annotation.OpenQASM3Serializer] | None = None,
 ) -> QuantumCircuit:
     """Load an OpenQASM 3 program from the file ``filename``.
 
     Args:
         filename: the filename to load the program from.
+        num_qubits: keyword argument which provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
             that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
-
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
@@ -328,28 +331,76 @@ def load(
     .. versionadded:: 2.1
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
     """
+
     with open(filename, "r") as fptr:
         program = fptr.read()
-    return loads(program, annotation_handlers=annotation_handlers)
+    return loads(program, num_qubits=num_qubits, annotation_handlers=annotation_handlers)
 
 
 @_optionals.HAS_QASM3_IMPORT.require_in_call("loading from OpenQASM 3")
 def loads(
-    program: str, *, annotation_handlers: dict[str, annotation.OpenQASM3Serializer] | None = None
+    program: str,
+    *,
+    num_qubits: int | None = None,
+    annotation_handlers: dict[str, annotation.OpenQASM3Serializer] | None = None,
 ) -> QuantumCircuit:
     """Load an OpenQASM 3 program from the given string.
 
+    Examples:
+
+        Load a OpenQASM3 string into a quantum circuit with/without `num_qubits` argument.
+
+        .. plot::
+           :alt: Circuit diagram output by the previous code.
+           :include-source:
+
+           from qiskit import QuantumCircuit, transpile
+           from qiskit.providers.fake_provider import GenericBackendV2
+           from qiskit.qasm3 import dumps,loads
+           import numpy as np
+
+           # specify backend
+           backend = GenericBackendV2(num_qubits=127)
+
+           # create a quantum circuit
+           qc = QuantumCircuit(20)
+           for i in range(0,20):
+               qc.ry(2*np.pi*i/20,i)
+           for i in range(0,20,2):
+               qc.cx(i,i+1)
+           qc.measure_all()
+           qc.draw('mpl')
+
+           # transpile the circuit
+           isa_qc = transpile(qc, backend, optimization_level=2)
+
+           # serialize the quantum circuit in an OpenQASM3 string
+           qc_ser = dumps(isa_qc)
+
+           # load OpenQASM3 string without `num_qubits` argument
+           qc_load1 = loads(qc_ser)
+
+           # load OpenQASM3 string with argument `num_qubits`
+           qc_load2 = loads(qc_ser, num_qubits = backend.num_qubits)
+
+           # without `num_qubits`
+           print(qc_load1.num_qubits)
+
+           # with `num_qubits`
+           print(qc_load2.num_qubits)
+
     Args:
         program: the OpenQASM 3 program.
+        num_qubits: provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
             that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
-
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
     Raises:
         QASM3ImporterError: if the OpenQASM 3 file is invalid, or cannot be represented by a
             :class:`.QuantumCircuit`.
+        ValueError: if number of qubits in qasm3_ckt is more than num_qubits.
 
     .. versionadded:: 2.1
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
@@ -365,10 +416,27 @@ def loads(
                 + qiskit_qasm3_import.__version__
             )
         kwargs["annotation_handlers"] = annotation_handlers
+
+    from qiskit.circuit import Qubit
+
     try:
-        return qiskit_qasm3_import.parse(program, **kwargs)
+        qasm3_ckt = qiskit_qasm3_import.parse(program, **kwargs)
     except qiskit_qasm3_import.ConversionError as exc:
         raise QASM3ImporterError(str(exc)) from exc
+
+    if num_qubits is not None:
+        if qasm3_ckt.num_qubits > num_qubits:
+            raise ValueError(
+                "Number of qubits cannot be more than the provided number of physical/virtual qubits."
+            )
+        if (difference := num_qubits - qasm3_ckt.num_qubits) > 0:
+            qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
+            if qasm3_ckt.layout is not None:
+                last = list(qasm3_ckt.layout.initial_layout.get_physical_bits().keys())[-1]
+                for k in range(last + 1, num_qubits):
+                    qasm3_ckt.layout.initial_layout.add(Qubit(), k)
+
+    return qasm3_ckt
 
 
 @functools.wraps(_qasm3.loads)
