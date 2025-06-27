@@ -12,6 +12,7 @@
 
 """Test ElidePermutations pass"""
 
+import itertools
 import unittest
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -20,6 +21,7 @@ from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermut
 from qiskit.transpiler.passes.routing import StarPreRouting
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.quantum_info import Operator
+from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -365,6 +367,20 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
             spm.init += ElidePermutations()
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+
+    def test_unitary_equivalence_permutation_gates(self):
+        """Test unitary equivalence of the original and transpiled circuits."""
+
+        for perm in itertools.permutations([0, 1, 2]):
+            qc = QuantumCircuit(5)
+            qc.h(1)
+            qc.swap(1, 2)
+            qc.swap(4, 3)
+            qc.append(PermutationGate(perm), [1, 2, 3])
+
+            pm = PassManager([ElidePermutations()])
+            res = pm.run(qc)
+            self.assertEqual(Operator.from_circuit(res), (Operator(qc)))
 
     def test_unitary_equivalence_routing_and_basis_translation(self):
         """Test on a larger example that includes routing and basis translation."""
