@@ -51,6 +51,7 @@ from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
+from qiskit._accelerate import qpy as _qpy
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.annotation import QPYSerializer, Annotation
@@ -1402,6 +1403,7 @@ def write_circuit(
     use_symengine=False,
     version=common.QPY_VERSION,
     annotation_factories=None,
+    use_rust=False,
 ):
     """Write a single QuantumCircuit object in the file like object.
 
@@ -1419,7 +1421,11 @@ def write_circuit(
         version (int): The QPY format version to use for serializing this circuit
         annotation_factories (dict): a mapping of namespaces to zero-argument factory functions that
             produce instances of :class:`.annotation.QPYSerializer`.
+        use_rust (bool): whether to use the rust based serialization engine. On by default.
     """
+    if use_rust:
+        _qpy.py_write_circuit(file_obj, circuit, metadata_serializer, use_symengine, version)
+        return
     annotation_state = _AnnotationSerializationState(annotation_factories or {})
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -1528,7 +1534,8 @@ def write_circuit(
 
 
 def read_circuit(
-    file_obj, version, metadata_deserializer=None, use_symengine=False, annotation_factories=None
+    
+    file_obj, version, metadata_deserializer=None, use_symengine=False, annotation_factories=None, use_rust=False
 ):
     """Read a single QuantumCircuit object from the file like object.
 
@@ -1549,12 +1556,17 @@ def read_circuit(
             deserialize the payload.
         annotation_factories (dict): mapping of namespaces to factory functions for custom
             annotation deserializer objects.
+        use_rust (bool): whether to use the rust based deserialization engine. Off by default.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
     Raises:
         QpyError: Invalid register.
     """
+
+    if use_rust:
+        return _qpy.py_read_circuit(file_obj, version, metadata_deserializer, use_symengine)
+
     vectors = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)
