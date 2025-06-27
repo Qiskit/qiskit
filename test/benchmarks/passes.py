@@ -19,7 +19,6 @@ from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
-
 from .utils import random_circuit
 
 

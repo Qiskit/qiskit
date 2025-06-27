@@ -60,6 +60,8 @@ import qiskit._numpy_compat
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
+
+sys.modules["qiskit._accelerate.alap_schedule_analysis"] = _accelerate.alap_schedule_analysis
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit.classical"] = _accelerate.circuit.classical
 sys.modules["qiskit._accelerate.circuit.classical.expr"] = _accelerate.circuit.classical.expr
