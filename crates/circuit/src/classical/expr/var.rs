@@ -39,6 +39,16 @@ pub enum Var {
     },
 }
 
+impl Var {
+    pub fn ty(&self) -> Type {
+        match self {
+            Var::Standalone { ty, .. } => *ty,
+            Var::Bit { .. } => Type::Bool,
+            Var::Register { ty, .. } => *ty,
+        }
+    }
+}
+
 impl<'py> IntoPyObject<'py> for Var {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;

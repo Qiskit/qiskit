@@ -25,7 +25,17 @@ use hashbrown::HashMap;
 macro_rules! qubit_newtype {
     ($id: ident) => {
         #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, IntoPyObject, IntoPyObjectRef,
+            Debug,
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
+            Default,
+            IntoPyObject,
+            IntoPyObjectRef,
         )]
         pub struct $id(pub u32);
 
@@ -55,6 +65,18 @@ macro_rules! qubit_newtype {
 
             fn clone_ref(&self, _py: Python<'_>) -> Self {
                 *self
+            }
+        }
+
+        unsafe impl ::rustworkx_core::petgraph::graph::IndexType for $id {
+            fn new(x: usize) -> Self {
+                Self::new(x as u32)
+            }
+            fn index(&self) -> usize {
+                self.0 as usize
+            }
+            fn max() -> Self {
+                Self(u32::MAX)
             }
         }
     };

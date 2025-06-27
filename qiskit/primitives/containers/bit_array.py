@@ -601,9 +601,9 @@ class BitArray(ShapedMixin):
 
         Args:
             observables: The observable(s) to take the expectation value of.
-            Must have a shape broadcastable with with this bit array and
-            the same number of qubits as the number of bits of this bit array.
-            The observables must be diagonal (I, Z, 0 or 1) too.
+                Must have a shape broadcastable with with this bit array and
+                the same number of qubits as the number of bits of this bit array.
+                The observables must be diagonal (I, Z, 0 or 1) too.
 
         Returns:
             An array of expectation values whose shape is the broadcast shape of ``observables``

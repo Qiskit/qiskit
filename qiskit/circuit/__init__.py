@@ -562,10 +562,15 @@ happen incoherently and to collapse any entanglement.
 
 Hardware can be instructed to apply a real-time idle period on a given qubit.  A scheduled circuit
 (see :mod:`qiskit.transpiler`) will include all the idle times on qubits explicitly in terms of this
-:class:`Delay`.
+:class:`Delay`.  :class:`.BoxOp` can also have an explicit duration attached, in its
+:attr:`.BoxOp.duration` field.
 
 .. autoclass:: Delay
     :show-inheritance:
+
+Delay durations can be specified either with concrete, constant times, or with delayed-resolution
+"duration expressions" built out of :class:`.expr.Stretch` objects.  See :ref:`circuit-stretches`
+for more on this.
 
 The :class:`Barrier` instruction can span an arbitrary number of qubits and clbits, and is a no-op
 in hardware.  During transpilation and optimization, however, it blocks any optimizations from
@@ -715,9 +720,9 @@ classes associated to each name.
 .. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
-:class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
-conditions and strategies, but contain all the different subcircuit blocks that might be entered in
-their :attr:`~ControlFlowOp.blocks` property.
+:class:`SwitchCaseOp`, :class:`ForLoopOp` and :class:`.BoxOp`) all have specific state that defines
+the branching conditions and strategies, but contain all the different subcircuit blocks that might
+be entered in their :attr:`~ControlFlowOp.blocks` property.
 
 .. autosummary::
     :toctree: ../stubs/
@@ -726,6 +731,7 @@ their :attr:`~ControlFlowOp.blocks` property.
     WhileLoopOp
     SwitchCaseOp
     ForLoopOp
+    BoxOp
 
 The :class:`.SwitchCaseOp` also understands a special value:
 
@@ -799,6 +805,28 @@ automatically.
 Consult :ref:`the control-flow construction documentation <circuit-control-flow-methods>` for more
 information on how to build circuits with control flow.
 
+
+Instruction-local annotations
+-----------------------------
+
+.. seealso::
+
+    :mod:`qiskit.circuit.annotation`
+        The module-level discussion of the annotation framework, including how to defined custom
+        annotations, and how the system interacts with the compiler and with serialization to other
+        formats.
+
+
+Certain circuit instructions can be "annotated" with instruction-local annotations.  As of Qiskit
+2.1.0, this is limited to :class:`.BoxOp`.  All annotations are subclasses of one base
+interface-defining object, but typically represent entirely custom analyses and commands.
+
+.. autosummary::
+    :toctree: ../stubs
+
+    Annotation
+
+
 Investigating commutation relations
 -----------------------------------
 
@@ -822,6 +850,70 @@ are available in the :class:`CommutationChecker`.
 
    CommutationChecker
 
+
+.. _circuit-stretches:
+
+Delayed-resolution scheduling
+-----------------------------
+
+Typically, the output of Qiskit's compiler cannot be directly executed on a QPU.  First, it is
+likely to pass through some vendor-specific pulse-level compiler, which converts the gates and
+measurements into signals to the controlling electronics of the QPU.  While Qiskit's
+:class:`.Target` can represent *some* of the timing constraints that these pulses will have, it is
+generally not entirely complete.  This is especially true when dynamic circuits (feed-forward
+operations) are involved; the delays induced by the classical components are often dependent on
+low-level post-optimization details of backend compilers, and cannot be known by Qiskit.
+
+In these situations, a user can still exert control over the relative scheduling of pulses, such as
+for dynamical decoupling, by using "stretch" durations.  These are constructed by
+:meth:`.QuantumCircuit.add_stretch`, and interact with the classical-expression system described in
+:mod:`qiskit.circuit.classical`, although they are not real-time mutable.
+
+For example, we can add stretches and boxes to set up a system where two separate dynamic-decoupling
+sequences are applied to the same qubit, while a pair of other qubits undergoes a delay of unknown
+duration.  The two sequences are constrained to have the same length, even though internally the
+concrete DD pulses have differing lengths.
+
+.. code-block:: python
+
+    from qiskit import QuantumCircuit
+    from qiskit.circuit.classical import expr
+
+    qc = QuantumCircuit(3, 3)
+    # This sets up three duration "degrees of freedom" that will
+    # be resolved later by a backend compiler.
+    a = qc.add_stretch("a")
+    b = qc.add_stretch("b")
+    c = qc.add_stretch("c")
+
+    # This set of operations involves feed-forward operations that
+    # Qiskit cannot know the length of.
+    with qc.box():
+        qc.h(1)
+        qc.cx(1, 2)
+        qc.measure([1, 2], [1, 2])
+        with qc.if_test(expr.equal(qc.clbits[1], qc.clbits[2])):
+            qc.h(1)
+
+    # While that stuff is happening to qubits (1, 2), we want
+    # qubit 0 to do two different DD sequences.  The two DD
+    # sequences are fixed to be the same length as each other,
+    # even though they're both internally stretchy.
+    with qc.box(duration=a):
+        # Textbook NMRish XX DD.
+        qc.delay(b, 0)
+        qc.x(0)
+        qc.delay(expr.mul(2, b), 0)
+        qc.x(0)
+        qc.delay(b, 0)
+    with qc.box(duration=a):
+        # XY4-like DD.
+        for _ in range(2):
+            qc.delay(c, 0)
+            qc.y(0)
+            qc.delay(expr.mul(2, c), 0)
+            qc.x(0)
+            qc.delay(c, 0)
 
 .. _circuit-custom-gates:
 
