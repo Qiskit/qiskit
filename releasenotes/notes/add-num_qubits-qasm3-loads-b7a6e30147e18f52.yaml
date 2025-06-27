@@ -5,4 +5,4 @@ features_qasm:
     called `num_qubits`. If provided, the functions will return circuits that will
     have qubits equal to `num_qubits`. If not provided, the returned circuit will
     have qubits equal to the maximum index seen in the serialized circuit. Refer to
-    `#14435 https://github.com/Qiskit/qiskit/issues/14435` for more details.
+    `#14435 <https://github.com/Qiskit/qiskit/issues/14435>`__ for more details.
