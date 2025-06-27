@@ -33,6 +33,7 @@ from qiskit.circuit import (
     Parameter,
     library as lib,
 )
+from qiskit.circuit.classical import expr
 from qiskit.circuit.tools import pi_check
 from .exceptions import QASM2ExportError
 
@@ -151,11 +152,12 @@ def dumps(circuit: QuantumCircuit, /) -> str:
     if regless_clbits:
         dummy_registers.append(ClassicalRegister(name="cregless", bits=regless_clbits))
     register_escaped_names: dict[str, QuantumRegister | ClassicalRegister] = {}
+    name_from_register: dict[QuantumRegister | ClassicalRegister, str] = {}
     for regs in (circuit.qregs, circuit.cregs, dummy_registers):
         for reg in regs:
-            register_escaped_names[
-                _make_unique(_escape_name(reg.name, "reg_"), register_escaped_names)
-            ] = reg
+            name = _make_unique(_escape_name(reg.name, "reg_"), register_escaped_names)
+            register_escaped_names[name] = reg
+            name_from_register[reg] = name
     bit_labels: dict[Qubit | Clbit, str] = {
         bit: f"{name}[{idx}]"
         for name, register in register_escaped_names.items()
@@ -165,25 +167,53 @@ def dumps(circuit: QuantumCircuit, /) -> str:
         f"{'qreg' if isinstance(reg, QuantumRegister) else 'creg'} {name}[{reg.size}];"
         for name, reg in register_escaped_names.items()
     )
-    instruction_calls = []
-    for instruction in circuit._data:
-        operation = instruction.operation
-        if operation.name == "measure":
+
+    def qasm_line(instruction) -> str | None:
+        if instruction.is_control_flow():
+            operation = instruction.operation
+            if operation.name != "if_else":
+                raise QASM2ExportError("OpenQASM 2 does not support control-flow constructs")
+            if isinstance(operation.condition, expr.Expr) or isinstance(
+                operation.condition[0], Clbit
+            ):
+                # This could be relaxed (somewhat) in the future by attempting to resolve the `Expr`
+                # into a simple "register-equality" form; `Expr` is a superset of allowed conditions
+                raise QASM2ExportError("OpenQASM 2 only supports register-equality conditions")
+            if len(operation.blocks) != 1:
+                raise QASM2ExportError("OpenQASM 2 does not support 'else' statements")
+            body = operation.blocks[0]
+            if len(body.data) != 1:
+                # This could be relaxed in the future by "unrolling" the block and putting
+                # individual `if` conditions on each instruction.
+                raise QASM2ExportError(
+                    "OpenQASM 2 only supports conditionals on single instructions"
+                )
+            inner_instruction = body.data[0]
+            if inner_instruction.name == "if_else":
+                raise QASM2ExportError("OpenQASM 2 does not support nested conditionals")
+            if inner_instruction.name == "barrier":
+                raise QASM2ExportError("barriers cannot be conditional in OpenQASM 2")
+            reg, value = operation.condition
+            return f"if ({name_from_register[reg]} == {int(value)}) {qasm_line(inner_instruction)}"
+        if instruction.name == "measure":
             qubit = instruction.qubits[0]
             clbit = instruction.clbits[0]
-            instruction_qasm = f"measure {bit_labels[qubit]} -> {bit_labels[clbit]};"
-        elif operation.name == "reset":
-            instruction_qasm = f"reset {bit_labels[instruction.qubits[0]]};"
-        elif operation.name == "barrier":
+            return f"measure {bit_labels[qubit]} -> {bit_labels[clbit]};"
+        if instruction.name == "reset":
+            return f"reset {bit_labels[instruction.qubits[0]]};"
+        if instruction.name == "barrier":
             if not instruction.qubits:
-                # Barriers with no operands are invalid in (strict) OQ2, and the statement
-                # would have no meaning anyway.
-                continue
+                # Barriers with no operands are invalid in (strict) OQ2.  Qiskit doesn't track
+                # "global" barriers specially, so that case is handled by explicitly listing all the
+                # qubits already.
+                return None
             qargs = ",".join(bit_labels[q] for q in instruction.qubits)
-            instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
-        else:
-            instruction_qasm = _custom_operation_statement(instruction, gates_to_define, bit_labels)
-        instruction_calls.append(instruction_qasm)
+            return f"barrier {qargs};"
+        return _custom_operation_statement(instruction, gates_to_define, bit_labels)
+
+    instruction_calls = [
+        line for instruction in circuit._data if (line := qasm_line(instruction)) is not None
+    ]
     instructions_qasm = "\n".join(f"{call}" for call in instruction_calls)
     gate_definitions_qasm = "\n".join(f"{qasm}" for _, qasm in gates_to_define.values())
 
