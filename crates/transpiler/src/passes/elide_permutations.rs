@@ -27,12 +27,9 @@ use qiskit_circuit::Qubit;
 ///     tuple consisting of the optimized DAG and the induced qubit permutation.
 #[pyfunction]
 #[pyo3(name = "run")]
-pub fn run_elide_permutations(
-    py: Python,
-    dag: &mut DAGCircuit,
-) -> PyResult<Option<(DAGCircuit, Vec<usize>)>> {
+pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, Vec<usize>)>> {
     let permutation_gate_names = ["swap".to_string(), "permutation".to_string()];
-    let op_counts = dag.count_ops(py, false)?;
+    let op_counts = dag.get_op_counts();
     if !permutation_gate_names
         .iter()
         .any(|name| op_counts.contains_key(name))
@@ -53,26 +50,29 @@ pub fn run_elide_permutations(
                     mapping.swap(index0, index1);
                 }
                 "permutation" => {
-                    if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
-                        let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
-                        let pattern = pyarray.as_array();
+                    Python::with_gil(|py| -> PyResult<()> {
+                        if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                            let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
+                            let pattern = pyarray.as_array();
 
-                        let qindices: Vec<usize> = dag
-                            .get_qargs(inst.qubits)
-                            .iter()
-                            .map(|q| q.index())
-                            .collect();
+                            let qindices: Vec<usize> = dag
+                                .get_qargs(inst.qubits)
+                                .iter()
+                                .map(|q| q.index())
+                                .collect();
 
-                        let new_values: Vec<usize> = (0..qindices.len())
-                            .map(|i| mapping[qindices[pattern[i] as usize]])
-                            .collect();
+                            let new_values: Vec<usize> = (0..qindices.len())
+                                .map(|i| mapping[qindices[pattern[i] as usize]])
+                                .collect();
 
-                        for i in 0..qindices.len() {
-                            mapping[qindices[i]] = new_values[i];
+                            for i in 0..qindices.len() {
+                                mapping[qindices[i]] = new_values[i];
+                            }
+                        } else {
+                            unreachable!();
                         }
-                    } else {
-                        unreachable!();
-                    }
+                        Ok(())
+                    })?;
                 }
                 _ => {
                     // General instruction
@@ -90,7 +90,7 @@ pub fn run_elide_permutations(
                         inst.params.as_deref().cloned(),
                         inst.label.as_ref().map(|x| x.as_ref().clone()),
                         #[cfg(feature = "cache_pygates")]
-                        inst.py_op.get().map(|x| x.clone_ref(py)),
+                        None,
                     )?;
                 }
             }
