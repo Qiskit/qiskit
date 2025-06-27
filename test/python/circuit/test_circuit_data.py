@@ -76,7 +76,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         qc.rx(0, 1)
         backend = GenericBackendV2(num_qubits=7)
         isa_qc = transpile(qc, backend)
-        with self.assertWarns(UserWarning):
+        with self.assertWarnsRegex(UserWarning, "Trying to add bits .* layout"):
             isa_qc.add_bits([Qubit() for _ in range(1)])
 
     def test_add_quantum_register_raises_warning_with_layout(self):
@@ -87,7 +87,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=7)
         isa_qc = transpile(qc, backend)
         qr = QuantumRegister(1)
-        with self.assertWarns(UserWarning):
+        with self.assertWarnsRegex(UserWarning, "Trying to add QuantumRegister .* layout"):
             isa_qc.add_register(qr)
 
     def test_add_clbit_not_raises_warning_with_layout(self):
