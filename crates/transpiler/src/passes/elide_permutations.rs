@@ -14,6 +14,7 @@ use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, VarsMode};
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::Qubit;
 
@@ -32,7 +33,7 @@ pub fn run_elide_permutations(
     dag: &mut DAGCircuit,
 ) -> PyResult<Option<(DAGCircuit, Vec<usize>)>> {
     let permutation_gate_names = ["swap".to_string(), "permutation".to_string()];
-    let op_counts = dag.count_ops(py, false)?;
+    let op_counts = dag.count_ops(false)?;
     if !permutation_gate_names
         .iter()
         .any(|name| op_counts.contains_key(name))
@@ -53,7 +54,8 @@ pub fn run_elide_permutations(
                     mapping.swap(index0, index1);
                 }
                 "permutation" => {
-                    if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                    let params = inst.try_legacy_params().unwrap();
+                    if let Param::Obj(ref pyobj) = params[0] {
                         let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                         let pattern = pyarray.as_array();
 

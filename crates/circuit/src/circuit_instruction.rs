@@ -10,30 +10,37 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use itertools::Itertools;
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
+use pyo3::basic::CompareOp;
+use pyo3::exceptions::{PyDeprecationWarning, PyTypeError, PyValueError};
+use pyo3::prelude::*;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
-use pyo3::basic::CompareOp;
-use pyo3::exceptions::{PyDeprecationWarning, PyTypeError};
-use pyo3::prelude::*;
-
-use pyo3::types::{PyBool, PyList, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyBool, PyDict, PyList, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{intern, PyObject, PyResult};
 
+use crate::duration::Duration;
+use crate::imports::{
+    BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, CONTROLLED_GATE, DELAY, FOR_LOOP_OP, GATE,
+    IF_ELSE_OP, INSTRUCTION, MEASURE, OPERATION, RESET, SWITCH_CASE_OP, UNITARY_GATE,
+    WARNINGS_WARN, WHILE_LOOP_OP,
+};
+use crate::instruction::{
+    ControlFlowView, Instruction, InstructionView, IntoInstructionView, Parameters,
+    StandardGateView, StandardInstructionView,
+};
+use crate::operations::{
+    ArrayType, BoxDuration, ControlFlow, ControlFlowType, Operation, OperationRef, Param, PyGate,
+    PyInstruction, PyOperation, StandardGate, StandardInstruction, StandardInstructionType,
+    UnitaryGate,
+};
+use crate::packed_instruction::PackedOperation;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
-
-use crate::imports::{
-    CONTROLLED_GATE, CONTROL_FLOW_OP, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN,
-};
-use crate::operations::{
-    ArrayType, Operation, OperationRef, Param, PyGate, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, StandardInstructionType, UnitaryGate,
-};
-use crate::packed_instruction::PackedOperation;
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
 /// various operands.
@@ -77,7 +84,7 @@ pub struct CircuitInstruction {
     /// A sequence of the classical bits that this operation reads from or writes to.
     #[pyo3(get)]
     pub clbits: Py<PyTuple>,
-    pub params: SmallVec<[Param; 3]>,
+    pub params: Option<Parameters<PyObject>>,
     pub label: Option<Box<String>>,
     #[cfg(feature = "cache_pygates")]
     pub py_op: OnceLock<Py<PyAny>>,
@@ -99,6 +106,20 @@ impl CircuitInstruction {
         } else {
             out.call_method0(intern!(py, "to_mutable"))
         }
+    }
+}
+
+impl Instruction for CircuitInstruction {
+    fn op(&self) -> OperationRef<'_> {
+        self.operation.view()
+    }
+
+    fn parameters(&self) -> Option<&Parameters<PyObject>> {
+        self.params.as_ref()
+    }
+
+    fn label(&self) -> Option<&str> {
+        self.label()
     }
 }
 
@@ -138,7 +159,7 @@ impl CircuitInstruction {
             operation: standard.into(),
             qubits: as_tuple(py, qubits)?.unbind(),
             clbits: PyTuple::empty(py).unbind(),
-            params,
+            params: Some(Parameters::Params(params)),
             label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
@@ -168,28 +189,7 @@ impl CircuitInstruction {
             }
         }
 
-        let out = match self.operation.view() {
-            OperationRef::StandardGate(standard) => standard
-                .create_py_op(
-                    py,
-                    Some(&self.params),
-                    self.label.as_ref().map(|x| x.as_str()),
-                )?
-                .into_any(),
-            OperationRef::StandardInstruction(instruction) => instruction
-                .create_py_op(
-                    py,
-                    Some(&self.params),
-                    self.label.as_ref().map(|x| x.as_str()),
-                )?
-                .into_any(),
-            OperationRef::Gate(gate) => gate.gate.clone_ref(py),
-            OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-            OperationRef::Operation(operation) => operation.operation.clone_ref(py),
-            OperationRef::Unitary(unitary) => unitary
-                .create_py_op(py, self.label.as_ref().map(|x| x.as_str()))?
-                .into_any(),
-        };
+        let out = self.create_py_op(py)?;
 
         #[cfg(feature = "cache_pygates")]
         {
@@ -206,13 +206,23 @@ impl CircuitInstruction {
     }
 
     #[getter]
-    fn get_params(&self) -> &[Param] {
-        self.params.as_slice()
+    pub fn get_params(&self, py: Python) -> PyResult<Py<PyAny>> {
+        let Some(params) = &self.params else {
+            return Ok(PyList::empty(py).into_any().unbind());
+        };
+        match params {
+            Parameters::Params(params) => params.clone().into_py_any(py),
+            Parameters::Box { .. } => todo!(),
+            Parameters::ForLoop { .. } => todo!(),
+            Parameters::IfElse { .. } => todo!(),
+            Parameters::Switch { .. } => todo!(),
+            Parameters::While { .. } => todo!(),
+        }
     }
 
     #[getter]
     fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = self.operation.view().matrix(&self.params);
+        let matrix = self.view().try_matrix();
         matrix.map(move |mat| mat.into_pyarray(py))
     }
 
@@ -247,14 +257,22 @@ impl CircuitInstruction {
     /// Is the :class:`.Operation` contained in this instruction a control-flow operation (i.e. an
     /// instance of :class:`.ControlFlowOp`)?
     pub fn is_control_flow(&self) -> bool {
-        self.operation.control_flow()
+        self.operation.try_control_flow().is_some()
     }
 
     /// Does this instruction contain any :class:`.ParameterExpression` parameters?
     pub fn is_parameterized(&self) -> bool {
-        self.params
-            .iter()
-            .any(|x| matches!(x, Param::ParameterExpression(_)))
+        let Some(params) = self.params.as_ref() else {
+            return false;
+        };
+        match params {
+            Parameters::Params(p) => p.iter().any(|x| matches!(x, Param::ParameterExpression(_))),
+            Parameters::Box { .. } => false,
+            Parameters::ForLoop { .. } => false,
+            Parameters::IfElse { .. } => false,
+            Parameters::Switch { .. } => false,
+            Parameters::While { .. } => false,
+        }
     }
 
     /// Creates a shallow copy with the given fields replaced.
@@ -278,27 +296,38 @@ impl CircuitInstruction {
             None => self.clbits.clone_ref(py),
             Some(clbits) => as_tuple(py, Some(clbits))?.unbind(),
         };
-        let params = params
-            .map(|params| params.extract::<SmallVec<[Param; 3]>>())
-            .transpose()?;
+        // let params = params
+        //     .map(|params| params.extract::<SmallVec<[Param; 3]>>())
+        //     .transpose()?;
 
         if let Some(operation) = operation {
             let op_parts = operation.extract::<OperationFromPython>()?;
+            let params = if let Some(params) = params {
+                extract_params(op_parts.operation.view(), &params)?
+            } else {
+                op_parts.params
+            };
+
             Ok(Self {
                 operation: op_parts.operation,
                 qubits,
                 clbits,
-                params: params.unwrap_or(op_parts.params),
+                params,
                 label: op_parts.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: operation.clone().unbind().into(),
             })
         } else {
+            let params = if let Some(params) = params {
+                extract_params(self.operation.view(), &params)?
+            } else {
+                self.params.clone()
+            };
             Ok(Self {
                 operation: self.operation.clone(),
                 qubits,
                 clbits,
-                params: params.unwrap_or_else(|| self.params.clone()),
+                params,
                 label: self.label.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: self.py_op.clone(),
@@ -371,30 +400,108 @@ impl CircuitInstruction {
         op: CompareOp,
         py: Python<'_>,
     ) -> PyResult<PyObject> {
-        fn params_eq(py: Python, left: &[Param], right: &[Param]) -> PyResult<bool> {
-            if left.len() != right.len() {
+        fn params_eq(
+            py: Python,
+            left: &Option<Parameters<PyObject>>,
+            right: &Option<Parameters<PyObject>>,
+        ) -> PyResult<bool> {
+            if left.is_none() && right.is_none() {
+                return Ok(true);
+            }
+            let (Some(left), Some(right)) = (left, right) else {
                 return Ok(false);
-            }
-            for (left, right) in left.iter().zip(right) {
-                let eq = match left {
-                    Param::Float(left) => match right {
-                        Param::Float(right) => left == right,
-                        Param::ParameterExpression(right) | Param::Obj(right) => {
-                            right.bind(py).eq(left)?
+            };
+
+            match (left, right) {
+                (Parameters::Params(left), Parameters::Params(right)) => {
+                    if left.len() != right.len() {
+                        return Ok(false);
+                    }
+                    for (left, right) in left.iter().zip(right) {
+                        let eq = match left {
+                            Param::Float(left) => match right {
+                                Param::Float(right) => left == right,
+                                Param::ParameterExpression(right) | Param::Obj(right) => {
+                                    right.bind(py).eq(left)?
+                                }
+                            },
+                            Param::ParameterExpression(left) | Param::Obj(left) => match right {
+                                Param::Float(right) => left.bind(py).eq(right)?,
+                                Param::ParameterExpression(right) | Param::Obj(right) => {
+                                    left.bind(py).eq(right)?
+                                }
+                            },
+                        };
+                        if !eq {
+                            return Ok(false);
                         }
-                    },
-                    Param::ParameterExpression(left) | Param::Obj(left) => match right {
-                        Param::Float(right) => left.bind(py).eq(right)?,
-                        Param::ParameterExpression(right) | Param::Obj(right) => {
-                            left.bind(py).eq(right)?
-                        }
-                    },
-                };
-                if !eq {
-                    return Ok(false);
+                    }
+                    Ok(true)
                 }
+                (Parameters::Box { body: body_a }, Parameters::Box { body: body_b }) => {
+                    body_a.bind(py).eq(body_b)
+                }
+                (
+                    Parameters::ForLoop {
+                        indexset: indexset_a,
+                        loop_param: loop_param_a,
+                        body: body_a,
+                    },
+                    Parameters::ForLoop {
+                        indexset: indexset_b,
+                        loop_param: loop_param_b,
+                        body: body_b,
+                    },
+                ) => {
+                    let loop_param_eq = || -> PyResult<bool> {
+                        match (loop_param_a, loop_param_b) {
+                            (Some(loop_param_a), Some(loop_param_b)) => {
+                                loop_param_a.bind(py).eq(loop_param_b)
+                            }
+                            _ => Ok(false),
+                        }
+                    };
+                    Ok(indexset_a == indexset_b
+                        && loop_param_eq()?
+                        && body_a.bind(py).eq(body_b)?)
+                }
+                (
+                    Parameters::IfElse {
+                        true_body: true_body_a,
+                        false_body: false_body_a,
+                    },
+                    Parameters::IfElse {
+                        true_body: true_body_b,
+                        false_body: false_body_b,
+                    },
+                ) => {
+                    let false_body_eq = || -> PyResult<bool> {
+                        match (false_body_a, false_body_b) {
+                            (Some(false_body_a), Some(false_body_b)) => {
+                                false_body_a.bind(py).eq(false_body_b)
+                            }
+                            (None, None) => Ok(true),
+                            _ => Ok(false),
+                        }
+                    };
+                    Ok(true_body_a.bind(py).eq(true_body_b)? && false_body_eq()?)
+                }
+                (Parameters::Switch { cases: cases_a }, Parameters::Switch { cases: cases_b }) => {
+                    if cases_a.len() != cases_b.len() {
+                        return Ok(false);
+                    }
+                    for (a, b) in cases_a.iter().zip(cases_b) {
+                        if !a.bind(py).eq(b)? {
+                            return Ok(false);
+                        }
+                    }
+                    Ok(true)
+                }
+                (Parameters::While { body: body_a }, Parameters::While { body: body_b }) => {
+                    body_a.bind(py).eq(body_b)
+                }
+                _ => Ok(false),
             }
-            Ok(true)
         }
 
         fn eq(
@@ -439,6 +546,155 @@ impl CircuitInstruction {
     }
 }
 
+/// Supports creation of a Python-space representation.
+pub trait CreatePythonOperation {
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into this
+    /// instruction.
+    ///
+    /// A standard-gate or standard-instruction operation object returned by this function is
+    /// disconnected from the containing circuit; updates to its parameters, label, duration, unit
+    /// and condition will not be propagated back.
+    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>>;
+}
+
+impl<T: Instruction> CreatePythonOperation for T {
+    fn create_py_op(&self, py: Python) -> PyResult<Py<PyAny>> {
+        match self.view() {
+            InstructionView::ControlFlow(cf) => {
+                let qubits = self.op().num_qubits();
+                let clbits = self.op().num_clbits();
+                let kwargs = self
+                    .label()
+                    .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+                    .transpose()?;
+                match cf {
+                    ControlFlowView::Box(duration, body) => {
+                        let (duration, unit) = match duration {
+                            Some(duration) => match duration {
+                                BoxDuration::Duration(duration) => {
+                                    (Some(duration.py_value(py)?), Some(duration.unit()))
+                                }
+                                BoxDuration::Expr(expr) => {
+                                    (Some(expr.clone().into_py_any(py)?), Some("expr"))
+                                }
+                            },
+                            None => (None, None),
+                        };
+                        // Note: we don't expose the annotations on ControlFlowView::Box currently
+                        // because they will move out of the operation and onto our concrete
+                        // instruction types (e.g. PackedInstruction) once we support them on other
+                        // operations.
+                        let annotations = match self.op() {
+                            OperationRef::ControlFlow(ControlFlow::Box { annotations, .. }) => {
+                                annotations
+                            }
+                            _ => panic!("expected control flow"),
+                        };
+                        BOX_OP.get(py).call1(
+                            py,
+                            (
+                                body,
+                                duration,
+                                unit,
+                                self.label(),
+                                PyTuple::new(py, annotations)?,
+                            ),
+                        )
+                    }
+                    ControlFlowView::BreakLoop => {
+                        BREAK_LOOP_OP
+                            .get(py)
+                            .call(py, (qubits, clbits), kwargs.as_ref())
+                    }
+                    ControlFlowView::ContinueLoop => {
+                        CONTINUE_LOOP_OP
+                            .get(py)
+                            .call(py, (qubits, clbits), kwargs.as_ref())
+                    }
+                    ControlFlowView::ForLoop {
+                        indexset,
+                        loop_param,
+                        body,
+                    } => {
+                        FOR_LOOP_OP
+                            .get(py)
+                            .call(py, (indexset, loop_param, body), kwargs.as_ref())
+                    }
+                    ControlFlowView::IfElse {
+                        condition,
+                        true_body,
+                        false_body,
+                    } => IF_ELSE_OP.get(py).call(
+                        py,
+                        (condition.clone(), true_body, false_body),
+                        kwargs.as_ref(),
+                    ),
+                    ControlFlowView::Switch {
+                        target,
+                        cases_specifier,
+                    } => SWITCH_CASE_OP.get(py).call(
+                        py,
+                        (
+                            target.clone(),
+                            cases_specifier
+                                .into_iter()
+                                .map(|(spec, case)| (spec.clone(), case))
+                                .collect_vec(),
+                        ),
+                        kwargs.as_ref(),
+                    ),
+                    ControlFlowView::While { condition, body } => {
+                        WHILE_LOOP_OP
+                            .get(py)
+                            .call(py, (condition.clone(), body), kwargs.as_ref())
+                    }
+                }
+            }
+            InstructionView::StandardGate(StandardGateView(gate, params)) => {
+                gate.create_py_op(py, Some(params), self.label())
+            }
+            InstructionView::StandardInstruction(instruction) => {
+                let kwargs = self
+                    .label()
+                    .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+                    .transpose()?;
+                match instruction {
+                    StandardInstructionView::Barrier(num_qubits) => {
+                        BARRIER.get(py).call(py, (num_qubits,), kwargs.as_ref())
+                    }
+                    StandardInstructionView::Delay { duration, unit } => DELAY
+                        .get(py)
+                        .call1(py, (duration.clone().into_py_any(py)?, unit.to_string())),
+                    StandardInstructionView::Measure => {
+                        MEASURE.get(py).call(py, (), kwargs.as_ref())
+                    }
+                    StandardInstructionView::Reset => RESET.get(py).call(py, (), kwargs.as_ref()),
+                }
+            }
+            InstructionView::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+            InstructionView::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
+            InstructionView::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+            InstructionView::Unitary(unitary) => {
+                let kwargs = PyDict::new(py);
+                if let Some(label) = self.label() {
+                    kwargs.set_item(intern!(py, "label"), label.into_py_any(py)?)?;
+                }
+                let out_array = match &unitary.array {
+                    ArrayType::NDArray(arr) => arr.to_pyarray(py),
+                    ArrayType::OneQ(arr) => arr.to_pyarray(py),
+                    ArrayType::TwoQ(arr) => arr.to_pyarray(py),
+                };
+                kwargs.set_item(intern!(py, "check_input"), false)?;
+                kwargs.set_item(intern!(py, "num_qubits"), self.op().num_qubits())?;
+                let gate = UNITARY_GATE
+                    .get_bound(py)
+                    .call((out_array,), Some(&kwargs))?;
+                Ok(gate.unbind())
+            }
+        }
+    }
+}
+
 /// A container struct that contains the conversion from some `Operation` subclass input, on its way
 /// to becoming a `PackedInstruction`.
 ///
@@ -459,8 +715,22 @@ impl CircuitInstruction {
 #[derive(Debug)]
 pub struct OperationFromPython {
     pub operation: PackedOperation,
-    pub params: SmallVec<[Param; 3]>,
+    pub params: Option<Parameters<PyObject>>,
     pub label: Option<Box<String>>,
+}
+
+impl Instruction for OperationFromPython {
+    fn op(&self) -> OperationRef<'_> {
+        self.operation.view()
+    }
+
+    fn parameters(&self) -> Option<&Parameters<PyObject>> {
+        self.params.as_ref()
+    }
+
+    fn label(&self) -> Option<&str> {
+        self.label.as_ref().map(|label| label.as_str())
+    }
 }
 
 impl<'py> FromPyObject<'py> for OperationFromPython {
@@ -473,27 +743,11 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             .transpose()?
             .unwrap_or_else(|| ob.get_type());
 
-        let extract_params = || {
-            ob.getattr(intern!(py, "params"))
-                .ok()
-                .map(|params| params.extract())
-                .transpose()
-                .map(|params| params.unwrap_or_default())
+        let get_params = || -> PyResult<Bound<PyAny>> {
+            Ok(ob
+                .getattr_opt(intern!(py, "params"))?
+                .unwrap_or_else(|| PyTuple::empty(py).into_any()))
         };
-
-        let extract_params_no_coerce = || {
-            ob.getattr(intern!(py, "params"))
-                .ok()
-                .map(|params| {
-                    params
-                        .try_iter()?
-                        .map(|p| Param::extract_no_coerce(&p?))
-                        .collect()
-                })
-                .transpose()
-                .map(|params| params.unwrap_or_default())
-        };
-
         let extract_label = || -> PyResult<Option<Box<String>>> {
             let raw = ob.getattr(intern!(py, "label"))?;
             Ok(raw.extract::<Option<String>>()?.map(Box::new))
@@ -530,9 +784,11 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
             {
                 break 'standard_gate;
             }
+            let operation = PackedOperation::from_standard_gate(standard);
+            let params = extract_params(operation.view(), &get_params()?)?;
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_standard_gate(standard),
-                params: extract_params()?,
+                operation,
+                params,
                 label: extract_label()?,
             });
         }
@@ -555,29 +811,106 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                 }
                 StandardInstructionType::Delay => {
                     let unit = ob.getattr(intern!(py, "unit"))?.extract()?;
-                    return Ok(OperationFromPython {
-                        operation: PackedOperation::from_standard_instruction(
-                            StandardInstruction::Delay(unit),
-                        ),
-                        // If the delay's duration is a Python int, we preserve it rather than
-                        // coercing it to a float (e.g. when unit is 'dt').
-                        params: extract_params_no_coerce()?,
-                        label: extract_label()?,
-                    });
+                    StandardInstruction::Delay(unit)
                 }
                 StandardInstructionType::Measure => StandardInstruction::Measure,
                 StandardInstructionType::Reset => StandardInstruction::Reset,
             };
+            let operation = PackedOperation::from_standard_instruction(standard);
+            let params = extract_params(operation.view(), &get_params()?)?;
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_standard_instruction(standard),
-                params: extract_params()?,
+                operation,
+                params,
+                label: extract_label()?,
+            });
+        }
+        'control_flow: {
+            // Our Python control flow instructions have a `_control_flow_type` field at the
+            // class level so we can quickly identify them here without an `isinstance` check.
+            // Once we know the type, we query the object for any type-specific fields we need to
+            // read to build the Rust representation.
+            let Some(control_flow_type) = ob_type
+                .getattr(intern!(py, "_control_flow_type"))
+                .and_then(|cf| cf.extract::<ControlFlowType>())
+                .ok()
+            else {
+                break 'control_flow;
+            };
+            let params = get_params()?;
+            let control_flow = match control_flow_type {
+                ControlFlowType::Box => {
+                    let py_duration: Option<Bound<PyAny>> =
+                        ob.getattr(intern!(py, "duration"))?.extract()?;
+                    let unit: Option<String> = ob.getattr(intern!(py, "unit"))?.extract()?;
+                    let duration = if let Some(py_duration) = py_duration {
+                        Some(match unit.as_deref().unwrap_or("dt") {
+                            "dt" => BoxDuration::Duration(Duration::dt(py_duration.extract()?)),
+                            "s" => BoxDuration::Duration(Duration::s(py_duration.extract()?)),
+                            "ms" => BoxDuration::Duration(Duration::ms(py_duration.extract()?)),
+                            "us" => BoxDuration::Duration(Duration::us(py_duration.extract()?)),
+                            "ns" => BoxDuration::Duration(Duration::ns(py_duration.extract()?)),
+                            // TODO: handle "ps"
+                            "expr" => BoxDuration::Expr(py_duration.extract()?),
+                            _ => {
+                                return Err(PyValueError::new_err(format!(
+                                    "duration unit '{}' is unsupported",
+                                    unit.unwrap()
+                                )))
+                            }
+                        })
+                    } else {
+                        None
+                    };
+                    let annotations = ob.getattr(intern!(py, "annotations"))?.extract()?;
+                    ControlFlow::Box {
+                        duration,
+                        annotations,
+                        qubits: ob.getattr("num_qubits")?.extract()?,
+                        clbits: ob.getattr("num_clbits")?.extract()?,
+                    }
+                }
+                ControlFlowType::BreakLoop => ControlFlow::BreakLoop {
+                    qubits: ob.getattr("num_qubits")?.extract()?,
+                    clbits: ob.getattr("num_clbits")?.extract()?,
+                },
+                ControlFlowType::ContinueLoop => ControlFlow::ContinueLoop {
+                    qubits: ob.getattr("num_qubits")?.extract()?,
+                    clbits: ob.getattr("num_clbits")?.extract()?,
+                },
+                ControlFlowType::ForLoop => ControlFlow::ForLoop {
+                    qubits: ob.getattr("num_qubits")?.extract()?,
+                    clbits: ob.getattr("num_clbits")?.extract()?,
+                },
+                ControlFlowType::IfElse => ControlFlow::IfElse {
+                    condition: ob.getattr(intern!(py, "condition"))?.extract()?,
+                    qubits: ob.getattr("num_qubits")?.extract()?,
+                    clbits: ob.getattr("num_clbits")?.extract()?,
+                },
+                ControlFlowType::SwitchCase => ControlFlow::Switch {
+                    target: ob.getattr(intern!(py, "target"))?.extract()?,
+                    label_spec: ob.getattr(intern!(py, "_label_spec"))?.extract()?,
+                    qubits: ob.getattr("num_qubits")?.extract()?,
+                    clbits: ob.getattr("num_clbits")?.extract()?,
+                    cases: params.len()? as u32,
+                },
+                ControlFlowType::WhileLoop => ControlFlow::While {
+                    condition: ob.getattr(intern!(py, "condition"))?.extract()?,
+                    qubits: ob.getattr("num_qubits")?.extract()?,
+                    clbits: ob.getattr("num_clbits")?.extract()?,
+                },
+            };
+            let operation = PackedOperation::from_control_flow(control_flow.into());
+            let params = extract_params(operation.view(), &params)?;
+            return Ok(OperationFromPython {
+                operation,
+                params,
                 label: extract_label()?,
             });
         }
 
         // We need to check by name here to avoid a circular import during initial loading
         if ob.getattr(intern!(py, "name"))?.extract::<String>()? == "unitary" {
-            let params = extract_params()?;
+            let params: SmallVec<[Param; 3]> = get_params()?.extract()?;
             if let Some(Param::Obj(data)) = params.first() {
                 let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
                 let matrix: Option<MatrixView2<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
@@ -587,7 +920,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     });
                     return Ok(OperationFromPython {
                         operation: PackedOperation::from_unitary(unitary_gate),
-                        params: SmallVec::new(),
+                        params: None,
                         label: extract_label()?,
                     });
                 }
@@ -598,7 +931,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     });
                     return Ok(OperationFromPython {
                         operation: PackedOperation::from_unitary(unitary_gate),
-                        params: SmallVec::new(),
+                        params: None,
                         label: extract_label()?,
                     });
                 } else {
@@ -607,7 +940,7 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     });
                     return Ok(OperationFromPython {
                         operation: PackedOperation::from_unitary(unitary_gate),
-                        params: SmallVec::new(),
+                        params: None,
                         label: extract_label()?,
                     });
                 };
@@ -615,53 +948,135 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
         }
 
         if ob_type.is_subclass(GATE.get_bound(py))? {
-            let params = extract_params()?;
-            let gate = Box::new(PyGate {
+            let params = get_params()?;
+            let operation = PackedOperation::from_gate(Box::new(PyGate {
                 qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
                 clbits: 0,
-                params: params.len() as u32,
+                params: params.len()? as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
                 gate: ob.clone().unbind(),
-            });
+            }));
+            let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_gate(gate),
+                operation,
                 params,
                 label: extract_label()?,
             });
         }
         if ob_type.is_subclass(INSTRUCTION.get_bound(py))? {
-            let params = extract_params()?;
-            let instruction = Box::new(PyInstruction {
+            let params = get_params()?;
+            let operation = PackedOperation::from_instruction(Box::new(PyInstruction {
                 qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
-                params: params.len() as u32,
+                params: params.len()? as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                control_flow: ob.is_instance(CONTROL_FLOW_OP.get_bound(py))?,
                 instruction: ob.clone().unbind(),
-            });
+            }));
+            let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_instruction(instruction),
+                operation,
                 params,
                 label: extract_label()?,
             });
         }
         if ob_type.is_subclass(OPERATION.get_bound(py))? {
-            let params = extract_params()?;
-            let operation = Box::new(PyOperation {
+            let params = get_params()?;
+            let operation = PackedOperation::from_operation(Box::new(PyOperation {
                 qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
                 clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
-                params: params.len() as u32,
+                params: params.len()? as u32,
                 op_name: ob.getattr(intern!(py, "name"))?.extract()?,
                 operation: ob.clone().unbind(),
-            });
+            }));
+            let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_operation(operation),
+                operation,
                 params,
                 label: None,
             });
         }
         Err(PyTypeError::new_err(format!("invalid input: {}", ob)))
     }
+}
+
+/// Extracts a Python-space params list into an optional [Parameters] list, given
+/// the corresponding operation reference.
+pub fn extract_params(
+    op: OperationRef,
+    params: &Bound<PyAny>,
+) -> PyResult<Option<Parameters<PyObject>>> {
+    Ok(match op {
+        OperationRef::ControlFlow(cf) => match cf {
+            ControlFlow::Box { .. } => Some(Parameters::Box {
+                body: params.try_iter()?.next().unwrap()?.unbind(),
+            }),
+            ControlFlow::BreakLoop { .. } => None,
+            ControlFlow::ContinueLoop { .. } => None,
+            ControlFlow::ForLoop { .. } => {
+                let mut params = params.try_iter()?;
+                let indexset = {
+                    // The indexset is an iterable of ints, so we extract each
+                    // and store them all in a Vec.
+                    let indexset = params.next().unwrap()?.try_iter()?;
+                    indexset
+                        .map(|index| index?.extract())
+                        .collect::<PyResult<_>>()?
+                };
+                Some(Parameters::ForLoop {
+                    indexset,
+                    loop_param: params
+                        .next()
+                        .unwrap()?
+                        .extract::<Option<Bound<PyAny>>>()?
+                        .map(|p| p.unbind()),
+                    body: params.next().unwrap()?.unbind(),
+                })
+            }
+            ControlFlow::IfElse { .. } => {
+                let mut params = params.try_iter()?;
+                Some(Parameters::IfElse {
+                    true_body: params.next().unwrap()?.unbind(),
+                    false_body: params
+                        .next()
+                        .unwrap()?
+                        .extract::<Option<Bound<PyAny>>>()?
+                        .map(|p| p.unbind()),
+                })
+            }
+            ControlFlow::Switch { .. } => {
+                let cases: Vec<PyObject> = params
+                    .try_iter()?
+                    .map(|p| p.map(|p| p.unbind()))
+                    .collect::<PyResult<_>>()?;
+                Some(Parameters::Switch { cases })
+            }
+            ControlFlow::While { .. } => Some(Parameters::While {
+                body: params.try_iter()?.next().unwrap()?.unbind(),
+            }),
+        },
+        OperationRef::StandardGate(_) => Some(Parameters::Params(params.extract()?)),
+        OperationRef::StandardInstruction(i) => {
+            match &i {
+                StandardInstruction::Barrier(_) => None,
+                StandardInstruction::Delay(_) => {
+                    // If the delay's duration is a Python int, we preserve it rather than
+                    // coercing it to a float (e.g. when unit is 'dt').
+                    Some(Parameters::Params(
+                        params
+                            .try_iter()?
+                            .map(|p| Param::extract_no_coerce(&p?))
+                            .collect::<PyResult<_>>()?,
+                    ))
+                }
+                StandardInstruction::Measure => None,
+                StandardInstruction::Reset => None,
+            }
+        }
+        OperationRef::Unitary(_) => None,
+        OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
+            Some(Parameters::Params(params.extract()?))
+        }
+    })
 }
 
 /// Convert a sequence-like Python object to a tuple.

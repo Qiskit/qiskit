@@ -39,7 +39,7 @@ use pyo3::PyTypeInfo;
 ///   else:
 ///       raise ValueError("expected dt or seconds")
 #[pyclass(eq, module = "qiskit._accelerate.circuit")]
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug, IntoPyObjectRef)]
 #[allow(non_camel_case_types)]
 pub enum Duration {
     dt(i64),
@@ -52,7 +52,7 @@ pub enum Duration {
 #[pymethods]
 impl Duration {
     /// The corresponding ``unit`` of the duration.
-    fn unit(&self) -> &'static str {
+    pub fn unit(&self) -> &'static str {
         match self {
             Duration::dt(_) => "dt",
             Duration::us(_) => "us",
@@ -67,7 +67,7 @@ impl Duration {
     /// This will be a Python ``int`` if the :meth:`~Duration.unit` is ``"dt"``,
     /// else a ``float``.
     #[pyo3(name = "value")]
-    fn py_value(&self, py: Python) -> PyResult<PyObject> {
+    pub fn py_value(&self, py: Python) -> PyResult<PyObject> {
         match self {
             Duration::dt(v) => v.into_py_any(py),
             Duration::us(v) | Duration::ns(v) | Duration::ms(v) | Duration::s(v) => {

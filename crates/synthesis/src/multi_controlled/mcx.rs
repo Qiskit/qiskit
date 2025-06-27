@@ -15,13 +15,13 @@ use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{
-    multiply_param, Operation, OperationRef, Param, PyGate, StandardGate,
-};
+use qiskit_circuit::operations::{multiply_param, Operation, Param, PyGate, StandardGate};
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::SmallVec;
 
+use qiskit_circuit::instruction::{Instruction, InstructionView, IntoInstructionView, Parameters};
 use std::f64::consts::PI;
+
 const PI2: f64 = PI / 2.0;
 
 /// Definition circuit for CCX.
@@ -186,7 +186,7 @@ impl CircuitDataForSynthesis for CircuitData {
 
             self.push_packed_operation(
                 inst.op.clone(),
-                inst.params_view(),
+                inst.parameters().cloned(),
                 &remapped_qubits,
                 &remapped_clbits,
             );
@@ -209,8 +209,8 @@ impl CircuitDataForSynthesis for CircuitData {
         for i in 0..data.len() {
             let inst = &data[data.len() - 1 - i];
 
-            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op.view() {
-                OperationRef::StandardGate(gate) => gate.inverse(inst.params_view()),
+            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.view() {
+                InstructionView::StandardGate(gate) => gate.inverse(),
                 _ => None,
             };
 
@@ -225,7 +225,7 @@ impl CircuitDataForSynthesis for CircuitData {
 
             inverse_circuit.push_packed_operation(
                 inverse_op.into(),
-                &inverse_op_params,
+                Some(Parameters::Params(inverse_op_params)),
                 self.get_qargs(inst.qubits),
                 self.get_cargs(inst.clbits),
             );
@@ -404,7 +404,7 @@ pub fn synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitD
 
         circuit.push_packed_operation(
             as_py_gate.into(),
-            &[],
+            None,
             &(0..num_qubits).map(Qubit).collect::<Vec<Qubit>>(),
             &[],
         );

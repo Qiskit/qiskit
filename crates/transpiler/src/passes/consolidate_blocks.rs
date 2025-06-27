@@ -25,7 +25,6 @@ use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::smallvec;
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
@@ -133,7 +132,7 @@ pub fn run_consolidate_blocks(
                 dag.substitute_op(
                     inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                 )?;
                 continue;
@@ -171,10 +170,11 @@ pub fn run_consolidate_blocks(
                 0,
                 block.iter().map(|node| {
                     let inst = dag[*node].unwrap_operation();
+                    let inst = inst.clone().into_packed(py)?;
 
                     Ok((
-                        inst.op.clone(),
-                        inst.params_view().iter().cloned().collect(),
+                        inst.op,
+                        inst.params.map(|p| *p),
                         dag.get_qargs(inst.qubits)
                             .iter()
                             .map(|x| Qubit::new(block_index_map[x]))
@@ -207,7 +207,7 @@ pub fn run_consolidate_blocks(
                 dag.replace_block(
                     &block,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                     false,
                     &block_index_map,
@@ -255,7 +255,7 @@ pub fn run_consolidate_blocks(
                         dag.replace_block(
                             &block,
                             PackedOperation::from_unitary(Box::new(unitary_gate)),
-                            smallvec![],
+                            None,
                             None,
                             false,
                             &qubit_pos_map,
@@ -293,7 +293,7 @@ pub fn run_consolidate_blocks(
                 dag.substitute_op(
                     first_inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                 )?;
                 continue;
@@ -337,7 +337,7 @@ pub fn run_consolidate_blocks(
                 dag.replace_block(
                     &run,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                     false,
                     &block_index_map,
