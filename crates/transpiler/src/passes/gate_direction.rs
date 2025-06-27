@@ -257,7 +257,6 @@ where
                 let mut blocks_to_replace = Vec::with_capacity(blocks.len());
                 for block in blocks {
                     let mut inner_dag = circuit_to_dag(
-                        py,
                         QuantumCircuitData::extract_bound(&block)?,
                         false,
                         None,

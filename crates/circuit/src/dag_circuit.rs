@@ -30,7 +30,9 @@ use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{ArrayType, Operation, OperationRef, Param, PyInstruction, StandardGate};
+use crate::operations::{
+    ArrayType, Operation, OperationRef, Param, PyInstruction, PythonOperation, StandardGate,
+};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
@@ -6611,7 +6613,6 @@ impl DAGCircuit {
 
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
     pub(crate) fn from_circuit(
-        py: Python,
         qc: QuantumCircuitData,
         copy_op: bool,
         qubit_order: Option<Vec<Bound<PyAny>>>,
@@ -6619,11 +6620,41 @@ impl DAGCircuit {
     ) -> PyResult<DAGCircuit> {
         // Extract necessary attributes
         let qc_data = qc.data;
+        Self::from_circuit_data(
+            &qc_data,
+            copy_op,
+            qc.name,
+            qc.metadata.map(|x| x.unbind()),
+            qc.input_vars,
+            qc.captured_vars,
+            qc.declared_vars,
+            qc.captured_stretches,
+            qc.declared_stretches,
+            qubit_order,
+            clbit_order,
+        )
+    }
+
+    /// Builds a [DAGCircuit] based on an instance of [CircuitData].
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_circuit_data(
+        qc_data: &CircuitData,
+        copy_op: bool,
+        name: Option<String>,
+        metadata: Option<PyObject>,
+        input_vars: Vec<expr::Var>,
+        captured_vars: Vec<expr::Var>,
+        declared_vars: Vec<expr::Var>,
+        captured_stretches: Vec<expr::Stretch>,
+        declared_stretches: Vec<expr::Stretch>,
+        qubit_order: Option<Vec<Bound<PyAny>>>,
+        clbit_order: Option<Vec<Bound<PyAny>>>,
+    ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
         let num_ops = qc_data.__len__();
-        let num_vars = qc.declared_vars.len() + qc.input_vars.len() + qc.captured_vars.len();
-        let num_stretches = qc.declared_stretches.len() + qc.captured_stretches.len();
+        let num_vars = declared_vars.len() + input_vars.len() + captured_vars.len();
+        let num_stretches = declared_stretches.len() + captured_stretches.len();
 
         // Build DAGCircuit with capacity
         let mut new_dag = DAGCircuit::with_capacity(
@@ -6636,16 +6667,18 @@ impl DAGCircuit {
         )?;
 
         // Assign other necessary data
-        new_dag.name = qc.name;
+        new_dag.name = name;
 
         // Avoid manually acquiring the GIL.
         new_dag.global_phase = match qc_data.global_phase() {
-            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
+            // The clone here implicitly requires the gil while ParameterExpression is defined in
+            // Python.
+            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone()),
             Param::Float(float) => Param::Float(*float),
             _ => unreachable!("Incorrect parameter assigned for global phase"),
         };
 
-        new_dag.metadata = qc.metadata.map(|meta| meta.unbind());
+        new_dag.metadata = metadata;
 
         // Add the qubits depending on order, and produce the qargs map.
         let qarg_map = if let Some(qubit_ordering) = qubit_order {
@@ -6716,23 +6749,23 @@ impl DAGCircuit {
         };
 
         // Add all of the new vars.
-        for var in qc.declared_vars {
+        for var in declared_vars {
             new_dag.add_var(var, DAGVarType::Declare)?;
         }
 
-        for var in qc.input_vars {
+        for var in input_vars {
             new_dag.add_var(var, DAGVarType::Input)?;
         }
 
-        for var in qc.captured_vars {
+        for var in captured_vars {
             new_dag.add_var(var, DAGVarType::Capture)?;
         }
 
-        for stretch in qc.captured_stretches {
+        for stretch in captured_stretches {
             new_dag.add_captured_stretch(stretch)?;
         }
 
-        for stretch in qc.declared_stretches {
+        for stretch in declared_stretches {
             new_dag.add_declared_stretch(stretch)?;
         }
 
@@ -6752,7 +6785,20 @@ impl DAGCircuit {
         new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
             Ok(PackedInstruction {
                 op: if copy_op {
-                    instr.op.py_deepcopy(py, None)?
+                    match instr.op.view() {
+                        OperationRef::Gate(gate) => {
+                            Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
+                        }
+                        OperationRef::Instruction(instruction) => {
+                            Python::with_gil(|py| instruction.py_deepcopy(py, None))?.into()
+                        }
+                        OperationRef::Operation(operation) => {
+                            Python::with_gil(|py| operation.py_deepcopy(py, None))?.into()
+                        }
+                        OperationRef::StandardGate(gate) => gate.into(),
+                        OperationRef::StandardInstruction(instruction) => instruction.into(),
+                        OperationRef::Unitary(unitary) => unitary.clone().into(),
+                    }
                 } else {
                     instr.op.clone()
                 },
@@ -6765,25 +6811,6 @@ impl DAGCircuit {
             })
         }))?;
         Ok(new_dag)
-    }
-
-    /// Builds a [DAGCircuit] based on an instance of [CircuitData].
-    pub fn from_circuit_data(
-        py: Python,
-        circuit_data: CircuitData,
-        copy_op: bool,
-    ) -> PyResult<Self> {
-        let circ = QuantumCircuitData {
-            data: circuit_data,
-            name: None,
-            metadata: None,
-            input_vars: Vec::new(),
-            captured_vars: Vec::new(),
-            declared_vars: Vec::new(),
-            captured_stretches: Vec::new(),
-            declared_stretches: Vec::new(),
-        };
-        Self::from_circuit(py, circ, copy_op, None, None)
     }
 
     #[allow(clippy::too_many_arguments)]
