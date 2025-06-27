@@ -50,6 +50,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_2_dirty_kg24,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_hp24,
     synth_c3x,
     synth_c4x,
 )
@@ -188,6 +189,14 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
     def test_mcx_noaux_v24(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
+
+    @data(1, 2, 3, 4, 5, 6, 7, 8)
+    def test_mcx_noaux_hp24(self, num_ctrl_qubits: int):
+        """Test synth_mcx_noaux_hp24 by comparing synthesized and expected matrices."""
+        synthesized_circuit = synth_mcx_noaux_hp24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
