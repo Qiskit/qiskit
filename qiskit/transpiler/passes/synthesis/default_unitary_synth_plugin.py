@@ -602,7 +602,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
     def _synth_su4_no_dag(self, unitary, decomposer2q, preferred_direction, approximation_degree):
         approximate = not approximation_degree == 1.0
-        synth_circ = decomposer2q._inner_decomposer(unitary, approximate=approximate)
+        synth_circ = decomposer2q._inner_decomposer.to_circuit(unitary, approximate=approximate)
         if not preferred_direction:
             return (synth_circ, synth_circ.global_phase, decomposer2q.gate)
 
