@@ -31,11 +31,11 @@ Qiskit offers a reference implementation for each of these abstractions in the
 :class:`~.StatevectorSampler` and :class:`~.StatevectorEstimator` classes.
 
 The earlier versions of the sampler and estimator abstractions are defined by :class:`~.BaseSamplerV1`
-and :class:`~.BaseEstimatorV1`. These interfaces follow a different and less flexible input-output 
-format for the ``run`` method and have been largely replaced in practice by :class:`~.BaseSamplerV2` and 
-:class:`~.BaseEstimatorV2`. However, the original abstract interface definitions have been 
-retained for backward compatibility. Check the migration section of this page to see further details 
-on the difference between V1 and V2. 
+and :class:`~.BaseEstimatorV1`. These interfaces follow a different and less flexible input-output
+format for the ``run`` method and have been largely replaced in practice by :class:`~.BaseSamplerV2` and
+:class:`~.BaseEstimatorV2`. However, the original abstract interface definitions have been
+retained for backward compatibility. Check the migration section of this page to see further details
+on the difference between V1 and V2.
 
 Overview of EstimatorV2
 =======================
@@ -174,11 +174,11 @@ Here is an example of how a sampler is used.
 Overview of EstimatorV1
 =======================
 
-There are currently no implementations of the legacy ``EstimatorV1`` interface in Qiskit. 
-However, the abstract interface definition from :class:`~BaseEstimatorV1` is still part 
-of the package to provide backwards compatibility for external implementations. 
+There are currently no implementations of the legacy ``EstimatorV1`` interface in Qiskit.
+However, the abstract interface definition from :class:`~BaseEstimatorV1` is still part
+of the package to provide backwards compatibility for external implementations.
 
-An ``EstimatorV1`` implementation is initialized with an empty parameter set. 
+An ``EstimatorV1`` implementation is initialized with an empty parameter set.
 :class:`~BaseEstimatorV1` can be called via the ``.run()`` method with the following parameters:
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits
@@ -201,14 +201,14 @@ the estimation.
     \langle\psi_i(\theta_k)|H_j|\psi_i(\theta_k)\rangle
 
 Here is an example of how an ``EstimatorV1`` implementation would be used.
-Note that there are currently no implementations of the legacy ``EstimatorV1`` 
-interface in Qiskit. 
+Note that there are currently no implementations of the legacy ``EstimatorV1``
+interface in Qiskit.
 
 .. code-block:: python
 
     # This is a fictional import path.
     # There are currently no EstimatorV1 implementations in Qiskit.
-    from estimator_v1_location import EstimatorV1 
+    from estimator_v1_location import EstimatorV1
     from qiskit.circuit.library import RealAmplitudes
     from qiskit.quantum_info import SparsePauliOp
 
@@ -245,13 +245,13 @@ interface in Qiskit.
 Overview of SamplerV1
 =====================
 
-There are currently no implementations of the legacy ``SamplerV1`` interface in Qiskit. 
-However, the abstract interface definition from :class:`~BaseSamplerV1` is still part 
-of the package to provide backward compatibility for external implementations. 
+There are currently no implementations of the legacy ``SamplerV1`` interface in Qiskit.
+However, the abstract interface definition from :class:`~BaseSamplerV1` is still part
+of the package to provide backward compatibility for external implementations.
 
 Sampler classes calculate probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
-A ``SamplerV1`` is initialized with an empty parameter set. :class:`~BaseSamplerV1` implementations can 
+A ``SamplerV1`` is initialized with an empty parameter set. :class:`~BaseSamplerV1` implementations can
 be called via the ``.run()`` method with the following parameters:
 
 * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
@@ -267,14 +267,14 @@ object, which contains probabilities or quasi-probabilities of bitstrings,
 plus optional metadata like error bars in the samples.
 
 Here is an example of how a ``SamplerV1`` implementation would be used.
-Note that there are currently no implementations of the legacy ``SamplerV1`` 
-interface in Qiskit. 
+Note that there are currently no implementations of the legacy ``SamplerV1``
+interface in Qiskit.
 
 .. code-block:: python
 
     # This is a fictional import path.
     # There are currently no SamplerV1 implementations in Qiskit.
-    from sampler_v1_location import Sampler 
+    from sampler_v1_location import Sampler
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
@@ -415,6 +415,8 @@ Estimator V2
    :toctree: ../stubs/
 
    BaseEstimatorV2
+   EstimatorPubLike
+   EstimatorPub
    StatevectorEstimator
    BackendEstimatorV2
 
@@ -425,17 +427,23 @@ Sampler V2
    :toctree: ../stubs/
 
    BaseSamplerV2
+   SamplerPubLike
+   SamplerPub
    StatevectorSampler
    BackendSamplerV2
 
-Results V2
+Containers V2
 ----------
 
 .. autosummary::
    :toctree: ../stubs/
 
+   BindingsArray
+   BindingsArrayLike
    BitArray
    DataBin
+   ObservablesArray
+   ObservablesArrayLike
    PrimitiveResult
    PubResult
    SamplerPubResult
@@ -476,7 +484,9 @@ from .containers import (
     DataBin,
     PrimitiveResult,
     PubResult,
+    EstimatorPub,
     EstimatorPubLike,
+    SamplerPub,
     SamplerPubLike,
     SamplerPubResult,
     BindingsArrayLike,
