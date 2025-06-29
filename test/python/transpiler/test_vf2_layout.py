@@ -286,6 +286,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
         self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
 
 
+@ddt.ddt
 class TestVF2LayoutLattice(LayoutTestCase):
     """Fit in 25x25 hexagonal lattice coupling map"""
 
@@ -316,23 +317,25 @@ class TestVF2LayoutLattice(LayoutTestCase):
         pass_.run(dag)
         self.assertLayout(dag, self.cmap25, pass_.property_set)
 
-    def test_hexagonal_lattice_graph_9_in_25_no_trial_limit(self):
+    @ddt.data(True, False)
+    def test_hexagonal_lattice_graph_9_in_25_no_trial_limit(self, strict_direction):
         """A 9x9 interaction map in 25x25 coupling map"""
         graph_9_9 = rustworkx.generators.hexagonal_lattice_graph(9, 9)
         circuit = self.graph_state_from_pygraph(graph_9_9)
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(self.cmap25, seed=self.seed, max_trials=-1)
+        pass_ = VF2Layout(self.cmap25, seed=-1, max_trials=-1, strict_direction=strict_direction)
         pass_.run(dag)
         self.assertLayout(dag, self.cmap25, pass_.property_set)
 
-    def test_hexagonal_lattice_graph_9_in_25_default_trial_limit(self):
+    @ddt.data(True, False)
+    def test_hexagonal_lattice_graph_9_in_25_default_trial_limit(self, strict_direction):
         """A 9x9 interaction map in 25x25 coupling map"""
         graph_9_9 = rustworkx.generators.hexagonal_lattice_graph(9, 9)
         circuit = self.graph_state_from_pygraph(graph_9_9)
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(self.cmap25, seed=self.seed, max_trials=None)
+        pass_ = VF2Layout(self.cmap25, seed=-1, max_trials=None, strict_direction=strict_direction)
         pass_.run(dag)
         self.assertLayout(dag, self.cmap25, pass_.property_set)
 
