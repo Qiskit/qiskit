@@ -1,0 +1,17 @@
+fixes:
+  - |
+    Fixed a bug in :meth:`.SparsePauliOp.simplify` where the method removed
+    Pauli terms based on their coefficients' magnitudes **before** combining
+    duplicates. This caused incorrect behavior in two key edge cases:
+
+    1. When multiple identical Pauli terms had small coefficients that were individually
+       below the simplification threshold but whose **sum exceeded the threshold**,
+       those terms were incorrectly removed.
+    2. When multiple identical Pauli terms had coefficients above the threshold but
+       **summed to near-zero**, they were incorrectly kept.
+
+    The fix ensures that duplicate Pauli strings are now summed **before** tolerance-based
+    filtering is applied.
+
+    Thanks to `#14194 <https://github.com/Qiskit/qiskit/issues/14194>`__ for the report,
+    and `#14425 <https://github.com/Qiskit/qiskit/pull/14425>`__ for the fix.
