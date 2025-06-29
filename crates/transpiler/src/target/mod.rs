@@ -1569,7 +1569,7 @@ mod test {
             None,
             Some([(qargs.clone(), None)].into_iter().collect()),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(test_target["cx"][&qargs], None);
 
@@ -1579,7 +1579,7 @@ mod test {
             &qargs,
             Some(InstructionProperties::new(Some(0.00122), Some(0.00001023))),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(
             test_target["cx"][&qargs],
@@ -1588,7 +1588,7 @@ mod test {
 
         // Modify instruction property back to None.
         let result = test_target.update_instruction_properties("cx", &qargs, None);
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
         assert_eq!(test_target["cx"][&qargs], None);
     }
 
@@ -1603,7 +1603,7 @@ mod test {
             None,
             Some([(qargs.clone().into(), None)].into_iter().collect()),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
 

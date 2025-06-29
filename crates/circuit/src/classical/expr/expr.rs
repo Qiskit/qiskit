@@ -949,7 +949,7 @@ mod tests {
                     op,
                     left: left.clone(),
                     right: right.clone(),
-                    ty: out_ty.clone(),
+                    ty: out_ty,
                     constant: false,
                 }
                 .into(),
@@ -968,13 +968,11 @@ mod tests {
 
             assert!(
                 !cis.structurally_equivalent(&trans),
-                "Expected {:?} to not be structurally equivalent to its flipped form",
-                op
+                "Expected {op:?} to not be structurally equivalent to its flipped form"
             );
             assert!(
                 !trans.structurally_equivalent(&cis),
-                "Expected flipped {:?} to not be structurally equivalent to original form",
-                op
+                "Expected flipped {op:?} to not be structurally equivalent to original form"
             );
         }
     }
