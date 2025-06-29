@@ -128,31 +128,37 @@ def qs_decomposition(
                 um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
                 # the ctrl_index is reversed here
                 if _off_diagonals_are_zero(um01, um10):
-                    decirc = _demultiplex(
+                    decirc, _, _ = _demultiplex(
                         um00,
                         um11,
                         opt_a1=opt_a1,
                         opt_a2=opt_a2,
+                        type=all,
                         _depth=_depth,
                         _ctrl_index=nqubits - 1 - ctrl_index,
                     )
                     return decirc
         qr = QuantumRegister(nqubits)
 
-        circ = QuantumCircuit(qr)
         # perform block ZXZ decomposition
         A1, A2, B, C = _block_zxz_decomp(np.asarray(mat, dtype=complex))
         iden = np.eye(2 ** (nqubits - 1))
         # left circ
-        left_circ = _demultiplex(iden, C, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
-        circ.append(left_circ.to_instruction(), qr)
+        left_circ, vmatC, wmatC = _demultiplex(iden, C, opt_a1=opt_a1, opt_a2=opt_a2, type="only_w", _depth=_depth)
+        # right circ
+        right_circ, vmatA, wmatA = _demultiplex(A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, type="only_v", _depth=_depth)
+
         # middle circ
+        # middle_circ, _, _ = _demultiplex(iden, B, opt_a1=opt_a1, opt_a2=opt_a2, type="all", _depth=_depth)
+        B1 = np.dot(wmatA, vmatC)
+        B2 = np.dot(wmatA, np.dot(B, vmatC))
+        middle_circ, _, _ = _demultiplex(B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, type="all", _depth=_depth)
+
+        circ = QuantumCircuit(qr)
+        circ.append(left_circ.to_instruction(), qr)
         circ.h(nqubits - 1)
-        middle_circ = _demultiplex(iden, B, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(middle_circ.to_instruction(), qr)
         circ.h(nqubits - 1)
-        # right circ
-        right_circ = _demultiplex(A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(right_circ.to_instruction(), qr)
 
     if opt_a2 and _depth == 0 and dim > 4:
@@ -200,7 +206,7 @@ def _block_zxz_decomp(Umat):
     return A1, A2, B, C
 
 
-def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=None):
+def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, type="all", *, _depth=0, _ctrl_index=None):
     """Decompose a generic multiplexer.
 
           ────□────
@@ -257,10 +263,11 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
     circ = QuantumCircuit(nqubits)
 
     # left gate
-    left_gate = qs_decomposition(
-        wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
-    ).to_instruction()
-    circ.append(left_gate, layout[: nqubits - 1])
+    if type == "only_w" or type=="all":
+        left_gate = qs_decomposition(
+            wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
+        ).to_instruction()
+        circ.append(left_gate, layout[: nqubits - 1])
 
     # multiplexed Rz
     angles = 2 * np.angle(np.conj(dvals))
@@ -268,12 +275,13 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=
     circ.append(ucrz, [layout[-1]] + layout[: nqubits - 1])
 
     # right gate
-    right_gate = qs_decomposition(
-        vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
-    ).to_instruction()
-    circ.append(right_gate, layout[: nqubits - 1])
+    if type == "only_v" or type=="all":
+        right_gate = qs_decomposition(
+            vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
+        ).to_instruction()
+        circ.append(right_gate, layout[: nqubits - 1])
 
-    return circ
+    return circ, vmat, wmat
 
 
 def _get_ucry_cz(nqubits, angles):
