@@ -138,31 +138,66 @@ def qs_decomposition(
                     )
                     return decirc
         qr = QuantumRegister(nqubits)
+
         circ = QuantumCircuit(qr)
-        # perform cosine-sine decomposition
-        (u1, u2), vtheta, (v1h, v2h) = cossin(np.asarray(mat, dtype=complex))
+        # perform block ZXZ decomposition
+        A1, A2, B, C = _block_zxz_decomp(np.asarray(mat, dtype=complex))
+        iden = np.eye(2 ** (nqubits - 1))
         # left circ
-        left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
+        left_circ = _demultiplex(iden, C, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(left_circ.to_instruction(), qr)
         # middle circ
-        if opt_a1:
-            nangles = len(vtheta)
-            half_size = nangles // 2
-            # get UCG in terms of CZ
-            circ_cz = _get_ucry_cz(nqubits, (2 * vtheta).tolist())
-            circ.append(circ_cz.to_instruction(), range(nqubits))
-            # merge final cz with right-side generic multiplexer
-            u2[:, half_size:] = np.negative(u2[:, half_size:])
-        else:
-            ucry = UCRYGate((2 * vtheta).tolist())
-            circ.append(ucry, [qr[-1]] + qr[:-1])
+        circ.h(nqubits - 1)
+        middle_circ = _demultiplex(iden, B, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
+        circ.append(middle_circ.to_instruction(), qr)
+        circ.h(nqubits - 1)
         # right circ
-        right_circ = _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
+        right_circ = _demultiplex(A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(right_circ.to_instruction(), qr)
 
     if opt_a2 and _depth == 0 and dim > 4:
         return _apply_a2(circ)
     return circ
+
+
+def _block_zxz_decomp(Umat):
+    """Block ZXZ decomposition, see: arXiv:2403.13692"""
+    N = Umat.shape[0]
+    n = N // 2
+    X = Umat[:n, :n]
+    Y = Umat[:n, n:]
+    U21 = Umat[n:, :n]
+    U22 = Umat[n:, n:]
+
+    VX, S, WXdg = scipy.linalg.svd(X)
+    Sigma = np.zeros((n, n))
+    for i in range(n):
+        Sigma[i, i] = S[i]
+    VXdg = scipy.linalg.inv(VX)
+    SX = np.dot(VX, np.dot(Sigma, VXdg))
+    UX = np.dot(VX, WXdg)
+    VY, S, WYdg = scipy.linalg.svd(Y)
+    Sigma = np.zeros((n, n))
+    for i in range(n):
+        Sigma[i, i] = S[i]
+    VYdg = scipy.linalg.inv(VY)
+    SY = np.dot(VY, np.dot(Sigma, VYdg))
+    UY = np.dot(VY, WYdg)
+    UYdg = scipy.linalg.inv(UY)
+    Cdg = 1j * np.dot(UYdg, UX)
+    C = scipy.linalg.inv(Cdg)
+    A1 = np.dot((SX + 1j * SY), UX)
+    A1dg = scipy.linalg.inv(A1)
+    A2 = U21 + np.dot(U22, (1j * np.dot(UYdg, UX)))
+    B = 2 * np.dot(A1dg, X) - np.eye(n)
+    zero = np.zeros((n, n))
+    iden = np.eye(n)
+    Ablock = np.block([[A1, zero], [zero, A2]])
+    Bblock = np.block([[iden + B, iden - B], [iden - B, iden + B]])
+    Cblock = np.block([[iden, zero], [zero, C]])
+    Ucheck = 0.5 * np.dot(Ablock, np.dot(Bblock, Cblock))
+    assert np.allclose(Umat, Ucheck)
+    return A1, A2, B, C
 
 
 def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0, _ctrl_index=None):
