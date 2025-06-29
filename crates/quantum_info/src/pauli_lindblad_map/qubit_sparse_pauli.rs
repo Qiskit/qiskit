@@ -382,7 +382,7 @@ impl QubitSparsePauliList {
     /// # Panics
     ///
     /// If the index is out of bounds.
-    pub fn term(&self, index: usize) -> QubitSparsePauliView {
+    pub fn term(&self, index: usize) -> QubitSparsePauliView<'_> {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
         let start = self.boundaries[index];
         let end = self.boundaries[index + 1];
@@ -743,7 +743,7 @@ impl QubitSparsePauli {
     }
 
     /// Get a view version of this object.
-    pub fn view(&self) -> QubitSparsePauliView {
+    pub fn view(&self) -> QubitSparsePauliView<'_> {
         QubitSparsePauliView {
             num_qubits: self.num_qubits,
             paulis: &self.paulis,
@@ -847,7 +847,7 @@ impl From<ArithmeticError> for PyErr {
 /// :class:`QubitSparsePauliList` alphabet.
 #[pyfunction]
 #[pyo3(name = "label")]
-fn pauli_label(py: Python, slf: Pauli) -> &Bound<PyString> {
+fn pauli_label(py: Python<'_>, slf: Pauli) -> &Bound<'_, PyString> {
     // This doesn't use `py_label` so we can use `intern!`.
     match slf {
         Pauli::X => intern!(py, "X"),
@@ -935,13 +935,12 @@ impl<'py> FromPyObject<'py> for Pauli {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
-                Ok(repr) => PyTypeError::new_err(format!("bad type for 'Pauli': {}", repr)),
+                Ok(repr) => PyTypeError::new_err(format!("bad type for 'Pauli': {repr}")),
                 Err(err) => err,
             })?;
         let value_error = || {
             PyValueError::new_err(format!(
-                "value {} is not a valid letter of the single-qubit alphabet for 'Pauli'",
-                value
+                "value {value} is not a valid letter of the single-qubit alphabet for 'Pauli'"
             ))
         };
         let value: u8 = value.try_into().map_err(|_| value_error())?;
@@ -1558,7 +1557,7 @@ impl PyQubitSparsePauli {
 ///   Method                            Summary
 ///   ================================  ============================================================
 ///   :meth:`from_label`                Convert a dense string label into a single-element
-///                                     :class:`.QubitSparsePauliList`.  
+///                                     :class:`.QubitSparsePauliList`.
 ///
 ///   :meth:`from_list`                 Construct from a list of dense string labels.
 ///
@@ -2153,8 +2152,7 @@ impl PyQubitSparsePauliList {
                 .join(", ")
         };
         Ok(format!(
-            "<QubitSparsePauliList with {} on {}: [{}]>",
-            str_num_terms, str_num_qubits, str_terms
+            "<QubitSparsePauliList with {str_num_terms} on {str_num_qubits}: [{str_terms}]>"
         ))
     }
 }

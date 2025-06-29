@@ -196,7 +196,7 @@ pub struct ZXPaulisReadonly<'a> {
 
 impl ZXPaulisReadonly<'_> {
     /// Get a [ndarray] view of the data of these [rust-numpy] objects.
-    fn as_array(&self) -> ZXPaulisView {
+    fn as_array(&self) -> ZXPaulisView<'_> {
         ZXPaulisView {
             x: self.x.as_array(),
             z: self.z.as_array(),

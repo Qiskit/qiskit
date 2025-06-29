@@ -84,8 +84,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                     match target.get_duration(name, &physical_qubits) {
                         Some(dur) => Ok(dur),
                         None => Err(QiskitError::new_err(format!(
-                            "Duration not found for {} on qubits: {:?}",
-                            name, qubits
+                            "Duration not found for {name} on qubits: {qubits:?}"
                         ))),
                     }
                 }

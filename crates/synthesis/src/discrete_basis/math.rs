@@ -186,7 +186,7 @@ pub fn group_commutator_decomposition(
 
 pub(super) fn assert_so3(name: &str, matrix: &Matrix3<f64>) {
     if matrix.iter().any(|el| el.is_nan()) {
-        panic!("{} has NaN value.", name);
+        panic!("{name} has NaN value.");
     }
     if (1. - matrix.determinant()) > 1e-5 {
         panic!(
@@ -197,7 +197,7 @@ pub(super) fn assert_so3(name: &str, matrix: &Matrix3<f64>) {
     }
     let diff = matrix * matrix.transpose() - Matrix3::<f64>::identity();
     if diff.iter().any(|el| el.abs() > 1e-5) {
-        panic!("{} is not SO(3): Matrix is not orthogonal.", name)
+        panic!("{name} is not SO(3): Matrix is not orthogonal.")
     }
 }
 

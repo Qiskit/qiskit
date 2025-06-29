@@ -30,7 +30,7 @@ const PI2: f64 = PI / 2.0;
 const PI4: f64 = PI / 4.0;
 
 fn iqp(
-    interactions: ArrayView2<i64>,
+    interactions: ArrayView2<'_, i64>,
 ) -> impl Iterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)> + '_ {
     let num_qubits = interactions.ncols();
 

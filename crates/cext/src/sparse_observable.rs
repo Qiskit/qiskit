@@ -821,7 +821,7 @@ pub unsafe extern "C" fn qk_obs_equal(
 pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
-    let string: String = format!("{:?}", obs);
+    let string: String = format!("{obs:?}");
     CString::new(string).unwrap().into_raw()
 }
 
@@ -874,7 +874,7 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
     let term = unsafe { const_ptr_as_ref(term) };
 
     let view: SparseTermView = term.try_into().unwrap();
-    let string: String = format!("{:?}", view);
+    let string: String = format!("{view:?}");
     CString::new(string).unwrap().into_raw()
 }
 
