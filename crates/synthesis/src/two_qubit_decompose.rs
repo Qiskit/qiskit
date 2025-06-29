@@ -534,19 +534,19 @@ impl TwoQubitWeylDecomposition {
         self.c
     }
 
-    pub fn k1l_view(&self) -> ArrayView2<Complex64> {
+    pub fn k1l_view(&self) -> ArrayView2<'_, Complex64> {
         self.K1l.view()
     }
 
-    pub fn k2l_view(&self) -> ArrayView2<Complex64> {
+    pub fn k2l_view(&self) -> ArrayView2<'_, Complex64> {
         self.K2l.view()
     }
 
-    pub fn k1r_view(&self) -> ArrayView2<Complex64> {
+    pub fn k1r_view(&self) -> ArrayView2<'_, Complex64> {
         self.K1r.view()
     }
 
-    pub fn k2r_view(&self) -> ArrayView2<Complex64> {
+    pub fn k2r_view(&self) -> ArrayView2<'_, Complex64> {
         self.K2r.view()
     }
 

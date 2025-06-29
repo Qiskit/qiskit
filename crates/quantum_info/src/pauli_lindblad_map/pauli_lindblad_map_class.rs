@@ -237,7 +237,7 @@ impl PauliLindbladMap {
     /// # Panics
     ///
     /// If the index is out of bounds.
-    pub fn term(&self, index: usize) -> GeneratorTermView {
+    pub fn term(&self, index: usize) -> GeneratorTermView<'_> {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
         GeneratorTermView {
             rate: self.rates[index],
@@ -505,7 +505,7 @@ impl GeneratorTerm {
         self.qubit_sparse_pauli.paulis()
     }
 
-    pub fn view(&self) -> GeneratorTermView {
+    pub fn view(&self) -> GeneratorTermView<'_> {
         GeneratorTermView {
             rate: self.rate,
             qubit_sparse_pauli: self.qubit_sparse_pauli.view(),
@@ -1547,7 +1547,7 @@ impl PyPauliLindbladMap {
     /// function :math:`\lambda : K \rightarrow \mathbb{R}`, the pauli fidelity mathematically is
     ///
     /// .. math::
-    ///     
+    ///
     ///     f(Q) = \exp\left(-2 \sum_{P \in K} \lambda(P) \langle P, Q\rangle_{sp}\right),
     ///
     /// where :math:`\langle P, Q\rangle_{sp}` is :math:`0` if :math:`P` and :math:`Q` commute, and

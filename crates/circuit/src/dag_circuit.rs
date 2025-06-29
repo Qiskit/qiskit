@@ -5399,7 +5399,7 @@ impl DAGCircuit {
         }
     }
 
-    fn sort_key(&self, node: NodeIndex) -> SortKeyType {
+    fn sort_key(&self, node: NodeIndex) -> SortKeyType<'_> {
         match &self.dag[node] {
             NodeType::Operation(packed) => (
                 self.qargs_interner.get(packed.qubits),
