@@ -133,7 +133,7 @@ def qs_decomposition(
                         um11,
                         opt_a1=opt_a1,
                         opt_a2=opt_a2,
-                        type=all,
+                        type="all",
                         _depth=_depth,
                         _ctrl_index=nqubits - 1 - ctrl_index,
                     )
