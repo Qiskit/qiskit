@@ -949,7 +949,7 @@ mod tests {
                     op,
                     left: left.clone(),
                     right: right.clone(),
-                    ty: out_ty.clone(),
+                    ty: out_ty,
                     constant: false,
                 }
                 .into(),
