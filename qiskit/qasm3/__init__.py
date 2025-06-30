@@ -236,6 +236,7 @@ from qiskit._accelerate import qasm3 as _qasm3
 from qiskit.circuit import library
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.utils import optionals as _optionals
+from qiskit.circuit import Qubit
 
 from .._accelerate.qasm3 import CustomGate
 from .exceptions import QASM3Error, QASM3ExporterError, QASM3ImporterError
@@ -354,40 +355,19 @@ def loads(
            :alt: Circuit diagram output by the previous code.
            :include-source:
 
-           from qiskit import QuantumCircuit, transpile
-           from qiskit.providers.fake_provider import GenericBackendV2
-           from qiskit.qasm3 import dumps,loads
-           import numpy as np
+           from qiskit import qasm3
 
-           # specify backend
-           backend = GenericBackendV2(num_qubits=127)
-
-           # create a quantum circuit
-           qc = QuantumCircuit(20)
-           for i in range(0,20):
-               qc.ry(2*np.pi*i/20,i)
-           for i in range(0,20,2):
-               qc.cx(i,i+1)
-           qc.measure_all()
-           qc.draw('mpl')
-
-           # transpile the circuit
-           isa_qc = transpile(qc, backend, optimization_level=2)
-
-           # serialize the quantum circuit in an OpenQASM3 string
-           qc_ser = dumps(isa_qc)
-
-           # load OpenQASM3 string without `num_qubits` argument
-           qc_load1 = loads(qc_ser)
-
-           # load OpenQASM3 string with argument `num_qubits`
-           qc_load2 = loads(qc_ser, num_qubits = backend.num_qubits)
-
-           # without `num_qubits`
-           print(qc_load1.num_qubits)
-
-           # with `num_qubits`
-           print(qc_load2.num_qubits)
+           # An OpenQASM 3 program that only uses 2 physical qubits.
+           prog = '''
+               OPENQASM 3.0;
+               include "stdgates.inc";
+               h $0;
+               cx $0, $1;
+           '''
+           # The importer can be supplied with the number of qubits in the target backend.
+           # so the result is full width.
+           qc = qasm3.loads(prog, num_qubits=5)
+           assert qc.num_qubits == 5
 
     Args:
         program: the OpenQASM 3 program.
@@ -417,8 +397,6 @@ def loads(
             )
         kwargs["annotation_handlers"] = annotation_handlers
 
-    from qiskit.circuit import Qubit
-
     try:
         qasm3_ckt = qiskit_qasm3_import.parse(program, **kwargs)
     except qiskit_qasm3_import.ConversionError as exc:
@@ -430,11 +408,20 @@ def loads(
                 "Number of qubits cannot be more than the provided number of physical/virtual qubits."
             )
         if (difference := num_qubits - qasm3_ckt.num_qubits) > 0:
-            qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
             if qasm3_ckt.layout is not None:
-                last = list(qasm3_ckt.layout.initial_layout.get_physical_bits().keys())[-1]
+                # updating layout
+                last = max(qasm3_ckt.layout.initial_layout.get_physical_bits().keys(), default=-1)
                 for k in range(last + 1, num_qubits):
                     qasm3_ckt.layout.initial_layout.add(Qubit(), k)
+
+                # updating input_qubit_mapping
+                mapping_dict = {}
+                for ii in range(last + 1, num_qubits):
+                    mapping_dict[qasm3_ckt.layout.initial_layout[ii]] = ii
+                qasm3_ckt.layout.input_qubit_mapping.update(mapping_dict)
+
+            # adding qubits
+            qasm3_ckt.add_bits([Qubit() for _ in range(difference)])
 
     return qasm3_ckt
 

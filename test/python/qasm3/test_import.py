@@ -22,10 +22,9 @@ import tempfile
 import unittest
 import warnings
 
-from qiskit import qasm3, transpile
+from qiskit import qasm3
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit, Clbit
-from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit import library as lib, annotation
 from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -184,14 +183,37 @@ class TestOldQASM3Import(QiskitTestCase):
         self.assertEqual(qc, expected)
         self.assertTrue(skip_triggered)
 
-    def test_num_qubits(self):
-        """Test num_qubits equal the loaded circuit number of qubits"""
-        program = 'OPENQASM 3.0;\ninclude "stdgates.inc";\nh $0;\ncx $2, $1;\n'
+    def test_num_qubits_physical(self):
+        """Test num_qubits equal the number of qubits in the loaded circuit
+        having only physical qubits
+        """
+        program = """
+            OPENQASM 3.0;
+            include "stdgates.inc";
+            h $0;
+            cx $2, $1;
+        """
+        out = qasm3.loads(program, num_qubits=5)
+        self.assertEqual(out.num_qubits, 5)
+
+    def test_num_qubits_virtual(self):
+        """Test num_qubits equal the number of qubits in the loaded circuit
+        having only physical qubits
+        """
+        program = """
+            OPENQASM 3.0;
+            include "stdgates.inc";
+            qubit[2] qr;
+            h qr[0];
+            cx qr[0], qr[1];
+        """
         out = qasm3.loads(program, num_qubits=5)
         self.assertEqual(out.num_qubits, 5)
 
     def test_loads_virtual_qubits(self):
-        """Test num_qubits equal the number of qubits in the loaded circuit having only virtual qubits"""
+        """Test circuit equivalence of base circuit with loaded circuit
+        from OpenQASM3 string having only virtual qubits
+        """
         num_qubits = 10
         qc = QuantumCircuit(num_qubits)
         for i in range(0, num_qubits, 2):
@@ -199,31 +221,18 @@ class TestOldQASM3Import(QiskitTestCase):
             qc.cx(i, i + 1)
         qc_ser = qasm3.dumps(qc)
         qc_unser = qasm3.loads(qc_ser, num_qubits=num_qubits)
-        self.assertTrue(qc_unser.num_qubits <= num_qubits)
+        self.assertEqual(qc_unser, qc)
 
-    def test_loads_physical_qubits_post_transpilation(self):
-        """Test num_qubits equal the number of qubits in the loaded circuit having physical qubits"""
-        backend = GenericBackendV2(num_qubits=127)
-        num_qubits = 20
-        qc = QuantumCircuit(num_qubits)
-        for i in range(0, num_qubits, 2):
-            qc.h(i)
-            qc.cx(i, i + 1)
-        tr_qc = transpile(qc, backend, optimization_level=2)
-        qc_ser = qasm3.dumps(tr_qc)
-        qc_unser = qasm3.loads(qc_ser, num_qubits=backend.num_qubits)
-        self.assertEqual(qc_unser.num_qubits, tr_qc.num_qubits)
-
-    def test_loads_circuit_equivalence(self):
-        """Test circuit equivalence of base circuit with loaded circuit from OpenQASM3 string"""
-        num_qubits = 20
+    def test_num_qubits_less_raises_error(self):
+        """Test error is raised when num_qubits less than qubits present in the circuit"""
+        num_qubits = 10
         qc = QuantumCircuit(num_qubits)
         for i in range(0, num_qubits, 2):
             qc.h(i)
             qc.cx(i, i + 1)
         qc_ser = qasm3.dumps(qc)
-        qc_unser = qasm3.loads(qc_ser, num_qubits=qc.num_qubits)
-        self.assertEqual(qc_unser, qc)
+        with self.assertRaisesRegex(ValueError, "Number of qubits cannot .* qubits"):
+            qasm3.loads(qc_ser, num_qubits=5)
 
 
 class TestQASM3Import(QiskitTestCase):
