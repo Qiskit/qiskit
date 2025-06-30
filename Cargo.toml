@@ -16,7 +16,7 @@ license = "Apache-2.0"
 [workspace.dependencies]
 bytemuck = "1.23"
 bitfield-struct = "0.9.5"
-indexmap.version = "2.9.0"
+indexmap.version = "2.10.0"
 hashbrown.version = "0.15.2"
 num-bigint = "0.4"
 num-complex = "0.4"

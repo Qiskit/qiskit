@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a problem in high-level synthesis plugins :class:`.MCXSynthesis1DirtyKG24`
+    and :class:`.MCXSynthesis2DirtyKG24` for :class:`.MCXGate`, where the plugins
+    did not consider available clean auxiliary qubits as available dirty auxiliary
+    qubits. In particular, the plugin :class:`.MCXSynthesis2DirtyKG24` did not apply
+    when one clean and one dirty auxiliary qubits were available.
