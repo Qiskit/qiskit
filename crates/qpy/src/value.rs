@@ -43,6 +43,7 @@ pub struct QPYData {
     pub clbit_indices: Py<PyDict>,
     pub standalone_var_indices: Py<PyDict>,
     pub vectors: HashMap<String, Py<PyAny>>,
+    pub annotation_factories: Py<PyDict>,
 }
 
 pub mod tags {
@@ -206,6 +207,7 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<(u8
             py.None().bind(py),
             false,
             QPY_VERSION,
+            qpy_data.annotation_factories.clone(),
         )?)?,
         _ => {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
@@ -498,6 +500,7 @@ impl DumpedValue {
                 qpy_data.version,
                 py.None().bind(py),
                 qpy_data._use_symengine,
+                qpy_data.annotation_factories.clone(),
             )?
             .unbind(),
             _ => {

@@ -20,9 +20,10 @@ use std::io::{Read, Seek, Write};
 // TODO: Still need to split by versioning and have a struct for the whole file, not a single circuit
 #[derive(BinWrite, Debug)]
 #[brw(big)]
-pub struct QPYFormatV13 {
+pub struct QPYFormatV15 {
     pub header: CircuitHeaderV12Pack,
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
+    pub annotation_headers: AnnotationHeaderStaticPack,
     pub custom_instructions: CustomCircuitInstructionsPack,
     pub instructions: Vec<CircuitInstructionV2Pack>,
     pub calibrations: CalibrationsPack,
@@ -72,8 +73,7 @@ pub struct CircuitInstructionV2Pack {
     pub num_parameters: u16,
     pub num_qargs: u32,
     pub num_cargs: u32,
-    #[bw(calc = condition.key)]
-    pub conditional_key: u8,
+    pub extras_key: u8,
     #[bw(calc = condition.register_size)]
     pub condition_register_size: u16,
     #[bw(calc = condition.value)]
@@ -86,13 +86,28 @@ pub struct CircuitInstructionV2Pack {
     #[br(parse_with = read_string, args(label_size as usize))]
     #[bw(write_with = write_string)]
     pub label: String,
-    #[br(parse_with = ConditionPack::read, args(condition_register_size, conditional_key, condition_value))]
+    #[br(parse_with = ConditionPack::read, args(condition_register_size, extract_conditional_key(extras_key), condition_value))]
     #[bw(write_with = ConditionPack::write)]
     pub condition: ConditionPack,
     #[br(count = num_qargs + num_cargs)]
     pub bit_data: Vec<CircuitInstructionArgPack>,
     #[br(count = num_parameters as usize)]
     pub params: Vec<PackedParam>,
+    #[br(if(has_annotations(extras_key)))]
+    pub annotations: Option<InstructionsAnnotationPack>,
+}
+pub mod extras_key_parts {
+    pub const ANNOTATIONS: u8 = 0b1000_0000;
+    pub const CONDITIONAL: u8 = 0b0000_0011;
+}
+// TODO: It may be possible to create two virtual fields, annotations_key and conditional_key
+// such that they are set byt the code and binrw generated extras_key from them
+fn has_annotations(extras_key: u8) -> bool {
+    extras_key & extras_key_parts::ANNOTATIONS != 0
+}
+
+fn extract_conditional_key(extras_key: u8) -> u8 {
+    extras_key & extras_key_parts::CONDITIONAL
 }
 
 #[derive(BinWrite, BinRead)]
@@ -561,9 +576,57 @@ pub struct CalibrationsPack {
     pub num_cals: u16,
     // TODO: incomplete
 }
+
+// annotation-related data types
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct InstructionAnnotationPack {
+    pub namespace_index: u32,
+    #[bw(calc = payload.len() as u64)]
+    pub payload_size: u64,
+    #[br(count = payload_size)]
+    pub payload: Bytes,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct InstructionsAnnotationPack {
+    #[bw(calc = annotations.len() as u32)]
+    pub num_annotations: u32,
+    #[br(count = num_annotations)]
+    pub annotations: Vec<InstructionAnnotationPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct AnnotationStateHeaderPack {
+    #[bw(calc = namespace.as_bytes().len() as u32)]
+    pub namespace_size: u32,
+    #[bw(calc = state.len() as u64)]
+    pub state_size: u64,
+    #[br(parse_with = read_string, args(namespace_size as usize))]
+    #[bw(write_with = write_string)]
+    pub namespace: String,
+    #[br(count = state_size)]
+    pub state: Bytes,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct AnnotationHeaderStaticPack {
+    #[bw(calc = state_headers.len() as u32)]
+    pub num_namespaces: u32,
+    #[br(count = num_namespaces)]
+    pub state_headers: Vec<AnnotationStateHeaderPack>,
+}
+
 // implementations of custom read/write for the more complex data types
 
-impl BinRead for QPYFormatV13 {
+impl BinRead for QPYFormatV15 {
     type Args<'a> = ();
 
     fn read_options<R: Read + Seek>(
@@ -580,6 +643,7 @@ impl BinRead for QPYFormatV13 {
                 (),
             )?);
         }
+        let annotation_headers = AnnotationHeaderStaticPack::read_options(reader, endian, ())?;
         let custom_instructions = CustomCircuitInstructionsPack::read_options(reader, endian, ())?;
         let mut instructions = Vec::with_capacity(header.num_vars as usize);
         for _ in 0..header.num_instructions {
@@ -590,6 +654,7 @@ impl BinRead for QPYFormatV13 {
         Ok(Self {
             header,
             standalone_vars,
+            annotation_headers,
             custom_instructions,
             instructions,
             calibrations,

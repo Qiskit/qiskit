@@ -1424,7 +1424,11 @@ def write_circuit(
         use_rust (bool): whether to use the rust based serialization engine. On by default.
     """
     if use_rust:
-        _qpy.py_write_circuit(file_obj, circuit, metadata_serializer, use_symengine, version)
+        if annotation_factories is None:
+            annotation_factories = {}
+        _qpy.py_write_circuit(
+            file_obj, circuit, metadata_serializer, use_symengine, version, annotation_factories
+        )
         return
     annotation_state = _AnnotationSerializationState(annotation_factories or {})
     metadata_raw = json.dumps(
@@ -1534,8 +1538,12 @@ def write_circuit(
 
 
 def read_circuit(
-    
-    file_obj, version, metadata_deserializer=None, use_symengine=False, annotation_factories=None, use_rust=False
+    file_obj,
+    version,
+    metadata_deserializer=None,
+    use_symengine=False,
+    annotation_factories=None,
+    use_rust=False,
 ):
     """Read a single QuantumCircuit object from the file like object.
 

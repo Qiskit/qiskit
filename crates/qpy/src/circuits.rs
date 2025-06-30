@@ -451,9 +451,15 @@ fn pack_instruction(
     let params: Vec<formats::PackedParam> = get_instruction_params(py, instruction, qpy_data)?;
     let bit_data = get_packed_bit_list(instruction, circuit_data);
     let condition = get_condition_data(py, &instruction.op, circuit_data, qpy_data)?;
+    let annotations = None;
+    let mut extras_key = condition.key;
+    if annotations.is_some() {
+        extras_key |= formats::extras_key_parts::ANNOTATIONS;
+    }
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: instruction.op.num_qubits(),
         num_cargs: instruction.op.num_clbits(),
+        extras_key,
         num_ctrl_qubits,
         ctrl_state,
         gate_class_name,
@@ -461,6 +467,7 @@ fn pack_instruction(
         condition,
         bit_data,
         params,
+        annotations,
     })
 }
 
@@ -1115,6 +1122,7 @@ fn pack_custom_instruction(
                 py.None().bind(py),
                 false,
                 qpy_data.version,
+                qpy_data.annotation_factories.clone(),
             )?)?;
             num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
@@ -1140,6 +1148,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
+                            qpy_data.annotation_factories.clone(),
                         )?)?;
                     }
                 }
@@ -1156,6 +1165,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
+                            qpy_data.annotation_factories.clone(),
                         )?)?;
                     }
                 }
@@ -1172,6 +1182,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
+                            qpy_data.annotation_factories.clone(),
                         )?)?;
                     }
                 }
@@ -1314,7 +1325,8 @@ pub fn pack_circuit(
     metadata_serializer: &Bound<PyAny>,
     use_symengine: bool,
     version: u32,
-) -> PyResult<formats::QPYFormatV13> {
+    annotation_factories: Py<PyDict>,
+) -> PyResult<formats::QPYFormatV15> {
     circuit.getattr("data")?; // in case _data is lazily generated in python
     let mut circuit_data = circuit.getattr("_data")?.extract::<CircuitData>()?;
     let clbit_indices = circuit_data.get_clbit_indices(py).clone();
@@ -1326,6 +1338,7 @@ pub fn pack_circuit(
         clbit_indices,
         standalone_var_indices: standalone_var_indices.unbind(),
         vectors: HashMap::new(),
+        annotation_factories,
     };
     let header = pack_circuit_header(circuit, metadata_serializer, &qpy_data)?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
@@ -1340,9 +1353,14 @@ pub fn pack_circuit(
         &qpy_data,
     )?;
     let layout = pack_layout(circuit)?;
-    Ok(formats::QPYFormatV13 {
+    let annotation_headers: formats::AnnotationHeaderStaticPack =
+        formats::AnnotationHeaderStaticPack {
+            state_headers: Vec::new(),
+        };
+    Ok(formats::QPYFormatV15 {
         header,
         standalone_vars,
+        annotation_headers,
         custom_instructions,
         instructions,
         calibrations,
@@ -1363,6 +1381,7 @@ pub fn deserialize_circuit<'py>(
     version: u32,
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
+    annotation_factories: Py<PyDict>,
 ) -> PyResult<Bound<'py, PyAny>> {
     let mut qpy_data = QPYData {
         version,
@@ -1370,9 +1389,10 @@ pub fn deserialize_circuit<'py>(
         clbit_indices: PyDict::new(py).unbind(),
         standalone_var_indices: PyDict::new(py).unbind(),
         vectors: HashMap::new(),
+        annotation_factories,
     };
     // println!("Deserializing circuit {:?}", hex_string(serialized_circuit));
-    let (packed_circuit, _) = deserialize::<formats::QPYFormatV13>(serialized_circuit)?;
+    let (packed_circuit, _) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
     let num_qubits = packed_circuit.header.num_qubits;
     let num_clbits = packed_circuit.header.num_clbits;
     let global_phase = packed_circuit
@@ -1448,7 +1468,7 @@ pub fn deserialize_circuit<'py>(
 }
 
 #[pyfunction]
-#[pyo3(signature = (file_obj, circuit, metadata_serializer, use_symengine, version))]
+#[pyo3(signature = (file_obj, circuit, metadata_serializer, use_symengine, version, annotation_factories))]
 pub fn py_write_circuit(
     py: Python,
     file_obj: &Bound<PyAny>,
@@ -1456,6 +1476,7 @@ pub fn py_write_circuit(
     metadata_serializer: &Bound<PyAny>,
     use_symengine: bool,
     version: u32,
+    annotation_factories: Py<PyDict>,
 ) -> PyResult<usize> {
     let serialized_circuit = serialize(&pack_circuit(
         py,
@@ -1463,6 +1484,7 @@ pub fn py_write_circuit(
         metadata_serializer,
         use_symengine,
         version,
+        annotation_factories,
     )?)?;
     file_obj.call_method1(
         "write",
@@ -1472,13 +1494,14 @@ pub fn py_write_circuit(
 }
 
 #[pyfunction]
-#[pyo3(signature = (file_obj, version, metadata_deserializer, use_symengine))]
+#[pyo3(signature = (file_obj, version, metadata_deserializer, use_symengine, annotation_factories))]
 pub fn py_read_circuit<'py>(
     py: Python<'py>,
     file_obj: &Bound<PyAny>,
     version: u32,
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
+    annotation_factories: Py<PyDict>,
 ) -> PyResult<Bound<'py, PyAny>> {
     // TODO: this currently reads *everything* so storing multiple files will fail
     let bytes = file_obj.call_method0("read")?;
@@ -1489,5 +1512,6 @@ pub fn py_read_circuit<'py>(
         version,
         metadata_deserializer,
         use_symengine,
+        annotation_factories,
     )
 }
