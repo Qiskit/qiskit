@@ -2578,7 +2578,7 @@ impl CircuitData {
             }
             CircuitVarType::Capture if !self.vars_input.is_empty() => {
                 return Err(CircuitError::new_err(
-                    "circuits with input variables cannot be enclosed, so they be closures",
+                    "circuits with input variables cannot be enclosed, so they cannot be closures",
                 ));
             }
             _ => {}
