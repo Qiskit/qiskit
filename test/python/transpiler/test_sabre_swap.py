@@ -249,13 +249,15 @@ class TestSabreSwap(QiskitTestCase):
     def test_no_infinite_loop(self):
         """Test that the 'release value' mechanisms allow SabreSwap to make progress even on
         circuits that get stuck in a stable local minimum of the lookahead parameters."""
-        # This is Qiskit's "legacy" lookahead heuristic, which is the same as described in the
-        # original Sabre paper.  We use this here because Qiskit's modern default heuristics don't
-        # hit the release valve.
+        # This is an approximation to the "lookahaed" heuristic described by the original Sabre
+        # paper.  For the particular circuit we're using, the layer-based lookahead Qiskit uses is
+        # the same as the max-size depth-agnostic set of the original Sabre paper, since there's
+        # only two (disjoint) gates that aren't in the front layer.  We use this here because
+        # Qiskit's modern default heuristics don't get stuck with this circuit.
         heuristic = (
             Heuristic(attempt_limit=100)
             # The basic heuristic scaling by size is the problematic bit.
-            .with_basic(1.0, SetScaling.Size).with_lookahead(0.5, 20, SetScaling.Size)
+            .with_basic(1.0, SetScaling.Size).with_lookahead([0.5], SetScaling.Size)
         )
         qc = looping_circuit(3, 1)
         qc.measure_all()

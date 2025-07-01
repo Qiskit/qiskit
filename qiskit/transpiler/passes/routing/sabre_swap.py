@@ -216,13 +216,13 @@ class SabreSwap(TransformationPass):
             heuristic = (
                 Heuristic(attempt_limit=10 * num_dag_qubits)
                 .with_basic(1.0, SetScaling.Constant)
-                .with_lookahead(0.5, 20, SetScaling.Size)
+                .with_lookahead([0.5 / num_coupling_qubits], SetScaling.Constant)
             )
         elif self.heuristic == "decay":
             heuristic = (
                 Heuristic(attempt_limit=10 * num_dag_qubits)
                 .with_basic(1.0, SetScaling.Constant)
-                .with_lookahead(0.5, 20, SetScaling.Size)
+                .with_lookahead([0.5 / num_coupling_qubits], SetScaling.Constant)
                 .with_decay(0.001, 5)
             )
         else:

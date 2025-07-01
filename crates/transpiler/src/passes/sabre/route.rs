@@ -44,8 +44,8 @@ use crate::TranspilerError;
 
 use super::dag::{InteractionKind, SabreDAG};
 use super::distance::distance_matrix;
-use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
-use super::layer::{ExtendedSet, FrontLayer};
+use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, SetScaling};
+use super::layer::Layer;
 use super::neighbors::Neighbors;
 use super::vec_map::VecMap;
 
@@ -414,8 +414,8 @@ impl<'a> RoutingProblem<'a> {
 /// is mostly just a convenience, so we don't have to pass everything from function to function.
 struct State {
     layout: NLayout,
-    front_layer: FrontLayer,
-    extended_set: ExtendedSet,
+    front_layer: Layer,
+    lookahead_layers: Box<[Layer]>,
     /// How many predecessors still need to be satisfied for each node index before it is at the
     /// front of the topological iteration through the nodes as they're routed.
     required_predecessors: VecMap<NodeIndex, u32>,
@@ -436,7 +436,9 @@ impl State {
     #[inline]
     fn apply_swap(&mut self, swap: [PhysicalQubit; 2]) {
         self.front_layer.apply_swap(swap);
-        self.extended_set.apply_swap(swap);
+        for layer in self.lookahead_layers.iter_mut() {
+            layer.apply_swap(swap);
+        }
         self.layout.swap_physical(swap[0], swap[1]);
     }
 
@@ -581,38 +583,45 @@ impl State {
         result
     }
 
-    /// Fill the given `extended_set` with the next nodes that would be reachable after the front
+    /// Fill the given lookahead layers with the next nodes that would be reachable after the front
     /// layer (and themselves).  This uses `required_predecessors` as scratch space for efficiency,
     /// but returns it to the same state as the input on return.
     fn populate_extended_set(&mut self, problem: RoutingProblem) {
-        let extended_set_size =
-            if let Some(LookaheadHeuristic { size, .. }) = problem.heuristic.lookahead {
-                size
-            } else {
-                return;
-            };
-        let mut to_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
+        let mut next_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
+        let mut to_visit = Vec::new();
         let mut decremented: IndexMap<NodeIndex, u32, ahash::RandomState> =
             IndexMap::with_hasher(ahash::RandomState::default());
-        let mut i = 0;
-        while i < to_visit.len() && self.extended_set.len() < extended_set_size {
-            let node = to_visit[i];
-            for edge in problem.sabre.dag.edges_directed(node, Direction::Outgoing) {
-                let successor = edge.target();
-                *decremented.entry(successor).or_insert(0) += 1;
-                self.required_predecessors[successor] -= 1;
-                if self.required_predecessors[successor] == 0 {
-                    // TODO: this looks "through" control-flow ops without seeing them, but we
-                    // actually eagerly route control-flow blocks as soon as they're eligible, so
-                    // they should be reflected in the extended set.
-                    if let InteractionKind::TwoQ([a, b]) = &problem.sabre.dag[successor].kind {
-                        self.extended_set
-                            .push([a.to_phys(&self.layout), b.to_phys(&self.layout)]);
+        for layer in self.lookahead_layers.iter_mut() {
+            for node in next_visit.drain(..) {
+                for edge in problem.sabre.dag.edges_directed(node, Direction::Outgoing) {
+                    let successor = edge.target();
+                    *decremented.entry(successor).or_insert(0) += 1;
+                    self.required_predecessors[successor] -= 1;
+                    if self.required_predecessors[successor] == 0 {
+                        to_visit.push(successor);
                     }
-                    to_visit.push(successor);
                 }
             }
-            i += 1;
+
+            let mut i = 0;
+            while i < to_visit.len() {
+                let node = to_visit[i];
+                if let InteractionKind::TwoQ([a, b]) = &problem.sabre.dag[node].kind {
+                    layer.insert(node, [self.layout[*a], self.layout[*b]]);
+                    next_visit.push(node);
+                } else {
+                    for edge in problem.sabre.dag.edges_directed(node, Direction::Outgoing) {
+                        let successor = edge.target();
+                        *decremented.entry(successor).or_insert(0) += 1;
+                        self.required_predecessors[successor] -= 1;
+                        if self.required_predecessors[successor] == 0 {
+                            to_visit.push(successor);
+                        }
+                    }
+                }
+                i += 1;
+            }
+            to_visit.clear();
         }
         for (node, amount) in decremented.iter() {
             self.required_predecessors[*node] += *amount;
@@ -713,20 +722,22 @@ impl State {
             }
         }
 
-        if let Some(LookaheadHeuristic { weight, scale, .. }) = problem.heuristic.lookahead {
-            let weight = match scale {
-                SetScaling::Constant => weight,
-                SetScaling::Size => {
-                    if self.extended_set.is_empty() {
-                        0.0
-                    } else {
-                        weight / (self.extended_set.len() as f64)
+        if let Some(lookahead) = &problem.heuristic.lookahead {
+            for (layer, weight) in self.lookahead_layers.iter().zip(lookahead.weights()) {
+                let weight = match lookahead.scale {
+                    SetScaling::Constant => *weight,
+                    SetScaling::Size => {
+                        if layer.is_empty() {
+                            0.0
+                        } else {
+                            *weight / (layer.len() as f64)
+                        }
                     }
+                };
+                absolute_score += weight * layer.total_score(dist);
+                for (swap, score) in self.swap_scores.iter_mut() {
+                    *score += weight * layer.score(*swap, dist);
                 }
-            };
-            absolute_score += weight * self.extended_set.total_score(dist);
-            for (swap, score) in self.swap_scores.iter_mut() {
-                *score += weight * self.extended_set.score(*swap, dist);
             }
         }
 
@@ -830,8 +841,17 @@ pub fn swap_map_trial<'a>(
         required_predecessors[edge.target()] += 1;
     }
     let mut state = State {
-        front_layer: FrontLayer::new(num_qubits),
-        extended_set: ExtendedSet::new(num_qubits),
+        front_layer: Layer::new(num_qubits),
+        lookahead_layers: vec![
+            Layer::new(num_qubits);
+            problem
+                .heuristic
+                .lookahead
+                .as_ref()
+                .map(|x| x.num_layers() as usize)
+                .unwrap_or(0)
+        ]
+        .into(),
         decay: vec![1.; num_qubits as usize].into(),
         required_predecessors,
         layout: initial_layout.clone(),
@@ -843,11 +863,10 @@ pub fn swap_map_trial<'a>(
     state.update_route(problem, &mut order, &problem.sabre.first_layer, None);
     state.populate_extended_set(problem);
 
-    // Main logic loop; the front layer only becomes empty when all nodes have been routed.  At
-    // each iteration of this loop, we route either one or two gates.
     let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
     let mut num_search_steps = 0;
-
+    // The front layer only becomes empty when all nodes have been routed.  At each iteration of
+    // this loop, we route either one or two gates.
     while !state.front_layer.is_empty() {
         let mut current_swaps: Vec<[PhysicalQubit; 2]> = Vec::new();
         // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
@@ -856,6 +875,9 @@ pub fn swap_map_trial<'a>(
             let best_swap = state.choose_best_swap(problem);
             state.apply_swap(best_swap);
             current_swaps.push(best_swap);
+            // These two nodes can't be the same; if they are, then the gate is on both qubits of
+            // the swap, and so it would have been routable before we applied the swap too, i.e.
+            // during the last iteration of the loop.
             if let Some(node) = state.routable_node_on_qubit(problem, best_swap[1]) {
                 routable_nodes.push(node);
             }
@@ -891,7 +913,7 @@ pub fn swap_map_trial<'a>(
         state.update_route(problem, &mut order, &routable_nodes, Some(current_swaps));
         // Ideally we'd know how to mutate the extended set directly, but since its limited size
         // easy to do better than just emptying it and rebuilding.
-        state.extended_set.clear();
+        state.lookahead_layers.iter_mut().for_each(Layer::clear);
         state.populate_extended_set(problem);
 
         if problem.heuristic.decay.is_some() {

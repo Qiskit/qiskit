@@ -2255,16 +2255,19 @@ class TestTranspile(QiskitTestCase):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
         # transpile with no gate errors
-        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        seed_transpiler = 2025_07_07
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=seed_transpiler)
         # transpile with gate errors
-        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
-        # confirm that the output layouts are different
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler)
+        # confirm that the output layouts are different. This can fail spurious if the built-in
+        # layout pass happened to choose the same initial layout that the noise-aware remapping
+        # converges to.  In that case, you can bump the transpiler seed.
         self.assertNotEqual(
             tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
         )
         # now modify dt with gate errors
-        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
-        # confirm that dt doesn't affect layout
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout.
         self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
 
     @combine(optimization_level=[0, 1, 2, 3], control_flow=[False, True])
@@ -2693,6 +2696,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
             nonlocal vf2_post_layout_called
             if isinstance(kwargs["pass_"], VF2PostLayout):
                 vf2_post_layout_called = True
+                # If this assertion fails, `VF2PostLayout` didn't improve the layout (i.e. the
+                # initial layout pass happened to pick the best one), so the test isn't valid.
+                # Update the noise model or transpiler seed to change it.
                 self.assertIsNotNone(kwargs["property_set"]["post_layout"])
 
         coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
@@ -2707,9 +2713,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
+        tqc = transpile(qc, backend=backend, seed_transpiler=2025_07_07, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([2, 1, 0], _get_index_layout(tqc, qubits))
+        self.assertEqual([0, 2, 1], _get_index_layout(tqc, qubits))
 
     @data(0, 1, 2, 3)
     def test_annotations_survive(self, optimization_level):

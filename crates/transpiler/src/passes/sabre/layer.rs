@@ -28,7 +28,8 @@ use super::vec_map::VecMap;
 /// makes it more efficient to do everything in terms of physical qubits, so the conversion between
 /// physical and virtual qubits via the layout happens once per inserted swap and on layer
 /// extension, not for every swap trialled.
-pub struct FrontLayer {
+#[derive(Clone, Debug)]
+pub struct Layer {
     /// Map of the (index to the) node to the qubits it acts on.
     nodes: IndexMap<NodeIndex, [PhysicalQubit; 2], ::ahash::RandomState>,
     /// Map of each qubit to the node that acts on it and the other qubit that node acts on, if this
@@ -36,9 +37,9 @@ pub struct FrontLayer {
     qubits: VecMap<PhysicalQubit, Option<(NodeIndex, PhysicalQubit)>>,
 }
 
-impl FrontLayer {
+impl Layer {
     pub fn new(num_qubits: u32) -> Self {
-        FrontLayer {
+        Layer {
             // This is the maximum capacity of the front layer, since each qubit must be one of a
             // pair, and can only have one gate in the layer.
             nodes: IndexMap::with_capacity_and_hasher(
@@ -80,6 +81,14 @@ impl FrontLayer {
         self.qubits[b] = None;
     }
 
+    /// Remove all nodes from the layer.
+    pub fn clear(&mut self) {
+        for (_, [a, b]) in self.nodes.drain(..) {
+            self.qubits[a] = None;
+            self.qubits[b] = None;
+        }
+    }
+
     /// Query whether a qubit has an active node.
     #[inline]
     pub fn is_active(&self, qubit: PhysicalQubit) -> bool {
@@ -98,6 +107,9 @@ impl FrontLayer {
         let [a, b] = swap;
         let mut total = 0.0;
         if let Some((_, c)) = self.qubits[a] {
+            if c == b {
+                return 0.0;
+            }
             total += dist[[b.index(), c.index()]] - dist[[a.index(), c.index()]]
         }
         if let Some((_, c)) = self.qubits[b] {
@@ -156,98 +168,5 @@ impl FrontLayer {
     /// Iterator over the qubits that have active nodes on them.
     pub fn iter_active(&self) -> impl Iterator<Item = &PhysicalQubit> {
         self.nodes.values().flatten()
-    }
-}
-
-/// This structure is currently reconstructed after each gate is routed, so there's no need to
-/// worry about tracking gate indices or anything like that.  We track length manually just to
-/// avoid a summation.
-pub struct ExtendedSet {
-    qubits: Vec<Vec<PhysicalQubit>>,
-    len: usize,
-}
-
-impl ExtendedSet {
-    pub fn new(num_qubits: u32) -> Self {
-        ExtendedSet {
-            qubits: vec![Vec::new(); num_qubits as usize],
-            len: 0,
-        }
-    }
-
-    /// Add a node and its active qubits to the extended set.
-    pub fn push(&mut self, qubits: [PhysicalQubit; 2]) {
-        let [a, b] = qubits;
-        self.qubits[a.index()].push(b);
-        self.qubits[b.index()].push(a);
-        self.len += 1;
-    }
-
-    /// Calculate the score of applying the given swap, relative to not applying it.
-    #[inline(always)]
-    pub fn score(&self, swap: [PhysicalQubit; 2], dist: &ArrayView2<f64>) -> f64 {
-        let [a, b] = swap;
-        let mut total = 0.0;
-        for other in self.qubits[a.index()].iter() {
-            // If the other qubit is also active then the score won't have changed, but since the
-            // distance is absolute, we'd double count rather than ignore if we didn't skip it.
-            if *other == b {
-                continue;
-            }
-            total += dist[[b.index(), other.index()]] - dist[[a.index(), other.index()]];
-        }
-        for other in self.qubits[b.index()].iter() {
-            if *other == a {
-                continue;
-            }
-            total += dist[[a.index(), other.index()]] - dist[[b.index(), other.index()]];
-        }
-        total
-    }
-
-    /// Calculate the total absolute score of this set of nodes over the given layout.
-    pub fn total_score(&self, dist: &ArrayView2<f64>) -> f64 {
-        // Factor of two is to remove double-counting of each gate.
-        self.qubits
-            .iter()
-            .enumerate()
-            .flat_map(move |(a_index, others)| {
-                others.iter().map(move |b| dist[[a_index, b.index()]])
-            })
-            .sum::<f64>()
-            * 0.5
-    }
-
-    /// Clear all nodes from the extended set.
-    pub fn clear(&mut self) {
-        for others in self.qubits.iter_mut() {
-            others.clear()
-        }
-        self.len = 0;
-    }
-
-    /// Number of nodes in the set.
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
-    /// Apply a physical swap to the current layout data structure.
-    pub fn apply_swap(&mut self, swap: [PhysicalQubit; 2]) {
-        let [a, b] = swap;
-        for other in self.qubits[a.index()].iter_mut() {
-            if *other == b {
-                *other = a
-            }
-        }
-        for other in self.qubits[b.index()].iter_mut() {
-            if *other == a {
-                *other = b
-            }
-        }
-        self.qubits.swap(a.index(), b.index());
     }
 }
