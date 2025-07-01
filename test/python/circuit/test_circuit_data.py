@@ -1022,7 +1022,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
                 data.add_input_var(expr.Var.new("in1", types.Bool()))
             with self.assertRaisesRegex(
                 CircuitError,
-                "circuits with input variables cannot be enclosed, so they cannot be closures",
+                "circuits with input variables cannot be enclosed, so cannot be closures",
             ):
                 data.add_captured_var(expr.Var.new("v1", types.Bool()))
 
@@ -1033,7 +1033,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
                 data.add_declared_stretch(expr.Stretch.new("s1"))
             with self.assertRaisesRegex(
                 CircuitError,
-                "circuits with input variables cannot be enclosed, so they cannot be closures",
+                "circuits with input variables cannot be enclosed, so cannot be closures",
             ):
                 data.add_captured_stretch(expr.Stretch.new("s2"))
 
