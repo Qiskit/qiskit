@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Corrected the deprecation warning in ``ZFeatureMap`` to reference the correct replacement function
+    ``z_feature_map`` instead of the incorrect ``zz_feature_map``. This ensures users are guided to
+    the proper API replacement.
