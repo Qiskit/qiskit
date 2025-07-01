@@ -4102,7 +4102,7 @@ class QuantumCircuit:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
 
-        # vars_mode is "drop" since `cpy._data`` is overriden anyway with the call to copy,
+        # vars_mode is "drop" since ``cpy._data`` is overriden anyway with the call to copy,
         # so no need to copy variables in this call.
         cpy = self.copy_empty_like(name, vars_mode="drop")
         cpy._data = self._data.copy()
