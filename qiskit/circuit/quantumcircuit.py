@@ -3377,7 +3377,7 @@ class QuantumCircuit:
             return
         if self._data.num_input_vars:
             raise CircuitError(
-                "circuits with input variables cannot be enclosed, so cannot be closures"
+                "circuits with input variables cannot be enclosed, so they cannot be closures"
             )
         if isinstance(var, expr.Stretch):
             self._data.add_captured_stretch(self._prepare_new_stretch(var))

@@ -2657,7 +2657,7 @@ impl CircuitData {
         if let CircuitStretchType::Capture = stretch_type {
             if !self.vars_input.is_empty() {
                 return Err(CircuitError::new_err(
-                    "circuits with input variables cannot be enclosed, so cannot be closures",
+                    "circuits with input variables cannot be enclosed, so they cannot be closures",
                 ));
             }
         }
