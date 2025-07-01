@@ -47,6 +47,7 @@ use super::distance::distance_matrix;
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
 use super::neighbors::Neighbors;
+use super::vec_map::VecMap;
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
@@ -417,8 +418,8 @@ struct State {
     extended_set: ExtendedSet,
     /// How many predecessors still need to be satisfied for each node index before it is at the
     /// front of the topological iteration through the nodes as they're routed.
-    required_predecessors: Vec<u32>,
-    decay: Vec<f64>,
+    required_predecessors: VecMap<NodeIndex, u32>,
+    decay: VecMap<PhysicalQubit, f64>,
     /// Reusable allocated storage space for accumulating and scoring swaps.  This is owned as part
     /// of the general state to avoid reallocation costs.
     swap_scores: Vec<([PhysicalQubit; 2], f64)>,
@@ -446,7 +447,7 @@ impl State {
         problem: RoutingProblem,
         qubit: PhysicalQubit,
     ) -> Option<NodeIndex> {
-        self.front_layer.qubits()[qubit.index()].and_then(|(node, other)| {
+        self.front_layer.qubits()[qubit].and_then(|(node, other)| {
             problem
                 .target
                 .neighbors
@@ -530,11 +531,10 @@ impl State {
                 .dag
                 .edges_directed(node_id, Direction::Outgoing)
             {
-                let successor_node = edge.target();
-                let successor_index = successor_node.index();
-                self.required_predecessors[successor_index] -= 1;
-                if self.required_predecessors[successor_index] == 0 {
-                    to_visit.push_back(successor_node);
+                let successor = edge.target();
+                self.required_predecessors[successor] -= 1;
+                if self.required_predecessors[successor] == 0 {
+                    to_visit.push_back(successor);
                 }
             }
         }
@@ -592,25 +592,24 @@ impl State {
                 return;
             };
         let mut to_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
-        let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
+        let mut decremented: IndexMap<NodeIndex, u32, ahash::RandomState> =
             IndexMap::with_hasher(ahash::RandomState::default());
         let mut i = 0;
         while i < to_visit.len() && self.extended_set.len() < extended_set_size {
             let node = to_visit[i];
             for edge in problem.sabre.dag.edges_directed(node, Direction::Outgoing) {
-                let successor_node = edge.target();
-                let successor_index = successor_node.index();
-                *decremented.entry(successor_index).or_insert(0) += 1;
-                self.required_predecessors[successor_index] -= 1;
-                if self.required_predecessors[successor_index] == 0 {
+                let successor = edge.target();
+                *decremented.entry(successor).or_insert(0) += 1;
+                self.required_predecessors[successor] -= 1;
+                if self.required_predecessors[successor] == 0 {
                     // TODO: this looks "through" control-flow ops without seeing them, but we
                     // actually eagerly route control-flow blocks as soon as they're eligible, so
                     // they should be reflected in the extended set.
-                    if let InteractionKind::TwoQ([a, b]) = &problem.sabre.dag[successor_node].kind {
+                    if let InteractionKind::TwoQ([a, b]) = &problem.sabre.dag[successor].kind {
                         self.extended_set
                             .push([a.to_phys(&self.layout), b.to_phys(&self.layout)]);
                     }
-                    to_visit.push(successor_node);
+                    to_visit.push(successor);
                 }
             }
             i += 1;
@@ -733,8 +732,7 @@ impl State {
 
         if let Some(DecayHeuristic { .. }) = problem.heuristic.decay {
             for (swap, score) in self.swap_scores.iter_mut() {
-                *score = (absolute_score + *score)
-                    * self.decay[swap[0].index()].max(self.decay[swap[1].index()]);
+                *score = (absolute_score + *score) * self.decay[swap[0]].max(self.decay[swap[1]]);
             }
         }
 
@@ -827,14 +825,14 @@ pub fn swap_map_trial<'a>(
     let mut order = Order::for_problem(problem);
 
     let num_qubits: u32 = problem.target.num_qubits().try_into().unwrap();
-    let mut required_predecessors = vec![0; problem.sabre.dag.node_count()];
+    let mut required_predecessors = VecMap::from(vec![0; problem.sabre.dag.node_count()]);
     for edge in problem.sabre.dag.edge_references() {
-        required_predecessors[edge.target().index()] += 1;
+        required_predecessors[edge.target()] += 1;
     }
     let mut state = State {
         front_layer: FrontLayer::new(num_qubits),
         extended_set: ExtendedSet::new(num_qubits),
-        decay: vec![1.; num_qubits as usize],
+        decay: vec![1.; num_qubits as usize].into(),
         required_predecessors,
         layout: initial_layout.clone(),
         swap_scores: Vec::with_capacity(problem.target.neighbors.edge_count() / 2),
@@ -870,8 +868,8 @@ pub fn swap_map_trial<'a>(
                     state.decay.fill(1.);
                     num_search_steps = 0;
                 } else {
-                    state.decay[best_swap[0].index()] += increment;
-                    state.decay[best_swap[1].index()] += increment;
+                    state.decay[best_swap[0]] += increment;
+                    state.decay[best_swap[1]] += increment;
                 }
             }
         }

@@ -16,6 +16,8 @@ use rustworkx_core::petgraph::prelude::*;
 
 use qiskit_circuit::PhysicalQubit;
 
+use super::vec_map::VecMap;
+
 /// A container for the current non-routable parts of the front layer.  This only ever holds
 /// two-qubit gates; the only reason a 0q- or 1q operation can be unroutable is because it has an
 /// unsatisfied 2q predecessor, which disqualifies it from being in the front layer.
@@ -31,7 +33,7 @@ pub struct FrontLayer {
     nodes: IndexMap<NodeIndex, [PhysicalQubit; 2], ::ahash::RandomState>,
     /// Map of each qubit to the node that acts on it and the other qubit that node acts on, if this
     /// qubit is active (otherwise `None`).
-    qubits: Vec<Option<(NodeIndex, PhysicalQubit)>>,
+    qubits: VecMap<PhysicalQubit, Option<(NodeIndex, PhysicalQubit)>>,
 }
 
 impl FrontLayer {
@@ -43,7 +45,7 @@ impl FrontLayer {
                 num_qubits as usize / 2,
                 ::ahash::RandomState::default(),
             ),
-            qubits: vec![None; num_qubits as usize],
+            qubits: vec![None; num_qubits as usize].into(),
         }
     }
 
@@ -54,15 +56,15 @@ impl FrontLayer {
 
     /// View onto the mapping between qubits and their `(node, other_qubit)` pair.  Index `i`
     /// corresponds to physical qubit `i`.
-    pub fn qubits(&self) -> &[Option<(NodeIndex, PhysicalQubit)>] {
+    pub fn qubits(&self) -> &VecMap<PhysicalQubit, Option<(NodeIndex, PhysicalQubit)>> {
         &self.qubits
     }
 
     /// Add a node into the front layer, with the two qubits it operates on.
     pub fn insert(&mut self, index: NodeIndex, qubits: [PhysicalQubit; 2]) {
         let [a, b] = qubits;
-        self.qubits[a.index()] = Some((index, b));
-        self.qubits[b.index()] = Some((index, a));
+        self.qubits[a] = Some((index, b));
+        self.qubits[b] = Some((index, a));
         self.nodes.insert(index, qubits);
     }
 
@@ -74,14 +76,14 @@ impl FrontLayer {
             .nodes
             .swap_remove(index)
             .expect("Tried removing index that does not exist.");
-        self.qubits[a.index()] = None;
-        self.qubits[b.index()] = None;
+        self.qubits[a] = None;
+        self.qubits[b] = None;
     }
 
     /// Query whether a qubit has an active node.
     #[inline]
     pub fn is_active(&self, qubit: PhysicalQubit) -> bool {
-        self.qubits[qubit.index()].is_some()
+        self.qubits[qubit].is_some()
     }
 
     /// Calculate the score _difference_ caused by this swap, compared to not making the swap.
@@ -95,10 +97,10 @@ impl FrontLayer {
         // equal anyway, so not affect the score.
         let [a, b] = swap;
         let mut total = 0.0;
-        if let Some((_, c)) = self.qubits[a.index()] {
+        if let Some((_, c)) = self.qubits[a] {
             total += dist[[b.index(), c.index()]] - dist[[a.index(), c.index()]]
         }
-        if let Some((_, c)) = self.qubits[b.index()] {
+        if let Some((_, c)) = self.qubits[b] {
             total += dist[[a.index(), c.index()]] - dist[[b.index(), c.index()]]
         }
         total
@@ -114,7 +116,7 @@ impl FrontLayer {
     /// Apply a physical swap to the current layout data structure.
     pub fn apply_swap(&mut self, swap: [PhysicalQubit; 2]) {
         let [a, b] = swap;
-        match (self.qubits[a.index()], self.qubits[b.index()]) {
+        match (self.qubits[a], self.qubits[b]) {
             (Some((index1, _)), Some((index2, _))) if index1 == index2 => {
                 let entry = self.nodes.get_mut(&index1).unwrap();
                 *entry = [entry[1], entry[0]];
@@ -122,17 +124,17 @@ impl FrontLayer {
             }
             _ => {}
         }
-        if let Some((index, c)) = self.qubits[a.index()] {
-            self.qubits[c.index()] = Some((index, b));
+        if let Some((index, c)) = self.qubits[a] {
+            self.qubits[c] = Some((index, b));
             let entry = self.nodes.get_mut(&index).unwrap();
             *entry = if *entry == [a, c] { [b, c] } else { [c, b] };
         }
-        if let Some((index, c)) = self.qubits[b.index()] {
-            self.qubits[c.index()] = Some((index, a));
+        if let Some((index, c)) = self.qubits[b] {
+            self.qubits[c] = Some((index, a));
             let entry = self.nodes.get_mut(&index).unwrap();
             *entry = if *entry == [b, c] { [a, c] } else { [c, a] };
         }
-        self.qubits.swap(a.index(), b.index());
+        self.qubits.swap(a, b);
     }
 
     /// True if there are no nodes in the current layer.
