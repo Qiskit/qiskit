@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in ``PassManager.run()`` where the ``callback`` function was not
+    invoked when passing a list of multiple circuits. The callback is now correctly
+    called for each pass on each circuit, ensuring consistent behavior.
