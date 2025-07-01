@@ -22,6 +22,7 @@ from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
+from qiskit._accelerate import constrained_reschedule
 
 
 class ConstrainedReschedule(AnalysisPass):
@@ -233,19 +234,8 @@ class ConstrainedReschedule(AnalysisPass):
             )
 
         node_start_time = self.property_set["node_start_time"]
+        clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
-        for node in dag.topological_op_nodes():
+        constrained_reschedule(dag, node_start_time, clbit_write_latency, self.acquire_align, self.pulse_align)
 
-            start_time = node_start_time.get(node)
-
-            if start_time is None:
-                raise TranspilerError(
-                    f"Start time of {repr(node)} is not found. This node is likely added after "
-                    "this circuit is scheduled. Run scheduler again."
-                )
-
-            if start_time == 0:
-                # Every instruction can start at t=0.
-                continue
-
-            self._push_node_back(dag, node)
+        
