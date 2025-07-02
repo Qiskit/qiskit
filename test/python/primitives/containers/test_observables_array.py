@@ -22,6 +22,8 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.primitives import BackendEstimatorV2
 from qiskit.primitives.containers.observables_array import ObservablesArray, object_array
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+import unittest
+from qiskit.primitives.containers.observables_array import ObservablesArray, SparseObservable
 
 
 @ddt.ddt
@@ -622,3 +624,9 @@ class ObservablesArrayTestCase(QiskitTestCase):
         arr2 = obsarray.sparse_observables_array(copy=False)
         self.assertEqual(arr2, arr)
         self.assertEqual(id(arr2), id(arr))
+
+    def test_invalid_basis_type_raises_type_error(self):
+        """Test that invalid basis type raises TypeError"""
+        invalid_basis = {1: 'value', 2: 'another_value'}  # Invalid keys (integers)
+        with self.assertRaises(TypeError):
+            ObservablesArray.coerce_observable(invalid_basis)
