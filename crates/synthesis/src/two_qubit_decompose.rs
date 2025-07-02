@@ -1676,13 +1676,14 @@ impl TwoQubitBasisDecomposer {
                 }
             }
         }
-        if let OperationRef::StandardGate(StandardGate::CX) = self.gate.view() {
-        } else if self.pulse_optimize.is_some() {
-            return Err(QiskitError::new_err(
-                "pulse_optimizer currently only works with CNOT entangling gate",
-            ));
-        } else {
-            return Ok(None);
+        if !matches!(self.gate.view(), OperationRef::StandardGate(StandardGate::CX)) {
+            if self.pulse_optimize.is_some() {
+                return Err(QiskitError::new_err(
+                    "pulse_optimizer currently only works with CNOT entangling gate",
+                ));
+            } else {
+                return Ok(None);
+            }
         }
         let res = if best_nbasis == 3 {
             self.get_sx_vz_3cx_efficient_euler(decomposition, target_decomposed)
@@ -2206,7 +2207,7 @@ impl TwoQubitBasisDecomposer {
     /// Synthesizes a two qubit unitary matrix into a :class:`.DAGCircuit` object
     ///
     /// Args:
-    ///     unitary (ndarray): A 4x4 unitary matrix in the form of a numply complex array
+    ///     unitary (ndarray): A 4x4 unitary matrix in the form of a numpy complex array
     ///         representing the gate to synthesize
     ///     basis_fidelity (float): The target fidelity of the synthesis This is a floating point
     ///         value between
