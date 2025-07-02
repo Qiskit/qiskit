@@ -7,7 +7,7 @@ fixes:
     operations such as :class:`.Initialize`.
 
     In addition, the pass now always first performs a syntactic (non-matrix-based)
-    check when identidying inverse gate pairs. If the gates are not syntactically
+    check when identifying inverse gate pairs. If the gates are not syntactically
     equal, the argument ``matrix_based`` is set to ``True``, and the operation
     does not act on more than ``max_qubits`` qubits, then a matrix-based check
     is also performed. This slightly improves the reduction potential of the pass.
