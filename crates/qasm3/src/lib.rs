@@ -212,8 +212,7 @@ pub fn dump(
     allow_aliasing: Option<bool>,
     indent: Option<String>,
 ) -> PyResult<()> {
-    // Generate the string directly without going through dumps function
-    let output_str = export_circuit_to_string(circuit, includes, basis_gates, disable_constants, allow_aliasing, indent)?;
+    let output_str = dumps(circuit, includes, basis_gates, disable_constants, allow_aliasing, indent)?;
     stream.call_method1("write", (output_str,))?;
     Ok(())
 }

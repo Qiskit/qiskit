@@ -13,13 +13,13 @@
 use std::fmt::Write;
 
 use crate::ast::{
-    Alias, Assignment, Barrier, Binary, BitArray, BitstringLiteral, BooleanLiteral, Cast,
+    Alias, Assignment, Barrier, Binary, BinaryOp, BitArray, BitstringLiteral, BooleanLiteral, Cast,
     ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float,
     GateCall, Header, Identifier, Include, Index, IndexSet, Int,
     IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
     QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature,
     QuantumInstruction, QuantumMeasurementAssignment, Range, Reset, Statement,
-    Uint, Unary, Version,
+    Uint, Unary, UnaryOp, Version,
 };
 
 
@@ -196,7 +196,7 @@ impl<'a> BasicPrinter<'a> {
 
     fn visit_unary(&mut self, expression: &Unary) {
         write!(self.stream, "{}", expression.op.as_str()).unwrap();
-        let (left, right) = expression.op.binding_power();
+        let (left, right) = UnaryOp::binding_power(&expression.op);
         if matches!(
             *expression.operand,
             Expression::Unary(_) | Expression::Binary(_)
@@ -211,7 +211,7 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_binary(&mut self, expression: &Binary) {
-        let (left, right) = expression.op.binding_power();
+        let (left, right) = BinaryOp::binding_power(&expression.op);
         if matches!(
             *expression.left,
             Expression::Unary(_) | Expression::Binary(_)

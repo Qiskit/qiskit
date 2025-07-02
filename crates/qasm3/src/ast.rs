@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::fmt::{self, Debug, Display, Formatter};
+use std::fmt::Debug;
 
 #[allow(dead_code)]
 pub enum Node<'a> {
@@ -130,11 +130,6 @@ impl DurationUnit {
     }
 }
 
-impl Display for DurationUnit {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Unary {
@@ -151,8 +146,8 @@ pub enum UnaryOp {
 }
 
 impl UnaryOp {
-    pub fn binding_power(&self) -> (u8, u8) {
-        match self {
+    pub fn binding_power(op: &UnaryOp) -> (u8, u8) {
+        match op {
             UnaryOp::LogicNot => (0, 22),
             UnaryOp::BitNot => (0, 22),
             UnaryOp::Default => (0, 0),
@@ -170,11 +165,6 @@ impl UnaryOp {
     }
 }
 
-impl Display for UnaryOp {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Binary {
@@ -201,8 +191,8 @@ pub enum BinaryOp {
 }
 
 impl BinaryOp {
-    pub fn binding_power(&self) -> (u8, u8) {
-        match self {
+    pub fn binding_power(op: &BinaryOp) -> (u8, u8) {
+        match op {
             BinaryOp::ShiftLeft => (15, 16),
             BinaryOp::ShiftRight => (15, 16),
             BinaryOp::Less => (13, 14),
@@ -240,11 +230,6 @@ impl BinaryOp {
     }
 }
 
-impl Display for BinaryOp {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Cast {
@@ -284,11 +269,6 @@ impl Float {
     }
 }
 
-impl Display for Float {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Int {
