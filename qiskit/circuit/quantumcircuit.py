@@ -6923,7 +6923,7 @@ class QuantumCircuit:
     @typing.overload
     def for_loop(
         self,
-        indexset: Iterable[int],
+        indexset: Union[Iterable[int], expr.Range],
         loop_parameter: Parameter | None,
         body: None,
         qubits: None,
@@ -6935,7 +6935,7 @@ class QuantumCircuit:
     @typing.overload
     def for_loop(
         self,
-        indexset: Iterable[int],
+        indexset: Union[Iterable[int], expr.Range],
         loop_parameter: Union[Parameter, None],
         body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
