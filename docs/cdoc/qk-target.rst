@@ -2,7 +2,7 @@
 QkTarget
 ========
 
-.. code-block:: c
+.. code-block:: C
 
     typedef struct QkTarget QkTarget
 
@@ -15,7 +15,7 @@ counterpart, :class:`.Target`.
 
 Here's an example of how this structure works:
 
-.. code-block:: c
+.. code-block:: C
 
     #include <qiskit.h>
     #include <math.h>

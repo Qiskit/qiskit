@@ -32,61 +32,7 @@ pub enum Expr {
     Index(Box<Index>),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum ExprRef<'a> {
-    Unary(&'a Unary),
-    Binary(&'a Binary),
-    Cast(&'a Cast),
-    Value(&'a Value),
-    Var(&'a Var),
-    Stretch(&'a Stretch),
-    Index(&'a Index),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum ExprRefMut<'a> {
-    Unary(&'a mut Unary),
-    Binary(&'a mut Binary),
-    Cast(&'a mut Cast),
-    Value(&'a mut Value),
-    Var(&'a mut Var),
-    Stretch(&'a mut Stretch),
-    Index(&'a mut Index),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum IdentifierRef<'a> {
-    Var(&'a Var),
-    Stretch(&'a Stretch),
-}
-
 impl Expr {
-    /// Converts from `&Expr` to `ExprRef`.
-    pub fn as_ref(&self) -> ExprRef<'_> {
-        match self {
-            Expr::Unary(u) => ExprRef::Unary(u.as_ref()),
-            Expr::Binary(b) => ExprRef::Binary(b.as_ref()),
-            Expr::Cast(c) => ExprRef::Cast(c.as_ref()),
-            Expr::Value(v) => ExprRef::Value(v),
-            Expr::Var(v) => ExprRef::Var(v),
-            Expr::Stretch(s) => ExprRef::Stretch(s),
-            Expr::Index(i) => ExprRef::Index(i.as_ref()),
-        }
-    }
-
-    /// Converts from `&mut Expr` to `ExprRefMut`.
-    pub fn as_mut(&mut self) -> ExprRefMut<'_> {
-        match self {
-            Expr::Unary(u) => ExprRefMut::Unary(u.as_mut()),
-            Expr::Binary(b) => ExprRefMut::Binary(b.as_mut()),
-            Expr::Cast(c) => ExprRefMut::Cast(c.as_mut()),
-            Expr::Value(v) => ExprRefMut::Value(v),
-            Expr::Var(v) => ExprRefMut::Var(v),
-            Expr::Stretch(s) => ExprRefMut::Stretch(s),
-            Expr::Index(i) => ExprRefMut::Index(i.as_mut()),
-        }
-    }
-
     /// The const-ness of the expression.
     pub fn is_const(&self) -> bool {
         match self {
@@ -121,17 +67,12 @@ impl Expr {
         }
     }
 
-    /// Returns an iterator over the identifier nodes in this expression in some
-    /// deterministic order.
-    pub fn identifiers(&self) -> impl Iterator<Item = IdentifierRef<'_>> {
-        IdentIterator(ExprIterator { stack: vec![self] })
-    }
-
     /// Returns an iterator over the [Var] nodes in this expression in some
     /// deterministic order.
     pub fn vars(&self) -> impl Iterator<Item = &Var> {
         VarIterator(ExprIterator { stack: vec![self] })
     }
+<<<<<<< HEAD
 
     /// Returns an iterator over all nodes in this expression in some deterministic
     /// order.
@@ -244,6 +185,8 @@ impl Expr {
             }
         }
     }
+=======
+>>>>>>> parent of 661d259c2 (Add hearistic to add/sub values)
 }
 
 /// A private iterator over the [Expr] nodes of an expression
@@ -255,7 +198,7 @@ struct ExprIterator<'a> {
 }
 
 impl<'a> Iterator for ExprIterator<'a> {
-    type Item = ExprRef<'a>;
+    type Item = &'a Expr;
 
     fn next(&mut self) -> Option<Self::Item> {
         let expr = self.stack.pop()?;
@@ -276,7 +219,7 @@ impl<'a> Iterator for ExprIterator<'a> {
                 self.stack.push(&i.target);
             }
         }
-        Some(expr.as_ref())
+        Some(expr)
     }
 }
 
@@ -288,27 +231,8 @@ impl<'a> Iterator for VarIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         for expr in self.0.by_ref() {
-            if let ExprRef::Var(v) = expr {
+            if let Expr::Var(v) = expr {
                 return Some(v);
-            }
-        }
-        None
-    }
-}
-
-/// A private iterator over the [Var] and [Stretch] nodes contained within an [Expr].
-struct IdentIterator<'a>(ExprIterator<'a>);
-
-impl<'a> Iterator for IdentIterator<'a> {
-    type Item = IdentifierRef<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        for expr in self.0.by_ref() {
-            if let ExprRef::Var(v) = expr {
-                return Some(IdentifierRef::Var(v));
-            }
-            if let ExprRef::Stretch(s) = expr {
-                return Some(IdentifierRef::Stretch(s));
             }
         }
         None
@@ -467,6 +391,7 @@ impl<'py> FromPyObject<'py> for Expr {
         }
     }
 }
+<<<<<<< HEAD
 
 #[cfg(test)]
 mod tests {
@@ -1080,3 +1005,5 @@ mod tests {
         Ok(())
     }
 }
+=======
+>>>>>>> parent of 661d259c2 (Add hearistic to add/sub values)

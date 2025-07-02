@@ -13,7 +13,7 @@
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, VarsMode};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::Qubit;
 
@@ -42,7 +42,7 @@ pub fn run_elide_permutations(
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
 
     // note that DAGCircuit::copy_empty_like clones the interners
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
+    let mut new_dag = dag.copy_empty_like("alike")?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
             match inst.op.name() {
@@ -63,13 +63,17 @@ pub fn run_elide_permutations(
                             .map(|q| q.index())
                             .collect();
 
-                        let new_values: Vec<usize> = (0..qindices.len())
-                            .map(|i| mapping[qindices[pattern[i] as usize]])
+                        let remapped_qindices: Vec<usize> = (0..qindices.len())
+                            .map(|i| pattern[i])
+                            .map(|i| qindices[i as usize])
                             .collect();
 
-                        for i in 0..qindices.len() {
-                            mapping[qindices[i]] = new_values[i];
-                        }
+                        qindices
+                            .iter()
+                            .zip(remapped_qindices.iter())
+                            .for_each(|(old, new)| {
+                                mapping[*old] = *new;
+                            });
                     } else {
                         unreachable!();
                     }

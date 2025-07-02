@@ -21,8 +21,7 @@ static std::complex<double> qk_complex64_to_native(QkComplex64 *value) {
     return std::complex<double>(value->re, value->im);
 }
 static QkComplex64 qk_complex64_from_native(std::complex<double> *value) {
-    QkComplex64 ret = {value->real(), value->imag()};
-    return ret;
+    return (QkComplex64){value->real(), value->imag()};
 }
 #else //__cplusplus
 #include <complex.h>

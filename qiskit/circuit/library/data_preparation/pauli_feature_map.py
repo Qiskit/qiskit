@@ -199,7 +199,6 @@ def z_feature_map(
 
     Examples:
 
-        >>> from qiskit.circuit.library import z_feature_map
         >>> prep = z_feature_map(3, reps=3, insert_barriers=True)
         >>> print(prep)
              ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐
@@ -221,10 +220,9 @@ def z_feature_map(
         q_2: ┤ H ├┤ P(2.0*x[2]**2 + 2.0) ├
              └───┘└──────────────────────┘
 
-        >>> from qiskit.circuit.library import n_local
-        >>> circuit = n_local(3, "ry", "cz", reps=1).decompose()
-        >>> classifier = z_feature_map(3, reps=1)
-        >>> classifier.append(circuit, list(range(classifier.num_qubits)))
+        >>> from qiskit.circuit.library import TwoLocal
+        >>> ry = TwoLocal(3, "ry", "cz", reps=1).decompose()
+        >>> classifier = z_feature_map(3, reps=1) + ry
         >>> print(classifier)
              ┌───┐┌─────────────┐┌──────────┐      ┌──────────┐
         q_0: ┤ H ├┤ P(2.0*x[0]) ├┤ RY(θ[0]) ├─■──■─┤ RY(θ[3]) ├────────────
@@ -279,7 +277,7 @@ def zz_feature_map(
 
     Examples:
 
-        >>> from qiskit.circuit.library import zz_feature_map
+        >>> from qiskit.circuit.library import ZZFeatureMap
         >>> prep = zz_feature_map(2, reps=1)
         >>> print(prep)
              ┌───┐┌─────────────┐
@@ -291,7 +289,7 @@ def zz_feature_map(
         >>> from qiskit.circuit.library import efficient_su2
         >>> classifier = zz_feature_map(3).compose(efficient_su2(3))
         >>> classifier.num_parameters
-        27
+        15
         >>> classifier.parameters  # 'x' for the data preparation, 'θ' for the SU2 parameters
         ParameterView([
             ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),

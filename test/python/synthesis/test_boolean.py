@@ -169,6 +169,10 @@ class TestBooleanExpressionDIMACS(QiskitTestCase):
     def test_bad_formatting(self):
         """Tests DIMACS parsing on edge cases"""
         # pylint: disable=trailing-whitespace
+        dimacs = """ 
+p cnf 10 5"""  # first line is not p cnf nor empty nor comment (it has whitespace)
+        with self.assertRaisesRegex(ValueError, "First line must start with 'p cnf'"):
+            exp = BooleanExpression.from_dimacs(dimacs)
         dimacs = """p cnf 2 1
          
         1 2 0"""  # has empty line with whitespace - should ignore it

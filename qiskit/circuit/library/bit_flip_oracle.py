@@ -52,27 +52,23 @@ class BitFlipOracleGate(Gate):
 
     def __init__(
         self,
-        expression: str | BooleanExpression,
+        expression: str,
         var_order: list[str] | None = None,
         label: str | None = None,
     ) -> None:
         """
         Args:
-            expression: A Python-like boolean expression string or a `BooleanExpression` object.
+            expression: A Python-like boolean expression.
             var_order: A list with the order in which variables will be created.
                (default: by appearance)
             label: A label for the gate to display in visualizations. Per default, the label is
                 set to display the textual represntation of the boolean expression (truncated if needed)
         """
-        if label is None:
-            if isinstance(expression, str):
-                label = (expression[:15] + "...") if len(expression) > 15 else expression
-            else:
-                label = "Boolean Expression"
+        self.boolean_expression = BooleanExpression(expression, var_order=var_order)
 
-        if isinstance(expression, str):
-            expression = BooleanExpression(expression, var_order=var_order)
-        self.boolean_expression = expression
+        if label is None:
+            short_expr_for_name = (expression[:15] + "...") if len(expression) > 15 else expression
+            label = short_expr_for_name
 
         super().__init__(
             name="Bit-flip Oracle",

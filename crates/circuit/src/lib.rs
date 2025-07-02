@@ -40,7 +40,6 @@ pub mod symbol_parser;
 pub mod util;
 
 pub mod rustworkx_core_vnext;
-mod variable_mapper;
 
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};

@@ -15,12 +15,10 @@
 mod errors;
 mod instruction_properties;
 mod qargs;
-mod qubit_properties;
 
 pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
-pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
 
@@ -211,7 +209,7 @@ pub struct Target {
     #[pyo3(get, set)]
     pub acquire_alignment: u32,
     #[pyo3(get, set)]
-    pub qubit_properties: Option<Vec<QubitProperties>>,
+    pub qubit_properties: Option<Vec<PyObject>>,
     #[pyo3(get, set)]
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: GateMap,
@@ -285,7 +283,7 @@ impl Target {
         min_length: Option<u32>,
         pulse_alignment: Option<u32>,
         acquire_alignment: Option<u32>,
-        qubit_properties: Option<Vec<QubitProperties>>,
+        qubit_properties: Option<Vec<PyObject>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
         if let Some(qubit_properties) = qubit_properties.as_ref() {
@@ -857,7 +855,7 @@ impl Target {
         self.qubit_properties = state
             .get_item("qubit_properties")?
             .unwrap()
-            .extract::<Option<Vec<QubitProperties>>>()?;
+            .extract::<Option<Vec<PyObject>>>()?;
         self.concurrent_measurements = state
             .get_item("concurrent_measurements")?
             .unwrap()
@@ -1475,7 +1473,6 @@ where
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
-    m.add_class::<QubitProperties>()?;
     Ok(())
 }
 
@@ -1641,56 +1638,5 @@ mod test {
         assert_eq!(res.to_string(), expected_message);
         // Check that no changes were made.
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
-    }
-
-    #[test]
-    fn test_set_and_get_qubit_properties() {
-        use super::QubitProperties;
-        let props = vec![
-            QubitProperties {
-                t1: Some(10.0),
-                t2: Some(20.0),
-                frequency: Some(5.0),
-            },
-            QubitProperties {
-                t1: Some(11.0),
-                t2: Some(21.0),
-                frequency: Some(6.0),
-            },
-        ];
-        let target = Target {
-            qubit_properties: Some(props.clone()),
-            num_qubits: Some(2),
-            ..Default::default()
-        };
-        assert_eq!(target.qubit_properties.as_ref().unwrap().len(), 2);
-        assert_eq!(target.qubit_properties.as_ref().unwrap()[0].t1, Some(10.0));
-        assert_eq!(
-            target.qubit_properties.as_ref().unwrap()[1].frequency,
-            Some(6.0)
-        );
-    }
-
-    #[test]
-    fn test_qubit_properties_num_qubits_mismatch() {
-        use super::QubitProperties;
-        let props = vec![QubitProperties {
-            t1: Some(10.0),
-            t2: Some(20.0),
-            frequency: Some(5.0),
-        }];
-        // num_qubits is 2, but only 1 qubit_properties
-        let result = Target::new(
-            None,
-            Some(2),
-            None,
-            Some(1),
-            Some(1),
-            Some(1),
-            Some(1),
-            Some(props),
-            None,
-        );
-        assert!(result.is_err());
     }
 }

@@ -15,9 +15,6 @@
 import unittest
 
 from test.utils.base import QiskitTestCase
-
-import numpy as np
-
 from qiskit.circuit.library import QuantumVolume
 from qiskit.circuit.library.quantum_volume import quantum_volume
 
@@ -25,21 +22,18 @@ from qiskit.circuit.library.quantum_volume import quantum_volume
 class TestQuantumVolumeLibrary(QiskitTestCase):
     """Test library of quantum volume quantum circuits."""
 
-    def test_qv_seed_reproducibility_deprecated(self):
-        """Test qv circuit reproducibility for deprecated QuantumVolume class."""
-        with self.assertWarns(DeprecationWarning):
-            left = QuantumVolume(4, 4, seed=28, classical_permutation=False)
-            right = QuantumVolume(4, 4, seed=28, classical_permutation=False)
+    def test_qv_seed_reproducibility(self):
+        """Test qv circuit."""
+        left = QuantumVolume(4, 4, seed=28, classical_permutation=False)
+        right = QuantumVolume(4, 4, seed=28, classical_permutation=False)
         self.assertEqual(left, right)
 
-        with self.assertWarns(DeprecationWarning):
-            left = QuantumVolume(4, 4, seed=3, classical_permutation=True)
-            right = QuantumVolume(4, 4, seed=3, classical_permutation=True)
+        left = QuantumVolume(4, 4, seed=3, classical_permutation=True)
+        right = QuantumVolume(4, 4, seed=3, classical_permutation=True)
         self.assertEqual(left, right)
 
-        with self.assertWarns(DeprecationWarning):
-            left = QuantumVolume(4, 4, seed=2024, flatten=True)
-            right = QuantumVolume(4, 4, seed=2024, flatten=True)
+        left = QuantumVolume(4, 4, seed=2024, flatten=True)
+        right = QuantumVolume(4, 4, seed=2024, flatten=True)
         self.assertEqual(left, right)
 
     def test_qv_function_seed_reproducibility(self):
@@ -54,12 +48,6 @@ class TestQuantumVolumeLibrary(QiskitTestCase):
 
         left = quantum_volume(10, 10, seed=4196)
         right = quantum_volume(10, 10, seed=4196)
-        self.assertEqual(left, right)
-
-        rng = np.random.default_rng(256)
-        left = quantum_volume(10, 10, seed=rng)
-        rng = np.random.default_rng(256)
-        right = quantum_volume(10, 10, seed=rng)
         self.assertEqual(left, right)
 
 
