@@ -543,7 +543,29 @@ impl SymbolExpr {
                             lval = left;
                             rval = right;
                         }
-                        _ => return None,
+                        _ => {
+                            let val = match op {
+                                BinaryOp::Add => lhs.add_opt(rhs, true),
+                                BinaryOp::Sub => lhs.sub_opt(rhs, true),
+                                BinaryOp::Mul => lhs.mul_opt(rhs, true),
+                                BinaryOp::Div => lhs.div_opt(rhs, true),
+                                BinaryOp::Pow => None,
+                            };
+                            return match val {
+                                Some(SymbolExpr::Value(val)) => match val {
+                                    Value::Real(_) => Some(val),
+                                    Value::Int(_) => Some(val),
+                                    Value::Complex(c) => {
+                                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
+                                            Some(Value::Real(c.re))
+                                        } else {
+                                            Some(val)
+                                        }
+                                    }
+                                },
+                                _ => None,
+                            };
+                        }
                     }
                 } else {
                     match (lhs.as_ref(), rhs.as_ref()) {
