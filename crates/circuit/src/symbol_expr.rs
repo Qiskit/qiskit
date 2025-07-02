@@ -184,25 +184,25 @@ impl fmt::Display for SymbolExpr {
                 SymbolExpr::Unary { op, expr } => {
                     let s = expr.to_string();
                     match op {
-                        UnaryOp::Abs => format!("abs({})", s),
+                        UnaryOp::Abs => format!("abs({s})"),
                         UnaryOp::Neg => match expr.as_ref() {
                             SymbolExpr::Value(e) => (-e).to_string(),
                             SymbolExpr::Binary {
                                 op: BinaryOp::Add | BinaryOp::Sub,
                                 ..
-                            } => format!("-({})", s),
-                            _ => format!("-{}", s),
+                            } => format!("-({s})"),
+                            _ => format!("-{s}"),
                         },
-                        UnaryOp::Sin => format!("sin({})", s),
-                        UnaryOp::Asin => format!("asin({})", s),
-                        UnaryOp::Cos => format!("cos({})", s),
-                        UnaryOp::Acos => format!("acos({})", s),
-                        UnaryOp::Tan => format!("tan({})", s),
-                        UnaryOp::Atan => format!("atan({})", s),
-                        UnaryOp::Exp => format!("exp({})", s),
-                        UnaryOp::Log => format!("log({})", s),
-                        UnaryOp::Sign => format!("sign({})", s),
-                        UnaryOp::Conj => format!("conjugate({})", s),
+                        UnaryOp::Sin => format!("sin({s})"),
+                        UnaryOp::Asin => format!("asin({s})"),
+                        UnaryOp::Cos => format!("cos({s})"),
+                        UnaryOp::Acos => format!("acos({s})"),
+                        UnaryOp::Tan => format!("tan({s})"),
+                        UnaryOp::Atan => format!("atan({s})"),
+                        UnaryOp::Exp => format!("exp({s})"),
+                        UnaryOp::Log => format!("log({s})"),
+                        UnaryOp::Sign => format!("sign({s})"),
+                        UnaryOp::Conj => format!("conjugate({s})"),
                     }
                 }
                 SymbolExpr::Binary { op, lhs, rhs } => {
@@ -239,12 +239,12 @@ impl fmt::Display for SymbolExpr {
                                 expr: _,
                             } => {
                                 if s_rhs.as_str().char_indices().nth(0).unwrap().1 == '-' {
-                                    format!("{} {}", s_lhs, s_rhs)
+                                    format!("{s_lhs} {s_rhs}")
                                 } else {
-                                    format!("{} + {}", s_lhs, s_rhs)
+                                    format!("{s_lhs} + {s_rhs}")
                                 }
                             }
-                            _ => format!("{} + {}", s_lhs, s_rhs),
+                            _ => format!("{s_lhs} + {s_rhs}"),
                         },
                         BinaryOp::Sub => match rhs.as_ref() {
                             SymbolExpr::Unary {
@@ -255,18 +255,18 @@ impl fmt::Display for SymbolExpr {
                                     let st = s_rhs.char_indices().nth(0).unwrap().0;
                                     let ed = s_rhs.char_indices().nth(1).unwrap().0;
                                     let s_rhs_new: &str = &s_rhs.as_str()[st..ed];
-                                    format!("{} + {}", s_lhs, s_rhs_new)
+                                    format!("{s_lhs} + {s_rhs_new}")
                                 } else if op_rhs {
-                                    format!("{} -({})", s_lhs, s_rhs)
+                                    format!("{s_lhs} -({s_rhs})")
                                 } else {
-                                    format!("{} - {}", s_lhs, s_rhs)
+                                    format!("{s_lhs} - {s_rhs}")
                                 }
                             }
                             _ => {
                                 if op_rhs {
-                                    format!("{} -({})", s_lhs, s_rhs)
+                                    format!("{s_lhs} -({s_rhs})")
                                 } else {
-                                    format!("{} - {}", s_lhs, s_rhs)
+                                    format!("{s_lhs} - {s_rhs}")
                                 }
                             }
                         },
@@ -321,14 +321,14 @@ impl fmt::Display for SymbolExpr {
                                 }
                             } else if op_lhs {
                                 if op_rhs {
-                                    format!("({})*({})", s_lhs, s_rhs)
+                                    format!("({s_lhs})*({s_rhs})")
                                 } else {
-                                    format!("({})*{}", s_lhs, s_rhs)
+                                    format!("({s_lhs})*{s_rhs}")
                                 }
                             } else if op_rhs {
-                                format!("{}*({})", s_lhs, s_rhs)
+                                format!("{s_lhs}*({s_rhs})")
                             } else {
-                                format!("{}*{}", s_lhs, s_rhs)
+                                format!("{s_lhs}*{s_rhs}")
                             }
                         }
                         BinaryOp::Div => {
@@ -366,61 +366,61 @@ impl fmt::Display for SymbolExpr {
                                 }
                             } else if op_lhs {
                                 if op_rhs {
-                                    format!("({})/({})", s_lhs, s_rhs)
+                                    format!("({s_lhs})/({s_rhs})")
                                 } else {
-                                    format!("({})/{}", s_lhs, s_rhs)
+                                    format!("({s_lhs})/{s_rhs}")
                                 }
                             } else if op_rhs {
-                                format!("{}/({})", s_lhs, s_rhs)
+                                format!("{s_lhs}/({s_rhs})")
                             } else {
-                                format!("{}/{}", s_lhs, s_rhs)
+                                format!("{s_lhs}/{s_rhs}")
                             }
                         }
                         BinaryOp::Pow => match lhs.as_ref() {
                             SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
                                 match rhs.as_ref() {
                                     SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                        format!("({})**({})", s_lhs, s_rhs)
+                                        format!("({s_lhs})**({s_rhs})")
                                     }
                                     SymbolExpr::Value(r) => {
                                         if r.as_real() < 0.0 {
-                                            format!("({})**({})", s_lhs, s_rhs)
+                                            format!("({s_lhs})**({s_rhs})")
                                         } else {
-                                            format!("({})**{}", s_lhs, s_rhs)
+                                            format!("({s_lhs})**{s_rhs}")
                                         }
                                     }
-                                    _ => format!("({})**{}", s_lhs, s_rhs),
+                                    _ => format!("({s_lhs})**{s_rhs}"),
                                 }
                             }
                             SymbolExpr::Value(l) => {
                                 if l.as_real() < 0.0 {
                                     match rhs.as_ref() {
                                         SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                            format!("({})**({})", s_lhs, s_rhs)
+                                            format!("({s_lhs})**({s_rhs})")
                                         }
-                                        _ => format!("({})**{}", s_lhs, s_rhs),
+                                        _ => format!("({s_lhs})**{s_rhs}"),
                                     }
                                 } else {
                                     match rhs.as_ref() {
                                         SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                            format!("{}**({})", s_lhs, s_rhs)
+                                            format!("{s_lhs}**({s_rhs})")
                                         }
-                                        _ => format!("{}**{}", s_lhs, s_rhs),
+                                        _ => format!("{s_lhs}**{s_rhs}"),
                                     }
                                 }
                             }
                             _ => match rhs.as_ref() {
                                 SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                    format!("{}**({})", s_lhs, s_rhs)
+                                    format!("{s_lhs}**({s_rhs})")
                                 }
                                 SymbolExpr::Value(r) => {
                                     if r.as_real() < 0.0 {
-                                        format!("{}**({})", s_lhs, s_rhs)
+                                        format!("{s_lhs}**({s_rhs})")
                                     } else {
-                                        format!("{}**{}", s_lhs, s_rhs)
+                                        format!("{s_lhs}**{s_rhs}")
                                     }
                                 }
-                                _ => format!("{}**{}", s_lhs, s_rhs),
+                                _ => format!("{s_lhs}**{s_rhs}"),
                             },
                         },
                     }
