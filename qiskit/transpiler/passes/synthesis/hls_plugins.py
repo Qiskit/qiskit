@@ -559,6 +559,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_hp24,
     synth_mcmt_vchain,
 )
 from qiskit.synthesis.evolution import ProductFormula, synth_pauli_network_rustiq
@@ -1415,6 +1416,40 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class MCXSynthesisNoAuxHP24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the
+    paper by Huang and Palsberg.
+
+    See [1] for details.
+
+    This plugin name is :``mcx.noaux_hp24`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits.
+
+    References:
+        1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
+           Helper Qubits*, PLDI (2024),
+           <https://dl.acm.org/doi/10.1145/3656436>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_noaux_hp24(num_ctrl_qubits)
+        return decomposition
+
+
 class MCXSynthesisDefault(HighLevelSynthesisPlugin):
     r"""The default synthesis plugin for a multi-controlled X gate.
 
@@ -1433,7 +1468,7 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             return None
 
         # Iteratively run other synthesis methods available
-
+        # (note that all of these methods require at least one auxiliary qubit)
         for synthesis_method in [
             MCXSynthesis2CleanKG24,
             MCXSynthesis1CleanKG24,
@@ -1450,10 +1485,14 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             ) is not None:
                 return decomposition
 
-        # If no synthesis method was successful, fall back to the default
-        return MCXSynthesisNoAuxV24().run(
-            high_level_object, coupling_map, target, qubits, **options
+        # If no synthesis method was successful, use the methods that do not
+        # require auxiliary qubits
+        no_aux_method = (
+            MCXSynthesisNoAuxV24
+            if high_level_object.num_ctrl_qubits <= 5
+            else MCXSynthesisNoAuxHP24
         )
+        return no_aux_method().run(high_level_object, coupling_map, target, qubits, **options)
 
 
 class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
