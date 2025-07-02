@@ -36,11 +36,6 @@ from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
 from qiskit.transpiler.passes import ConsolidateBlocks, Collect1qRuns, Collect2qBlocks
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-import unittest
-from qiskit import QuantumCircuit
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import ConsolidateBlocks
-from qiskit.circuit.library import CXGate
 
 
 @ddt
