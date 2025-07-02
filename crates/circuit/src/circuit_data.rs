@@ -25,7 +25,7 @@ use crate::dag_circuit::add_global_phase;
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{Operation, OperationRef, Param, StandardGate};
+use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -502,8 +502,20 @@ impl CircuitData {
         if deepcopy {
             let memo = PyDict::new(py);
             for inst in &self.data {
+                let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => gate.py_deepcopy(py, Some(&memo))?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        instruction.py_deepcopy(py, Some(&memo))?.into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        operation.py_deepcopy(py, Some(&memo))?.into()
+                    }
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                };
                 res.data.push(PackedInstruction {
-                    op: inst.op.py_deepcopy(py, Some(&memo))?,
+                    op: new_op,
                     qubits: inst.qubits,
                     clbits: inst.clbits,
                     params: inst.params.clone(),
@@ -514,8 +526,16 @@ impl CircuitData {
             }
         } else if copy_instructions {
             for inst in &self.data {
+                let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
+                    OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
+                    OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                };
                 res.data.push(PackedInstruction {
-                    op: inst.op.py_copy(py)?,
+                    op: new_op,
                     qubits: inst.qubits,
                     clbits: inst.clbits,
                     params: inst.params.clone(),

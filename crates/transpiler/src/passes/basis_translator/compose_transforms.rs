@@ -114,7 +114,7 @@ pub(super) fn compose_transforms<'a>(
                         .0
                         .assign_parameters_from_mapping(py, param_mapping)?;
                     let replace_dag: DAGCircuit =
-                        DAGCircuit::from_circuit_data(py, replacement.0, true)?;
+                        DAGCircuit::from_circuit_data(replacement.0, true)?;
                     let op_node = dag.get_node(py, node)?;
                     dag.py_substitute_node_with_dag(
                         py,
