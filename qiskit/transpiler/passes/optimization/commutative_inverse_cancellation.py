@@ -81,9 +81,8 @@ class CommutativeInverseCancellation(TransformationPass):
         are equal up to a phase and that phase difference.
         """
         phase_difference = 0
-        if not matrix_based:
-            are_equal = op1 == op2
-        else:
+        are_equal = op1 == op2
+        if not are_equal and matrix_based:
             mat1 = Operator(op1).data
             mat2 = Operator(op2).data
             props = {}
