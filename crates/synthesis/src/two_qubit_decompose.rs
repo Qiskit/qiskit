@@ -2568,7 +2568,7 @@ impl TwoQubitControlledUDecomposer {
             }
             // UnitaryGate isn't applicable here as the 2q gate here is the parameterized
             // ControlledU equivalent used in the decomposition. This precludes UnitaryGate
-            _ => unreachable!("Only 2q gate objects can be inverted in the decomposer"),
+            _ => panic!("Only 2q gate objects can be inverted in the decomposer"),
         };
         let inv_gate_params = inv_gate
             .1
