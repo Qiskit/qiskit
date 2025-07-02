@@ -1676,7 +1676,10 @@ impl TwoQubitBasisDecomposer {
                 }
             }
         }
-        if !matches!(self.gate.view(), OperationRef::StandardGate(StandardGate::CX)) {
+        if !matches!(
+            self.gate.view(),
+            OperationRef::StandardGate(StandardGate::CX)
+        ) {
             if self.pulse_optimize.is_some() {
                 return Err(QiskitError::new_err(
                     "pulse_optimizer currently only works with CNOT entangling gate",
@@ -2209,8 +2212,8 @@ impl TwoQubitBasisDecomposer {
     /// Args:
     ///     unitary (ndarray): A 4x4 unitary matrix in the form of a numpy complex array
     ///         representing the gate to synthesize
-    ///     basis_fidelity (float): The target fidelity of the synthesis This is a floating point
-    ///         value between
+    ///     basis_fidelity (float): The target fidelity of the synthesis. This is a floating point
+    ///         value between 1.0 and 0.0.
     ///     approximate (bool): Whether to enable approximation. If set to false this is equivalent
     ///         to setting basis_fidelity to 1.0.
     ///
@@ -2253,8 +2256,8 @@ impl TwoQubitBasisDecomposer {
     /// Args:
     ///     unitary (ndarray): A 4x4 unitary matrix in the form of a numply complex array
     ///         representing the gate to synthesize
-    ///     basis_fidelity (float): The target fidelity of the synthesis This is a floating point
-    ///         value between
+    ///     basis_fidelity (float): The target fidelity of the synthesis. This is a floating point
+    ///         value between 1.0 and 0.0.
     ///     approximate (bool): Whether to enable approximation. If set to false this is equivalent
     ///         to setting basis_fidelity to 1.0.
     ///
