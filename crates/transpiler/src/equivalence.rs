@@ -163,7 +163,7 @@ impl Display for Equivalence {
             "Equivalence(params=[{}], circuit={:?})",
             self.params
                 .iter()
-                .map(|param| format!("{:?}", param))
+                .map(|param| format!("{param:?}"))
                 .format(", "),
             self.circuit
         )
@@ -730,9 +730,8 @@ fn raise_if_param_mismatch(
     if !gate_params_obj.eq(&circuit_parameters)? {
         return Err(CircuitError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
-            of different parameters. Gate params: {:?}. \
-            Circuit params: {:?}.",
-            gate_params, circuit_parameters
+            of different parameters. Gate params: {gate_params:?}. \
+            Circuit params: {circuit_parameters:?}."
         )));
     }
     Ok(())

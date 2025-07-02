@@ -396,7 +396,7 @@ impl PackedOperation {
 
     /// Get a safe view onto the packed data within, without assuming ownership.
     #[inline]
-    pub fn view(&self) -> OperationRef {
+    pub fn view(&self) -> OperationRef<'_> {
         match self.discriminant() {
             PackedOperationType::ControlFlow => OperationRef::ControlFlow(self.try_into().unwrap()),
             PackedOperationType::StandardGate => OperationRef::StandardGate(self.standard_gate()),

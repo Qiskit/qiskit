@@ -425,8 +425,7 @@ impl CircuitData {
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
                             CircuitError::new_err(format!(
-                                "Qubit at index {} exceeds circuit capacity.",
-                                bit_idx
+                                "Qubit at index {bit_idx} exceeds circuit capacity."
                             ))
                         })?,
                         [(register.clone(), index)],
@@ -478,8 +477,7 @@ impl CircuitData {
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
                             CircuitError::new_err(format!(
-                                "Clbit at index {} exceeds circuit capacity.",
-                                bit_idx
+                                "Clbit at index {bit_idx} exceeds circuit capacity."
                             ))
                         })?,
                         [(register.clone(), index)],
@@ -2261,20 +2259,20 @@ where
                         return Ok(vec![bit]);
                     }
                 }
-                return Err(CircuitError::new_err(format!(
+                Err(CircuitError::new_err(format!(
                     "Index {specifier} out of range for size {}.",
                     bit_sequence.len()
-                )));
+                )))
             }
             _ => {
                 let Ok(sequence) = sequence.with_len(bit_sequence.len()) else {
                     return Ok(vec![]);
                 };
-                return Ok(sequence
+                Ok(sequence
                     .iter()
                     .map(|index| &bit_sequence[index])
                     .cloned()
-                    .collect());
+                    .collect())
             }
         }
     } else {
@@ -2297,7 +2295,7 @@ where
                 specifier.get_type().name()?
             )
         };
-        return Err(CircuitError::new_err(err_message));
+        Err(CircuitError::new_err(err_message))
     }
 }
 
@@ -2327,12 +2325,12 @@ where
                 ))
             })?
         {
-            return Ok(bit);
+            Ok(bit)
         } else {
-            return Err(CircuitError::new_err(format!(
+            Err(CircuitError::new_err(format!(
                 "Index {specifier} out of range for size {}.",
                 bit_sequence.len()
-            )));
+            )))
         }
     } else {
         let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
@@ -2347,6 +2345,6 @@ where
                 specifier.get_type().name()?
             )
         };
-        return Err(CircuitError::new_err(err_message));
+        Err(CircuitError::new_err(err_message))
     }
 }

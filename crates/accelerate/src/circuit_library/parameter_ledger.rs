@@ -134,7 +134,7 @@ impl ParameterLedger {
     }
 
     /// Get the parameters in the rotation or entanglement layer.
-    pub(super) fn get_parameters(&self, kind: LayerType, layer: usize) -> LayerParameters {
+    pub(super) fn get_parameters(&self, kind: LayerType, layer: usize) -> LayerParameters<'_> {
         let (mut index, blocks) = match kind {
             LayerType::Rotation => (
                 *self
