@@ -947,3 +947,13 @@ class TestCollect2qBlocks(QiskitTestCase):
             pm.run(qc)
             blocks = pm.property_set.get("block_list", [])
             self.assertEqual(len(blocks), 0)
+    def test_consolidate_with_kak_basis_gate(self):
+        """Test that ConsolidateBlocks works with a kak_basis_gate."""
+
+        kak_basis_gate = CXGate()
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=kak_basis_gate)
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        res = consolidate_pass.run(dag)
+        self.assertEqual(res.count_ops().get('cx', 0), 1)
