@@ -21,7 +21,7 @@ import rustworkx
 from qiskit.circuit import SwitchCaseOp, Clbit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit.controlflow import node_resources
-from qiskit.converters import dag_to_circuit
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
@@ -284,8 +284,6 @@ class SabreSwap(TransformationPass):
 
 
 def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
-    from qiskit.converters import circuit_to_dag
-
     # Maps id(block): circuit_to_dag(block) for all descendant blocks
     circuit_to_dag_dict = {}
 
@@ -339,7 +337,7 @@ def _apply_sabre_result(
     sabre_result,
     initial_layout,
     physical_qubits,
-    circuit_to_dag_dict,
+    _circuit_to_dag_dict,
 ):
     """Apply the ``SabreResult`` to ``out_dag``, mutating it in place.  This function in effect
     performs the :class:`.ApplyLayout` transpiler pass with ``initial_layout`` and the Sabre routing
@@ -359,7 +357,7 @@ def _apply_sabre_result(
         physical_qubits (list[Qubit]): an indexable sequence of :class:`.circuit.Qubit` objects
             representing the physical qubits of the circuit.  Note that disjoint-coupling
             handling can mean that these are not strictly a "canonical physical register" in order.
-        circuit_to_dag_dict (Mapping[int, DAGCircuit]): a mapping of the Python object identity
+        _circuit_to_dag_dict (Mapping[int, DAGCircuit]): a mapping of the Python object identity
             (as returned by :func:`id`) of a control-flow block :class:`.QuantumCircuit` to a
             :class:`.DAGCircuit` that represents the same thing.
     """
@@ -432,7 +430,11 @@ def _apply_sabre_result(
                 }
                 block_dag, block_layout = recurse(
                     empty_dag(block),
-                    circuit_to_dag_dict[id(block)],
+                    # TODO: id(block) doesn't work anymore since blocks are created on the fly, so we
+                    #   need to run `circuit_to_dag` every time.
+                    #   This shouldn't be an issue probably once Sabre Swap is fully ported to Rust.
+                    # circuit_to_dag_dict[id(block)],
+                    circuit_to_dag(block),
                     (
                         block_result.result.map,
                         block_result.result.node_order,

@@ -19,26 +19,25 @@ use ndarray::ArrayView2;
 use num_complex::Complex64;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::PyList;
 use pyo3::wrap_pyfunction;
-use pyo3::IntoPyObjectExt;
 use pyo3::Python;
-use rand::prelude::*;
-use rand_pcg::Pcg64Mcg;
-use smallvec::SmallVec;
-
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
+use qiskit_circuit::instruction::{
+    Instruction, InstructionView, IntoInstructionView, StandardGateView,
+};
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
+use rand::prelude::*;
+use rand_pcg::Pcg64Mcg;
+use smallvec::smallvec;
 
 use crate::QiskitError;
-
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
 use qiskit_transpiler::target::Target;
 
@@ -204,21 +203,21 @@ fn twirl_gate(
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
     out_circ.push(
         py,
-        PackedInstruction::from_standard_gate(twirl[0], None, bit_zero),
+        PackedInstruction::from_standard_gate(twirl[0], smallvec![], bit_zero),
     )?;
     out_circ.push(
         py,
-        PackedInstruction::from_standard_gate(twirl[1], None, bit_one),
+        PackedInstruction::from_standard_gate(twirl[1], smallvec![], bit_one),
     )?;
 
     out_circ.push(py, inst.clone())?;
     out_circ.push(
         py,
-        PackedInstruction::from_standard_gate(twirl[2], None, bit_zero),
+        PackedInstruction::from_standard_gate(twirl[2], smallvec![], bit_zero),
     )?;
     out_circ.push(
         py,
-        PackedInstruction::from_standard_gate(twirl[3], None, bit_one),
+        PackedInstruction::from_standard_gate(twirl[3], smallvec![], bit_one),
     )?;
 
     if *twirl_phase != 0. {
@@ -246,8 +245,8 @@ fn generate_twirled_circuit(
                 continue;
             }
         }
-        match inst.op.view() {
-            OperationRef::StandardGate(gate) => match gate {
+        match inst.view() {
+            InstructionView::StandardGate(StandardGateView(gate, _)) => match gate {
                 StandardGate::CX => {
                     if twirling_mask & CX_MASK != 0 {
                         twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
@@ -278,67 +277,44 @@ fn generate_twirled_circuit(
                 }
                 _ => out_circ.push(py, inst.clone())?,
             },
-            OperationRef::Instruction(py_inst) => {
-                if py_inst.control_flow() {
-                    let new_blocks: PyResult<Vec<PyObject>> = py_inst
-                        .blocks()
-                        .iter()
-                        .map(|block| -> PyResult<PyObject> {
-                            let new_block = generate_twirled_circuit(
-                                py,
-                                block,
-                                rng,
-                                twirling_mask,
-                                custom_gate_map,
-                                optimizer_target,
-                            )?;
-                            new_block.into_py_any(py)
-                        })
-                        .collect();
-                    let new_blocks = new_blocks?;
-                    let blocks_list = PyList::new(
-                        py,
-                        new_blocks.iter().map(|block| {
-                            QUANTUM_CIRCUIT
-                                .get_bound(py)
-                                .call_method1(intern!(py, "_from_circuit_data"), (block,))
-                                .unwrap()
-                        }),
-                    )?;
-
-                    let new_inst_obj = py_inst
-                        .instruction
-                        .bind(py)
-                        .call_method1(intern!(py, "replace_blocks"), (blocks_list,))?
-                        .unbind();
-                    let new_inst = PyInstruction {
-                        qubits: py_inst.qubits,
-                        clbits: py_inst.clbits,
-                        params: py_inst.params,
-                        op_name: py_inst.op_name.clone(),
-                        control_flow: true,
-                        instruction: new_inst_obj.clone_ref(py),
-                    };
-                    let new_inst = PackedInstruction {
-                        op: PackedOperation::from_instruction(Box::new(new_inst)),
-                        qubits: inst.qubits,
-                        clbits: inst.clbits,
-                        params: Some(Box::new(
-                            new_blocks
-                                .iter()
-                                .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
-                                .collect::<PyResult<SmallVec<[Param; 3]>>>()?,
-                        )),
-                        label: inst.label.clone(),
-                        #[cfg(feature = "cache_pygates")]
-                        py_op: std::sync::OnceLock::new(),
-                    };
-                    #[cfg(feature = "cache_pygates")]
-                    new_inst.py_op.set(new_inst_obj).unwrap();
-                    out_circ.push(py, new_inst)?;
-                } else {
-                    out_circ.push(py, inst.clone())?;
-                }
+            InstructionView::ControlFlow(control_flow) => {
+                let new_blocks: Vec<PyObject> = control_flow
+                    .blocks()
+                    .map(|block| {
+                        // TODO: remove this once PackedInstruction's block type is CircuitData.
+                        let block = block
+                            .bind(py)
+                            .getattr(intern!(py, "_data"))?
+                            .extract::<CircuitData>()?;
+                        let new_block = generate_twirled_circuit(
+                            py,
+                            &block,
+                            rng,
+                            twirling_mask,
+                            custom_gate_map,
+                            optimizer_target,
+                        )?;
+                        QUANTUM_CIRCUIT.get(py).call_method1(
+                            py,
+                            intern!(py, "_from_circuit_data"),
+                            (new_block,),
+                        )
+                    })
+                    .collect::<PyResult<_>>()?;
+                out_circ.push(
+                    py,
+                    PackedInstruction::from_control_flow(
+                        inst.op.control_flow().clone(),
+                        {
+                            let mut blocks = inst.parameters().unwrap().clone();
+                            blocks.replace_blocks(new_blocks);
+                            blocks
+                        },
+                        inst.qubits,
+                        inst.clbits,
+                        inst.label(),
+                    ),
+                )?;
             }
             _ => {
                 out_circ.push(py, inst.clone())?;
@@ -418,7 +394,7 @@ pub(crate) fn twirl_circuit(
                             )
                         )))
                     }
-                    let matrix = gate.operation.matrix(&gate.params);
+                    let matrix = gate.view().try_matrix();
                     if let Some(matrix) = matrix {
                         let twirl_set = generate_twirling_set(matrix.view());
                         if twirl_set.is_empty() {

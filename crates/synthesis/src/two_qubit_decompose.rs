@@ -57,6 +57,7 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::gate_matrix::{
     CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, SX_GATE, S_GATE, X_GATE,
 };
+use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
@@ -2232,6 +2233,12 @@ impl TwoQubitBasisDecomposer {
         _num_basis_uses: Option<u8>,
     ) -> PyResult<CircuitData> {
         let kak_gate = kak_gate.extract::<OperationFromPython>(py)?;
+        let kak_gate_params: SmallVec<[Param; 3]> = kak_gate
+            .try_legacy_params()
+            .unwrap()
+            .iter()
+            .cloned()
+            .collect();
         let sequence = self.__call__(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         match kak_gate.operation.try_standard_gate() {
             Some(std_kak_gate) => CircuitData::from_standard_gates(
@@ -2248,7 +2255,7 @@ impl TwoQubitBasisDecomposer {
                         ),
                         None => (
                             std_kak_gate,
-                            kak_gate.params.clone(),
+                            kak_gate_params.clone(),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                         ),
                     }),
@@ -2264,13 +2271,15 @@ impl TwoQubitBasisDecomposer {
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
                             PackedOperation::from_standard_gate(gate),
-                            params.into_iter().map(Param::Float).collect(),
+                            Some(Parameters::Params(
+                                params.into_iter().map(Param::Float).collect(),
+                            )),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
                         )),
                         None => Ok((
                             kak_gate.operation.clone(),
-                            kak_gate.params.clone(),
+                            Some(Parameters::Params(kak_gate_params.clone())),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
                         )),
@@ -2572,10 +2581,11 @@ impl TwoQubitControlledUDecomposer {
                     let raw_inverse = gate_obj.call_method0(intern!(py, "inverse"))?;
                     let inverse: OperationFromPython = raw_inverse.extract()?;
                     let params: SmallVec<[f64; 3]> = inverse
-                        .params
-                        .into_iter()
+                        .try_legacy_params()
+                        .unwrap()
+                        .iter()
                         .map(|x| match x {
-                            Param::Float(val) => val,
+                            Param::Float(val) => *val,
                             _ => panic!("Inverse has invalid parameter"),
                         })
                         .collect();
@@ -2999,7 +3009,9 @@ impl TwoQubitControlledUDecomposer {
                     .map(|(gate, params, qubits)| match gate {
                         Some(gate) => Ok((
                             PackedOperation::from_standard_gate(gate),
-                            params.into_iter().map(Param::Float).collect(),
+                            Some(Parameters::Params(
+                                params.into_iter().map(Param::Float).collect(),
+                            )),
                             qubits.into_iter().map(|x| Qubit(x.into())).collect(),
                             Vec::new(),
                         )),

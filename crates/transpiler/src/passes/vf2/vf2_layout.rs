@@ -14,7 +14,6 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use numpy::PyReadonlyArray1;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use pyo3::{create_exception, wrap_pyfunction};
 use rayon::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
@@ -23,14 +22,14 @@ use rustworkx_core::petgraph::EdgeType;
 use std::cmp::Ordering;
 use std::time::Instant;
 
-use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{Operation, OperationRef, Param};
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::rustworkx_core_vnext::isomorphism::vf2;
 use qiskit_circuit::Qubit;
 
 use super::error_map::ErrorMap;
 use crate::target::{Qargs, Target};
+use qiskit_circuit::instruction::{ControlFlowView, IntoInstructionView};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit};
 
@@ -144,40 +143,29 @@ fn build_interaction_graph<Ty: EdgeType>(
     reverse_im_graph_node_map: &mut [Option<Qubit>],
 ) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(false) {
-        if inst.op.control_flow() {
-            Python::with_gil(|py| -> PyResult<_> {
-                let inner_weight = if inst.op.name() == "for_loop" {
-                    let Param::Obj(ref indexset) = inst.params_view()[0] else {
-                        unreachable!("Invalid for loop definition");
-                    };
-                    indexset.bind(py).len().unwrap()
-                } else {
-                    weight
-                };
-                let OperationRef::Instruction(py_inst) = inst.op.view() else {
-                    unreachable!("Control flow must be a python instruction");
-                };
-                let raw_blocks = py_inst.instruction.getattr(py, "blocks").unwrap();
-                let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
-                for block in blocks.iter() {
-                    let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
-                    let node_qargs = dag.get_qargs(inst.qubits);
+        if let Some(control_flow) = inst.try_view_control_flow() {
+            let inner_weight = if let ControlFlowView::ForLoop { indexset, .. } = &control_flow {
+                indexset.len()
+            } else {
+                weight
+            };
 
-                    for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
-                        inner_wire_map[inner as usize] = wire_map[outer.index()]
-                    }
-                    let block_dag = circuit_to_dag(py, block.extract()?, false, None, None)?;
-                    build_interaction_graph(
-                        &block_dag,
-                        &inner_wire_map,
-                        inner_weight,
-                        im_graph,
-                        im_graph_node_map,
-                        reverse_im_graph_node_map,
-                    )?;
+            for block in control_flow.blocks() {
+                let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
+                let node_qargs = dag.get_qargs(inst.qubits);
+
+                for (outer, inner) in node_qargs.iter().zip(0..inst.op.num_qubits()) {
+                    inner_wire_map[inner as usize] = wire_map[outer.index()]
                 }
-                Ok(())
-            })?;
+                build_interaction_graph(
+                    block,
+                    &inner_wire_map,
+                    inner_weight,
+                    im_graph,
+                    im_graph_node_map,
+                    reverse_im_graph_node_map,
+                )?;
+            }
             continue;
         }
         let len_args = inst.op.num_qubits();

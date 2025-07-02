@@ -10,15 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::QiskitError;
+use itertools::Itertools;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::{smallvec, SmallVec};
-
-use crate::QiskitError;
 
 type CCXChainItem = PyResult<(
     PackedOperation,
@@ -103,8 +104,13 @@ pub fn mcmt_v_chain(
         return Err(QiskitError::new_err("Need at least 1 control qubit."));
     }
 
+    let gate_params: SmallVec<[Param; 3]> = controlled_gate
+        .try_legacy_params()
+        .unwrap()
+        .iter()
+        .cloned()
+        .collect();
     let packed_controlled_gate = controlled_gate.operation;
-    let gate_params = controlled_gate.params;
     let num_qubits = if num_ctrl_qubits > 1 {
         2 * num_ctrl_qubits - 1 + num_target_qubits
     } else {
@@ -151,7 +157,10 @@ pub fn mcmt_v_chain(
             flip_control_state
                 .clone()
                 .chain(targets)
-                .chain(flip_control_state),
+                .chain(flip_control_state)
+                .map_ok(|(op, params, qubits, clbits)| {
+                    (op, Some(Parameters::Params(params)), qubits, clbits)
+                }),
             Param::Float(0.0),
         )
     } else {
@@ -171,7 +180,10 @@ pub fn mcmt_v_chain(
                 .chain(down_chain)
                 .chain(targets)
                 .chain(up_chain)
-                .chain(flip_control_state),
+                .chain(flip_control_state)
+                .map_ok(|(op, params, qubits, clbits)| {
+                    (op, Some(Parameters::Params(params)), qubits, clbits)
+                }),
             Param::Float(0.0),
         )
     }
