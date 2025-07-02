@@ -20,10 +20,11 @@ import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.primitives import BackendEstimatorV2
-from qiskit.primitives.containers.observables_array import ObservablesArray, object_array
+from qiskit.primitives.containers.observables_array import (
+    ObservablesArray,
+    object_array,
+)
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-import unittest
-from qiskit.primitives.containers.observables_array import ObservablesArray, SparseObservable
 
 
 @ddt.ddt
