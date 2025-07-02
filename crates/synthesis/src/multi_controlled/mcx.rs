@@ -18,7 +18,7 @@ use qiskit_circuit::imports;
 use qiskit_circuit::operations::{
     multiply_param, Operation, OperationRef, Param, PyGate, StandardGate,
 };
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use std::f64::consts::PI;
@@ -201,7 +201,7 @@ impl CircuitDataForSynthesis for CircuitData {
         let inverse_global_phase =
             Python::with_gil(|py| -> Param { multiply_param(self.global_phase(), -1.0, py) });
 
-        let mut inverse_circuit = CircuitData::clone_empty_like(self, None)?;
+        let mut inverse_circuit = CircuitData::copy_empty_like(self, VarsMode::Alike)?;
         inverse_circuit.set_global_phase(inverse_global_phase)?;
 
         let data = self.data();
