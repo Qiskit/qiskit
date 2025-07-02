@@ -415,7 +415,7 @@ impl<'a> QASM3Builder {
 
     fn lookup_bit(&self, bit: &BitType) -> ExporterResult<&Expression> {
         let qubit_ref = self.circuit_scope.bit_map.get(bit).ok_or_else(|| {
-            QASM3ExporterError::Error(format!("Bit mapping not found for {:?}", bit))
+            QASM3ExporterError::Error(format!("Bit mapping not found for {bit:?}"))
         })?;
         let id = self
             .symbol_table
@@ -513,9 +513,6 @@ impl<'a> QASM3Builder {
         })
     }
 
-
-
-
     fn build_top_level_stmts(&mut self) -> ExporterResult<Vec<Statement>> {
         let mut stmts = Vec::new();
         let data = self.circuit_scope.circuit_data.data().to_vec();
@@ -534,8 +531,7 @@ impl<'a> QASM3Builder {
 
         if instruction.op.control_flow() {
             Err(QASM3ExporterError::Error(format!(
-                "Control flow {} is not supported",
-                name
+                "Control flow {name} is not supported"
             )))
         } else {
             match name {
@@ -715,8 +711,7 @@ impl<'a> QASM3Builder {
                     }
                 } else {
                     return Err(QASM3ExporterError::Error(format!(
-                        "Unknown delay unit: {}",
-                        delay_unit
+                        "Unknown delay unit: {delay_unit}"
                     )));
                 }
             }
