@@ -34,6 +34,7 @@ use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
     circuit_data::CircuitData,
@@ -56,7 +57,7 @@ type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 #[allow(clippy::too_many_arguments)]
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, qargs_with_non_global_operation, min_qubits, target_basis=None, target=None, non_global_operations=None))]
 pub fn run_basis_translator(
-    py: Python<'_>,
+    py: Python,
     dag: DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     qargs_with_non_global_operation: HashMap<Qargs, HashSet<String>>,
@@ -108,7 +109,6 @@ pub fn run_basis_translator(
             .map(|x| x.to_string())
             .collect();
         extract_basis_target(
-            py,
             &dag,
             &mut source_basis,
             &mut qargs_local_source_basis,
@@ -120,7 +120,7 @@ pub fn run_basis_translator(
             .into_iter()
             .map(|x| x.to_string())
             .collect();
-        source_basis = extract_basis(py, &dag, min_qubits)?;
+        source_basis = extract_basis(&dag, min_qubits)?;
         new_target_basis = target_basis.unwrap().into_iter().collect();
     }
     new_target_basis = new_target_basis
@@ -224,14 +224,12 @@ pub fn run_basis_translator(
 
 /// Method that extracts all gate instances identifiers from a DAGCircuit.
 fn extract_basis(
-    py: Python,
     circuit: &DAGCircuit,
     min_qubits: usize,
 ) -> PyResult<IndexSet<GateIdentifier, ahash::RandomState>> {
     let mut basis = IndexSet::default();
     // Recurse for DAGCircuit
     fn recurse_dag(
-        py: Python,
         circuit: &DAGCircuit,
         basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
@@ -241,12 +239,8 @@ fn extract_basis(
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
             if operation.op.control_flow() {
-                let OperationRef::Instruction(inst) = operation.op.view() else {
-                    unreachable!("Control flow operation is not an instance of PyInstruction.")
-                };
-                let inst_bound = inst.instruction.bind(py);
-                for block in inst_bound.getattr("blocks")?.try_iter()? {
-                    recurse_circuit(py, block?, basis, min_qubits)?;
+                for block in operation.op.blocks() {
+                    recurse_circuit(&block, basis, min_qubits)?;
                 }
             }
         }
@@ -255,32 +249,24 @@ fn extract_basis(
 
     // Recurse for QuantumCircuit
     fn recurse_circuit(
-        py: Python,
-        circuit: Bound<PyAny>,
+        circuit: &CircuitData,
         basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
         min_qubits: usize,
     ) -> PyResult<()> {
-        let circuit_data: PyRef<CircuitData> = circuit
-            .getattr(intern!(py, "_data"))?
-            .downcast_into()?
-            .borrow();
-        for (index, inst) in circuit_data.iter().enumerate() {
-            let instruction_object = circuit.get_item(index)?;
-            if circuit_data.get_qargs(inst.qubits).len() >= min_qubits {
+        for inst in circuit.iter() {
+            if circuit.get_qargs(inst.qubits).len() >= min_qubits {
                 basis.insert((inst.op.name().to_string(), inst.op.num_qubits()));
             }
             if inst.op.control_flow() {
-                let operation_ob = instruction_object.getattr(intern!(py, "operation"))?;
-                let blocks = operation_ob.getattr("blocks")?;
-                for block in blocks.try_iter()? {
-                    recurse_circuit(py, block?, basis, min_qubits)?;
+                for block in inst.op.blocks() {
+                    recurse_circuit(&block, basis, min_qubits)?;
                 }
             }
         }
         Ok(())
     }
 
-    recurse_dag(py, circuit, &mut basis, min_qubits)?;
+    recurse_dag(circuit, &mut basis, min_qubits)?;
     Ok(basis)
 }
 
@@ -289,7 +275,6 @@ fn extract_basis(
 /// When dealing with `ControlFlowOp` instances the function will perform a recursion call
 /// to a variant design to handle instances of `QuantumCircuit`.
 fn extract_basis_target(
-    py: Python,
     dag: &DAGCircuit,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
@@ -352,17 +337,9 @@ fn extract_basis_target(
             source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
         }
         if node_obj.op.control_flow() {
-            let OperationRef::Instruction(op) = node_obj.op.view() else {
-                unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
-            };
-            let bound_inst = op.instruction.bind(py);
-            // TODO: Use Rust method `op.blocks` instead of Python side extraction now that
-            // the python-space method `QuantumCircuit.has_calibration_for`
-            // has been removed and we don't need to account for it.
-            let blocks = bound_inst.getattr("blocks")?.try_iter()?;
-            for block in blocks {
+            for block in node_obj.op.blocks() {
                 extract_basis_target_circ(
-                    &block?,
+                    &block,
                     source_basis,
                     qargs_local_source_basis,
                     min_qubits,
@@ -380,7 +357,7 @@ fn extract_basis_target(
 /// this API will be removed with the deprecation of `Pulse`.
 /// TODO: pulse is removed, we can use op.blocks
 fn extract_basis_target_circ(
-    circuit: &Bound<PyAny>,
+    circuit: &CircuitData,
     source_basis: &mut IndexSet<GateIdentifier, ahash::RandomState>,
     qargs_local_source_basis: &mut IndexMap<
         PhysicalQargs,
@@ -394,11 +371,8 @@ fn extract_basis_target_circ(
         ahash::RandomState,
     >,
 ) -> PyResult<()> {
-    let py = circuit.py();
-    let circ_data_bound = circuit.getattr("_data")?.downcast_into::<CircuitData>()?;
-    let circ_data = circ_data_bound.borrow();
-    for node_obj in circ_data.iter() {
-        let qargs = circ_data.get_qargs(node_obj.qubits);
+    for node_obj in circuit.iter() {
+        let qargs = circuit.get_qargs(node_obj.qubits);
         if qargs.len() < min_qubits {
             continue;
         }
@@ -445,14 +419,9 @@ fn extract_basis_target_circ(
             source_basis.insert((node_obj.op.name().to_string(), node_obj.op.num_qubits()));
         }
         if node_obj.op.control_flow() {
-            let OperationRef::Instruction(op) = node_obj.op.view() else {
-                unreachable!("Control flow op is not a control flow op. But control_flow is `true`")
-            };
-            let bound_inst = op.instruction.bind(py);
-            let blocks = bound_inst.getattr("blocks")?.try_iter()?;
-            for block in blocks {
+            for block in node_obj.op.blocks() {
                 extract_basis_target_circ(
-                    &block?,
+                    &block,
                     source_basis,
                     qargs_local_source_basis,
                     min_qubits,
@@ -489,6 +458,9 @@ fn apply_translation(
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
+                // This part is only executed through python because `ControlFlowOp`
+                // does not exist in Rust space yet, and we need the method `replace_blocks`.
+                // TODO: Refactor this condition block once https://github.com/Qiskit/qiskit/pull/14568 merges.
                 let OperationRef::Instruction(control_op) = node_obj.op.view() else {
                     unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op.name())
                 };
@@ -589,11 +561,18 @@ fn apply_translation(
 }
 
 fn replace_node(
-    py: Python,
+    py: Python<'_>,
     dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
     instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
 ) -> PyResult<()> {
+    // Method to check if the operation is Rust native.
+    // Should be removed in the future.
+    let is_native = |op: &PackedOperation| -> bool {
+        op.try_standard_gate().is_some()
+            || op.try_standard_instruction().is_none()
+            || matches!(op.view(), OperationRef::Unitary(_))
+    };
     let (target_params, target_dag) =
         &instr_map[&(node.op.name().to_string(), node.op.num_qubits())];
     if node.params_view().len() != target_params.len() {
@@ -621,16 +600,14 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
+            let new_op = if is_native(&inner_node.op) {
+                // Only manually acquire the gil if the operation is not rust native.
+                Python::with_gil(|py| inner_node.op.py_copy(py))?
             } else {
                 inner_node.op.clone()
             };
-            let new_params: SmallVec<[Param; 3]> = inner_node
-                .params_view()
-                .iter()
-                .map(|param| param.clone_ref(py))
-                .collect();
+            let new_params: SmallVec<[Param; 3]> =
+                inner_node.params_view().iter().cloned().collect();
             dag.apply_operation_back(
                 new_op,
                 &new_qubits,
@@ -665,16 +642,13 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
+            let new_op = if !is_native(&inner_node.op) {
+                Python::with_gil(|py| inner_node.op.py_copy(py))?
             } else {
                 inner_node.op.clone()
             };
-            let mut new_params: SmallVec<[Param; 3]> = inner_node
-                .params_view()
-                .iter()
-                .map(|param| param.clone_ref(py))
-                .collect();
+            let mut new_params: SmallVec<[Param; 3]> =
+                inner_node.params_view().iter().cloned().collect();
             if inner_node
                 .params_view()
                 .iter()
@@ -683,55 +657,66 @@ fn replace_node(
                 new_params = SmallVec::new();
                 for param in inner_node.params_view() {
                     if let Param::ParameterExpression(param_obj) = param {
-                        let bound_param = param_obj.bind(py);
-                        let exp_params = param.iter_parameters(py)?;
-                        let bind_dict = PyDict::new(py);
-                        for key in exp_params {
-                            let key = key?;
-                            bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
-                        }
-                        let mut new_value: Bound<PyAny>;
-                        let comparison = bind_dict.values().iter().any(|param| {
-                            param
-                                .is_instance(PARAMETER_EXPRESSION.get_bound(py))
-                                .is_ok_and(|x| x)
-                        });
-                        if comparison {
-                            new_value = bound_param.clone();
-                            for items in bind_dict.items() {
-                                new_value = new_value.call_method1(
-                                    intern!(py, "assign"),
-                                    items.downcast::<PyTuple>()?,
-                                )?;
+                        // TODO: Remove this
+                        // Acquire the gil to use a parameter expression.
+                        let new_value: Param = Python::with_gil(|py| -> PyResult<Param> {
+                            let bound_param = param_obj.bind(py);
+                            let exp_params = param.iter_parameters(py)?;
+                            let bind_dict = PyDict::new(py);
+                            for key in exp_params {
+                                let key = key?;
+                                // Dict is guaranteed to have been built due to the type of Param.
+                                bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
                             }
-                        } else {
-                            new_value =
-                                bound_param.call_method1(intern!(py, "bind"), (&bind_dict,))?;
-                        }
-                        let eval = new_value.getattr(intern!(py, "parameters"))?;
-                        if eval.is_empty()? {
-                            new_value = new_value.call_method0(intern!(py, "numeric"))?;
-                        }
-                        new_params.push(new_value.extract()?);
+                            let mut new_value: Bound<PyAny>;
+                            let comparison = bind_dict.values().iter().any(|param| {
+                                param
+                                    .is_instance(PARAMETER_EXPRESSION.get_bound(py))
+                                    .is_ok_and(|x| x)
+                            });
+                            if comparison {
+                                new_value = bound_param.clone();
+                                for items in bind_dict.items() {
+                                    new_value = new_value.call_method1(
+                                        intern!(py, "assign"),
+                                        items.downcast::<PyTuple>()?,
+                                    )?;
+                                }
+                            } else {
+                                new_value =
+                                    bound_param.call_method1(intern!(py, "bind"), (&bind_dict,))?;
+                            }
+                            let eval = new_value.getattr(intern!(py, "parameters"))?;
+                            if eval.is_empty()? {
+                                new_value = new_value.call_method0(intern!(py, "numeric"))?;
+                            }
+                            new_value.extract()
+                        })?;
+                        new_params.push(new_value);
                     } else {
-                        new_params.push(param.clone_ref(py));
+                        new_params.push(param.clone());
                     }
                 }
-                if new_op.try_standard_gate().is_none() {
-                    match new_op.view() {
-                        OperationRef::Instruction(inst) => inst
-                            .instruction
-                            .bind(py)
-                            .setattr("params", new_params.clone())?,
-                        OperationRef::Gate(gate) => {
-                            gate.gate.bind(py).setattr("params", new_params.clone())?
+                if is_native(&new_op) {
+                    // TODO: Remove this.
+                    // Acquire the gil if the operation is not native to set the operation parameters in
+                    // Python.
+                    Python::with_gil(|py| -> PyResult<()> {
+                        match new_op.view() {
+                            OperationRef::Instruction(inst) => inst
+                                .instruction
+                                .bind(py)
+                                .setattr("params", new_params.clone()),
+                            OperationRef::Gate(gate) => {
+                                gate.gate.bind(py).setattr("params", new_params.clone())
+                            }
+                            OperationRef::Operation(oper) => oper
+                                .operation
+                                .bind(py)
+                                .setattr("params", new_params.clone()),
+                            _ => Ok(()),
                         }
-                        OperationRef::Operation(oper) => oper
-                            .operation
-                            .bind(py)
-                            .setattr("params", new_params.clone())?,
-                        _ => (),
-                    }
+                    })?;
                 }
             }
             dag.apply_operation_back(
@@ -751,36 +736,43 @@ fn replace_node(
 
         match target_dag.global_phase() {
             Param::ParameterExpression(old_phase) => {
-                let bound_old_phase = old_phase.bind(py);
-                let bind_dict = PyDict::new(py);
-                for key in target_dag.global_phase().iter_parameters(py)? {
-                    let key = key?;
-                    bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
-                }
-                let mut new_phase: Bound<PyAny>;
-                if bind_dict.values().iter().any(|param| {
-                    param
-                        .is_instance(PARAMETER_EXPRESSION.get_bound(py))
-                        .is_ok_and(|x| x)
-                }) {
-                    new_phase = bound_old_phase.clone();
-                    for key_val in bind_dict.items() {
+                // TODO: Remove this.
+                // If we are using a ParameterExpression, acquire the gil.
+                let new_phase: Param = Python::with_gil(|py| {
+                    let bound_old_phase = old_phase.bind(py);
+                    let bind_dict = PyDict::new(py);
+                    for key in target_dag.global_phase().iter_parameters(py)? {
+                        let key = key?;
+                        // If the target_dag's phase is a ParameterExpression, the dict will
+                        // have been built.
+                        bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                    }
+                    let mut new_phase: Bound<PyAny>;
+                    if bind_dict.values().iter().any(|param| {
+                        param
+                            .is_instance(PARAMETER_EXPRESSION.get_bound(py))
+                            .is_ok_and(|x| x)
+                    }) {
+                        new_phase = bound_old_phase.clone();
+                        for key_val in bind_dict.items() {
+                            new_phase = new_phase
+                                .call_method1(intern!(py, "assign"), key_val.downcast()?)?;
+                        }
+                    } else {
                         new_phase =
-                            new_phase.call_method1(intern!(py, "assign"), key_val.downcast()?)?;
+                            bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
                     }
-                } else {
-                    new_phase = bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
-                }
-                if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
-                    new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
-                    if new_phase.is_instance(&PyComplex::type_object(py))? {
-                        return Err(TranspilerError::new_err(format!(
-                            "Global phase must be real, but got {}",
-                            new_phase.repr()?
-                        )));
+                    if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
+                        new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
+                        if new_phase.is_instance(&PyComplex::type_object(py))? {
+                            return Err(TranspilerError::new_err(format!(
+                                "Global phase must be real, but got {}",
+                                new_phase.repr()?
+                            )));
+                        }
                     }
-                }
-                let new_phase: Param = new_phase.extract()?;
+                    new_phase.extract()
+                })?;
                 dag.add_global_phase(&new_phase)?;
             }
 
