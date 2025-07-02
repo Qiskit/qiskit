@@ -36,6 +36,11 @@ from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
 from qiskit.transpiler.passes import ConsolidateBlocks, Collect1qRuns, Collect2qBlocks
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+import unittest
+from qiskit import QuantumCircuit
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.circuit.library import CXGate
 
 
 @ddt
@@ -691,3 +696,14 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected = QuantumCircuit(2)
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
+
+    def test_consolidate_with_kak_basis_gate(self):
+        """Test that ConsolidateBlocks works with a kak_basis_gate."""
+
+        kak_basis_gate = CXGate()
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=kak_basis_gate)
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        res = consolidate_pass.run(dag)
+        self.assertEqual(res.count_ops().get('cx', 0), 1)
