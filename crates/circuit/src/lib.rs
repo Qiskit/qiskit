@@ -215,7 +215,6 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     m.add_class::<parameter_expression::ParameterExpression>()?;
-    m.add_class::<parameter_expression::ParameterVector>()?;
     m.add_class::<parameter_expression::OPReplay>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;
     classical::register_python(&classical_mod)?;

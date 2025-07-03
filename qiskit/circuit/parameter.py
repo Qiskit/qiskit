@@ -140,6 +140,9 @@ class Parameter(ParameterExpression):
             self._hash = super().__hash__()
         return self._hash
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name})"
+
     @property
     def _uuid(self) -> UUID:
         """Returns UUID property of the :class:`Parameter`"""

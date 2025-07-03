@@ -21,6 +21,7 @@ import uuid
 
 import numpy as np
 
+import qiskit._accelerate.circuit
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.parameter import Parameter
@@ -29,12 +30,12 @@ from qiskit.circuit.parameterexpression import (
     op_code_to_method,
     inst_to_parameter_class,
     _OPCode,
-    _SUBS,
 )
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
 
+OPReplay = qiskit._accelerate.circuit.OPReplay
 
 def _write_parameter(file_obj, obj):
     name_bytes = obj.name.encode(common.ENCODE)
@@ -149,11 +150,13 @@ def _write_parameter_expression_v13(file_obj, obj, version):
     # `symbol_map` maps symbols to ParameterExpression (which may be a symbol).
     symbol_map = {}
     for inst in obj._qpy_replay:
-        if isinstance(inst, _SUBS):
+        if isinstance(inst, OPReplay._SUBS):
             symbol_map.update(_encode_replay_subs(inst, file_obj, version))
             continue
         lhs_type, lhs = _encode_replay_entry(inst_to_parameter_class(inst.lhs), file_obj, version)
-        rhs_type, rhs = _encode_replay_entry(inst_to_parameter_class(inst.rhs), file_obj, version, True)
+        rhs_type, rhs = _encode_replay_entry(
+            inst_to_parameter_class(inst.rhs), file_obj, version, True
+        )
         entry = struct.pack(
             formats.PARAM_EXPR_ELEM_V13_PACK,
             inst.op,

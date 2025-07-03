@@ -18,6 +18,7 @@ use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::sync::Arc;
 
@@ -427,6 +428,12 @@ impl fmt::Display for SymbolExpr {
                 }
             },
         )
+    }
+}
+
+impl Hash for SymbolExpr {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.to_string().hash(state);
     }
 }
 
@@ -3581,6 +3588,8 @@ impl PartialEq for SymbolExpr {
         }
     }
 }
+
+impl Eq for SymbolExpr {}
 
 impl PartialEq<f64> for SymbolExpr {
     fn eq(&self, r: &f64) -> bool {

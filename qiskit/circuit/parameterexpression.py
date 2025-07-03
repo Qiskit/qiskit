@@ -254,7 +254,7 @@ class ParameterExpression(ParameterExpressionBase):
             params = expr_grad.parameters
             for p in params:
                 for q in self._parameters:
-                    if str(p) == str(q):
+                    if p == str(q):
                         parameters.add(q)
             return ParameterExpression(parameters, expr_grad)
         return expr_grad
@@ -352,6 +352,9 @@ class ParameterExpression(ParameterExpressionBase):
         """Absolute of a ParameterExpression"""
         return self.__abs__()
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({str(self)})"
+
     @HAS_SYMPY.require_in_call
     def sympify(self):
         """Return symbolic expression as a raw Sympy object.
@@ -369,6 +372,10 @@ class ParameterExpression(ParameterExpressionBase):
 
         output = None
         for inst in self._qpy_replay:
+            print(inst.op)
+            print(inst.lhs)
+            print(inst.rhs)
+
             if isinstance(inst, OPReplay._SUBS):
                 sympy_binds = {}
                 for old, new in inst.binds.items():
@@ -400,6 +407,9 @@ class ParameterExpression(ParameterExpressionBase):
                 else:
                     rhs = inst.rhs
 
+                print(" lhs : ", lhs)
+                print(" rhs : ", rhs)
+                print("  op : ",inst.op)
                 if (
                     not isinstance(lhs, sympy.Basic)
                     and isinstance(rhs, sympy.Basic)
