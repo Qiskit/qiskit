@@ -83,7 +83,6 @@ class TestPassManager(QiskitTestCase):
 
     def test_callback_multi_circuits(self):
         """Test callback with multiple circuits."""
-        import copy
 
         qr = QuantumRegister(1, "qr")
 
