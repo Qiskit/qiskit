@@ -372,10 +372,6 @@ class ParameterExpression(ParameterExpressionBase):
 
         output = None
         for inst in self._qpy_replay:
-            print(inst.op)
-            print(inst.lhs)
-            print(inst.rhs)
-
             if isinstance(inst, OPReplay._SUBS):
                 sympy_binds = {}
                 for old, new in inst.binds.items():
@@ -387,7 +383,10 @@ class ParameterExpression(ParameterExpressionBase):
 
             if isinstance(inst.lhs, ParameterExpressionBase):
                 if inst.lhs._qpy_replay is None:
-                    lhs = sympy.sympify(inst.lhs.sympify())
+                    if inst.lhs.is_symbol:
+                        lhs = sympy.Symbol(inst.lhs.sympify())
+                    else:
+                        lhs = sympy.sympify(inst.lhs.sympify())
                 else:
                     lhs = ParameterExpression(None, inst.lhs).sympify()
             elif inst.lhs is None:
@@ -401,15 +400,15 @@ class ParameterExpression(ParameterExpressionBase):
                     rhs = output
                 elif isinstance(inst.rhs, ParameterExpressionBase):
                     if inst.rhs._qpy_replay is None:
-                        rhs = sympy.sympify(inst.rhs.sympify())
+                        if inst.rhs.is_symbol:
+                            rhs = sympy.Symbol(inst.rhs.sympify())
+                        else:
+                            rhs = sympy.sympify(inst.rhs.sympify())
                     else:
                         rhs = ParameterExpression(None, inst.rhs).sympify()
                 else:
                     rhs = inst.rhs
 
-                print(" lhs : ", lhs)
-                print(" rhs : ", rhs)
-                print("  op : ",inst.op)
                 if (
                     not isinstance(lhs, sympy.Basic)
                     and isinstance(rhs, sympy.Basic)
