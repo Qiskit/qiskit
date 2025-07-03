@@ -270,7 +270,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [0, 12, 7, 8, 6, 3, 1, 10, 4, 9, 2, 11, 13, 5]
+            [layout[q] for q in qc.qubits], [26, 19, 16, 23, 14, 15, 25, 20, 22, 17, 24, 21, 13, 18]
         )
 
     def test_support_var_with_rust_fastpath(self):
@@ -519,7 +519,7 @@ class TestSabrePreLayout(QiskitTestCase):
         qct_initial_layout = qct.layout.initial_layout
         self.assertEqual(
             [qct_initial_layout[q] for q in self.circuit.qubits],
-            [8, 7, 12, 13, 18, 19, 17, 16, 11, 10, 5, 6, 1, 2, 3, 9],
+            [2, 3, 8, 7, 12, 13, 14, 18, 17, 16, 15, 11, 10, 5, 6, 1],
         )
 
 
