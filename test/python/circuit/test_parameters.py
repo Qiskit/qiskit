@@ -2171,6 +2171,14 @@ class TestParameterEquality(QiskitTestCase):
 
         self.assertEqual(expr1, expr2)
 
+    def test_parameter_expression_equal_floats_to_add_fraction(self):
+        """Verify an expression with float and int fraction is identical."""
+        theta = Parameter("theta")
+        expr1 = 0.5 * theta
+        expr2 = theta / 8 + 3 * theta / 8
+
+        self.assertEqual(expr1, expr2)
+
     def test_parameter_expression_not_equal_if_params_differ(self):
         """Verify expressions not equal if parameters are different."""
         theta1 = Parameter("theta")
