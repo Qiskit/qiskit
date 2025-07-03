@@ -683,13 +683,13 @@ impl Drop for PackedOperation {
 /// `CircuitData`, because the majority of the data is not actually stored here.
 #[derive(Debug)]
 pub struct PackedInstruction {
-    pub op: PackedOperation,
+    op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
-    pub qubits: Interned<[Qubit]>,
+    qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
-    pub clbits: Interned<[Clbit]>,
-    pub params: Option<Box<SmallVec<[Param; 3]>>>,
-    pub label: Option<Box<String>>,
+    clbits: Interned<[Clbit]>,
+    params: Option<Box<SmallVec<[Param; 3]>>>,
+    label: Option<Box<String>>,
 
     #[cfg(feature = "cache_pygates")]
     /// This is hidden in a `OnceLock` because it's just an on-demand cache; we don't create this
@@ -702,7 +702,7 @@ pub struct PackedInstruction {
     /// requires the GIL to even `get` (of course!), which makes implementing `Clone` hard for us.
     /// We can revisit once we're on PyO3 0.22+ and have been able to disable its `py-clone`
     /// feature.
-    pub py_op: OnceLock<Py<PyAny>>,
+    py_op: OnceLock<Py<PyAny>>,
 }
 
 // Custom implementation of `Clone` which removes the ability to clone the underlying `py_op` cache.
@@ -723,6 +723,70 @@ impl Clone for PackedInstruction {
 }
 
 impl PackedInstruction {
+    /// Creates a new instance of [PackedInstruction] based on an operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `op` - An instance of [PackedOperation] or anything ranging from
+    ///   [StandardGate], [StandardInstruction], [UnitaryGate], [PyGate], [PyInstruction],
+    ///   [PyOperation].
+    /// * `qubits` - The indices of the circuit qubits this instance operates on.
+    /// * `clbits` - The indices of the circuit clbits this instance operates on.
+    /// * `params` - The list of parameters stored by this instruction.
+    /// * `label` - The label of this instruction, if any.
+    pub fn new<O: Into<PackedOperation>>(
+        op: O,
+        qubits: Interned<[Qubit]>,
+        clbits: Interned<[Clbit]>,
+    ) -> Self {
+        Self {
+            op: op.into(),
+            qubits,
+            clbits,
+            params: None,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        }
+    }
+
+    /// Consumes the origal instance and returns another [PackedInstruction] with new parameters.
+    #[inline]
+    pub fn with_params(mut self, params: SmallVec<[Param; 3]>) -> Self {
+        self.params = (!params.is_empty()).then_some(Box::new(params));
+        #[cfg(feature = "cache_pygates")]
+        self.py_op.take();
+        self
+    }
+
+    /// Consumes the origal instance and returns another [PackedInstruction] with a new label.
+    #[inline]
+    pub fn with_label(mut self, label: String) -> Self {
+        self.label = Some(Box::new(label));
+        #[cfg(feature = "cache_pygates")]
+        self.py_op.take();
+        self
+    }
+
+    /// Consumes the current instance of [PackedInstruction] and adds a python
+    /// cached gate.
+    ///
+    /// # Arguments
+    /// * `py_op` - The cached python operation object.
+    #[cfg(feature = "cache_pygates")]
+    pub fn with_py_cache(mut self, py_op: PyObject) -> Self {
+        self.py_op = py_op.into();
+        self
+    }
+
+    pub fn replace_qubits(&mut self, qubits: Interned<[Qubit]>) {
+        self.qubits = qubits;
+    }
+
+    pub fn replace_clbits(&mut self, clbits: Interned<[Clbit]>) {
+        self.clbits = clbits;
+    }
+
     /// Pack a [StandardGate] into a complete instruction.
     pub fn from_standard_gate(
         gate: StandardGate,
@@ -738,6 +802,33 @@ impl PackedInstruction {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         }
+    }
+
+    pub fn params_raw(&self) -> Option<&SmallVec<[Param; 3]>> {
+        self.params.as_deref()
+    }
+
+    /// Immutable view to the instruction's operation
+    #[inline]
+    pub fn op(&self) -> &PackedOperation {
+        &self.op
+    }
+
+    /// Immutable view to the instruction's interned qubit indices
+    #[inline]
+    pub fn qubits(&self) -> Interned<[Qubit]> {
+        self.qubits
+    }
+
+    /// Immutable view to the instruction's interned clbit indices
+    #[inline]
+    pub fn clbits(&self) -> Interned<[Clbit]> {
+        self.clbits
+    }
+
+    #[cfg(feature = "cache_pygates")]
+    pub fn py_op(&self) -> &OnceLock<PyObject> {
+        &self.py_op
     }
 
     /// Access the standard gate in this `PackedInstruction`, if it is one.  If the instruction
@@ -759,6 +850,8 @@ impl PackedInstruction {
     /// Get a mutable slice view onto the contained parameters.
     #[inline]
     pub fn params_mut(&mut self) -> &mut [Param] {
+        #[cfg(feature = "cache_pygates")]
+        self.py_op.take();
         self.params
             .as_deref_mut()
             .map(SmallVec::as_mut_slice)
@@ -773,6 +866,7 @@ impl PackedInstruction {
     }
 
     #[inline]
+    /// Immutable view to the instruction's label if any exists.
     pub fn label(&self) -> Option<&str> {
         self.label.as_ref().map(|label| label.as_str())
     }
