@@ -33,6 +33,7 @@ from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import OptimizeCliffordT
 from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes import OptimizeConsecutive
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -171,6 +172,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree
                     ),
+                    OptimizeConsecutive(),
                     InverseCancellation(
                         [
                             CXGate(),
@@ -593,8 +595,9 @@ class OptimizationPassManager(PassManagerStagePlugin):
             # 1. ConsolidateBlocks
             # 2. UnitarySynthesis
             # 3. RemoveIdentityEquivalent
-            # 4. Optimize1qGatesDecomposition
-            # 5. CommutativeCancellation
+            # 4. OptimizeConsecutive
+            # 5. Optimize1qGatesDecomposition
+            # 6. CommutativeCancellation
             elif optimization_level == 3:
                 _opt = [
                     ConsolidateBlocks(
@@ -614,6 +617,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
+                    OptimizeConsecutive(),
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
