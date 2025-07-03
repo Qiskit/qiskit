@@ -359,8 +359,7 @@ impl<'py> FromPyObject<'py> for DelayUnit {
             "expr" => DelayUnit::EXPR,
             unknown_unit => {
                 return Err(PyValueError::new_err(format!(
-                    "Unit '{}' is invalid.",
-                    unknown_unit
+                    "Unit '{unknown_unit}' is invalid."
                 )));
             }
         })
@@ -2914,7 +2913,7 @@ impl UnitaryGate {
     /// Regardless of the underlying array type `Matrix2`, `Matrix4`, or `Array2` it returns
     /// a read-only an ndarray `ArrayView2` view to the underlying matrix by reference.
     #[inline]
-    pub fn matrix_view(&self) -> ArrayView2<Complex64> {
+    pub fn matrix_view(&self) -> ArrayView2<'_, Complex64> {
         match &self.array {
             ArrayType::NDArray(arr) => arr.view(),
             ArrayType::OneQ(mat) => {

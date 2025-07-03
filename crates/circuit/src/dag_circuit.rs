@@ -446,8 +446,8 @@ impl DAGCircuit {
         self.qregs.cached(py)
     }
 
-    /// Returns a dict mapping Clbit instances to tuple comprised of 0) the
-    /// corresponding index in circuit.clbits and 1) a list of
+    /// Returns a dict mapping Qubit instances to tuple comprised of 0) the
+    /// corresponding index in circuit.qubits and 1) a list of
     /// Register-int pairs for each Register containing the Bit and its index
     /// within that register.
     #[getter("_qubit_indices")]
@@ -455,7 +455,7 @@ impl DAGCircuit {
         self.qubit_locations.cached(py)
     }
 
-    /// Returns the dict containing the QuantumRegisters in the circuit
+    /// Returns the dict containing the ClassicalRegisters in the circuit
     #[getter]
     fn get_cregs(&self, py: Python) -> &Py<PyDict> {
         self.cregs.cached(py)
@@ -1022,8 +1022,7 @@ impl DAGCircuit {
             };
             if self.qubits.find(&bit).is_some() {
                 return Err(DAGCircuitError::new_err(format!(
-                    "duplicate qubits {:?}",
-                    bit
+                    "duplicate qubits {bit:?}"
                 )));
             }
             self.add_qubit_unchecked(bit)?;
@@ -1031,7 +1030,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Add individual qubit wires.
+    /// Add individual clbit wires.
     fn add_clbits(&mut self, clbits: Vec<Bound<'_, PyAny>>) -> PyResult<()> {
         for bit in clbits.into_iter() {
             let Ok(bit) = bit.extract::<ShareableClbit>() else {
@@ -1039,8 +1038,7 @@ impl DAGCircuit {
             };
             if self.clbits.find(&bit).is_some() {
                 return Err(DAGCircuitError::new_err(format!(
-                    "duplicate clbits {:?}",
-                    bit
+                    "duplicate clbits {bit:?}"
                 )));
             }
             self.add_clbit_unchecked(bit)?;
@@ -1111,8 +1109,7 @@ impl DAGCircuit {
                 .transpose()?
                 .ok_or_else(|| {
                     DAGCircuitError::new_err(format!(
-                        "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
-                        bit
+                        "Could not locate provided bit: {bit}. Has it been added to the DAGCircuit?"
                     ))
                 })
         } else if let Ok(clbit) = bit.extract::<ShareableClbit>() {
@@ -1122,8 +1119,7 @@ impl DAGCircuit {
                 .transpose()?
                 .ok_or_else(|| {
                     DAGCircuitError::new_err(format!(
-                        "Could not locate provided bit: {}. Has it been added to the DAGCircuit?",
-                        bit
+                        "Could not locate provided bit: {bit}. Has it been added to the DAGCircuit?"
                     ))
                 })
         } else {
@@ -1154,8 +1150,7 @@ impl DAGCircuit {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
-                    "clbits not in circuit: {:?}",
-                    clbits
+                    "clbits not in circuit: {clbits:?}"
                 )))
             }
         };
@@ -1193,8 +1188,7 @@ impl DAGCircuit {
             Ok(bit_iter) => bit_iter,
             Err(_) => {
                 return Err(DAGCircuitError::new_err(format!(
-                    "qubits not in circuit: {:?}",
-                    qubits
+                    "qubits not in circuit: {qubits:?}"
                 )))
             }
         };
@@ -1215,15 +1209,13 @@ impl DAGCircuit {
             if let Some(reg) = self.qregs.get(qregs.name()) {
                 if reg != &qregs {
                     return Err(DAGCircuitError::new_err(format!(
-                        "creg not in circuit: {:?}",
-                        reg
+                        "creg not in circuit: {reg:?}"
                     )));
                 }
                 valid_regs.push(qregs);
             } else {
                 return Err(DAGCircuitError::new_err(format!(
-                    "creg not in circuit: {:?}",
-                    qregs
+                    "creg not in circuit: {qregs:?}"
                 )));
             }
         }
@@ -1260,8 +1252,7 @@ impl DAGCircuit {
                 .contains_key(reg.getattr(intern!(py, "name"))?.to_string().as_str())
             {
                 return Err(DAGCircuitError::new_err(format!(
-                    "invalid creg in condition for {}",
-                    name
+                    "invalid creg in condition for {name}"
                 )));
             }
         }
@@ -1270,8 +1261,7 @@ impl DAGCircuit {
             let bit: ShareableClbit = bit.extract()?;
             if self.clbits.find(&bit).is_none() {
                 return Err(DAGCircuitError::new_err(format!(
-                    "invalid clbits in condition for {}",
-                    name
+                    "invalid clbits in condition for {name}"
                 )));
             }
         }
@@ -2076,8 +2066,7 @@ impl DAGCircuit {
                                         .extract()
                                 } else {
                                     Err(PyRuntimeError::new_err(format!(
-                                        "unhandled control-flow operation: {}",
-                                        name
+                                        "unhandled control-flow operation: {name}"
                                     )))
                                 }
                             } else {
@@ -2906,8 +2895,7 @@ impl DAGCircuit {
                     Ok(bit_iter) => bit_iter,
                     Err(_) => {
                         return Err(DAGCircuitError::new_err(format!(
-                            "qubits not in circuit: {:?}",
-                            qubits
+                            "qubits not in circuit: {qubits:?}"
                         )))
                     }
                 };
@@ -3748,8 +3736,7 @@ impl DAGCircuit {
         }
         .ok_or_else(|| {
             DAGCircuitError::new_err(format!(
-                "The given wire {:?} is not present in the circuit",
-                wire
+                "The given wire {wire:?} is not present in the circuit"
             ))
         })?;
 
@@ -3823,8 +3810,7 @@ impl DAGCircuit {
         let qubit_nat: ShareableQubit = qubit.extract()?;
         let output_qubit = self.qubits.find(&qubit_nat).ok_or_else(|| {
             DAGCircuitError::new_err(format!(
-                "The given qubit {:?} is not present in the circuit",
-                qubit
+                "The given qubit {qubit:?} is not present in the circuit"
             ))
         })?;
         let output_node_index = self
@@ -3833,8 +3819,7 @@ impl DAGCircuit {
             .map(|x| x[1])
             .ok_or_else(|| {
                 DAGCircuitError::new_err(format!(
-                    "The given qubit {:?} is not present in qubit_output_map",
-                    qubit
+                    "The given qubit {qubit:?} is not present in qubit_output_map"
                 ))
             })?;
 
@@ -4747,8 +4732,7 @@ impl DAGCircuit {
 
         if !busy_bits.is_empty() {
             return Err(DAGCircuitError::new_err(format!(
-                "qubits not idle: {:?}",
-                busy_bits
+                "qubits not idle: {busy_bits:?}"
             )));
         }
 
@@ -4839,15 +4823,13 @@ impl DAGCircuit {
             if let Some(reg) = self.qregs.get(qregs.name()) {
                 if reg != &qregs {
                     return Err(DAGCircuitError::new_err(format!(
-                        "creg not in circuit: {:?}",
-                        reg
+                        "creg not in circuit: {reg:?}"
                     )));
                 }
                 valid_regs.push(qregs);
             } else {
                 return Err(DAGCircuitError::new_err(format!(
-                    "creg not in circuit: {:?}",
-                    qregs
+                    "creg not in circuit: {qregs:?}"
                 )));
             }
         }
@@ -4878,8 +4860,7 @@ impl DAGCircuit {
 
         if !busy_bits.is_empty() {
             return Err(DAGCircuitError::new_err(format!(
-                "clbits not idle: {:?}",
-                busy_bits
+                "clbits not idle: {busy_bits:?}"
             )));
         }
 
@@ -4977,15 +4958,13 @@ impl DAGCircuit {
             if let Some(reg) = self.cregs.get(creg.name()) {
                 if reg != &creg {
                     return Err(DAGCircuitError::new_err(format!(
-                        "creg not in circuit: {:?}",
-                        reg
+                        "creg not in circuit: {reg:?}"
                     )));
                 }
                 valid_regs.push(creg);
             } else {
                 return Err(DAGCircuitError::new_err(format!(
-                    "creg not in circuit: {:?}",
-                    creg
+                    "creg not in circuit: {creg:?}"
                 )));
             }
         }
@@ -5420,7 +5399,7 @@ impl DAGCircuit {
         }
     }
 
-    fn sort_key(&self, node: NodeIndex) -> SortKeyType {
+    fn sort_key(&self, node: NodeIndex) -> SortKeyType<'_> {
         match &self.dag[node] {
             NodeType::Operation(packed) => (
                 self.qargs_interner.get(packed.qubits),
@@ -5440,7 +5419,7 @@ impl DAGCircuit {
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
                 .map_err(|e| match e {
                     rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                        PyValueError::new_err(format!("{}", e))
+                        PyValueError::new_err(format!("{e}"))
                     }
                     rustworkx_core::dag_algo::TopologicalSortError::KeyError(_) => {
                         unreachable!()
@@ -5471,7 +5450,7 @@ impl DAGCircuit {
             rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
                 .map_err(|e| match e {
                     rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                        PyValueError::new_err(format!("{}", e))
+                        PyValueError::new_err(format!("{e}"))
                     }
                     rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => {
                         e.clone_ref(py)
@@ -6291,8 +6270,7 @@ impl DAGCircuit {
             for v in vars {
                 if !self.var_io_map.len() - 1 < v.index() {
                     return Err(DAGCircuitError::new_err(format!(
-                        "var {:?} not found in output map",
-                        v
+                        "var {v:?} not found in output map"
                     )));
                 }
             }
@@ -6605,7 +6583,7 @@ impl DAGCircuit {
         for inst in iter {
             new_nodes.push(dag_builder.push_back(inst?)?);
         }
-        std::mem::swap(self, &mut dag_builder.build());
+        *self = dag_builder.build();
         Ok(new_nodes)
     }
 
@@ -6985,8 +6963,7 @@ impl DAGCircuit {
                         panic!("var capture not standalone");
                     };
                     return Err(DAGCircuitError::new_err(format!(
-                        "Variable '{}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.",
-                        name
+                        "Variable '{name}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`."
                     )));
                 }
             }
@@ -7047,8 +7024,7 @@ impl DAGCircuit {
                         || (self.qubit_io_map.len() - 1 < wire_in_dag.unwrap().index())
                     {
                         return Err(DAGCircuitError::new_err(format!(
-                            "wire {:?} not in self",
-                            m_wire,
+                            "wire {m_wire:?} not in self",
                         )));
                     }
                 }
@@ -7060,8 +7036,7 @@ impl DAGCircuit {
                         || self.clbit_io_map.len() - 1 < wire_in_dag.unwrap().index()
                     {
                         return Err(DAGCircuitError::new_err(format!(
-                            "wire {:?} not in self",
-                            m_wire,
+                            "wire {m_wire:?} not in self",
                         )));
                     }
                 }

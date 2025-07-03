@@ -156,11 +156,11 @@ impl OPReplay {
 #[derive(Clone, Debug)]
 pub enum ParameterInner {
     Symbol {
-        name: Box<String>,
+        name: Arc<String>,
         uuid: u128,
     },
     VectorElement {
-        name: Box<String>,
+        name: Arc<String>,
         index: usize,
         uuid: u128,
         vector: Option<Arc<ParameterVector>>,
@@ -233,7 +233,7 @@ impl ParameterExpression {
         };
         ParameterExpression {
             inner: ParameterInner::Symbol {
-                name: Box::new(name.clone()),
+                name: Arc::new(name.clone()),
                 uuid,
             },
         }
@@ -268,7 +268,7 @@ impl ParameterExpression {
         match &self.inner {
             ParameterInner::Expression { expr, .. } => expr.clone(),
             ParameterInner::Symbol { .. } | ParameterInner::VectorElement { .. } => {
-                SymbolExpr::Symbol(Box::new(self.to_string()))
+                SymbolExpr::Symbol(Arc::new(self.to_string()))
             }
         }
     }
@@ -436,7 +436,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => -expr,
-                    _ => -SymbolExpr::Symbol(Box::new(self.to_string())),
+                    _ => -SymbolExpr::Symbol(Arc::new(self.to_string())),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -447,7 +447,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.clone(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -458,7 +458,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.sin(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).sin(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).sin(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -469,7 +469,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.cos(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).cos(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).cos(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -480,7 +480,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.tan(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).tan(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).tan(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -491,7 +491,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.asin(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).asin(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).asin(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -502,7 +502,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.acos(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).acos(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).acos(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -513,7 +513,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.atan(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).atan(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).atan(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -524,7 +524,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.exp(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).exp(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).exp(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -535,7 +535,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.log(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).log(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).log(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -546,7 +546,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.abs(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).abs(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).abs(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -557,7 +557,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.sign(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).sign(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).sign(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -570,7 +570,7 @@ impl ParameterExpression {
             inner: ParameterInner::Expression {
                 expr: match &self.inner {
                     ParameterInner::Expression { expr, .. } => expr.conjugate(),
-                    _ => SymbolExpr::Symbol(Box::new(self.to_string())).conjugate(),
+                    _ => SymbolExpr::Symbol(Arc::new(self.to_string())).conjugate(),
                 },
                 parameter_symbols: self._my_parameters(),
             },
@@ -581,11 +581,11 @@ impl ParameterExpression {
     pub fn add(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let expr_lhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_rhs = match &rhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(rhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(rhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -597,11 +597,11 @@ impl ParameterExpression {
     pub fn radd(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let expr_rhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_lhs = match &lhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(lhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(lhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -613,11 +613,11 @@ impl ParameterExpression {
     pub fn sub(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let expr_lhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_rhs = match &rhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(rhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(rhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -629,11 +629,11 @@ impl ParameterExpression {
     pub fn rsub(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let expr_rhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_lhs = match &lhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(lhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(lhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -645,11 +645,11 @@ impl ParameterExpression {
     pub fn mul(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let expr_lhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_rhs = match &rhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(rhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(rhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -661,11 +661,11 @@ impl ParameterExpression {
     pub fn rmul(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let expr_rhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_lhs = match &lhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(lhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(lhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -677,11 +677,11 @@ impl ParameterExpression {
     pub fn div(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let expr_lhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_rhs = match &rhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(rhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(rhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -693,11 +693,11 @@ impl ParameterExpression {
     pub fn rdiv(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let expr_rhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_lhs = match &lhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(lhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(lhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -709,11 +709,11 @@ impl ParameterExpression {
     pub fn pow(&self, rhs: &ParameterExpression) -> ParameterExpression {
         let expr_lhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_rhs = match &rhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(rhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(rhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -725,11 +725,11 @@ impl ParameterExpression {
     pub fn rpow(&self, lhs: &ParameterExpression) -> ParameterExpression {
         let expr_rhs = match &self.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(self.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(self.to_string())),
         };
         let expr_lhs = match &lhs.inner {
             ParameterInner::Expression { expr, .. } => expr,
-            _ => &SymbolExpr::Symbol(Box::new(lhs.to_string())),
+            _ => &SymbolExpr::Symbol(Arc::new(lhs.to_string())),
         };
         ParameterExpression {
             inner: ParameterInner::Expression {
@@ -991,7 +991,7 @@ impl ParameterExpression {
 
                 let p = match &param.inner {
                     ParameterInner::Expression { expr, .. } => expr,
-                    _ => &SymbolExpr::Symbol(Box::new(param.to_string())),
+                    _ => &SymbolExpr::Symbol(Arc::new(param.to_string())),
                 };
                 let expr_grad = match expr.derivative(p) {
                     Ok(expr) => expr,
@@ -1295,7 +1295,7 @@ impl From<&str> for ParameterExpression {
     fn from(s: &str) -> Self {
         ParameterExpression {
             inner: ParameterInner::Symbol {
-                name: Box::new(s.to_string()),
+                name: Arc::new(s.to_string()),
                 uuid: Uuid::new_v4().as_u128(),
             },
         }
@@ -1455,7 +1455,7 @@ impl ParameterExpression {
                         for symbol in expr.symbols() {
                             parameter_symbols.insert(Arc::new(ParameterExpression {
                                 inner: ParameterInner::Symbol {
-                                    name: Box::new(symbol.clone()),
+                                    name: Arc::new(symbol.clone()),
                                     uuid: Uuid::new_v4().as_u128(),
                                 },
                             }));
@@ -1497,7 +1497,7 @@ impl ParameterExpression {
         };
         Ok(ParameterExpression {
             inner: ParameterInner::Symbol {
-                name: Box::new(name.clone()),
+                name: Arc::new(name.clone()),
                 uuid,
             },
         })
@@ -1518,7 +1518,7 @@ impl ParameterExpression {
         };
         Ok(ParameterExpression {
             inner: ParameterInner::VectorElement {
-                name: Box::new(name.clone()),
+                name: Arc::new(name),
                 index,
                 uuid,
                 vector: None,
@@ -2239,7 +2239,7 @@ impl ParameterExpression {
                     if let Some(index) = state.2 {
                         if let Some(vector) = state.3 {
                             self.inner = ParameterInner::VectorElement {
-                                name: Box::new(expr.to_string()),
+                                name: Arc::new(expr.to_string()),
                                 index,
                                 uuid,
                                 vector: Some(Arc::new(vector)),
@@ -2251,7 +2251,7 @@ impl ParameterExpression {
                         }
                     } else {
                         self.inner = ParameterInner::Symbol {
-                            name: Box::new(expr.to_string()),
+                            name: Arc::new(expr.to_string()),
                             uuid,
                         };
                     }
@@ -2358,7 +2358,7 @@ impl ParameterVector {
         for i in 0..length {
             let pe = ParameterExpression {
                 inner: ParameterInner::VectorElement {
-                    name: Box::new(name.clone()),
+                    name: Arc::new(name.clone()),
                     index: i,
                     uuid: root_uuid + i as u128,
                     vector: None,
@@ -2508,7 +2508,7 @@ impl ParameterVector {
             for i in self.params.len()..length {
                 let pe = ParameterExpression {
                     inner: ParameterInner::VectorElement {
-                        name: Box::new(self.name.clone()),
+                        name: Arc::new(self.name.clone()),
                         index: i,
                         uuid: root_uuid + i as u128,
                         vector: None,
@@ -2536,7 +2536,7 @@ impl ParameterVector {
         for i in 0..length {
             let pe = ParameterExpression {
                 inner: ParameterInner::VectorElement {
-                    name: Box::new(self.name.clone()),
+                    name: Arc::new(self.name.clone()),
                     index: i,
                     uuid: self.root_uuid + i as u128,
                     vector: None,
