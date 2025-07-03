@@ -42,11 +42,7 @@ class ALAPScheduleAnalysis(BaseScheduler):
             raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
-        # Precompute node durations and pass as a dict to Rust
-        node_durations = {
-            node: self._get_node_duration(node, dag) for node in dag.topological_op_nodes()
-        }
         self.property_set["node_start_time"] = alap_schedule_analysis(
-            dag, clbit_write_latency, node_durations
+            dag, clbit_write_latency, self.durations.duration_by_name_qubits
         )
         return dag
