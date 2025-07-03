@@ -230,7 +230,15 @@ pub fn sabre_layout_and_routing(
                                 } else {
                                     // TODO: this handling sucks, but it's better than panicking
                                     // later in Sabre routing when nothing makes any sense.
-                                    Err(PyValueError::new_err("physical qubit on wrong chip"))
+                                    Err(PyValueError::new_err(format!(
+                                        "A custom starting layout assigned virtual qubit {} \
+                                        to physical qubit {}, which could not be satisfied on \
+                                        this disjoint QPU.  This might be a bug in Qiskit, or \
+                                        a bug in a custom transpiler pass that set the partial \
+                                        layout trials for SabreLayout.",
+                                        v.index(),
+                                        p.index(),
+                                    )))
                                 }
                             })
                             .transpose()
