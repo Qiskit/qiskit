@@ -12,7 +12,6 @@
 
 // parameterexpression.rs
 // rust implementation of Parameter / ParameterVectorElement / ParameterExpression
-use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::symbol_expr::SymbolExpr;
 use crate::symbol_expr::{self, Value};
 use crate::symbol_parser::parse_expression;
@@ -29,7 +28,7 @@ use std::sync::Arc;
 
 use pyo3::import_exception;
 use pyo3::prelude::*;
-use pyo3::types::{PyList, PySet};
+use pyo3::types::PySet;
 use pyo3::IntoPyObjectExt;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
@@ -253,7 +252,7 @@ impl ParameterExpression {
         };
         if let Some(symbols) = &other.parameter_symbols {
             for (s, u) in symbols {
-                ret.insert(Arc::clone(s), u.clone());
+                ret.insert(Arc::clone(s), *u);
             }
         }
         if !ret.is_empty() {
@@ -475,7 +474,7 @@ impl ParameterExpression {
 
             if let Some(map) = &param.parameter_symbols {
                 for (s, u) in map {
-                    symbols.insert(s.clone(), u.clone());
+                    symbols.insert(s.clone(), *u);
                 }
             }
         }
@@ -561,7 +560,7 @@ impl ParameterExpression {
                 }
             }
             (_, _) => {
-                if &self.expr == &other.expr {
+                if self.expr == other.expr {
                     if check_uuid {
                         // if there are some conflicts, the equation is not equal
                         let conflicts = self.get_conflict_parameters(other);
@@ -609,7 +608,7 @@ impl ParameterExpression {
                     let mut new_map = HashMap::<Arc<String>, u128>::new();
                     for (s, u) in parameter_symbols {
                         if symbols.contains(s.as_ref()) {
-                            new_map.insert(s.clone(), u.clone());
+                            new_map.insert(s.clone(), *u);
                         }
                     }
                     Ok(ParameterExpression {
@@ -644,7 +643,7 @@ impl ParameterExpression {
                         if k.as_ref() == s.as_ref() {
                             return Some(ParameterValueType::Parameter(ParameterExpression::new(
                                 k.as_ref().clone(),
-                                Some(u.clone()),
+                                Some(*u),
                             )));
                         }
                     }
@@ -678,7 +677,7 @@ impl ParameterExpression {
                             });
                         } else {
                             replay.push(OPReplay::_INSTRUCTION {
-                                op: op,
+                                op,
                                 lhs: Some(lhs),
                                 rhs: None,
                             });
@@ -739,10 +738,7 @@ impl ParameterExpression {
         match self.expr {
             SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
                 let mut replay = Vec::<OPReplay>::new();
-                match self._make_qpy_replay(&self.expr, &mut replay) {
-                    Some(_) => Some(replay),
-                    None => None,
-                }
+                self._make_qpy_replay(&self.expr, &mut replay).map(|_| replay)
             }
             _ => None,
         }
@@ -1214,7 +1210,7 @@ impl ParameterExpression {
                 for (s, u) in symbols {
                     out.add(ParameterExpression::new(
                         s.as_ref().clone(),
-                        Some(u.clone()),
+                        Some(*u),
                     ))?;
                 }
                 Ok(out.unbind())
@@ -1311,13 +1307,13 @@ impl ParameterExpression {
 
     pub fn __lt__(&self, rhs: &Bound<PyAny>) -> bool {
         match _extract_value(rhs) {
-            Some(rhs) => &self.expr < &rhs.expr,
+            Some(rhs) => self.expr < rhs.expr,
             None => false,
         }
     }
     pub fn __gt__(&self, rhs: &Bound<PyAny>) -> bool {
         match _extract_value(rhs) {
-            Some(rhs) => &self.expr > &rhs.expr,
+            Some(rhs) => self.expr > rhs.expr,
             None => false,
         }
     }
@@ -1530,7 +1526,7 @@ impl ParameterExpression {
         if let Some(symbols) = &self.parameter_symbols {
             let mut ret = HashMap::<String, u128>::new();
             for (s, u) in symbols {
-                ret.insert(s.as_ref().clone(), u.clone());
+                ret.insert(s.as_ref().clone(), *u);
             }
             return Ok((self.to_string(), Some(ret)));
         }

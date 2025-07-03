@@ -98,7 +98,7 @@ def inst_to_parameter_class(expr):
         if expr.is_symbol:
             from .parameter import Parameter
 
-            return Parameter(str(expr), UUID(int=p.get_uuid()))
+            return Parameter(str(expr), UUID(int=expr.get_uuid()))
         else:
             return ParameterExpression(None, expr)
     else:
@@ -281,6 +281,8 @@ class ParameterExpression(ParameterExpressionBase):
         return ParameterExpression(self._merge_parameters(other), super().__rsub__(other))
 
     def __mul__(self, other):
+        if isinstance(other, np.ndarray):
+            return [self * x for x in other]
         return ParameterExpression(self._merge_parameters(other), super().__mul__(other))
 
     def __pos__(self):
