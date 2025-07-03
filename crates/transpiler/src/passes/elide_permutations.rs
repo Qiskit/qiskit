@@ -45,7 +45,7 @@ pub fn run_elide_permutations(
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
-            match inst.op.name() {
+            match inst.op().name() {
                 "swap" => {
                     let qargs = dag.get_qargs(inst.qubits);
                     let index0 = qargs[0].index();
@@ -53,7 +53,7 @@ pub fn run_elide_permutations(
                     mapping.swap(index0, index1);
                 }
                 "permutation" => {
-                    if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                    if let Param::Obj(ref pyobj) = inst.params_raw().unwrap()[0] {
                         let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                         let pattern = pyarray.as_array();
 
@@ -84,13 +84,13 @@ pub fn run_elide_permutations(
                         .collect();
 
                     new_dag.apply_operation_back(
-                        inst.op.clone(),
+                        inst.op().clone(),
                         &mapped_qargs,
                         cargs,
-                        inst.params.as_deref().cloned(),
-                        inst.label.as_ref().map(|x| x.as_ref().clone()),
+                        inst.params_raw().cloned(),
+                        inst.label().map(|x| x.to_string()),
                         #[cfg(feature = "cache_pygates")]
-                        inst.py_op.get().map(|x| x.clone_ref(py)),
+                        inst.py_op().get().map(|x| x.clone_ref(py)),
                     )?;
                 }
             }
