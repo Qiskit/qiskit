@@ -43,6 +43,7 @@ use smallvec::SmallVec;
 
 use uuid::Uuid;
 
+use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
@@ -291,6 +292,35 @@ fn get_instruction_params(
         .collect::<PyResult<_>>()
 }
 
+fn get_instruction_annotations(
+    py: Python,
+    instruction: &PackedInstruction,
+    qpy_data: &mut QPYData,
+) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
+    // The instruction params we store are about being able to reconstruct the objects; they don't
+    // necessarily need to match one-to-one to the `params` field.
+    if let OperationRef::Instruction(inst) = instruction.op.view() {
+        let op = inst.instruction.bind(py);
+        if op.is_instance(imports::CONTROL_FLOW_BOX_OP.get_bound(py))? {
+            let annotations_iter = PyIterator::from_object(&op.getattr("annotations")?)?;
+            let annotations: Vec<formats::InstructionAnnotationPack> = annotations_iter
+                .map(|annotation| {
+                    let (namespace_index, payload) =
+                        qpy_data.annotation_handler.serialize(&annotation?)?;
+                    Ok(formats::InstructionAnnotationPack {
+                        namespace_index,
+                        payload,
+                    })
+                })
+                .collect::<PyResult<_>>()?;
+            if !annotations.is_empty() {
+                return Ok(Some(formats::InstructionsAnnotationPack { annotations }));
+            }
+        }
+    }
+    Ok(None)
+}
+
 fn dump_register(
     py: Python,
     register: Bound<PyAny>,
@@ -434,7 +464,7 @@ fn pack_instruction(
     circuit_data: &CircuitData,
     custom_operations: &mut CustomOperationsMap,
     new_custom_operations: &mut CustomOperationsList,
-    qpy_data: &QPYData,
+    qpy_data: &mut QPYData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
     let mut gate_class_name = gate_class_name(py, &instruction.op)?;
     if let Some(new_name) = recognize_custom_operation(py, &instruction.op, &gate_class_name)? {
@@ -451,7 +481,7 @@ fn pack_instruction(
     let params: Vec<formats::PackedParam> = get_instruction_params(py, instruction, qpy_data)?;
     let bit_data = get_packed_bit_list(instruction, circuit_data);
     let condition = get_condition_data(py, &instruction.op, circuit_data, qpy_data)?;
-    let annotations = None;
+    let annotations = get_instruction_annotations(py, instruction, qpy_data)?;
     let mut extras_key = condition.key;
     if annotations.is_some() {
         extras_key |= formats::extras_key_parts::ANNOTATIONS;
@@ -561,7 +591,7 @@ fn unpack_instruction(
 pub fn pack_instructions(
     py: Python,
     circuit_data: &CircuitData,
-    qpy_data: &QPYData,
+    qpy_data: &mut QPYData,
 ) -> PyResult<(Vec<formats::CircuitInstructionV2Pack>, CustomOperationsMap)> {
     let mut custom_operations: CustomOperationsMap = HashMap::new();
     let mut custom_new_operations: CustomOperationsList = Vec::new();
@@ -1084,7 +1114,7 @@ fn pack_custom_instruction(
     custom_instructions_hash: &mut CustomOperationsMap,
     new_instructions_list: &mut Vec<String>,
     circuit_data: &mut CircuitData,
-    qpy_data: &QPYData,
+    qpy_data: &mut QPYData,
 ) -> PyResult<formats::CustomCircuitInstructionDefPack> {
     let operation = custom_instructions_hash
         .get(name)
@@ -1122,7 +1152,7 @@ fn pack_custom_instruction(
                 py.None().bind(py),
                 false,
                 qpy_data.version,
-                qpy_data.annotation_factories.clone(),
+                qpy_data.annotation_handler.annotation_factories.clone(),
             )?)?;
             num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
@@ -1148,7 +1178,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                            qpy_data.annotation_factories.clone(),
+                            qpy_data.annotation_handler.annotation_factories.clone(),
                         )?)?;
                     }
                 }
@@ -1165,7 +1195,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                            qpy_data.annotation_factories.clone(),
+                            qpy_data.annotation_handler.annotation_factories.clone(),
                         )?)?;
                     }
                 }
@@ -1182,7 +1212,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                            qpy_data.annotation_factories.clone(),
+                            qpy_data.annotation_handler.annotation_factories.clone(),
                         )?)?;
                     }
                 }
@@ -1220,7 +1250,7 @@ fn pack_custom_instructions(
     py: Python,
     custom_instructions_hash: &mut CustomOperationsMap,
     circuit_data: &mut CircuitData,
-    qpy_data: &QPYData,
+    qpy_data: &mut QPYData,
 ) -> PyResult<formats::CustomCircuitInstructionsPack> {
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
     let mut instructions_to_pack: Vec<String> = custom_instructions_hash.keys().cloned().collect();
@@ -1332,31 +1362,36 @@ pub fn pack_circuit(
     let clbit_indices = circuit_data.get_clbit_indices(py).clone();
     let standalone_var_indices = PyDict::new(py);
     let standalone_vars = pack_standalone_vars(circuit, version, &standalone_var_indices)?;
-    let qpy_data = QPYData {
+    let annotation_handler = AnnotationHandler::new(annotation_factories);
+    let mut qpy_data = QPYData {
         version,
         _use_symengine: use_symengine,
         clbit_indices,
         standalone_var_indices: standalone_var_indices.unbind(),
         vectors: HashMap::new(),
-        annotation_factories,
+        annotation_handler,
     };
     let header = pack_circuit_header(circuit, metadata_serializer, &qpy_data)?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
     let calibrations = formats::CalibrationsPack { num_cals: 0 };
     let (instructions, mut custom_instructions_hash) =
-        pack_instructions(py, &circuit_data, &qpy_data)?;
+        pack_instructions(py, &circuit_data, &mut qpy_data)?;
     let custom_instructions = pack_custom_instructions(
         py,
         &mut custom_instructions_hash,
         &mut circuit_data,
-        &qpy_data,
+        &mut qpy_data,
     )?;
     let layout = pack_layout(circuit)?;
-    let annotation_headers: formats::AnnotationHeaderStaticPack =
-        formats::AnnotationHeaderStaticPack {
-            state_headers: Vec::new(),
-        };
+    let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
+        .annotation_handler
+        .dump_serializers()?
+        .into_iter()
+        .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
+        .collect();
+
+    let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
     Ok(formats::QPYFormatV15 {
         header,
         standalone_vars,
@@ -1383,15 +1418,15 @@ pub fn deserialize_circuit<'py>(
     use_symengine: bool,
     annotation_factories: Py<PyDict>,
 ) -> PyResult<Bound<'py, PyAny>> {
+    let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYData {
         version,
         _use_symengine: use_symengine,
         clbit_indices: PyDict::new(py).unbind(),
         standalone_var_indices: PyDict::new(py).unbind(),
         vectors: HashMap::new(),
-        annotation_factories,
+        annotation_handler,
     };
-    // println!("Deserializing circuit {:?}", hex_string(serialized_circuit));
     let (packed_circuit, _) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
     let num_qubits = packed_circuit.header.num_qubits;
     let num_clbits = packed_circuit.header.num_clbits;

@@ -1427,7 +1427,12 @@ def write_circuit(
         if annotation_factories is None:
             annotation_factories = {}
         _qpy.py_write_circuit(
-            file_obj, circuit, metadata_serializer, use_symengine, version, annotation_factories
+            file_obj,
+            circuit,
+            metadata_serializer,
+            use_symengine,
+            version,
+            annotation_factories=annotation_factories,
         )
         return
     annotation_state = _AnnotationSerializationState(annotation_factories or {})

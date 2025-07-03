@@ -179,10 +179,11 @@ fn pack_replay_subs(
         PyIterator::from_object(&binds.downcast::<PyDict>()?.items())?
             .map(|item| {
                 let (key, value): (PyObject, PyObject) = item?.extract()?;
-                let name = key
-                    .getattr(py, intern!(py, "name"))?
-                    .extract::<String>(py)?;
-                let key_bytes: Bytes = name.into();
+                let key_bytes = key
+                    .bind(py)
+                    .getattr(intern!(py, "uuid"))?
+                    .getattr(intern!(py, "bytes"))?
+                    .extract::<Bytes>()?;
                 let (item_type, item_bytes) = dumps_value(value.bind(py), qpy_data)?;
                 Ok(formats::MappingItem {
                     item_type,
@@ -208,7 +209,7 @@ fn unpack_mapping<'py>(
         let key: String = (&item.key_bytes).try_into()?;
         let value = DumpedValue {
             data_type: item.item_type,
-            data: Bytes(item.item_bytes.clone()),
+            data: item.item_bytes.clone(),
         };
         let value_py = value.to_python(py, qpy_data)?;
         py_dict.set_item(key, value_py)?;
@@ -502,7 +503,7 @@ pub fn unpack_parameter_expression(
                 let value = if symbol_pack.value_key != parameter_tags::PARAMETER {
                     let dumped_value = DumpedValue {
                         data_type: symbol_pack.value_key,
-                        data: Bytes(symbol_pack.value_data.clone()),
+                        data: symbol_pack.value_data.clone(),
                     };
                     dumped_value.to_python(py, qpy_data)?
                 } else {
@@ -515,7 +516,7 @@ pub fn unpack_parameter_expression(
                 let value = if symbol_pack.value_key != parameter_tags::PARAMETER_VECTOR {
                     let dumped_value = DumpedValue {
                         data_type: symbol_pack.value_key,
-                        data: Bytes(symbol_pack.value_data.clone()),
+                        data: symbol_pack.value_data.clone(),
                     };
                     dumped_value.to_python(py, qpy_data)?
                 } else {
@@ -728,7 +729,7 @@ pub fn unpack_param(
             // TODO - should we also do this for parameter vector?
             let dumped_value = DumpedValue {
                 data_type: packed_param.type_key,
-                data: Bytes(packed_param.data.clone()),
+                data: packed_param.data.clone(),
             };
             Ok(Param::ParameterExpression(
                 dumped_value.to_python(py, qpy_data)?,
@@ -739,7 +740,7 @@ pub fn unpack_param(
             // as way to use some common interface for both DumpedValue and PackedParam conversions
             let dumped_value = DumpedValue {
                 data_type: packed_param.type_key,
-                data: Bytes(packed_param.data.clone()),
+                data: packed_param.data.clone(),
             };
             Ok(Param::Obj(dumped_value.to_python(py, qpy_data)?))
         }

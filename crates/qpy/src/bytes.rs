@@ -22,7 +22,7 @@ use std::ops::{Deref, DerefMut};
 
 // Bytes are the format used to store serialized data which is not automatically handled by binrw
 // It's a wrapper around Vec<u8> with extended serialization/deserialization capabilities
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Bytes(pub Vec<u8>);
 
 impl Bytes {

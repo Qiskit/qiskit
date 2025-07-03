@@ -23,6 +23,7 @@ use qiskit_circuit::imports;
 use qiskit_circuit::operations::{OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 
+use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuits::{deserialize_circuit, pack_circuit};
 use crate::formats;
@@ -43,7 +44,7 @@ pub struct QPYData {
     pub clbit_indices: Py<PyDict>,
     pub standalone_var_indices: Py<PyDict>,
     pub vectors: HashMap<String, Py<PyAny>>,
-    pub annotation_factories: Py<PyDict>,
+    pub annotation_handler: AnnotationHandler,
 }
 
 pub mod tags {
@@ -207,7 +208,7 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<(u8
             py.None().bind(py),
             false,
             QPY_VERSION,
-            qpy_data.annotation_factories.clone(),
+            qpy_data.annotation_handler.annotation_factories.clone(),
         )?)?,
         _ => {
             return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
@@ -500,7 +501,7 @@ impl DumpedValue {
                 qpy_data.version,
                 py.None().bind(py),
                 qpy_data._use_symengine,
-                qpy_data.annotation_factories.clone(),
+                qpy_data.annotation_handler.annotation_factories.clone(),
             )?
             .unbind(),
             _ => {
