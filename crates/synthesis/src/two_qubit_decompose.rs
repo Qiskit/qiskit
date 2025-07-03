@@ -1472,13 +1472,17 @@ impl TwoQubitBasisDecomposer {
         euler_matrix_q1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]).dot(&euler_matrix_q1);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
         gates.push((Some(StandardGate::CX), smallvec![], smallvec![0, 1]));
-        gates.push((Some(StandardGate::SX), smallvec![], smallvec![0]));
-        gates.push((
-            Some(StandardGate::RZ),
-            smallvec![euler_q0[1][1] - PI],
-            smallvec![0],
-        ));
-        gates.push((Some(StandardGate::SX), smallvec![], smallvec![0]));
+        if (euler_q0[1][1] - PI).abs() < ANGLE_ZERO_EPSILON {
+            gates.push((Some(StandardGate::X), smallvec![], smallvec![0]));
+        } else {
+            gates.push((Some(StandardGate::SX), smallvec![], smallvec![0]));
+            gates.push((
+                Some(StandardGate::RZ),
+                smallvec![euler_q0[1][1] - PI],
+                smallvec![0],
+            ));
+            gates.push((Some(StandardGate::SX), smallvec![], smallvec![0]));
+        }
         gates.push((
             Some(StandardGate::RZ),
             smallvec![euler_q1[1][1]],
