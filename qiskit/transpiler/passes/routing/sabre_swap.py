@@ -230,8 +230,8 @@ class SabreSwap(TransformationPass):
             raise TranspilerError(f"Heuristic {self.heuristic} not recognized.")
         disjoint_utils.require_layout_isolated_to_component(dag, self.target)
 
-        sabre_start = time.perf_counter()
         initial_layout = NLayout.generate_trivial_layout(num_dag_qubits)
+        sabre_start = time.perf_counter()
         dag, final_layout = sabre_routing(
             dag, self._routing_target, heuristic, initial_layout, self.trials, self.seed
         )
