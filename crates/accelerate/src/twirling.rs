@@ -35,7 +35,7 @@ use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::packed_instruction::PackedInstruction;
 
 use crate::QiskitError;
 
@@ -198,7 +198,7 @@ fn twirl_gate(
     twirl_set: &[([StandardGate; 4], f64)],
     inst: &PackedInstruction,
 ) -> PyResult<()> {
-    let qubits = circ.get_qargs(inst.qubits);
+    let qubits = circ.get_qargs(inst.qubits());
     let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
     let bit_zero = out_circ.add_qargs(std::slice::from_ref(&qubits[0]));
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
@@ -241,12 +241,12 @@ fn generate_twirled_circuit(
 
     for inst in circ.data() {
         if let Some(custom_gate_map) = custom_gate_map {
-            if let Some(twirling_set) = custom_gate_map.get(inst.op.name()) {
+            if let Some(twirling_set) = custom_gate_map.get(inst.op().name()) {
                 twirl_gate(py, circ, rng, &mut out_circ, twirling_set.as_slice(), inst)?;
                 continue;
             }
         }
-        match inst.op.view() {
+        match inst.op().view() {
             OperationRef::StandardGate(gate) => match gate {
                 StandardGate::CX => {
                     if twirling_mask & CX_MASK != 0 {
@@ -319,22 +319,20 @@ fn generate_twirled_circuit(
                         control_flow: true,
                         instruction: new_inst_obj.clone_ref(py),
                     };
-                    let new_inst = PackedInstruction {
-                        op: PackedOperation::from_instruction(Box::new(new_inst)),
-                        qubits: inst.qubits,
-                        clbits: inst.clbits,
-                        params: Some(Box::new(
-                            new_blocks
-                                .iter()
-                                .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
-                                .collect::<PyResult<SmallVec<[Param; 3]>>>()?,
-                        )),
-                        label: inst.label.clone(),
-                        #[cfg(feature = "cache_pygates")]
-                        py_op: std::sync::OnceLock::new(),
-                    };
+                    let params = new_blocks
+                        .iter()
+                        .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
+                        .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
+                    let mut new_inst =
+                        PackedInstruction::new(new_inst, inst.qubits(), inst.clbits())
+                            .with_params(params);
+                    if let Some(label) = inst.label() {
+                        new_inst = new_inst.with_label(label.to_string());
+                    }
                     #[cfg(feature = "cache_pygates")]
-                    new_inst.py_op.set(new_inst_obj).unwrap();
+                    {
+                        new_inst = new_inst.with_py_cache(new_inst_obj);
+                    }
                     out_circ.push(py, new_inst)?;
                 } else {
                     out_circ.push(py, inst.clone())?;

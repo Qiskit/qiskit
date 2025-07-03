@@ -31,13 +31,13 @@ use crate::QiskitError;
 
 #[inline]
 pub fn get_matrix_from_inst(py: Python, inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.op.matrix(inst.params_view()) {
+    if let Some(mat) = inst.op().matrix(inst.params_view()) {
         Ok(mat)
-    } else if inst.op.try_standard_gate().is_some() {
+    } else if inst.op().try_standard_gate().is_some() {
         Err(QiskitError::new_err(
             "Parameterized gates can't be consolidated",
         ))
-    } else if let OperationRef::Gate(gate) = inst.op.view() {
+    } else if let OperationRef::Gate(gate) = inst.op().view() {
         Ok(QI_OPERATOR
             .get_bound(py)
             .call1((gate.gate.clone_ref(py),))?
@@ -108,7 +108,7 @@ impl Separable1q {
 /// Extract a versor representation of an arbitrary 1q DAG instruction.
 fn versor_from_1q_gate(py: Python, inst: &PackedInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
-    match inst.op.view() {
+    match inst.op().view() {
         OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
         OperationRef::Unitary(gate) => match &gate.array {
             ArrayType::NDArray(arr) => Ok(VersorU2::from_ndarray_unchecked(&arr.view())),
@@ -163,7 +163,7 @@ pub fn blocks_to_matrix(
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
         let inst = dag[*node].unwrap_operation();
-        let qarg = qarg_lookup(inst.qubits);
+        let qarg = qarg_lookup(inst.qubits());
         match qarg {
             Qarg::Q0 | Qarg::Q1 => {
                 let versor = versor_from_1q_gate(py, inst)?;

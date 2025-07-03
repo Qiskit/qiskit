@@ -858,9 +858,9 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
         panic!("Invalid index")
     }
     let packed_inst = &circuit.data()[index];
-    let qargs = circuit.get_qargs(packed_inst.qubits);
+    let qargs = circuit.get_qargs(packed_inst.qubits());
     let mut qargs_vec: Vec<u32> = qargs.iter().map(|x| x.0).collect();
-    let cargs = circuit.get_cargs(packed_inst.clbits);
+    let cargs = circuit.get_cargs(packed_inst.clbits());
     let mut cargs_vec: Vec<u32> = cargs.iter().map(|x| x.0).collect();
     let params = packed_inst.params_view();
     let mut params_vec: Vec<f64> = params
@@ -883,7 +883,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
         std::ptr::write(
             instruction,
             CInstruction {
-                name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
+                name: CString::new(packed_inst.op().name()).unwrap().into_raw(),
                 num_qubits: qargs.len() as u32,
                 qubits: out_qargs,
                 num_clbits: cargs.len() as u32,

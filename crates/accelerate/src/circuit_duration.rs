@@ -34,14 +34,14 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
             let node_weight = &dag[edge.target()];
             match node_weight {
                 NodeType::Operation(inst) => {
-                    let name = inst.op.name();
-                    let qubits = dag.get_qargs(inst.qubits);
+                    let name = inst.op().name();
+                    let qubits = dag.get_qargs(inst.qubits());
                     let physical_qubits: Vec<PhysicalQubit> =
                         qubits.iter().map(|x| PhysicalQubit::new(x.0)).collect();
 
-                    if let OperationRef::StandardInstruction(op) = inst.op.view() {
+                    if let OperationRef::StandardInstruction(op) = inst.op().view() {
                         if let StandardInstruction::Delay(unit) = op {
-                            let dur = &inst.params.as_ref().unwrap()[0];
+                            let dur = &inst.params_raw().unwrap()[0];
                             return if unit == DelayUnit::DT {
                                 if let Some(dt) = dt {
                                     match dur {

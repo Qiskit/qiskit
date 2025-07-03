@@ -47,11 +47,11 @@ pub fn run_remove_identity_equiv(
                     match target {
                         Some(target) => {
                             let qargs: Vec<PhysicalQubit> = dag
-                                .get_qargs(inst.qubits)
+                                .get_qargs(inst.qubits())
                                 .iter()
                                 .map(|x| PhysicalQubit::new(x.0))
                                 .collect();
-                            let error_rate = target.get_error(inst.op.name(), &qargs);
+                            let error_rate = target.get_error(inst.op().name(), &qargs);
                             match error_rate {
                                 Some(err) => err * degree,
                                 None => MINIMUM_TOL.max(1. - degree),
@@ -64,11 +64,11 @@ pub fn run_remove_identity_equiv(
             None => match target {
                 Some(target) => {
                     let qargs: Vec<PhysicalQubit> = dag
-                        .get_qargs(inst.qubits)
+                        .get_qargs(inst.qubits())
                         .iter()
                         .map(|x| PhysicalQubit::new(x.0))
                         .collect();
-                    let error_rate = target.get_error(inst.op.name(), &qargs);
+                    let error_rate = target.get_error(inst.op().name(), &qargs);
                     match error_rate {
                         Some(err) => err,
                         None => MINIMUM_TOL,
@@ -84,7 +84,7 @@ pub fn run_remove_identity_equiv(
             // Skip parameterized gates
             continue;
         }
-        let view = inst.op.view();
+        let view = inst.op().view();
         match view {
             OperationRef::StandardGate(gate) => {
                 let (tr_over_dim, dim) = match gate {

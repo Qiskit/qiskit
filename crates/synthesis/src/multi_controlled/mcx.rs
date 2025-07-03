@@ -174,18 +174,18 @@ impl CircuitDataForSynthesis for CircuitData {
     fn compose(&mut self, other: &Self, qargs_map: &[Qubit], cargs_map: &[Clbit]) -> PyResult<()> {
         for inst in other.data() {
             let remapped_qubits: Vec<Qubit> = other
-                .get_qargs(inst.qubits)
+                .get_qargs(inst.qubits())
                 .iter()
                 .map(|q| qargs_map[q.index()])
                 .collect();
             let remapped_clbits: Vec<Clbit> = other
-                .get_cargs(inst.clbits)
+                .get_cargs(inst.clbits())
                 .iter()
                 .map(|c| cargs_map[c.index()])
                 .collect();
 
             self.push_packed_operation(
-                inst.op.clone(),
+                inst.op().clone(),
                 inst.params_view(),
                 &remapped_qubits,
                 &remapped_clbits,
@@ -209,7 +209,8 @@ impl CircuitDataForSynthesis for CircuitData {
         for i in 0..data.len() {
             let inst = &data[data.len() - 1 - i];
 
-            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op.view() {
+            let inverse_inst: Option<(StandardGate, SmallVec<[Param; 3]>)> = match &inst.op().view()
+            {
                 OperationRef::StandardGate(gate) => gate.inverse(inst.params_view()),
                 _ => None,
             };
@@ -217,7 +218,7 @@ impl CircuitDataForSynthesis for CircuitData {
             if inverse_inst.is_none() {
                 return Err(CircuitError::new_err(format!(
                     "The circuit cannot be inverted: {} is not a standard gate.",
-                    inst.op.name()
+                    inst.op().name()
                 )));
             }
 
@@ -226,8 +227,8 @@ impl CircuitDataForSynthesis for CircuitData {
             inverse_circuit.push_packed_operation(
                 inverse_op.into(),
                 &inverse_op_params,
-                self.get_qargs(inst.qubits),
-                self.get_cargs(inst.clbits),
+                self.get_qargs(inst.qubits()),
+                self.get_cargs(inst.clbits()),
             );
         }
         Ok(inverse_circuit)

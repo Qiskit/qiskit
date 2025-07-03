@@ -43,13 +43,13 @@ pub fn run_split_2q_unitaries(
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
             // to the supported basis gate set.
-            let OperationRef::Unitary(unitary_gate) = inst.op.view() else {
+            let OperationRef::Unitary(unitary_gate) = inst.op().view() else {
                 continue;
             };
             if unitary_gate.num_qubits() != 2 {
                 continue;
             }
-            let temp = dag.get_qargs(inst.qubits);
+            let temp = dag.get_qargs(inst.qubits());
             let qubits: [Qubit; 2] = [temp[0], temp[1]];
             let matrix = unitary_gate.matrix_view();
             let decomp =
@@ -106,7 +106,7 @@ pub fn run_split_2q_unitaries(
         let NodeType::Operation(inst) = &dag.dag()[node] else {
             unreachable!("Op nodes contain a non-operation");
         };
-        if let OperationRef::Unitary(unitary_gate) = inst.op.view() {
+        if let OperationRef::Unitary(unitary_gate) = inst.op().view() {
             if unitary_gate.num_qubits() == 2 {
                 let decomp = TwoQubitWeylDecomposition::new_inner(
                     unitary_gate.matrix_view(),
@@ -133,7 +133,7 @@ pub fn run_split_2q_unitaries(
                         array: ArrayType::OneQ(k1l_mat),
                     });
                     // perform the virtual swap
-                    let qargs = dag.get_qargs(inst.qubits);
+                    let qargs = dag.get_qargs(inst.qubits());
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
@@ -162,21 +162,21 @@ pub fn run_split_2q_unitaries(
             }
         }
         // General instruction
-        let qargs = dag.get_qargs(inst.qubits);
-        let cargs = dag.get_cargs(inst.clbits);
+        let qargs = dag.get_qargs(inst.qubits());
+        let cargs = dag.get_cargs(inst.clbits());
         let mapped_qargs: Vec<Qubit> = qargs
             .iter()
             .map(|q| Qubit::new(mapping[q.index()]))
             .collect();
 
         new_dag.apply_operation_back(
-            inst.op.clone(),
+            inst.op().clone(),
             &mapped_qargs,
             cargs,
-            inst.params.as_deref().cloned(),
-            inst.label.as_ref().map(|x| x.to_string()),
+            inst.params_raw().cloned(),
+            inst.label().map(|label| label.to_string()),
             #[cfg(feature = "cache_pygates")]
-            inst.py_op.get().map(|x| x.clone_ref(py)),
+            inst.py_op().get().map(|x| x.clone_ref(py)),
         )?;
     }
     Ok(Some((new_dag.build(), mapping)))

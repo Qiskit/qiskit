@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use pyo3::intern;
 use pyo3::prelude::*;
 
@@ -113,22 +110,15 @@ pub fn dag_to_circuit(
                 )
             };
             if copy_operations {
-                let op = instr.op.py_deepcopy(py, None)?;
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(
-                        instr
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                let op = instr.op().py_deepcopy(py, None)?;
+                let mut new_instr = PackedInstruction::new(op, instr.qubits(), instr.clbits());
+                if let Some(params) = instr.params_raw() {
+                    new_instr = new_instr.with_params(params.clone())
+                }
+                if let Some(label) = instr.label() {
+                    new_instr = new_instr.with_label(label.to_string());
+                }
+                Ok(new_instr)
             } else {
                 Ok(instr.clone())
             }
