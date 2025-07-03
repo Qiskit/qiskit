@@ -138,12 +138,12 @@ fn apply_synth_dag(
 ) -> PyResult<()> {
     for out_node in synth_dag.topological_op_nodes()? {
         let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
-        let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits());
+        let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
             .iter()
             .map(|qarg| out_qargs[qarg.0 as usize])
             .collect();
-        out_packed_instr.replace_qubits(out_dag.insert_qargs(&mapped_qargs));
+        out_packed_instr.qubits = out_dag.insert_qargs(&mapped_qargs);
         out_dag.push_back(out_packed_instr)?;
     }
     out_dag.add_global_phase(&synth_dag.get_global_phase())?;
@@ -269,7 +269,7 @@ pub fn run_unitary_synthesis(
             let mut new_blocks = Vec::with_capacity(raw_blocks.len());
             for raw_block in raw_blocks {
                 let new_ids = dag
-                    .get_qargs(packed_instr.qubits())
+                    .get_qargs(packed_instr.qubits)
                     .iter()
                     .map(|qarg| qubit_indices[qarg.0 as usize])
                     .collect_vec();
@@ -301,8 +301,8 @@ pub fn run_unitary_synthesis(
             let new_node_op: OperationFromPython = new_node.extract()?;
             packed_instr = PackedInstruction::new(
                 new_node_op.operation,
-                packed_instr.qubits(),
-                packed_instr.clbits(),
+                packed_instr.qubits,
+                packed_instr.clbits,
             )
             .with_params(new_node_op.params);
             if let Some(label) = new_node_op.label {
@@ -322,7 +322,7 @@ pub fn run_unitary_synthesis(
         match packed_instr.op().num_qubits() {
             // Run 1q synthesis
             1 => {
-                let qubit = dag.get_qargs(packed_instr.qubits())[0];
+                let qubit = dag.get_qargs(packed_instr.qubits)[0];
                 let target_basis_set = match target {
                     Some(target) => get_target_basis_set(target, PhysicalQubit::new(qubit.0)),
                     None => {
@@ -377,7 +377,7 @@ pub fn run_unitary_synthesis(
             // Run 2q synthesis
             2 => {
                 // "out_qargs" is used to append the synthesized instructions to the output dag
-                let out_qargs = dag.get_qargs(packed_instr.qubits());
+                let out_qargs = dag.get_qargs(packed_instr.qubits);
                 // "ref_qubits" is used to access properties in the target. It accounts for control flow mapping.
                 let ref_qubits: &[PhysicalQubit; 2] = &[
                     PhysicalQubit::new(qubit_indices[out_qargs[0].0 as usize] as u32),
@@ -448,7 +448,7 @@ pub fn run_unitary_synthesis(
                         None,
                         None,
                     )?;
-                    let out_qargs = dag.get_qargs(packed_instr.qubits());
+                    let out_qargs = dag.get_qargs(packed_instr.qubits);
                     apply_synth_dag(&mut out_dag, out_qargs, &synth_dag)?;
                 }
             }
@@ -1060,7 +1060,7 @@ fn synth_su4_dag(
             for node in synth_dag.topological_op_nodes()? {
                 let inst = &synth_dag[node].unwrap_operation();
                 if inst.op().num_qubits() == 2 {
-                    let qargs = synth_dag.get_qargs(inst.qubits());
+                    let qargs = synth_dag.get_qargs(inst.qubits);
                     synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
                 }
             }
@@ -1129,11 +1129,11 @@ fn reversed_synth_su4_dag(
         let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
-            .get(inst.qubits())
+            .get(inst.qubits)
             .iter()
             .map(|x| flip_bits[x.0 as usize])
             .collect();
-        inst.replace_qubits(target_dag_builder.insert_qargs(&qubits));
+        inst.qubits = target_dag_builder.insert_qargs(&qubits);
         target_dag_builder.push_back(inst)?;
     }
     Ok(target_dag_builder.build())
@@ -1350,7 +1350,7 @@ fn run_2q_unitary_synthesis(
                             unreachable!("DAG node must be an instruction")
                         };
                         let inst_qubits = synth_dag
-                            .get_qargs(inst.qubits())
+                            .get_qargs(inst.qubits)
                             .iter()
                             .map(|q| ref_qubits[q.0 as usize])
                             .collect();

@@ -685,9 +685,9 @@ impl Drop for PackedOperation {
 pub struct PackedInstruction {
     op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
-    qubits: Interned<[Qubit]>,
+    pub qubits: Interned<[Qubit]>,
     /// The index under which the interner has stored `clbits`.
-    clbits: Interned<[Clbit]>,
+    pub clbits: Interned<[Clbit]>,
     params: Option<Box<SmallVec<[Param; 3]>>>,
     label: Option<Box<String>>,
 
@@ -779,14 +779,6 @@ impl PackedInstruction {
         self
     }
 
-    pub fn replace_qubits(&mut self, qubits: Interned<[Qubit]>) {
-        self.qubits = qubits;
-    }
-
-    pub fn replace_clbits(&mut self, clbits: Interned<[Clbit]>) {
-        self.clbits = clbits;
-    }
-
     /// Pack a [StandardGate] into a complete instruction.
     pub fn from_standard_gate(
         gate: StandardGate,
@@ -812,18 +804,6 @@ impl PackedInstruction {
     #[inline]
     pub fn op(&self) -> &PackedOperation {
         &self.op
-    }
-
-    /// Immutable view to the instruction's interned qubit indices
-    #[inline]
-    pub fn qubits(&self) -> Interned<[Qubit]> {
-        self.qubits
-    }
-
-    /// Immutable view to the instruction's interned clbit indices
-    #[inline]
-    pub fn clbits(&self) -> Interned<[Clbit]> {
-        self.clbits
     }
 
     #[cfg(feature = "cache_pygates")]

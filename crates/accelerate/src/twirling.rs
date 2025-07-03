@@ -198,7 +198,7 @@ fn twirl_gate(
     twirl_set: &[([StandardGate; 4], f64)],
     inst: &PackedInstruction,
 ) -> PyResult<()> {
-    let qubits = circ.get_qargs(inst.qubits());
+    let qubits = circ.get_qargs(inst.qubits);
     let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
     let bit_zero = out_circ.add_qargs(std::slice::from_ref(&qubits[0]));
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
@@ -323,9 +323,8 @@ fn generate_twirled_circuit(
                         .iter()
                         .map(|x| Ok(Param::Obj(x.clone().into_py_any(py)?)))
                         .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
-                    let mut new_inst =
-                        PackedInstruction::new(new_inst, inst.qubits(), inst.clbits())
-                            .with_params(params);
+                    let mut new_inst = PackedInstruction::new(new_inst, inst.qubits, inst.clbits)
+                        .with_params(params);
                     if let Some(label) = inst.label() {
                         new_inst = new_inst.with_label(label.to_string());
                     }

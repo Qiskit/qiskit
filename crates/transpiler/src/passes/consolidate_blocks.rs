@@ -118,7 +118,7 @@ pub fn run_consolidate_blocks(
                 target,
                 basis_gates.as_ref(),
                 inst.op().name(),
-                dag.get_qargs(inst.qubits()),
+                dag.get_qargs(inst.qubits),
             ) {
                 all_block_gates.insert(inst_node);
                 let matrix = match get_matrix_from_inst(py, inst) {
@@ -143,7 +143,7 @@ pub fn run_consolidate_blocks(
         let mut outside_basis = false;
         for node in &block {
             let inst = dag[*node].unwrap_operation();
-            block_qargs.extend(dag.get_qargs(inst.qubits()));
+            block_qargs.extend(dag.get_qargs(inst.qubits));
             all_block_gates.insert(*node);
             if inst.op().name() == basis_gate_name {
                 basis_count += 1;
@@ -152,7 +152,7 @@ pub fn run_consolidate_blocks(
                 target,
                 basis_gates.as_ref(),
                 inst.op().name(),
-                dag.get_qargs(inst.qubits()),
+                dag.get_qargs(inst.qubits),
             ) {
                 outside_basis = true;
             }
@@ -175,7 +175,7 @@ pub fn run_consolidate_blocks(
                     Ok((
                         inst.op().clone(),
                         inst.params_view().iter().cloned().collect(),
-                        dag.get_qargs(inst.qubits())
+                        dag.get_qargs(inst.qubits)
                             .iter()
                             .map(|x| Qubit::new(block_index_map[x]))
                             .collect(),
@@ -273,7 +273,7 @@ pub fn run_consolidate_blocks(
             }
             let first_inst_node = run[0];
             let first_inst = dag[first_inst_node].unwrap_operation();
-            let first_qubits = dag.get_qargs(first_inst.qubits());
+            let first_qubits = dag.get_qargs(first_inst.qubits);
 
             if run.len() == 1
                 && !is_supported(

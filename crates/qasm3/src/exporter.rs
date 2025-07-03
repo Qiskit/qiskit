@@ -1079,7 +1079,7 @@ impl<'a> QASM3Builder {
             .circuit_scope
             .circuit_data
             .qargs_interner()
-            .get(instr.qubits());
+            .get(instr.qubits);
         let mut qubit_ids = Vec::new();
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
@@ -1106,7 +1106,7 @@ impl<'a> QASM3Builder {
             .circuit_scope
             .circuit_data
             .qargs_interner()
-            .get(instr.qubits());
+            .get(instr.qubits);
         let mut qubits = Vec::new();
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
@@ -1124,7 +1124,7 @@ impl<'a> QASM3Builder {
             .circuit_scope
             .circuit_data
             .cargs_interner()
-            .get(instr.clbits());
+            .get(instr.clbits);
         let clbits_registry = self.circuit_scope.circuit_data.clbits();
         let id = self.lookup_bit(&BitType::ShareableClbit(
             clbits_registry.get(cargs[0]).unwrap().clone(),
@@ -1147,7 +1147,7 @@ impl<'a> QASM3Builder {
             .circuit_scope
             .circuit_data
             .qargs_interner()
-            .get(instr.qubits());
+            .get(instr.qubits);
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
@@ -1251,7 +1251,7 @@ impl<'a> QASM3Builder {
             .circuit_scope
             .circuit_data
             .qargs_interner()
-            .get(instr.qubits());
+            .get(instr.qubits);
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
 
         for q in qargs {
@@ -1311,7 +1311,7 @@ impl<'a> QASM3Builder {
             .circuit_scope
             .circuit_data
             .qargs_interner()
-            .get(instr.qubits());
+            .get(instr.qubits);
         let qubits_registry = self.circuit_scope.circuit_data.qubits();
         let mut qubit_ids = Vec::new();
         for q in qargs {

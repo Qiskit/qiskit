@@ -49,7 +49,7 @@ pub fn run_split_2q_unitaries(
             if unitary_gate.num_qubits() != 2 {
                 continue;
             }
-            let temp = dag.get_qargs(inst.qubits());
+            let temp = dag.get_qargs(inst.qubits);
             let qubits: [Qubit; 2] = [temp[0], temp[1]];
             let matrix = unitary_gate.matrix_view();
             let decomp =
@@ -133,7 +133,7 @@ pub fn run_split_2q_unitaries(
                         array: ArrayType::OneQ(k1l_mat),
                     });
                     // perform the virtual swap
-                    let qargs = dag.get_qargs(inst.qubits());
+                    let qargs = dag.get_qargs(inst.qubits);
                     let index0 = qargs[0].index();
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
@@ -162,8 +162,8 @@ pub fn run_split_2q_unitaries(
             }
         }
         // General instruction
-        let qargs = dag.get_qargs(inst.qubits());
-        let cargs = dag.get_cargs(inst.clbits());
+        let qargs = dag.get_qargs(inst.qubits);
+        let cargs = dag.get_cargs(inst.clbits);
         let mapped_qargs: Vec<Qubit> = qargs
             .iter()
             .map(|q| Qubit::new(mapping[q.index()]))

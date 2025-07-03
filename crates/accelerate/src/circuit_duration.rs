@@ -35,7 +35,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
             match node_weight {
                 NodeType::Operation(inst) => {
                     let name = inst.op().name();
-                    let qubits = dag.get_qargs(inst.qubits());
+                    let qubits = dag.get_qargs(inst.qubits);
                     let physical_qubits: Vec<PhysicalQubit> =
                         qubits.iter().map(|x| PhysicalQubit::new(x.0)).collect();
 

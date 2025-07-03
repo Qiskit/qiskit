@@ -472,11 +472,11 @@ fn run_on_circuitdata(
     for inst in input_circuit.iter() {
         // op's qubits as viewed globally
         let op_qubits = input_circuit
-            .get_qargs(inst.qubits())
+            .get_qargs(inst.qubits)
             .iter()
             .map(|q| input_qubits[q.index()])
             .collect::<Vec<usize>>();
-        let op_clbits = input_circuit.get_cargs(inst.clbits());
+        let op_clbits = input_circuit.get_cargs(inst.clbits);
 
         // Start by handling special operations.
         // In the future, we can also consider other possible optimizations, e.g.:
@@ -553,7 +553,7 @@ fn run_on_circuitdata(
 
                 let synthesized_op: OperationFromPython = replaced_blocks.extract()?;
                 let mut packed_instruction =
-                    PackedInstruction::new(synthesized_op.operation, inst.qubits(), inst.clbits());
+                    PackedInstruction::new(synthesized_op.operation, inst.qubits, inst.clbits);
                 if let Some(params) = inst.params_raw() {
                     packed_instruction = packed_instruction.with_params(params.clone());
                 }
@@ -621,8 +621,8 @@ fn run_on_circuitdata(
                 );
 
                 for inst_inner in synthesized_circuit.iter() {
-                    let inst_inner_qubits = synthesized_circuit.get_qargs(inst_inner.qubits());
-                    let inst_inner_clbits = synthesized_circuit.get_cargs(inst_inner.clbits());
+                    let inst_inner_qubits = synthesized_circuit.get_qargs(inst_inner.qubits);
+                    let inst_inner_clbits = synthesized_circuit.get_cargs(inst_inner.clbits);
 
                     let inst_outer_qubits: Vec<Qubit> = inst_inner_qubits
                         .iter()
@@ -957,7 +957,7 @@ pub fn run_high_level_synthesis(
     let mut fast_path: bool = true;
 
     for (_, inst) in dag.op_nodes(false) {
-        let qubits = dag.get_qargs(inst.qubits());
+        let qubits = dag.get_qargs(inst.qubits);
         if !definitely_skip_op(py, data, inst.op(), qubits) {
             fast_path = false;
             break;
@@ -1000,8 +1000,8 @@ fn convert_circuit_to_dag_with_data(
     new_dag.try_extend(circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
         let mut packed = PackedInstruction::new(
             instr.op().clone(),
-            qarg_map[instr.qubits()],
-            carg_map[instr.clbits()],
+            qarg_map[instr.qubits],
+            carg_map[instr.clbits],
         );
         if let Some(params) = instr.params_raw() {
             packed = packed.with_params(params.clone());

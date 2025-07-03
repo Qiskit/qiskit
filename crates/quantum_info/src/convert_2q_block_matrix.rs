@@ -163,7 +163,7 @@ pub fn blocks_to_matrix(
     let mut output_matrix: Option<Array2<Complex64>> = None;
     for node in op_list {
         let inst = dag[*node].unwrap_operation();
-        let qarg = qarg_lookup(inst.qubits());
+        let qarg = qarg_lookup(inst.qubits);
         match qarg {
             Qarg::Q0 | Qarg::Q1 => {
                 let versor = versor_from_1q_gate(py, inst)?;

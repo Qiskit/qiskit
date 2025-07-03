@@ -237,7 +237,7 @@ fn extract_basis(
         min_qubits: usize,
     ) -> PyResult<()> {
         for (_node, operation) in circuit.op_nodes(true) {
-            if circuit.get_qargs(operation.qubits()).len() >= min_qubits {
+            if circuit.get_qargs(operation.qubits).len() >= min_qubits {
                 basis.insert((
                     operation.op().name().to_string(),
                     operation.op().num_qubits(),
@@ -269,7 +269,7 @@ fn extract_basis(
             .borrow();
         for (index, inst) in circuit_data.iter().enumerate() {
             let instruction_object = circuit.get_item(index)?;
-            if circuit_data.get_qargs(inst.qubits()).len() >= min_qubits {
+            if circuit_data.get_qargs(inst.qubits).len() >= min_qubits {
                 basis.insert((inst.op().name().to_string(), inst.op().num_qubits()));
             }
             if inst.op().control_flow() {
@@ -308,7 +308,7 @@ fn extract_basis_target(
     >,
 ) -> PyResult<()> {
     for (_, node_obj) in dag.op_nodes(true) {
-        let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits());
+        let qargs: &[Qubit] = dag.get_qargs(node_obj.qubits);
         if qargs.len() < min_qubits {
             continue;
         }
@@ -401,7 +401,7 @@ fn extract_basis_target_circ(
     let circ_data_bound = circuit.getattr("_data")?.downcast_into::<CircuitData>()?;
     let circ_data = circ_data_bound.borrow();
     for node_obj in circ_data.iter() {
-        let qargs = circ_data.get_qargs(node_obj.qubits());
+        let qargs = circ_data.get_qargs(node_obj.qubits);
         if qargs.len() < min_qubits {
             continue;
         }
@@ -485,8 +485,8 @@ fn apply_translation(
     let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();
-        let node_qarg = dag.get_qargs(node_obj.qubits());
-        let node_carg = dag.get_cargs(node_obj.clbits());
+        let node_qarg = dag.get_qargs(node_obj.qubits);
+        let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: IndexSet<Qubit, ahash::RandomState> =
             IndexSet::from_iter(node_qarg.iter().copied());
         let mut new_op: Option<OperationFromPython> = None;
@@ -613,15 +613,15 @@ fn replace_node(
     if node.params_view().is_empty() {
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
-            let old_qargs = dag.qargs_interner().get(node.qubits());
-            let old_cargs = dag.cargs_interner().get(node.clbits());
+            let old_qargs = dag.qargs_interner().get(node.qubits);
+            let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
-                .get_qargs(inner_node.qubits())
+                .get_qargs(inner_node.qubits)
                 .iter()
                 .map(|qubit| old_qargs[qubit.0 as usize])
                 .collect();
             let new_clbits: Vec<Clbit> = target_dag
-                .get_cargs(inner_node.clbits())
+                .get_cargs(inner_node.clbits)
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
@@ -657,15 +657,15 @@ fn replace_node(
             .into_py_dict(py)?;
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
-            let old_qargs = dag.qargs_interner().get(node.qubits());
-            let old_cargs = dag.cargs_interner().get(node.clbits());
+            let old_qargs = dag.qargs_interner().get(node.qubits);
+            let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
-                .get_qargs(inner_node.qubits())
+                .get_qargs(inner_node.qubits)
                 .iter()
                 .map(|qubit| old_qargs[qubit.0 as usize])
                 .collect();
             let new_clbits: Vec<Clbit> = target_dag
-                .get_cargs(inner_node.clbits())
+                .get_cargs(inner_node.clbits)
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();

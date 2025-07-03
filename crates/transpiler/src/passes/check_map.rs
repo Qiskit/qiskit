@@ -37,7 +37,7 @@ fn recurse<'py>(
         }
     };
     for (_node, inst) in dag.op_nodes(false) {
-        let qubits = dag.get_qargs(inst.qubits());
+        let qubits = dag.get_qargs(inst.qubits);
         if inst.op().control_flow() {
             if let OperationRef::Instruction(py_inst) = inst.op().view() {
                 let raw_blocks = py_inst.instruction.getattr(py, "blocks")?;

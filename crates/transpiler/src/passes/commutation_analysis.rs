@@ -87,10 +87,10 @@ pub fn analyze_commutations(
                         let op2 = packed_inst1.op().view();
                         let params1 = packed_inst0.params_view();
                         let params2 = packed_inst1.params_view();
-                        let qargs1 = dag.get_qargs(packed_inst0.qubits());
-                        let qargs2 = dag.get_qargs(packed_inst1.qubits());
-                        let cargs1 = dag.get_cargs(packed_inst0.clbits());
-                        let cargs2 = dag.get_cargs(packed_inst1.clbits());
+                        let qargs1 = dag.get_qargs(packed_inst0.qubits);
+                        let qargs2 = dag.get_qargs(packed_inst1.qubits);
+                        let cargs1 = dag.get_cargs(packed_inst0.clbits);
+                        let cargs2 = dag.get_cargs(packed_inst1.clbits);
 
                         all_commute = commutation_checker.commute_inner(
                             py,

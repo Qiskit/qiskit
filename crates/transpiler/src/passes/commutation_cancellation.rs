@@ -131,7 +131,7 @@ pub fn cancel_commutations(
                         NodeType::Operation(instr) => instr,
                         _ => panic!("Unexpected type in commutation set."),
                     };
-                    let num_qargs = dag.get_qargs(instr.qubits()).len();
+                    let num_qargs = dag.get_qargs(instr.qubits).len();
                     // no support for cancellation of parameterized gates
                     if instr.is_parameterized() {
                         continue;
@@ -173,8 +173,8 @@ pub fn cancel_commutations(
                         }
                         // Don't deal with Y rotation, because Y rotation doesn't commute with
                         // CNOT, so it should be dealt with by optimized1qgate pass
-                        if num_qargs == 2 && dag.get_qargs(instr.qubits())[0] == wire {
-                            let second_qarg = dag.get_qargs(instr.qubits())[1];
+                        if num_qargs == 2 && dag.get_qargs(instr.qubits)[0] == wire {
+                            let second_qarg = dag.get_qargs(instr.qubits)[1];
                             cancellation_sets
                                 .entry(CancellationSetKey {
                                     gate: GateOrRotation::Gate(op_gate),

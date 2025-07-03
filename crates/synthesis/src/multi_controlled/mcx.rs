@@ -174,12 +174,12 @@ impl CircuitDataForSynthesis for CircuitData {
     fn compose(&mut self, other: &Self, qargs_map: &[Qubit], cargs_map: &[Clbit]) -> PyResult<()> {
         for inst in other.data() {
             let remapped_qubits: Vec<Qubit> = other
-                .get_qargs(inst.qubits())
+                .get_qargs(inst.qubits)
                 .iter()
                 .map(|q| qargs_map[q.index()])
                 .collect();
             let remapped_clbits: Vec<Clbit> = other
-                .get_cargs(inst.clbits())
+                .get_cargs(inst.clbits)
                 .iter()
                 .map(|c| cargs_map[c.index()])
                 .collect();
@@ -227,8 +227,8 @@ impl CircuitDataForSynthesis for CircuitData {
             inverse_circuit.push_packed_operation(
                 inverse_op.into(),
                 &inverse_op_params,
-                self.get_qargs(inst.qubits()),
-                self.get_cargs(inst.clbits()),
+                self.get_qargs(inst.qubits),
+                self.get_cargs(inst.clbits),
             );
         }
         Ok(inverse_circuit)

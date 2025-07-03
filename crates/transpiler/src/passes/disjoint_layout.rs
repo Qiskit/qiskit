@@ -366,7 +366,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                 let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
                 for block in blocks.iter() {
                     let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
-                    let node_qargs = dag.get_qargs(inst.qubits());
+                    let node_qargs = dag.get_qargs(inst.qubits);
 
                     for (outer, inner) in node_qargs.iter().zip(0..inst.op().num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
@@ -386,7 +386,7 @@ fn build_interaction_graph<Ty: EdgeType>(
         }
         let len_args = inst.op().num_qubits();
         if len_args == 1 {
-            let dag_qubits = dag.get_qargs(inst.qubits());
+            let dag_qubits = dag.get_qargs(inst.qubits);
             let qargs = wire_map[dag_qubits[0].index()];
             if im_graph_node_map[qargs.index()].is_none() {
                 let new_index = im_graph.add_node(());
@@ -394,7 +394,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                 reverse_im_graph_node_map[new_index.index()] = Some(qargs);
             }
         } else if len_args == 2 {
-            let dag_qubits = dag.get_qargs(inst.qubits());
+            let dag_qubits = dag.get_qargs(inst.qubits);
             let qargs: [Qubit; 2] = [
                 wire_map[dag_qubits[0].index()],
                 wire_map[dag_qubits[1].index()],
@@ -454,14 +454,14 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
             let old_qubits = dag.qubits();
             for index in dag.topological_op_nodes()? {
                 let node = dag[index].unwrap_operation();
-                let qargs: HashSet<Qubit> = dag.get_qargs(node.qubits()).iter().copied().collect();
+                let qargs: HashSet<Qubit> = dag.get_qargs(node.qubits).iter().copied().collect();
                 if dag_qubits.is_superset(&qargs) {
-                    let qargs = dag.get_qargs(node.qubits());
+                    let qargs = dag.get_qargs(node.qubits);
                     let qarg_bits = old_qubits.map_indices(qargs).cloned();
                     let mapped_qubits: Vec<Qubit> =
                         new_dag.qubits().map_objects(qarg_bits)?.collect();
                     let mapped_clbits: Vec<Clbit> =
-                        new_dag.cargs_interner().get(node.clbits()).to_vec();
+                        new_dag.cargs_interner().get(node.clbits).to_vec();
                     new_dag.apply_operation_back(
                         node.op().clone(),
                         &mapped_qubits,

@@ -111,7 +111,7 @@ pub fn dag_to_circuit(
             };
             if copy_operations {
                 let op = instr.op().py_deepcopy(py, None)?;
-                let mut new_instr = PackedInstruction::new(op, instr.qubits(), instr.clbits());
+                let mut new_instr = PackedInstruction::new(op, instr.qubits, instr.clbits);
                 if let Some(params) = instr.params_raw() {
                     new_instr = new_instr.with_params(params.clone())
                 }

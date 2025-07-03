@@ -47,7 +47,7 @@ pub fn run_remove_identity_equiv(
                     match target {
                         Some(target) => {
                             let qargs: Vec<PhysicalQubit> = dag
-                                .get_qargs(inst.qubits())
+                                .get_qargs(inst.qubits)
                                 .iter()
                                 .map(|x| PhysicalQubit::new(x.0))
                                 .collect();
@@ -64,7 +64,7 @@ pub fn run_remove_identity_equiv(
             None => match target {
                 Some(target) => {
                     let qargs: Vec<PhysicalQubit> = dag
-                        .get_qargs(inst.qubits())
+                        .get_qargs(inst.qubits)
                         .iter()
                         .map(|x| PhysicalQubit::new(x.0))
                         .collect();

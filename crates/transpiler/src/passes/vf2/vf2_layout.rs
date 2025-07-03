@@ -161,7 +161,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                 let blocks: &Bound<PyTuple> = raw_blocks.downcast_bound::<PyTuple>(py).unwrap();
                 for block in blocks.iter() {
                     let mut inner_wire_map = vec![Qubit(u32::MAX); wire_map.len()];
-                    let node_qargs = dag.get_qargs(inst.qubits());
+                    let node_qargs = dag.get_qargs(inst.qubits);
 
                     for (outer, inner) in node_qargs.iter().zip(0..inst.op().num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
@@ -182,7 +182,7 @@ fn build_interaction_graph<Ty: EdgeType>(
         }
         let len_args = inst.op().num_qubits();
         if len_args == 1 {
-            let dag_qubits = dag.get_qargs(inst.qubits());
+            let dag_qubits = dag.get_qargs(inst.qubits);
             let qargs = wire_map[dag_qubits[0].index()];
             match im_graph_node_map[qargs.index()] {
                 None => {
@@ -202,7 +202,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                 }
             }
         } else if len_args == 2 {
-            let dag_qubits = dag.get_qargs(inst.qubits());
+            let dag_qubits = dag.get_qargs(inst.qubits);
             let qargs: [Qubit; 2] = [
                 wire_map[dag_qubits[0].index()],
                 wire_map[dag_qubits[1].index()],

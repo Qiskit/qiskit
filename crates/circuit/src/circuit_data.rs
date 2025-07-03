@@ -504,8 +504,8 @@ impl CircuitData {
             for inst in &self.data {
                 let mut new_inst = PackedInstruction::new(
                     inst.op().py_deepcopy(py, Some(&memo))?,
-                    inst.qubits(),
-                    inst.clbits(),
+                    inst.qubits,
+                    inst.clbits,
                 );
                 if let Some(params) = inst.params_raw() {
                     new_inst = new_inst.with_params(params.clone());
@@ -518,7 +518,7 @@ impl CircuitData {
         } else if copy_instructions {
             for inst in &self.data {
                 let mut new_inst =
-                    PackedInstruction::new(inst.op().py_copy(py)?, inst.qubits(), inst.clbits());
+                    PackedInstruction::new(inst.op().py_copy(py)?, inst.qubits, inst.clbits);
                 if let Some(params) = inst.params_raw() {
                     new_inst = new_inst.with_params(params.clone());
                 }
@@ -574,10 +574,10 @@ impl CircuitData {
         let qubits = PySet::empty(py)?;
         let clbits = PySet::empty(py)?;
         for inst in self.data.iter() {
-            for b in self.qargs_interner.get(inst.qubits()) {
+            for b in self.qargs_interner.get(inst.qubits) {
                 qubits.add(self.qubits.get(*b).unwrap())?;
             }
-            for b in self.cargs_interner.get(inst.clbits()) {
+            for b in self.cargs_interner.get(inst.clbits) {
                 clbits.add(self.clbits.get(*b).unwrap())?;
             }
         }
@@ -633,9 +633,8 @@ impl CircuitData {
             let py_op = func.call1((inst.unpack_py_op(py)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
 
-            let mut temp_inst =
-                PackedInstruction::new(result.operation, inst.qubits(), inst.clbits())
-                    .with_params(result.params);
+            let mut temp_inst = PackedInstruction::new(result.operation, inst.qubits, inst.clbits)
+                .with_params(result.params);
             if let Some(label) = result.label {
                 temp_inst = temp_inst.with_label(*label);
             };
@@ -766,8 +765,8 @@ impl CircuitData {
         // Get a single item, assuming the index is validated as in bounds.
         let get_single = |index: usize| {
             let inst = &self.data[index];
-            let qubits = self.qargs_interner.get(inst.qubits());
-            let clbits = self.cargs_interner.get(inst.clbits());
+            let qubits = self.qargs_interner.get(inst.qubits);
+            let clbits = self.cargs_interner.get(inst.clbits);
             CircuitInstruction {
                 operation: inst.op().clone(),
                 qubits: PyTuple::new(py, self.qubits.map_indices(qubits))
@@ -930,13 +929,13 @@ impl CircuitData {
             for inst in other.data.iter() {
                 let qubits = other
                     .qargs_interner
-                    .get(inst.qubits())
+                    .get(inst.qubits)
                     .iter()
                     .map(|b| Ok(self.qubits.find(other.qubits.get(*b).unwrap()).unwrap()))
                     .collect::<PyResult<Vec<Qubit>>>()?;
                 let clbits = other
                     .cargs_interner
-                    .get(inst.clbits())
+                    .get(inst.clbits)
                     .iter()
                     .map(|b| Ok(self.clbits.find(other.clbits.get(*b).unwrap()).unwrap()))
                     .collect::<PyResult<Vec<Clbit>>>()?;
@@ -1832,8 +1831,8 @@ impl CircuitData {
                             let new_op = op.extract::<OperationFromPython>()?;
                             let mut new_inst = PackedInstruction::new(
                                 new_op.operation,
-                                previous.qubits(),
-                                previous.clbits(),
+                                previous.qubits,
+                                previous.clbits,
                             )
                             .with_params(new_op.params);
                             if let Some(label) = new_op.label.as_deref() {

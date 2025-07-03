@@ -65,7 +65,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
             if is_universal(gate) {
                 continue;
             }
-            let qargs = circuit.qargs_interner().get(gate.qubits());
+            let qargs = circuit.qargs_interner().get(gate.qubits);
             if visit_gate(target, gate, qargs, wire_map)? {
                 return Ok(true);
             }
@@ -83,7 +83,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
         if is_universal(gate) {
             continue;
         }
-        let qargs = dag.qargs_interner().get(gate.qubits());
+        let qargs = dag.qargs_interner().get(gate.qubits);
         if visit_gate(target, gate, qargs, &wire_map)? {
             return Ok(true);
         }

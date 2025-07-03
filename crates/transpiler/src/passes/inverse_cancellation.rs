@@ -80,11 +80,11 @@ fn run_on_self_inverse(
                     } else {
                         let next_qargs =
                             if let NodeType::Operation(next_inst) = &dag[gate_cancel_run[i + 1]] {
-                                next_inst.qubits()
+                                next_inst.qubits
                             } else {
                                 panic!("Not an op node")
                             };
-                        if inst.qubits() != next_qargs {
+                        if inst.qubits != next_qargs {
                             partitions.push(std::mem::take(&mut chunk));
                         }
                     }
@@ -133,7 +133,7 @@ fn run_on_inverse_pairs(
             while i < nodes.len() - 1 {
                 if let NodeType::Operation(inst) = &dag[nodes[i]] {
                     if let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] {
-                        if inst.qubits() == next_inst.qubits()
+                        if inst.qubits == next_inst.qubits
                             && ((gate_eq(py, inst, &gate_0)? && gate_eq(py, next_inst, &gate_1)?)
                                 || (gate_eq(py, inst, &gate_1)?
                                     && gate_eq(py, next_inst, &gate_0)?))

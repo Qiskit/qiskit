@@ -103,7 +103,7 @@ where
     T: Fn(&PackedInstruction, &[Qubit]) -> bool,
 {
     for (_, packed_inst) in dag.op_nodes(false) {
-        let inst_qargs = dag.get_qargs(packed_inst.qubits());
+        let inst_qargs = dag.get_qargs(packed_inst.qubits);
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op().view() {
             if py_inst.control_flow() {
@@ -245,7 +245,7 @@ where
     let mut ops_to_replace: Vec<(NodeIndex, Vec<Bound<PyAny>>)> = Vec::new();
 
     for (node, packed_inst) in dag.op_nodes(false) {
-        let op_args = dag.get_qargs(packed_inst.qubits());
+        let op_args = dag.get_qargs(packed_inst.qubits);
 
         if let OperationRef::Instruction(py_inst) = packed_inst.op().view() {
             if py_inst.control_flow() {
