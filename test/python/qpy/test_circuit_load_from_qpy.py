@@ -343,6 +343,7 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(two_theta, 0)
         qc.measure_all()
+        has_symengine = bool(optionals.HAS_SYMENGINE)
         # Assert Roundtrip works
         # `use_symengine` is near-completely ignored with QPY versions 13+; it doesn't actually
         # matter if we _have_ symengine installed or not, because those QPYs don't ever use it
