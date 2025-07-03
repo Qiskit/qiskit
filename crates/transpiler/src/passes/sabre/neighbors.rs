@@ -147,7 +147,7 @@ impl Neighbors {
         self.partition.len() - 1
     }
 
-    /// Are two qubits neighbours?
+    /// Are two qubits neighbors?
     ///
     /// Computes in average time linear to the number of neighbors of `left`.
     #[inline]

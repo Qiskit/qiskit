@@ -182,7 +182,7 @@ impl RoutingResult<'_> {
         let mut blocks = self.control_flow.iter();
         for node in &self.sabre.initial {
             let NodeType::Operation(inst) = &self.dag[*node] else {
-                panic!("sabre DAG should only contain op nodes");
+                panic!("Sabre DAG should only contain op nodes");
             };
             apply_op(inst, &layout, &mut dag)?;
         }
@@ -192,7 +192,7 @@ impl RoutingResult<'_> {
             }
             let index = self.sabre.dag[item.node].index;
             let NodeType::Operation(inst) = &self.dag[index] else {
-                panic!("sabre DAG should only contain op nodes");
+                panic!("Sabre DAG should only contain op nodes");
             };
             match item.kind {
                 RoutedItemKind::Simple => apply_op(inst, &layout, &mut dag)?,
@@ -208,8 +208,12 @@ impl RoutingResult<'_> {
                         .iter()
                         .map(|q| VirtualQubit(q.index() as u32))
                         .collect::<HashSet<_>>();
-                    // TODO: we're assuming that `DAGCircuit::remove_qubits` retains relative
-                    // ordering of the remaining qubits, but the method doesn't commit to that.
+                    // Collect lists of the qargs that will remain, and the idle qubits that need to
+                    // be removed from the DAG, then remove the idle ones.
+                    // TODO: this logic of collecting the remaining `qargs` in order is making an
+                    // assumption that the later call to `DAGCircuit::remove_qubits` retains
+                    // relative ordering of the remaining qubits, but the method doesn't formally
+                    // commit to that.
                     let mut qargs = Vec::new();
                     let mut idle = Vec::new();
                     for qubit in 0..self.num_qubits() as u32 {
@@ -436,7 +440,7 @@ impl<'a> RoutingState<'a> {
                 }
                 InteractionKind::ControlFlow(blocks) => {
                     let NodeType::Operation(inst) = &self.dag[node.index] else {
-                        panic!("sabre DAG should only contain op nodes");
+                        panic!("Sabre DAG should only contain op nodes");
                     };
                     // The control-flow blocks aren't full width, so their "virtual" qubits aren't
                     // numbered the same as the full circuit's.  We still need it to route _as if_
@@ -724,15 +728,11 @@ impl<'a> RoutingState<'a> {
     }
 }
 
-/// Run sabre swap on a circuit
+/// Run Sabre swap on a circuit
 ///
 /// Returns:
-///     (SwapMap, gate_order, node_block_results, final_permutation): A tuple where the first
-///     element is a mapping of DAGCircuit node ids to a list of virtual qubit swaps that should be
-///     added before that operation. The second element is a numpy array of node ids that
-///     represents the traversal order used by sabre.  The third is inner results for the blocks of
-///     control flow, and the fourth is a permutation, where `final_permution[i]` is the final
-///     logical position of the qubit that began in position `i`.
+///     A two-tuple of the newly routed :class:`.DAGCircuit`, and the layout that maps virtual
+///     qubits to their assigned physical qubits at the *end* of the circuit execution.
 #[pyfunction]
 #[pyo3(signature=(dag, target, heuristic, initial_layout, num_trials, seed=None, run_in_parallel=None))]
 pub fn sabre_routing(
