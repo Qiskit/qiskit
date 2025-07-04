@@ -324,7 +324,7 @@ of the following, which derive :class:`.QuantumCircuit` and are eagerly construc
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    Diagonal
    MCMT
@@ -361,7 +361,7 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    AND
    OR
@@ -396,7 +396,7 @@ of the following which derives :class:`.QuantumCircuit` and is eagerly construct
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    QFT
 
@@ -431,7 +431,7 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    DraperQFTAdder
    CDKMRippleCarryAdder
@@ -459,7 +459,7 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    HRSCumulativeMultiplier
    RGQFTMultiplier
@@ -481,7 +481,7 @@ of the following which derives :class:`.QuantumCircuit` and is eagerly construct
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    LinearAmplitudeFunction
 
@@ -513,7 +513,7 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    FunctionalPauliRotations
    LinearPauliRotations
@@ -542,7 +542,7 @@ of the following which derive :class:`.QuantumCircuit` and are eagerly construct
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    ExactReciprocal
    IntegerComparator
@@ -576,7 +576,7 @@ runtime and compiler performance, however, we suggest using above functions and 
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    FourierChecking
    GraphState
@@ -645,7 +645,7 @@ and allow for inplace mutations of the circuits:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    NLocal
    TwoLocal
@@ -678,7 +678,7 @@ and allow for inplace mutations of the circuits:
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    PauliFeatureMap
    ZFeatureMap
@@ -732,7 +732,7 @@ In addition to the :class:`.Gate`-based implementation we also support the
 
 .. autosummary::
    :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
+   :template: autosummary/class_circuit_library_no_inheritance.rst
 
    PhaseOracle
 
