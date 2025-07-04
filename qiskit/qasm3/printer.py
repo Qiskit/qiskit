@@ -436,6 +436,18 @@ class BasicPrinter:
         self._visit_sequence(node.indexIdentifierList, separator=", ")
         self._end_statement()
 
+    def _visit_DefcalCallStatement(self, node: ast.DefcalCallStatement) -> None:
+        self._start_line()
+        if node.lvalue is not None:
+            self.visit(node.lvalue)
+            self.stream.write(" = ")
+        self.visit(node.ident)
+        if node.parameters:
+            self._visit_sequence(node.parameters, start="(", end=")", separator=", ")
+        if node.qubits:
+            self._visit_sequence(node.qubits, start=" ", separator=", ")
+        self._end_statement()
+
     def _visit_QuantumBarrier(self, node: ast.QuantumBarrier) -> None:
         self._start_line()
         self.stream.write("barrier ")

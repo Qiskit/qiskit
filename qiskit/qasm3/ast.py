@@ -512,6 +512,24 @@ class QuantumGateCall(QuantumInstruction):
         self.modifiers = modifiers
 
 
+class DefcalCallStatement(Statement):
+    """A quantum-like call that may have an assignment location."""
+
+    __slots__ = ("ident", "parameters", "qubits", "lvalue")
+
+    def __init__(
+        self,
+        ident: Identifier,
+        parameters: Sequence[Expression] = (),
+        qubits: Sequence[Expression] = (),
+        lvalue: Expression | None = None,
+    ):
+        self.ident = ident
+        self.parameters = tuple(parameters)
+        self.qubits = tuple(qubits)
+        self.lvalue = lvalue
+
+
 class QuantumBarrier(QuantumInstruction):
     """
     quantumBarrier
