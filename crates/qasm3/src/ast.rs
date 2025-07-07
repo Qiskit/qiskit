@@ -142,7 +142,7 @@ impl Display for DurationUnit {
             DurationUnit::Second => "s",
             DurationUnit::Sample => "dt",
         };
-        write!(f, "{}", unit_str)
+        write!(f, "{unit_str}")
     }
 }
 
@@ -167,7 +167,7 @@ impl Display for UnaryOp {
             UnaryOp::BitNot => "~",
             UnaryOp::Default => "",
         };
-        write!(f, "{}", op_str)
+        write!(f, "{op_str}")
     }
 }
 
@@ -212,7 +212,7 @@ impl Display for BinaryOp {
             BinaryOp::ShiftLeft => "<<",
             BinaryOp::ShiftRight => ">>",
         };
-        write!(f, "{}", op_str)
+        write!(f, "{op_str}")
     }
 }
 
@@ -265,7 +265,7 @@ impl Display for Float {
             Float::Quad => "128",
             Float::Oct => "256",
         };
-        write!(f, "{}", float_str)
+        write!(f, "{float_str}")
     }
 }
 

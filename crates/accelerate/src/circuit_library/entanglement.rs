@@ -120,8 +120,7 @@ pub fn get_entanglement_from_str(
 
     if block_size > num_qubits {
         return Err(QiskitError::new_err(format!(
-            "block_size ({}) cannot be larger than number of qubits ({})",
-            block_size, num_qubits
+            "block_size ({block_size}) cannot be larger than number of qubits ({num_qubits})"
         )));
     }
 
@@ -134,12 +133,10 @@ pub fn get_entanglement_from_str(
         ("pairwise", 1) => Ok(Box::new(linear(num_qubits, 1))),
         ("pairwise", 2) => Ok(Box::new(pairwise(num_qubits))),
         ("pairwise", _) => Err(QiskitError::new_err(format!(
-            "block_size ({}) can be at most 2 for pairwise entanglement",
-            block_size
+            "block_size ({block_size}) can be at most 2 for pairwise entanglement"
         ))),
         _ => Err(QiskitError::new_err(format!(
-            "Unsupported entanglement: {}",
-            entanglement
+            "Unsupported entanglement: {entanglement}"
         ))),
     }
 }
@@ -198,8 +195,7 @@ fn _check_entanglement_list<'a>(
 
         if connections.len() != block_size as usize {
             return Err(QiskitError::new_err(format!(
-                "Entanglement {:?} does not match block size {}",
-                connections, block_size
+                "Entanglement {connections:?} does not match block size {block_size}"
             )));
         }
 
