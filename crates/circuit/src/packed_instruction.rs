@@ -15,8 +15,8 @@ use std::sync::OnceLock;
 
 use crate::circuit_instruction::CreatePythonOperation;
 use crate::imports::{
-    get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY,
-    FOR_LOOP_OP, IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
+    get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP,
+    IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
 };
 use crate::instruction::{Instruction, Parameters};
 use crate::interner::Interned;
@@ -25,9 +25,8 @@ use crate::operations::{
     StandardInstruction, UnitaryGate,
 };
 use crate::{Clbit, Qubit};
-use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyType};
+use pyo3::types::PyType;
 use smallvec::SmallVec;
 
 /// The logical discriminant of `PackedOperation`.

@@ -471,6 +471,7 @@ fn replace_node(
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
             let new_op = match inner_node.op.view() {
+                OperationRef::ControlFlow(cf) => cf.clone().into(),
                 OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
                 OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
                 OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
@@ -511,6 +512,7 @@ fn replace_node(
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
+                OperationRef::ControlFlow(cf) => cf.clone().into(),
                 OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
                 OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
                 OperationRef::Operation(operation) => operation.py_copy(py)?.into(),

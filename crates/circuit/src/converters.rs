@@ -104,6 +104,7 @@ pub fn dag_to_circuit(
             };
             if copy_operations {
                 let op = match instr.op.view() {
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
                     OperationRef::Instruction(instruction) => {
                         instruction.py_deepcopy(py, None)?.into()

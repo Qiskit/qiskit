@@ -34,7 +34,7 @@ use qiskit_circuit::dag_circuit::{
     DAGCircuit, DAGCircuitBuilder, DAGInstruction, NodeType, VarsMode,
 };
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, PythonOperation, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::Qubit;
 

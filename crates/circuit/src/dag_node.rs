@@ -234,6 +234,7 @@ impl DAGOpNode {
     ) -> PyResult<PyObject> {
         if deepcopy {
             instruction.operation = match instruction.operation.view() {
+                OperationRef::ControlFlow(cf) => cf.clone().into(),
                 OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
                 OperationRef::Instruction(instruction) => instruction.py_deepcopy(py, None)?.into(),
                 OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
@@ -279,6 +280,7 @@ impl DAGOpNode {
         Ok(CircuitInstruction {
             operation: if deepcopy {
                 match self.instruction.operation.view() {
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
                     OperationRef::Instruction(instruction) => {
                         instruction.py_deepcopy(py, None)?.into()

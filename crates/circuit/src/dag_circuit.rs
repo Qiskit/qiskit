@@ -30,8 +30,8 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param, PythonOperation, StandardGate,
-    StandardInstruction, Target,
+    ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param,
+    PythonOperation, StandardGate, StandardInstruction, Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::register_data::RegisterData;
@@ -153,44 +153,53 @@ impl DAGInstruction {
         }
     }
 
-    // TODO: remove Python token once Instruction holds CircuitData instead
-    pub fn from_packed(py: Python, instr: PackedInstruction) -> PyResult<Self> {
+    pub fn from_packed(instr: PackedInstruction) -> PyResult<Self> {
+        // TODO: remove GIL acquisition once PackedInstruction holds
+        //       CircuitData blocks instead
         let params: Option<Parameters<DAGCircuit>> = match instr.params.map(|p| *p) {
             None => None,
-            Some(Parameters::Box { body }) => Some(Parameters::Box {
-                body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
-            }),
+            Some(Parameters::Box { body }) => Python::with_gil(|py| -> PyResult<Option<_>> {
+                Ok(Some(Parameters::Box {
+                    body: circuit_to_dag(body.extract(py)?, false, None, None)?,
+                }))
+            })?,
             Some(Parameters::ForLoop {
                 indexset,
                 loop_param,
                 body,
-            }) => Some(Parameters::ForLoop {
-                indexset,
-                loop_param,
-                body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
-            }),
+            }) => Python::with_gil(|py| -> PyResult<Option<_>> {
+                Ok(Some(Parameters::ForLoop {
+                    indexset,
+                    loop_param,
+                    body: circuit_to_dag(body.extract(py)?, false, None, None)?,
+                }))
+            })?,
             Some(Parameters::IfElse {
                 true_body,
                 false_body,
-            }) => {
+            }) => Python::with_gil(|py| -> PyResult<Option<_>> {
                 let false_body = match false_body {
-                    Some(body) => Some(circuit_to_dag(py, body.extract(py)?, false, None, None)?),
+                    Some(body) => Some(circuit_to_dag(body.extract(py)?, false, None, None)?),
                     None => None,
                 };
-                Some(Parameters::IfElse {
-                    true_body: circuit_to_dag(py, true_body.extract(py)?, false, None, None)?,
+                Ok(Some(Parameters::IfElse {
+                    true_body: circuit_to_dag(true_body.extract(py)?, false, None, None)?,
                     false_body,
-                })
-            }
-            Some(Parameters::Switch { cases }) => Some(Parameters::Switch {
-                cases: cases
-                    .into_iter()
-                    .map(|c| circuit_to_dag(py, c.extract(py)?, false, None, None))
-                    .collect::<PyResult<_>>()?,
-            }),
-            Some(Parameters::While { body }) => Some(Parameters::While {
-                body: circuit_to_dag(py, body.extract(py)?, false, None, None)?,
-            }),
+                }))
+            })?,
+            Some(Parameters::Switch { cases }) => Python::with_gil(|py| -> PyResult<Option<_>> {
+                Ok(Some(Parameters::Switch {
+                    cases: cases
+                        .into_iter()
+                        .map(|c| circuit_to_dag(c.extract(py)?, false, None, None))
+                        .collect::<PyResult<_>>()?,
+                }))
+            })?,
+            Some(Parameters::While { body }) => Python::with_gil(|py| -> PyResult<Option<_>> {
+                Ok(Some(Parameters::While {
+                    body: circuit_to_dag(body.extract(py)?, false, None, None)?,
+                }))
+            })?,
             Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
         };
         Ok(Self {
@@ -1741,18 +1750,15 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
-            let instr = DAGInstruction::from_packed(
-                py,
-                PackedInstruction {
-                    op: py_op.operation,
-                    qubits: qubits_id,
-                    clbits: clbits_id,
-                    params: py_op.params.map(Box::new),
-                    label: py_op.label,
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: op.unbind().into(),
-                },
-            )?;
+            let instr = DAGInstruction::from_packed(PackedInstruction {
+                op: py_op.operation,
+                qubits: qubits_id,
+                clbits: clbits_id,
+                params: py_op.params.map(Box::new),
+                label: py_op.label,
+                #[cfg(feature = "cache_pygates")]
+                py_op: op.unbind().into(),
+            })?;
 
             if check {
                 self.check_op_addition(&instr)?;
@@ -1806,18 +1812,15 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
-            let instr = DAGInstruction::from_packed(
-                py,
-                PackedInstruction {
-                    op: py_op.operation,
-                    qubits: qubits_id,
-                    clbits: clbits_id,
-                    params: py_op.params.map(Box::new),
-                    label: py_op.label,
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: op.unbind().into(),
-                },
-            )?;
+            let instr = DAGInstruction::from_packed(PackedInstruction {
+                op: py_op.operation,
+                qubits: qubits_id,
+                clbits: clbits_id,
+                params: py_op.params.map(Box::new),
+                label: py_op.label,
+                #[cfg(feature = "cache_pygates")]
+                py_op: op.unbind().into(),
+            })?;
 
             if check {
                 self.check_op_addition(&instr)?;
@@ -2626,7 +2629,6 @@ impl DAGCircuit {
                                                     )?;
                                                 }
                                                 let body_a = DAGCircuit::from_circuit(
-                                                    py,
                                                     QuantumCircuitData {
                                                         data: body_a_circuit,
                                                         name: body_a.name.clone(),
@@ -2679,7 +2681,6 @@ impl DAGCircuit {
                                                     )?;
                                                 }
                                                 let body_b = DAGCircuit::from_circuit(
-                                                    py,
                                                     QuantumCircuitData {
                                                         data: body_b_circuit,
                                                         name: body_b.name.clone(),
@@ -3100,18 +3101,15 @@ impl DAGCircuit {
         let py_op = op.extract::<OperationFromPython>()?;
 
         // TODO: make cleaner way to do this without a dummy packed instruction
-        let inst = DAGInstruction::from_packed(
-            py,
-            PackedInstruction {
-                op: py_op.operation,
-                qubits: self.qargs_interner.get_default(),
-                clbits: self.cargs_interner.get_default(),
-                params: py_op.params.map(|p| p.into()),
-                label: py_op.label,
-                #[cfg(feature = "cache_pygates")]
-                py_op: Default::default(),
-            },
-        )?;
+        let inst = DAGInstruction::from_packed(PackedInstruction {
+            op: py_op.operation,
+            qubits: self.qargs_interner.get_default(),
+            clbits: self.cargs_interner.get_default(),
+            params: py_op.params.map(|p| p.into()),
+            label: py_op.label,
+            #[cfg(feature = "cache_pygates")]
+            py_op: Default::default(),
+        })?;
 
         let new_node = self.replace_block(
             &block_ids,
@@ -6629,7 +6627,7 @@ impl DAGCircuit {
                 #[cfg(feature = "cache_pygates")]
                 py_op: op_node.instruction.py_op.clone(),
             };
-            NodeType::Operation(DAGInstruction::from_packed(py, inst)?)
+            NodeType::Operation(DAGInstruction::from_packed(inst)?)
         } else {
             return Err(PyTypeError::new_err("Invalid type for DAGNode"));
         })
@@ -7542,35 +7540,33 @@ impl DAGCircuit {
         new_dag.clbit_locations = qc_data.clbit_indices().clone();
 
         new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<DAGInstruction> {
-            DAGInstruction::from_packed(
-                py,
-                PackedInstruction {
-                    op: if copy_op {
-                        match instr.op.view() {
-                            OperationRef::Gate(gate) => {
-                                Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
-                            }
-                            OperationRef::Instruction(instruction) => {
-                                Python::with_gil(|py| instruction.py_deepcopy(py, None))?.into()
-                            }
-                            OperationRef::Operation(operation) => {
-                                Python::with_gil(|py| operation.py_deepcopy(py, None))?.into()
-                            }
-                            OperationRef::StandardGate(gate) => gate.into(),
-                            OperationRef::StandardInstruction(instruction) => instruction.into(),
-                            OperationRef::Unitary(unitary) => unitary.clone().into(),
+            DAGInstruction::from_packed(PackedInstruction {
+                op: if copy_op {
+                    match instr.op.view() {
+                        OperationRef::ControlFlow(cf) => cf.clone().into(),
+                        OperationRef::Gate(gate) => {
+                            Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
                         }
-                    } else {
-                        instr.op.clone()
-                    },
-                    qubits: qarg_map[instr.qubits],
-                    clbits: carg_map[instr.clbits],
-                    params: instr.params.clone(),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
+                        OperationRef::Instruction(instruction) => {
+                            Python::with_gil(|py| instruction.py_deepcopy(py, None))?.into()
+                        }
+                        OperationRef::Operation(operation) => {
+                            Python::with_gil(|py| operation.py_deepcopy(py, None))?.into()
+                        }
+                        OperationRef::StandardGate(gate) => gate.into(),
+                        OperationRef::StandardInstruction(instruction) => instruction.into(),
+                        OperationRef::Unitary(unitary) => unitary.clone().into(),
+                    }
+                } else {
+                    instr.op.clone()
                 },
-            )
+                qubits: qarg_map[instr.qubits],
+                clbits: carg_map[instr.clbits],
+                params: instr.params.clone(),
+                label: instr.label.clone(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
+            })
         }))?;
         Ok(new_dag)
     }
@@ -8065,18 +8061,15 @@ impl DAGCircuit {
         #[cfg(feature = "cache_pygates")]
         let py_op_cache = Some(op.clone().unbind());
         let new_op_name = new_op.operation.name().to_string();
-        let new_instr = DAGInstruction::from_packed(
-            op.py(),
-            PackedInstruction {
-                op: new_op.operation,
-                qubits: old_packed.qubits,
-                clbits: old_packed.clbits,
-                params: new_op.params.map(|p| p.into()),
-                label,
-                #[cfg(feature = "cache_pygates")]
-                py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
-            },
-        )?;
+        let new_instr = DAGInstruction::from_packed(PackedInstruction {
+            op: new_op.operation,
+            qubits: old_packed.qubits,
+            clbits: old_packed.clbits,
+            params: new_op.params.map(|p| p.into()),
+            label,
+            #[cfg(feature = "cache_pygates")]
+            py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
+        })?;
 
         let (additional_clbits, additional_vars) =
             Python::with_gil(|py| self.additional_wires(py, &new_instr))?;
