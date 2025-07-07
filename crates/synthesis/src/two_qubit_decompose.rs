@@ -539,19 +539,19 @@ impl TwoQubitWeylDecomposition {
         self.c
     }
 
-    pub fn k1l_view(&self) -> ArrayView2<Complex64> {
+    pub fn k1l_view(&self) -> ArrayView2<'_, Complex64> {
         self.K1l.view()
     }
 
-    pub fn k2l_view(&self) -> ArrayView2<Complex64> {
+    pub fn k2l_view(&self) -> ArrayView2<'_, Complex64> {
         self.K2l.view()
     }
 
-    pub fn k1r_view(&self) -> ArrayView2<Complex64> {
+    pub fn k1r_view(&self) -> ArrayView2<'_, Complex64> {
         self.K1r.view()
     }
 
-    pub fn k2r_view(&self) -> ArrayView2<Complex64> {
+    pub fn k2r_view(&self) -> ArrayView2<'_, Complex64> {
         self.K2r.view()
     }
 
@@ -682,7 +682,7 @@ impl TwoQubitWeylDecomposition {
         }
         if !found {
             return Err(QiskitError::new_err(format!(
-                "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {:?}", unitary_matrix
+                "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {unitary_matrix:?}"
             )));
         }
         let mut d = -d.map(|x| x.arg() / 2.);
