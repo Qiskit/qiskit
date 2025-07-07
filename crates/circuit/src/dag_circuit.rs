@@ -30,7 +30,7 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param, StandardGate,
+    ArrayType, BoxDuration, Condition, ControlFlow, Operation, OperationRef, Param, PythonOperation, StandardGate,
     StandardInstruction, Target,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -4015,7 +4015,8 @@ impl DAGCircuit {
         .collect()
     }
 
-    /// Returns iterator of the successors of a node as DAGOpNodes and DAGOutNodes."""
+    /// Returns iterator of the successors of a node as :class:`.DAGOpNode`\ s and
+    /// :class:`.DAGOutNode`\ s.
     fn successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let successors: PyResult<Vec<_>> = self
             .dag
@@ -4030,7 +4031,8 @@ impl DAGCircuit {
             .unbind())
     }
 
-    /// Returns iterator of the predecessors of a node as DAGOpNodes and DAGInNodes.
+    /// Returns iterator of the predecessors of a node as :class:`.DAGOpNode`\ s and
+    /// :class:`.DAGInNode`\ s.
     fn predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let predecessors: PyResult<Vec<_>> = self
             .dag
@@ -4142,7 +4144,11 @@ impl DAGCircuit {
             .unbind())
     }
 
-    /// Returns set of the ancestors of a node as DAGOpNodes and DAGInNodes.
+    /// Returns set of the ancestors of a node as :class:`.DAGOpNode`\ s and :class:`.DAGInNode`\ s.
+    ///
+    /// The ancestors are the set of all nodes that can reach the target node. Whereas the
+    /// :meth:`.DAGCircuit.predecessors` only contains the immediate predecessors, the ancestors
+    /// recursively contain the predecessors of each predecessor.
     #[pyo3(name = "ancestors")]
     fn py_ancestors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PySet>> {
         let ancestors: PyResult<Vec<PyObject>> = self
@@ -4152,7 +4158,11 @@ impl DAGCircuit {
         Ok(PySet::new(py, &ancestors?)?.unbind())
     }
 
-    /// Returns set of the descendants of a node as DAGOpNodes and DAGOutNodes.
+    /// Returns set of the descendants of a node as :class:`.DAGOpNode`\ s and :class:`.DAGOutNode`\ s.
+    ///
+    /// The descendants are the set of all nodes that can be reached from the target node. In
+    /// comparison, :meth:`.DAGCircuit.successors` is an iterator over the immediate successors,
+    /// whereas this method contains all the successors' succesors.
     #[pyo3(name = "descendants")]
     fn py_descendants(&self, py: Python, node: &DAGNode) -> PyResult<Py<PySet>> {
         let descendants: PyResult<Vec<PyObject>> = self
@@ -4162,8 +4172,8 @@ impl DAGCircuit {
         Ok(PySet::new(py, &descendants?)?.unbind())
     }
 
-    /// Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
-    /// and [DAGNode] is its successors in  BFS order.
+    /// Returns an iterator of tuples of ``(DAGNode, [DAGNodes])`` where the ``DAGNode`` is the
+    /// current node and ``[DAGNodes]`` is a list of the successors in BFS order.
     #[pyo3(name = "bfs_successors")]
     fn py_bfs_successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let successor_index: PyResult<Vec<(PyObject, Vec<PyObject>)>> = self
@@ -7392,7 +7402,6 @@ impl DAGCircuit {
 
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
     pub(crate) fn from_circuit(
-        py: Python,
         qc: QuantumCircuitData,
         copy_op: bool,
         qubit_order: Option<Vec<Bound<PyAny>>>,
@@ -7421,7 +7430,9 @@ impl DAGCircuit {
 
         // Avoid manually acquiring the GIL.
         new_dag.global_phase = match qc_data.global_phase() {
-            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone_ref(py)),
+            // The clone here implicitly requires the gil while ParameterExpression is defined in
+            // Python.
+            Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone()),
             Param::Float(float) => Param::Float(*float),
             _ => unreachable!("Incorrect parameter assigned for global phase"),
         };
@@ -7535,7 +7546,20 @@ impl DAGCircuit {
                 py,
                 PackedInstruction {
                     op: if copy_op {
-                        instr.op.py_deepcopy(py, None)?
+                        match instr.op.view() {
+                            OperationRef::Gate(gate) => {
+                                Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
+                            }
+                            OperationRef::Instruction(instruction) => {
+                                Python::with_gil(|py| instruction.py_deepcopy(py, None))?.into()
+                            }
+                            OperationRef::Operation(operation) => {
+                                Python::with_gil(|py| operation.py_deepcopy(py, None))?.into()
+                            }
+                            OperationRef::StandardGate(gate) => gate.into(),
+                            OperationRef::StandardInstruction(instruction) => instruction.into(),
+                            OperationRef::Unitary(unitary) => unitary.clone().into(),
+                        }
                     } else {
                         instr.op.clone()
                     },
@@ -7552,11 +7576,7 @@ impl DAGCircuit {
     }
 
     /// Builds a [DAGCircuit] based on an instance of [CircuitData].
-    pub fn from_circuit_data(
-        py: Python,
-        circuit_data: CircuitData,
-        copy_op: bool,
-    ) -> PyResult<Self> {
+    pub fn from_circuit_data(circuit_data: CircuitData, copy_op: bool) -> PyResult<Self> {
         let circ = QuantumCircuitData {
             data: circuit_data,
             name: None,
@@ -7567,7 +7587,7 @@ impl DAGCircuit {
             captured_stretches: Vec::new(),
             declared_stretches: Vec::new(),
         };
-        Self::from_circuit(py, circ, copy_op, None, None)
+        Self::from_circuit(circ, copy_op, None, None)
     }
 
     #[allow(clippy::too_many_arguments)]

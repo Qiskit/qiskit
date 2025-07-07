@@ -12,7 +12,7 @@
 
 use crate::circuit_data::CircuitData;
 use crate::imports::{get_std_gate_class, UNITARY_GATE};
-use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
+use crate::imports::{DEEPCOPY, PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, imports, Qubit};
 use approx::relative_eq;
 use std::f64::consts::PI;
@@ -2748,6 +2748,16 @@ pub fn radd_param(param1: Param, param2: Param, py: Python) -> Param {
     }
 }
 
+/// This trait is defined on operation types in the circuit that are defined in Python.
+/// It contains the methods for managing the Python aspect
+pub trait PythonOperation: Sized {
+    /// Copy this operation, including a Python-space deep copy
+    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self>;
+
+    /// Copy this operation, including a Python-space call to `copy` on the `Operation` subclass.
+    fn py_copy(&self, py: Python) -> PyResult<Self>;
+}
+
 /// This class is used to wrap a Python side Instruction that is not in the standard library
 #[derive(Clone, Debug)]
 // We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
@@ -2758,6 +2768,30 @@ pub struct PyInstruction {
     pub params: u32,
     pub op_name: String,
     pub instruction: PyObject,
+}
+
+impl PythonOperation for PyInstruction {
+    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+        let deepcopy = DEEPCOPY.get_bound(py);
+        Ok(PyInstruction {
+            instruction: deepcopy.call1((&self.instruction, memo))?.unbind(),
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+        })
+    }
+
+    fn py_copy(&self, py: Python) -> PyResult<Self> {
+        let copy_attr = intern!(py, "copy");
+        Ok(PyInstruction {
+            instruction: self.instruction.call_method0(py, copy_attr)?,
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+        })
+    }
 }
 
 impl Operation for PyInstruction {
@@ -2814,6 +2848,30 @@ pub struct PyGate {
     pub params: u32,
     pub op_name: String,
     pub gate: PyObject,
+}
+
+impl PythonOperation for PyGate {
+    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+        let deepcopy = DEEPCOPY.get_bound(py);
+        Ok(PyGate {
+            gate: deepcopy.call1((&self.gate, memo))?.unbind(),
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+        })
+    }
+
+    fn py_copy(&self, py: Python) -> PyResult<Self> {
+        let copy_attr = intern!(py, "copy");
+        Ok(PyGate {
+            gate: self.gate.call_method0(py, copy_attr)?,
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+        })
+    }
 }
 
 impl Operation for PyGate {
@@ -2901,6 +2959,30 @@ pub struct PyOperation {
     pub params: u32,
     pub op_name: String,
     pub operation: PyObject,
+}
+
+impl PythonOperation for PyOperation {
+    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+        let deepcopy = DEEPCOPY.get_bound(py);
+        Ok(PyOperation {
+            operation: deepcopy.call1((&self.operation, memo))?.unbind(),
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+        })
+    }
+
+    fn py_copy(&self, py: Python) -> PyResult<Self> {
+        let copy_attr = intern!(py, "copy");
+        Ok(PyOperation {
+            operation: self.operation.call_method0(py, copy_attr)?,
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params: self.params,
+            op_name: self.op_name.clone(),
+        })
+    }
 }
 
 impl Operation for PyOperation {

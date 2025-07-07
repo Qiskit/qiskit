@@ -31,10 +31,11 @@ use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction, VarsMode};
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
 use qiskit_circuit::operations::Param;
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
-    operations::{Operation, OperationRef},
+    operations::{Operation, OperationRef, PythonOperation},
 };
 use qiskit_circuit::{Clbit, Qubit};
 use smallvec::SmallVec;
@@ -469,10 +470,13 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
-            } else {
-                inner_node.op.clone()
+            let new_op = match inner_node.op.view() {
+                OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
+                OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
+                OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
             };
             let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             dag.apply_operation_back(
@@ -506,11 +510,15 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
-            } else {
-                inner_node.op.clone()
+            let new_op: PackedOperation = match inner_node.op.view() {
+                OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
+                OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
+                OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
             };
+
             let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             if let Some(Parameters::Params(inner_node_params)) = inner_node.params.as_deref() {
                 if inner_node_params

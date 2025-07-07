@@ -15,7 +15,7 @@ use std::sync::OnceLock;
 
 use crate::circuit_instruction::CreatePythonOperation;
 use crate::imports::{
-    get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DEEPCOPY, DELAY,
+    get_std_gate_class, BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY,
     FOR_LOOP_OP, IF_ELSE_OP, MEASURE, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
 };
 use crate::instruction::{Instruction, Parameters};
@@ -476,85 +476,6 @@ impl PackedOperation {
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
             _ => Ok(false),
-        }
-    }
-
-    /// Copy this operation, including a Python-space deep copy, if required.
-    pub fn py_deepcopy<'py>(
-        &self,
-        py: Python<'py>,
-        memo: Option<&Bound<'py, PyDict>>,
-    ) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
-        match self.view() {
-            OperationRef::ControlFlow(control_flow) => Ok(control_flow.clone().into()),
-            OperationRef::StandardGate(standard) => Ok(standard.into()),
-            OperationRef::StandardInstruction(instruction) => {
-                Ok(Self::from_standard_instruction(instruction))
-            }
-            OperationRef::Gate(gate) => Ok(PyGate {
-                gate: deepcopy.call1((&gate.gate, memo))?.unbind(),
-                qubits: gate.qubits,
-                clbits: gate.clbits,
-                params: gate.params,
-                op_name: gate.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Instruction(instruction) => Ok(PyInstruction {
-                instruction: deepcopy.call1((&instruction.instruction, memo))?.unbind(),
-                qubits: instruction.qubits,
-                clbits: instruction.clbits,
-                params: instruction.params,
-                op_name: instruction.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Operation(operation) => Ok(PyOperation {
-                operation: deepcopy.call1((&operation.operation, memo))?.unbind(),
-                qubits: operation.qubits,
-                clbits: operation.clbits,
-                params: operation.params,
-                op_name: operation.op_name.clone(),
-            }
-            .into()),
-            OperationRef::Unitary(unitary) => Ok(unitary.clone().into()),
-        }
-    }
-
-    /// Copy this operation, including a Python-space call to `copy` on the `Operation` subclass, if
-    /// any.
-    pub fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        match self.view() {
-            OperationRef::ControlFlow(control_flow) => Ok(control_flow.clone().into()),
-            OperationRef::StandardGate(standard) => Ok(standard.into()),
-            OperationRef::StandardInstruction(instruction) => {
-                Ok(Self::from_standard_instruction(instruction))
-            }
-            OperationRef::Gate(gate) => Ok(Box::new(PyGate {
-                gate: gate.gate.call_method0(py, copy_attr)?,
-                qubits: gate.qubits,
-                clbits: gate.clbits,
-                params: gate.params,
-                op_name: gate.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Instruction(instruction) => Ok(Box::new(PyInstruction {
-                instruction: instruction.instruction.call_method0(py, copy_attr)?,
-                qubits: instruction.qubits,
-                clbits: instruction.clbits,
-                params: instruction.params,
-                op_name: instruction.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Operation(operation) => Ok(Box::new(PyOperation {
-                operation: operation.operation.call_method0(py, copy_attr)?,
-                qubits: operation.qubits,
-                clbits: operation.clbits,
-                params: operation.params,
-                op_name: operation.op_name.clone(),
-            })
-            .into()),
-            OperationRef::Unitary(unitary) => Ok(unitary.clone().into()),
         }
     }
 

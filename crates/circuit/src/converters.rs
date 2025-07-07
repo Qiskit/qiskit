@@ -16,6 +16,7 @@ use pyo3::prelude::*;
 use crate::circuit_data::CircuitData;
 use crate::classical::expr;
 use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::operations::{OperationRef, PythonOperation};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -71,19 +72,12 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
 
 #[pyfunction(signature = (quantum_circuit, copy_operations = true, qubit_order = None, clbit_order = None))]
 pub fn circuit_to_dag(
-    py: Python,
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
     qubit_order: Option<Vec<Bound<PyAny>>>,
     clbit_order: Option<Vec<Bound<PyAny>>>,
 ) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_circuit(
-        py,
-        quantum_circuit,
-        copy_operations,
-        qubit_order,
-        clbit_order,
-    )
+    DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
@@ -109,7 +103,16 @@ pub fn dag_to_circuit(
                 )
             };
             if copy_operations {
-                let op = instr.op.py_deepcopy(py, None)?;
+                let op = match instr.op.view() {
+                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        instruction.py_deepcopy(py, None)?.into()
+                    }
+                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                };
                 let instr = instr.clone();
                 let mut packed = instr.into_packed(py)?;
                 packed.op = op;
