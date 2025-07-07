@@ -738,7 +738,8 @@ impl ParameterExpression {
         match self.expr {
             SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
                 let mut replay = Vec::<OPReplay>::new();
-                self._make_qpy_replay(&self.expr, &mut replay).map(|_| replay)
+                self._make_qpy_replay(&self.expr, &mut replay)
+                    .map(|_| replay)
             }
             _ => None,
         }
@@ -1150,15 +1151,11 @@ impl ParameterExpression {
     }
 
     /// clone expression
-    pub fn __copy__(&self) -> Self {
-        self.clone()
-    }
-    pub fn __deepcopy__(&self, _memo: Option<PyObject>) -> Self {
+    pub fn py_copy(&self) -> Self {
         self.clone()
     }
 
     /// return derivative of this expression for param
-    #[pyo3(name = "derivative")]
     pub fn py_derivative(&self, param: &ParameterExpression) -> PyResult<ParameterExpression> {
         match self.gradient(param) {
             Ok(expr) => Ok(expr),
@@ -1167,7 +1164,6 @@ impl ParameterExpression {
     }
 
     /// return conjugate of expression
-    #[pyo3(name = "conjugate")]
     pub fn py_conjugate(&self) -> ParameterExpression {
         self.conjugate()
     }
@@ -1178,7 +1174,6 @@ impl ParameterExpression {
     /// Returns:
     ///     ParameterExpression representing the gradient of param_expr w.r.t. param
     ///     or complex or float number
-    #[pyo3(name = "gradient")]
     pub fn py_gradient(&self, param: &Self, py: Python) -> PyResult<PyObject> {
         match self.gradient(param) {
             Ok(grad) => match &grad.expr {
@@ -1203,15 +1198,12 @@ impl ParameterExpression {
 
     /// get hashset of all the symbols used in this expression
     #[getter("parameters")]
-    pub fn py_get_parameters(&self, py: Python) -> PyResult<Py<PySet>> {
+    pub fn py_parameters(&self, py: Python) -> PyResult<Py<PySet>> {
         let out = PySet::empty(py)?;
         match &self.parameter_symbols {
             Some(symbols) => {
                 for (s, u) in symbols {
-                    out.add(ParameterExpression::new(
-                        s.as_ref().clone(),
-                        Some(*u),
-                    ))?;
+                    out.add(ParameterExpression::new(s.as_ref().clone(), Some(*u)))?;
                 }
                 Ok(out.unbind())
             }
@@ -1239,7 +1231,6 @@ impl ParameterExpression {
         self.__str__()
     }
 
-    #[pyo3(name = "assign")]
     pub fn py_assign(&self, param: &ParameterExpression, value: &Bound<PyAny>) -> PyResult<Self> {
         if let Some(e) = _extract_value(value) {
             let eval = matches!(&e.expr, SymbolExpr::Value(_));
@@ -1255,7 +1246,7 @@ impl ParameterExpression {
     }
 
     /// bind values to symbols given by input hashmap
-    #[pyo3(name="bind", signature = (in_map, allow_unknown_parameters = None))]
+    #[pyo3(signature = (in_map, allow_unknown_parameters = None))]
     pub fn py_bind(
         &self,
         in_map: HashMap<ParameterExpression, Bound<PyAny>>,
@@ -1271,7 +1262,7 @@ impl ParameterExpression {
     }
 
     /// substitute symbols to expressions (or values) given by hash map
-    #[pyo3(name="subs", signature = (map, allow_unknown_parameters = None))]
+    #[pyo3(signature = (map, allow_unknown_parameters = None))]
     pub fn py_subs(
         &self,
         map: HashMap<ParameterExpression, ParameterExpression>,
@@ -1319,55 +1310,45 @@ impl ParameterExpression {
     }
 
     // unary operators
-    pub fn __neg__(&self) -> ParameterExpression {
+    pub fn py_neg(&self) -> ParameterExpression {
         self.neg()
     }
-    pub fn __pos__(&self) -> ParameterExpression {
+    pub fn py_pos(&self) -> ParameterExpression {
         self.pos()
     }
-    #[pyo3(name = "sin")]
     pub fn py_sin(&self) -> ParameterExpression {
         self.sin()
     }
-    #[pyo3(name = "cos")]
     pub fn py_cos(&self) -> ParameterExpression {
         self.cos()
     }
-    #[pyo3(name = "tan")]
     pub fn py_tan(&self) -> ParameterExpression {
         self.tan()
     }
-    pub fn arcsin(&self) -> ParameterExpression {
+    pub fn py_arcsin(&self) -> ParameterExpression {
         self.asin()
     }
-    pub fn arccos(&self) -> ParameterExpression {
+    pub fn py_arccos(&self) -> ParameterExpression {
         self.acos()
     }
-    pub fn arctan(&self) -> ParameterExpression {
+    pub fn py_arctan(&self) -> ParameterExpression {
         self.atan()
     }
-    #[pyo3(name = "exp")]
     pub fn py_exp(&self) -> ParameterExpression {
         self.exp()
     }
-    #[pyo3(name = "log")]
     pub fn py_log(&self) -> ParameterExpression {
         self.log()
     }
-    pub fn __abs__(&self) -> ParameterExpression {
-        self.abs()
-    }
-    #[pyo3(name = "abs")]
     pub fn py_abs(&self) -> ParameterExpression {
         self.abs()
     }
-    #[pyo3(name = "sign")]
     pub fn py_sign(&self) -> ParameterExpression {
         self.sign()
     }
 
     // binary operators
-    pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+    pub fn py_add(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(rhs) {
             Some(rhs) => {
                 self._raise_if_parameter_conflict(&rhs)?;
@@ -1378,7 +1359,7 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+    pub fn py_radd(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
@@ -1389,7 +1370,7 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+    pub fn py_sub(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(rhs) {
             Some(rhs) => {
                 self._raise_if_parameter_conflict(&rhs)?;
@@ -1400,7 +1381,7 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+    pub fn py_rsub(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
@@ -1411,7 +1392,7 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __mul__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+    pub fn py_mul(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(rhs) {
             Some(rhs) => {
                 self._raise_if_parameter_conflict(&rhs)?;
@@ -1422,7 +1403,8 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+
+    pub fn py_rmul(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
@@ -1434,7 +1416,7 @@ impl ParameterExpression {
         }
     }
 
-    pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+    pub fn py_div(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(rhs) {
             Some(rhs) => {
                 if let SymbolExpr::Value(v) = &rhs.expr {
@@ -1458,7 +1440,7 @@ impl ParameterExpression {
         }
     }
 
-    pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
+    pub fn py_rdiv(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;
@@ -1469,7 +1451,7 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __pow__(
+    pub fn py_pow(
         &self,
         rhs: &Bound<PyAny>,
         _modulo: Option<i32>,
@@ -1484,7 +1466,7 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn __rpow__(
+    pub fn py_rpow(
         &self,
         lhs: &Bound<PyAny>,
         _modulo: Option<i32>,

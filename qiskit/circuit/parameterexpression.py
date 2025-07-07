@@ -157,7 +157,7 @@ class ParameterExpression(ParameterExpressionBase):
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
-        return ParameterExpression(self._parameters, super().conjugate())
+        return ParameterExpression(self._parameters, super().py_conjugate())
 
     def assign(self, parameter, value: ParameterValueType) -> "ParameterExpression":
         """
@@ -200,7 +200,7 @@ class ParameterExpression(ParameterExpressionBase):
         """
         parameters = self._parameters - parameter_values.keys()
         return ParameterExpression(
-            parameters, super().bind(parameter_values, allow_unknown_parameters)
+            parameters, super().py_bind(parameter_values, allow_unknown_parameters)
         )
 
     def subs(
@@ -229,7 +229,7 @@ class ParameterExpression(ParameterExpressionBase):
             parameters = parameters | new_param._parameters
 
         return ParameterExpression(
-            parameters, super().subs(parameter_map, allow_unknown_parameters)
+            parameters, super().py_subs(parameter_map, allow_unknown_parameters)
         )
 
     def gradient(self, param) -> Union["ParameterExpression", complex]:
@@ -248,10 +248,10 @@ class ParameterExpression(ParameterExpressionBase):
             ParameterExpression representing the gradient of param_expr w.r.t. param
             or complex or float number
         """
-        expr_grad = super().gradient(param)
+        expr_grad = super().py_gradient(param)
         if isinstance(expr_grad, ParameterExpressionBase):
             parameters = set()
-            params = expr_grad.parameters
+            params = expr_grad.py_get_parameters()
             for p in params:
                 for q in self._parameters:
                     if p == str(q):
@@ -269,86 +269,86 @@ class ParameterExpression(ParameterExpressionBase):
             return self._parameters.copy()
 
     def __add__(self, other):
-        return ParameterExpression(self._merge_parameters(other), super().__add__(other))
+        return ParameterExpression(self._merge_parameters(other), super().py_add(other))
 
     def __radd__(self, other):
-        return ParameterExpression(self._merge_parameters(other), super().__radd__(other))
+        return ParameterExpression(self._merge_parameters(other), super().py_radd(other))
 
     def __sub__(self, other):
-        return ParameterExpression(self._merge_parameters(other), super().__sub__(other))
+        return ParameterExpression(self._merge_parameters(other), super().py_sub(other))
 
     def __rsub__(self, other):
-        return ParameterExpression(self._merge_parameters(other), super().__rsub__(other))
+        return ParameterExpression(self._merge_parameters(other), super().py_rsub(other))
 
     def __mul__(self, other):
         if isinstance(other, np.ndarray):
-            return [self * x for x in other]
-        return ParameterExpression(self._merge_parameters(other), super().__mul__(other))
+            return other * self
+        return ParameterExpression(self._merge_parameters(other), super().py_mul(other))
 
     def __pos__(self):
-        return ParameterExpression(self._parameters, super().__pos__())
+        return ParameterExpression(self._parameters, super().py_pos())
 
     def __neg__(self):
-        return ParameterExpression(self._parameters, super().__neg__())
+        return ParameterExpression(self._parameters, super().py_neg())
 
     def __rmul__(self, other):
         if isinstance(other, np.ndarray):
-            return [x * self for x in other]
-        return ParameterExpression(self._merge_parameters(other), super().__rmul__(other))
+            return other * self
+        return ParameterExpression(self._merge_parameters(other), super().py_rmul(other))
 
     def __truediv__(self, other):
         if other == 0:
             raise ZeroDivisionError("Division of a ParameterExpression by zero.")
-        return ParameterExpression(self._merge_parameters(other), super().__truediv__(other))
+        return ParameterExpression(self._merge_parameters(other), super().py_div(other))
 
     def __rtruediv__(self, other):
-        return ParameterExpression(self._merge_parameters(other), super().__rtruediv__(other))
+        return ParameterExpression(self._merge_parameters(other), super().py_rdiv(other))
 
     def __pow__(self, other):
-        return ParameterExpression(self._merge_parameters(other), super().__pow__(other))
+        return ParameterExpression(self._merge_parameters(other), super().py_pow(other))
 
     def __rpow__(self, other):
-        return ParameterExpression(self._merge_parameters(other), super().__rpow__(other))
+        return ParameterExpression(self._merge_parameters(other), super().py_rpow(other))
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().sin())
+        return ParameterExpression(self._parameters, super().py_sin())
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().cos())
+        return ParameterExpression(self._parameters, super().py_cos())
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().tan())
+        return ParameterExpression(self._parameters, super().py_tan())
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().arcsin())
+        return ParameterExpression(self._parameters, super().py_arcsin())
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().arccos())
+        return ParameterExpression(self._parameters, super().py_arccos())
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().arctan())
+        return ParameterExpression(self._parameters, super().py_arctan())
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().exp())
+        return ParameterExpression(self._parameters, super().py_exp())
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().log())
+        return ParameterExpression(self._parameters, super().py_log())
 
     def sign(self):
         """Sign of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().sign())
+        return ParameterExpression(self._parameters, super().py_sign())
 
     def __abs__(self):
         """Absolute of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().__abs__())
+        return ParameterExpression(self._parameters, super().py_abs())
 
     def abs(self):
         """Absolute of a ParameterExpression"""
@@ -356,6 +356,12 @@ class ParameterExpression(ParameterExpressionBase):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({str(self)})"
+
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo=None):
+        return self
 
     @HAS_SYMPY.require_in_call
     def sympify(self):

@@ -37,6 +37,7 @@ from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
 
 OPReplay = qiskit._accelerate.circuit.OPReplay
 
+
 def _write_parameter(file_obj, obj):
     name_bytes = obj.name.encode(common.ENCODE)
     file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj.uuid.bytes))
