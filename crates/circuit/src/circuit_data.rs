@@ -510,7 +510,7 @@ impl CircuitData {
                 if let Some(params) = inst.params_raw() {
                     new_inst = new_inst.with_params(params.clone());
                 }
-                if let Some(label) = new_inst.label().map(|label| label.to_string()) {
+                if let Some(label) = inst.label().map(|label| label.to_string()) {
                     new_inst = new_inst.with_label(label);
                 }
                 res.data.push(new_inst);
@@ -522,7 +522,7 @@ impl CircuitData {
                 if let Some(params) = inst.params_raw() {
                     new_inst = new_inst.with_params(params.clone());
                 }
-                if let Some(label) = new_inst.label().map(|label| label.to_string()) {
+                if let Some(label) = inst.label().map(|label| label.to_string()) {
                     new_inst = new_inst.with_label(label);
                 }
                 res.data.push(new_inst);

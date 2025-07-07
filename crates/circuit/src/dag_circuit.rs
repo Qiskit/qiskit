@@ -6471,30 +6471,14 @@ impl DAGCircuit {
             } else {
                 panic!("This method only works if the gate being replaced has no classical incident wires")
             };
-            #[cfg(feature = "cache_pygates")]
-            let py_op = match new_op.view() {
-                OperationRef::StandardGate(_)
-                | OperationRef::StandardInstruction(_)
-                | OperationRef::Unitary(_) => None,
-                OperationRef::Gate(gate) => Some(gate.gate.clone_ref(py)),
-                OperationRef::Instruction(instruction) => {
-                    Some(instruction.instruction.clone_ref(py))
-                }
-                OperationRef::Operation(op) => Some(op.operation.clone_ref(py)),
-            };
-            // TODO: Find a way of removing this mut
-            let mut inst = PackedInstruction::new(
+            // We do not re-assign the cache because, unless it is a rust native instruction, it will re-use
+            // the ``PyObject`` stored within when calling ``unpack_py_op()``.
+            let inst = PackedInstruction::new(
                 new_op,
                 self.qargs_interner.insert_owned(qubits),
                 self.cargs_interner.get_default(),
             )
             .with_params(params);
-            #[cfg(feature = "cache_pygates")]
-            {
-                if let Some(py_op) = py_op {
-                    inst = inst.with_py_cache(py_op);
-                }
-            }
             let new_index = self.dag.add_node(NodeType::Operation(inst));
             self.dag.add_edge(source, new_index, weight);
             self.dag.add_edge(new_index, target, weight);
