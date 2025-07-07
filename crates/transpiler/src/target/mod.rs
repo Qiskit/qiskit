@@ -340,8 +340,7 @@ impl Target {
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
-                "Instruction {} is already in the target",
-                name
+                "Instruction {name} is already in the target"
             )));
         }
         let props_map = if let Some(props_map) = properties {
@@ -677,8 +676,7 @@ impl Target {
             }
         }
         Err(PyIndexError::new_err(format!(
-            "Index: {:?} is out of range.",
-            index
+            "Index: {index:?} is out of range."
         )))
     }
 
@@ -980,7 +978,7 @@ impl Target {
                         if qarg_slice.len() != instruction.num_qubits() as usize {
                             return Err(TargetError::QargsMismatch {
                                 instruction: name,
-                                arguments: format!("{:?}", qarg),
+                                arguments: format!("{qarg:?}"),
                             });
                         }
                         self.num_qubits =
@@ -1063,7 +1061,7 @@ impl Target {
         if !prop_map.contains_key(&qargs) {
             return Err(TargetError::InvalidQargsKey {
                 instruction: instruction.to_string(),
-                arguments: format!("{:?}", qargs),
+                arguments: format!("{qargs:?}"),
             });
         }
         if let Some(e) = prop_map.get_mut(&qargs) {
@@ -1248,7 +1246,7 @@ impl Target {
                 .iter()
                 .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.0))
             {
-                return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
+                return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
             }
         }
         if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
@@ -1265,7 +1263,7 @@ impl Target {
             }
         }
         if res.is_empty() {
-            return Err(TargetError::QargsWithoutInstruction(format!("{:?}", qargs)));
+            return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
         }
         Ok(res)
     }
@@ -1619,7 +1617,7 @@ mod test {
             None,
             Some([(qargs.clone(), None)].into_iter().collect()),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(test_target["cx"][&qargs], None);
 
@@ -1629,7 +1627,7 @@ mod test {
             &qargs,
             Some(InstructionProperties::new(Some(0.00122), Some(0.00001023))),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(
             test_target["cx"][&qargs],
@@ -1638,7 +1636,7 @@ mod test {
 
         // Modify instruction property back to None.
         let result = test_target.update_instruction_properties("cx", &qargs, None);
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
         assert_eq!(test_target["cx"][&qargs], None);
     }
 
@@ -1653,7 +1651,7 @@ mod test {
             None,
             Some([(qargs.clone().into(), None)].into_iter().collect()),
         );
-        assert!(result.is_ok(), "Error message: {:?}", result);
+        assert!(result.is_ok(), "Error message: {result:?}");
 
         assert_eq!(test_target["cx"][&QargsRef::from(&qargs)], None);
 
