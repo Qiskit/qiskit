@@ -107,7 +107,9 @@ pub struct GreedyCliffordSynthesis<'a> {
 }
 
 impl GreedyCliffordSynthesis<'_> {
-    pub(crate) fn new(tableau: ArrayView2<bool>) -> Result<GreedyCliffordSynthesis<'_>, String> {
+    pub(crate) fn new(
+        tableau: ArrayView2<'_, bool>,
+    ) -> Result<GreedyCliffordSynthesis<'_>, String> {
         let tableau_shape = tableau.shape();
         if (tableau_shape[0] % 2 == 1) || (tableau_shape[1] != tableau_shape[0] + 1) {
             return Err("The shape of the Clifford tableau is invalid".to_string());

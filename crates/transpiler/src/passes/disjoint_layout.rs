@@ -371,7 +371,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     for (outer, inner) in node_qargs.iter().zip(0..inst.op().num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
                     }
-                    let block_dag = circuit_to_dag(py, block.extract()?, false, None, None)?;
+                    let block_dag = circuit_to_dag(block.extract()?, false, None, None)?;
                     build_interaction_graph(
                         &block_dag,
                         &inner_wire_map,

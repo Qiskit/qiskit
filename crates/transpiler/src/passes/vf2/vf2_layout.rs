@@ -166,7 +166,7 @@ fn build_interaction_graph<Ty: EdgeType>(
                     for (outer, inner) in node_qargs.iter().zip(0..inst.op().num_qubits()) {
                         inner_wire_map[inner as usize] = wire_map[outer.index()]
                     }
-                    let block_dag = circuit_to_dag(py, block.extract()?, false, None, None)?;
+                    let block_dag = circuit_to_dag(block.extract()?, false, None, None)?;
                     build_interaction_graph(
                         &block_dag,
                         &inner_wire_map,
@@ -369,7 +369,7 @@ pub fn vf2_layout_pass(
     strict_direction: bool,
     call_limit: Option<usize>,
     time_limit: Option<f64>,
-    max_trials: Option<usize>,
+    max_trials: Option<isize>,
     avg_error_map: Option<ErrorMap>,
 ) -> PyResult<Option<HashMap<VirtualQubit, PhysicalQubit>>> {
     if strict_direction {
@@ -389,6 +389,22 @@ pub fn vf2_layout_pass(
             false,
             call_limit,
         );
+        let max_trials: Option<usize> = match max_trials {
+            Some(max_trials) => {
+                if max_trials > 0 {
+                    Some(max_trials as usize)
+                } else {
+                    None
+                }
+            }
+            None => Some(
+                im_graph_data
+                    .im_graph
+                    .edge_count()
+                    .max(cm_graph.edge_count())
+                    + 15,
+            ),
+        };
         let mut trials: usize = 0;
         let start_time = Instant::now();
         let mut chosen_layout: Option<HashMap<VirtualQubit, PhysicalQubit>> = None;
@@ -415,6 +431,7 @@ pub fn vf2_layout_pass(
                     break;
                 }
             }
+
             if let Some(time_limit) = time_limit {
                 let elapsed_time = start_time.elapsed().as_secs_f64();
                 if elapsed_time >= time_limit {
@@ -443,6 +460,22 @@ pub fn vf2_layout_pass(
                 target,
             ));
         }
+        let max_trials: Option<usize> = match max_trials {
+            Some(max_trials) => {
+                if max_trials > 0 {
+                    Some(max_trials as usize)
+                } else {
+                    None
+                }
+            }
+            None => Some(
+                im_graph_data
+                    .im_graph
+                    .edge_count()
+                    .max(cm_graph.edge_count())
+                    + 15,
+            ),
+        };
         let mappings = vf2::Vf2Algorithm::new(
             &cm_graph,
             &im_graph_data.im_graph,
