@@ -343,7 +343,6 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(two_theta, 0)
         qc.measure_all()
-        has_symengine = bool(optionals.HAS_SYMENGINE)
         # Assert Roundtrip works
         # `use_symengine` is near-completely ignored with QPY versions 13+; it doesn't actually
         # matter if we _have_ symengine installed or not, because those QPYs don't ever use it
@@ -352,7 +351,7 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
         # Also check the qpy symbolic expression encoding is correct in the
         # payload
         with io.BytesIO() as file_obj:
-            dump(qc, file_obj, use_symengine=Booly(use_symengine))
+            dump(qc, file_obj, use_symengine=Booly(use_symengine), version=13)
             file_obj.seek(0)
             header_data = FILE_HEADER_V10._make(
                 struct.unpack(

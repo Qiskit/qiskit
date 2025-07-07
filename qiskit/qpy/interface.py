@@ -187,6 +187,9 @@ def dump(
             f"{common.QPY_VERSION}"
         )
 
+    if version < common.QPY_RUST_VERSION:
+        use_rust = False
+
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     encoding = type_keys.SymExprEncoding.assign(use_symengine)
@@ -300,6 +303,9 @@ def load(
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
         )
+
+    if version < common.QPY_RUST_VERSION:
+        use_rust = False
 
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
