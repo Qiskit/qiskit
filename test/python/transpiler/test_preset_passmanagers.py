@@ -1059,7 +1059,7 @@ class TestFinalLayouts(QiskitTestCase):
             [0, 1, 2, 3, 4],
             [5, 6, 10, 0, 11],
             [5, 6, 10, 0, 11],
-            [5, 11, 6, 0, 10],
+            [5, 10, 11, 0, 6],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
