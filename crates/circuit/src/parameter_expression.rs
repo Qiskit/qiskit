@@ -1453,11 +1453,9 @@ impl ParameterExpression {
     }
 
 
-    #[pyo3(signature = (rhs, _modulo = None))]
     pub fn py_pow(
         &self,
         rhs: &Bound<PyAny>,
-        _modulo: Option<i32>,
     ) -> PyResult<ParameterExpression> {
         match _extract_value(rhs) {
             Some(rhs) => {
@@ -1469,11 +1467,9 @@ impl ParameterExpression {
             )),
         }
     }
-    #[pyo3(signature = (lhs, _modulo = None))]
     pub fn py_rpow(
         &self,
         lhs: &Bound<PyAny>,
-        _modulo: Option<i32>,
     ) -> PyResult<ParameterExpression> {
         match _extract_value(lhs) {
             Some(lhs) => {
