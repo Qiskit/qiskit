@@ -963,8 +963,8 @@ class TestFinalLayouts(QiskitTestCase):
         expected_layouts = [
             [0, 1, 2, 3, 4],
             [6, 5, 10, 2, 11],
-            [6, 10, 5, 2, 11],
-            [6, 10, 5, 2, 11],
+            [6, 5, 10, 2, 11],
+            [6, 5, 10, 2, 11],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
