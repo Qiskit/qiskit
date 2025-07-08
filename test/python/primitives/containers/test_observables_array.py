@@ -628,6 +628,6 @@ class ObservablesArrayTestCase(QiskitTestCase):
 
     def test_invalid_basis_type_raises_type_error(self):
         """Test that invalid basis type raises TypeError"""
-        invalid_basis = {1: 'value', 2: 'another_value'}  # Invalid keys (integers)
+        invalid_basis = {1: "value", 2: "another_value"}  # Invalid keys (integers)
         with self.assertRaises(TypeError):
             ObservablesArray.coerce_observable(invalid_basis)
