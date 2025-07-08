@@ -61,7 +61,6 @@ pub fn dag_to_circuit(
     copy_operations: bool,
 ) -> PyResult<CircuitData> {
     CircuitData::from_packed_instructions(
-        py,
         dag.qubits().clone(),
         dag.clbits().clone(),
         dag.qargs_interner().clone(),
