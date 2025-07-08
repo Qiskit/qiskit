@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use pyo3::intern;
 use pyo3::prelude::*;
 
@@ -21,6 +18,7 @@ use crate::classical::expr;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
 use crate::packed_instruction::PackedInstruction;
+use crate::packed_instruction::PackedOperation;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -107,7 +105,7 @@ pub fn dag_to_circuit(
                 )
             };
             if copy_operations {
-                let op = match instr.op.view() {
+                let op: PackedOperation = match instr.op().view() {
                     OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
                     OperationRef::Instruction(instruction) => {
                         instruction.py_deepcopy(py, None)?.into()
@@ -117,21 +115,14 @@ pub fn dag_to_circuit(
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(
-                        instr
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                let mut packed = PackedInstruction::new(op, instr.qubits, instr.clbits);
+                if let Some(params) = instr.params_raw() {
+                    packed = packed.with_params(params.clone());
+                }
+                if let Some(label) = instr.label() {
+                    packed = packed.with_label(label.to_string());
+                }
+                Ok(packed)
             } else {
                 Ok(instr.clone())
             }

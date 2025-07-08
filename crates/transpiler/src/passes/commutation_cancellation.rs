@@ -136,7 +136,7 @@ pub fn cancel_commutations(
                     if instr.is_parameterized() {
                         continue;
                     }
-                    if let Some(op_gate) = instr.op.try_standard_gate() {
+                    if let Some(op_gate) = instr.op().try_standard_gate() {
                         if num_qargs == 1 && SUPPORTED_GATES.contains(&op_gate) {
                             cancellation_sets
                                 .entry(CancellationSetKey {
@@ -217,14 +217,14 @@ pub fn cancel_commutations(
                         NodeType::Operation(instr) => instr,
                         _ => panic!("Unexpected type in commutation set run."),
                     };
-                    let node_op_name = node_op.op.name();
+                    let node_op_name = node_op.op().name();
 
                     let node_angle = if ROTATION_GATES.contains(&node_op_name) {
                         match node_op.params_view().first() {
                             Some(Param::Float(f)) => Ok(*f),
                             _ => return Err(QiskitError::new_err(format!(
                                 "Rotational gate with parameter expression encountered in cancellation {:?}",
-                                node_op.op
+                                node_op.op()
                             )))
                         }
                     } else if HALF_TURNS.contains(&node_op_name) {
@@ -241,7 +241,7 @@ pub fn cancel_commutations(
                     total_angle += node_angle?;
 
                     let Param::Float(new_phase) = node_op
-                        .op
+                        .op()
                         .definition(node_op.params_view())
                         .unwrap()
                         .global_phase()
