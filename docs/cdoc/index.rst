@@ -52,7 +52,8 @@ Transpiler
 .. toctree::
    :maxdepth: 1
 
-   qk-transpiler-passes
-   qk-vf2-layout-result
    qk-target
    qk-target-entry
+   qk-transpiler-passes
+   qk-vf2-layout-result
+   qk-elide-permutations-result
