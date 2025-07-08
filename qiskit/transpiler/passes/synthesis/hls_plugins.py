@@ -274,7 +274,7 @@ MCMT Synthesis
    MCMTSynthesisNoAux
    MCMTSynthesisDefault
 
-   
+
 Integer comparators
 '''''''''''''''''''
 
@@ -287,8 +287,8 @@ Integer comparators
       - Auxiliary qubits
     * - ``"twos"``
       - :class:`~.IntComparatorSynthesis2s`
-      - use addition with two's complement 
-      - ``n - 1`` clean 
+      - use addition with two's complement
+      - ``n - 1`` clean
     * - ``"noaux"``
       - :class:`~.IntComparatorSynthesisNoAux`
       - flip the target controlled on all :math:`O(2^l)` allowed integer values
@@ -305,7 +305,7 @@ Integer comparators
    IntComparatorSynthesisNoAux
    IntComparatorSynthesisDefault
 
-   
+
 Sums
 ''''
 
@@ -339,7 +339,7 @@ Pauli Evolution Synthesis
       - Targeted connectivity
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
-      - use the synthesis method from `Rustiq circuit synthesis library 
+      - use the synthesis method from `Rustiq circuit synthesis library
         <https://github.com/smartiel/rustiq-core>`_
       - all-to-all
     * - ``"default"``

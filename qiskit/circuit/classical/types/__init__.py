@@ -46,7 +46,7 @@ timing-aware circuit operations.
 Working with types
 ==================
 
-There are some additional functions on these types documented in the subsequent sections. 
+There are some additional functions on these types documented in the subsequent sections.
 These are mostly expected to be used only in manipulations of the expression tree;
 users who are building expressions using the
 :ref:`user-facing construction interface <circuit-classical-expressions-expr-construction>` should

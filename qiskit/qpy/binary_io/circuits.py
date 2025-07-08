@@ -476,7 +476,6 @@ def _read_instruction(
         circuit._append(inst_obj, qargs, cargs)
         return None
     elif gate_name in custom_operations:
-        print("GATE NAME IN CUSTOM: ", gate_name)
         inst_obj = _parse_custom_operation(
             custom_operations,
             gate_name,
@@ -506,7 +505,6 @@ def _read_instruction(
     else:
         raise AttributeError(f"Invalid instruction type: {gate_name}")
 
-    print(">>>QPY GATE CLASS", gate_class)
     if instruction.label_size <= 0:
         label = None
     if gate_name in ("IfElseOp", "WhileLoopOp"):

@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 # pylint: disable=too-many-return-statements
 
-"""Check if number close to values of PI
-"""
+"""Check if number close to values of PI"""
 
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression

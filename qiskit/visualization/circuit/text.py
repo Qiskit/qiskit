@@ -236,6 +236,7 @@ class MeasureFrom(BoxOnQuWire):
         self.top_pad = self.bot_pad = " "
         self._mid_padding = "─"
 
+
 class MultiBox(DrawElement):
     """Elements that are drawn over multiple wires."""
 
@@ -1138,7 +1139,7 @@ class TextDrawing:
                 if isinstance(modifier, ControlModifier):
                     mod_control = modifier
                     break
-        
+
         # print("OP", isinstance(op, Measure), op)
         if isinstance(op, Measure):
             # print("MEASURE?")
