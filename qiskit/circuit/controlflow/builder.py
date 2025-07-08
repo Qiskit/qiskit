@@ -134,30 +134,6 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def remove_var(self, var: expr.Var):
-        """Remove a variable from the locals of this scope.
-
-        This is only called in the case that an exception occurred while initializing the variable,
-        and is not exposed to users.
-
-        Args:
-            var: the variable to remove.  It can be assumed that this was already the subject of an
-                :meth:`add_uninitialized_var` call.
-        """
-
-    @abc.abstractmethod
-    def remove_stretch(self, stretch: expr.Stretch):
-        """Remove a stretch from the locals of this scope.
-
-        This is only called in the case that an exception occurred while initializing the stretch,
-        and is not exposed to users.
-
-        Args:
-            stretch: the stretch to remove.  It can be assumed that this was already the subject of an
-                :meth:`add_stretch` call.
-        """
-
-    @abc.abstractmethod
     def use_var(self, var: expr.Var):
         """Called for every standalone classical real-time variable being used by some circuit
         instruction.
@@ -528,16 +504,6 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 f"cannot add '{stretch}' as its name shadows the existing '{previous}'"
             )
         self._stretches_local[stretch.name] = stretch
-
-    def remove_var(self, var: expr.Var):
-        if self._built:
-            raise RuntimeError("exception handler 'remove_var' called after scope built")
-        self._vars_local.pop(var.name)
-
-    def remove_stretch(self, stretch: expr.Stretch):
-        if self._built:
-            raise RuntimeError("exception handler 'remove_stretch' called after scope built")
-        self._stretches_local.pop(stretch.name)
 
     def get_var(self, name: str):
         if name in self._stretches_local:

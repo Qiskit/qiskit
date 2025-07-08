@@ -31,12 +31,11 @@ use pyo3::Python;
 
 use qiskit_circuit::converters::{circuit_to_dag, QuantumCircuitData};
 use qiskit_circuit::dag_circuit::{
-    DAGCircuit, DAGCircuitBuilder, DAGInstruction, NodeType, VarsMode,
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType};
 };
-use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{imports, Qubit, VarsMode};
 
 use crate::target::{NormalOperation, Target, TargetOperation};
 use crate::target::{Qargs, QargsRef};

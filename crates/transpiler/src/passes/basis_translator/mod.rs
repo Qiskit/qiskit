@@ -27,17 +27,16 @@ mod compose_transforms;
 
 use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
 use pyo3::PyTypeInfo;
-use qiskit_circuit::dag_circuit::{DAGCircuitBuilder, DAGInstruction, VarsMode};
+use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
     operations::{Operation, OperationRef, PythonOperation},
 };
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
