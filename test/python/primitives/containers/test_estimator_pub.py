@@ -435,3 +435,13 @@ class EstimatorPubTestCase(QiskitTestCase):
         msg = rf"observables shape \({obs_shape}\) .+ values shape \({params_shape}\) are not"
         with self.assertRaisesRegex(ValueError, msg):
             EstimatorPub(circuit, obs, params)
+
+    def test_coefficient_equals_zero(self):
+        """
+        Test that PUB validation raises a proper exception when observable coefficient is zero
+        """
+        circ = QuantumCircuit(1)
+        obs = {"Z": 0}
+        with self.assertRaisesRegex(ValueError, "Empty observable"):
+            EstimatorPub.coerce((circ, obs))
+        

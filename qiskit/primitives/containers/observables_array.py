@@ -286,17 +286,20 @@ class ObservablesArray(ShapedMixin):
             coeffs = np.real_if_close(observable.coeffs)
             if np.iscomplexobj(coeffs):
                 raise ValueError(
-                    "Non-Hermitian input observable: the input SparsePauliOp has non-zero"
+                    "Non-Hermitian input observable: the input observable has non-zero"
                     " imaginary part in its coefficients."
                 )
 
-            return SparseObservable.from_raw_parts(
+            observable = SparseObservable.from_raw_parts(
                 observable.num_qubits,
                 coeffs,
                 observable.bit_terms,
                 observable.indices,
                 observable.boundaries,
             ).simplify(tol=0)
+
+            if observable == SparseObservable.zero(observable.num_qubits):
+                raise ValueError("Empty observable was detected.")
 
         raise TypeError(f"Invalid observable type: {type(observable)}")
 
