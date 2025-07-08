@@ -973,7 +973,7 @@ pub fn run_high_level_synthesis(
         // Regular-path: we synthesize the circuit recursively. Except for
         // this conversion from DAGCircuit to CircuitData and back, all
         // the recursive functions work with CircuitData objects only.
-        let circuit = dag_to_circuit(py, dag, false)?;
+        let circuit = dag_to_circuit(dag, false)?;
 
         let num_qubits = circuit.num_qubits();
         let input_qubits: Vec<usize> = (0..num_qubits).collect();
