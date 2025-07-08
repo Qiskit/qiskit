@@ -26,7 +26,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, VarsMode};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
@@ -35,8 +35,7 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{radd_param, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Clbit;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::{Clbit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -464,7 +463,8 @@ fn run_on_circuitdata(
     // all available ancilla qubits to the current operation ("the-first-takes-all" approach).
     // It does not distribute ancilla qubits between different operations present in the circuit.
 
-    let mut output_circuit: CircuitData = CircuitData::clone_empty_like(input_circuit, None)?;
+    let mut output_circuit: CircuitData =
+        CircuitData::copy_empty_like(input_circuit, VarsMode::Alike)?;
     let mut output_qubits = input_qubits.to_vec();
 
     // The "inverse" map from the global qubits to the output circuit's qubits.
@@ -983,37 +983,20 @@ pub fn run_high_level_synthesis(
         let (output_circuit, _) =
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
-        let new_dag = convert_circuit_to_dag_with_data(dag, &output_circuit)?;
+        // Using this constructor so name and metadata are not lost
+        let new_dag = DAGCircuit::from_circuit(
+            QuantumCircuitData {
+                data: output_circuit,
+                name: dag.get_name().cloned(),
+                metadata: dag.get_metadata().map(|m| m.bind(py)).cloned(),
+            },
+            false,
+            None,
+            None,
+        )?;
 
         Ok(Some(new_dag))
     }
-}
-
-/// Converts circuit to DAGCircuit, while taking the missing python data from dag.
-fn convert_circuit_to_dag_with_data(
-    dag: &DAGCircuit,
-    circuit: &CircuitData,
-) -> PyResult<DAGCircuit> {
-    // Calling copy_empty_like makes sure that all the python-space information (qregs, cregs, input variables)
-    // get copied correctly.
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
-    new_dag.set_global_phase(circuit.global_phase().clone())?;
-    let qarg_map = new_dag.merge_qargs(circuit.qargs_interner(), |bit| Some(*bit));
-    let carg_map = new_dag.merge_cargs(circuit.cargs_interner(), |bit: &Clbit| Some(*bit));
-
-    new_dag.try_extend(circuit.iter().map(|instr| -> PyResult<PackedInstruction> {
-        Ok(PackedInstruction {
-            // SHould this be: op: instr.op.py_deepcopy(py, None)?,
-            op: instr.op.clone(),
-            qubits: qarg_map[instr.qubits],
-            clbits: carg_map[instr.clbits],
-            params: instr.params.clone(),
-            label: instr.label.clone(),
-            #[cfg(feature = "cache_pygates")]
-            py_op: OnceLock::new(),
-        })
-    }))?;
-    Ok(new_dag)
 }
 
 pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
