@@ -2675,26 +2675,6 @@ impl DAGCircuit {
                                                             .metadata
                                                             .as_ref()
                                                             .map(|m| m.bind(py).clone()),
-                                                        input_vars: body_a
-                                                            .input_vars()
-                                                            .cloned()
-                                                            .collect(),
-                                                        captured_vars: body_a
-                                                            .captured_vars()
-                                                            .cloned()
-                                                            .collect(),
-                                                        declared_vars: body_a
-                                                            .declared_vars()
-                                                            .cloned()
-                                                            .collect(),
-                                                        captured_stretches: body_a
-                                                            .captured_stretches()
-                                                            .cloned()
-                                                            .collect(),
-                                                        declared_stretches: body_a
-                                                            .declared_stretches()
-                                                            .cloned()
-                                                            .collect(),
                                                     },
                                                     false,
                                                     None,
@@ -2727,26 +2707,6 @@ impl DAGCircuit {
                                                             .metadata
                                                             .as_ref()
                                                             .map(|m| m.bind(py).clone()),
-                                                        input_vars: body_b
-                                                            .input_vars()
-                                                            .cloned()
-                                                            .collect(),
-                                                        captured_vars: body_b
-                                                            .captured_vars()
-                                                            .cloned()
-                                                            .collect(),
-                                                        declared_vars: body_b
-                                                            .declared_vars()
-                                                            .cloned()
-                                                            .collect(),
-                                                        captured_stretches: body_b
-                                                            .captured_stretches()
-                                                            .cloned()
-                                                            .collect(),
-                                                        declared_stretches: body_b
-                                                            .declared_stretches()
-                                                            .cloned()
-                                                            .collect(),
                                                     },
                                                     false,
                                                     None,

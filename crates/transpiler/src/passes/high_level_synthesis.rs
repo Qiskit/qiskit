@@ -25,7 +25,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::{CreatePythonOperation, OperationFromPython};
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::Operation;
@@ -46,8 +46,6 @@ use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
 use qiskit_circuit::instruction::{Instruction, InstructionView, IntoInstructionView};
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
 
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,

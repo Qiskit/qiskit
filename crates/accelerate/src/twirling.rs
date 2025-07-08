@@ -12,6 +12,7 @@
 
 use std::f64::consts::PI;
 
+use crate::QiskitError;
 use hashbrown::HashMap;
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
@@ -33,12 +34,12 @@ use qiskit_circuit::instruction::{
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use rand_pcg::Pcg64Mcg;
-use smallvec::smallvec;
-
-use crate::QiskitError;
+use qiskit_circuit::VarsMode;
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
 use qiskit_transpiler::target::Target;
+use rand::prelude::*;
+use rand_pcg::Pcg64Mcg;
+use smallvec::smallvec;
 
 static ECR_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
     ([I, Z, Z, Y], 0.),

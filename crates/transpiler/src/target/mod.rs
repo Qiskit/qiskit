@@ -44,7 +44,6 @@ use qiskit_circuit::instruction::{Instruction, IntoInstructionView, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::PhysicalQubit;
-use smallvec::SmallVec;
 
 use crate::TranspilerError;
 
