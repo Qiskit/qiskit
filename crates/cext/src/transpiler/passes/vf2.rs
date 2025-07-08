@@ -87,7 +87,7 @@ pub unsafe extern "C" fn qk_vf2_layout_map_virtual_qubit(
     };
     match layout.get(&VirtualQubit(qubit)) {
         Some(phsyical) => phsyical.0,
-        None => panic!("The specified qubit is not in the layout: {}", qubit),
+        None => panic!("The specified qubit is not in the layout: {qubit}"),
     }
 }
 
@@ -193,19 +193,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let dag = match DAGCircuit::from_circuit_data(
-        circuit,
-        false,
-        None,
-        None,
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        None,
-        None,
-    ) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };

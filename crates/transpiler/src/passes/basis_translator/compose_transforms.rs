@@ -118,11 +118,6 @@ pub(super) fn compose_transforms<'a>(
                         true,
                         None,
                         None,
-                        Vec::new(),
-                        Vec::new(),
-                        Vec::new(),
-                        Vec::new(),
-                        Vec::new(),
                         None,
                         None,
                     )?;

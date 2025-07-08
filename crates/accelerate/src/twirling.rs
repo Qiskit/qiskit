@@ -36,6 +36,7 @@ use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PyInstruction, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::VarsMode;
 
 use crate::QiskitError;
 
@@ -237,7 +238,7 @@ fn generate_twirled_circuit(
     custom_gate_map: Option<&CustomGateTwirlingMap>,
     optimizer_target: Option<&Target>,
 ) -> PyResult<CircuitData> {
-    let mut out_circ = CircuitData::clone_empty_like(circ, None)?;
+    let mut out_circ = CircuitData::copy_empty_like(circ, VarsMode::Alike)?;
 
     for inst in circ.data() {
         if let Some(custom_gate_map) = custom_gate_map {
@@ -346,19 +347,7 @@ fn generate_twirled_circuit(
         }
     }
     if optimizer_target.is_some() {
-        let mut dag = DAGCircuit::from_circuit_data(
-            &out_circ,
-            false,
-            None,
-            None,
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            None,
-            None,
-        )?;
+        let mut dag = DAGCircuit::from_circuit_data(&out_circ, false, None, None, None, None)?;
         run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
         dag_to_circuit(py, &dag, false)
     } else {

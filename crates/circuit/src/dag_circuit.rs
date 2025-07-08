@@ -21,7 +21,7 @@ use crate::bit::{
     Register, ShareableClbit, ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, CircuitIdentifierInfo, CircuitStretchType, CircuitVarType};
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::converters::QuantumCircuitData;
@@ -38,7 +38,7 @@ use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
-use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var};
+use crate::{imports, Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
@@ -334,14 +334,24 @@ impl PyBitLocations {
 }
 
 #[derive(Copy, Clone, Debug)]
-enum DAGVarType {
+pub enum DAGVarType {
     Input = 0,
     Capture = 1,
     Declare = 2,
 }
 
+impl From<CircuitVarType> for DAGVarType {
+    fn from(value: CircuitVarType) -> Self {
+        match value {
+            CircuitVarType::Input => DAGVarType::Input,
+            CircuitVarType::Capture => DAGVarType::Capture,
+            CircuitVarType::Declare => DAGVarType::Declare,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
-struct DAGVarInfo {
+pub struct DAGVarInfo {
     var: Var,
     type_: DAGVarType,
     in_node: NodeIndex,
@@ -373,16 +383,35 @@ impl DAGVarInfo {
             out_node: NodeIndex::new(val_tuple.get_item(3)?.extract()?),
         })
     }
+
+    #[inline(always)]
+    pub fn get_var(&self) -> Var {
+        self.var
+    }
+
+    #[inline(always)]
+    pub fn get_type(&self) -> DAGVarType {
+        self.type_
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
-enum DAGStretchType {
+pub enum DAGStretchType {
     Capture = 0,
     Declare = 1,
 }
 
+impl From<CircuitStretchType> for DAGStretchType {
+    fn from(value: CircuitStretchType) -> Self {
+        match value {
+            CircuitStretchType::Capture => DAGStretchType::Capture,
+            CircuitStretchType::Declare => DAGStretchType::Declare,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
-struct DAGStretchInfo {
+pub struct DAGStretchInfo {
     stretch: Stretch,
     type_: DAGStretchType,
 }
@@ -403,10 +432,20 @@ impl DAGStretchInfo {
             },
         })
     }
+
+    #[inline(always)]
+    pub fn get_stretch(&self) -> Stretch {
+        self.stretch
+    }
+
+    #[inline(always)]
+    pub fn get_type(&self) -> DAGStretchType {
+        self.type_
+    }
 }
 
 #[derive(Clone, Debug)]
-enum DAGIdentifierInfo {
+pub enum DAGIdentifierInfo {
     Stretch(DAGStretchInfo),
     Var(DAGVarInfo),
 }
@@ -3983,35 +4022,14 @@ impl DAGCircuit {
     ///
     /// Args:
     ///     stretch: the stretch to add.
-    fn add_captured_stretch(&mut self, var: expr::Stretch) -> PyResult<()> {
+    fn add_captured_stretch(&mut self, stretch: expr::Stretch) -> PyResult<()> {
         if !self.vars_input.is_empty() {
             return Err(DAGCircuitError::new_err(
                 "cannot add captures to a circuit with inputs",
             ));
         }
-        let name: String = var.name.clone();
-        match self.identifier_info.get(&name) {
-            Some(DAGIdentifierInfo::Stretch(info))
-                if &var == self.stretches.get(info.stretch).unwrap() =>
-            {
-                return Err(DAGCircuitError::new_err("already present in the circuit"));
-            }
-            Some(_) => {
-                return Err(DAGCircuitError::new_err(
-                    "cannot add stretch as its name shadows an existing identifier",
-                ));
-            }
-            _ => {}
-        }
-        let stretch_idx = self.stretches.add(var, true)?;
-        self.stretches_capture.insert(stretch_idx);
-        self.identifier_info.insert(
-            name,
-            DAGIdentifierInfo::Stretch(DAGStretchInfo {
-                stretch: stretch_idx,
-                type_: DAGStretchType::Capture,
-            }),
-        );
+
+        self.add_stretch(stretch, DAGStretchType::Capture)?;
         Ok(())
     }
 
@@ -4027,31 +4045,9 @@ impl DAGCircuit {
     /// Add a declared stretch to the circuit.
     ///
     /// Args:
-    ///     var: the stretch to add.
-    fn add_declared_stretch(&mut self, var: expr::Stretch) -> PyResult<()> {
-        let name = var.name.clone();
-        match self.identifier_info.get(&name) {
-            Some(DAGIdentifierInfo::Stretch(info))
-                if &var == self.stretches.get(info.stretch).unwrap() =>
-            {
-                return Err(DAGCircuitError::new_err("already present in the circuit"));
-            }
-            Some(_) => {
-                return Err(DAGCircuitError::new_err(
-                    "cannot add stretch as its name shadows an existing identifier",
-                ));
-            }
-            _ => {}
-        }
-        let stretch_idx = self.stretches.add(var, true)?;
-        self.stretches_declare.push(stretch_idx);
-        self.identifier_info.insert(
-            name,
-            DAGIdentifierInfo::Stretch(DAGStretchInfo {
-                stretch: stretch_idx,
-                type_: DAGStretchType::Declare,
-            }),
-        );
+    ///     stretch: the stretch to add.
+    fn add_declared_stretch(&mut self, stretch: expr::Stretch) -> PyResult<()> {
+        self.add_stretch(stretch, DAGStretchType::Declare)?;
         Ok(())
     }
 
@@ -4701,6 +4697,11 @@ impl DAGCircuit {
     #[inline(always)]
     pub fn vars(&self) -> &ObjectRegistry<Var, expr::Var> {
         &self.vars
+    }
+
+    /// Returns an iterator over the stored identifiers in order of insertion
+    pub fn identifiers(&self) -> impl ExactSizeIterator<Item = &DAGIdentifierInfo> {
+        self.identifier_info.iter().map(|id| id.1)
     }
 
     /// Returns an iterator over the input variables used by the circuit.
@@ -6206,6 +6207,23 @@ impl DAGCircuit {
         self.vars.get(var)
     }
 
+    /// Retrieve a stretch given its unique [Stretch] key within the DAG.
+    ///
+    /// The provided [Stretch] must be from this [DAGCircuit].
+    pub fn get_stretch(&self, stretch: Stretch) -> Option<&expr::Stretch> {
+        self.stretches.get(stretch)
+    }
+
+    /// Adds a variable to the DAGCircuit.
+    ///
+    /// # Arguments:
+    ///
+    /// * var: the new variable to add.
+    /// * type_: the type the variable should have in the DAGCircuit.
+    ///
+    /// # Returns:
+    ///
+    /// The [Var] index of the stretch in the DAGCircuit.
     fn add_var(&mut self, var: expr::Var, type_: DAGVarType) -> PyResult<Var> {
         // The setup of the initial graph structure between an "in" and an "out" node is the same as
         // the bit-related `_add_wire`, but this logically needs to do different bookkeeping around
@@ -6248,6 +6266,51 @@ impl DAGCircuit {
             }),
         );
         Ok(var_idx)
+    }
+
+    /// Add a stretch variable to the DAGCircuit.
+    ///
+    /// # Arguments:
+    ///
+    /// * stretch: the new stretch to add.
+    /// * type_: the type the stretch should have in the DAGCircuit.
+    ///
+    /// # Returns:
+    ///
+    /// The [Stretch] index of the stretch in the DAGCircuit.
+    fn add_stretch(&mut self, stretch: expr::Stretch, type_: DAGStretchType) -> PyResult<Stretch> {
+        let name: String = stretch.name.clone();
+        match self.identifier_info.get(&name) {
+            Some(DAGIdentifierInfo::Stretch(info))
+                if &stretch == self.stretches.get(info.stretch).unwrap() =>
+            {
+                return Err(DAGCircuitError::new_err("already present in the circuit"));
+            }
+            Some(_) => {
+                return Err(DAGCircuitError::new_err(
+                    "cannot add stretch as its name shadows an existing identifier",
+                ));
+            }
+            _ => {}
+        }
+
+        let stretch_idx = self.stretches.add(stretch, true)?;
+        match type_ {
+            DAGStretchType::Capture => {
+                self.stretches_capture.insert(stretch_idx);
+            }
+            DAGStretchType::Declare => {
+                self.stretches_declare.push(stretch_idx);
+            }
+        };
+        self.identifier_info.insert(
+            name,
+            DAGIdentifierInfo::Stretch(DAGStretchInfo {
+                stretch: stretch_idx,
+                type_,
+            }),
+        );
+        Ok(stretch_idx)
     }
 
     fn check_op_addition(&self, inst: &PackedInstruction) -> PyResult<()> {
@@ -6600,7 +6663,7 @@ impl DAGCircuit {
     }
 
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
-    pub(crate) fn from_circuit(
+    pub fn from_circuit(
         qc: QuantumCircuitData,
         copy_op: bool,
         qubit_order: Option<Vec<Bound<PyAny>>>,
@@ -6613,36 +6676,26 @@ impl DAGCircuit {
             copy_op,
             qc.name,
             qc.metadata.map(|x| x.unbind()),
-            qc.input_vars,
-            qc.captured_vars,
-            qc.declared_vars,
-            qc.captured_stretches,
-            qc.declared_stretches,
             qubit_order,
             clbit_order,
         )
     }
 
     /// Builds a [DAGCircuit] based on an instance of [CircuitData].
-    #[allow(clippy::too_many_arguments)]
     pub fn from_circuit_data(
         qc_data: &CircuitData,
         copy_op: bool,
         name: Option<String>,
         metadata: Option<PyObject>,
-        input_vars: Vec<expr::Var>,
-        captured_vars: Vec<expr::Var>,
-        declared_vars: Vec<expr::Var>,
-        captured_stretches: Vec<expr::Stretch>,
-        declared_stretches: Vec<expr::Stretch>,
         qubit_order: Option<Vec<Bound<PyAny>>>,
         clbit_order: Option<Vec<Bound<PyAny>>>,
     ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
         let num_ops = qc_data.__len__();
-        let num_vars = declared_vars.len() + input_vars.len() + captured_vars.len();
-        let num_stretches = declared_stretches.len() + captured_stretches.len();
+        let num_vars =
+            qc_data.num_declared_vars() + qc_data.num_input_vars() + qc_data.num_captured_vars();
+        let num_stretches = qc_data.num_declared_stretches() + qc_data.num_captured_stretches();
 
         // Build DAGCircuit with capacity
         let mut new_dag = DAGCircuit::with_capacity(
@@ -6736,25 +6789,28 @@ impl DAGCircuit {
             new_dag.merge_cargs(qc_data.cargs_interner(), |bit| Some(*bit))
         };
 
-        // Add all of the new vars.
-        for var in declared_vars {
-            new_dag.add_var(var, DAGVarType::Declare)?;
-        }
-
-        for var in input_vars {
-            new_dag.add_var(var, DAGVarType::Input)?;
-        }
-
-        for var in captured_vars {
-            new_dag.add_var(var, DAGVarType::Capture)?;
-        }
-
-        for stretch in captured_stretches {
-            new_dag.add_captured_stretch(stretch)?;
-        }
-
-        for stretch in declared_stretches {
-            new_dag.add_declared_stretch(stretch)?;
+        // Add all of the new vars and stretches
+        for identifier in qc_data.identifiers() {
+            match identifier {
+                CircuitIdentifierInfo::Stretch(circuit_stretch_info) => {
+                    new_dag.add_stretch(
+                        qc_data
+                            .get_stretch(circuit_stretch_info.get_stretch())
+                            .expect("Stretch not found for the specified index")
+                            .clone(),
+                        circuit_stretch_info.get_type().into(),
+                    )?;
+                }
+                CircuitIdentifierInfo::Var(circuit_var_info) => {
+                    new_dag.add_var(
+                        qc_data
+                            .get_var(circuit_var_info.get_var())
+                            .expect("Var not found for the specified index")
+                            .clone(),
+                        circuit_var_info.get_type().into(),
+                    )?;
+                }
+            }
         }
 
         // Add all the registers
@@ -7313,6 +7369,16 @@ impl DAGCircuit {
     pub fn into_builder(self) -> DAGCircuitBuilder {
         DAGCircuitBuilder::new(self)
     }
+
+    // Returns an immutable reference to 'name', if it exists
+    pub fn get_name(&self) -> Option<&String> {
+        self.name.as_ref()
+    }
+
+    // Returns an immutable reference to 'metadata'
+    pub fn get_metadata(&self) -> Option<&PyObject> {
+        self.metadata.as_ref()
+    }
 }
 
 pub struct DAGCircuitBuilder {
@@ -7589,31 +7655,6 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
-
-/// The mode to copy the classical [Var]s in, for operations that create a new [DAGCircuit] based on
-/// an existing one.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum VarsMode {
-    /// Each [Var] has the same type it had in the input.
-    Alike,
-    /// Each [Var] becomes a "capture".  This is useful when building a [DAGCircuit] to compose back
-    /// onto the original base.
-    Captures,
-    /// Do not copy the [Var] data over.
-    Drop,
-}
-impl<'py> FromPyObject<'py> for VarsMode {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        match &*ob.downcast::<PyString>()?.to_string_lossy() {
-            "alike" => Ok(VarsMode::Alike),
-            "captures" => Ok(VarsMode::Captures),
-            "drop" => Ok(VarsMode::Drop),
-            mode => Err(PyValueError::new_err(format!(
-                "unknown vars_mode: '{mode}'"
-            ))),
-        }
-    }
-}
 
 #[cfg(all(test, not(miri)))]
 mod test {
