@@ -26,7 +26,7 @@ use crate::dag_circuit::{add_global_phase, DAGStretchType, DAGVarType};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
-use crate::operations::{Operation, OperationRef, Param, StandardGate};
+use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -627,8 +627,7 @@ impl CircuitData {
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
                             CircuitError::new_err(format!(
-                                "Qubit at index {} exceeds circuit capacity.",
-                                bit_idx
+                                "Qubit at index {bit_idx} exceeds circuit capacity."
                             ))
                         })?,
                         [(register.clone(), index)],
@@ -680,8 +679,7 @@ impl CircuitData {
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
                             CircuitError::new_err(format!(
-                                "Clbit at index {} exceeds circuit capacity.",
-                                bit_idx
+                                "Clbit at index {bit_idx} exceeds circuit capacity."
                             ))
                         })?,
                         [(register.clone(), index)],
@@ -707,8 +705,20 @@ impl CircuitData {
         if deepcopy {
             let memo = PyDict::new(py);
             for inst in &self.data {
+                let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => gate.py_deepcopy(py, Some(&memo))?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        instruction.py_deepcopy(py, Some(&memo))?.into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        operation.py_deepcopy(py, Some(&memo))?.into()
+                    }
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                };
                 res.data.push(PackedInstruction {
-                    op: inst.op.py_deepcopy(py, Some(&memo))?,
+                    op: new_op,
                     qubits: inst.qubits,
                     clbits: inst.clbits,
                     params: inst.params.clone(),
@@ -719,8 +729,16 @@ impl CircuitData {
             }
         } else if copy_instructions {
             for inst in &self.data {
+                let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
+                    OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
+                    OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                };
                 res.data.push(PackedInstruction {
-                    op: inst.op.py_copy(py)?,
+                    op: new_op,
                     qubits: inst.qubits,
                     clbits: inst.clbits,
                     params: inst.params.clone(),
@@ -2756,20 +2774,20 @@ where
                         return Ok(vec![bit]);
                     }
                 }
-                return Err(CircuitError::new_err(format!(
+                Err(CircuitError::new_err(format!(
                     "Index {specifier} out of range for size {}.",
                     bit_sequence.len()
-                )));
+                )))
             }
             _ => {
                 let Ok(sequence) = sequence.with_len(bit_sequence.len()) else {
                     return Ok(vec![]);
                 };
-                return Ok(sequence
+                Ok(sequence
                     .iter()
                     .map(|index| &bit_sequence[index])
                     .cloned()
-                    .collect());
+                    .collect())
             }
         }
     } else {
@@ -2792,7 +2810,7 @@ where
                 specifier.get_type().name()?
             )
         };
-        return Err(CircuitError::new_err(err_message));
+        Err(CircuitError::new_err(err_message))
     }
 }
 
@@ -2822,12 +2840,12 @@ where
                 ))
             })?
         {
-            return Ok(bit);
+            Ok(bit)
         } else {
-            return Err(CircuitError::new_err(format!(
+            Err(CircuitError::new_err(format!(
                 "Index {specifier} out of range for size {}.",
                 bit_sequence.len()
-            )));
+            )))
         }
     } else {
         let err_message = if let Ok(bit) = specifier.downcast::<PyBit>() {
@@ -2842,6 +2860,6 @@ where
                 specifier.get_type().name()?
             )
         };
-        return Err(CircuitError::new_err(err_message));
+        Err(CircuitError::new_err(err_message))
     }
 }

@@ -985,7 +985,6 @@ pub fn run_high_level_synthesis(
 
         // Using this constructor so name and metadata are not lost
         let new_dag = DAGCircuit::from_circuit(
-            py,
             QuantumCircuitData {
                 data: output_circuit,
                 name: dag.get_name().cloned(),
