@@ -1507,7 +1507,9 @@ class TestParameterExpressions(QiskitTestCase):
         imaginary part, with a sensible error message."""
         x = Parameter("x")
         bound_expr = (x + 1.0j).bind({x: 1.0})
-        with self.assertRaisesRegex(TypeError, "could not cast expression to float"):
+        with self.assertRaisesRegex(
+            TypeError, "Could not cast complex parameter expression to float"
+        ):
             float(bound_expr)
 
     def test_raise_if_cast_to_float_when_not_fully_bound(self):
@@ -1793,7 +1795,6 @@ class TestParameterExpressions(QiskitTestCase):
 
     def test_name_collision(self):
         """Verify Expressions of distinct Parameters of shared name raises."""
-
         x = Parameter("p")
         y = Parameter("p")
 

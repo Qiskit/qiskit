@@ -29,7 +29,7 @@ use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 
 use crate::circuit_data::CircuitError;
-use crate::imports::UUID;
+use crate::imports::{BUILTIN_HASH, UUID};
 use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
@@ -424,6 +424,17 @@ impl PyParameterExpression {
         }
     }
 
+    /// Return an error if names in the other expression collide with existing names.
+    fn raise_if_name_conflict(&self, other: &Self) -> PyResult<()> {
+        if self.has_name_conflicts(&other.get_name_map(), None) {
+            Err(CircuitError::new_err(
+                "Name conflict applying operation __add__",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     /// return value if expression does not contain any symbols
     pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
         match self.expr.eval(true) {
@@ -665,7 +676,10 @@ impl PyParameterExpression {
 
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => Ok(Self::new(&self.expr + &rhs.expr)),
+            Some(rhs) => {
+                self.raise_if_name_conflict(&rhs)?;
+                Ok(Self::new(&self.expr + &rhs.expr))
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __add__",
             )),
@@ -673,7 +687,10 @@ impl PyParameterExpression {
     }
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
-            Some(lhs) => Ok(Self::new(&lhs.expr + &self.expr)),
+            Some(lhs) => {
+                self.raise_if_name_conflict(&lhs)?;
+                Ok(Self::new(&lhs.expr + &self.expr))
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __radd__",
             )),
@@ -681,7 +698,10 @@ impl PyParameterExpression {
     }
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => Ok(Self::new(&self.expr - &rhs.expr)),
+            Some(rhs) => {
+                self.raise_if_name_conflict(&rhs)?;
+                Ok(Self::new(&self.expr - &rhs.expr))
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __sub__",
             )),
@@ -689,7 +709,10 @@ impl PyParameterExpression {
     }
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
-            Some(lhs) => Ok(Self::new(&lhs.expr - &self.expr)),
+            Some(lhs) => {
+                self.raise_if_name_conflict(&lhs)?;
+                Ok(Self::new(&lhs.expr - &self.expr))
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rsub__",
             )),
@@ -697,7 +720,10 @@ impl PyParameterExpression {
     }
     pub fn __mul__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => Ok(Self::new(&self.expr * &rhs.expr)),
+            Some(rhs) => {
+                self.raise_if_name_conflict(&rhs)?;
+                Ok(Self::new(&self.expr * &rhs.expr))
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __mul__",
             )),
@@ -705,7 +731,10 @@ impl PyParameterExpression {
     }
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
-            Some(lhs) => Ok(Self::new(&lhs.expr * &self.expr)),
+            Some(lhs) => {
+                self.raise_if_name_conflict(&lhs)?;
+                Ok(Self::new(&lhs.expr * &self.expr))
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rmul__",
             )),
@@ -720,6 +749,7 @@ impl PyParameterExpression {
                         "Division by 0.",
                     ))
                 } else {
+                    self.raise_if_name_conflict(&rhs)?;
                     Ok(Self::new(&self.expr / &rhs.expr))
                 }
             }
@@ -730,7 +760,16 @@ impl PyParameterExpression {
     }
     pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
-            Some(lhs) => Ok(Self::new(&lhs.expr / &self.expr)),
+            Some(lhs) => {
+                if self.expr.is_zero() {
+                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
+                        "Division by 0.",
+                    ))
+                } else {
+                    self.raise_if_name_conflict(&lhs)?;
+                    Ok(Self::new(&lhs.expr / &self.expr))
+                }
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rtruediv__",
             )),
@@ -738,7 +777,10 @@ impl PyParameterExpression {
     }
     pub fn __pow__(&self, rhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => Ok(Self::new(self.expr.pow(&rhs.expr))),
+            Some(rhs) => {
+                self.raise_if_name_conflict(&rhs)?;
+                Ok(Self::new(self.expr.pow(&rhs.expr)))
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __pow__",
             )),
@@ -746,7 +788,10 @@ impl PyParameterExpression {
     }
     pub fn __rpow__(&self, lhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         match _extract_value(lhs) {
-            Some(lhs) => Ok(Self::new(lhs.expr.pow(&self.expr))),
+            Some(lhs) => {
+                self.raise_if_name_conflict(&lhs)?;
+                Ok(Self::new(lhs.expr.pow(&self.expr)))
+            }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rpow__",
             )),
@@ -760,12 +805,8 @@ impl PyParameterExpression {
                     "Cannot cast complex parameter to float.",
                 )),
                 symbol_expr::Value::Real(r) => {
-                    let rounded = r.round();
-                    if (r - rounded).abs() > SYMEXPR_EPSILON {
-                        Err(PyTypeError::new_err("Cannot cast float to int."))
-                    } else {
-                        Ok(rounded as i64)
-                    }
+                    let rounded = r.floor();
+                    Ok(rounded as i64)
                 }
                 symbol_expr::Value::Int(i) => Ok(i),
             },
@@ -784,7 +825,7 @@ impl PyParameterExpression {
                 symbol_expr::Value::Complex(c) => {
                     if c.im.abs() > SYMEXPR_EPSILON {
                         Err(PyTypeError::new_err(
-                            "Cannot cast complex parameter to float.",
+                            "Could not cast complex parameter expression to float.",
                         ))
                     } else {
                         Ok(c.re)
@@ -822,10 +863,23 @@ impl PyParameterExpression {
         self.name()
     }
 
-    pub fn __hash__(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        self.expr.to_string().hash(&mut hasher);
-        hasher.finish()
+    pub fn __hash__(&self, py: Python) -> PyResult<u64> {
+        match self.expr.eval(true) {
+            // if a value, we promise to match the hash of the raw value!
+            Some(value) => {
+                let py_hash = BUILTIN_HASH.get_bound(py);
+                match value {
+                    symbol_expr::Value::Complex(c) => py_hash.call1((c,))?.extract::<u64>(),
+                    symbol_expr::Value::Real(r) => py_hash.call1((r,))?.extract::<u64>(),
+                    symbol_expr::Value::Int(i) => py_hash.call1((i,))?.extract::<u64>(),
+                }
+            }
+            None => {
+                let mut hasher = DefaultHasher::new();
+                self.expr.to_string().hash(&mut hasher);
+                Ok(hasher.finish())
+            }
+        }
     }
 
     // for pickle, we can reproduce equation from expression string
