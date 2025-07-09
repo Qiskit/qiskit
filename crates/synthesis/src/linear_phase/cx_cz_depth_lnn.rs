@@ -247,7 +247,6 @@ fn _apply_phase_to_nw_circuit(
 #[pyfunction]
 #[pyo3(signature = (mat_x, mat_z))]
 pub fn py_synth_cx_cz_depth_line_my(
-    py: Python,
     mat_x: PyReadonlyArray2<bool>,
     mat_z: PyReadonlyArray2<bool>,
 ) -> PyResult<CircuitData> {
@@ -282,5 +281,5 @@ pub fn py_synth_cx_cz_depth_line_my(
         }
         CircuitInstructions::Z(qubit) => (StandardGate::Z, smallvec![], smallvec![Qubit(qubit)]),
     });
-    CircuitData::from_standard_gates(py, n as u32, instructions, Param::Float(0.0))
+    CircuitData::from_standard_gates(n as u32, instructions, Param::Float(0.0))
 }

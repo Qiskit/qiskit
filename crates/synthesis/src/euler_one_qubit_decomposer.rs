@@ -871,7 +871,6 @@ pub fn unitary_to_gate_sequence_inner(
 #[pyfunction]
 #[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
 pub fn unitary_to_circuit(
-    py: Python,
     unitary: PyReadonlyArray2<Complex64>,
     target_basis_list: Vec<PyBackedStr>,
     qubit: usize,
@@ -896,7 +895,6 @@ pub fn unitary_to_circuit(
     );
     Ok(circuit_sequence.map(|seq| {
         CircuitData::from_standard_gates(
-            py,
             1,
             seq.gates.into_iter().map(|(gate, params)| {
                 (
