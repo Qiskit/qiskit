@@ -102,8 +102,6 @@ class TestPassManager(QiskitTestCase):
         circuit2 = circuit1.copy(name="Circuit2")
         expected_end_dag_2 = copy.deepcopy(expected_end_dag_1)
 
-        # calls = []
-
         def callback(**kwargs):
             dag = kwargs["dag"]
             dag.name += "_callback"
@@ -113,10 +111,6 @@ class TestPassManager(QiskitTestCase):
         passmanager.append(Optimize1qGates())
 
         out_circuits = passmanager.run([circuit1, circuit2], callback=callback)
-        # out_circuits = passmanager.run(
-        #     [circuit1, circuit2],
-        #     callback=lambda **kwargs: kwargs["dag"]._set_name(kwargs["dag"].name + "_callback"),
-        # )
 
         # Check that callback visibly modified circuit names
         self.assertTrue(out_circuits[0].name.endswith("_callback"))
@@ -145,9 +139,13 @@ class TestPassManager(QiskitTestCase):
         passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
         passmanager.append(Optimize1qGates())
 
+        from qiskit.circuit.library import XGate
+
         out_circuits = passmanager.run(
             [circuit1, circuit2],
-            callback=lambda **kwargs: kwargs["dag"]._set_name(kwargs["dag"].name + "_callback"),
+            callback=lambda **kwargs: kwargs["dag"].apply_operation_back(
+                XGate(), [kwargs["dag"].qubits[0]]
+            ),
         )
 
         # Check that callback visibly modified circuit names
