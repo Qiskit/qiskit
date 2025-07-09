@@ -113,7 +113,7 @@ class ParameterExpression(ParameterExpressionBase):
         "_parameters",
     ]
 
-    def __new__(cls, symbol_map: set, expr, _qpy_replay=None):
+    def __new__(cls, symbol_map, expr, _qpy_replay=None):
         """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -131,7 +131,11 @@ class ParameterExpression(ParameterExpressionBase):
         # on `Parameter` instances already being initialized enough to be hashable.  If changing
         # this method, check that `Parameter.__init__` and `__setstate__` are still valid.
 
+        if symbol_map is not None:
+            if isinstance(symbol_map, dict):
+                symbol_map = set(symbol_map.keys())
         self = super().__new__(cls, symbol_map, expr, _qpy_replay)
+
         if symbol_map is not None:
             self._parameters = symbol_map
         return self
@@ -152,8 +156,15 @@ class ParameterExpression(ParameterExpressionBase):
     #        return output
 
     @property
-    def _parameter_symbols(self) -> set:
-        return self._parameters
+    def _parameter_symbols(self) -> dict:
+        return dict(zip(self._parameters, self._parameters))
+
+    @property
+    def _qpy_replay(self) -> list:
+        replay = self.replay()
+        if replay is None:
+            replay = []
+        return replay
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
@@ -251,7 +262,7 @@ class ParameterExpression(ParameterExpressionBase):
         expr_grad = super().py_gradient(param)
         if isinstance(expr_grad, ParameterExpressionBase):
             parameters = set()
-            params = expr_grad.py_get_parameters()
+            params = expr_grad.parameters
             for p in params:
                 for q in self._parameters:
                     if p == str(q):
@@ -375,11 +386,14 @@ class ParameterExpression(ParameterExpressionBase):
         """
         import sympy
 
-        if self._qpy_replay is None:
-            return None
+        if self.replay() is None:
+            if self.is_symbol:
+                return sympy.Symbol(super().sympify())
+            else:
+                return sympy.sympify(super().sympify())
 
         output = None
-        for inst in self._qpy_replay:
+        for inst in self.replay():
             if isinstance(inst, OPReplay._SUBS):
                 sympy_binds = {}
                 for old, new in inst.binds.items():
@@ -390,7 +404,7 @@ class ParameterExpression(ParameterExpressionBase):
                 continue
 
             if isinstance(inst.lhs, ParameterExpressionBase):
-                if inst.lhs._qpy_replay is None:
+                if inst.lhs.replay() is None:
                     if inst.lhs.is_symbol:
                         lhs = sympy.Symbol(inst.lhs.sympify())
                     else:
@@ -407,7 +421,7 @@ class ParameterExpression(ParameterExpressionBase):
                 if inst.rhs is None:
                     rhs = output
                 elif isinstance(inst.rhs, ParameterExpressionBase):
-                    if inst.rhs._qpy_replay is None:
+                    if inst.rhs.replay() is None:
                         if inst.rhs.is_symbol:
                             rhs = sympy.Symbol(inst.rhs.sympify())
                         else:

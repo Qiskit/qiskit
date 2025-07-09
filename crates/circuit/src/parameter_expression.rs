@@ -682,9 +682,18 @@ impl ParameterExpression {
                                 rhs: None,
                             });
                         }
+                        let mut map = HashMap::<Arc<String>, u128>::new();
+                        let symbols = param.symbols();
+                        if let Some(my_map) = &self.parameter_symbols {
+                            for (k, u) in my_map {
+                                if symbols.get(k.as_ref()).is_some() {
+                                    map.insert(Arc::clone(k), *u);
+                                }
+                            }
+                        }
                         Some(ParameterValueType::Parameter(ParameterExpression {
                             expr: param.clone(),
-                            parameter_symbols: None,
+                            parameter_symbols: Some(map),
                         }))
                     }
                     None => None,
@@ -724,9 +733,18 @@ impl ParameterExpression {
                             });
                         }
                     }
+                    let mut map = HashMap::<Arc<String>, u128>::new();
+                    let symbols = param.symbols();
+                    if let Some(my_map) = &self.parameter_symbols {
+                        for (k, u) in my_map {
+                            if symbols.get(k.as_ref()).is_some() {
+                                map.insert(Arc::clone(k), *u);
+                            }
+                        }
+                    }
                     return Some(ParameterValueType::Parameter(ParameterExpression {
                         expr: param.clone(),
-                        parameter_symbols: None,
+                        parameter_symbols: Some(map),
                     }));
                 }
                 None
@@ -1452,11 +1470,7 @@ impl ParameterExpression {
         }
     }
 
-
-    pub fn py_pow(
-        &self,
-        rhs: &Bound<PyAny>,
-    ) -> PyResult<ParameterExpression> {
+    pub fn py_pow(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(rhs) {
             Some(rhs) => {
                 self._raise_if_parameter_conflict(&rhs)?;
@@ -1467,10 +1481,7 @@ impl ParameterExpression {
             )),
         }
     }
-    pub fn py_rpow(
-        &self,
-        lhs: &Bound<PyAny>,
-    ) -> PyResult<ParameterExpression> {
+    pub fn py_rpow(&self, lhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(lhs) {
             Some(lhs) => {
                 self._raise_if_parameter_conflict(&lhs)?;

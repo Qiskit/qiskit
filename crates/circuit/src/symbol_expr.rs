@@ -1030,24 +1030,24 @@ impl SymbolExpr {
         }
     }
     /// check if evaluated result is 0
-    pub fn is_zero(&self) -> bool {
-        match self.eval(true) {
+    pub fn is_zero(&self, recursive: bool) -> bool {
+        match self.eval(recursive) {
             Some(v) => v.is_zero(),
             None => false,
         }
     }
 
     /// check if evaluated result is 1
-    pub fn is_one(&self) -> bool {
-        match self.eval(true) {
+    pub fn is_one(&self, recursive: bool) -> bool {
+        match self.eval(recursive) {
             Some(v) => v.is_one(),
             None => false,
         }
     }
 
     /// check if evaluated result is -1
-    pub fn is_minus_one(&self) -> bool {
-        match self.eval(true) {
+    pub fn is_minus_one(&self, recursive: bool) -> bool {
+        match self.eval(recursive) {
             Some(v) => v.is_minus_one(),
             None => false,
         }
@@ -1288,7 +1288,7 @@ impl SymbolExpr {
                     BinaryOp::Add => {
                         if l_lhs.is_value() || recursive {
                             if let Some(e) = l_lhs.add_values(rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(l_rhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, l_rhs.as_ref().clone()));
@@ -1297,7 +1297,7 @@ impl SymbolExpr {
                         }
                         if l_rhs.is_value() || recursive {
                             if let Some(e) = l_rhs.add_values(rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(l_lhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, l_lhs.as_ref().clone()));
@@ -1308,7 +1308,7 @@ impl SymbolExpr {
                     BinaryOp::Sub => {
                         if l_lhs.is_value() || recursive {
                             if let Some(e) = l_lhs.add_values(rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(_neg(l_rhs.as_ref().clone()));
                                 } else {
                                     return Some(_sub(e, l_rhs.as_ref().clone()));
@@ -1317,7 +1317,7 @@ impl SymbolExpr {
                         }
                         if l_rhs.is_value() || recursive {
                             if let Some(e) = rhs.sub_values(l_rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(l_lhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, l_lhs.as_ref().clone()));
@@ -1339,7 +1339,7 @@ impl SymbolExpr {
                     BinaryOp::Add => {
                         if r_lhs.is_value() || recursive {
                             if let Some(e) = self.add_values(r_lhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(r_rhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, r_rhs.as_ref().clone()));
@@ -1348,7 +1348,7 @@ impl SymbolExpr {
                         }
                         if r_rhs.is_value() || recursive {
                             if let Some(e) = self.add_values(r_rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(r_lhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, r_lhs.as_ref().clone()));
@@ -1359,7 +1359,7 @@ impl SymbolExpr {
                     BinaryOp::Sub => {
                         if r_lhs.is_value() || recursive {
                             if let Some(e) = self.add_values(r_lhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(_neg(r_rhs.as_ref().clone()));
                                 } else {
                                     return Some(_sub(e, r_rhs.as_ref().clone()));
@@ -1368,7 +1368,7 @@ impl SymbolExpr {
                         }
                         if r_rhs.is_value() || recursive {
                             if let Some(e) = self.sub_values(r_rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(r_lhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, r_lhs.as_ref().clone()));
@@ -1419,7 +1419,7 @@ impl SymbolExpr {
                     BinaryOp::Add => {
                         if l_lhs.is_value() || recursive {
                             if let Some(e) = l_lhs.sub_values(rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(l_rhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, l_rhs.as_ref().clone()));
@@ -1428,7 +1428,7 @@ impl SymbolExpr {
                         }
                         if l_rhs.is_value() || recursive {
                             if let Some(e) = l_rhs.sub_values(rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(l_lhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, l_lhs.as_ref().clone()));
@@ -1439,7 +1439,7 @@ impl SymbolExpr {
                     BinaryOp::Sub => {
                         if l_lhs.is_value() || recursive {
                             if let Some(e) = l_lhs.sub_values(rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(_neg(l_rhs.as_ref().clone()));
                                 } else {
                                     return Some(_sub(e, l_rhs.as_ref().clone()));
@@ -1448,7 +1448,7 @@ impl SymbolExpr {
                         }
                         if l_rhs.is_value() || recursive {
                             if let Some(e) = rhs.add_values(l_rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(l_lhs.as_ref().clone());
                                 } else {
                                     return Some(_add(_neg(e), l_lhs.as_ref().clone()));
@@ -1470,7 +1470,7 @@ impl SymbolExpr {
                     BinaryOp::Add => {
                         if r_lhs.is_value() || recursive {
                             if let Some(e) = self.sub_values(r_lhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(_neg(r_rhs.as_ref().clone()));
                                 } else {
                                     return Some(_sub(e, r_rhs.as_ref().clone()));
@@ -1479,7 +1479,7 @@ impl SymbolExpr {
                         }
                         if r_rhs.is_value() || recursive {
                             if let Some(e) = self.sub_values(r_rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(_neg(r_lhs.as_ref().clone()));
                                 } else {
                                     return Some(_sub(e, r_lhs.as_ref().clone()));
@@ -1490,7 +1490,7 @@ impl SymbolExpr {
                     BinaryOp::Sub => {
                         if r_lhs.is_value() || recursive {
                             if let Some(e) = self.sub_values(r_lhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(r_rhs.as_ref().clone());
                                 } else {
                                     return Some(_add(e, r_rhs.as_ref().clone()));
@@ -1499,7 +1499,7 @@ impl SymbolExpr {
                         }
                         if r_rhs.is_value() || recursive {
                             if let Some(e) = self.add_values(r_rhs, recursive) {
-                                if e.is_zero() {
+                                if e.is_zero(recursive) {
                                     return Some(_neg(r_lhs.as_ref().clone()));
                                 } else {
                                     return Some(_sub(e, r_lhs.as_ref().clone()));
@@ -1546,9 +1546,9 @@ impl SymbolExpr {
                     BinaryOp::Mul => {
                         if l_lhs.is_value() || recursive {
                             if let Some(e) = l_lhs.mul_values(rhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(l_rhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return l_rhs.neg_opt();
                                 }
                                 return Some(_mul(e, l_rhs.as_ref().clone()));
@@ -1556,9 +1556,9 @@ impl SymbolExpr {
                         }
                         if l_rhs.is_value() || recursive {
                             if let Some(e) = l_rhs.mul_values(rhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(l_lhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return l_lhs.neg_opt();
                                 }
                                 return Some(_mul(e, l_lhs.as_ref().clone()));
@@ -1573,9 +1573,9 @@ impl SymbolExpr {
                         }
                         if l_rhs.is_value() || recursive {
                             if let Some(e) = rhs.div_values(l_rhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(l_lhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return l_lhs.neg_opt();
                                 }
                                 return Some(_mul(e, l_lhs.as_ref().clone()));
@@ -1596,9 +1596,9 @@ impl SymbolExpr {
                     BinaryOp::Mul => {
                         if r_lhs.is_value() || recursive {
                             if let Some(e) = self.mul_values(r_lhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(r_rhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return r_rhs.neg_opt();
                                 }
                                 return Some(_mul(e, r_rhs.as_ref().clone()));
@@ -1606,9 +1606,9 @@ impl SymbolExpr {
                         }
                         if r_rhs.is_value() || recursive {
                             if let Some(e) = self.mul_values(r_rhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(r_lhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return r_lhs.neg_opt();
                                 }
                                 return Some(_mul(e, r_lhs.as_ref().clone()));
@@ -1623,9 +1623,9 @@ impl SymbolExpr {
                         }
                         if r_rhs.is_value() || recursive {
                             if let Some(e) = self.div_values(r_rhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(r_lhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return r_lhs.neg_opt();
                                 }
                                 return Some(_mul(e, r_lhs.as_ref().clone()));
@@ -1674,9 +1674,9 @@ impl SymbolExpr {
                     BinaryOp::Mul => {
                         if l_lhs.is_value() || recursive {
                             if let Some(e) = l_lhs.div_values(rhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(l_rhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return l_rhs.neg_opt();
                                 }
                                 return Some(_mul(e, l_rhs.as_ref().clone()));
@@ -1684,9 +1684,9 @@ impl SymbolExpr {
                         }
                         if l_rhs.is_value() || recursive {
                             if let Some(e) = l_rhs.div_values(rhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(l_lhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return l_lhs.neg_opt();
                                 }
                                 return Some(_mul(e, l_lhs.as_ref().clone()));
@@ -1731,9 +1731,9 @@ impl SymbolExpr {
                     BinaryOp::Div => {
                         if r_lhs.is_value() || recursive {
                             if let Some(e) = self.div_values(r_lhs, recursive) {
-                                if e.is_one() {
+                                if e.is_one(recursive) {
                                     return Some(r_rhs.as_ref().clone());
-                                } else if e.is_minus_one() {
+                                } else if e.is_minus_one(recursive) {
                                     return r_rhs.neg_opt();
                                 }
                                 return Some(_mul(e, r_rhs.as_ref().clone()));
@@ -1754,9 +1754,9 @@ impl SymbolExpr {
 
     // Add with heuristic optimization
     fn add_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        if self.is_zero() {
+        if self.is_zero(recursive) {
             Some(rhs.clone())
-        } else if rhs.is_zero() {
+        } else if rhs.is_zero(recursive) {
             Some(self.clone())
         } else {
             // if neg operation, call sub_opt
@@ -1875,7 +1875,7 @@ impl SymbolExpr {
                                         if let Some(v) = SymbolExpr::Value(Value::Int(1))
                                             .add_values(r_lhs, recursive)
                                         {
-                                            if v.is_zero() {
+                                            if v.is_zero(recursive) {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             } else {
                                                 return Some(_mul(v, self.clone()));
@@ -1904,8 +1904,8 @@ impl SymbolExpr {
                     } = rhs
                     {
                         if op == rop {
-                            if let Some(t) = expr.expand().add_opt(&rexpr.expand(), true) {
-                                if t.is_zero() {
+                            if let Some(t) = expr.expand().add_opt(&rexpr.expand(), recursive) {
+                                if t.is_zero(recursive) {
                                     return Some(SymbolExpr::Value(Value::Int(0)));
                                 }
                             }
@@ -1965,7 +1965,7 @@ impl SymbolExpr {
                                         false
                                     };
                                     if equal {
-                                        if v.is_zero() {
+                                        if v.is_zero(recursive) {
                                             return Some(SymbolExpr::Value(Value::Int(0)));
                                         }
                                         match op {
@@ -1993,7 +1993,7 @@ impl SymbolExpr {
                                 if let BinaryOp::Div = op {
                                     if l_rhs == r_rhs {
                                         if let Some(e) = l_lhs.add_opt(r_lhs, true) {
-                                            if e.is_zero() {
+                                            if e.is_zero(recursive) {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             } else {
                                                 return Some(_div(e, l_rhs.as_ref().clone()));
@@ -2003,7 +2003,7 @@ impl SymbolExpr {
                                         let l = l_lhs.as_ref() * r_rhs.as_ref();
                                         let r = r_lhs.as_ref() * l_rhs.as_ref();
                                         if let Some(e) = l.add_opt(&r, true) {
-                                            if e.is_zero() {
+                                            if e.is_zero(recursive) {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             } else if let Some(d) = l_rhs.mul_opt(r_rhs, true) {
                                                 return Some(_div(e, d));
@@ -2023,11 +2023,11 @@ impl SymbolExpr {
                                 if let Some(t) =
                                     l_lhs.add_values(&SymbolExpr::Value(Value::Int(1)), false)
                                 {
-                                    if t.is_zero() {
+                                    if t.is_zero(recursive) {
                                         return Some(SymbolExpr::Value(Value::Int(0)));
-                                    } else if t.is_one() {
+                                    } else if t.is_one(recursive) {
                                         return Some(l_rhs.as_ref().clone());
-                                    } else if t.is_minus_one() {
+                                    } else if t.is_minus_one(recursive) {
                                         return Some(_neg(l_rhs.as_ref().clone()));
                                     } else {
                                         return Some(_mul(t, l_rhs.as_ref().clone()));
@@ -2117,12 +2117,12 @@ impl SymbolExpr {
 
     /// Sub with heuristic optimization
     fn sub_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        if self.is_zero() {
+        if self.is_zero(recursive) {
             match rhs.neg_opt() {
                 Some(e) => Some(e),
                 None => Some(_neg(rhs.clone())),
             }
-        } else if rhs.is_zero() {
+        } else if rhs.is_zero(recursive) {
             Some(self.clone())
         } else {
             // if neg, call add_opt
@@ -2235,7 +2235,7 @@ impl SymbolExpr {
                                         if let Some(v) = SymbolExpr::Value(Value::Int(1))
                                             .sub_values(r_lhs, false)
                                         {
-                                            if v.is_zero() {
+                                            if v.is_zero(recursive) {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             } else {
                                                 return Some(_mul(v, self.clone()));
@@ -2266,7 +2266,7 @@ impl SymbolExpr {
                     {
                         if op == rop {
                             if let Some(t) = expr.expand().sub_opt(&rexpr.expand(), true) {
-                                if t.is_zero() {
+                                if t.is_zero(recursive) {
                                     return Some(SymbolExpr::Value(Value::Int(0)));
                                 }
                             }
@@ -2326,7 +2326,7 @@ impl SymbolExpr {
                                         false
                                     };
                                     if equal {
-                                        if v.is_zero() {
+                                        if v.is_zero(recursive) {
                                             return Some(SymbolExpr::Value(Value::Int(0)));
                                         }
                                         match op {
@@ -2354,7 +2354,7 @@ impl SymbolExpr {
                                 if let BinaryOp::Div = op {
                                     if l_rhs == r_rhs {
                                         if let Some(e) = l_lhs.sub_opt(r_lhs, true) {
-                                            if e.is_zero() {
+                                            if e.is_zero(recursive) {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             } else {
                                                 return Some(_div(e, l_rhs.as_ref().clone()));
@@ -2364,7 +2364,7 @@ impl SymbolExpr {
                                         let l = l_lhs.as_ref() * r_rhs.as_ref();
                                         let r = r_lhs.as_ref() * l_rhs.as_ref();
                                         if let Some(e) = l.sub_opt(&r, true) {
-                                            if e.is_zero() {
+                                            if e.is_zero(recursive) {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             } else if let Some(d) = l_rhs.mul_opt(r_rhs, true) {
                                                 return Some(_div(e, d));
@@ -2382,11 +2382,11 @@ impl SymbolExpr {
                                 if let Some(t) =
                                     l_lhs.sub_values(&SymbolExpr::Value(Value::Int(1)), false)
                                 {
-                                    if t.is_zero() {
+                                    if t.is_zero(recursive) {
                                         return Some(SymbolExpr::Value(Value::Int(0)));
-                                    } else if t.is_one() {
+                                    } else if t.is_one(recursive) {
                                         return Some(l_rhs.as_ref().clone());
-                                    } else if t.is_minus_one() {
+                                    } else if t.is_minus_one(recursive) {
                                         return Some(_neg(l_rhs.as_ref().clone()));
                                     } else {
                                         return Some(_mul(t, l_rhs.as_ref().clone()));
@@ -2476,17 +2476,17 @@ impl SymbolExpr {
 
     /// Mul with heuristic optimization
     fn mul_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        if self.is_zero() || rhs.is_one() {
+        if self.is_zero(recursive) || rhs.is_one(recursive) {
             match self.mul_values(rhs, recursive) {
                 Some(e) => Some(e),
                 None => Some(self.clone()),
             }
-        } else if rhs.is_zero() || self.is_one() {
+        } else if rhs.is_zero(recursive) || self.is_one(recursive) {
             match self.mul_values(rhs, recursive) {
                 Some(e) => Some(e),
                 None => Some(rhs.clone()),
             }
-        } else if self.is_minus_one() {
+        } else if self.is_minus_one(recursive) {
             match self.mul_values(rhs, recursive) {
                 Some(e) => Some(e),
                 None => match rhs.neg_opt() {
@@ -2494,7 +2494,7 @@ impl SymbolExpr {
                     None => Some(_neg(rhs.clone())),
                 },
             }
-        } else if rhs.is_minus_one() {
+        } else if rhs.is_minus_one(recursive) {
             match self.mul_values(rhs, recursive) {
                 Some(e) => Some(e),
                 None => match self.neg_opt() {
@@ -3026,15 +3026,15 @@ impl SymbolExpr {
 
     /// Div with heuristic optimization
     fn div_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
-        if rhs.is_zero() {
+        if rhs.is_zero(recursive) {
             // return inf to detect divide by zero without panic
             Some(SymbolExpr::Value(Value::Real(f64::INFINITY)))
-        } else if rhs.is_one() {
+        } else if rhs.is_one(recursive) {
             match self.div_values(rhs, recursive) {
                 Some(e) => Some(e),
                 None => Some(self.clone()),
             }
-        } else if rhs.is_minus_one() {
+        } else if rhs.is_minus_one(recursive) {
             match self.div_values(rhs, recursive) {
                 Some(e) => Some(e),
                 None => match self.neg_opt() {
@@ -3042,14 +3042,6 @@ impl SymbolExpr {
                     None => Some(_neg(self.clone())),
                 },
             }
-        /*} else if *self == *rhs {
-        let l_is_int = self.is_int().unwrap_or_default();
-        let r_is_int = rhs.is_int().unwrap_or_default();
-        if l_is_int || r_is_int {
-            Some(SymbolExpr::Value(Value::Int(1)))
-        } else {
-            Some(SymbolExpr::Value(Value::Real(1.0)))
-        }*/
         } else {
             if let SymbolExpr::Value(Value::Real(r)) = rhs {
                 let t = 1.0 / r;
@@ -3535,7 +3527,7 @@ impl Neg for &SymbolExpr {
 impl PartialEq for SymbolExpr {
     fn eq(&self, rexpr: &Self) -> bool {
         if let Some(v) = self.sub_values(rexpr, false) {
-            return v.is_zero();
+            return v.is_zero(true);
         }
         if let (Some(l), Some(r)) = (self.eval(true), rexpr.eval(true)) {
             return l == r;
@@ -3557,30 +3549,30 @@ impl PartialEq for SymbolExpr {
                     return true;
                 }
                 match ex_lhs.sub_opt(&ex_rhs, true) {
-                    Some(e) => e.is_zero(),
+                    Some(e) => e.is_zero(true),
                     None => {
                         let t = &ex_lhs - &ex_rhs;
-                        t.is_zero()
+                        t.is_zero(true)
                     }
                 }
             }
             (SymbolExpr::Binary { .. }, _) => {
                 let ex_lhs = self.expand();
                 match ex_lhs.sub_opt(rexpr, true) {
-                    Some(e) => e.is_zero(),
+                    Some(e) => e.is_zero(true),
                     None => {
                         let t = &ex_lhs - rexpr;
-                        t.is_zero()
+                        t.is_zero(true)
                     }
                 }
             }
             (_, SymbolExpr::Binary { .. }) => {
                 let ex_rhs = rexpr.expand();
                 match self.sub_opt(&ex_rhs, true) {
-                    Some(e) => e.is_zero(),
+                    Some(e) => e.is_zero(true),
                     None => {
                         let t = self - &ex_rhs;
-                        t.is_zero()
+                        t.is_zero(true)
                     }
                 }
             }
@@ -3613,7 +3605,7 @@ impl PartialEq<Complex64> for SymbolExpr {
 impl PartialOrd for SymbolExpr {
     fn partial_cmp(&self, rhs: &Self) -> Option<Ordering> {
         if let Some(v) = self.sub_values(rhs, false) {
-            if v.is_zero() {
+            if v.is_zero(true) {
                 return Some(Ordering::Equal);
             } else if v.is_negative() {
                 return Some(Ordering::Less);

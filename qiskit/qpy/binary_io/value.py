@@ -128,14 +128,14 @@ def _encode_replay_subs(subs, file_obj, version):
         if version < 15:
             subs_dict = {k.name: v for k, v in subs.binds.items()}
         else:
-            subs_dict = {uuid.UUID(int=k.uuid).bytes: v for k, v in subs.binds.items()}
+            subs_dict = {k.uuid.bytes: v for k, v in subs.binds.items()}
         common.write_mapping(
             mapping_buf, mapping=subs_dict, serializer=dumps_value, version=version
         )
         data = mapping_buf.getvalue()
     entry = struct.pack(
         formats.PARAM_EXPR_ELEM_V13_PACK,
-        subs.op,
+        int(subs.op),
         "u".encode("utf8"),
         struct.pack("!QQ", len(data), 0),
         "n".encode("utf8"),
@@ -160,7 +160,7 @@ def _write_parameter_expression_v13(file_obj, obj, version):
         )
         entry = struct.pack(
             formats.PARAM_EXPR_ELEM_V13_PACK,
-            inst.op,
+            int(inst.op),
             lhs_type.encode("utf8"),
             lhs,
             rhs_type.encode("utf8"),
