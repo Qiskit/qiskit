@@ -45,6 +45,7 @@ threadpoolctl
 # like `sphinx-design` to make sure that `Qiskit/documentation` will be able to
 # consume it properly.
 Sphinx>=6.0,<7.2
+openqasm-pygments
 reno >= 4.1.0
 sphinxcontrib-katex==0.9.9
 breathe>=4.35.0
