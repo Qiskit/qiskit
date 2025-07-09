@@ -626,7 +626,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
     def test_empty_observable(self):
         """Verify that empty observables are not allowed"""
         with self.assertRaisesRegex(ValueError, "Empty observable"):
-            obsarray = ObservablesArray([{"Z": 0}])
+            ObservablesArray([{"Z": 0}])
 
     def test_hermitian_after_simplification(self):
         """Verify that no error is raised if observables contain complex coeefiicients
