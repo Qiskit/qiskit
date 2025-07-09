@@ -622,3 +622,8 @@ class ObservablesArrayTestCase(QiskitTestCase):
         arr2 = obsarray.sparse_observables_array(copy=False)
         self.assertEqual(arr2, arr)
         self.assertEqual(id(arr2), id(arr))
+
+    def test_empty_observable(self):
+        """Verify that empty observables are not allowed"""
+        with self.assertRaisesRegex(ValueError, "Empty observable"):
+            obsarray = ObservablesArray([{"Z": 0}])

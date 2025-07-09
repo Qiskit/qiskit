@@ -260,7 +260,7 @@ class ObservablesArray(ShapedMixin):
 
         Raises:
             TypeError: If the input cannot be formatted because its type is not valid.
-            ValueError: If the input observable is invalid.
+            ValueError: If the input observable is invalid or empty.
         """
         # Pauli-type conversions
         if isinstance(observable, SparsePauliOp):
