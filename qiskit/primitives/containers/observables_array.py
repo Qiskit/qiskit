@@ -281,8 +281,10 @@ class ObservablesArray(ShapedMixin):
                     raise TypeError(f"Invalid observable basis type: {type(basis)}")
             observable = SparseObservable.from_list(term_list)
 
-        if isinstance(observable, SparseObservable):
-            # Check that the operator has real coeffs
+        if isinstance(observable, SparseObservable):     
+            observable = observable.simplify()
+        
+            # Check that the simplified operator has real coeffs
             coeffs = np.real_if_close(observable.coeffs)
             if np.iscomplexobj(coeffs):
                 raise ValueError(
@@ -290,6 +292,7 @@ class ObservablesArray(ShapedMixin):
                     " imaginary part in its coefficients."
                 )
 
+            # Simplify again the observable with the new coefficients
             observable = SparseObservable.from_raw_parts(
                 observable.num_qubits,
                 coeffs,
@@ -300,6 +303,8 @@ class ObservablesArray(ShapedMixin):
 
             if observable == SparseObservable.zero(observable.num_qubits):
                 raise ValueError("Empty observable was detected.")
+            
+            return observable
 
         raise TypeError(f"Invalid observable type: {type(observable)}")
 
