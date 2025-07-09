@@ -183,7 +183,6 @@ class EstimatorPub(ShapedMixin):
 
         # Cross validate circuits and observables
         for i, observable in np.ndenumerate(self.observables):
-            print("hey", observable)
             num_qubits = len(next(iter(observable)))
             if self.circuit.num_qubits != num_qubits:
                 raise ValueError(
