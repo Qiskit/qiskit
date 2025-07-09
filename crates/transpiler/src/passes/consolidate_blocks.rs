@@ -166,7 +166,6 @@ pub fn run_consolidate_blocks(
                 .map(|(idx, qubit)| (qubit, idx))
                 .collect();
             let circuit_data = CircuitData::from_packed_operations(
-                py,
                 block_qargs.len() as u32,
                 0,
                 block.iter().map(|node| {
