@@ -123,7 +123,6 @@ pub fn pauli_feature_map(
     }
 
     CircuitData::from_packed_operations(
-        py,
         feature_dimension,
         0,
         packed_insts.into_iter().map(Ok),

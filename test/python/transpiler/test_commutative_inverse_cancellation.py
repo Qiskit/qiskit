@@ -19,8 +19,8 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.library import RZGate, UnitaryGate, U2Gate
-from qiskit.quantum_info import Operator
+from qiskit.circuit.library import RZGate, UnitaryGate, U2Gate, Initialize
+from qiskit.quantum_info import Operator, Clifford
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutativeInverseCancellation
 
@@ -877,6 +877,53 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
 
         self.assertEqual(tqc.count_ops().get("u2", 0), 1)
         self.assertEqual(tqc.count_ops().get("rxx", 0), 1)
+
+    def test_clifford(self):
+        """Test a circuit that contains a Clifford."""
+        cliff_circuit = QuantumCircuit(2)
+        cliff_circuit.cx(0, 1)
+        cliff = Clifford(cliff_circuit)
+
+        circuit = QuantumCircuit(2)
+        circuit.s(0)
+        circuit.append(cliff, [0, 1])
+        circuit.sdg(0)
+
+        pm = PassManager(CommutativeInverseCancellation())
+        tqc = pm.run(circuit)
+
+        # The S and Sdg gates should cancel
+        self.assertEqual(tqc.count_ops(), {"clifford": 1})
+
+    def test_control_flow(self):
+        """Test a circuit that contains a control-flow operation."""
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+
+        with circuit.for_loop(range(3)):
+            circuit.cx(1, 0)
+
+        pm = PassManager(CommutativeInverseCancellation())
+        tqc = pm.run(circuit)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(circuit, tqc)
+
+    def test_initialize(self):
+        """Test a circuit with Initialize instruction."""
+        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        initialize = Initialize(desired_vector)
+
+        circuit = QuantumCircuit(2)
+        circuit.append(initialize, [0, 1])
+        circuit.x(1)
+
+        pm = PassManager(CommutativeInverseCancellation())
+        tqc = pm.run(circuit)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(circuit, tqc)
 
 
 if __name__ == "__main__":
