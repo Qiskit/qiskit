@@ -245,11 +245,15 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         Vec::new(),
         false,
     ) {
-        Ok(result) => result,
+        Ok(res) => res,
+        Err(e) => panic!("{}", e),
+    };
+    let out_circuit = match dag_to_circuit(&result, false) {
+        Ok(qc) => qc,
         Err(e) => panic!("{}", e),
     };
     Box::into_raw(Box::new(SabreLayoutResult {
-        circuit: dag_to_circuit(&result, false).expect("Conversion to output circuit failed"),
+        circuit: out_circuit,
         initial_layout,
         final_layout,
     }))
