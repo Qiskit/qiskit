@@ -91,9 +91,49 @@ int test_optimize_h_gates(void) {
     return num_failed;
 }
 
+int test_optimize_identity_target_inner(QkTarget *target) {
+    int result = Ok;
+    // Build circuit
+    QkCircuit *circuit = qk_circuit_new(1, 0);
+    uint32_t qubits[1] = {0};
+    double params_pos[1] = {3.14 / 7.};
+    double params_neg[1] = {-3.14 / 7.};
+    qk_circuit_gate(circuit, QkGate_RY, qubits, params_pos);
+    qk_circuit_gate(circuit, QkGate_RY, qubits, params_neg);
+
+    // Run transpiler pass
+    QkCircuit *circuit_result =
+        qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
+    if (qk_circuit_count_ops(circuit_result).len != 0) {
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_circuit_free(circuit);
+    qk_target_free(target);
+    return result;
+}
+
+int test_optimize_identity_target(void) {
+    int num_failed = 0;
+    QkTarget *targets[4] = {
+        get_u1_u2_u3_target(),
+        get_rz_rx_target(),
+        get_rz_sx_target(),
+        get_rz_yx_u_target(),
+    };
+    for (int idx = 0; idx < 4; idx++) {
+        printf("Call #%u.\n", idx);
+        num_failed += test_optimize_identity_target_inner(targets[idx]);
+    }
+    return num_failed;
+}
+
 int test_optimize_1q_decomposition(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_optimize_h_gates);
+    num_failed += RUN_TEST(test_optimize_identity_target);
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
 
