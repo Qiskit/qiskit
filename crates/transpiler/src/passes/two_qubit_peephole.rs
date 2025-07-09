@@ -229,16 +229,18 @@ fn score_sequence<'a>(
     target: &'a Target,
     kak_gate_name: &str,
     sequence: impl Iterator<Item = (Option<StandardGate>, SmallVec<[Qubit; 2]>)> + 'a,
-) -> (usize, f64) {
-    let mut gate_count = 0;
+) -> (usize, f64, usize) {
+    let mut two_gate_count = 0;
+    let mut total_gate_count = 0;
     let fidelity = sequence
         .filter_map(|(gate, local_qubits)| {
+            total_gate_count += 1;
             let qubits = local_qubits
                 .iter()
                 .map(|qubit| PhysicalQubit(qubit.0))
                 .collect::<Vec<_>>();
             if qubits.len() == 2 {
-                gate_count += 1;
+                two_gate_count += 1;
             }
             let name = match gate.as_ref() {
                 Some(g) => g.name(),
@@ -248,7 +250,7 @@ fn score_sequence<'a>(
             error.map(|error| 1. - error)
         })
         .product::<f64>();
-    (gate_count, 1. - fidelity)
+    (two_gate_count, 1. - fidelity, total_gate_count)
 }
 
 type MappingIterItem = Option<(TwoQubitUnitarySequence, [Qubit; 2])>;
@@ -302,7 +304,8 @@ pub fn two_qubit_unitary_peephole_optimize(
                 .unwrap();
             let matrix = blocks_to_matrix(dag, node_indices, block_qubit_map)?;
             let decomposers = get_decomposers_from_target(target, &block_qubit_map, fidelity)?;
-            let mut decomposer_scores: Vec<Option<(usize, f64)>> = vec![None; decomposers.len()];
+            let mut decomposer_scores: Vec<Option<(usize, f64, usize)>> =
+                vec![None; decomposers.len()];
 
             let order_sequence =
                 |(index_a, sequence_a): &(usize, TwoQubitUnitarySequence),
@@ -311,7 +314,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                         match decomposer_scores[*index_a] {
                             Some(score) => score,
                             None => {
-                                let score: (usize, f64) = score_sequence(
+                                let score: (usize, f64, usize) = score_sequence(
                                     target,
                                     sequence_a.target_name.as_str(),
                                     sequence_a.gate_sequence.gates.iter().map(
@@ -335,7 +338,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                         match decomposer_scores[*index_b] {
                             Some(score) => score,
                             None => {
-                                let score: (usize, f64) = score_sequence(
+                                let score: (usize, f64, usize) = score_sequence(
                                     target,
                                     sequence_b.target_name.as_str(),
                                     sequence_b.gate_sequence.gates.iter().map(
@@ -381,7 +384,8 @@ pub fn two_qubit_unitary_peephole_optimize(
             }
             let sequence = sequence.unwrap();
             let mut original_fidelity: f64 = 1.;
-            let mut original_count: usize = 0;
+            let mut original_2q_count: usize = 0;
+            let original_total_count: usize = node_indices.len();
             let mut outside_target = false;
             for node_index in node_indices {
                 let NodeType::Operation(ref inst) = dag.dag()[*node_index] else {
@@ -393,7 +397,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                     .map(|qubit| PhysicalQubit(qubit.0))
                     .collect();
                 if qubits.len() == 2 {
-                    original_count += 1;
+                    original_2q_count += 1;
                 }
                 let name = inst.op.name();
                 let gate_fidelity = match target.get_error(name, qubits.as_slice()) {
@@ -412,8 +416,12 @@ pub fn two_qubit_unitary_peephole_optimize(
                 };
                 original_fidelity *= gate_fidelity;
             }
-            let original_score = (original_count, 1. - original_fidelity);
-            let new_score: (usize, f64) =
+            let original_score = (
+                original_2q_count,
+                1. - original_fidelity,
+                original_total_count,
+            );
+            let new_score: (usize, f64, usize) =
                 match decomposer_scores[sequence.0] {
                     Some(score) => score,
                     None => score_sequence(
