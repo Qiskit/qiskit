@@ -91,6 +91,7 @@ Optimizations
    Split2QUnitaries
    RemoveIdentityEquivalent
    ContractIdleWiresInControlFlow
+   OptimizeConsecutive
 
 Scheduling
 =============
@@ -227,6 +228,7 @@ from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
 from .optimization import ContractIdleWiresInControlFlow
 from .optimization import OptimizeCliffordT
+from .optimization import OptimizeConsecutive
 
 # circuit analysis
 from .analysis import ResourceEstimation
