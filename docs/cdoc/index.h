@@ -35,7 +35,7 @@
  */
 
 /**
- * @defgroup QkTranspilerPassses QkTranspilerPasses
+ * @defgroup QkTranspilerPasses QkTranspilerPasses
  */
 
 /**
