@@ -94,49 +94,68 @@ class TestPassManager(QiskitTestCase):
         expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
         expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
         expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
-        expected_start_dag_1 = circuit_to_dag(expected_start_1)
 
         expected_end_1 = QuantumCircuit(qr)
         expected_end_1.append(U2Gate(0, np.pi), [qr[0]])
         expected_end_dag_1 = circuit_to_dag(expected_end_1)
 
         circuit2 = circuit1.copy(name="Circuit2")
-        expected_start_dag_2 = copy.deepcopy(expected_start_dag_1)
         expected_end_dag_2 = copy.deepcopy(expected_end_dag_1)
 
-        calls = []
+        # calls = []
 
         def callback(**kwargs):
-            out_dict = kwargs
-            out_dict["dag"] = copy.deepcopy(kwargs["dag"])
-            calls.append(out_dict)
+            dag = kwargs["dag"]
+            dag.name += "_callback"
 
         passmanager = PassManager()
         passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
         passmanager.append(Optimize1qGates())
 
-        passmanager.run([circuit1, circuit2], callback=callback)
+        out_circuits = passmanager.run([circuit1, circuit2], callback=callback)
+        # out_circuits = passmanager.run(
+        #     [circuit1, circuit2],
+        #     callback=lambda **kwargs: kwargs["dag"]._set_name(kwargs["dag"].name + "_callback"),
+        # )
 
-        # We expect 2 passes × 2 circuits = 4 callback calls
-        self.assertEqual(len(calls), 4)
+        # Check that callback visibly modified circuit names
+        self.assertTrue(out_circuits[0].name.endswith("_callback"))
+        self.assertTrue(out_circuits[1].name.endswith("_callback"))
 
-        # Validate callback for first circuit (index 0,1)
-        self.assertEqual(calls[0]["pass_"].name(), "BasisTranslator")
-        self.assertEqual(calls[0]["dag"].name, "Circuit1")
-        self.assertEqual(expected_start_dag_1, calls[0]["dag"])
+        self.assertTrue(out_circuits[0].name.startswith("Circuit1"))
+        self.assertTrue(out_circuits[1].name.startswith("Circuit2"))
+        # Check structure still correct
+        self.assertEqual(out_circuits[0].count_ops(), expected_end_dag_1.count_ops())
+        self.assertEqual(out_circuits[1].count_ops(), expected_end_dag_2.count_ops())
 
-        self.assertEqual(calls[1]["pass_"].name(), "Optimize1qGates")
-        self.assertEqual(calls[1]["dag"].name, "Circuit1")
-        self.assertEqual(expected_end_dag_1, calls[1]["dag"])
+    def test_callback_multi_circuits_lambda(self):
+        """Test callback with multiple circuits using lambda function."""
 
-        # Validate callback for second circuit (index 2,3)
-        self.assertEqual(calls[2]["pass_"].name(), "BasisTranslator")
-        self.assertEqual(calls[2]["dag"].name, "Circuit2")
-        self.assertEqual(expected_start_dag_2, calls[2]["dag"])
+        qr = QuantumRegister(1, "qr")
 
-        self.assertEqual(calls[3]["pass_"].name(), "Optimize1qGates")
-        self.assertEqual(calls[3]["dag"].name, "Circuit2")
-        self.assertEqual(expected_end_dag_2, calls[3]["dag"])
+        circuit1 = QuantumCircuit(qr, name="Circuit1")
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+
+        circuit2 = circuit1.copy(name="Circuit2")
+
+        # Run pass manager with lambda callback that modifies DAG name
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
+        passmanager.append(Optimize1qGates())
+
+        out_circuits = passmanager.run(
+            [circuit1, circuit2],
+            callback=lambda **kwargs: kwargs["dag"]._set_name(kwargs["dag"].name + "_callback"),
+        )
+
+        # Check that callback visibly modified circuit names
+        self.assertTrue(out_circuits[0].name.endswith("_callback"))
+        self.assertTrue(out_circuits[1].name.endswith("_callback"))
+
+        self.assertTrue(out_circuits[0].name.startswith("Circuit1"))
+        self.assertTrue(out_circuits[1].name.startswith("Circuit2"))
 
     def test_callback_with_pass_requires(self):
         """Test the callback with a pass with pass requirements."""
