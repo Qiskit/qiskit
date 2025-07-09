@@ -7,6 +7,9 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit._accelerate.circuit import StandardInstructionType
 from qiskit.qpy import dump, load
 from qiskit.transpiler.passes import ResetAfterMeasureSimplification
+import qiskit.qasm3 as qasm3
+from qiskit.qasm3 import DefcalInstruction
+from qiskit.circuit.classical import types
 
 
 class CustomMeasurement(Measure):
@@ -25,9 +28,9 @@ def create():
     circ.append(CustomMeasurement("measure_3"), [0], [1])
     circ.measure_all()
     print(circ.draw())
-    print(circ.data)
-    print("Is subclass", issubclass(CustomMeasurement, Measure))
-    print("Is instance", isinstance(circ.data[0].operation, Measure))
+    # print(circ.data)
+    # print("Is subclass", issubclass(CustomMeasurement, Measure))
+    # print("Is instance", isinstance(circ.data[0].operation, Measure))
     return circ
 
 def qpy_roundtrip(circ):
@@ -51,16 +54,17 @@ def test_roundtrip(circ, out_circ):
         print(out_item.operation.definition)
 
 
-def qasm3_roundtrip(circ):
-    import qiskit.qasm3 as qasm3
-    print("QASM3 ROUNDTRIP")
-    qasm_str = qasm3.dumps(circ)
-    circ_qasm = qasm3.loads(qasm_str)
-    return circ_qasm
-
+def qasm3_dump(circ):
+    print("QASM3 DUMP")
+    defcals = {
+        "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+    }
+    
+    qasm_str = qasm3.dumps(circ, implicit_defcals=defcals)
+    return qasm_str
 
 qc = create()
-qpy_qc = qpy_roundtrip(qc)
-test_roundtrip(qc, qpy_qc)
-qasm3_qc = qasm3_roundtrip(qc)
-test_roundtrip(qc, qasm3_qc)
+
+qasm_string = qasm3_dump(qc)
+print("OUTPUT STRING:\n")
+print(qasm_string)
