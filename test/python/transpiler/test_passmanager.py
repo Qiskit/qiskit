@@ -134,7 +134,7 @@ class TestPassManager(QiskitTestCase):
 
         circuit2 = circuit1.copy(name="Circuit2")
 
-        # Run pass manager with lambda callback that modifies DAG name
+        # Run pass manager with lambda callback that modifies the DAG by appending XGate
         passmanager = PassManager()
         passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
         passmanager.append(Optimize1qGates())
@@ -148,10 +148,11 @@ class TestPassManager(QiskitTestCase):
             ),
         )
 
-        # Check that callback visibly modified circuit names
-        self.assertTrue(out_circuits[0].name.endswith("_callback"))
-        self.assertTrue(out_circuits[1].name.endswith("_callback"))
+        # Check that callback visibly modified the circuits by adding an XGate
+        self.assertIn("x", out_circuits[0].count_ops())
+        self.assertIn("x", out_circuits[1].count_ops())
 
+        # Optional: structure checks for original circuit
         self.assertTrue(out_circuits[0].name.startswith("Circuit1"))
         self.assertTrue(out_circuits[1].name.startswith("Circuit2"))
 
