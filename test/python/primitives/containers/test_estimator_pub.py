@@ -435,5 +435,3 @@ class EstimatorPubTestCase(QiskitTestCase):
         msg = rf"observables shape \({obs_shape}\) .+ values shape \({params_shape}\) are not"
         with self.assertRaisesRegex(ValueError, msg):
             EstimatorPub(circuit, obs, params)
-
-        
