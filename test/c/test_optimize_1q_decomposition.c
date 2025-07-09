@@ -51,6 +51,7 @@ int test_optimize_h_gates_inner(QkTarget *target, char **gates, uint32_t *freq, 
 
 cleanup:
     qk_circuit_free(circuit);
+    qk_circuit_free(circuit_result);
     qk_target_free(target);
     return result;
 }
@@ -111,6 +112,7 @@ int test_optimize_identity_target_inner(QkTarget *target) {
 
 cleanup:
     qk_circuit_free(circuit);
+    qk_circuit_free(circuit_result);
     qk_target_free(target);
     return result;
 }

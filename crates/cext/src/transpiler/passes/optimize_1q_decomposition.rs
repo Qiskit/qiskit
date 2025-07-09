@@ -56,6 +56,22 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///         qk_target_add_instruction(target_u1_u2_u3, u_entry);
 ///     }
 ///
+///     // Build circuit
+///     QkCircuit *circuit = qk_circuit_new(1, 0);
+///     uint32_t qubits[1] = {0};
+///     for (int iter = 0; iter < 3; iter++) {
+///         qk_circuit_gate(circuit, QkGate_H, qubits, NULL);
+///     }
+///
+///     // Run transpiler pass
+///     QkCircuit *circuit_result =
+///         qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, target);
+///     
+///     // Clean up
+///     qk_target_free(target_u1_u2_u3);
+///     qk_circuit_free(circuit);
+///     qk_circuit_free(circuit_result);
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
