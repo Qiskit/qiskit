@@ -1064,20 +1064,19 @@ impl CircuitData {
         }
     }
 
-    pub fn __delitem__(&mut self, py: Python, index: PySequenceIndex) -> PyResult<()> {
-        self.delitem(py, index.with_len(self.data.len())?)
+    pub fn __delitem__(&mut self, index: PySequenceIndex) -> PyResult<()> {
+        self.delitem(index.with_len(self.data.len())?)
     }
 
     pub fn __setitem__(&mut self, index: PySequenceIndex, value: &Bound<PyAny>) -> PyResult<()> {
         fn set_single(slf: &mut CircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
             let py = value.py();
-            slf.untrack_instruction_parameters(py, index)?;
+            slf.untrack_instruction_parameters(index)?;
             slf.data[index] = slf.pack(py, &value.downcast::<CircuitInstruction>()?.borrow())?;
-            slf.track_instruction_parameters(py, index)?;
+            slf.track_instruction_parameters(index)?;
             Ok(())
         }
 
-        let py = value.py();
         match index.with_len(self.data.len())? {
             SequenceIndex::Int(index) => set_single(self, index, value),
             indices @ SequenceIndex::PosRange {
@@ -1091,14 +1090,11 @@ impl CircuitData {
                     set_single(self, index, value)?;
                 }
                 if indices.len() > values.len() {
-                    self.delitem(
-                        py,
-                        SequenceIndex::PosRange {
-                            start: start + values.len(),
-                            stop,
-                            step: 1,
-                        },
-                    )?
+                    self.delitem(SequenceIndex::PosRange {
+                        start: start + values.len(),
+                        stop,
+                        step: 1,
+                    })?
                 } else {
                     for value in values[indices.len()..].iter().rev() {
                         self.insert(stop as isize, value.downcast()?.borrow())?;
@@ -1143,9 +1139,9 @@ impl CircuitData {
         let packed = self.pack(py, &value)?;
         self.data.insert(index, packed);
         if index == self.data.len() - 1 {
-            self.track_instruction_parameters(py, index)?;
+            self.track_instruction_parameters(index)?;
         } else {
-            self.reindex_parameter_table(py)?;
+            self.reindex_parameter_table()?;
         }
         Ok(())
     }
@@ -1155,7 +1151,7 @@ impl CircuitData {
         let index = index.unwrap_or(PySequenceIndex::Int(-1));
         let native_index = index.with_len(self.data.len())?;
         let item = self.__getitem__(py, index)?;
-        self.delitem(py, native_index)?;
+        self.delitem(native_index)?;
         Ok(item)
     }
 
@@ -1165,7 +1161,7 @@ impl CircuitData {
         let new_index = self.data.len();
         let packed = self.pack(py, &value.borrow())?;
         self.data.push(packed);
-        self.track_instruction_parameters(py, new_index)
+        self.track_instruction_parameters(new_index)
     }
 
     /// Backup entry point for appending an instruction from Python space, in the unusual case that
@@ -1196,7 +1192,6 @@ impl CircuitData {
     }
 
     pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
-        let py = itr.py();
         if let Ok(other) = itr.downcast::<CircuitData>() {
             let other = other.borrow();
             // Fast path to avoid unnecessary construction of CircuitInstruction instances.
@@ -1226,7 +1221,7 @@ impl CircuitData {
                     #[cfg(feature = "cache_pygates")]
                     py_op: inst.py_op.clone(),
                 });
-                self.track_instruction_parameters(py, new_index)?;
+                self.track_instruction_parameters(new_index)?;
             }
             return Ok(());
         }
@@ -1822,7 +1817,6 @@ impl CircuitData {
     ///   add to the circuit
     /// * global_phase: The global phase to use for the circuit
     pub fn from_packed_operations<I>(
-        py: Python,
         num_qubits: u32,
         num_clbits: u32,
         instructions: I,
@@ -1860,7 +1854,7 @@ impl CircuitData {
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
             });
-            res.track_instruction_parameters(py, res.data.len() - 1)?;
+            res.track_instruction_parameters(res.data.len() - 1)?;
         }
         Ok(res)
     }
@@ -1901,7 +1895,6 @@ impl CircuitData {
     /// * variables: variables and stretches to add in order to the new circuit.
     #[allow(clippy::too_many_arguments)]
     pub fn from_packed_instructions<I>(
-        py: Python,
         qubits: ObjectRegistry<Qubit, ShareableQubit>,
         clbits: ObjectRegistry<Clbit, ShareableClbit>,
         qargs_interner: Interner<[Qubit]>,
@@ -1949,7 +1942,7 @@ impl CircuitData {
 
         for inst in instruction_iter {
             res.data.push(inst?);
-            res.track_instruction_parameters(py, res.data.len() - 1)?;
+            res.track_instruction_parameters(res.data.len() - 1)?;
         }
 
         // Add variables and stretches in order
@@ -1985,7 +1978,6 @@ impl CircuitData {
     ///   add to the circuit
     /// * global_phase: The global phase to use for the circuit
     pub fn from_standard_gates<I>(
-        py: Python,
         num_qubits: u32,
         instructions: I,
         global_phase: Param,
@@ -2002,7 +1994,7 @@ impl CircuitData {
             res.data.push(PackedInstruction::from_standard_gate(
                 operation, params, qubits,
             ));
-            res.track_instruction_parameters(py, res.data.len() - 1)?;
+            res.track_instruction_parameters(res.data.len() - 1)?;
         }
         Ok(res)
     }
@@ -2095,7 +2087,6 @@ impl CircuitData {
     /// table.
     fn track_instruction_parameters(
         &mut self,
-        py: Python,
         instruction_index: usize,
     ) -> PyResult<()> {
         let Some(parameters) = self.data[instruction_index].parameters() else {
@@ -2105,6 +2096,9 @@ impl CircuitData {
         match parameters {
             Parameters::Params(params) => {
                 for (index, param) in params.iter().enumerate() {
+                    if matches!(param, Param::Float(_)) {
+                        continue;
+                    }
                     let usage = ParameterUse::Index {
                         instruction: instruction_index,
                         parameter: index as u32,
@@ -2216,7 +2210,6 @@ impl CircuitData {
     /// parameter table.
     fn untrack_instruction_parameters(
         &mut self,
-        py: Python,
         instruction_index: usize,
     ) -> PyResult<()> {
         let Some(parameters) = self.data[instruction_index].parameters() else {
@@ -2226,6 +2219,9 @@ impl CircuitData {
         match parameters {
             Parameters::Params(params) => {
                 for (index, param) in params.iter().enumerate() {
+                    if matches!(param, Param::Float(_)) {
+		        continue;
+                    }
                     let usage = ParameterUse::Index {
                         instruction: instruction_index,
                         parameter: index as u32,
@@ -2337,29 +2333,34 @@ impl CircuitData {
     ///
     /// This is necessary each time an insertion or removal occurs on `self.data` other than in the
     /// last position.
-    fn reindex_parameter_table(&mut self, py: Python) -> PyResult<()> {
+    fn reindex_parameter_table(&mut self) -> PyResult<()> {
         self.param_table.clear();
 
         for inst_index in 0..self.data.len() {
-            self.track_instruction_parameters(py, inst_index)?;
+            self.track_instruction_parameters(inst_index)?;
         }
-        for param_ob in self.global_phase.iter_parameters(py)? {
-            self.param_table
-                .track(&param_ob?, Some(ParameterUse::GlobalPhase))?;
+        if matches!(self.global_phase, Param::Float(_)) {
+            return Ok(());
         }
-        Ok(())
+        Python::with_gil(|py| -> PyResult<()> {
+            for param_ob in self.global_phase.iter_parameters(py)? {
+                self.param_table
+                    .track(&param_ob?, Some(ParameterUse::GlobalPhase))?;
+            }
+            Ok(())
+        })
     }
 
     /// Native internal driver of `__delitem__` that uses a Rust-space version of the
     /// `SequenceIndex`.  This assumes that the `SequenceIndex` contains only in-bounds indices, and
     /// panics if not.
-    fn delitem(&mut self, py: Python, indices: SequenceIndex) -> PyResult<()> {
+    fn delitem(&mut self, indices: SequenceIndex) -> PyResult<()> {
         // We need to delete in reverse order so we don't invalidate higher indices with a deletion.
         for index in indices.descending() {
             self.data.remove(index);
         }
         if !indices.is_empty() {
-            self.reindex_parameter_table(py)?;
+            self.reindex_parameter_table()?;
         }
         Ok(())
     }
@@ -2789,10 +2790,10 @@ impl CircuitData {
     /// * packed: The new packed instruction to insert to the end of the CircuitData
     ///   The qubits and clbits **must** already be present in the interner for this
     ///   function to work. If they are not this will corrupt the circuit.
-    pub fn push(&mut self, py: Python, packed: PackedInstruction) -> PyResult<()> {
+    pub fn push(&mut self, packed: PackedInstruction) -> PyResult<()> {
         let new_index = self.data.len();
         self.data.push(packed);
-        self.track_instruction_parameters(py, new_index)
+        self.track_instruction_parameters(new_index)
     }
 
     /// Add a param to the current global phase of the circuit

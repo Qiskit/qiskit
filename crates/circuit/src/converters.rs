@@ -51,13 +51,8 @@ pub fn circuit_to_dag(
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
-pub fn dag_to_circuit(
-    py: Python,
-    dag: &DAGCircuit,
-    copy_operations: bool,
-) -> PyResult<CircuitData> {
+pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
     CircuitData::from_packed_instructions(
-        py,
         dag.qubits().clone(),
         dag.clbits().clone(),
         dag.qargs_interner().clone(),
@@ -74,18 +69,22 @@ pub fn dag_to_circuit(
             };
             if copy_operations {
                 let op = match instr.op.view() {
-                    OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                    OperationRef::Instruction(instruction) => {
-                        instruction.py_deepcopy(py, None)?.into()
+		    OperationRef::ControlFlow(cf) => cf.clone().into(),
+                    OperationRef::Gate(gate) => {
+                        Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
                     }
-                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        Python::with_gil(|py| instruction.py_deepcopy(py, None))?.into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        Python::with_gil(|py| operation.py_deepcopy(py, None))?.into()
+                    }
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                 };
                 let instr = instr.clone();
-                let mut packed = instr.into_packed(py)?;
+                let mut packed = instr.into_packed()?;
                 packed.op = op;
                 Ok(packed)
             } else {

@@ -190,7 +190,6 @@ fn generate_twirling_set(gate_matrix: ArrayView2<Complex64>) -> Vec<([StandardGa
 }
 
 fn twirl_gate(
-    py: Python,
     circ: &CircuitData,
     rng: &mut Pcg64Mcg,
     out_circ: &mut CircuitData,
@@ -202,21 +201,17 @@ fn twirl_gate(
     let bit_zero = out_circ.add_qargs(std::slice::from_ref(&qubits[0]));
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
     out_circ.push(
-        py,
         PackedInstruction::from_standard_gate(twirl[0], smallvec![], bit_zero),
     )?;
     out_circ.push(
-        py,
         PackedInstruction::from_standard_gate(twirl[1], smallvec![], bit_one),
     )?;
 
-    out_circ.push(py, inst.clone())?;
+    out_circ.push(inst.clone())?;
     out_circ.push(
-        py,
         PackedInstruction::from_standard_gate(twirl[2], smallvec![], bit_zero),
     )?;
     out_circ.push(
-        py,
         PackedInstruction::from_standard_gate(twirl[3], smallvec![], bit_one),
     )?;
 
@@ -241,7 +236,7 @@ fn generate_twirled_circuit(
     for inst in circ.data() {
         if let Some(custom_gate_map) = custom_gate_map {
             if let Some(twirling_set) = custom_gate_map.get(inst.op.name()) {
-                twirl_gate(py, circ, rng, &mut out_circ, twirling_set.as_slice(), inst)?;
+                twirl_gate(circ, rng, &mut out_circ, twirling_set.as_slice(), inst)?;
                 continue;
             }
         }
@@ -249,33 +244,33 @@ fn generate_twirled_circuit(
             InstructionView::StandardGate(StandardGateView(gate, _)) => match gate {
                 StandardGate::CX => {
                     if twirling_mask & CX_MASK != 0 {
-                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
+                        twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[0], inst)?;
                     } else {
-                        out_circ.push(py, inst.clone())?;
+                        out_circ.push(inst.clone())?;
                     }
                 }
                 StandardGate::CZ => {
                     if twirling_mask & CZ_MASK != 0 {
-                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[1], inst)?;
+                        twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[1], inst)?;
                     } else {
-                        out_circ.push(py, inst.clone())?;
+                        out_circ.push(inst.clone())?;
                     }
                 }
                 StandardGate::ECR => {
                     if twirling_mask & ECR_MASK != 0 {
-                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[2], inst)?;
+                        twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[2], inst)?;
                     } else {
-                        out_circ.push(py, inst.clone())?;
+                        out_circ.push(inst.clone())?;
                     }
                 }
                 StandardGate::ISwap => {
                     if twirling_mask & ISWAP_MASK != 0 {
-                        twirl_gate(py, circ, rng, &mut out_circ, TWIRLING_SETS[3], inst)?;
+                        twirl_gate(circ, rng, &mut out_circ, TWIRLING_SETS[3], inst)?;
                     } else {
-                        out_circ.push(py, inst.clone())?;
+                        out_circ.push(inst.clone())?;
                     }
                 }
-                _ => out_circ.push(py, inst.clone())?,
+                _ => out_circ.push(inst.clone())?,
             },
             InstructionView::ControlFlow(control_flow) => {
                 let new_blocks: Vec<PyObject> = control_flow
@@ -315,16 +310,18 @@ fn generate_twirled_circuit(
                         inst.label(),
                     ),
                 )?;
+                    out_circ.push(new_inst)?;
+                    out_circ.push(inst.clone())?;
             }
             _ => {
-                out_circ.push(py, inst.clone())?;
+                out_circ.push(inst.clone())?;
             }
         }
     }
     if optimizer_target.is_some() {
         let mut dag = DAGCircuit::from_circuit_data(out_circ, false)?;
         run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
-        dag_to_circuit(py, &dag, false)
+        dag_to_circuit(&dag, false)
     } else {
         Ok(out_circ)
     }

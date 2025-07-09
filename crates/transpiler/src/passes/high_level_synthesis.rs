@@ -483,13 +483,13 @@ fn run_on_circuitdata(
         //   - improved qubit tracking after a SWAP gate
         //   - automatically simplify control gates with control at 0.
         if ["id", "delay", "barrier"].contains(&inst.op.name()) {
-            output_circuit.push(py, inst.clone())?;
+            output_circuit.push(inst.clone())?;
             // tracker is not updated, these are no-ops
             continue;
         }
 
         if inst.op.name() == "reset" {
-            output_circuit.push(py, inst.clone())?;
+            output_circuit.push(inst.clone())?;
             tracker.set_clean(op_qubits);
             continue;
         }
@@ -497,7 +497,7 @@ fn run_on_circuitdata(
         // Check if synthesis for this operation can be skipped
         let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit::new(*q)).collect();
         if definitely_skip_op(py, data, &inst.op, &op_qargs) {
-            output_circuit.push(py, inst.clone())?;
+            output_circuit.push(inst.clone())?;
             tracker.set_dirty(op_qubits);
             continue;
         }
@@ -557,7 +557,7 @@ fn run_on_circuitdata(
                 inst.clbits,
                 inst.label(),
             );
-            output_circuit.push(py, packed_instruction)?;
+            output_circuit.push(packed_instruction)?;
             tracker.set_dirty(op_qubits);
             continue;
         }
@@ -574,7 +574,7 @@ fn run_on_circuitdata(
             None => {
                 // If the synthesis did not change anything, we add the operation to the output circuit
                 // and update the qubit tracker.
-                output_circuit.push(py, inst.clone())?;
+                output_circuit.push(inst.clone())?;
                 tracker.set_dirty(op_qubits);
             }
             Some((synthesized_circuit, synthesized_circuit_qubits)) => {
@@ -690,7 +690,6 @@ fn extract_definition(py: Python, instr: &impl Instruction) -> PyResult<Option<C
                     let two_qubit_sequence =
                         decomposer.call_inner(unitary.view(), None, false, None)?;
                     let circuit_data = CircuitData::from_standard_gates(
-                        py,
                         2,
                         two_qubit_sequence.gates().iter().map(
                             |(gate, params_floats, qubit_indices)| {
@@ -925,7 +924,7 @@ pub fn run_high_level_synthesis(
         // Regular-path: we synthesize the circuit recursively. Except for
         // this conversion from DAGCircuit to CircuitData and back, all
         // the recursive functions work with CircuitData objects only.
-        let circuit = dag_to_circuit(py, dag, false)?;
+        let circuit = dag_to_circuit(dag, false)?;
 
         let num_qubits = circuit.num_qubits();
         let input_qubits: Vec<usize> = (0..num_qubits).collect();
