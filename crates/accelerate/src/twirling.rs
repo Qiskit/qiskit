@@ -200,20 +200,28 @@ fn twirl_gate(
     let (twirl, twirl_phase) = twirl_set.choose(rng).unwrap();
     let bit_zero = out_circ.add_qargs(std::slice::from_ref(&qubits[0]));
     let bit_one = out_circ.add_qargs(std::slice::from_ref(&qubits[1]));
-    out_circ.push(
-        PackedInstruction::from_standard_gate(twirl[0], smallvec![], bit_zero),
-    )?;
-    out_circ.push(
-        PackedInstruction::from_standard_gate(twirl[1], smallvec![], bit_one),
-    )?;
+    out_circ.push(PackedInstruction::from_standard_gate(
+        twirl[0],
+        smallvec![],
+        bit_zero,
+    ))?;
+    out_circ.push(PackedInstruction::from_standard_gate(
+        twirl[1],
+        smallvec![],
+        bit_one,
+    ))?;
 
     out_circ.push(inst.clone())?;
-    out_circ.push(
-        PackedInstruction::from_standard_gate(twirl[2], smallvec![], bit_zero),
-    )?;
-    out_circ.push(
-        PackedInstruction::from_standard_gate(twirl[3], smallvec![], bit_one),
-    )?;
+    out_circ.push(PackedInstruction::from_standard_gate(
+        twirl[2],
+        smallvec![],
+        bit_zero,
+    ))?;
+    out_circ.push(PackedInstruction::from_standard_gate(
+        twirl[3],
+        smallvec![],
+        bit_one,
+    ))?;
 
     if *twirl_phase != 0. {
         out_circ.add_global_phase(&Param::Float(*twirl_phase))?;
@@ -296,22 +304,17 @@ fn generate_twirled_circuit(
                         )
                     })
                     .collect::<PyResult<_>>()?;
-                out_circ.push(
-                    py,
-                    PackedInstruction::from_control_flow(
-                        inst.op.control_flow().clone(),
-                        {
-                            let mut blocks = inst.parameters().unwrap().clone();
-                            blocks.replace_blocks(new_blocks);
-                            blocks
-                        },
-                        inst.qubits,
-                        inst.clbits,
-                        inst.label(),
-                    ),
-                )?;
-                    out_circ.push(new_inst)?;
-                    out_circ.push(inst.clone())?;
+                out_circ.push(PackedInstruction::from_control_flow(
+                    inst.op.control_flow().clone(),
+                    {
+                        let mut blocks = inst.parameters().unwrap().clone();
+                        blocks.replace_blocks(new_blocks);
+                        blocks
+                    },
+                    inst.qubits,
+                    inst.clbits,
+                    inst.label(),
+                ))?;
             }
             _ => {
                 out_circ.push(inst.clone())?;

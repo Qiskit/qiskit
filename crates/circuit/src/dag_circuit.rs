@@ -213,44 +213,56 @@ impl DAGInstruction {
         })
     }
 
-    pub fn into_packed(self, py: Python) -> PyResult<PackedInstruction> {
-        let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
+    pub fn into_packed(self) -> PyResult<PackedInstruction> {
         let params: Option<Parameters<PyObject>> = match self.params.map(|p| *p) {
             None => None,
-            Some(Parameters::Box { body }) => Some(Parameters::Box {
-                body: dag_to_circuit.call1((body,))?.unbind(),
-            }),
+            Some(Parameters::Box { body }) => Python::with_gil(|py| -> PyResult<_> {
+                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
+                Ok(Some(Parameters::Box {
+                    body: dag_to_circuit.call1((body,))?.unbind(),
+                }))
+            })?,
             Some(Parameters::ForLoop {
                 indexset,
                 loop_param,
                 body,
-            }) => Some(Parameters::ForLoop {
-                indexset,
-                loop_param,
-                body: dag_to_circuit.call1((body,))?.unbind(),
-            }),
+            }) => Python::with_gil(|py| -> PyResult<_> {
+                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
+                Ok(Some(Parameters::ForLoop {
+                    indexset,
+                    loop_param,
+                    body: dag_to_circuit.call1((body,))?.unbind(),
+                }))
+            })?,
             Some(Parameters::IfElse {
                 true_body,
                 false_body,
-            }) => {
+            }) => Python::with_gil(|py| -> PyResult<_> {
+                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
                 let false_body = match false_body {
                     Some(body) => Some(dag_to_circuit.call1((body,))?.unbind()),
                     None => None,
                 };
-                Some(Parameters::IfElse {
+                Ok(Some(Parameters::IfElse {
                     true_body: dag_to_circuit.call1((true_body,))?.unbind(),
                     false_body,
-                })
-            }
-            Some(Parameters::Switch { cases }) => Some(Parameters::Switch {
-                cases: cases
-                    .into_iter()
-                    .map(|c| Ok(dag_to_circuit.call1((c,))?.unbind()))
-                    .collect::<PyResult<_>>()?,
-            }),
-            Some(Parameters::While { body }) => Some(Parameters::While {
-                body: dag_to_circuit.call1((body,))?.unbind(),
-            }),
+                }))
+            })?,
+            Some(Parameters::Switch { cases }) => Python::with_gil(|py| -> PyResult<_> {
+                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
+                Ok(Some(Parameters::Switch {
+                    cases: cases
+                        .into_iter()
+                        .map(|c| Ok(dag_to_circuit.call1((c,))?.unbind()))
+                        .collect::<PyResult<_>>()?,
+                }))
+            })?,
+            Some(Parameters::While { body }) => Python::with_gil(|py| -> PyResult<_> {
+                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
+                Ok(Some(Parameters::While {
+                    body: dag_to_circuit.call1((body,))?.unbind(),
+                }))
+            })?,
             Some(Parameters::Params(params)) => Some(Parameters::Params(params)),
         };
         Ok(PackedInstruction {
@@ -305,26 +317,26 @@ impl DAGInstruction {
             // and we have mutable state set.
             (OperationRef::StandardGate(_left), OperationRef::Gate(right)) => self
                 .clone()
-                .into_packed(py)?
+                .into_packed()?
                 .unpack_py_op(py)?
                 .bind(py)
                 .eq(&right.gate),
             (OperationRef::Gate(left), OperationRef::StandardGate(_right)) => other
                 .clone()
-                .into_packed(py)?
+                .into_packed()?
                 .unpack_py_op(py)?
                 .bind(py)
                 .eq(&left.gate),
             // Handle the case we end up with a pyinstruction for a standard instruction
             (OperationRef::StandardInstruction(_left), OperationRef::Instruction(right)) => self
                 .clone()
-                .into_packed(py)?
+                .into_packed()?
                 .unpack_py_op(py)?
                 .bind(py)
                 .eq(&right.instruction),
             (OperationRef::Instruction(left), OperationRef::StandardInstruction(_right)) => other
                 .clone()
-                .into_packed(py)?
+                .into_packed()?
                 .unpack_py_op(py)?
                 .bind(py)
                 .eq(&left.instruction),
@@ -2650,7 +2662,7 @@ impl DAGCircuit {
                                                     .get_bound(py)
                                                     .call1((Uuid::new_v4().to_string(),))?;
                                                 let mut body_a_circuit =
-                                                    converters::dag_to_circuit(py, body_a, false)?;
+                                                    converters::dag_to_circuit(body_a, false)?;
                                                 if body_a_circuit
                                                     .get_parameters(py)
                                                     .contains(loop_param_a)?
@@ -2682,7 +2694,7 @@ impl DAGCircuit {
                                                 )?;
 
                                                 let mut body_b_circuit =
-                                                    converters::dag_to_circuit(py, body_b, false)?;
+                                                    converters::dag_to_circuit(body_b, false)?;
                                                 if body_b_circuit
                                                     .get_parameters(py)
                                                     .contains(loop_param_b)?
@@ -3539,7 +3551,7 @@ impl DAGCircuit {
             } = self.dag[node_index]
                 .unwrap_operation()
                 .clone()
-                .into_packed(py)?;
+                .into_packed()?;
             let temp: OperationFromPython = op.extract()?;
             node.instruction.operation = temp.operation;
             node.instruction.params = params.map(|p| *p);
@@ -6617,7 +6629,7 @@ impl DAGCircuit {
             )?
             .into_any(),
             NodeType::Operation(packed) => {
-                let packed = packed.clone().into_packed(py)?;
+                let packed = packed.clone().into_packed()?;
                 let qubits = self.qargs_interner.get(packed.qubits);
                 let clbits = self.cargs_interner.get(packed.clbits);
                 Py::new(

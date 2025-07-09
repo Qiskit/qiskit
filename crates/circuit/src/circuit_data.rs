@@ -2085,10 +2085,7 @@ impl CircuitData {
 
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
     /// table.
-    fn track_instruction_parameters(
-        &mut self,
-        instruction_index: usize,
-    ) -> PyResult<()> {
+    fn track_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
         let Some(parameters) = self.data[instruction_index].parameters() else {
             return Ok(());
         };
@@ -2103,104 +2100,122 @@ impl CircuitData {
                         instruction: instruction_index,
                         parameter: index as u32,
                     };
-                    for param_ob in param.iter_parameters(py)? {
-                        self.param_table.track(&param_ob?, Some(usage))?;
-                    }
+                    Python::with_gil(|py| -> PyResult<_> {
+                        for param_ob in param.iter_parameters(py)? {
+                            self.param_table.track(&param_ob?, Some(usage))?;
+                        }
+                        Ok(())
+                    })?;
                 }
             }
             Parameters::Box { body } => {
-                let usage = ParameterUse::Index {
-                    instruction: instruction_index,
-                    parameter: 0,
-                };
-                for param_ob in body
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
-                    self.param_table.track(&param_ob?, Some(usage))?;
-                }
+                Python::with_gil(|py| -> PyResult<_> {
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 0,
+                    };
+                    for param_ob in body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.track(&param_ob?, Some(usage))?;
+                    }
+                    Ok(())
+                })?;
             }
             Parameters::ForLoop {
                 loop_param, body, ..
             } => {
-                if let Some(loop_param) = loop_param {
-                    self.param_table.track(
-                        loop_param.bind(py),
-                        Some(ParameterUse::Index {
-                            instruction: instruction_index,
-                            parameter: 1,
-                        }),
-                    )?;
-                }
-                let usage = ParameterUse::Index {
-                    instruction: instruction_index,
-                    parameter: 2,
-                };
-                for param_ob in body
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
-                    self.param_table.track(&param_ob?, Some(usage))?;
-                }
+                Python::with_gil(|py| -> PyResult<_> {
+                    if let Some(loop_param) = loop_param {
+                        self.param_table.track(
+                            loop_param.bind(py),
+                            Some(ParameterUse::Index {
+                                instruction: instruction_index,
+                                parameter: 1,
+                            }),
+                        )?;
+                    }
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 2,
+                    };
+                    for param_ob in body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.track(&param_ob?, Some(usage))?;
+                    }
+                    Ok(())
+                })?;
             }
             Parameters::IfElse {
                 true_body,
                 false_body,
             } => {
-                let true_usage = ParameterUse::Index {
-                    instruction: instruction_index,
-                    parameter: 0,
-                };
-                for param_ob in true_body
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
-                    self.param_table.track(&param_ob?, Some(true_usage))?;
-                }
-                if let Some(false_body) = false_body {
-                    let false_usage = ParameterUse::Index {
+                Python::with_gil(|py| -> PyResult<_> {
+                    let true_usage = ParameterUse::Index {
                         instruction: instruction_index,
-                        parameter: 1,
+                        parameter: 0,
                     };
-                    for param_ob in false_body
+                    for param_ob in true_body
                         .bind(py)
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
-                        self.param_table.track(&param_ob?, Some(false_usage))?;
+                        self.param_table.track(&param_ob?, Some(true_usage))?;
                     }
-                }
+                    if let Some(false_body) = false_body {
+                        let false_usage = ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: 1,
+                        };
+                        for param_ob in false_body
+                            .bind(py)
+                            .getattr(intern!(py, "parameters"))?
+                            .try_iter()?
+                        {
+                            self.param_table.track(&param_ob?, Some(false_usage))?;
+                        }
+                    }
+                    Ok(())
+                })?;
             }
             Parameters::Switch { cases } => {
-                for (idx, case) in cases.iter().enumerate() {
+                Python::with_gil(|py| -> PyResult<_> {
+                    for (idx, case) in cases.iter().enumerate() {
+                        let usage = ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: idx as u32,
+                        };
+                        for param_ob in case
+                            .bind(py)
+                            .getattr(intern!(py, "parameters"))?
+                            .try_iter()?
+                        {
+                            self.param_table.track(&param_ob?, Some(usage))?;
+                        }
+                    }
+                    Ok(())
+                })?;
+            }
+            Parameters::While { body } => {
+                Python::with_gil(|py| -> PyResult<_> {
                     let usage = ParameterUse::Index {
                         instruction: instruction_index,
-                        parameter: idx as u32,
+                        parameter: 0,
                     };
-                    for param_ob in case
+                    for param_ob in body
                         .bind(py)
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
                         self.param_table.track(&param_ob?, Some(usage))?;
                     }
-                }
-            }
-            Parameters::While { body } => {
-                let usage = ParameterUse::Index {
-                    instruction: instruction_index,
-                    parameter: 0,
-                };
-                for param_ob in body
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
-                    self.param_table.track(&param_ob?, Some(usage))?;
-                }
+                    Ok(())
+                })?;
             }
         }
         Ok(())
@@ -2208,10 +2223,7 @@ impl CircuitData {
 
     /// Remove the entries from the `PackedInstruction` at the given index from the internal
     /// parameter table.
-    fn untrack_instruction_parameters(
-        &mut self,
-        instruction_index: usize,
-    ) -> PyResult<()> {
+    fn untrack_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
         let Some(parameters) = self.data[instruction_index].parameters() else {
             return Ok(());
         };
@@ -2220,15 +2232,18 @@ impl CircuitData {
             Parameters::Params(params) => {
                 for (index, param) in params.iter().enumerate() {
                     if matches!(param, Param::Float(_)) {
-		        continue;
+                        continue;
                     }
                     let usage = ParameterUse::Index {
                         instruction: instruction_index,
                         parameter: index as u32,
                     };
-                    for param_ob in param.iter_parameters(py)? {
-                        self.param_table.untrack(&param_ob?, usage)?;
-                    }
+                    Python::with_gil(|py| -> PyResult<_> {
+                        for param_ob in param.iter_parameters(py)? {
+                            self.param_table.untrack(&param_ob?, usage)?;
+                        }
+                        Ok(())
+                    })?;
                 }
             }
             Parameters::Box { body } => {
@@ -2236,94 +2251,109 @@ impl CircuitData {
                     instruction: instruction_index,
                     parameter: 0,
                 };
-                for param_ob in body
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
-                    self.param_table.untrack(&param_ob?, usage)?;
-                }
-            }
-            Parameters::ForLoop {
-                loop_param, body, ..
-            } => {
-                if let Some(loop_param) = loop_param {
-                    self.param_table.untrack(
-                        loop_param.bind(py),
-                        ParameterUse::Index {
-                            instruction: instruction_index,
-                            parameter: 1,
-                        },
-                    )?;
-                }
-                let usage = ParameterUse::Index {
-                    instruction: instruction_index,
-                    parameter: 2,
-                };
-                for param_ob in body
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
-                    self.param_table.untrack(&param_ob?, usage)?;
-                }
-            }
-            Parameters::IfElse {
-                true_body,
-                false_body,
-            } => {
-                let true_usage = ParameterUse::Index {
-                    instruction: instruction_index,
-                    parameter: 0,
-                };
-                for param_ob in true_body
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
-                    self.param_table.untrack(&param_ob?, true_usage)?;
-                }
-                if let Some(false_body) = false_body {
-                    let false_usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 1,
-                    };
-                    for param_ob in false_body
-                        .bind(py)
-                        .getattr(intern!(py, "parameters"))?
-                        .try_iter()?
-                    {
-                        self.param_table.untrack(&param_ob?, false_usage)?;
-                    }
-                }
-            }
-            Parameters::Switch { cases } => {
-                for (idx, case) in cases.iter().enumerate() {
-                    let usage = ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: idx as u32,
-                    };
-                    for param_ob in case
+                Python::with_gil(|py| -> PyResult<_> {
+                    for param_ob in body
                         .bind(py)
                         .getattr(intern!(py, "parameters"))?
                         .try_iter()?
                     {
                         self.param_table.untrack(&param_ob?, usage)?;
                     }
-                }
+                    Ok(())
+                })?;
+            }
+            Parameters::ForLoop {
+                loop_param, body, ..
+            } => {
+                Python::with_gil(|py| -> PyResult<_> {
+                    if let Some(loop_param) = loop_param {
+                        self.param_table.untrack(
+                            loop_param.bind(py),
+                            ParameterUse::Index {
+                                instruction: instruction_index,
+                                parameter: 1,
+                            },
+                        )?;
+                    }
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 2,
+                    };
+                    for param_ob in body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.untrack(&param_ob?, usage)?;
+                    }
+                    Ok(())
+                })?;
+            }
+            Parameters::IfElse {
+                true_body,
+                false_body,
+            } => {
+                Python::with_gil(|py| -> PyResult<_> {
+                    let true_usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 0,
+                    };
+                    for param_ob in true_body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.untrack(&param_ob?, true_usage)?;
+                    }
+                    if let Some(false_body) = false_body {
+                        let false_usage = ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: 1,
+                        };
+                        for param_ob in false_body
+                            .bind(py)
+                            .getattr(intern!(py, "parameters"))?
+                            .try_iter()?
+                        {
+                            self.param_table.untrack(&param_ob?, false_usage)?;
+                        }
+                    }
+                    Ok(())
+                })?;
+            }
+            Parameters::Switch { cases } => {
+                Python::with_gil(|py| -> PyResult<_> {
+                    for (idx, case) in cases.iter().enumerate() {
+                        let usage = ParameterUse::Index {
+                            instruction: instruction_index,
+                            parameter: idx as u32,
+                        };
+                        for param_ob in case
+                            .bind(py)
+                            .getattr(intern!(py, "parameters"))?
+                            .try_iter()?
+                        {
+                            self.param_table.untrack(&param_ob?, usage)?;
+                        }
+                    }
+                    Ok(())
+                })?;
             }
             Parameters::While { body } => {
-                let usage = ParameterUse::Index {
-                    instruction: instruction_index,
-                    parameter: 0,
-                };
-                for param_ob in body
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
-                    self.param_table.untrack(&param_ob?, usage)?;
-                }
+                Python::with_gil(|py| -> PyResult<_> {
+                    let usage = ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 0,
+                    };
+                    for param_ob in body
+                        .bind(py)
+                        .getattr(intern!(py, "parameters"))?
+                        .try_iter()?
+                    {
+                        self.param_table.untrack(&param_ob?, usage)?;
+                    }
+                    Ok(())
+                })?;
             }
         }
         Ok(())

@@ -69,7 +69,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
             };
             if copy_operations {
                 let op = match instr.op.view() {
-		    OperationRef::ControlFlow(cf) => cf.clone().into(),
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::Gate(gate) => {
                         Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
                     }
@@ -88,7 +88,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                 packed.op = op;
                 Ok(packed)
             } else {
-                instr.clone().into_packed(py)
+                instr.clone().into_packed()
             }
         }),
         dag.get_global_phase(),
