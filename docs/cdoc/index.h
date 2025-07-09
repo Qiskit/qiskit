@@ -41,3 +41,7 @@
 /**
  * @defgroup QkVF2LayoutResult QkVF2LayoutResult
  */
+
+/**
+ * @defgroup QkSplit2qUnitariesResult QkSplit2qUnitariesResult
+ */
