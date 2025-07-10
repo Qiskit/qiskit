@@ -12,10 +12,15 @@
 
 /// Remove diagonal gates (including diagonal 2Q gates) before a measurement.
 use pyo3::prelude::*;
+use rayon::prelude::*;
+use rustworkx_core::petgraph::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::getenv_use_multiple_threads;
+use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
+use qiskit_circuit::operations::StandardInstruction;
+use qiskit_circuit::packed_instruction::PackedInstruction;
 
 /// Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
 /// Args:
@@ -46,44 +51,61 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> 
     ];
     static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZ];
 
-    let mut nodes_to_remove = Vec::new();
-    for (index, inst) in dag.op_nodes(true) {
-        if inst.op.name() == "measure" {
+    let run_in_parallel = getenv_use_multiple_threads();
+
+    let process_node = |index: NodeIndex, inst: &PackedInstruction| {
+        if matches!(
+            inst.op.view(),
+            OperationRef::StandardInstruction(StandardInstruction::Measure)
+        ) {
             let predecessor = (dag.quantum_predecessors(index))
                 .next()
                 .expect("index is an operation node, so it must have a predecessor.");
 
-            match &dag[predecessor] {
-                NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
-                    Some(gate) => {
-                        if DIAGONAL_1Q_GATES.contains(&gate) {
-                            nodes_to_remove.push(predecessor);
-                        } else if DIAGONAL_2Q_GATES.contains(&gate)
-                            || DIAGONAL_3Q_GATES.contains(&gate)
-                        {
-                            let mut successors = dag.quantum_successors(predecessor);
-                            if successors.all(|s| {
-                                let node_s = &dag.dag()[s];
-                                if let NodeType::Operation(inst_s) = node_s {
-                                    inst_s.op.name() == "measure"
-                                } else {
-                                    false
-                                }
-                            }) {
-                                nodes_to_remove.push(predecessor);
-                            }
+            let NodeType::Operation(ref pred_inst) = dag[predecessor] else {
+                return None;
+            };
+            if let Some(gate) = pred_inst.standard_gate() {
+                if DIAGONAL_1Q_GATES.contains(&gate) {
+                    return Some(predecessor);
+                } else if DIAGONAL_2Q_GATES.contains(&gate) || DIAGONAL_3Q_GATES.contains(&gate) {
+                    let mut successors = dag.quantum_successors(predecessor);
+                    if successors.all(|s| {
+                        let node_s = &dag.dag()[s];
+                        if let NodeType::Operation(inst_s) = node_s {
+                            matches!(
+                                inst_s.op.view(),
+                                OperationRef::StandardInstruction(StandardInstruction::Measure)
+                            )
+                        } else {
+                            false
                         }
+                    }) {
+                        return Some(predecessor);
                     }
-                    None => {
-                        continue;
-                    }
-                },
-                _ => {
-                    continue;
                 }
             }
         }
-    }
+        None
+    };
+
+    let nodes_to_remove: Vec<NodeIndex> = if run_in_parallel {
+        let node_indices = dag.dag().node_indices().collect::<Vec<_>>();
+        node_indices
+            .into_par_iter()
+            .filter_map(|index| {
+                if let NodeType::Operation(ref inst) = dag.dag()[index] {
+                    process_node(index, inst)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    } else {
+        dag.op_nodes(true)
+            .filter_map(|x| process_node(x.0, x.1))
+            .collect()
+    };
 
     for node_to_remove in nodes_to_remove {
         if dag.dag().node_weight(node_to_remove).is_some() {
