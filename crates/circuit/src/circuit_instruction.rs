@@ -844,7 +844,9 @@ impl<'py> FromPyObject<'py> for OperationFromPython {
                     let unit: Option<String> = ob.getattr(intern!(py, "unit"))?.extract()?;
                     let duration = if let Some(py_duration) = py_duration {
                         Some(match unit.as_deref().unwrap_or("dt") {
-                            "dt" => BoxDuration::Duration(Duration::dt(py_duration.extract()?)),
+                            "dt" => BoxDuration::Duration(Duration::dt(
+                                py_duration.extract::<f64>()? as i64,
+                            )),
                             "s" => BoxDuration::Duration(Duration::s(py_duration.extract()?)),
                             "ms" => BoxDuration::Duration(Duration::ms(py_duration.extract()?)),
                             "us" => BoxDuration::Duration(Duration::us(py_duration.extract()?)),
