@@ -7,7 +7,7 @@ features_c:
 
     Here's an example:
 
-    .. code-block:: Create
+    .. code-block:: C
 
       // Build a circuit
       QkCircuit *circuit = qk_circuit_new(1, 0);
