@@ -18,10 +18,12 @@
 // `write` method into a `Cursor` buffer, but there might be exceptions.
 
 use hashbrown::HashMap;
+use numpy::IntoPyArray;
 use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::types::IntoPyDict;
 use pyo3::types::PyString;
 use pyo3::types::{PyAny, PyBytes, PyDict, PyIterator, PyList, PyTuple};
 use qiskit_circuit::bit::Register;
@@ -29,12 +31,11 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::CircuitInstruction;
+use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::imports;
 
 use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::operations::PyGate;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -538,8 +539,8 @@ fn unpack_instruction(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYData,
 ) -> PyResult<Instruction> {
-    let name = &instruction.gate_class_name;
-    let params: Vec<Param> = instruction
+    let name = instruction.gate_class_name.clone();
+    let mut params: Vec<Param> = instruction
         .params
         .iter()
         .map(|packed_param| unpack_param(py, packed_param, qpy_data))
@@ -550,7 +551,7 @@ fn unpack_instruction(
         PackedOperation::from_standard_instruction(std_instruction)
     } else {
         let gate_class = get_python_gate_class(py, &instruction.gate_class_name)?;
-        let py_params: Vec<Bound<'_, PyAny>> = params
+        let mut py_params: Vec<Bound<'_, PyAny>> = params
             .iter()
             .map(|param: &Param| param.into_pyobject(py))
             .collect::<PyResult<_>>()?;
@@ -560,21 +561,48 @@ fn unpack_instruction(
                 let args = PyTuple::new(py, &py_params)?;
                 gate_class.call1(args)?
             }
+            "BoxOp" => {
+                if py_params.len() < 2 {
+                    return Err(PyValueError::new_err(format!(
+                        "BoxOp instruction has only {:?} params; should have at least 2",
+                        py_params.len()
+                    )));
+                }
+                let unit = py_params.pop().unwrap();
+                params.pop();
+                let duration = py_params.pop().unwrap();
+                params.pop();
+                let annotations = match &instruction.annotations {
+                    Some(annotation_pack) => annotation_pack
+                        .annotations
+                        .iter()
+                        .map(|annotation| {
+                            qpy_data
+                                .annotation_handler
+                                .load(annotation.namespace_index, annotation.payload.clone())
+                        })
+                        .collect::<PyResult<_>>()?,
+                    None => Vec::new(),
+                }
+                .into_pyarray(py)
+                .into_any();
+                let kwargs = [
+                    ("unit", unit),
+                    ("duration", duration),
+                    ("annotations", annotations),
+                ]
+                .into_py_dict(py)?;
+                //let kwargs = [("duration", 22)].into_py_dict(py)?;
+                let args = PyTuple::new(py, &py_params)?;
+                gate_class.call(args, Some(&kwargs))?
+            }
             _ => {
                 let args = PyTuple::new(py, &py_params)?;
                 gate_class.call1(args)?
             }
         };
-
-        // let gate_object = gate_class.call0()?;
-        let pygate = PyGate {
-            qubits: instruction.num_qargs,
-            clbits: instruction.num_cargs,
-            params: instruction.params.len() as u32,
-            op_name: name.clone(),
-            gate: gate_object.unbind(),
-        };
-        PackedOperation::from_gate(Box::new(pygate))
+        let op_parts = gate_object.extract::<OperationFromPython>()?;
+        op_parts.operation
     };
     let mut qubits = Vec::new();
     let mut clbits = Vec::new();
@@ -1428,6 +1456,15 @@ pub fn deserialize_circuit<'py>(
         annotation_handler,
     };
     let (packed_circuit, _) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
+    let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
+        .annotation_headers
+        .state_headers
+        .iter()
+        .map(|data| (data.namespace.clone(), data.state.clone()))
+        .collect();
+    qpy_data
+        .annotation_handler
+        .load_deserializers(annotation_deserializers_data)?;
     let num_qubits = packed_circuit.header.num_qubits;
     let num_clbits = packed_circuit.header.num_clbits;
     let global_phase = packed_circuit

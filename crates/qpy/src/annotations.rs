@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 use crate::bytes::Bytes;
 use hashbrown::HashMap;
+use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyIterator, PyNotImplemented};
 /// The purpose of AnnotationsSerializer is to keep track of all the annotation serializers at once.
@@ -24,6 +25,7 @@ pub struct AnnotationHandler {
     factories: HashMap<String, Py<PyAny>>,
     pub serializers: HashMap<String, (usize, Py<PyAny>)>,
     potential_serializers: HashMap<String, Py<PyAny>>,
+    pub deserializers: Vec<Py<PyAny>>,
 }
 
 impl AnnotationHandler {
@@ -40,11 +42,14 @@ impl AnnotationHandler {
             }
             let serializers = HashMap::new();
             let potential_serializers = HashMap::new();
+            // deserializers are created on demand based on the QPY annotation headers
+            let deserializers = Vec::new();
             AnnotationHandler {
                 annotation_factories: annotation_factories.clone(),
                 factories,
                 serializers,
                 potential_serializers,
+                deserializers,
             }
         })
     }
@@ -108,6 +113,17 @@ impl AnnotationHandler {
         Ok((0, Bytes(Vec::new())))
     }
 
+    pub fn load(&self, index: u32, payload: Bytes) -> PyResult<Py<PyAny>> {
+        Python::with_gil(|py| {
+            if let Some(deserializer) = self.deserializers.get(index as usize) {
+                deserializer.call_method1(py, "load_annotation", (payload,))
+            } else {
+                Err(PyIndexError::new_err(format!(
+                    "Annotation deserializer index {:?} out of range (0...{:?}), is too large and would overflow", index, self.deserializers.len())))
+            }
+        })
+    }
+
     pub fn dump_serializers(&self) -> PyResult<Vec<(String, Bytes)>> {
         // we need to be a little careful to keep the result sorted by index order
         let mut result: Vec<Option<(String, Bytes)>> = vec![None; self.serializers.len()];
@@ -119,5 +135,23 @@ impl AnnotationHandler {
             Ok(())
         })?;
         Ok(result.into_iter().flatten().collect())
+    }
+
+    pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> PyResult<()> {
+        Python::with_gil(|py| -> PyResult<()> {
+            for (namespace, state) in data {
+                if let Some(factory) = self.factories.get(&namespace) {
+                    let serializer = factory.call0(py)?;
+                    serializer.call_method1(
+                        py,
+                        "load_state",
+                        (namespace.clone(), state.clone()),
+                    )?;
+                    self.deserializers.push(serializer);
+                };
+            }
+            Ok(())
+        })?;
+        Ok(())
     }
 }

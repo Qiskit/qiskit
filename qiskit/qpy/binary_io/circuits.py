@@ -1578,7 +1578,11 @@ def read_circuit(
     """
 
     if use_rust:
-        return _qpy.py_read_circuit(file_obj, version, metadata_deserializer, use_symengine)
+        if annotation_factories is None:
+            annotation_factories = {}
+        return _qpy.py_read_circuit(
+            file_obj, version, metadata_deserializer, use_symengine, annotation_factories
+        )
 
     vectors = {}
     if version < 2:

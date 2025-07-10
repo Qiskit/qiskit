@@ -14,7 +14,7 @@ use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
 use pyo3::exceptions::PyValueError;
 
 use pyo3::prelude::*;
-use pyo3::types::PyAny;
+use pyo3::types::{PyAny, PyBytes};
 
 use std::fmt::{Debug, Write as WriteFmt};
 use std::io::{Cursor, Read, Seek, Write};
@@ -194,5 +194,14 @@ impl BinWrite for Bytes {
 impl<'py> FromPyObject<'py> for Bytes {
     fn extract_bound(obj: &Bound<'py, PyAny>) -> PyResult<Self> {
         Ok(Self(obj.extract::<Vec<u8>>()?))
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Bytes {
+    type Target = PyBytes;
+    type Output = Bound<'py, PyBytes>;
+    type Error = PyErr;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(Self::Target::new(py, &self.0))
     }
 }
