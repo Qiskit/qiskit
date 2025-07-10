@@ -83,7 +83,13 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_gates_decompositio
     target: *const Target,
 ) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let target = unsafe { const_ptr_as_ref(target) };
+    let target = unsafe {
+        if target.is_null() {
+            None
+        } else {
+            Some(const_ptr_as_ref(target))
+        }
+    };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
@@ -92,7 +98,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_gates_decompositio
         .expect("Error while converting the circuit to a dag.");
 
     // Run the pass
-    run_optimize_1q_gates_decomposition(&mut circuit_as_dag, Some(target), None, None)
+    run_optimize_1q_gates_decomposition(&mut circuit_as_dag, target, None, None)
         .expect("Error while running the pass.");
 
     // Convert the DAGCircuit back to an instance of CircuitData
