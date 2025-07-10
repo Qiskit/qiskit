@@ -30,6 +30,8 @@ from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate
 from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 
+# pylint: disable=no-member,invalid-name, unused-variable
+
 
 def qs_decomposition(
     mat: np.ndarray,
@@ -131,7 +133,7 @@ def qs_decomposition(
                         um11,
                         opt_a1=opt_a1,
                         opt_a2=opt_a2,
-                        type="all",
+                        _vw_type="all",
                         _depth=_depth,
                         _ctrl_index=nqubits - 1 - ctrl_index,
                     )
@@ -143,15 +145,16 @@ def qs_decomposition(
         iden = np.eye(2 ** (nqubits - 1))
         # left circ
         left_circ, vmatC, wmatC = _demultiplex(
-            iden, C, opt_a1=opt_a1, opt_a2=opt_a2, type="only_w", _depth=_depth
+            iden, C, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_w", _depth=_depth
         )
         # right circ
         right_circ, vmatA, wmatA = _demultiplex(
-            A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, type="only_v", _depth=_depth
+            A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_v", _depth=_depth
         )
 
         # middle circ
-        # middle_circ, _, _ = _demultiplex(iden, B, opt_a1=opt_a1, opt_a2=opt_a2, type="all", _depth=_depth)
+        # middle_circ, _, _ = _demultiplex(iden, B, opt_a1=opt_a1, opt_a2=opt_a2,
+        # vw_type="all", _depth=_depth)
         # zmat is done to reduce 2 cz gates into the B2 matrix
         zmat = np.eye(2 ** (nqubits - 1))
         for i in range(2 ** (nqubits - 2), 2 ** (nqubits - 1)):
@@ -160,7 +163,7 @@ def qs_decomposition(
         # B2 = np.dot(wmatA, np.dot(B, vmatC))
         B2 = np.dot(zmat, np.dot(wmatA, np.dot(B, np.dot(vmatC, zmat))))
         middle_circ, _, _ = _demultiplex(
-            B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, type="all", _depth=_depth
+            B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="all", _depth=_depth
         )
 
         circ = QuantumCircuit(qr)
@@ -215,7 +218,9 @@ def _block_zxz_decomp(Umat):
     return A1, A2, B, C
 
 
-def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, type="all", *, _depth=0, _ctrl_index=None):
+def _demultiplex(
+    um0, um1, opt_a1=False, opt_a2=False, *, _vw_type="all", _depth=0, _ctrl_index=None
+):
     """Decompose a generic multiplexer.
 
           ────□────
@@ -247,6 +252,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, type="all", *, _depth=0, 
        opt_a2 (bool): whether to try  optimization A.2 from Shende. This decomposes two qubit
           unitaries into a diagonal gate and a two cx unitary and reduces overall cx count by
           4^(n-2) - 1.
+       _vw_type (string): "only_v", "only_w" or "all" for reductions.
        _depth (int): This is an internal variable to track the recursion depth.
        _ctrl_index (int): The index wrt which um0 and um1 are controlled.
 
@@ -272,7 +278,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, type="all", *, _depth=0, 
     circ = QuantumCircuit(nqubits)
 
     # left gate
-    if type == "only_w" or type == "all":
+    if _vw_type in ["only_w", "all"]:
         left_gate = qs_decomposition(
             wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
         ).to_instruction()
@@ -280,16 +286,16 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, type="all", *, _depth=0, 
 
     angles = 2 * np.angle(np.conj(dvals))
     # multiplexed Rz
-    if type == "only_w":
+    if _vw_type == "only_w":
         ucrz = _get_ucrz(nqubits, angles)
-    elif type == "only_v":
+    elif _vw_type == "only_v":
         ucrz = _get_ucrz(nqubits, angles).reverse_ops()
     else:
         ucrz = UCRZGate(angles.tolist())
     circ.append(ucrz, [layout[-1]] + layout[: nqubits - 1])
 
     # right gate
-    if type == "only_v" or type == "all":
+    if _vw_type in ["only_v", "all"]:
         right_gate = qs_decomposition(
             vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
         ).to_instruction()
