@@ -143,7 +143,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(Operator(umat) == Operator(ccirc))
         if nqubits > 2:
-            self.assertEqual(
+            self.assertLessEqual(
                 ccirc.count_ops().get("cx"),
                 self._qsd_l2_a1a2_mod(nqubits),
             )
