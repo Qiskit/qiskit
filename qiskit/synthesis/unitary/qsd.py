@@ -160,8 +160,10 @@ def qs_decomposition(
         for i in range(2 ** (nqubits - 2), 2 ** (nqubits - 1)):
             zmat[i][i] = -1
         B1 = np.dot(wmatA, vmatC)
-        # B2 = np.dot(wmatA, np.dot(B, vmatC))
-        B2 = np.dot(zmat, np.dot(wmatA, np.dot(B, np.dot(vmatC, zmat))))
+        if opt_a1:
+            B2 = np.dot(zmat, np.dot(wmatA, np.dot(B, np.dot(vmatC, zmat))))
+        else:
+            B2 = np.dot(wmatA, np.dot(B, vmatC))
         middle_circ, _, _ = _demultiplex(
             B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="all", _depth=_depth
         )
@@ -286,9 +288,9 @@ def _demultiplex(
 
     angles = 2 * np.angle(np.conj(dvals))
     # multiplexed Rz
-    if _vw_type == "only_w":
+    if _vw_type == "only_w" and opt_a1:
         ucrz = _get_ucrz(nqubits, angles)
-    elif _vw_type == "only_v":
+    elif _vw_type == "only_v" and opt_a1:
         ucrz = _get_ucrz(nqubits, angles).reverse_ops()
     else:
         ucrz = UCRZGate(angles.tolist())
