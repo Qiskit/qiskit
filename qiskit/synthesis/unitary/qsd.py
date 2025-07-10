@@ -27,10 +27,8 @@ from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
-from qiskit.circuit.library.generalized_gates.ucry import UCRYGate
 from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
-from qiskit._accelerate.cos_sin_decomp import cossin
 
 
 def qs_decomposition(
@@ -144,15 +142,26 @@ def qs_decomposition(
         A1, A2, B, C = _block_zxz_decomp(np.asarray(mat, dtype=complex))
         iden = np.eye(2 ** (nqubits - 1))
         # left circ
-        left_circ, vmatC, wmatC = _demultiplex(iden, C, opt_a1=opt_a1, opt_a2=opt_a2, type="only_w", _depth=_depth)
+        left_circ, vmatC, wmatC = _demultiplex(
+            iden, C, opt_a1=opt_a1, opt_a2=opt_a2, type="only_w", _depth=_depth
+        )
         # right circ
-        right_circ, vmatA, wmatA = _demultiplex(A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, type="only_v", _depth=_depth)
+        right_circ, vmatA, wmatA = _demultiplex(
+            A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, type="only_v", _depth=_depth
+        )
 
         # middle circ
         # middle_circ, _, _ = _demultiplex(iden, B, opt_a1=opt_a1, opt_a2=opt_a2, type="all", _depth=_depth)
+        # zmat is done to reduce 2 cz gates into the B2 matrix
+        zmat = np.eye(2 ** (nqubits - 1))
+        for i in range(2 ** (nqubits - 2), 2 ** (nqubits - 1)):
+            zmat[i][i] = -1
         B1 = np.dot(wmatA, vmatC)
-        B2 = np.dot(wmatA, np.dot(B, vmatC))
-        middle_circ, _, _ = _demultiplex(B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, type="all", _depth=_depth)
+        # B2 = np.dot(wmatA, np.dot(B, vmatC))
+        B2 = np.dot(zmat, np.dot(wmatA, np.dot(B, np.dot(vmatC, zmat))))
+        middle_circ, _, _ = _demultiplex(
+            B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, type="all", _depth=_depth
+        )
 
         circ = QuantumCircuit(qr)
         circ.append(left_circ.to_instruction(), qr)
@@ -263,19 +272,24 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, type="all", *, _depth=0, 
     circ = QuantumCircuit(nqubits)
 
     # left gate
-    if type == "only_w" or type=="all":
+    if type == "only_w" or type == "all":
         left_gate = qs_decomposition(
             wmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
         ).to_instruction()
         circ.append(left_gate, layout[: nqubits - 1])
 
-    # multiplexed Rz
     angles = 2 * np.angle(np.conj(dvals))
-    ucrz = UCRZGate(angles.tolist())
+    # multiplexed Rz
+    if type == "only_w":
+        ucrz = _get_ucrz(nqubits, angles)
+    elif type == "only_v":
+        ucrz = _get_ucrz(nqubits, angles).reverse_ops()
+    else:
+        ucrz = UCRZGate(angles.tolist())
     circ.append(ucrz, [layout[-1]] + layout[: nqubits - 1])
 
     # right gate
-    if type == "only_v" or type=="all":
+    if type == "only_v" or type == "all":
         right_gate = qs_decomposition(
             vmat, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth + 1
         ).to_instruction()
@@ -284,33 +298,22 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, type="all", *, _depth=0, 
     return circ, vmat, wmat
 
 
-def _get_ucry_cz(nqubits, angles):
-    """
-    Get uniformly controlled Ry gate in CZ-Ry as in UCPauliRotGate.
-    """
-    nangles = len(angles)
-    qc = QuantumCircuit(nqubits)
-    q_controls = qc.qubits[:-1]
-    q_target = qc.qubits[-1]
-    if not q_controls:
-        if np.abs(angles[0]) > _EPS:
-            qc.ry(angles[0], q_target)
-    else:
-        angles = angles.copy()
-        UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
-        for i, angle in enumerate(angles):
-            if np.abs(angle) > _EPS:
-                qc.ry(angle, q_target)
-            if not i == len(angles) - 1:
-                binary_rep = np.binary_repr(i + 1)
-                q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
-            else:
-                # Handle special case:
-                q_contr_index = len(q_controls) - 1
-            # leave off last CZ for merging with adjacent UCG
-            if i < nangles - 1:
-                qc.cz(q_controls[q_contr_index], q_target)
-    return qc
+def _get_ucrz(nqubits, angles):
+    """This function synthesizes UCRZ without the final CX gate"""
+    circuit = QuantumCircuit(nqubits)
+    q_controls = circuit.qubits[1:]
+    q_target = circuit.qubits[0]
+
+    UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
+    for i, angle in enumerate(angles):
+        if np.abs(angle) > _EPS:
+            circuit.rz(angle, q_target)
+        if not i == len(angles) - 1:
+            binary_rep = np.binary_repr(i + 1)
+            q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
+            circuit.cx(q_controls[q_contr_index], q_target)
+
+    return circuit
 
 
 def _apply_a2(circ):
