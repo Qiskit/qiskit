@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-// ParameterExpression class for symbolic equation on Rust / interface to Python
-
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
@@ -34,6 +32,7 @@ use crate::imports::{BUILTIN_HASH, UUID};
 use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
+use crate::util::c64;
 
 use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
 
@@ -114,13 +113,6 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<PyParameterExpression> {
         Some(PyParameterExpression::new(SymbolExpr::Value(
             symbol_expr::Value::from(r),
         )))
-    // string values not allowed
-    // } else if let Ok(s) = value.extract::<String>() {
-    //     if let Ok(expr) = parse_expression(&s) {
-    //         Some(PyParameterExpression::new(expr))
-    //     } else {
-    //         None
-    //     }
     } else if let Ok(parameter) = value.extract::<PyParameter>() {
         Some(parameter.symbol.as_expr())
     } else if let Ok(element) = value.extract::<PyParameterVectorElement>() {
@@ -298,46 +290,6 @@ impl PyParameterExpression {
             }
         }
 
-        // We do not allow substituting if the resulting expression has duplicate names,
-        // so we create a hashmap containing all symbols in the replacement expressions and
-        // check that there are no name conflicts.
-        // let mut incoming_name_map: HashMap<String, PyParameter> = HashMap::new();
-        // for expr in map.values() {
-        //     for (name, py_param) in &expr.name_map {
-        //         // Check for duplicates in the input map. E.g we do not allow to bind something
-        //         // like expr.subs({x: Parameter("z"), y: Parameter("z")}).
-        //         if let Some(duplicate) = incoming_name_map.get(name) {
-        //             return Err(ParameterError::NameConflict);
-        //         } else {
-        //             // SAFETY: We know the key does not exist yet.
-        //             let _ = unsafe {
-        //                 incoming_name_map.insert_unique_unchecked(name.clone(), py_param.clone())
-        //             };
-        //         }
-        //     }
-        // }
-
-        // let replacing = map
-        //     .keys()
-        //     .map(|symbol| symbol.name())
-        //     .collect::<HashSet<String>>();
-
-        // if self.has_name_conflicts(&replacements, Some(&replacing)) {
-        //     return Err(ParameterError::NameConflict);
-        // }
-
-        // let maps: HashMap<Symbol, SymbolExpr> = map
-        //     .into_iter()
-        //     .map(|(key, val)| {
-        //         // if we only allow known parameters, check that the symbol exists
-        //         if allow_unknown_parameters || self.expr.has_symbol(&key) {
-        //             Ok((key.clone(), val.expr.clone()))
-        //         } else {
-        //             Err(ParameterError::UnknownParameter(key.clone()))
-        //         }
-        //     })
-        //     .collect::<Result<_, ParameterError>>()?;
-        // Ok(Self::new(self.expr.subs(&maps)))
         Ok(Self {
             expr: self.expr.subs(&symbol_map),
             name_map,
@@ -521,9 +473,18 @@ impl PyParameterExpression {
             .replace("__end_sympy_replace__", "$");
         match parse_expression(&expr) {
             // substitute 'I' to imaginary number i before returning expression
-            Ok(expr) => Ok(PyParameterExpression::new(expr.bind_by_name(
-                &HashMap::from([("I".to_string(), symbol_expr::Value::from(Complex64::i()))]),
-            ))),
+            Ok(expr) => {
+                let expr = PyParameterExpression::new(expr);
+                if let Some(imag_symbol) = expr.name_map.get("I") {
+                    let bind_map: HashMap<Symbol, Value> = HashMap::from([(
+                        imag_symbol.symbol.clone(),
+                        symbol_expr::Value::Complex(c64(0., 1.)),
+                    )]);
+                    Ok(expr.bind(&bind_map, false)?)
+                } else {
+                    Ok(expr)
+                }
+            }
             Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
         }
     }
@@ -570,9 +531,6 @@ impl PyParameterExpression {
     #[getter]
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
         let py_parameters: Vec<PyObject> = self
-            // .expr
-            // .parameters()
-            // .iter()
             .name_map
             .values()
             .map(|param| {
@@ -589,15 +547,6 @@ impl PyParameterExpression {
             .collect::<PyResult<_>>()?;
         PySet::new(py, py_parameters)
     }
-
-    // pub fn name_map<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-    //     let dict = PyDict::new(py);
-    //     for (name, param) in self.get_name_map().iter() {
-    //         let py_name = PyString::new(py, name.as_str());
-    //         dict.set_item(py_name, param.clone())?;
-    //     }
-    //     Ok(dict)
-    // }
 
     #[pyo3(name = "sin")]
     pub fn py_sin(&self) -> Self {
@@ -1123,23 +1072,12 @@ impl PyParameter {
     pub fn __getnewargs__(&self, py: Python) -> PyResult<(String, Option<PyObject>)> {
         Ok((self.symbol.name(), Some(self.uuid(py)?)))
     }
-
-    // fn __getstate__(&self) -> (String, u128) {
-    //     (self.symbol.name(), self.symbol.py_uuid())
-    // }
-
-    // fn __setstate__(&mut self, state: (String, u128)) -> PyResult<()> {
-    //     let symbol = Symbol::py_new(&state.0, Some(state.1), None, None)?;
-    //     self.symbol = symbol;
-    //     Ok(())
-    // }
 }
 
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
 #[derive(Clone, Debug)]
 pub struct PyParameterVectorElement {
-    symbol: Symbol, // index: u64,
-                    // vector: PyObject,
+    symbol: Symbol,
 }
 
 impl PyParameterVectorElement {
