@@ -13,11 +13,13 @@
 // ParameterExpression class for symbolic equation on Rust / interface to Python
 
 use hashbrown::{HashMap, HashSet};
+use itertools::Itertools;
 use num_complex::Complex64;
 use pyo3::exceptions::{
     PyNotImplementedError, PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError,
 };
-use pyo3::types::{IntoPyDict, PyDict, PySet, PyString};
+use pyo3::types::{IntoPyDict, PySet, PyString};
+use rayon::string;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -48,6 +50,8 @@ pub enum ParameterError {
     BindingNaN,
     #[error("Cannot bind Parameter {0:?} not present in expression")]
     UnknownParameter(Symbol),
+    #[error("Cannot bind following parameters not present in expression: {0:?}")]
+    UnknownParameters(HashSet<Symbol>),
     #[error("Name conflict adding parameters.")]
     NameConflict,
 }
@@ -78,9 +82,11 @@ impl From<ParameterError> for PyErr {
 )]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PyParameterExpression {
+    // The symbolic expression.
     expr: SymbolExpr,
-    // Cached information about the expression.
-    name_map: Option<HashMap<String, Symbol>>,
+    // A map keeping track of all symbols, with their name. This map *must* be kept
+    // up to date upon any operation performed on the expression.
+    name_map: HashMap<String, Symbol>,
 }
 
 impl Hash for PyParameterExpression {
@@ -129,14 +135,14 @@ impl PyParameterExpression {
     pub fn new(expr: SymbolExpr) -> Self {
         Self {
             expr: expr.clone(),
-            name_map: None,
+            name_map: expr.name_map(),
         }
     }
 
     pub fn sin(&self) -> Self {
         Self {
             expr: self.expr.sin(),
-            name_map: self.name_map.clone(), // the name map remains the same
+            name_map: self.name_map.clone(),
         }
     }
 
@@ -195,26 +201,28 @@ impl PyParameterExpression {
         }
     }
 
-    /// clone expression
+    /// Clone the expression.
     pub fn copy(&self) -> Self {
         Self {
             expr: self.expr.clone(),
             name_map: self.name_map.clone(),
         }
     }
-    /// return conjugate of expression
+
+    /// Complex conjugate the expression.
     pub fn conjugate(&self) -> Self {
         Self {
             expr: self.expr.conjugate(),
             name_map: self.name_map.clone(),
         }
     }
-    /// return derivative of this expression for param
+
+    /// Compute the derivative of the expression with respect to the provided symbol.
     pub fn derivative(&self, param: &Symbol) -> Result<Self, String> {
         self.expr.derivative(param).map(|expr| Self::new(expr))
     }
 
-    /// expand expression
+    /// Expand the expression.
     pub fn expand(&self) -> Self {
         Self {
             expr: self.expr.expand(),
@@ -222,7 +230,8 @@ impl PyParameterExpression {
         }
     }
 
-    pub fn name(&self) -> String {
+    /// Get a string representation of the expression.
+    pub fn to_string(&self) -> String {
         if let SymbolExpr::Symbol(s) = &self.expr {
             return s.name();
         }
@@ -232,17 +241,7 @@ impl PyParameterExpression {
         }
     }
 
-    pub fn get_name_map(&self) -> HashMap<String, Symbol> {
-        if let Some(map) = &self.name_map {
-            map.clone()
-        } else {
-            let map = self.expr.name_map();
-            // self.name_map = Some(map.clone());
-            map
-        }
-    }
-
-    /// substitute symbols to expressions (or values) given by hash map
+    /// Substitute symbols with [PyParameterExpression]s.
     pub fn subs(
         &self,
         map: &HashMap<Symbol, Self>,
@@ -289,20 +288,23 @@ impl PyParameterExpression {
         map: &HashMap<Symbol, symbol_expr::Value>,
         allow_unknown_parameters: bool,
     ) -> Result<Self, ParameterError> {
+        // The set of symbols we will bind. Used twice, hence pre-computed here.
+        let bind_symbols: HashSet<Symbol> = map.keys().cloned().collect();
+
         if !allow_unknown_parameters {
-            map.iter()
-                .map(|(symbol, _)| {
-                    if !self.expr.has_symbol(&symbol) {
-                        Err(ParameterError::UnknownParameter(symbol.clone()))
-                    } else {
-                        Ok(())
-                    }
-                })
-                .collect::<Result<(), ParameterError>>()?;
+            let existing_symbols: HashSet<Symbol> = self.name_map.values().cloned().collect();
+            let difference: HashSet<Symbol> = bind_symbols
+                .difference(&existing_symbols)
+                .cloned()
+                .collect();
+            if !difference.is_empty() {
+                return Err(ParameterError::UnknownParameters(difference));
+            }
         }
 
-        let bound = self.expr.bind(map);
-        match bound.eval(true) {
+        // bind the symbol expression and then check the outcome for inf/nan, or numeric values
+        let bound_expr = self.expr.bind(map);
+        let bound = match bound_expr.eval(true) {
             Some(v) => match &v {
                 symbol_expr::Value::Real(r) => {
                     if r.is_infinite() {
@@ -310,10 +312,10 @@ impl PyParameterExpression {
                     } else if r.is_nan() {
                         Err(ParameterError::BindingNaN)
                     } else {
-                        Ok(Self::new(SymbolExpr::Value(v)))
+                        Ok(SymbolExpr::Value(v))
                     }
                 }
-                symbol_expr::Value::Int(_) => Ok(Self::new(SymbolExpr::Value(v))),
+                symbol_expr::Value::Int(_) => Ok(SymbolExpr::Value(v)),
                 symbol_expr::Value::Complex(c) => {
                     if c.re.is_infinite() || c.im.is_infinite() {
                         Err(ParameterError::ZeroDivisionError) // TODO this should probs be BindingInf
@@ -322,14 +324,27 @@ impl PyParameterExpression {
                     } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
                         .contains(&c.im)
                     {
-                        Ok(Self::new(SymbolExpr::Value(symbol_expr::Value::Real(c.re))))
+                        Ok(SymbolExpr::Value(symbol_expr::Value::Real(c.re)))
                     } else {
-                        Ok(Self::new(SymbolExpr::Value(v)))
+                        Ok(SymbolExpr::Value(v))
                     }
                 }
             },
-            None => Ok(Self::new(bound)),
-        }
+            None => Ok(bound_expr),
+        }?;
+
+        // update the name map by removing the bound parameters
+        let bound_name_map: HashMap<String, Symbol> = self
+            .name_map
+            .iter()
+            .filter(|(_, symbol)| !bind_symbols.contains(*symbol))
+            .map(|(name, symbol)| (name.clone(), symbol.clone()))
+            .collect();
+
+        Ok(Self {
+            expr: bound,
+            name_map: bound_name_map,
+        })
     }
 
     /// Check whether a hashmap of incoming parameters have a name conflict with the expression.
@@ -343,9 +358,8 @@ impl PyParameterExpression {
         inbound_parameters: &HashMap<String, Symbol>,
         outbound: Option<&HashSet<String>>,
     ) -> bool {
-        let name_map = self.get_name_map();
         for (name, symbol) in inbound_parameters.iter() {
-            if let Some(existing_symbol) = name_map.get(name) {
+            if let Some(existing_symbol) = self.name_map.get(name) {
                 if let Some(outbound) = outbound {
                     if outbound.contains(name) {
                         continue;
@@ -426,13 +440,32 @@ impl PyParameterExpression {
 
     /// Return an error if names in the other expression collide with existing names.
     fn raise_if_name_conflict(&self, other: &Self) -> PyResult<()> {
-        if self.has_name_conflicts(&other.get_name_map(), None) {
+        if self.has_name_conflicts(&other.name_map, None) {
             Err(CircuitError::new_err(
                 "Name conflict applying operation __add__",
             ))
         } else {
             Ok(())
         }
+    }
+
+    /// Merge name maps. Returns an error if there is a name conflict.
+    fn merge_name_maps(&self, other: &Self) -> Result<HashMap<String, Symbol>, ParameterError> {
+        let mut merged = self.name_map.clone();
+        for (name, symbol) in other.name_map.iter() {
+            match merged.get(name) {
+                Some(existing_symbol) => {
+                    if symbol != existing_symbol {
+                        return Err(ParameterError::NameConflict);
+                    }
+                }
+                None => {
+                    // SAFETY: We ensured the key is unique
+                    let _ = unsafe { merged.insert_unique_unchecked(name.clone(), symbol.clone()) };
+                }
+            }
+        }
+        Ok(merged)
     }
 
     /// return value if expression does not contain any symbols
@@ -466,9 +499,11 @@ impl PyParameterExpression {
     #[getter]
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
         let py_parameters: Vec<PyObject> = self
-            .expr
-            .parameters()
-            .iter()
+            // .expr
+            // .parameters()
+            // .iter()
+            .name_map
+            .values()
             .map(|s| match (s.index, &s.vector) {
                 // if index and vector is set, it is an element
                 (Some(_index), Some(_vector)) => {
@@ -481,14 +516,14 @@ impl PyParameterExpression {
         PySet::new(py, py_parameters)
     }
 
-    pub fn name_map<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let dict = PyDict::new(py);
-        for (name, param) in self.get_name_map().iter() {
-            let py_name = PyString::new(py, name.as_str());
-            dict.set_item(py_name, param.clone())?;
-        }
-        Ok(dict)
-    }
+    // pub fn name_map<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+    //     let dict = PyDict::new(py);
+    //     for (name, param) in self.get_name_map().iter() {
+    //         let py_name = PyString::new(py, name.as_str());
+    //         dict.set_item(py_name, param.clone())?;
+    //     }
+    //     Ok(dict)
+    // }
 
     #[pyo3(name = "sin")]
     pub fn py_sin(&self) -> Self {
@@ -575,7 +610,7 @@ impl PyParameterExpression {
     #[getter]
     #[pyo3(name = "name")]
     pub fn py_name(&self) -> String {
-        self.name()
+        self.to_string()
     }
 
     /// substitute symbols to expressions (or values) given by hash map
@@ -677,8 +712,11 @@ impl PyParameterExpression {
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                self.raise_if_name_conflict(&rhs)?;
-                Ok(Self::new(&self.expr + &rhs.expr))
+                let name_map = self.merge_name_maps(&rhs)?;
+                Ok(Self {
+                    expr: &self.expr + &rhs.expr,
+                    name_map,
+                })
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __add__",
@@ -688,8 +726,11 @@ impl PyParameterExpression {
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
-                self.raise_if_name_conflict(&lhs)?;
-                Ok(Self::new(&lhs.expr + &self.expr))
+                let name_map = self.merge_name_maps(&lhs)?;
+                Ok(Self {
+                    expr: &lhs.expr + &self.expr,
+                    name_map,
+                })
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __radd__",
@@ -699,8 +740,11 @@ impl PyParameterExpression {
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                self.raise_if_name_conflict(&rhs)?;
-                Ok(Self::new(&self.expr - &rhs.expr))
+                let name_map = self.merge_name_maps(&rhs)?;
+                Ok(Self {
+                    expr: &self.expr - &rhs.expr,
+                    name_map,
+                })
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __sub__",
@@ -710,8 +754,11 @@ impl PyParameterExpression {
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
-                self.raise_if_name_conflict(&lhs)?;
-                Ok(Self::new(&lhs.expr - &self.expr))
+                let name_map = self.merge_name_maps(&lhs)?;
+                Ok(Self {
+                    expr: &lhs.expr - &self.expr,
+                    name_map,
+                })
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rsub__",
@@ -721,8 +768,11 @@ impl PyParameterExpression {
     pub fn __mul__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                self.raise_if_name_conflict(&rhs)?;
-                Ok(Self::new(&self.expr * &rhs.expr))
+                let name_map = self.merge_name_maps(&rhs)?;
+                Ok(Self {
+                    expr: &self.expr * &rhs.expr,
+                    name_map,
+                })
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __mul__",
@@ -732,8 +782,11 @@ impl PyParameterExpression {
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
-                self.raise_if_name_conflict(&lhs)?;
-                Ok(Self::new(&lhs.expr * &self.expr))
+                let name_map = self.merge_name_maps(&lhs)?;
+                Ok(Self {
+                    expr: &lhs.expr * &self.expr,
+                    name_map,
+                })
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rmul__",
@@ -749,8 +802,11 @@ impl PyParameterExpression {
                         "Division by 0.",
                     ))
                 } else {
-                    self.raise_if_name_conflict(&rhs)?;
-                    Ok(Self::new(&self.expr / &rhs.expr))
+                    let name_map = self.merge_name_maps(&rhs)?;
+                    Ok(Self {
+                        expr: &self.expr / &rhs.expr,
+                        name_map,
+                    })
                 }
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
@@ -766,8 +822,11 @@ impl PyParameterExpression {
                         "Division by 0.",
                     ))
                 } else {
-                    self.raise_if_name_conflict(&lhs)?;
-                    Ok(Self::new(&lhs.expr / &self.expr))
+                    let name_map = self.merge_name_maps(&lhs)?;
+                    Ok(Self {
+                        expr: &lhs.expr / &self.expr,
+                        name_map,
+                    })
                 }
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
@@ -778,8 +837,11 @@ impl PyParameterExpression {
     pub fn __pow__(&self, rhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                self.raise_if_name_conflict(&rhs)?;
-                Ok(Self::new(self.expr.pow(&rhs.expr)))
+                let name_map = self.merge_name_maps(&rhs)?;
+                Ok(Self {
+                    expr: self.expr.pow(&rhs.expr),
+                    name_map,
+                })
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __pow__",
@@ -789,8 +851,11 @@ impl PyParameterExpression {
     pub fn __rpow__(&self, lhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
-                self.raise_if_name_conflict(&lhs)?;
-                Ok(Self::new(lhs.expr.pow(&self.expr)))
+                let name_map = self.merge_name_maps(&lhs)?;
+                Ok(Self {
+                    expr: lhs.expr.pow(&self.expr),
+                    name_map,
+                })
             }
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rpow__",
@@ -860,7 +925,7 @@ impl PyParameterExpression {
     }
 
     pub fn __str__(&self) -> String {
-        self.name()
+        self.to_string()
     }
 
     pub fn __hash__(&self, py: Python) -> PyResult<u64> {
@@ -898,7 +963,7 @@ impl Default for PyParameterExpression {
     fn default() -> Self {
         Self {
             expr: SymbolExpr::Value(symbol_expr::Value::Int(0)),
-            name_map: Some(HashMap::new()), // no parameters, hence empty name map
+            name_map: HashMap::new(), // no parameters, hence empty name map
         }
     }
 }
