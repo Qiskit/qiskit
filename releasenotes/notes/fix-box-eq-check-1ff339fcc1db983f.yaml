@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in the dagnode equality check, where for a box the `unit` field
+    was not being compared.
