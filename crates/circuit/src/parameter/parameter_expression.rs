@@ -12,14 +12,13 @@
 
 // ParameterExpression class for symbolic equation on Rust / interface to Python
 
+use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
-use itertools::Itertools;
 use num_complex::Complex64;
 use pyo3::exceptions::{
     PyNotImplementedError, PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError,
 };
 use pyo3::types::{IntoPyDict, PySet, PyString};
-use rayon::string;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -65,9 +64,9 @@ impl From<ParameterError> for PyErr {
             ParameterError::BindingInf => {
                 PyZeroDivisionError::new_err("attempted to bind infinite value to parameter")
             }
-            ParameterError::UnknownParameter(_) | ParameterError::NameConflict => {
-                CircuitError::new_err(value.to_string())
-            }
+            ParameterError::UnknownParameter(_)
+            | ParameterError::UnknownParameters(_)
+            | ParameterError::NameConflict => CircuitError::new_err(value.to_string()),
             _ => PyRuntimeError::new_err(value.to_string()),
         }
     }
@@ -86,7 +85,7 @@ pub struct PyParameterExpression {
     expr: SymbolExpr,
     // A map keeping track of all symbols, with their name. This map *must* be kept
     // up to date upon any operation performed on the expression.
-    name_map: HashMap<String, Symbol>,
+    name_map: HashMap<String, PyParameter>,
 }
 
 impl Hash for PyParameterExpression {
@@ -135,7 +134,11 @@ impl PyParameterExpression {
     pub fn new(expr: SymbolExpr) -> Self {
         Self {
             expr: expr.clone(),
-            name_map: expr.name_map(),
+            name_map: expr
+                .name_map()
+                .into_iter()
+                .map(|(name, symbol)| (name, PyParameter { symbol }))
+                .collect(),
         }
     }
 
@@ -219,7 +222,7 @@ impl PyParameterExpression {
 
     /// Compute the derivative of the expression with respect to the provided symbol.
     pub fn derivative(&self, param: &Symbol) -> Result<Self, String> {
-        self.expr.derivative(param).map(|expr| Self::new(expr))
+        self.expr.derivative(param).map(Self::new)
     }
 
     /// Expand the expression.
@@ -230,57 +233,115 @@ impl PyParameterExpression {
         }
     }
 
-    /// Get a string representation of the expression.
-    pub fn to_string(&self) -> String {
-        if let SymbolExpr::Symbol(s) = &self.expr {
-            return s.name();
-        }
-        match self.expr.eval(true) {
-            Some(e) => e.to_string(),
-            None => self.expr.optimize().to_string(),
-        }
-    }
-
     /// Substitute symbols with [PyParameterExpression]s.
     pub fn subs(
         &self,
         map: &HashMap<Symbol, Self>,
         allow_unknown_parameters: bool,
     ) -> Result<Self, ParameterError> {
-        // we do not allow substituting if the resulting expression has duplicate names,
-        // so we create a hashmap containing all symbols in the replacement expressions and
-        // check that there are no name conflicts
-        let replacements = map
-            .values()
-            .into_iter()
-            .flat_map(|expr| {
-                expr.expr
-                    .parameters()
-                    .into_iter()
-                    .map(|symbol| (symbol.name(), symbol.clone()))
-            })
-            .collect();
-        let replacing = map
-            .keys()
-            .map(|symbol| symbol.name())
-            .collect::<HashSet<String>>();
+        // Build the outgoing name map. In the process we check for any duplicates.
+        let mut name_map: HashMap<String, PyParameter> = HashMap::new();
+        let mut symbol_map: HashMap<Symbol, SymbolExpr> = HashMap::new();
 
-        if self.has_name_conflicts(&replacements, Some(&replacing)) {
-            return Err(ParameterError::NameConflict);
+        if !allow_unknown_parameters {
+            let existing: HashSet<&Symbol> = self.name_map.values().map(|p| &p.symbol).collect();
+            let to_replace: HashSet<&Symbol> = map.keys().collect();
+            let difference: HashSet<Symbol> = to_replace
+                .difference(&existing)
+                .map(|&symbol| symbol.clone())
+                .collect();
+            if !difference.is_empty() {
+                return Err(ParameterError::UnknownParameters(difference));
+            }
         }
 
-        let maps: HashMap<Symbol, SymbolExpr> = map
-            .into_iter()
-            .map(|(key, val)| {
-                // if we only allow known parameters, check that the symbol exists
-                if allow_unknown_parameters || self.expr.has_symbol(&key) {
-                    Ok((key.clone(), val.expr.clone()))
-                } else {
-                    Err(ParameterError::UnknownParameter(key.clone()))
+        for (name, py_param) in self.name_map.iter() {
+            let symbol = &py_param.symbol;
+
+            // check if the symbol will get replaced
+            if let Some(replacement) = map.get(symbol) {
+                // If yes, update the name_map. This also checks for duplicates.
+                for (replacement_name, replacement_symbol) in replacement.name_map.iter() {
+                    if let Some(duplicate) = name_map.get(replacement_name) {
+                        if duplicate != replacement_symbol {
+                            return Err(ParameterError::NameConflict);
+                        } else {
+                            // symbol already exists, nothing to do
+                        }
+                    } else {
+                        // SAFETY: We know the key does not exist yet.
+                        unsafe {
+                            name_map.insert_unique_unchecked(
+                                replacement_name.clone(),
+                                replacement_symbol.clone(),
+                            )
+                        };
+                    }
                 }
-            })
-            .collect::<Result<_, ParameterError>>()?;
-        Ok(Self::new(self.expr.subs(&maps)))
+
+                // If we got until here, there were no duplicates, so we are safe to
+                // add this symbol to the internal replacement map.
+                symbol_map.insert(symbol.clone(), replacement.expr.clone());
+            } else {
+                // no replacement for this symbol, carry on
+                // TODO maybe this needs to do clone_ref(py) ?
+                match name_map.entry(name.clone()) {
+                    Entry::Occupied(duplicate) => {
+                        if duplicate.get() != py_param {
+                            return Err(ParameterError::NameConflict);
+                        }
+                    }
+                    Entry::Vacant(e) => {
+                        e.insert(py_param.clone());
+                    }
+                }
+            }
+        }
+
+        // We do not allow substituting if the resulting expression has duplicate names,
+        // so we create a hashmap containing all symbols in the replacement expressions and
+        // check that there are no name conflicts.
+        // let mut incoming_name_map: HashMap<String, PyParameter> = HashMap::new();
+        // for expr in map.values() {
+        //     for (name, py_param) in &expr.name_map {
+        //         // Check for duplicates in the input map. E.g we do not allow to bind something
+        //         // like expr.subs({x: Parameter("z"), y: Parameter("z")}).
+        //         if let Some(duplicate) = incoming_name_map.get(name) {
+        //             return Err(ParameterError::NameConflict);
+        //         } else {
+        //             // SAFETY: We know the key does not exist yet.
+        //             let _ = unsafe {
+        //                 incoming_name_map.insert_unique_unchecked(name.clone(), py_param.clone())
+        //             };
+        //         }
+        //     }
+        // }
+
+        // let replacing = map
+        //     .keys()
+        //     .map(|symbol| symbol.name())
+        //     .collect::<HashSet<String>>();
+
+        // if self.has_name_conflicts(&replacements, Some(&replacing)) {
+        //     return Err(ParameterError::NameConflict);
+        // }
+
+        // let maps: HashMap<Symbol, SymbolExpr> = map
+        //     .into_iter()
+        //     .map(|(key, val)| {
+        //         // if we only allow known parameters, check that the symbol exists
+        //         if allow_unknown_parameters || self.expr.has_symbol(&key) {
+        //             Ok((key.clone(), val.expr.clone()))
+        //         } else {
+        //             Err(ParameterError::UnknownParameter(key.clone()))
+        //         }
+        //     })
+        //     .collect::<Result<_, ParameterError>>()?;
+        // Ok(Self::new(self.expr.subs(&maps)))
+        Ok(Self {
+            expr: self.expr.subs(&symbol_map),
+            name_map,
+        })
     }
 
     pub fn bind(
@@ -292,7 +353,11 @@ impl PyParameterExpression {
         let bind_symbols: HashSet<Symbol> = map.keys().cloned().collect();
 
         if !allow_unknown_parameters {
-            let existing_symbols: HashSet<Symbol> = self.name_map.values().cloned().collect();
+            let existing_symbols: HashSet<Symbol> = self
+                .name_map
+                .values()
+                .map(|py_parameter| py_parameter.symbol.clone())
+                .collect();
             let difference: HashSet<Symbol> = bind_symbols
                 .difference(&existing_symbols)
                 .cloned()
@@ -334,10 +399,10 @@ impl PyParameterExpression {
         }?;
 
         // update the name map by removing the bound parameters
-        let bound_name_map: HashMap<String, Symbol> = self
+        let bound_name_map: HashMap<String, PyParameter> = self
             .name_map
             .iter()
-            .filter(|(_, symbol)| !bind_symbols.contains(*symbol))
+            .filter(|(_, py_param)| !bind_symbols.contains(&py_param.symbol))
             .map(|(name, symbol)| (name.clone(), symbol.clone()))
             .collect();
 
@@ -355,22 +420,47 @@ impl PyParameterExpression {
     ///     - replacement: Set to ``true`` for substitutions, ``false`` for merge.
     fn has_name_conflicts(
         &self,
-        inbound_parameters: &HashMap<String, Symbol>,
+        inbound_parameters: &HashMap<String, PyParameter>,
         outbound: Option<&HashSet<String>>,
     ) -> bool {
-        for (name, symbol) in inbound_parameters.iter() {
-            if let Some(existing_symbol) = self.name_map.get(name) {
+        for (name, param) in inbound_parameters.iter() {
+            if let Some(existing_param) = self.name_map.get(name) {
                 if let Some(outbound) = outbound {
                     if outbound.contains(name) {
                         continue;
                     }
                 }
-                if symbol != existing_symbol {
+                if param.symbol != existing_param.symbol {
                     return true;
                 }
             }
         }
         false
+    }
+
+    /// Merge name maps. Returns an error if there is a name conflict.
+    ///
+    /// Args:
+    ///     - other: The other parameter expression whose symbols we add to self.
+    fn update_name_map(
+        &self,
+        other: &Self,
+    ) -> Result<HashMap<String, PyParameter>, ParameterError> {
+        let mut merged = self.name_map.clone();
+        for (name, param) in other.name_map.iter() {
+            match merged.get(name) {
+                Some(existing_param) => {
+                    if param != existing_param {
+                        return Err(ParameterError::NameConflict);
+                    }
+                }
+                None => {
+                    // SAFETY: We ensured the key is unique
+                    let _ = unsafe { merged.insert_unique_unchecked(name.clone(), param.clone()) };
+                }
+            }
+        }
+        Ok(merged)
     }
 }
 
@@ -449,25 +539,6 @@ impl PyParameterExpression {
         }
     }
 
-    /// Merge name maps. Returns an error if there is a name conflict.
-    fn merge_name_maps(&self, other: &Self) -> Result<HashMap<String, Symbol>, ParameterError> {
-        let mut merged = self.name_map.clone();
-        for (name, symbol) in other.name_map.iter() {
-            match merged.get(name) {
-                Some(existing_symbol) => {
-                    if symbol != existing_symbol {
-                        return Err(ParameterError::NameConflict);
-                    }
-                }
-                None => {
-                    // SAFETY: We ensured the key is unique
-                    let _ = unsafe { merged.insert_unique_unchecked(name.clone(), symbol.clone()) };
-                }
-            }
-        }
-        Ok(merged)
-    }
-
     /// return value if expression does not contain any symbols
     pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
         match self.expr.eval(true) {
@@ -504,13 +575,16 @@ impl PyParameterExpression {
             // .iter()
             .name_map
             .values()
-            .map(|s| match (s.index, &s.vector) {
-                // if index and vector is set, it is an element
-                (Some(_index), Some(_vector)) => {
-                    Ok(Py::new(py, PyParameterVectorElement::from_symbol(s))?.into_any())
+            .map(|param| {
+                let s = &param.symbol;
+                match (s.index, &s.vector) {
+                    // if index and vector is set, it is an element
+                    (Some(_index), Some(_vector)) => {
+                        Ok(Py::new(py, PyParameterVectorElement::from_symbol(s))?.into_any())
+                    }
+                    // else, a normal parameter
+                    _ => Ok(Py::new(py, PyParameter::from_symbol(s))?.into_any()),
                 }
-                // else, a normal parameter
-                _ => Ok(Py::new(py, PyParameter::from_symbol(s))?.into_any()),
             })
             .collect::<PyResult<_>>()?;
         PySet::new(py, py_parameters)
@@ -588,7 +662,7 @@ impl PyParameterExpression {
     }
 
     /// Return derivative of this expression for param
-    pub fn gradient<'py>(&self, param: &Bound<'py, PyAny>) -> PyResult<Self> {
+    pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<Self> {
         let symbol = symbol_from_py_parameter(param)?;
         self.derivative(&symbol).map_err(PyRuntimeError::new_err)
     }
@@ -712,7 +786,7 @@ impl PyParameterExpression {
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                let name_map = self.merge_name_maps(&rhs)?;
+                let name_map = self.update_name_map(&rhs)?;
                 Ok(Self {
                     expr: &self.expr + &rhs.expr,
                     name_map,
@@ -726,7 +800,7 @@ impl PyParameterExpression {
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
-                let name_map = self.merge_name_maps(&lhs)?;
+                let name_map = self.update_name_map(&lhs)?;
                 Ok(Self {
                     expr: &lhs.expr + &self.expr,
                     name_map,
@@ -740,7 +814,7 @@ impl PyParameterExpression {
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                let name_map = self.merge_name_maps(&rhs)?;
+                let name_map = self.update_name_map(&rhs)?;
                 Ok(Self {
                     expr: &self.expr - &rhs.expr,
                     name_map,
@@ -754,7 +828,7 @@ impl PyParameterExpression {
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
-                let name_map = self.merge_name_maps(&lhs)?;
+                let name_map = self.update_name_map(&lhs)?;
                 Ok(Self {
                     expr: &lhs.expr - &self.expr,
                     name_map,
@@ -768,7 +842,7 @@ impl PyParameterExpression {
     pub fn __mul__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                let name_map = self.merge_name_maps(&rhs)?;
+                let name_map = self.update_name_map(&rhs)?;
                 Ok(Self {
                     expr: &self.expr * &rhs.expr,
                     name_map,
@@ -782,7 +856,7 @@ impl PyParameterExpression {
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
-                let name_map = self.merge_name_maps(&lhs)?;
+                let name_map = self.update_name_map(&lhs)?;
                 Ok(Self {
                     expr: &lhs.expr * &self.expr,
                     name_map,
@@ -802,7 +876,7 @@ impl PyParameterExpression {
                         "Division by 0.",
                     ))
                 } else {
-                    let name_map = self.merge_name_maps(&rhs)?;
+                    let name_map = self.update_name_map(&rhs)?;
                     Ok(Self {
                         expr: &self.expr / &rhs.expr,
                         name_map,
@@ -822,7 +896,7 @@ impl PyParameterExpression {
                         "Division by 0.",
                     ))
                 } else {
-                    let name_map = self.merge_name_maps(&lhs)?;
+                    let name_map = self.update_name_map(&lhs)?;
                     Ok(Self {
                         expr: &lhs.expr / &self.expr,
                         name_map,
@@ -837,7 +911,7 @@ impl PyParameterExpression {
     pub fn __pow__(&self, rhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                let name_map = self.merge_name_maps(&rhs)?;
+                let name_map = self.update_name_map(&rhs)?;
                 Ok(Self {
                     expr: self.expr.pow(&rhs.expr),
                     name_map,
@@ -851,7 +925,7 @@ impl PyParameterExpression {
     pub fn __rpow__(&self, lhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
-                let name_map = self.merge_name_maps(&lhs)?;
+                let name_map = self.update_name_map(&lhs)?;
                 Ok(Self {
                     expr: lhs.expr.pow(&self.expr),
                     name_map,
@@ -941,7 +1015,7 @@ impl PyParameterExpression {
             }
             None => {
                 let mut hasher = DefaultHasher::new();
-                self.expr.to_string().hash(&mut hasher);
+                self.expr.string_id().hash(&mut hasher);
                 Ok(hasher.finish())
             }
         }
@@ -970,13 +1044,22 @@ impl Default for PyParameterExpression {
 
 impl fmt::Display for PyParameterExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.expr)
+        write!(f, "{}", {
+            if let SymbolExpr::Symbol(s) = &self.expr {
+                s.name()
+            } else {
+                match self.expr.eval(true) {
+                    Some(e) => e.to_string(),
+                    None => self.expr.optimize().to_string(),
+                }
+            }
+        })
     }
 }
 
 // rust native implementation will be added in PR #14207
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub struct PyParameter {
     pub symbol: Symbol,
 }
@@ -1064,7 +1147,7 @@ impl PyParameterVectorElement {
         let py_element = Self {
             symbol: symbol.clone(),
         };
-        let py_parameter = PyParameter::from_symbol(&symbol);
+        let py_parameter = PyParameter::from_symbol(symbol);
 
         py_parameter.add_subclass(py_element)
     }
@@ -1174,7 +1257,7 @@ fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<PyObject> {
     Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
 }
 
-fn symbol_from_py_parameter<'py>(param: &Bound<'py, PyAny>) -> PyResult<Symbol> {
+fn symbol_from_py_parameter(param: &Bound<'_, PyAny>) -> PyResult<Symbol> {
     if let Ok(element) = param.extract::<PyParameterVectorElement>() {
         Ok(element.symbol.clone())
     } else if let Ok(parameter) = param.extract::<PyParameter>() {

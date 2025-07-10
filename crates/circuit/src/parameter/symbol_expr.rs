@@ -32,7 +32,7 @@ pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct Symbol {
-    name: Box<String>,      // the name of the symbol
+    name: String,           // the name of the symbol
     pub uuid: Uuid,         // the unique identifier
     pub index: Option<u32>, // an optional index, if part of a vector
     #[allow(dead_code)]
@@ -63,15 +63,15 @@ impl Hash for Symbol {
 impl Symbol {
     pub fn new(name: &str, uuid: Option<Uuid>, index: Option<u32>) -> Self {
         Self {
-            name: Box::new(name.to_string()),
+            name: name.to_string(),
             uuid: uuid.unwrap_or(Uuid::new_v4()),
-            index: index,
+            index,
             vector: None, // Python only
         }
     }
 
     pub fn name(&self) -> String {
-        let base_name = self.name.as_ref();
+        let base_name = &self.name;
         match self.index {
             Some(i) => format!("{base_name}[{i}]"),
             None => base_name.clone(),
@@ -96,10 +96,10 @@ impl Symbol {
         }
 
         Ok(Self {
-            name: Box::new(name.to_string()),
-            uuid: uuid.map_or_else(|| Uuid::new_v4(), |id| Uuid::from_u128(id)),
-            index: index,
-            vector: vector,
+            name: name.to_string(),
+            uuid: uuid.map_or_else(Uuid::new_v4, Uuid::from_u128),
+            index,
+            vector,
         })
     }
 
@@ -289,178 +289,7 @@ fn _neg(expr: SymbolExpr) -> SymbolExpr {
 
 impl fmt::Display for SymbolExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                SymbolExpr::Symbol(e) => format!("{}_{:?}", e.name(), e.uuid.as_u128()),
-                SymbolExpr::Value(e) => e.to_string(),
-                SymbolExpr::Unary { op, expr } => {
-                    let s = expr.to_string();
-                    match op {
-                        UnaryOp::Abs => format!("abs({})", s),
-                        UnaryOp::Neg => match expr.as_ref() {
-                            SymbolExpr::Value(e) => (-e).to_string(),
-                            SymbolExpr::Binary {
-                                op: BinaryOp::Add | BinaryOp::Sub,
-                                ..
-                            } => format!("-({})", s),
-                            _ => format!("-{}", s),
-                        },
-                        UnaryOp::Sin => format!("sin({})", s),
-                        UnaryOp::Asin => format!("asin({})", s),
-                        UnaryOp::Cos => format!("cos({})", s),
-                        UnaryOp::Acos => format!("acos({})", s),
-                        UnaryOp::Tan => format!("tan({})", s),
-                        UnaryOp::Atan => format!("atan({})", s),
-                        UnaryOp::Exp => format!("exp({})", s),
-                        UnaryOp::Log => format!("log({})", s),
-                        UnaryOp::Sign => format!("sign({})", s),
-                        UnaryOp::Conj => format!("conj({})", s),
-                    }
-                }
-                SymbolExpr::Binary { op, lhs, rhs } => {
-                    let s_lhs = lhs.to_string();
-                    let s_rhs = rhs.to_string();
-                    let op_lhs = match lhs.as_ref() {
-                        SymbolExpr::Binary { op: lop, .. } => {
-                            matches!(lop, BinaryOp::Add | BinaryOp::Sub)
-                        }
-                        SymbolExpr::Value(e) => match e {
-                            Value::Real(v) => *v < 0.0,
-                            Value::Int(v) => *v < 0,
-                            Value::Complex(_) => true,
-                        },
-                        _ => false,
-                    };
-                    let op_rhs = match rhs.as_ref() {
-                        SymbolExpr::Binary { op: rop, .. } => match rop {
-                            BinaryOp::Add | BinaryOp::Sub => true,
-                            _ => matches!(op, BinaryOp::Div),
-                        },
-                        SymbolExpr::Value(e) => match e {
-                            Value::Real(v) => *v < 0.0,
-                            Value::Int(v) => *v < 0,
-                            Value::Complex(_) => true,
-                        },
-                        _ => false,
-                    };
-
-                    match op {
-                        BinaryOp::Add => match rhs.as_ref() {
-                            SymbolExpr::Unary {
-                                op: UnaryOp::Neg,
-                                expr: _,
-                            } => {
-                                if s_rhs.as_str().char_indices().nth(0).unwrap().1 == '-' {
-                                    format!("{} {}", s_lhs, s_rhs)
-                                } else {
-                                    format!("{} + {}", s_lhs, s_rhs)
-                                }
-                            }
-                            _ => format!("{} + {}", s_lhs, s_rhs),
-                        },
-                        BinaryOp::Sub => match rhs.as_ref() {
-                            SymbolExpr::Unary {
-                                op: UnaryOp::Neg,
-                                expr: _,
-                            } => {
-                                if s_rhs.as_str().char_indices().nth(0).unwrap().1 == '-' {
-                                    let st = s_rhs.char_indices().nth(0).unwrap().0;
-                                    let ed = s_rhs.char_indices().nth(1).unwrap().0;
-                                    let s_rhs_new: &str = &s_rhs.as_str()[st..ed];
-                                    format!("{} + {}", s_lhs, s_rhs_new)
-                                } else if op_rhs {
-                                    format!("{} -({})", s_lhs, s_rhs)
-                                } else {
-                                    format!("{} - {}", s_lhs, s_rhs)
-                                }
-                            }
-                            _ => {
-                                if op_rhs {
-                                    format!("{} -({})", s_lhs, s_rhs)
-                                } else {
-                                    format!("{} - {}", s_lhs, s_rhs)
-                                }
-                            }
-                        },
-                        BinaryOp::Mul => {
-                            if op_lhs {
-                                if op_rhs {
-                                    format!("({})*({})", s_lhs, s_rhs)
-                                } else {
-                                    format!("({})*{}", s_lhs, s_rhs)
-                                }
-                            } else if op_rhs {
-                                format!("{}*({})", s_lhs, s_rhs)
-                            } else {
-                                format!("{}*{}", s_lhs, s_rhs)
-                            }
-                        }
-                        BinaryOp::Div => {
-                            if op_lhs {
-                                if op_rhs {
-                                    format!("({})/({})", s_lhs, s_rhs)
-                                } else {
-                                    format!("({})/{}", s_lhs, s_rhs)
-                                }
-                            } else if op_rhs {
-                                format!("{}/({})", s_lhs, s_rhs)
-                            } else {
-                                format!("{}/{}", s_lhs, s_rhs)
-                            }
-                        }
-                        BinaryOp::Pow => match lhs.as_ref() {
-                            SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                match rhs.as_ref() {
-                                    SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                        format!("({})**({})", s_lhs, s_rhs)
-                                    }
-                                    SymbolExpr::Value(r) => {
-                                        if r.as_real() < 0.0 {
-                                            format!("({})**({})", s_lhs, s_rhs)
-                                        } else {
-                                            format!("({})**{}", s_lhs, s_rhs)
-                                        }
-                                    }
-                                    _ => format!("({})**{}", s_lhs, s_rhs),
-                                }
-                            }
-                            SymbolExpr::Value(l) => {
-                                if l.as_real() < 0.0 {
-                                    match rhs.as_ref() {
-                                        SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                            format!("({})**({})", s_lhs, s_rhs)
-                                        }
-                                        _ => format!("({})**{}", s_lhs, s_rhs),
-                                    }
-                                } else {
-                                    match rhs.as_ref() {
-                                        SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                            format!("{}**({})", s_lhs, s_rhs)
-                                        }
-                                        _ => format!("{}**{}", s_lhs, s_rhs),
-                                    }
-                                }
-                            }
-                            _ => match rhs.as_ref() {
-                                SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                                    format!("{}**({})", s_lhs, s_rhs)
-                                }
-                                SymbolExpr::Value(r) => {
-                                    if r.as_real() < 0.0 {
-                                        format!("{}**({})", s_lhs, s_rhs)
-                                    } else {
-                                        format!("{}**{}", s_lhs, s_rhs)
-                                    }
-                                }
-                                _ => format!("{}**{}", s_lhs, s_rhs),
-                            },
-                        },
-                    }
-                }
-            },
-        )
+        write!(f, "{}", self.display(false))
     }
 }
 
@@ -497,7 +326,7 @@ impl SymbolExpr {
     /// bind value to symbol node
     pub fn bind_by_name(&self, maps: &HashMap<String, Value>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e.name.as_ref()) {
+            SymbolExpr::Symbol(e) => match maps.get(&e.name) {
                 Some(v) => SymbolExpr::Value(*v),
                 None => self.clone(),
             },
@@ -551,7 +380,7 @@ impl SymbolExpr {
     /// TODO make this use .subs
     pub fn subs_by_name(&self, maps: &HashMap<String, SymbolExpr>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e.name.as_ref()) {
+            SymbolExpr::Symbol(e) => match maps.get(&e.name) {
                 Some(v) => v.clone(),
                 None => self.clone(),
             },
@@ -1161,6 +990,10 @@ impl SymbolExpr {
         }
     }
 
+    pub fn string_id(&self) -> String {
+        self.display(true)
+    }
+
     // Add with heuristic optimization
     fn add_opt(&self, rhs: &SymbolExpr, recursive: bool) -> Option<SymbolExpr> {
         if self.is_zero() {
@@ -1347,7 +1180,7 @@ impl SymbolExpr {
                                 if let (SymbolExpr::Value(rv), SymbolExpr::Value(lv)) =
                                     (l_lhs.as_ref(), r_lhs.as_ref())
                                 {
-                                    if l_rhs.expand().to_string() == r_rhs.expand().to_string() {
+                                    if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                         return match SymbolExpr::Value(rv + lv)
                                             .mul_opt(l_rhs, recursive)
                                         {
@@ -1361,7 +1194,7 @@ impl SymbolExpr {
                                 }
 
                                 if let Some(e) = rhs.neg_opt() {
-                                    if self.expand().to_string() == e.expand().to_string() {
+                                    if self.expand().string_id() == e.expand().string_id() {
                                         return Some(SymbolExpr::Value(Value::Int(0)));
                                     }
                                 }
@@ -1642,7 +1475,7 @@ impl SymbolExpr {
                                 if let (SymbolExpr::Value(rv), SymbolExpr::Value(lv)) =
                                     (l_lhs.as_ref(), r_lhs.as_ref())
                                 {
-                                    if l_rhs.expand().to_string() == r_rhs.expand().to_string() {
+                                    if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                         return match SymbolExpr::Value(rv - lv)
                                             .mul_opt(l_rhs, recursive)
                                         {
@@ -1654,7 +1487,7 @@ impl SymbolExpr {
                                         };
                                     }
                                 }
-                                if self.expand().to_string() == rhs.expand().to_string() {
+                                if self.expand().string_id() == rhs.expand().string_id() {
                                     return Some(SymbolExpr::Value(Value::Int(0)));
                                 }
                             }
@@ -2465,6 +2298,180 @@ impl SymbolExpr {
             }
         }
     }
+
+    fn display(&self, with_uuid: bool) -> String {
+        match self {
+            SymbolExpr::Symbol(e) => match with_uuid {
+                true => format!("{}_{}", e.name(), e.py_uuid()),
+                false => e.name.to_string(),
+            },
+            SymbolExpr::Value(e) => e.to_string(),
+            SymbolExpr::Unary { op, expr } => {
+                let s = expr.display(with_uuid);
+                match op {
+                    UnaryOp::Abs => format!("abs({})", s),
+                    UnaryOp::Neg => match expr.as_ref() {
+                        SymbolExpr::Value(e) => (-e).to_string(),
+                        SymbolExpr::Binary {
+                            op: BinaryOp::Add | BinaryOp::Sub,
+                            ..
+                        } => format!("-({})", s),
+                        _ => format!("-{}", s),
+                    },
+                    UnaryOp::Sin => format!("sin({})", s),
+                    UnaryOp::Asin => format!("asin({})", s),
+                    UnaryOp::Cos => format!("cos({})", s),
+                    UnaryOp::Acos => format!("acos({})", s),
+                    UnaryOp::Tan => format!("tan({})", s),
+                    UnaryOp::Atan => format!("atan({})", s),
+                    UnaryOp::Exp => format!("exp({})", s),
+                    UnaryOp::Log => format!("log({})", s),
+                    UnaryOp::Sign => format!("sign({})", s),
+                    UnaryOp::Conj => format!("conj({})", s),
+                }
+            }
+            SymbolExpr::Binary { op, lhs, rhs } => {
+                let s_lhs = lhs.display(with_uuid);
+                let s_rhs = rhs.display(with_uuid);
+                let op_lhs = match lhs.as_ref() {
+                    SymbolExpr::Binary { op: lop, .. } => {
+                        matches!(lop, BinaryOp::Add | BinaryOp::Sub)
+                    }
+                    SymbolExpr::Value(e) => match e {
+                        Value::Real(v) => *v < 0.0,
+                        Value::Int(v) => *v < 0,
+                        Value::Complex(_) => true,
+                    },
+                    _ => false,
+                };
+                let op_rhs = match rhs.as_ref() {
+                    SymbolExpr::Binary { op: rop, .. } => match rop {
+                        BinaryOp::Add | BinaryOp::Sub => true,
+                        _ => matches!(op, BinaryOp::Div),
+                    },
+                    SymbolExpr::Value(e) => match e {
+                        Value::Real(v) => *v < 0.0,
+                        Value::Int(v) => *v < 0,
+                        Value::Complex(_) => true,
+                    },
+                    _ => false,
+                };
+
+                match op {
+                    BinaryOp::Add => match rhs.as_ref() {
+                        SymbolExpr::Unary {
+                            op: UnaryOp::Neg,
+                            expr: _,
+                        } => {
+                            if s_rhs.as_str().char_indices().nth(0).unwrap().1 == '-' {
+                                format!("{} {}", s_lhs, s_rhs)
+                            } else {
+                                format!("{} + {}", s_lhs, s_rhs)
+                            }
+                        }
+                        _ => format!("{} + {}", s_lhs, s_rhs),
+                    },
+                    BinaryOp::Sub => match rhs.as_ref() {
+                        SymbolExpr::Unary {
+                            op: UnaryOp::Neg,
+                            expr: _,
+                        } => {
+                            if s_rhs.as_str().char_indices().nth(0).unwrap().1 == '-' {
+                                let st = s_rhs.char_indices().nth(0).unwrap().0;
+                                let ed = s_rhs.char_indices().nth(1).unwrap().0;
+                                let s_rhs_new: &str = &s_rhs.as_str()[st..ed];
+                                format!("{} + {}", s_lhs, s_rhs_new)
+                            } else if op_rhs {
+                                format!("{} -({})", s_lhs, s_rhs)
+                            } else {
+                                format!("{} - {}", s_lhs, s_rhs)
+                            }
+                        }
+                        _ => {
+                            if op_rhs {
+                                format!("{} -({})", s_lhs, s_rhs)
+                            } else {
+                                format!("{} - {}", s_lhs, s_rhs)
+                            }
+                        }
+                    },
+                    BinaryOp::Mul => {
+                        if op_lhs {
+                            if op_rhs {
+                                format!("({})*({})", s_lhs, s_rhs)
+                            } else {
+                                format!("({})*{}", s_lhs, s_rhs)
+                            }
+                        } else if op_rhs {
+                            format!("{}*({})", s_lhs, s_rhs)
+                        } else {
+                            format!("{}*{}", s_lhs, s_rhs)
+                        }
+                    }
+                    BinaryOp::Div => {
+                        if op_lhs {
+                            if op_rhs {
+                                format!("({})/({})", s_lhs, s_rhs)
+                            } else {
+                                format!("({})/{}", s_lhs, s_rhs)
+                            }
+                        } else if op_rhs {
+                            format!("{}/({})", s_lhs, s_rhs)
+                        } else {
+                            format!("{}/{}", s_lhs, s_rhs)
+                        }
+                    }
+                    BinaryOp::Pow => match lhs.as_ref() {
+                        SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
+                            match rhs.as_ref() {
+                                SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
+                                    format!("({})**({})", s_lhs, s_rhs)
+                                }
+                                SymbolExpr::Value(r) => {
+                                    if r.as_real() < 0.0 {
+                                        format!("({})**({})", s_lhs, s_rhs)
+                                    } else {
+                                        format!("({})**{}", s_lhs, s_rhs)
+                                    }
+                                }
+                                _ => format!("({})**{}", s_lhs, s_rhs),
+                            }
+                        }
+                        SymbolExpr::Value(l) => {
+                            if l.as_real() < 0.0 {
+                                match rhs.as_ref() {
+                                    SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
+                                        format!("({})**({})", s_lhs, s_rhs)
+                                    }
+                                    _ => format!("({})**{}", s_lhs, s_rhs),
+                                }
+                            } else {
+                                match rhs.as_ref() {
+                                    SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
+                                        format!("{}**({})", s_lhs, s_rhs)
+                                    }
+                                    _ => format!("{}**{}", s_lhs, s_rhs),
+                                }
+                            }
+                        }
+                        _ => match rhs.as_ref() {
+                            SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
+                                format!("{}**({})", s_lhs, s_rhs)
+                            }
+                            SymbolExpr::Value(r) => {
+                                if r.as_real() < 0.0 {
+                                    format!("{}**({})", s_lhs, s_rhs)
+                                } else {
+                                    format!("{}**{}", s_lhs, s_rhs)
+                                }
+                            }
+                            _ => format!("{}**{}", s_lhs, s_rhs),
+                        },
+                    },
+                }
+            }
+        }
+    }
 }
 
 impl Add for SymbolExpr {
@@ -2668,12 +2675,12 @@ impl PartialOrd for SymbolExpr {
                     rhs: rr,
                 } => {
                     let ls = match ll.as_ref() {
-                        SymbolExpr::Value(_) => lr.to_string(),
-                        _ => self.to_string(),
+                        SymbolExpr::Value(_) => lr.string_id(),
+                        _ => self.string_id(),
                     };
                     let rs = match rl.as_ref() {
-                        SymbolExpr::Value(_) => rr.to_string(),
-                        _ => rhs.to_string(),
+                        SymbolExpr::Value(_) => rr.string_id(),
+                        _ => rhs.string_id(),
                     };
                     if rs > ls && rs.len() > ls.len() {
                         Some(Ordering::Less)
