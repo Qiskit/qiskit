@@ -46,6 +46,7 @@ from qiskit.circuit import (
     WhileLoopOp,
     CASE_DEFAULT,
     Store,
+    BoxOp,
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
@@ -1734,6 +1735,34 @@ class TestDagEquivalence(QiskitTestCase):
         node2 = DAGOpNode(op=instruction2, qargs=(qubit1, qubit2), cargs=())
 
         self.assertEqual(node1, node2)
+
+    def test_boxop_neq(self):
+        """Test non equality of nonequal DAGOpNodes and QuantumCircuits containing BoxOp gates."""
+        qc = QuantumCircuit()
+
+        box1 = BoxOp(body=qc, duration=300.0, unit="dt")
+        box2 = BoxOp(body=qc, duration=300.0, unit="ms")
+        node1 = DAGOpNode(op=box1, qargs=(), cargs=())
+        node2 = DAGOpNode(op=box2, qargs=(), cargs=())
+        self.assertNotEqual(node1, node2)
+
+        qc1 = QuantumCircuit()
+        qc2 = QuantumCircuit()
+        qc1.append(box1)
+        qc2.append(box2)
+        self.assertNotEqual(qc1, qc2)
+
+        box1 = BoxOp(body=qc, duration=300.0, unit="dt")
+        box2 = BoxOp(body=qc, duration=200.0, unit="dt")
+        node1 = DAGOpNode(op=box1, qargs=(), cargs=())
+        node2 = DAGOpNode(op=box2, qargs=(), cargs=())
+        self.assertNotEqual(node1, node2)
+
+        qc1 = QuantumCircuit()
+        qc2 = QuantumCircuit()
+        qc1.append(box1)
+        qc2.append(box2)
+        self.assertNotEqual(qc1, qc2)
 
     def test_dag_eq(self):
         """DAG equivalence check: True."""
