@@ -20,13 +20,15 @@
 #include <stdio.h>
 #include <string.h>
 
+// Helper headers
 QkTarget *get_u1_u2_u3_target(void);
 QkTarget *get_rz_rx_target(void);
 QkTarget *get_rz_sx_target(void);
-QkTarget *get_rz_yx_u_target(void);
+QkTarget *get_rz_ry_u_target(void);
 QkTarget *get_h_p_target(void);
 QkTarget *get_rz_ry_u_noerror_target(void);
 bool compare_gate_counts(QkOpCounts counts, char **gates, uint32_t *freq, int num_gates);
+
 /**
  * Test running pass on chains of h gates.
  *
@@ -60,7 +62,7 @@ int test_optimize_h_gates(void) {
     int num_failed = 0;
     QkTarget *targets[6] = {
         get_u1_u2_u3_target(), get_rz_rx_target(), get_rz_sx_target(),
-        get_rz_yx_u_target(),  get_h_p_target(),   get_rz_ry_u_noerror_target(),
+        get_rz_ry_u_target(),  get_h_p_target(),   get_rz_ry_u_noerror_target(),
     };
     char *gates[6][2] = {{
                              "u2",
@@ -83,11 +85,13 @@ int test_optimize_h_gates(void) {
     };
 
     int num_gates[6] = {1, 2, 2, 1, 1, 1};
-
+    char *names[6] = {"u1_u2_u3", "rz_rx", "rz_sx", "rz_ry_u", "h_p", "rz_ry_u_noerror"};
+    printf("Optimize h gates tests.\n");
     for (int idx = 0; idx < 6; idx++) {
-        printf("Call #%u.\n", idx);
-        num_failed +=
+        int result =
             test_optimize_h_gates_inner(targets[idx], gates[idx], freq[idx], num_gates[idx]);
+        printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
+        num_failed += result;
     }
     return num_failed;
 }
@@ -117,25 +121,94 @@ cleanup:
     return result;
 }
 
+/**
+ * Transpile: qr:--[RY(θ), RY(-θ)]-- to null.
+ */
 int test_optimize_identity_target(void) {
     int num_failed = 0;
     QkTarget *targets[4] = {
         get_u1_u2_u3_target(),
         get_rz_rx_target(),
         get_rz_sx_target(),
-        get_rz_yx_u_target(),
+        get_rz_ry_u_target(),
     };
+    char *names[4] = {
+        "u1_u2_u3",
+        "rz_rx",
+        "rz_sx",
+        "rz_ry_u",
+    };
+    printf("Optimize identities with target tests.\n");
     for (int idx = 0; idx < 4; idx++) {
-        printf("Call #%u.\n", idx);
-        num_failed += test_optimize_identity_target_inner(targets[idx]);
+        int result = test_optimize_identity_target_inner(targets[idx]);
+        printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
+        num_failed += result;
     }
     return num_failed;
+}
+
+/**
+ * Test identity run is removed for no target specified.
+ */
+int test_optimize_identity_no_target(void) {
+    int result = Ok;
+    // Build circuit
+    QkCircuit *circuit = qk_circuit_new(1, 0);
+    uint32_t qubits[1] = {0};
+    for (int iter = 0; iter < 2; iter++) {
+        qk_circuit_gate(circuit, QkGate_H, qubits, NULL);
+    }
+
+    // Run transpiler pass
+    QkCircuit *circuit_result =
+        qk_transpiler_standalone_optimize_1q_gates_decomposition(circuit, NULL);
+    if (qk_circuit_count_ops(circuit_result).len != 0) {
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_circuit_free(circuit);
+    qk_circuit_free(circuit_result);
+    return result;
+}
+
+/**
+ * "U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given.
+ */
+int test_optimize_error_over_target_3(void) {
+    int result = Ok;
+    // Build circuit
+    QkCircuit *circuit = qk_circuit_new(1, 0);
+    uint32_t qubits[1] = {0};
+    double params[3] = {3.14 / 7., 3.14 / 4., 3.14 / 3.};
+    qk_circuit_gate(circuit, QkGate_U, qubits, params);
+
+    // Run transpiler pass
+    QkCircuit *circuit_result = qk_transpiler_standalone_optimize_1q_gates_decomposition(
+        circuit, get_rz_ry_u_noerror_target());
+    QkOpCounts counts = qk_circuit_count_ops(circuit_result);
+    if (counts.len != 1) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (strcmp(counts.data[0].name, "u") != 0 || counts.data[0].count != 1) {
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_circuit_free(circuit);
+    qk_circuit_free(circuit_result);
+    return result;
 }
 
 int test_optimize_1q_decomposition(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_optimize_h_gates);
     num_failed += RUN_TEST(test_optimize_identity_target);
+    num_failed += RUN_TEST(test_optimize_identity_no_target);
+    num_failed += RUN_TEST(test_optimize_error_over_target_3);
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
 
@@ -218,7 +291,7 @@ QkTarget *get_rz_sx_target(void) {
 
 /// @brief Generates a target with overcomplete basis, rz is cheaper than ry is cheaper than u.
 /// @return The generated target instance.
-QkTarget *get_rz_yx_u_target(void) {
+QkTarget *get_rz_ry_u_target(void) {
     QkTarget *target_rz_ry_u = qk_target_new(1);
 
     double gate_errors[3] = {1e-4, 2e-4, 5e-4};
