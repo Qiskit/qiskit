@@ -27,7 +27,6 @@ from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
-from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 
 # pylint: disable=no-member,invalid-name, unused-variable
@@ -293,7 +292,7 @@ def _demultiplex(
     elif _vw_type == "only_v" and opt_a1:
         ucrz = _get_ucrz(nqubits, angles).reverse_ops()
     else:
-        ucrz = UCRZGate(angles.tolist())
+        ucrz = _get_ucrz(nqubits, angles, _vw_type="all")
     circ.append(ucrz, [layout[-1]] + layout[: nqubits - 1])
 
     # right gate
@@ -306,7 +305,7 @@ def _demultiplex(
     return circ, vmat, wmat
 
 
-def _get_ucrz(nqubits, angles):
+def _get_ucrz(nqubits, angles, _vw_type=None):
     """This function synthesizes UCRZ without the final CX gate"""
     circuit = QuantumCircuit(nqubits)
     q_controls = circuit.qubits[1:]
@@ -319,6 +318,9 @@ def _get_ucrz(nqubits, angles):
         if not i == len(angles) - 1:
             binary_rep = np.binary_repr(i + 1)
             q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
+            circuit.cx(q_controls[q_contr_index], q_target)
+        elif _vw_type == "all":
+            q_contr_index = len(q_controls) - 1
             circuit.cx(q_controls[q_contr_index], q_target)
 
     return circuit
