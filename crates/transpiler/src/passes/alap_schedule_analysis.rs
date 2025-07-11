@@ -120,7 +120,7 @@ pub fn run_alap_schedule_analysis(
                 .map(|bit| *idle_before.get(bit).unwrap_or(&0.0))
                 .max_by(|a, b| a.partial_cmp(b).unwrap())
                 .unwrap_or(0.0);
-            
+
             //           |t1 = t0 + duration
             //    Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
             //    C ░░░░░░░░░▒▒▒▒▒▒▒
