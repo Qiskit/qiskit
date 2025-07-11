@@ -30,6 +30,9 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
 pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
+    if !dag.get_op_counts().contains_key("measure") {
+        return Ok(());
+    }
     let run_in_parallel = getenv_use_multiple_threads();
 
     let process_node = |index: NodeIndex, inst: &PackedInstruction| {
@@ -74,7 +77,7 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> 
                                 false
                             }
                         }) {
-                            return Some(predecessor)
+                            return Some(predecessor);
                         }
                     }
                     _ => return None,
