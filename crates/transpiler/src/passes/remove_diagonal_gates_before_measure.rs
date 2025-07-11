@@ -30,27 +30,6 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
 pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
-    static DIAGONAL_1Q_GATES: [StandardGate; 8] = [
-        StandardGate::RZ,
-        StandardGate::Z,
-        StandardGate::T,
-        StandardGate::S,
-        StandardGate::Tdg,
-        StandardGate::Sdg,
-        StandardGate::U1,
-        StandardGate::Phase,
-    ];
-    static DIAGONAL_2Q_GATES: [StandardGate; 7] = [
-        StandardGate::CZ,
-        StandardGate::CRZ,
-        StandardGate::CU1,
-        StandardGate::RZZ,
-        StandardGate::CPhase,
-        StandardGate::CS,
-        StandardGate::CSdg,
-    ];
-    static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZ];
-
     let run_in_parallel = getenv_use_multiple_threads();
 
     let process_node = |index: NodeIndex, inst: &PackedInstruction| {
@@ -66,23 +45,39 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> 
                 return None;
             };
             if let Some(gate) = pred_inst.standard_gate() {
-                if DIAGONAL_1Q_GATES.contains(&gate) {
-                    return Some(predecessor);
-                } else if DIAGONAL_2Q_GATES.contains(&gate) || DIAGONAL_3Q_GATES.contains(&gate) {
-                    let mut successors = dag.quantum_successors(predecessor);
-                    if successors.all(|s| {
-                        let node_s = &dag.dag()[s];
-                        if let NodeType::Operation(inst_s) = node_s {
-                            matches!(
-                                inst_s.op.view(),
-                                OperationRef::StandardInstruction(StandardInstruction::Measure)
-                            )
-                        } else {
-                            false
+                match gate {
+                    StandardGate::RZ
+                    | StandardGate::Z
+                    | StandardGate::T
+                    | StandardGate::S
+                    | StandardGate::Tdg
+                    | StandardGate::Sdg
+                    | StandardGate::U1
+                    | StandardGate::Phase => return Some(predecessor),
+                    StandardGate::CZ
+                    | StandardGate::CRZ
+                    | StandardGate::CU1
+                    | StandardGate::RZZ
+                    | StandardGate::CPhase
+                    | StandardGate::CS
+                    | StandardGate::CSdg
+                    | StandardGate::CCZ => {
+                        let mut successors = dag.quantum_successors(predecessor);
+                        if successors.all(|s| {
+                            let node_s = &dag.dag()[s];
+                            if let NodeType::Operation(inst_s) = node_s {
+                                matches!(
+                                    inst_s.op.view(),
+                                    OperationRef::StandardInstruction(StandardInstruction::Measure)
+                                )
+                            } else {
+                                false
+                            }
+                        }) {
+                            return Some(predecessor)
                         }
-                    }) {
-                        return Some(predecessor);
                     }
+                    _ => return None,
                 }
             }
         }
