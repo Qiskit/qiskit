@@ -113,7 +113,7 @@ class ParameterExpression(ParameterExpressionBase):
         "_parameter_symbols",
     ]
 
-    def __new__(cls, symbol_map = None, expr = None):
+    def __new__(cls, symbol_map=None, expr=None):
         """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
