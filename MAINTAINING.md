@@ -82,13 +82,13 @@ should be pushed for further release.
 This section contains the human-intervention parts of the release process for pushing a release and hosting it on PyPI.
 
 The technical process of building, testing and deploying the package is automated.
-However, the **release manager** should manually follow these steps as a checklist:
+However, the **release manager** should manually follow these steps:
 
- 1. Checking the milestone state.
- 2. Auditing `Changelog:*` labels
- 3. Creating, submitting, and merging a PR to handle release-specific changes as last commit on the milestone
- 4. Tagging the release commit to trigger the release automation process
- 5. Making any required post-release changes in the repository
+ 1. [Check the milestone state](#1-check-the-milestone-state)
+ 2. [Audit `Changelog:*` labels](#2-audit-changelog-labels)
+ 3. [Creating, submitting, and merging a PR to handle release-specific changes as last commit on the milestone](#3-submit-a-prepare-xyz-release-pr)
+ 4. [Tag the commit from step 3 to trigger the release automation process](#4-tag-the-prepare-xyz-release-commit)
+ 5. [Make post-release changes in the repository](#5-post-release-actions)
 
 The release process is largely the same for all versions.
 However, for convenience, let's put names to two main scenarios for a release:
