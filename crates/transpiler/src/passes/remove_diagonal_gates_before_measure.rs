@@ -29,9 +29,9 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 ///     DAGCircuit: the optimized DAG.
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
-pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
+pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
     if !dag.get_op_counts().contains_key("measure") {
-        return Ok(());
+        return;
     }
     let run_in_parallel = getenv_use_multiple_threads();
 
@@ -105,13 +105,9 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> 
             .collect()
     };
 
-    for node_to_remove in nodes_to_remove {
-        if dag.dag().node_weight(node_to_remove).is_some() {
-            dag.remove_op_node(node_to_remove);
-        }
+    for node in nodes_to_remove {
+        dag.remove_op_node(node);
     }
-
-    Ok(())
 }
 
 pub fn remove_diagonal_gates_before_measure_mod(m: &Bound<PyModule>) -> PyResult<()> {
