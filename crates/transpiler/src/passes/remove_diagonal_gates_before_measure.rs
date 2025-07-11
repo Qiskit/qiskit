@@ -106,7 +106,9 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
     };
 
     for node in nodes_to_remove {
-        dag.remove_op_node(node);
+        if dag.dag().node_weight(node).is_some() {
+            dag.remove_op_node(node);
+        }
     }
 }
 
