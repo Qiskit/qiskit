@@ -43,8 +43,6 @@ class ParameterVectorElement(Parameter):
         self._index = index
         return self
 
-    #        return super(Parameter, self).__new__(self, None, ParameterExpressionBase.VectorElement(vector.name, index, uuid=uuid))
-
     @property
     def index(self):
         """Get the index of this element in the parent vector."""

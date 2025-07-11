@@ -625,13 +625,9 @@ impl ParameterExpression {
         }
     }
 
-    // make replay recursive function
-    fn _make_qpy_replay(
-        &self,
-        param: &SymbolExpr,
-        replay: &mut Vec<OPReplay>,
-    ) -> Option<ParameterValueType> {
-        match param {
+    // make parameter value from expr
+    fn _make_parameter_value_type(&self, expr: &SymbolExpr) -> Option<ParameterValueType> {
+        match expr {
             SymbolExpr::Value(v) => match v {
                 symbol_expr::Value::Int(i) => Some(ParameterValueType::Int(*i)),
                 symbol_expr::Value::Real(r) => Some(ParameterValueType::Float(*r)),
@@ -651,8 +647,30 @@ impl ParameterExpression {
                 }
                 None => None,
             },
+            SymbolExpr::Unary { .. } | SymbolExpr::Binary { .. } => {
+                let mut map = HashMap::<Arc<String>, u128>::new();
+                let symbols = expr.symbols();
+                if let Some(my_map) = &self.parameter_symbols {
+                    for (k, u) in my_map {
+                        if symbols.get(k.as_ref()).is_some() {
+                            map.insert(Arc::clone(k), *u);
+                        }
+                    }
+                }
+                Some(ParameterValueType::Parameter(ParameterExpression {
+                    expr: expr.clone(),
+                    parameter_symbols: Some(map),
+                }))
+            }
+        }
+    }
+
+    // make replay
+    fn make_qpy_replay(&self) -> Option<Vec<OPReplay>> {
+        match &self.expr {
             SymbolExpr::Unary { op, expr } => {
-                match self._make_qpy_replay(expr, replay) {
+                let mut replay = Vec::<OPReplay>::new();
+                match self._make_parameter_value_type(expr.as_ref()) {
                     Some(lhs) => {
                         let op = match op {
                             symbol_expr::UnaryOp::Abs => _OPCode::ABS,
@@ -682,26 +700,30 @@ impl ParameterExpression {
                                 rhs: None,
                             });
                         }
-                        let mut map = HashMap::<Arc<String>, u128>::new();
-                        let symbols = param.symbols();
-                        if let Some(my_map) = &self.parameter_symbols {
-                            for (k, u) in my_map {
-                                if symbols.get(k.as_ref()).is_some() {
-                                    map.insert(Arc::clone(k), *u);
-                                }
-                            }
-                        }
-                        Some(ParameterValueType::Parameter(ParameterExpression {
-                            expr: param.clone(),
-                            parameter_symbols: Some(map),
-                        }))
+                        Some(replay)
                     }
                     None => None,
                 }
             }
             SymbolExpr::Binary { op, lhs, rhs } => {
-                let lhs = self._make_qpy_replay(lhs.as_ref(), replay);
-                let rhs = self._make_qpy_replay(rhs.as_ref(), replay);
+                let mut replay = Vec::<OPReplay>::new();
+                // keep fraction for replay
+                if let Some((numerator, denominator)) = lhs.fraction() {
+                    if let symbol_expr::BinaryOp::Mul | symbol_expr::BinaryOp::Div = op {
+                        replay.push(OPReplay::_INSTRUCTION {
+                            op: _OPCode::DIV,
+                            lhs: self._make_parameter_value_type(&SymbolExpr::Binary {
+                                op: op.clone(),
+                                lhs: Arc::new(SymbolExpr::Value(Value::Int(numerator))),
+                                rhs: rhs.clone(),
+                            }),
+                            rhs: Some(ParameterValueType::Int(denominator)),
+                        });
+                        return Some(replay);
+                    }
+                }
+                let lhs = self._make_parameter_value_type(lhs.as_ref());
+                let rhs = self._make_parameter_value_type(rhs.as_ref());
                 if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
                     match lhs {
                         ParameterValueType::Parameter(_) => {
@@ -726,38 +748,24 @@ impl ParameterExpression {
                                 symbol_expr::BinaryOp::Div => _OPCode::RDIV,
                                 symbol_expr::BinaryOp::Pow => _OPCode::RPOW,
                             };
-                            replay.push(OPReplay::_INSTRUCTION {
-                                op,
-                                lhs: Some(rhs),
-                                rhs: Some(lhs),
-                            });
-                        }
-                    }
-                    let mut map = HashMap::<Arc<String>, u128>::new();
-                    let symbols = param.symbols();
-                    if let Some(my_map) = &self.parameter_symbols {
-                        for (k, u) in my_map {
-                            if symbols.get(k.as_ref()).is_some() {
-                                map.insert(Arc::clone(k), *u);
+                            if let _OPCode::ADD | _OPCode::MUL = op {
+                                replay.push(OPReplay::_INSTRUCTION {
+                                    op,
+                                    lhs: Some(lhs),
+                                    rhs: Some(rhs),
+                                });
+                            } else {
+                                replay.push(OPReplay::_INSTRUCTION {
+                                    op,
+                                    lhs: Some(rhs),
+                                    rhs: Some(lhs),
+                                });
                             }
                         }
                     }
-                    return Some(ParameterValueType::Parameter(ParameterExpression {
-                        expr: param.clone(),
-                        parameter_symbols: Some(map),
-                    }));
+                    return Some(replay);
                 }
                 None
-            }
-        }
-    }
-
-    pub fn make_qpy_replay(&self) -> Option<Vec<OPReplay>> {
-        match self.expr {
-            SymbolExpr::Binary { .. } | SymbolExpr::Unary { .. } => {
-                let mut replay = Vec::<OPReplay>::new();
-                self._make_qpy_replay(&self.expr, &mut replay)
-                    .map(|_| replay)
             }
             _ => None,
         }
@@ -963,11 +971,10 @@ impl ParameterExpression {
     /// ParameterExpression::__init__
     /// initialize ParameterExpression from the equation stored in string
     #[new]
-    #[pyo3(signature = (symbol_map = None, expr = None, _qpy_replay = None))]
+    #[pyo3(signature = (symbol_map = None, expr = None))]
     pub fn __new__(
         symbol_map: Option<HashSet<ParameterExpression>>,
         expr: Option<Bound<PyAny>>,
-        _qpy_replay: Option<Vec<OPReplay>>,
     ) -> PyResult<Self> {
         let Some(expr) = expr else {
             return Ok(ParameterExpression::default());

@@ -175,7 +175,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     with io.BytesIO() as buf:
         extra_symbols = _write_parameter_expression_v13(buf, obj, version)
         expr_bytes = buf.getvalue()
-    symbol_table_len = len(obj._parameter_symbols)
+    symbol_table_len = len(obj.parameter_symbols_dict)
     if extra_symbols:
         symbol_table_len += 2 * len(extra_symbols)
     param_expr_header_raw = struct.pack(
@@ -183,7 +183,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     )
     file_obj.write(param_expr_header_raw)
     file_obj.write(expr_bytes)
-    for symbol, value in obj._parameter_symbols.items():
+    for symbol, value in obj.parameter_symbols_dict.items():
         symbol_key = type_keys.Value.assign(symbol)
 
         # serialize key

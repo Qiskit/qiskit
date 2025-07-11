@@ -110,10 +110,10 @@ class ParameterExpression(ParameterExpressionBase):
     """ParameterExpression class to enable creating expressions of Parameters."""
 
     __slots__ = [
-        "_parameters",
+        "_parameter_symbols",
     ]
 
-    def __new__(cls, symbol_map, expr, _qpy_replay=None):
+    def __new__(cls, symbol_map = None, expr = None):
         """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -134,30 +134,22 @@ class ParameterExpression(ParameterExpressionBase):
         if symbol_map is not None:
             if isinstance(symbol_map, dict):
                 symbol_map = set(symbol_map.keys())
-        self = super().__new__(cls, symbol_map, expr, _qpy_replay)
+        self = super().__new__(cls, symbol_map, expr)
 
         if symbol_map is not None:
-            self._parameters = symbol_map
+            self._parameter_symbols = symbol_map
+        else:
+            self._parameter_symbols = set()
         return self
 
     @property
     def parameters(self) -> set:
         """Returns a set of the unbound Parameters in the expression."""
-        return self._parameters
-
-    #        from .parameter import Parameter
-    #        params = super().parameters
-    #        output = set()
-    #        for p in params:
-    ##            if p.is_vector_element:
-    ##                from .parametervector import ParameterVectorElement
-    ##                output.add(ParameterVectorElement(str(p), UUID(int=p.get_uuid())))
-    #            output.add(Parameter(str(p), UUID(int=p.get_uuid())))
-    #        return output
+        return self._parameter_symbols
 
     @property
-    def _parameter_symbols(self) -> dict:
-        return dict(zip(self._parameters, self._parameters))
+    def parameter_symbols_dict(self) -> dict:
+        return dict(zip(self._parameter_symbols, self._parameter_symbols))
 
     @property
     def _qpy_replay(self) -> list:
@@ -168,7 +160,7 @@ class ParameterExpression(ParameterExpressionBase):
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
-        return ParameterExpression(self._parameters, super().py_conjugate())
+        return ParameterExpression(self._parameter_symbols, super().py_conjugate())
 
     def assign(self, parameter, value: ParameterValueType) -> "ParameterExpression":
         """
@@ -209,7 +201,7 @@ class ParameterExpression(ParameterExpressionBase):
             A new expression parameterized by any parameters which were not bound by
             parameter_values.
         """
-        parameters = self._parameters - parameter_values.keys()
+        parameters = self._parameter_symbols - parameter_values.keys()
         return ParameterExpression(
             parameters, super().py_bind(parameter_values, allow_unknown_parameters)
         )
@@ -235,9 +227,9 @@ class ParameterExpression(ParameterExpressionBase):
         Returns:
             A new expression with the specified parameters replaced.
         """
-        parameters = self._parameters - parameter_map.keys()
+        parameters = self._parameter_symbols - parameter_map.keys()
         for old_param, new_param in parameter_map.items():
-            parameters = parameters | new_param._parameters
+            parameters = parameters | new_param._parameter_symbols
 
         return ParameterExpression(
             parameters, super().py_subs(parameter_map, allow_unknown_parameters)
@@ -264,7 +256,7 @@ class ParameterExpression(ParameterExpressionBase):
             parameters = set()
             params = expr_grad.parameters
             for p in params:
-                for q in self._parameters:
+                for q in self._parameter_symbols:
                     if p == str(q):
                         parameters.add(q)
             return ParameterExpression(parameters, expr_grad)
@@ -275,9 +267,9 @@ class ParameterExpression(ParameterExpressionBase):
         other: ParameterValueType,
     ) -> set:
         if isinstance(other, ParameterExpression):
-            return self._parameters | other._parameters
+            return self._parameter_symbols | other._parameter_symbols
         else:
-            return self._parameters.copy()
+            return self._parameter_symbols.copy()
 
     def __add__(self, other):
         return ParameterExpression(self._merge_parameters(other), super().py_add(other))
@@ -297,10 +289,10 @@ class ParameterExpression(ParameterExpressionBase):
         return ParameterExpression(self._merge_parameters(other), super().py_mul(other))
 
     def __pos__(self):
-        return ParameterExpression(self._parameters, super().py_pos())
+        return ParameterExpression(self._parameter_symbols, super().py_pos())
 
     def __neg__(self):
-        return ParameterExpression(self._parameters, super().py_neg())
+        return ParameterExpression(self._parameter_symbols, super().py_neg())
 
     def __rmul__(self, other):
         if isinstance(other, np.ndarray):
@@ -323,43 +315,43 @@ class ParameterExpression(ParameterExpressionBase):
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_sin())
+        return ParameterExpression(self._parameter_symbols, super().py_sin())
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_cos())
+        return ParameterExpression(self._parameter_symbols, super().py_cos())
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_tan())
+        return ParameterExpression(self._parameter_symbols, super().py_tan())
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_arcsin())
+        return ParameterExpression(self._parameter_symbols, super().py_arcsin())
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_arccos())
+        return ParameterExpression(self._parameter_symbols, super().py_arccos())
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_arctan())
+        return ParameterExpression(self._parameter_symbols, super().py_arctan())
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_exp())
+        return ParameterExpression(self._parameter_symbols, super().py_exp())
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_log())
+        return ParameterExpression(self._parameter_symbols, super().py_log())
 
     def sign(self):
         """Sign of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_sign())
+        return ParameterExpression(self._parameter_symbols, super().py_sign())
 
     def __abs__(self):
         """Absolute of a ParameterExpression"""
-        return ParameterExpression(self._parameters, super().py_abs())
+        return ParameterExpression(self._parameter_symbols, super().py_abs())
 
     def abs(self):
         """Absolute of a ParameterExpression"""

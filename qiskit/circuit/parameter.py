@@ -80,15 +80,16 @@ class Parameter(ParameterExpression):
         """
         if uuid != None:
             uuid = int(uuid)
-        elif name == None:
-            return super().__new__(cls, symbol_map=None, expr=None)
 
-        self = super().__new__(
-            cls, symbol_map=None, expr=ParameterExpressionBase.Symbol(name, uuid)
-        )
+        if name == None:
+            self = super().__new__(cls, symbol_map=None, expr=None)
+        else:
+            self = super().__new__(
+                cls, symbol_map=None, expr=ParameterExpressionBase.Symbol(name, uuid)
+            )
 
         self._hash = None
-        self._parameters = {self}
+        self._parameter_symbols = {self}
         return self
 
     def assign(self, parameter, value):
