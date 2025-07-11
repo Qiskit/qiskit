@@ -15,17 +15,27 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
+use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
 #[pyfunction]
-#[pyo3(name= "alap_schedule_analysis", signature=(dag, clbit_write_latency, node_durations))]
+/// Runs the ALAPSchedule analysis pass on dag.
+///
+/// Args:
+///     dag (DAGCircuit): DAG to schedule.
+///     clbit_write_latency (u64): The latency to write classical bits.
+///     node_durations (HashMap<usize, f64>): Mapping from node indices to operation durations.
+///
+/// Returns:
+///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time (ALAP).
+///
+#[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations))]
 pub fn run_alap_schedule_analysis(
     py: Python,
     dag: &DAGCircuit,
     clbit_write_latency: u64,
-    node_durations: &Bound<PyDict>,
+    node_durations: HashMap<usize, f64>,
 ) -> PyResult<Py<PyDict>> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
         return Err(TranspilerError::new_err(
@@ -48,25 +58,14 @@ pub fn run_alap_schedule_analysis(
         Since this is alap scheduling, node is scheduled in reversed topological ordering
         and nodes are packed from the very end of the circuit.
         The physical meaning of t0 and t1 is flipped here.
-     */
+    */
+
     for node_index in dag
         .topological_op_nodes()?
         .collect::<Vec<_>>()
         .into_iter()
         .rev()
     {
-        let node = dag.get_node(py, node_index)?;
-        let op_duration = match node_durations.get_item(node) {
-            Ok(Some(val)) => val.extract::<f64>()?,
-            Ok(None) => return Err(TranspilerError::new_err("Node duration not found for node")),
-            Err(e) => {
-                return Err(TranspilerError::new_err(format!(
-                    "PyDict get_item error: {}",
-                    e
-                )))
-            }
-        };
-
         let op = match dag.dag().node_weight(node_index) {
             Some(NodeType::Operation(op)) => op,
             _ => panic!("topological_op_nodes() should only return instances of DagOpNode."),
@@ -85,8 +84,13 @@ pub fn run_alap_schedule_analysis(
             .map(|&c| Wire::Clbit(c))
             .collect();
 
-        // Get operation type
-        let op_name = op.op.name();
+        let op_duration = *node_durations.get(&node_index.index()).ok_or_else(|| {
+            TranspilerError::new_err(format!(
+                "No duration for node index {} in node_durations",
+                node_index.index()
+            ))
+        })?;
+
         let op_view = op.op.view();
         let is_gate_or_delay = matches!(
             op_view,
@@ -100,7 +104,6 @@ pub fn run_alap_schedule_analysis(
             t0: start time of instruction
             t1: end time of instruction
         */
-        
         let t1 = if is_gate_or_delay {
             // Gate or Delay operation
             let t0 = qargs
@@ -109,9 +112,11 @@ pub fn run_alap_schedule_analysis(
                 .max_by(|a, b| a.partial_cmp(b).unwrap())
                 .unwrap_or(0.0);
             t0 + op_duration
-        } else if op_name == "measure" {
+        } else if matches!(
+            op_view,
+            OperationRef::StandardInstruction(StandardInstruction::Measure)
+        ) {
             // Measure operation
-            // clbit time is always right (alap) justified
             let t0 = qargs
                 .iter()
                 .chain(cargs.iter())
@@ -130,7 +135,7 @@ pub fn run_alap_schedule_analysis(
             }
             t1
         } else {
-            // Directive (like barrier)
+            // Directives (like Barrier)
             let t0 = qargs
                 .iter()
                 .chain(cargs.iter())
@@ -152,8 +157,8 @@ pub fn run_alap_schedule_analysis(
         .values()
         .max_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap_or(&0.0);
-    // Note that ALAP pass is inversely schedule, thus
-    // t0 is computed by subtracting entire circuit duration from t1.
+    // Note that ALAP pass is inversely scheduled, thus
+    // t0 is computed by subtracting t1 from the entire circuit duration.
     let py_dict = PyDict::new(py);
     for (node_idx, t1) in node_start_time {
         let node = dag.get_node(py, node_idx)?;
@@ -164,7 +169,6 @@ pub fn run_alap_schedule_analysis(
             py_dict.set_item(node, time)?;
         }
     }
-
     Ok(py_dict.into())
 }
 
