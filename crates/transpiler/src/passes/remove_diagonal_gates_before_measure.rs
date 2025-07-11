@@ -87,7 +87,7 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> 
         None
     };
 
-    let nodes_to_remove: Vec<NodeIndex> = if run_in_parallel {
+    let nodes_to_remove: Vec<NodeIndex> = if run_in_parallel && dag.num_ops() >= 50_000 {
         let node_indices = dag.dag().node_indices().collect::<Vec<_>>();
         node_indices
             .into_par_iter()
