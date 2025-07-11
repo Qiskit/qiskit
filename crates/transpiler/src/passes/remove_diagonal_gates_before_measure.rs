@@ -100,7 +100,7 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
             })
             .collect()
     } else {
-        dag.op_nodes(true)
+        dag.op_nodes(false)
             .filter_map(|x| process_node(x.0, x.1))
             .collect()
     };
