@@ -28,7 +28,7 @@ use rustworkx_core::petgraph::prelude::NodeIndex;
 ///     node_durations (HashMap<usize, f64>): Mapping from node indices to operation durations.
 ///
 /// Returns:
-///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time (ALAP).
+///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time.
 ///
 #[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations))]
 pub fn run_alap_schedule_analysis(
@@ -54,11 +54,9 @@ pub fn run_alap_schedule_analysis(
         idle_before.insert(Wire::Clbit(Clbit::new(index)), 0.0);
     }
 
-    /*
-        Since this is alap scheduling, node is scheduled in reversed topological ordering
-        and nodes are packed from the very end of the circuit.
-        The physical meaning of t0 and t1 is flipped here.
-    */
+    // Since this is alap scheduling, node is scheduled in reversed topological ordering
+    // and nodes are packed from the very end of the circuit.
+    // The physical meaning of t0 and t1 is flipped here.
 
     for node_index in dag
         .topological_op_nodes()?
@@ -99,11 +97,10 @@ pub fn run_alap_schedule_analysis(
                 | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
         );
 
-        /*
-            compute t0, t1: instruction interval, note that
-            t0: start time of instruction
-            t1: end time of instruction
-        */
+        // compute t0, t1: instruction interval, note that
+        // t0: start time of instruction
+        // t1: end time of instruction
+
         let t1 = if is_gate_or_delay {
             // Gate or Delay operation
             let t0 = qargs
@@ -123,12 +120,12 @@ pub fn run_alap_schedule_analysis(
                 .map(|bit| *idle_before.get(bit).unwrap_or(&0.0))
                 .max_by(|a, b| a.partial_cmp(b).unwrap())
                 .unwrap_or(0.0);
-            /*
-                       |t1 = t0 + duration
-                Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
-                C ░░░░░░░░░▒▒▒▒▒▒▒
-                           |t0 + (duration - clbit_write_latency)
-            */
+            
+            //           |t1 = t0 + duration
+            //    Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
+            //    C ░░░░░░░░░▒▒▒▒▒▒▒
+            //               |t0 + (duration - clbit_write_latency)
+
             let t1 = t0 + op_duration;
             for clbit in cargs.iter() {
                 idle_before.insert(*clbit, t0 + (op_duration - clbit_write_latency as f64));
