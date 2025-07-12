@@ -28,6 +28,7 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     c4x as c4x_rs,
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
     synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
+    synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
 )
 
 
@@ -218,6 +219,28 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
            `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
     """
     circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_v24_rs(num_ctrl_qubits))
+    return circ
+
+
+def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls based on
+    the work by Huang and Palsberg.
+
+    Produces a quantum circuit with :math:`k + 1` qubits.
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+
+    References:
+        1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
+           Helper Qubits*, PLDI (2024),
+           <https://dl.acm.org/doi/10.1145/3656436>`_
+    """
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_hp24_rs(num_ctrl_qubits))
     return circ
 
 
