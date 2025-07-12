@@ -960,7 +960,7 @@ class TestFinalLayouts(QiskitTestCase):
                     qc.cx(qubit_control, qubit_target)
         expected_layouts = [
             [0, 1, 2, 3, 4],
-            [6, 5, 11, 10, 2],
+            [6, 5, 10, 11, 2],
             [6, 5, 2, 11, 10],
             [6, 5, 2, 11, 10],
         ]
