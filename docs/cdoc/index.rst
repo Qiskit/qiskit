@@ -44,5 +44,16 @@ Quantum information
    qk-bit-term
    qk-complex64
    qk-exit-code
+
+----------
+Transpiler
+----------
+
+.. toctree::
+   :maxdepth: 1
+
    qk-target
    qk-target-entry
+   qk-transpiler-passes
+   qk-vf2-layout-result
+   qk-elide-permutations-result
