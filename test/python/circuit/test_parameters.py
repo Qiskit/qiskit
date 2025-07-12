@@ -164,7 +164,8 @@ class TestParameters(QiskitTestCase):
 
         qc = QuantumCircuit(1)
         qc.append(gate_param, [0], copy=True)
-        self.assertIsNot(qc.data[-1].operation, gate_param)
+        # comment out since Rust's Parameter object can not compare by pointer
+        # self.assertIsNot(qc.data[-1].operation, gate_param)
         self.assertEqual(qc.data[-1].operation, gate_param)
 
         # Standard gates are not stored as Python objects so a fresh object
@@ -173,7 +174,8 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc.data[-1].operation, gate_param)
 
         qc.append(gate_expr, [0], copy=True)
-        self.assertIsNot(qc.data[-1].operation, gate_expr)
+        # comment out since Rust's Parameter object can not compare by pointer
+        # self.assertIsNot(qc.data[-1].operation, gate_expr)
         self.assertEqual(qc.data[-1].operation, gate_expr)
 
         # Standard gates are not stored as Python objects so a fresh object
@@ -191,7 +193,9 @@ class TestParameters(QiskitTestCase):
         rxg = RXGate(theta)
         qc.append(rxg, [qr[0]], [])
         self.assertEqual(qc._data.num_parameters(), 1)
-        self.assertIs(theta, next(iter(qc._data.unsorted_parameters())))
+        # use equal since Rust's Parameter object can not compare by pointer
+        # self.assertIs(theta, next(iter(qc._data.unsorted_parameters())))
+        self.assertEqual(theta, next(iter(qc._data.unsorted_parameters())))
         ((instruction_index, _),) = list(qc._data._raw_parameter_table_entry(theta))
         self.assertEqual(rxg, qc.data[instruction_index].operation)
 
@@ -245,10 +249,15 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(x + y + z + sum(v), 0)
 
-        self.assertIs(qc.get_parameter("x"), x)
-        self.assertIs(qc.get_parameter("y"), y)
-        self.assertIs(qc.get_parameter("z"), z)
-        self.assertIs(qc.get_parameter(v[1].name), v[1])
+        # use equal since Rust's Parameter object can not compare by pointer
+        # self.assertIs(qc.get_parameter("x"), x)
+        # self.assertIs(qc.get_parameter("y"), y)
+        # self.assertIs(qc.get_parameter("z"), z)
+        # self.assertIs(qc.get_parameter(v[1].name), v[1])
+        self.assertEqual(qc.get_parameter("x"), x)
+        self.assertEqual(qc.get_parameter("y"), y)
+        self.assertEqual(qc.get_parameter("z"), z)
+        self.assertEqual(qc.get_parameter(v[1].name), v[1])
 
         self.assertIsNone(qc.get_parameter("abc", None))
         self.assertEqual(qc.get_parameter("jfkdla", "not present"), "not present")
@@ -261,7 +270,9 @@ class TestParameters(QiskitTestCase):
         x = Parameter("x")
         qc = QuantumCircuit(0, global_phase=x)
 
-        self.assertIs(qc.get_parameter("x"), x)
+        # use equal since Rust's Parameter object can not compare by pointer
+        # self.assertIs(qc.get_parameter("x"), x)
+        self.assertEqual(qc.get_parameter("x"), x)
         self.assertIsNone(qc.get_parameter("y", None), None)
 
     def test_setting_global_phase_invalidates_cache(self):
@@ -897,8 +908,9 @@ class TestParameters(QiskitTestCase):
         self.assertNotEqual(x1[0], x2_p[0])
         self.assertNotEqual(x2[0], x1_p[0])
 
-        self.assertIs(x1_p[0].vector, x1_p)
-        self.assertIs(x2_p[0].vector, x2_p)
+        # comment out since Rust's ParameterVector object can not compare by pointer
+        # self.assertIs(x1_p[0].vector, x1_p)
+        # self.assertIs(x2_p[0].vector, x2_p)
         self.assertEqual([p.index for p in x1_p], list(range(len(x1_p))))
         self.assertEqual([p.index for p in x2_p], list(range(len(x2_p))))
 
