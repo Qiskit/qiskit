@@ -10,14 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::target::{Qargs, Target};
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_data::CircuitData;
-
-use crate::target::{Qargs, Target};
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGInstruction};
+use qiskit_circuit::instruction::IntoInstructionView;
 use qiskit_circuit::operations::Operation;
-use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::Qubit;
 
@@ -25,13 +23,13 @@ use qiskit_circuit::Qubit;
 #[pyo3(name = "any_gate_missing_from_target")]
 pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     #[inline]
-    fn is_universal(gate: &PackedInstruction) -> bool {
+    fn is_universal(gate: &DAGInstruction) -> bool {
         matches!(gate.op.name(), "barrier" | "store")
     }
 
     fn visit_gate(
         target: &Target,
-        gate: &PackedInstruction,
+        gate: &DAGInstruction,
         qargs: &[Qubit],
         wire_map: &HashMap<Qubit, PhysicalQubit>,
     ) -> PyResult<bool> {
@@ -40,15 +38,15 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
             return Ok(true);
         }
 
-        if gate.op.control_flow() {
-            for block in gate.op.blocks() {
+        if let Some(control_flow) = gate.try_view_control_flow() {
+            for block in control_flow.blocks() {
                 let block_qubits = (0..block.num_qubits()).map(Qubit::new);
                 let inner_wire_map = qargs
                     .iter()
                     .zip(block_qubits)
                     .map(|(outer, inner)| (inner, wire_map[outer]))
                     .collect();
-                if visit_circuit(target, &block, &inner_wire_map)? {
+                if visit_circuit(target, block, &inner_wire_map)? {
                     return Ok(true);
                 }
             }
@@ -58,10 +56,10 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
 
     fn visit_circuit(
         target: &Target,
-        circuit: &CircuitData,
+        circuit: &DAGCircuit,
         wire_map: &HashMap<Qubit, PhysicalQubit>,
     ) -> PyResult<bool> {
-        for gate in circuit.iter() {
+        for (_, gate) in circuit.op_nodes(true) {
             if is_universal(gate) {
                 continue;
             }
@@ -93,12 +91,8 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
 
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_basis")]
-pub fn gates_missing_from_basis(
-    py: Python,
-    dag: &DAGCircuit,
-    basis: HashSet<String>,
-) -> PyResult<bool> {
-    for (gate, _) in dag.count_ops(py, true)? {
+pub fn gates_missing_from_basis(dag: &DAGCircuit, basis: HashSet<String>) -> PyResult<bool> {
+    for (gate, _) in dag.count_ops(true)? {
         if !basis.contains(gate.as_str()) {
             return Ok(true);
         }
