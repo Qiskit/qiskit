@@ -283,7 +283,10 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.pm = generate_preset_pass_manager(
-            optimization_level=0, basis_gates=["u", "cx"], seed_transpiler=12345
+            optimization_level=0,
+            basis_gates=["u", "cx"],
+            seed_transpiler=12345,
+            qubits_initially_zero=False,
         )
 
     @data(5, 10, 15)
