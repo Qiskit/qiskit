@@ -39,6 +39,10 @@ from qiskit.circuit.library import (
     U2Gate,
     U3Gate,
     CZGate,
+    CXGate,
+    CCXGate,
+    C3XGate,
+    C4XGate,
     MCXGate,
 )
 from qiskit.synthesis.multi_controlled import (
@@ -240,13 +244,13 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         self.assertTrue(matrix_equal(cop_mat, test_op))
 
     @combine(
-        num_ctrl_qubits_original=[4],
-        ctrl_state_original=[None, 1, 3],
+        num_ctrl_qubits_original=[1, 2, 3, 4, 5],
+        ctrl_state_original=[None, 0, 1],
         num_ctrl_qubits_new=[2],
         ctrl_state_new=[None, 1, 2],
         annotated=[False, True],
     )
-    def test_create_controlled_mcx_gates(
+    def test_create_open_controlled_mcx_gates(
         self,
         num_ctrl_qubits_original,
         ctrl_state_original,
@@ -254,9 +258,9 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         ctrl_state_new,
         annotated,
     ):
-        """Test that creating controlled multi-controlled X gates works correctly,
-        including correctly combining the control state of the original MCX gate
-        and the control state passed in the ``control`` method.
+        """Test that creating open controlled multi-controlled X gates works correctly,
+        including correctly combining the control states of the original and the additional
+        control lines.
         """
         gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits_original, ctrl_state=ctrl_state_original)
         cgate = gate.control(
@@ -510,13 +514,54 @@ class TestMCSynthesisCounts(QiskitTestCase):
         self.assertLessEqual(cx_count, expected[num_ctrl_qubits])
 
     @combine(
-        num_ctrl_qubits_original=[4],
-        ctrl_state_original=[None, 1, 3],
+        num_ctrl_qubits_original=[0, 1, 2, 3, 4],
+        ctrl_state_original=[None, 0, 1],
         num_ctrl_qubits_new=[2],
         ctrl_state_new=[None, 1, 2],
         annotated=[False, True],
     )
-    def test_controlled_mcx_gates_count(
+    def test_open_controlled_x_family_gates_count(
+        self,
+        num_ctrl_qubits_original,
+        ctrl_state_original,
+        num_ctrl_qubits_new,
+        ctrl_state_new,
+        annotated,
+    ):
+        """Test that transpiling controlled X, CX, CCX, C3X, C4X gates works correctly
+        and produces expected CX-counts.
+        """
+        if num_ctrl_qubits_original == 0:
+            gate = XGate()
+        elif num_ctrl_qubits_original == 1:
+            gate = CXGate(ctrl_state=ctrl_state_original)
+        elif num_ctrl_qubits_original == 2:
+            gate = CCXGate(ctrl_state=ctrl_state_original)
+        elif num_ctrl_qubits_original == 3:
+            gate = C3XGate(ctrl_state=ctrl_state_original)
+        elif num_ctrl_qubits_original == 4:
+            gate = C4XGate(ctrl_state=ctrl_state_original)
+
+        cgate = gate.control(
+            num_ctrl_qubits=num_ctrl_qubits_new, ctrl_state=ctrl_state_new, annotated=annotated
+        )
+        qc = QuantumCircuit(cgate.num_qubits)
+        qc.append(cgate, qc.qubits)
+        transpiled_circuit = self.pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        self.assertEqual(Operator(cgate), Operator(transpiled_circuit))
+
+        expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 140, 7: 220, 8: 324}
+        self.assertLessEqual(cx_count, expected[cgate.num_ctrl_qubits])
+
+    @combine(
+        num_ctrl_qubits_original=[1, 2, 3, 4, 5],
+        ctrl_state_original=[None, 0, 1],
+        num_ctrl_qubits_new=[2],
+        ctrl_state_new=[None, 1, 2],
+        annotated=[False, True],
+    )
+    def test_open_controlled_mcx_gates_count(
         self,
         num_ctrl_qubits_original,
         ctrl_state_original,
@@ -536,7 +581,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
         self.assertEqual(Operator(cgate), Operator(transpiled_circuit))
-        self.assertLessEqual(cx_count, 140)
+
+        expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 140, 7: 220, 8: 324}
+        self.assertLessEqual(cx_count, expected[cgate.num_ctrl_qubits])
 
 
 if __name__ == "__main__":

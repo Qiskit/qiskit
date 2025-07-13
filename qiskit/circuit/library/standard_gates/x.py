@@ -109,26 +109,20 @@ class XGate(SingletonGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                X gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -251,28 +245,22 @@ class CXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                CX gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits + 1,
-                label=label,
-                ctrl_state=new_ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 1,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -415,28 +403,22 @@ class CCXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                CCX gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits + 2,
-                label=label,
-                ctrl_state=new_ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 2,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -620,28 +602,22 @@ class C3XGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                C3X gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits + 3,
-                label=label,
-                ctrl_state=new_ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 3,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -790,28 +766,22 @@ class C4XGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                C4X gate is a multi-controlled X-gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCXGate(
-                num_ctrl_qubits=num_ctrl_qubits + 4,
-                label=label,
-                ctrl_state=new_ctrl_state,
-                _base_label=self.label,
-            )
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 4,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -983,12 +953,10 @@ class MCXGate(ControlledGate):
                 multi-controlled X gate is another multi-controlled X-gate.
 
         Returns:
-            MCXGate: controlled version of this gate.
+            ControlledGate: controlled version of this gate.
         """
-        ctrl_state_old = _ctrl_state_to_int(self.ctrl_state, self.num_ctrl_qubits)
-        ctrl_state_new = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        ctrl_state_joint = (ctrl_state_old << num_ctrl_qubits) | ctrl_state_new
-        num_ctrl_qubits_joint = self.num_ctrl_qubits + num_ctrl_qubits
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
 
         # use __class__ so this works for derived classes
         if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
@@ -1004,15 +972,15 @@ class MCXGate(ControlledGate):
                     module="qiskit",
                 )
                 gate = self.__class__(
-                    num_ctrl_qubits_joint,
+                    self.num_ctrl_qubits + num_ctrl_qubits,
                     label=label,
-                    ctrl_state=ctrl_state_joint,
+                    ctrl_state=new_ctrl_state,
                 )
         else:
             gate = MCXGate(
-                num_ctrl_qubits_joint,
+                self.num_ctrl_qubits + num_ctrl_qubits,
                 label=label,
-                ctrl_state=ctrl_state_joint,
+                ctrl_state=new_ctrl_state,
                 _base_label=self.label,
             )
         return gate
