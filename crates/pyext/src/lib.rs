@@ -29,6 +29,11 @@ where
 #[rustfmt::skip]
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
+    add_submodule(
+        m,
+        ::qiskit_transpiler::passes::two_qubit_peephole_mod,
+        "two_qubit_peephole",
+    )?;
     add_submodule(m, ::qiskit_transpiler::passes::barrier_before_final_measurements_mod, "barrier_before_final_measurement")?;
     add_submodule(m, ::qiskit_transpiler::passes::basis_translator_mod, "basis_translator")?;
     add_submodule(m, ::qiskit_transpiler::passes::check_map_mod, "check_map")?;
