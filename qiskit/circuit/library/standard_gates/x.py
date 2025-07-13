@@ -977,41 +977,44 @@ class MCXGate(ControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as a controlled
+                multi-controlled X gate is another multi-controlled X-gate.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            MCXGate: controlled version of this gate.
         """
-        if not annotated and ctrl_state is None:
-            # use __class__ so this works for derived classes
-            if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
-                # DeprecationWarning for internal subclasses (that are deprecated) is fine. We should
-                # still raise warnings for other subclasses out of our control
-                # TODO MCXGate, MCXGrayCode, MCXRecursive, MCXVChain are deprecated and this path can be
-                #   removed once they get removed:
-                #   https://github.com/Qiskit/qiskit/pull/12961
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        category=DeprecationWarning,
-                        module="qiskit",
-                    )
-                    gate = self.__class__(
-                        self.num_ctrl_qubits + num_ctrl_qubits,
-                        label=label,
-                        ctrl_state=ctrl_state,
-                        _base_label=self.label,
-                    )
-            else:
-                gate = MCXGate(
-                    self.num_ctrl_qubits + num_ctrl_qubits,
+        ctrl_state_old = _ctrl_state_to_int(self.ctrl_state, self.num_ctrl_qubits)
+        ctrl_state_new = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        ctrl_state_joint = (ctrl_state_old << num_ctrl_qubits) | ctrl_state_new
+        num_ctrl_qubits_joint = self.num_ctrl_qubits + num_ctrl_qubits
+
+        # use __class__ so this works for derived classes
+        if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
+            # DeprecationWarning for internal subclasses (that are deprecated) is fine. We should
+            # still raise warnings for other subclasses out of our control
+            # TODO MCXGate, MCXGrayCode, MCXRecursive, MCXVChain are deprecated and this path can be
+            #   removed once they get removed:
+            #   https://github.com/Qiskit/qiskit/pull/12961
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    module="qiskit",
+                )
+                gate = self.__class__(
+                    num_ctrl_qubits_joint,
                     label=label,
-                    ctrl_state=ctrl_state,
-                    _base_label=self.label,
+                    ctrl_state=ctrl_state_joint,
                 )
         else:
-            gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+            gate = MCXGate(
+                num_ctrl_qubits_joint,
+                label=label,
+                ctrl_state=ctrl_state_joint,
+                _base_label=self.label,
+            )
         return gate
 
     def copy(self, name=None):
