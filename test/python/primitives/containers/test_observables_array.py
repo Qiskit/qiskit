@@ -20,7 +20,10 @@ import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.primitives import BackendEstimatorV2
-from qiskit.primitives.containers.observables_array import ObservablesArray, object_array
+from qiskit.primitives.containers.observables_array import (
+    ObservablesArray,
+    object_array,
+)
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -629,7 +632,13 @@ class ObservablesArrayTestCase(QiskitTestCase):
             ObservablesArray([{"Z": 0}])
 
     def test_hermitian_after_simplification(self):
-        """Verify that no error is raised if observables contain complex coeefiicients
+        """Verify that no error is raised if observables contain complex coefficients
         that get cancelled during simplification"""
         obs = qi.SparseObservable.from_list([("Z", 1j), ("Z", -1j), ("X", 1)])
         ObservablesArray(obs)
+
+    def test_invalid_basis_type_raises_type_error(self):
+        """Test that invalid basis type raises TypeError"""
+        invalid_basis = {1: "value", 2: "another_value"}  # Invalid keys (integers)
+        with self.assertRaises(TypeError):
+            ObservablesArray.coerce_observable(invalid_basis)
