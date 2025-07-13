@@ -517,7 +517,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         self.assertLessEqual(cx_count, expected[num_ctrl_qubits])
 
     @combine(
-        num_ctrl_qubits_original=[0, 1, 2, 3, 4],
+        gate_class=[XGate, CXGate, CCXGate, C3XGate, C4XGate],
         ctrl_state_original=[None, 0, 1],
         num_ctrl_qubits_new=[2],
         ctrl_state_new=[None, 1, 2],
@@ -525,7 +525,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
     )
     def test_open_controlled_x_family_gates_count(
         self,
-        num_ctrl_qubits_original,
+        gate_class,
         ctrl_state_original,
         num_ctrl_qubits_new,
         ctrl_state_new,
@@ -534,16 +534,10 @@ class TestMCSynthesisCounts(QiskitTestCase):
         """Test that transpiling controlled X, CX, CCX, C3X, C4X gates works correctly
         and produces expected CX-counts.
         """
-        if num_ctrl_qubits_original == 0:
-            gate = XGate()
-        elif num_ctrl_qubits_original == 1:
-            gate = CXGate(ctrl_state=ctrl_state_original)
-        elif num_ctrl_qubits_original == 2:
-            gate = CCXGate(ctrl_state=ctrl_state_original)
-        elif num_ctrl_qubits_original == 3:
-            gate = C3XGate(ctrl_state=ctrl_state_original)
-        elif num_ctrl_qubits_original == 4:
-            gate = C4XGate(ctrl_state=ctrl_state_original)
+        if gate_class == XGate:
+            gate = gate_class()
+        else:
+            gate = gate_class(ctrl_state=ctrl_state_original)
 
         cgate = gate.control(
             num_ctrl_qubits=num_ctrl_qubits_new, ctrl_state=ctrl_state_new, annotated=annotated
