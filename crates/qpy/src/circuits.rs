@@ -48,6 +48,7 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
+use crate::formats::QPYFormatV15;
 use crate::formats::RegisterV4Pack;
 use crate::params::pack_param;
 use crate::params::unpack_param;
@@ -60,8 +61,16 @@ use crate::value::{
 use crate::UnsupportedFeatureForVersion;
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
+// used when writing
 type CustomOperationsMap = HashMap<String, PackedOperation>;
 type CustomOperationsList = Vec<String>;
+//used when reading
+struct CustomCircuitInstructionData {
+    num_qubits: u32,
+    definition_circuit: Option<Py<PyAny>>,
+}
+
+type CustomInstructionsMap = HashMap<String, CustomCircuitInstructionData>;
 
 pub mod register_types {
     pub const QREG: u8 = b'q';
@@ -534,9 +543,34 @@ fn deserialize_standard_instruction(
         _ => None,
     }
 }
+
+fn read_custom_instruction(
+    py: Python,
+    instruction: &formats::CircuitInstructionV2Pack,
+    py_params: &Vec<Bound<PyAny>>,
+    custom_instruction: &CustomCircuitInstructionData,
+) -> PyResult<PackedOperation> {
+    // TODO: handle all the cases, not only gate
+    let py_gate_class = py.import("qiskit.circuit.gate")?.getattr("Gate")?;
+    // let py_instruction_class = py.import("qiskit.circuit.instruction")?.getattr("Instruction")?;
+    // TODO: if version >= 11
+    let gate_class_name = match instruction.gate_class_name.rfind('_') {
+        Some(pos) => &instruction.gate_class_name[..pos],
+        None => &instruction.gate_class_name,
+    };
+    let gate_object =
+        py_gate_class.call1((&gate_class_name, custom_instruction.num_qubits, py_params))?;
+    if let Some(definition) = &custom_instruction.definition_circuit {
+        gate_object.setattr("definition", definition)?;
+    }
+    let op_parts = gate_object.extract::<OperationFromPython>()?;
+    Ok(op_parts.operation)
+}
+
 fn unpack_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
+    custom_instructions: &CustomInstructionsMap,
     qpy_data: &mut QPYData,
 ) -> PyResult<Instruction> {
     let name = instruction.gate_class_name.clone();
@@ -545,16 +579,18 @@ fn unpack_instruction(
         .iter()
         .map(|packed_param| unpack_param(py, packed_param, qpy_data))
         .collect::<PyResult<_>>()?;
-    let op = if let Some(gate) = standard_gate_from_gate_class_name(name.as_str()) {
+    let mut py_params: Vec<Bound<'_, PyAny>> = params
+        .iter()
+        .map(|param: &Param| param.into_pyobject(py))
+        .collect::<PyResult<_>>()?;
+    let op = if let Some(custom_instruction) = custom_instructions.get(&name) {
+        read_custom_instruction(py, instruction, &py_params, custom_instruction)?
+    } else if let Some(gate) = standard_gate_from_gate_class_name(name.as_str()) {
         PackedOperation::from_standard_gate(gate)
     } else if let Some(std_instruction) = deserialize_standard_instruction(instruction) {
         PackedOperation::from_standard_instruction(std_instruction)
     } else {
         let gate_class = get_python_gate_class(py, &instruction.gate_class_name)?;
-        let mut py_params: Vec<Bound<'_, PyAny>> = params
-            .iter()
-            .map(|param: &Param| param.into_pyobject(py))
-            .collect::<PyResult<_>>()?;
         let gate_object = match name.as_str() {
             "IfElseOp" | "WhileLoopOp" => {
                 // TODO: should load condition and do gate_class(condition, *params, label=label)
@@ -659,13 +695,13 @@ fn serialize_metadata(
 
 fn deserialize_metadata(
     py: Python,
-    metadata_bytes: Bytes,
+    metadata_bytes: &Bytes,
     metadata_deserializer: &Bound<PyAny>,
 ) -> PyResult<PyObject> {
     let json = py.import("json")?;
     let kwargs: Bound<'_, PyDict> = PyDict::new(py);
     kwargs.set_item("cls", metadata_deserializer)?;
-    let metadata_string = PyString::new(py, (&metadata_bytes).try_into()?);
+    let metadata_string = PyString::new(py, metadata_bytes.try_into()?);
     Ok(json
         .call_method("loads", (metadata_string,), Some(&kwargs))?
         .unbind())
@@ -827,7 +863,7 @@ fn pack_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pack> {
 
 fn unpack_layout<'py>(
     py: Python<'py>,
-    layout: formats::LayoutV2Pack,
+    layout: &formats::LayoutV2Pack,
     circuit_data: &CircuitData,
 ) -> PyResult<Option<Bound<'py, PyAny>>> {
     match layout.exists {
@@ -990,7 +1026,7 @@ fn pack_custom_layout(circuit: &Bound<PyAny>) -> PyResult<formats::LayoutV2Pack>
 
 fn unpack_custom_layout<'py>(
     py: Python<'py>,
-    layout: formats::LayoutV2Pack,
+    layout: &formats::LayoutV2Pack,
     circuit_data: &CircuitData,
 ) -> PyResult<Bound<'py, PyAny>> {
     let layout_libray = py.import("qiskit.transpiler.layout")?;
@@ -999,11 +1035,11 @@ fn unpack_custom_layout<'py>(
 
     let mut initial_layout = py.None();
     let mut input_qubit_mapping = py.None();
-    let final_layout = py.None();
+    let mut final_layout = py.None();
 
     let mut extra_register_map: HashMap<String, QuantumRegister> = HashMap::new();
     let mut existing_register_map: HashMap<String, QuantumRegister> = HashMap::new();
-    for packed_register in layout.extra_registers {
+    for packed_register in &layout.extra_registers {
         if packed_register.register_type == bit_types::QUBIT {
             let register = QuantumRegister::new_owning(
                 packed_register.name.clone(),
@@ -1017,7 +1053,7 @@ fn unpack_custom_layout<'py>(
         existing_register_map.insert(qreg.name().to_string(), qreg.clone()); // TODO: can we avoid cloning?
     }
     let initial_layout_virtual_bits = PyList::new(py, Vec::<PyObject>::new())?;
-    for virtual_bit in layout.initial_layout_items {
+    for virtual_bit in &layout.initial_layout_items {
         let qubit = if let Some(register) = extra_register_map.get(&virtual_bit.register_name) {
             if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
                 qubit
@@ -1059,20 +1095,14 @@ fn unpack_custom_layout<'py>(
     }
 
     if layout.final_layout_size > 0 {
-        return Err(PyErr::new::<PyValueError, _>(
-            "Final layout handling is not implemented",
-        ));
-        // let final_layout_dict = PyDict::new(py);
-        // for (index, bit) in layout.final_layout_items.iter().enumerate() {
-        // TODO: not sure what to do here yet
-        // layout_dict = {circuit.qubits[bit]: index for index, bit in enumerate(final_layout_array)}
-
-        // let qubit = circuit_data.qubits().get(index)
-        // .get_item(bit)?
-        // .ok_or(PyErr::new::<PyValueError, _>(format!("Could not get physical bit for bit {:?}", bit)))?;
-
-        // final_layout_dict.set_item(physical_bit, index)?;
-        // }
+        let final_layout_dict = PyDict::new(py);
+        let py_qubits = circuit_data.py_qubits(py);
+        let qubits = py_qubits.bind(py);
+        for (index, bit) in layout.final_layout_items.iter().enumerate() {
+            let qubit = qubits.get_item(*bit as usize)?;
+            final_layout_dict.set_item(qubit, index)?;
+        }
+        final_layout = layout_class.call1((final_layout_dict,))?.unbind();
     }
     let transpiled_layout =
         transpiler_layout_class.call1((initial_layout, input_qubit_mapping, final_layout))?;
@@ -1438,6 +1468,37 @@ type Instruction = (
     Vec<Clbit>,
 );
 
+fn read_custom_instructions(
+    py: Python,
+    packed_circuit: &QPYFormatV15,
+    qpy_data: &QPYData,
+) -> PyResult<CustomInstructionsMap> {
+    let mut result: CustomInstructionsMap = HashMap::new();
+    for operation in &packed_circuit.custom_instructions.custom_instructions {
+        let definition = if operation.custom_definition != 0 {
+            Some(
+                deserialize_circuit(
+                    py,
+                    &operation.data,
+                    qpy_data.version,
+                    py.None().bind(py),
+                    qpy_data._use_symengine,
+                    qpy_data.annotation_handler.annotation_factories.clone(),
+                )?
+                .unbind(),
+            )
+        } else {
+            None
+        };
+        let custom_instruction_data = CustomCircuitInstructionData {
+            num_qubits: operation.num_qubits,
+            definition_circuit: definition,
+        };
+        result.insert(operation.name.clone(), custom_instruction_data);
+    }
+    Ok(result)
+}
+
 pub fn deserialize_circuit<'py>(
     py: Python<'py>,
     serialized_circuit: &[u8],
@@ -1473,8 +1534,9 @@ pub fn deserialize_circuit<'py>(
         .to_param(py, &mut qpy_data)?;
 
     let mut instructions: Vec<Instruction> = Vec::new();
-    for instruction in packed_circuit.instructions {
-        let inst = unpack_instruction(py, &instruction, &mut qpy_data)?;
+    let custom_instructions = read_custom_instructions(py, &packed_circuit, &qpy_data)?;
+    for instruction in &packed_circuit.instructions {
+        let inst = unpack_instruction(py, instruction, &custom_instructions, &mut qpy_data)?;
         instructions.push(inst);
     }
     let mut circuit_data = CircuitData::from_packed_operations(
@@ -1489,11 +1551,11 @@ pub fn deserialize_circuit<'py>(
     let mut clbits = Vec::new();
     let mut qregs = Vec::new();
     let mut cregs = Vec::new();
-    for packed_register in packed_circuit.header.registers {
+    for packed_register in &packed_circuit.header.registers {
         match packed_register.register_type {
             register_types::QREG => {
                 let qreg = QuantumRegister::new_owning(
-                    packed_register.name,
+                    &packed_register.name,
                     packed_register.bit_indices.len() as u32,
                 );
                 for qubit in qreg.bits() {
@@ -1504,7 +1566,7 @@ pub fn deserialize_circuit<'py>(
             }
             register_types::CREG => {
                 let creg = ClassicalRegister::new_owning(
-                    packed_register.name,
+                    &packed_register.name,
                     packed_register.bit_indices.len() as u32,
                 );
                 for clbit in creg.bits() {
@@ -1524,15 +1586,16 @@ pub fn deserialize_circuit<'py>(
     circuit_data.replace_bits(Some(qubits), Some(clbits), Some(qregs), Some(cregs))?;
 
     //let qreg = QuantumRegister::new_owning("q".to_string(), num_qubits);
-    let unpacked_layout = unpack_layout(py, packed_circuit.layout, &circuit_data)?;
-    let metadata = deserialize_metadata(py, packed_circuit.header.metadata, metadata_deserializer)?;
+    let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &circuit_data)?;
+    let metadata =
+        deserialize_metadata(py, &packed_circuit.header.metadata, metadata_deserializer)?;
     let circuit = imports::QUANTUM_CIRCUIT
         .get_bound(py)
         .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
     // add registers
 
     circuit.setattr("metadata", metadata)?;
-    circuit.setattr("name", packed_circuit.header.circuit_name)?;
+    circuit.setattr("name", &packed_circuit.header.circuit_name)?;
     if let Some(layout) = unpacked_layout {
         circuit.setattr("_layout", layout)?;
     }
