@@ -153,7 +153,9 @@ pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
 ///     of trials will be limited based on the number of edges in the interaction or the coupling
 ///     graph (whichever is larger).
 ///
-/// @return QkVF2LayoutResult object that contains the results of the pass
+/// @return QkVF2LayoutResult A pointer to a result object that contains the
+/// results of the pass. This object is heap allocated and will need to be freed with the
+/// ``qk_vf2_layout_free()`` function.
 ///
 /// # Example
 ///
@@ -175,6 +177,7 @@ pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
 ///         }
 ///     }
 ///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, NAN, -1);
+///     qk_vf2_layout_free(layout_result);
 /// ```
 ///
 /// # Safety
