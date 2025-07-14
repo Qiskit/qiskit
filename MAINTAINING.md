@@ -70,7 +70,8 @@ During the release cycle, the release manager is responsible for:
 - Making sure there are sufficient coders and reviewers assigned to each PR, and checking up on them to make sure they're progressing.
 
 - If this release is a release candidate for a major or minor release, there is a feature freeze starting two weeks before release day.
-  No new public-API-changing PRs (features, deprecations or removals) can be added to the milestone during this period; they must wait til the next minor release.
+  No new public-API-changing PRs (new features or deprecations) can be added to the milestone during this period; they must wait until the next minor release.
+  If the API-change is not backwards compatible (like a removal), it needs to wait until the next major, following SemVer.
 
 When we're getting close to release day, **do not** try and race through large and non-blocking PRs.
 The release cycle for major and minor releases is regular so these can wait, and if it is a bugfix, we are free to make another patch release quickly.
@@ -98,19 +99,21 @@ However, for convenience, let's put names to two main scenarios for a release:
  * a **_follow-up_ release**: If [`stable/x.y` exists in the upstream repository](https://github.com/Qiskit/qiskit/branches), this release is some form of follow-up, probably because there is a previous release candidate or you are doing a patch release.
    Examples of *_follow-up_* releases are: `0.43.3`, `1.2.1`, and `1.3.0rc2`.
 
-> [!Note]
+> [!NOTE]
 > This section assumes that the Qiskit-owned GitHub remote is called `upstream` in your git configuration.
 
 
 ### 1. Check the milestone state
 
-Verify that the milestone is in a suitable place to release.
+Verify that the milestone is in a suitable place to release:
 
-> TODO: explain what it means to be "in a suitable place".
+ - Set the due date for an estimated time for release, if not set already (for example, in patch release cases).
+ - All the blocking issues/PR should be merged the day before the release.
+ - You can leave there non-blocking issues/PR until the end of the process.
 
 ### 2. Audit `Changelog:*` labels
 
->![Note]
+> ![NOTE]
 > In this section, `(x.y.z)~1` refers to the **the previous version tag**, since the tool needs to consider changes _since_ the version supplied.
 > Examples:
 > 
@@ -305,8 +308,8 @@ Qiskit 2.0.3
 ....
 -----END PGP SIGNATURE-----
 
-commit 19eeb418b808cb3c6a2f43ee70ecb7314482636a (tag: 2.0.3, upstream/stable/2.0, upstream/gh-readonly-queue/stable/2.0/pr-14626-c85a925fe7f6ab0132c17406630b75cb74a7e1f0)
-Author: Matthew Treinish <mtreinish@kortar.org>
+commit 19eeb418...14482636a (tag: 2.0.3, upstream/stable/2.0, ...)
+Author: Matthew Treinish <mtreinish@k***r.org>
 Date:   Tue Jun 17 07:19:06 2025 -0400
 
 Prepare 2.0.3 release (#14626)
