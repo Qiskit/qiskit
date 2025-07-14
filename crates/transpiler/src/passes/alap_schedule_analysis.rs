@@ -174,7 +174,6 @@ pub fn py_run_alap_schedule_analysis(
     clbit_write_latency: u64,
     node_durations: &Bound<PyDict>,
 ) -> PyResult<Py<PyDict>> {
-
     // Extract indices and durations from PyDict
     let mut op_durations: HashMap<NodeIndex, f64> = HashMap::new();
     for node_index in dag
