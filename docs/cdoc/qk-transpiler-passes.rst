@@ -11,18 +11,18 @@ circuits to match hardware constraints and optimizing for performance can be far
 of logic in the rewriting tool chain need not be linear, and can often have iterative sub-loops,
 conditional branches, and other complex behaviors.
 
-In Qiskit the transpiler is built up by executing as a series of passes that each perform a singular task
+In Qiskit, the transpiler is built up by executing as a series of passes that each perform a singular task
 to analyze or transform a quantum circuit. The Python :mod:`~qiskit.transpiler` documentation contains a
 more detailed explanation of the transpilation process.
 
 The Qiskit C API provides functions that execute transpiler passes in a standalone mode, where you
 provide the pass with a ``QkCircuit`` and then any necessary configuration for the execution of the
-pass, typically at least a ``QkTarget``, and the function will return either a new ``QkCircuit`` pointer
-or the analysis results of running the pass. While this can be used to create a custom workflow the
+pass, typically at least a ``QkTarget``. These functions return either a new ``QkCircuit`` pointer
+or the analysis results of running the pass. While this can be used to create a custom workflow, the
 functions following the naming convention ``qk_transpiler_pass_standalone_*`` will have higher overhead
-as internally they're converting from the quantum circuit to the dag circuit IR on the input and if
+as internally they're converting from the quantum circuit to the dag circuit IR on the input, and if
 the function returns a new circuit it will convert back before returning. These standalone functions
-are more to execute a single pass in isolation rather than building a custom transpilation pipeline.
+are intended to execute single passes in isolation rather than building a custom transpilation pipeline.
 
 Functions
 =========

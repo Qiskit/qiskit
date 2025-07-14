@@ -57,7 +57,7 @@ pub unsafe extern "C" fn qk_vf2_layout_has_match(layout: *const VF2LayoutResult)
 pub unsafe extern "C" fn qk_vf2_layout_num_qubits(layout: *const VF2LayoutResult) -> u32 {
     let layout = unsafe { const_ptr_as_ref(layout) };
     let Some(ref layout) = layout.0 else {
-        panic!("There was no layout found");
+        panic!("Invalid call for empty layout result");
     };
     layout.len() as u32
 }
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn qk_vf2_layout_map_virtual_qubit(
         panic!("There was no layout found");
     };
     match layout.get(&VirtualQubit(qubit)) {
-        Some(phsyical) => phsyical.0,
+        Some(physical) => physical.0,
         None => panic!("The specified qubit is not in the layout: {qubit}"),
     }
 }
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
 ///
 /// If this pass finds a solution that means there is a "perfect layout" and that no
 /// further swap mapping or routing is needed. However, there is not always a possible
-/// solution, or a solution might exit but it is not found within the limits specified
+/// solution, or a solution might exist but it is not found within the limits specified
 /// when the pass is called.
 ///
 /// By default, this pass will construct a heuristic scoring map based on the error rates
@@ -135,7 +135,7 @@ pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
 /// fidelity.
 ///
 /// @param circuit A pointer to the circuit to run VF2Layout on
-/// @param target The target for the VF2Layout pass
+/// @param target A pointer to the target to run the VF2Layout pass on
 /// @param strict_direction If true the pass will consider the edge direction in the
 ///     connectivity described in the ``target``. Typically setting this to ``false``
 ///     is desireable as an undirected search has more degrees of freedom and is more likely
@@ -151,7 +151,7 @@ pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
 ///     layouts. If the value is negative this will be treated as unbounded which means the
 ///     algorithm will run until all possible layouts are scored. If the value is 0 the number
 ///     of trials will be limited based on the number of edges in the interaction or the coupling
-///     grpah (whichever is larger).
+///     graph (whichever is larger).
 ///
 /// @return QkVF2LayoutResult object that contains the results of the pass
 ///
