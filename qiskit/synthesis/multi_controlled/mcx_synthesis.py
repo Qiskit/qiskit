@@ -205,7 +205,7 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     special unitaries described in [1].
 
     Produces a quantum circuit with :math:`k + 1` qubits.
-    The number of CX-gates is quadratic in :math:`k`.
+    The number of CX-gates is linear in :math:`k`.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -227,7 +227,8 @@ def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
     Synthesize a multi-controlled X gate with :math:`k` controls based on
     the work by Huang and Palsberg.
 
-    Produces a quantum circuit with :math:`k + 1` qubits.
+    Produces a quantum circuit with :math:`k + 1` qubits. The number of CX-gates
+    is linear in :math:`k`.
 
     Args:
         num_ctrl_qubits: The number of control qubits.

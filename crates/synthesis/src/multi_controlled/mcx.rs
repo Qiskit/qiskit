@@ -841,6 +841,7 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 /// # Returns
 ///
 /// A quantum circuit with :math:`k + 1` qubits.
+/// The number of CX-gates is linear in :math:`k`.
 ///
 /// # References:
 ///
