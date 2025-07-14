@@ -6726,15 +6726,15 @@ impl DAGCircuit {
             let mut ordered_vec = Vec::from_iter((0..num_qubits as u32).map(Qubit));
             qubit_ordering
                 .into_iter()
-                .try_for_each(|qubit_nat| -> PyResult<()> {
-                    if new_dag.qubits.find(&qubit_nat).is_some() {
+                .try_for_each(|qubit| -> PyResult<()> {
+                    if new_dag.qubits.find(&qubit).is_some() {
                         return Err(DAGCircuitError::new_err(format!(
                             "duplicate qubits {:?}",
-                            &qubit_nat
+                            &qubit
                         )));
                     }
-                    let qubit_index = qc_data.qubits().find(&qubit_nat).unwrap();
-                    ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(qubit_nat)?;
+                    let qubit_index = qc_data.qubits().find(&qubit).unwrap();
+                    ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(qubit)?;
                     Ok(())
                 })?;
             // The `Vec::get` use is because an arbitrary interner might contain old references to
@@ -6759,15 +6759,15 @@ impl DAGCircuit {
             let mut ordered_vec = Vec::from_iter((0..num_clbits as u32).map(Clbit));
             clbit_ordering
                 .into_iter()
-                .try_for_each(|clbit_nat| -> PyResult<()> {
-                    if new_dag.clbits.find(&clbit_nat).is_some() {
+                .try_for_each(|clbit| -> PyResult<()> {
+                    if new_dag.clbits.find(&clbit).is_some() {
                         return Err(DAGCircuitError::new_err(format!(
                             "duplicate clbits {:?}",
-                            &clbit_nat
+                            &clbit
                         )));
                     };
-                    let clbit_index = qc_data.clbits().find(&clbit_nat).unwrap();
-                    ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(clbit_nat)?;
+                    let clbit_index = qc_data.clbits().find(&clbit).unwrap();
+                    ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(clbit)?;
                     Ok(())
                 })?;
             // The `Vec::get` use is because an arbitrary interner might contain old references to
