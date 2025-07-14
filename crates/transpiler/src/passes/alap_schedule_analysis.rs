@@ -19,24 +19,11 @@ use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
-#[pyfunction]
-/// Runs the ALAPSchedule analysis pass on dag.
-///
-/// Args:
-///     dag (DAGCircuit): DAG to schedule.
-///     clbit_write_latency (u64): The latency to write classical bits.
-///     node_durations (HashMap<usize, f64>): Mapping from node indices to operation durations.
-///
-/// Returns:
-///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time.
-///
-#[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations))]
 pub fn run_alap_schedule_analysis(
-    py: Python,
     dag: &DAGCircuit,
     clbit_write_latency: u64,
-    node_durations: HashMap<usize, f64>,
-) -> PyResult<Py<PyDict>> {
+    node_durations: HashMap<NodeIndex, f64>,
+) -> PyResult<HashMap<NodeIndex, u64>> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
         return Err(TranspilerError::new_err(
             "ALAP schedule runs on physical circuits only",
@@ -82,7 +69,7 @@ pub fn run_alap_schedule_analysis(
             .map(|&c| Wire::Clbit(c))
             .collect();
 
-        let op_duration = *node_durations.get(&node_index.index()).ok_or_else(|| {
+        let op_duration = *node_durations.get(&node_index).ok_or_else(|| {
             TranspilerError::new_err(format!(
                 "No duration for node index {} in node_durations",
                 node_index.index()
@@ -154,22 +141,74 @@ pub fn run_alap_schedule_analysis(
         .values()
         .max_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap_or(&0.0);
+
+    let mut final_start_times: HashMap<NodeIndex, u64> = HashMap::new();
+
     // Note that ALAP pass is inversely scheduled, thus
     // t0 is computed by subtracting t1 from the entire circuit duration.
-    let py_dict = PyDict::new(py);
-    for (node_idx, t1) in node_start_time {
-        let node = dag.get_node(py, node_idx)?;
+    for (idx, t1) in node_start_time {
         let time = circuit_duration - t1;
         if time.fract() == 0.0 {
-            py_dict.set_item(node, time as u64)?;
-        } else {
-            py_dict.set_item(node, time)?;
+            final_start_times.insert(idx, time as u64);
         }
     }
+
+    Ok(final_start_times)
+}
+
+#[pyfunction]
+/// Runs the ALAPSchedule analysis pass on dag.
+///
+/// Args:
+///     dag (DAGCircuit): DAG to schedule.
+///     clbit_write_latency (u64): The latency to write classical bits.
+///     node_durations (HashMap<usize, f64>): Mapping from node indices to operation durations.
+///
+/// Returns:
+///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time.
+///
+#[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations))]
+pub fn py_run_alap_schedule_analysis(
+    py: Python,
+    dag: &DAGCircuit,
+    clbit_write_latency: u64,
+    node_durations: &Bound<PyDict>,
+) -> PyResult<Py<PyDict>> {
+
+    // Extract indices and durations from PyDict
+    let mut op_durations: HashMap<NodeIndex, f64> = HashMap::new();
+    for node_index in dag
+        .topological_op_nodes()?
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+    {
+        let node = dag.get_node(py, node_index)?;
+        let op_duration = match node_durations.get_item(node) {
+            Ok(Some(val)) => val.extract::<f64>()?,
+            Ok(None) => return Err(TranspilerError::new_err("Node duration not found for node")),
+            Err(e) => {
+                return Err(TranspilerError::new_err(format!(
+                    "PyDict get_item error: {}",
+                    e
+                )))
+            }
+        };
+        op_durations.insert(node_index, op_duration);
+    }
+
+    let final_start_times = run_alap_schedule_analysis(dag, clbit_write_latency, op_durations)?;
+
+    let py_dict = PyDict::new(py);
+    for (node_idx, time) in final_start_times {
+        let node = dag.get_node(py, node_idx)?;
+        py_dict.set_item(node, time)?;
+    }
+
     Ok(py_dict.into())
 }
 
 pub fn alap_schedule_analysis_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_alap_schedule_analysis))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_alap_schedule_analysis))?;
     Ok(())
 }

@@ -42,7 +42,7 @@ class ALAPScheduleAnalysis(BaseScheduler):
             raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
         node_durations = {
-            node._node_id: self._get_node_duration(node, dag) for node in dag.topological_op_nodes()
+            node: self._get_node_duration(node, dag) for node in dag.topological_op_nodes()
         }
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
         self.property_set["node_start_time"] = alap_schedule_analysis(
