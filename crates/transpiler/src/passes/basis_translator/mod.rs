@@ -635,20 +635,20 @@ fn replace_node(
         // Needs Python to create a Parameter map between the parameters obtained from
         // the Target and the parameters in the node.
         // If no ParameterExpressions are present, DO NOT BUILD THE MAP.
-        let parameter_map = if target_params
+        let provisional_param_map: Vec<(&Param, &Param)> = target_params
             .iter()
-            .any(|param| matches!(param, Param::ParameterExpression(_)))
-        {
+            .zip(node.params_view())
+            .filter(|(key, _)| matches!(key, Param::ParameterExpression(_)))
+            .collect();
+        let parameter_map = if provisional_param_map.is_empty() {
+            None
+        } else {
             Python::with_gil(|py| {
-                target_params
-                    .iter()
-                    .zip(node.params_view())
+                provisional_param_map
                     .into_py_dict(py)
                     .ok()
                     .map(|dict| dict.unbind())
             })
-        } else {
-            None
         };
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
