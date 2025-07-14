@@ -3,7 +3,7 @@ Transpiler Passes
 =================
 
 Transpilation is the process of rewriting a given input circuit to match the topology of a specific
-quantum device, and/or to optimize the circuit for execution on a quantum systems.
+quantum device, and/or to optimize the circuit for execution on a quantum system.
 
 Most circuits must undergo a series of transformations that make them compatible with a given target
 device, and optimize them to reduce the effects of noise on the resulting outcomes. Rewriting quantum
