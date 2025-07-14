@@ -1,0 +1,8 @@
+---
+features_c:
+  - |
+    Added a new standalone transpiler pass function
+    ``qk_transpiler_pass_standalone_remove_diagonal_gates_before_measure`` which is for running the
+    :class:`.RemoveDiagonalGatesBeforeMeasure` transpiler pass. Calling this function in C is equivalent
+    to running the pass in Python like::
+      RemoveDiagonalGatesBeforeMeasure(..)(circuit)
