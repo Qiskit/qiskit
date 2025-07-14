@@ -212,7 +212,6 @@ pub fn run_basis_translator(
         .collect::<PyResult<_>>()?;
 
     let (out_dag, _) = apply_translation(
-        py,
         &dag,
         &new_target_basis,
         &instr_map,
@@ -435,7 +434,6 @@ fn extract_basis_target_circ(
 }
 
 fn apply_translation(
-    py: Python,
     dag: &DAGCircuit,
     target_basis: &IndexSet<String, ahash::RandomState>,
     instr_map: &InstMap,
@@ -459,40 +457,44 @@ fn apply_translation(
         let mut new_op: Option<OperationFromPython> = None;
         if target_basis.contains(node_obj.op.name()) || node_qarg.len() < min_qubits {
             if node_obj.op.control_flow() {
-                // This part is only executed through python because `ControlFlowOp`
-                // does not exist in Rust space yet, and we need the method `replace_blocks`.
-                // TODO: Refactor this condition block once https://github.com/Qiskit/qiskit/pull/14568 merges.
-                let OperationRef::Instruction(control_op) = node_obj.op.view() else {
-                    unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op.name())
-                };
-                let mut flow_blocks = vec![];
-                let bound_obj = control_op.instruction.bind(py);
-                let blocks = bound_obj.getattr("blocks")?;
-                for block in blocks.try_iter()? {
-                    let block = block?;
-                    let dag_block: DAGCircuit = circuit_to_dag(block.extract()?, true, None, None)?;
-                    let updated_dag: DAGCircuit;
-                    (updated_dag, is_updated) = apply_translation(
-                        py,
-                        &dag_block,
-                        target_basis,
-                        instr_map,
-                        extra_inst_map,
-                        min_qubits,
-                        qargs_with_non_global_operation,
-                    )?;
-                    let flow_circ_block = if is_updated {
-                        DAG_TO_CIRCUIT
-                            .get_bound(py)
-                            .call1((updated_dag,))?
-                            .extract()?
-                    } else {
-                        block
+                Python::with_gil(|py| -> PyResult<()> {
+                    // This part is only executed through python because `ControlFlowOp`
+                    // does not exist in Rust space yet, and we need the method `replace_blocks`.
+                    // TODO: Refactor this condition block once https://github.com/Qiskit/qiskit/pull/14568 merges.
+                    let OperationRef::Instruction(control_op) = node_obj.op.view() else {
+                        unreachable!("This instruction {} says it is of control flow type, but is not an Instruction instance", node_obj.op.name())
                     };
-                    flow_blocks.push(flow_circ_block);
-                }
-                let replaced_blocks = bound_obj.call_method1("replace_blocks", (flow_blocks,))?;
-                new_op = Some(replaced_blocks.extract()?);
+                    let mut flow_blocks = vec![];
+                    let bound_obj = control_op.instruction.bind(py);
+                    let blocks = bound_obj.getattr("blocks")?;
+                    for block in blocks.try_iter()? {
+                        let block = block?;
+                        let dag_block: DAGCircuit =
+                            circuit_to_dag(block.extract()?, true, None, None)?;
+                        let updated_dag: DAGCircuit;
+                        (updated_dag, is_updated) = apply_translation(
+                            &dag_block,
+                            target_basis,
+                            instr_map,
+                            extra_inst_map,
+                            min_qubits,
+                            qargs_with_non_global_operation,
+                        )?;
+                        let flow_circ_block = if is_updated {
+                            DAG_TO_CIRCUIT
+                                .get_bound(py)
+                                .call1((updated_dag,))?
+                                .extract()?
+                        } else {
+                            block
+                        };
+                        flow_blocks.push(flow_circ_block);
+                    }
+                    let replaced_blocks =
+                        bound_obj.call_method1("replace_blocks", (flow_blocks,))?;
+                    new_op = Some(replaced_blocks.extract()?);
+                    Ok(())
+                })?;
             }
             if let Some(new_op) = new_op {
                 out_dag_builder.apply_operation_back(
@@ -540,7 +542,6 @@ fn apply_translation(
         let unique_qargs: PhysicalQargs = qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect();
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
-                py,
                 &mut out_dag_builder,
                 node_obj.clone(),
                 &extra_inst_map[&unique_qargs],
@@ -548,7 +549,7 @@ fn apply_translation(
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(py, &mut out_dag_builder, node_obj.clone(), instr_map)?;
+            replace_node(&mut out_dag_builder, node_obj.clone(), instr_map)?;
         } else {
             return Err(TranspilerError::new_err(format!(
                 "BasisTranslator did not map {}",
@@ -561,7 +562,6 @@ fn apply_translation(
 }
 
 fn replace_node(
-    py: Python<'_>,
     dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
     instr_map: &IndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit), ahash::RandomState>,
@@ -570,7 +570,7 @@ fn replace_node(
     // Should be removed in the future.
     let is_native = |op: &PackedOperation| -> bool {
         op.try_standard_gate().is_some()
-            || op.try_standard_instruction().is_none()
+            || op.try_standard_instruction().is_some()
             || matches!(op.view(), OperationRef::Unitary(_))
     };
     let (target_params, target_dag) =
@@ -600,11 +600,19 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if is_native(&inner_node.op) {
-                // Only manually acquire the gil if the operation is not rust native.
-                Python::with_gil(|py| inner_node.op.py_copy(py))?
-            } else {
-                inner_node.op.clone()
+            let new_op: PackedOperation = match inner_node.op.view() {
+                OperationRef::Gate(gate) => {
+                    Python::with_gil(|py| gate.py_copy(py).map(|op| op.into()))?
+                }
+                OperationRef::Instruction(instruction) => {
+                    Python::with_gil(|py| instruction.py_copy(py).map(|op| op.into()))?
+                }
+                OperationRef::Operation(operation) => {
+                    Python::with_gil(|py| operation.py_copy(py).map(|op| op.into()))?
+                }
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
             };
             let new_params: SmallVec<[Param; 3]> =
                 inner_node.params_view().iter().cloned().collect();
@@ -624,10 +632,24 @@ fn replace_node(
         }
         dag.add_global_phase(target_dag.global_phase())?;
     } else {
-        let parameter_map = target_params
+        // Needs Python to create a Parameter map between the parameters obtained from
+        // the Target and the parameters in the node.
+        // If no ParameterExpressions are present, DO NOT BUILD THE MAP.
+        let parameter_map = if target_params
             .iter()
-            .zip(node.params_view())
-            .into_py_dict(py)?;
+            .any(|param| matches!(param, Param::ParameterExpression(_)))
+        {
+            Python::with_gil(|py| {
+                target_params
+                    .iter()
+                    .zip(node.params_view())
+                    .into_py_dict(py)
+                    .ok()
+                    .map(|dict| dict.unbind())
+            })
+        } else {
+            None
+        };
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
@@ -642,11 +664,21 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if !is_native(&inner_node.op) {
-                Python::with_gil(|py| inner_node.op.py_copy(py))?
-            } else {
-                inner_node.op.clone()
+            let new_op: PackedOperation = match inner_node.op.view() {
+                OperationRef::Gate(gate) => {
+                    Python::with_gil(|py| gate.py_copy(py).map(|op| op.into()))?
+                }
+                OperationRef::Instruction(instruction) => {
+                    Python::with_gil(|py| instruction.py_copy(py).map(|op| op.into()))?
+                }
+                OperationRef::Operation(operation) => {
+                    Python::with_gil(|py| operation.py_copy(py).map(|op| op.into()))?
+                }
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
             };
+
             let mut new_params: SmallVec<[Param; 3]> =
                 inner_node.params_view().iter().cloned().collect();
             if inner_node
@@ -663,10 +695,11 @@ fn replace_node(
                             let bound_param = param_obj.bind(py);
                             let exp_params = param.iter_parameters(py)?;
                             let bind_dict = PyDict::new(py);
+                            let temp_param_mapping = parameter_map.as_ref().unwrap().bind(py);
                             for key in exp_params {
                                 let key = key?;
                                 // Dict is guaranteed to have been built due to the type of Param.
-                                bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                                bind_dict.set_item(&key, temp_param_mapping.get_item(&key)?)?;
                             }
                             let mut new_value: Bound<PyAny>;
                             let comparison = bind_dict.values().iter().any(|param| {
@@ -697,7 +730,7 @@ fn replace_node(
                         new_params.push(param.clone());
                     }
                 }
-                if is_native(&new_op) {
+                if !is_native(&new_op) {
                     // TODO: Remove this.
                     // Acquire the gil if the operation is not native to set the operation parameters in
                     // Python.
@@ -741,17 +774,18 @@ fn replace_node(
                 let new_phase: Param = Python::with_gil(|py| {
                     let bound_old_phase = old_phase.bind(py);
                     let bind_dict = PyDict::new(py);
+                    let temp_param_mapping = parameter_map.as_ref().unwrap().bind(py);
                     for key in target_dag.global_phase().iter_parameters(py)? {
                         let key = key?;
                         // If the target_dag's phase is a ParameterExpression, the dict will
                         // have been built.
-                        bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                        bind_dict.set_item(&key, temp_param_mapping.get_item(&key)?)?;
                     }
                     let mut new_phase: Bound<PyAny>;
                     if bind_dict.values().iter().any(|param| {
                         param
-                            .is_instance(PARAMETER_EXPRESSION.get_bound(py))
-                            .is_ok_and(|x| x)
+                            .extract::<Param>()
+                            .is_ok_and(|param| matches!(param, Param::ParameterExpression(_)))
                     }) {
                         new_phase = bound_old_phase.clone();
                         for key_val in bind_dict.items() {
