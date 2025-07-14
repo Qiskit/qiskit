@@ -45,11 +45,11 @@ additions and corrections to be made during development, because the majority
 of the documentation lives near the code being changed. These docstrings are then pulled into
 the API Reference section of https://quantum.cloud.ibm.com/docs.
 
-Refer to [`qiskit_sphinx_theme` docs](https://qiskit.github.io/qiskit_sphinx_theme/apidocs/index.html) for how to create and
+Refer to https://qiskit.github.io/qiskit_sphinx_theme/apidocs/index.html for how to create and
 write effective API documentation, such as setting up the RST files and docstrings.
 
-If changes you are making affect non-API reference content in [quantum.cloud.ibm.com/docs](https://quantum.cloud.ibm.com/docs)
-you can open an issue (or better yet a PR) to update the relevant page in [Qiskit/documentation](https://github.com/Qiskit/documentation).
+If changes you are making affect non-API reference content in https://quantum.cloud.ibm.com/docs
+you can open an issue (or better yet a PR) to update the relevant page in https://github.com/Qiskit/documentation.
 You can also use this repo to suggest or contribute brand new content beyond updates to the API reference.
 
 
