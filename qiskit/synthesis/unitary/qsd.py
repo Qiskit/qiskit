@@ -119,6 +119,7 @@ def qs_decomposition(
                 decomposer_2q = decomp_2q
             else:
                 decomposer_2q = TwoQubitBasisDecomposer(CXGate())
+        mat = _closest_unitary(mat)
         circ = decomposer_2q(mat)
     else:
         # check whether matrix is equivalent to block diagonal wrt ctrl_index
@@ -217,6 +218,14 @@ def _block_zxz_decomp(Umat):
     Ucheck = 0.5 * np.dot(Ablock, np.dot(Bblock, Cblock))
     assert np.allclose(Umat, Ucheck)
     return A1, A2, B, C
+
+
+def _closest_unitary(mat):
+    """Find the closest 2-qubit unitary matrix."""
+
+    V, S, Wdg = scipy.linalg.svd(mat)
+    mat = np.dot(V, Wdg)
+    return mat
 
 
 def _demultiplex(
