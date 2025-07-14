@@ -25,7 +25,7 @@ int build_target(QkTarget *target, uint32_t num_qubits) {
     QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global X gate.");
-        return EqualityError;
+        return RuntimeError;
     }
     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
     for (uint32_t i = 0; i < num_qubits - 1; i++) {
@@ -37,13 +37,13 @@ int build_target(QkTarget *target, uint32_t num_qubits) {
             qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
         if (result_cx_props != QkExitCode_Success) {
             printf("Unexpected error occurred when adding property to a CX gate entry.");
-            return EqualityError;
+            return RuntimeError;
         }
     }
     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
     if (result_cx != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a CX gate.");
-        return EqualityError;
+        return RuntimeError;
     }
     return Ok;
 }
