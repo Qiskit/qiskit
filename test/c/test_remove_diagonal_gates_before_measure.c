@@ -30,7 +30,7 @@ int test_remove_z_gate(void) {
     qk_circuit_gate(qc, QkGate_MEAS, {0}, {0});
 
     if (2 != qk_circuit_num_instructions(qc)) {
-        printf("Circuit build failure")
+        printf("Circuit build failure");
         result = RuntimeError;
         goto cleanup;
     }
@@ -38,12 +38,12 @@ int test_remove_z_gate(void) {
     qk_transpiler_pass_standalone_remove_diagonal_gates_before_measure(qc);
 
     if (1 != qk_circuit_num_instructions(qc)) {
-        printf("Circuit should contain only a single measure instruction")
+        printf("Circuit should contain only a single measure instruction");
         result = EqualityError;
         goto cleanup;
     }
 
-    cleanup:
+cleanup:
     qk_circuit_free(qc);
     return result;
 }
