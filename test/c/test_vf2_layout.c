@@ -69,14 +69,14 @@ int test_vf2_layout_line(void) {
     }
     QkVF2LayoutResult *layout_result =
         qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, 0.0, -1);
-    if (!qk_vf2_layout_has_match(layout_result)) {
+    if (!qk_vf2_layout_result_has_match(layout_result)) {
         printf("No layout was found");
         result = EqualityError;
         goto layout_cleanup;
     }
-    if (qk_vf2_layout_num_qubits(layout_result) != qk_circuit_num_qubits(qc)) {
+    if (qk_vf2_layout_result_num_qubits(layout_result) != qk_circuit_num_qubits(qc)) {
         printf("Layout doesn't contain the same number of qubits as the circuit, %d != %d",
-               qk_vf2_layout_num_qubits(layout_result), qk_circuit_num_qubits(qc));
+               qk_vf2_layout_result_num_qubits(layout_result), qk_circuit_num_qubits(qc));
         result = EqualityError;
         goto layout_cleanup;
     }
@@ -85,8 +85,8 @@ int test_vf2_layout_line(void) {
     // chose a trivial layout since it's the lowest error rate
     // in mapping these lines together.
     uint32_t expected[5] = {0, 1, 2, 3, 4};
-    for (uint32_t i = 0; i < qk_vf2_layout_num_qubits(layout_result); i++) {
-        uint32_t phys = qk_vf2_layout_map_virtual_qubit(layout_result, i);
+    for (uint32_t i = 0; i < qk_vf2_layout_result_num_qubits(layout_result); i++) {
+        uint32_t phys = qk_vf2_layout_result_map_virtual_qubit(layout_result, i);
         if (phys != expected[i]) {
             printf("Unexpected layout result virtual qubit %d mapped to %d", phys, expected[i]);
             result = EqualityError;
@@ -95,7 +95,7 @@ int test_vf2_layout_line(void) {
     }
 
 layout_cleanup:
-    qk_vf2_layout_free(layout_result);
+    qk_vf2_layout_result_free(layout_result);
 circuit_cleanup:
     qk_circuit_free(qc);
 cleanup:
@@ -126,13 +126,13 @@ int test_vf2_no_layout_found(void) {
     }
     QkVF2LayoutResult *layout_result =
         qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, 0.0, -1);
-    if (qk_vf2_layout_has_match(layout_result)) {
+    if (qk_vf2_layout_result_has_match(layout_result)) {
         printf("Unexpected layout found when one shouldn't be possible");
         result = EqualityError;
         goto layout_cleanup;
     }
 layout_cleanup:
-    qk_vf2_layout_free(layout_result);
+    qk_vf2_layout_result_free(layout_result);
 circuit_cleanup:
     qk_circuit_free(qc);
 cleanup:

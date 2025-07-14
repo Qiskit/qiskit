@@ -36,7 +36,7 @@ pub struct VF2LayoutResult(Option<HashMap<VirtualQubit, PhysicalQubit>>);
 /// ``QkVF2LayoutResult``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_has_match(layout: *const VF2LayoutResult) -> bool {
+pub unsafe extern "C" fn qk_vf2_layout_result_has_match(layout: *const VF2LayoutResult) -> bool {
     let layout = unsafe { const_ptr_as_ref(layout) };
     layout.0.is_some()
 }
@@ -54,7 +54,7 @@ pub unsafe extern "C" fn qk_vf2_layout_has_match(layout: *const VF2LayoutResult)
 /// ``QkVF2LayoutResult``. The result must have a layout found.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_num_qubits(layout: *const VF2LayoutResult) -> u32 {
+pub unsafe extern "C" fn qk_vf2_layout_result_num_qubits(layout: *const VF2LayoutResult) -> u32 {
     let layout = unsafe { const_ptr_as_ref(layout) };
     let Some(ref layout) = layout.0 else {
         panic!("Invalid call for empty layout result");
@@ -77,7 +77,7 @@ pub unsafe extern "C" fn qk_vf2_layout_num_qubits(layout: *const VF2LayoutResult
 /// there must be a result found.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_map_virtual_qubit(
+pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
     layout: *const VF2LayoutResult,
     qubit: u32,
 ) -> u32 {
@@ -105,7 +105,7 @@ pub unsafe extern "C" fn qk_vf2_layout_map_virtual_qubit(
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkVF2Layout``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
+pub unsafe extern "C" fn qk_vf2_layout_result_free(layout: *mut VF2LayoutResult) {
     if !layout.is_null() {
         if !layout.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.")
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
 ///
 /// @return QkVF2LayoutResult A pointer to a result object that contains the
 /// results of the pass. This object is heap allocated and will need to be freed with the
-/// ``qk_vf2_layout_free()`` function.
+/// ``qk_vf2_layout_result_free()`` function.
 ///
 /// # Example
 ///
@@ -177,7 +177,7 @@ pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
 ///         }
 ///     }
 ///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, false, -1, NAN, -1);
-///     qk_vf2_layout_free(layout_result);
+///     qk_vf2_layout_result_free(layout_result);
 /// ```
 ///
 /// # Safety
