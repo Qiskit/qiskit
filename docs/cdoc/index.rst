@@ -49,6 +49,15 @@ Quantum information
 Transpiler
 ----------
 
+Using the transpiler from the C API is intended to only cover
+circuits created solely via the C API. If you are in a hybrid mode where
+you're using the C API with Python you should invoke the transpiler via
+the Python :mod:`qiskit.transpiler` module instead; the functionality is
+the same Rust internals they just offer different entrypoints. The C API
+for transpilation makes assumptions about the input only using constructs
+exposed to the C Quantum Circuit API and you will potentially get incomplete
+results transpiling circuits from Python via the C API.
+
 .. toctree::
    :maxdepth: 1
 
