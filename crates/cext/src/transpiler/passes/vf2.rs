@@ -142,11 +142,11 @@ pub unsafe extern "C" fn qk_vf2_layout_free(layout: *mut VF2LayoutResult) {
 ///     to find a layout (or a better layout if there are multiple choices) and correcting
 ///     directionality is a simple operation for later transpilation stages.
 /// @param call_limit The number of state visits to attempt in each execution of the VF2 algorithm.
-///
+///     If the value is set to a negative value the VF2 algorithm will run without any limit.
 /// @param time_limit The total time in seconds to run for ``VF2Layout``. This is checked after
 ///     each layout search so it is not a hard time limit, but a soft limit that when checked
 ///     if the set time has elapsed the function will return the best layout it has found so
-///     far. Set this to ``NAN`` to run without any time limit.
+///     far. Set this to a value less than or equal to 0.0 to run without any time limit.
 /// @param max_trials The maximum number of trials to run the VF2 algorithm to try and find
 ///     layouts. If the value is negative this will be treated as unbounded which means the
 ///     algorithm will run until all possible layouts are scored. If the value is 0 the number
@@ -205,7 +205,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
     } else {
         Some(call_limit as usize)
     };
-    let time_limit = if time_limit.is_nan() {
+    let time_limit = if time_limit <= 0.0 {
         None
     } else {
         Some(time_limit)
