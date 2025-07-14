@@ -47,9 +47,6 @@ use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
 /// and the states are distinguished into clean (:math:`|0\rangle`)
