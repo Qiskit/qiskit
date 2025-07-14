@@ -1389,7 +1389,8 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k` control qubits this synthesis
     method requires no additional clean auxiliary qubits. The synthesized
-    circuit consists of :math:`k + 1` qubits.
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is quadratic in
+    :math:`k`.
 
     References:
         1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
