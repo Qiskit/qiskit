@@ -41,7 +41,6 @@ pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitFromPython);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 
 static STD_GATE_MAPPING: OnceLock<HashMap<&str, StandardGate>> = OnceLock::new();
-
 static STD_INST_MAPPING: OnceLock<HashSet<&str>> = OnceLock::new();
 
 pub(super) fn compose_transforms<'a>(
@@ -59,6 +58,7 @@ pub(super) fn compose_transforms<'a>(
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
 
+        // The last usage of Python left is the parameter vector here.
         let placeholder_params: SmallVec<[Param; 3]> = if num_params == 0 {
             Default::default()
         } else {
