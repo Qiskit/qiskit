@@ -42,21 +42,6 @@ pub enum ParameterValueType {
     Parameter(ParameterExpression),
 }
 
-impl ParameterValueType {
-    fn clone_expr_for_replay(expr: &ParameterExpression) -> ParameterValueType {
-        if expr.is_numeric() {
-            if let Some(v) = expr.expr.eval(true) {
-                return match v {
-                    symbol_expr::Value::Int(i) => ParameterValueType::Int(i),
-                    symbol_expr::Value::Real(r) => ParameterValueType::Float(r),
-                    symbol_expr::Value::Complex(c) => ParameterValueType::Complex(c),
-                };
-            }
-        }
-        ParameterValueType::Parameter(expr.clone())
-    }
-}
-
 #[pyfunction]
 fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
     if let Ok(e) = value.extract::<ParameterExpression>() {
@@ -147,8 +132,8 @@ impl OPReplay {
 #[pyclass(sequence, subclass, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct ParameterExpression {
-    expr: SymbolExpr,                                      // expression
-    parameter_symbols: Option<HashMap<Arc<String>, u128>>, // symbols with UUID
+    expr: SymbolExpr,                                          // expression
+    parameter_symbols: Option<HashMap<Arc<SymbolExpr>, u128>>, // symbols with UUID
 }
 
 impl Hash for ParameterExpression {
@@ -177,38 +162,72 @@ impl fmt::Display for ParameterExpression {
 impl ParameterExpression {
     /// new for ParameterExpression
     /// make new symbol with its name and uuid
-    pub fn new(name: String, uuid: Option<u128>) -> ParameterExpression {
+    pub fn new(name: String, uuid: Option<u128>, index: Option<usize>) -> ParameterExpression {
         let uuid = match uuid {
             Some(u) => u,
             None => Uuid::new_v4().as_u128(),
         };
-        let symbol = Arc::new(name);
-        let mut map = HashMap::<Arc<String>, u128>::new();
-        map.insert(Arc::clone(&symbol), uuid);
-        ParameterExpression {
-            expr: SymbolExpr::Symbol(symbol),
-            parameter_symbols: Some(map),
-        }
+        let mut ret = match index {
+            Some(index) => ParameterExpression {
+                expr: SymbolExpr::IndexedSymbol {
+                    name: Arc::new(name),
+                    index,
+                },
+                parameter_symbols: None,
+            },
+            None => ParameterExpression {
+                expr: SymbolExpr::Symbol(Arc::new(name)),
+                parameter_symbols: None,
+            },
+        };
+        let rexpr = Arc::new(ret.expr.clone());
+        ret.parameter_symbols = Some(HashMap::<Arc<SymbolExpr>, u128>::from([(rexpr, uuid)]));
+        ret
     }
 
     /// get uuid for this symbol
     pub fn uuid(&self) -> &u128 {
         if let Some(map) = &self.parameter_symbols {
-            if let Some(uuid) = map.get(&self.expr.to_string()) {
+            if let Some(uuid) = map.get(&self.expr) {
                 return uuid;
             }
         }
         &0_u128
     }
 
+    /// get name of parameter
+    pub fn name(&self) -> String {
+        match &self.expr {
+            SymbolExpr::Symbol(name) => name.as_ref().clone(),
+            SymbolExpr::IndexedSymbol { name, .. } => name.as_ref().clone(),
+            _ => "".to_string(),
+        }
+    }
+
+    /// get index of PrameterVectorElement
+    pub fn index(&self) -> Option<usize> {
+        match &self.expr {
+            SymbolExpr::IndexedSymbol { name: _, index } => Some(*index),
+            _ => None,
+        }
+    }
+
     // clone SymbolExpr
-    fn expr(&self) -> SymbolExpr {
+    pub fn expr(&self) -> SymbolExpr {
         self.expr.clone()
     }
 
     /// check if this is symbol
     pub fn is_symbol(&self) -> bool {
-        matches!(self.expr, SymbolExpr::Symbol(_))
+        matches!(
+            self.expr,
+            SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. }
+        )
+    }
+
+    /// check if this is vector element
+    pub fn is_vector_element(&self) -> bool {
+        matches!(self.expr, SymbolExpr::IndexedSymbol { .. })
     }
 
     /// check if this is numeric
@@ -228,7 +247,7 @@ impl ParameterExpression {
     pub fn has_symbol(&self, symbol: String) -> bool {
         if let Some(map) = &self.parameter_symbols {
             for (s, _) in map.iter() {
-                if s.as_ref() == &symbol {
+                if s.to_string() == symbol {
                     return true;
                 }
             }
@@ -245,8 +264,8 @@ impl ParameterExpression {
     fn merge_parameter_symbols(
         &self,
         other: &ParameterExpression,
-    ) -> Option<HashMap<Arc<String>, u128>> {
-        let mut ret: HashMap<Arc<String>, u128> = match &self.parameter_symbols {
+    ) -> Option<HashMap<Arc<SymbolExpr>, u128>> {
+        let mut ret: HashMap<Arc<SymbolExpr>, u128> = match &self.parameter_symbols {
             Some(map) => map.clone(),
             None => HashMap::new(),
         };
@@ -277,7 +296,7 @@ impl ParameterExpression {
             // find symbol with different uuid
             if let Some(m) = my_symbols.get(o) {
                 if u != m {
-                    conflicts.insert(o.as_ref().clone());
+                    conflicts.insert(o.to_string());
                 }
             }
         }
@@ -435,7 +454,6 @@ impl ParameterExpression {
         allow_unknown_parameters: bool,
     ) -> PyResult<ParameterExpression> {
         let mut map: HashMap<String, SymbolExpr> = HashMap::new();
-        let mut subs_map: HashMap<ParameterExpression, ParameterValueType> = HashMap::new();
         let mut unknown_params: HashSet<String> = HashSet::new();
         let mut symbols = match &self.parameter_symbols {
             Some(s) => s.clone(),
@@ -462,12 +480,8 @@ impl ParameterExpression {
                 self._raise_if_parameter_conflict(param)?;
                 map.insert(key.to_string(), param.expr());
             }
-            subs_map.insert(
-                key.clone(),
-                ParameterValueType::clone_expr_for_replay(param),
-            );
-            if symbols.contains_key(&key.to_string()) {
-                symbols.remove(&key.to_string());
+            if symbols.contains_key(&key.expr) {
+                symbols.remove(&key.expr);
             } else if !allow_unknown_parameters {
                 unknown_params.insert(key.to_string());
             }
@@ -548,8 +562,11 @@ impl ParameterExpression {
     // check_uuid = true also compares uuid for equality
     pub fn compare_eq(&self, other: &ParameterExpression, check_uuid: bool) -> bool {
         match (&self.expr, &other.expr) {
-            (SymbolExpr::Symbol(lhs), SymbolExpr::Symbol(rhs)) => {
-                if lhs == rhs {
+            (
+                SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. },
+                SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. },
+            ) => {
+                if self.expr == other.expr {
                     if check_uuid {
                         self.uuid() == other.uuid()
                     } else {
@@ -605,9 +622,9 @@ impl ParameterExpression {
                 None => {
                     // update parameter symbols
                     let symbols = expr_grad.symbols();
-                    let mut new_map = HashMap::<Arc<String>, u128>::new();
+                    let mut new_map = HashMap::<Arc<SymbolExpr>, u128>::new();
                     for (s, u) in parameter_symbols {
-                        if symbols.contains(s.as_ref()) {
+                        if symbols.contains(&s.to_string()) {
                             new_map.insert(s.clone(), *u);
                         }
                     }
@@ -633,26 +650,37 @@ impl ParameterExpression {
                 symbol_expr::Value::Real(r) => Some(ParameterValueType::Float(*r)),
                 symbol_expr::Value::Complex(c) => Some(ParameterValueType::Complex(*c)),
             },
-            SymbolExpr::Symbol(s) => match &self.parameter_symbols {
-                Some(map) => {
-                    for (k, u) in map {
-                        if k.as_ref() == s.as_ref() {
-                            return Some(ParameterValueType::Parameter(ParameterExpression::new(
-                                k.as_ref().clone(),
-                                Some(*u),
-                            )));
+            SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. } => {
+                match &self.parameter_symbols {
+                    Some(map) => {
+                        for (k, u) in map {
+                            if k.as_ref() == expr {
+                                if let SymbolExpr::IndexedSymbol { name, index } = expr {
+                                    return Some(ParameterValueType::Parameter(
+                                        ParameterExpression::new(
+                                            name.as_ref().clone(),
+                                            Some(*u),
+                                            Some(*index),
+                                        ),
+                                    ));
+                                } else {
+                                    return Some(ParameterValueType::Parameter(
+                                        ParameterExpression::new(k.to_string(), Some(*u), None),
+                                    ));
+                                }
+                            }
                         }
+                        None
                     }
-                    None
+                    None => None,
                 }
-                None => None,
-            },
+            }
             SymbolExpr::Unary { .. } | SymbolExpr::Binary { .. } => {
-                let mut map = HashMap::<Arc<String>, u128>::new();
+                let mut map = HashMap::<Arc<SymbolExpr>, u128>::new();
                 let symbols = expr.symbols();
                 if let Some(my_map) = &self.parameter_symbols {
                     for (k, u) in my_map {
-                        if symbols.get(k.as_ref()).is_some() {
+                        if symbols.get(&k.to_string()).is_some() {
                             map.insert(Arc::clone(k), *u);
                         }
                     }
@@ -842,7 +870,7 @@ impl From<Complex64> for ParameterExpression {
 
 impl From<&str> for ParameterExpression {
     fn from(s: &str) -> Self {
-        ParameterExpression::new(s.to_string(), None)
+        ParameterExpression::new(s.to_string(), None, None)
     }
 }
 
@@ -989,21 +1017,23 @@ impl ParameterExpression {
                 .replace("__end_sympy_replace__", "$");
             match parse_expression(&expr) {
                 Ok(expr) => {
-                    let mut parameter_symbols = HashMap::<Arc<String>, u128>::new();
+                    let mut parameter_symbols = HashMap::<Arc<SymbolExpr>, u128>::new();
                     if let Some(symbol_map) = symbol_map {
                         for param in symbol_map {
                             let u = param.uuid();
                             if *u == 0_u128 {
                                 parameter_symbols
-                                    .insert(Arc::new(param.to_string()), Uuid::new_v4().as_u128());
+                                    .insert(Arc::new(param.expr.clone()), Uuid::new_v4().as_u128());
                             } else {
-                                parameter_symbols.insert(Arc::new(param.to_string()), *u);
+                                parameter_symbols.insert(Arc::new(param.expr.clone()), *u);
                             }
                         }
                     } else {
                         for symbol in expr.symbols() {
-                            parameter_symbols
-                                .insert(Arc::new(symbol.clone()), Uuid::new_v4().as_u128());
+                            parameter_symbols.insert(
+                                Arc::new(SymbolExpr::Symbol(Arc::new(symbol.clone()))),
+                                Uuid::new_v4().as_u128(),
+                            );
                         }
                     }
                     // substitute 'I' to imaginary number i before returning expression
@@ -1027,14 +1057,14 @@ impl ParameterExpression {
     /// create new expression as symbol
     #[allow(non_snake_case)]
     #[staticmethod]
-    #[pyo3(signature = (name, uuid = None))]
-    pub fn Symbol(name: String, uuid: Option<u128>) -> PyResult<Self> {
+    #[pyo3(signature = (name, uuid = None, index = None))]
+    pub fn Symbol(name: String, uuid: Option<u128>, index: Option<usize>) -> PyResult<Self> {
         // check if expr contains replacements for sympy
         let name = name
             .replace("__begin_sympy_replace__", "$\\")
             .replace("__end_sympy_replace__", "$");
 
-        Ok(ParameterExpression::new(name, uuid))
+        Ok(ParameterExpression::new(name, uuid, index))
     }
 
     /// create new expression as a value
@@ -1092,6 +1122,12 @@ impl ParameterExpression {
     #[getter("is_symbol")]
     pub fn py_is_symbol(&self) -> bool {
         self.is_symbol()
+    }
+
+    /// check if this is ParameterVectorElement
+    #[getter("is_vector_element")]
+    pub fn py_is_vector_element(&self) -> bool {
+        self.is_vector_element()
     }
 
     /// check if this is numeric
@@ -1228,7 +1264,13 @@ impl ParameterExpression {
         match &self.parameter_symbols {
             Some(symbols) => {
                 for (s, u) in symbols {
-                    out.add(ParameterExpression::new(s.as_ref().clone(), Some(*u)))?;
+                    out.add(ParameterExpression {
+                        expr: s.as_ref().clone(),
+                        parameter_symbols: Some(HashMap::<Arc<SymbolExpr>, u128>::from([(
+                            Arc::clone(s),
+                            *u,
+                        )])),
+                    })?;
                 }
                 Ok(out.unbind())
             }
@@ -1253,7 +1295,13 @@ impl ParameterExpression {
     /// return expression as a string
     #[getter("name")]
     pub fn py_name(&self) -> String {
-        self.__str__()
+        self.to_string()
+    }
+
+    /// return index of vector element
+    #[getter("index")]
+    pub fn py_index(&self) -> Option<usize> {
+        self.index()
     }
 
     pub fn py_assign(&self, param: &ParameterExpression, value: &Bound<PyAny>) -> PyResult<Self> {
@@ -1501,8 +1549,8 @@ impl ParameterExpression {
     }
 
     pub fn __str__(&self) -> String {
-        if let SymbolExpr::Symbol(s) = &self.expr {
-            return s.as_ref().clone();
+        if let SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. } = &self.expr {
+            return self.to_string();
         }
         match self.expr.eval(true) {
             Some(e) => e.to_string(),
@@ -1526,7 +1574,7 @@ impl ParameterExpression {
         if let Some(symbols) = &self.parameter_symbols {
             let mut ret = HashMap::<String, u128>::new();
             for (s, u) in symbols {
-                ret.insert(s.as_ref().clone(), *u);
+                ret.insert(s.to_string(), *u);
             }
             return Ok((self.to_string(), Some(ret)));
         }
@@ -1537,9 +1585,11 @@ impl ParameterExpression {
         match parse_expression(&state.0) {
             Ok(expr) => {
                 if let Some(symbols) = state.1 {
-                    let mut parameter_symbols = HashMap::<Arc<String>, u128>::new();
+                    let mut parameter_symbols = HashMap::<Arc<SymbolExpr>, u128>::new();
                     for (name, uuid) in symbols {
-                        parameter_symbols.insert(Arc::new(name), uuid);
+                        if let Ok(e) = parse_expression(&name) {
+                            parameter_symbols.insert(Arc::new(e), uuid);
+                        }
                     }
                     self.expr = expr;
                     self.parameter_symbols = Some(parameter_symbols);
@@ -1564,255 +1614,3 @@ impl ParameterExpression {
     }
 }
 
-/*
-#[pyclass]
-struct ParameterIter {
-    inner: std::vec::IntoIter<ParameterExpression>,
-}
-
-#[pymethods]
-impl ParameterIter {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PyObject> {
-        // make new vector element object from ParameterExpression for next object
-        match slf.inner.next() {
-            Some(e) => match e.into_py_any(slf.py()) {
-                Ok(e) => Some(e),
-                Err(_) => None,
-            },
-            None => None,
-        }
-    }
-}
-*/
-// ===========================================
-// ParameterVector class
-// ===========================================
-/*#[pyclass(sequence, subclass, module = "qiskit._accelerate.circuit")]
-#[derive(Clone, Debug)]
-pub struct ParameterVector {
-    name: String,
-    root_uuid: u128,
-    params: Vec<ParameterExpression>,
-}
-
-#[pymethods]
-impl ParameterVector {
-    #[new]
-    #[pyo3(signature = (name="".to_string(), length = 0, uuid = None))]
-    pub fn new(name: String, length: usize, uuid: Option<u128>) -> PyResult<Self> {
-        // check if expr contains replacements for sympy
-        let name = name
-            .replace("__begin_sympy_replace__", "$\\")
-            .replace("__end_sympy_replace__", "$");
-
-        let root_uuid = match uuid {
-            Some(uuid) => uuid,
-            None => Uuid::new_v4().as_u128(),
-        };
-        let mut ret = ParameterVector {
-            name: name.clone(),
-            root_uuid,
-            params: Vec::with_capacity(length),
-        };
-
-        for i in 0..length {
-            let pe = ParameterExpression {
-                inner: ParameterInner::VectorElement {
-                    name: Arc::new(name.clone()),
-                    index: i,
-                    uuid: root_uuid + i as u128,
-                    vector: None,
-                },
-            };
-            ret.params.push(pe);
-        }
-        let t = Arc::<ParameterVector>::new(ret.to_owned());
-        for pe in &mut ret.params {
-            pe.set_vector(t.clone());
-        }
-        Ok(ret)
-    }
-
-    /// """The name of the :class:`ParameterVector`."""
-    #[getter("name")]
-    pub fn py_get_name(&self) -> String {
-        self.name.clone()
-    }
-    #[getter("_name")]
-    pub fn py_name(&self) -> String {
-        self.name.clone()
-    }
-
-    #[getter("_root_uuid")]
-    pub fn py_root_uuid(&self) -> u128 {
-        self.root_uuid
-    }
-
-    /// """A list of the contained :class:`ParameterVectorElement` instances.
-    ///
-    /// It is not safe to mutate this list."""
-    #[getter("params")]
-    pub fn py_get_params(&self, py: Python) -> PyResult<Py<PyList>> {
-        let out = PyList::empty(py);
-        for s in &self.params {
-            out.append(s.clone())?;
-        }
-        Ok(out.unbind())
-    }
-
-    #[pyo3(name = "index")]
-    pub fn py_index(&self, param: &ParameterExpression) -> Option<usize> {
-        for (i, p) in self.params.iter().enumerate() {
-            if param == p {
-                return Some(i);
-            }
-        }
-        None
-    }
-
-    pub fn __getitem__(&self, py: Python, index: PySequenceIndex) -> PyResult<PyObject> {
-        match index.with_len(self.params.len())? {
-            SequenceIndex::Int(index) => self.params[index].clone().into_py_any(py),
-            indices => {
-                let out = PyList::empty(py);
-                for i in indices {
-                    out.append(self.params[i].clone())?;
-                }
-                out.into_py_any(py)
-            }
-        }
-    }
-
-    pub fn __setitem__(&mut self, index: PySequenceIndex, value: &Bound<PyAny>) -> PyResult<()> {
-        match index.with_len(self.params.len())? {
-            SequenceIndex::Int(index) => {
-                if let Ok(e) = value.extract::<ParameterExpression>() {
-                    self.params[index] = e;
-                    Ok(())
-                } else {
-                    Err(pyo3::exceptions::PyRuntimeError::new_err(
-                        "unsupported data type is passed to ParameterVector.__setitem__",
-                    ))
-                }
-            }
-            indices => {
-                if let Ok(v) = value.extract::<Vec<ParameterExpression>>() {
-                    for (i, index) in indices.iter().enumerate() {
-                        self.params[index] = v[i].clone();
-                    }
-                    Ok(())
-                } else {
-                    Err(pyo3::exceptions::PyRuntimeError::new_err(
-                        "unsupported data type is passed to ParameterVector.__setitem__",
-                    ))
-                }
-            }
-        }
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<ParameterIter>> {
-        let iter = ParameterIter {
-            inner: slf.params.clone().into_iter(),
-        };
-        Py::new(slf.py(), iter)
-    }
-    pub fn __len__(&self) -> usize {
-        self.params.len()
-    }
-
-    pub fn __str__(&self) -> String {
-        let params: Vec<String> = self.params.iter().map(|p| p.to_string()).collect();
-        let mut out = format!("{}, [", self.name).to_string();
-        for (i, p) in params.iter().enumerate() {
-            if i != params.len() - 1 {
-                out += &format!("'{}', ", p);
-            } else {
-                out += &format!("'{}'", p);
-            }
-        }
-        out += "]";
-        out
-    }
-
-    pub fn __repr__(&self) -> String {
-        format!(
-            "ParameterVector(name='{}', length={})",
-            self.name,
-            self.params.len()
-        )
-        .to_string()
-    }
-
-    /// """Resize the parameter vector.  If necessary, new elements are generated.
-    ///
-    /// Note that the UUID of each :class:`.Parameter` element will be generated
-    /// deterministically given the root UUID of the ``ParameterVector`` and the index
-    /// of the element.  In particular, if a ``ParameterVector`` is resized to
-    /// be smaller and then later resized to be larger, the UUID of the later
-    /// generated element at a given index will be the same as the UUID of the
-    /// previous element at that index.
-    /// This is to ensure that the parameter instances do not change.
-    ///
-    /// >>> from qiskit.circuit import ParameterVector
-    /// >>> pv = ParameterVector("theta", 20)
-    /// >>> elt_19 = pv[19]
-    /// >>> rv.resize(10)
-    /// >>> rv.resize(20)
-    /// >>> pv[19] == elt_19
-    /// True
-    /// """
-    #[pyo3(name = "resize")]
-    pub fn py_resize(&mut self, length: usize) {
-        if length > self.params.len() {
-            let root_uuid = self.root_uuid;
-            for i in self.params.len()..length {
-                let pe = ParameterExpression {
-                    inner: ParameterInner::VectorElement {
-                        name: Arc::new(self.name.clone()),
-                        index: i,
-                        uuid: root_uuid + i as u128,
-                        vector: None,
-                    },
-                };
-                self.params.push(pe);
-            }
-            let t = Arc::<ParameterVector>::new(self.to_owned());
-            for pe in &mut self.params {
-                pe.set_vector(t.clone());
-            }
-        } else {
-            self.params.resize(length, ParameterExpression::default());
-        }
-    }
-
-    fn __getstate__(&self) -> PyResult<(String, usize, u128)> {
-        Ok((self.name.clone(), self.params.len(), self.root_uuid))
-    }
-    fn __setstate__(&mut self, state: (String, usize, u128)) -> PyResult<()> {
-        self.name = state.0;
-        self.root_uuid = state.2;
-        let length = state.1;
-        self.params = Vec::with_capacity(length);
-        for i in 0..length {
-            let pe = ParameterExpression {
-                inner: ParameterInner::VectorElement {
-                    name: Arc::new(self.name.clone()),
-                    index: i,
-                    uuid: self.root_uuid + i as u128,
-                    vector: None,
-                },
-            };
-            self.params.push(pe);
-        }
-        let t = Arc::<ParameterVector>::new(self.to_owned());
-        for pe in &mut self.params {
-            pe.set_vector(t.clone());
-        }
-        Ok(())
-    }
-}
-*/

@@ -15,7 +15,7 @@ Parameter Class for variable parameters.
 
 from __future__ import annotations
 
-from uuid import uuid4, UUID
+from uuid import UUID
 
 import qiskit._accelerate.circuit
 from qiskit.circuit.exceptions import CircuitError
@@ -62,7 +62,7 @@ class Parameter(ParameterExpression):
            bc.draw('mpl')
     """
 
-    __slots__ = "_hash"
+    __slots__ = ["_hash"]
 
     def __new__(
         cls, name: str | None = None, uuid: UUID | None = None
@@ -78,14 +78,14 @@ class Parameter(ParameterExpression):
                 field when creating two parameters to the same thing (along with the same name)
                 allows them to be equal.  This is useful during serialization and deserialization.
         """
-        if uuid != None:
+        if uuid is not None:
             uuid = int(uuid)
 
-        if name == None:
+        if name is None:
             self = super().__new__(cls, symbol_map=None, expr=None)
         else:
             self = super().__new__(
-                cls, symbol_map=None, expr=ParameterExpressionBase.Symbol(name, uuid)
+                cls, symbol_map=None, expr=ParameterExpressionBase.Symbol(name, uuid, None)
             )
 
         self._hash = None
@@ -137,7 +137,7 @@ class Parameter(ParameterExpression):
 
     def __hash__(self):
         # This is precached for performance, since it's used a lot and we are immutable.
-        if self._hash == None:
+        if self._hash is None:
             self._hash = super().__hash__()
         return self._hash
 

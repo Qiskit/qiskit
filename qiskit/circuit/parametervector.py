@@ -14,9 +14,8 @@
 
 from uuid import uuid4, UUID
 
-from .parameter import Parameter, ParameterExpression
-
 import qiskit._accelerate.circuit
+from .parameter import Parameter
 
 ParameterExpressionBase = qiskit._accelerate.circuit.ParameterExpression
 
@@ -29,38 +28,43 @@ class ParameterVectorElement(Parameter):
         automatically constructed efficiently as part of creating a :class:`ParameterVector`.
     """
 
-    ___slots__ = ("_vector", "_index")
+    ___slots__ = ["_vector"]
 
     def __new__(cls, vector=None, index=None, uuid=None):
 
-        if uuid != None:
+        if uuid is not None:
             uuid = int(uuid)
-        elif vector == None:
+        elif vector is None:
             return super().__new__(cls, None, None)
 
-        self = super().__new__(cls, f"{vector.name}[{index}]", uuid=uuid)
+        self = super(Parameter, cls).__new__(
+            cls, None, ParameterExpressionBase.Symbol(vector.name, uuid=uuid, index=index)
+        )
+        # self = super().__new__(cls, f"{vector.name}[{index}]", uuid=uuid)
         self._vector = vector
-        self._index = index
+        self._hash = None
+        self._parameter_symbols = {self}
         return self
 
     @property
-    def index(self):
+    def _index(self):
         """Get the index of this element in the parent vector."""
-        return self._index
+        return self.index()
 
     @property
     def vector(self):
         """Get the parent vector instance."""
         return self._vector
 
-    def __getstate__(self):
-        return (super().__getstate__(), self._vector, self._index)
 
-    def __setstate__(self, state):
-        (super_state, vector, index) = state
-        super().__setstate__(super_state)
-        self._vector = vector
-        self._index = index
+#    def __getstate__(self):
+#        return (super().__getstate__(), self._vector, self._index)
+
+#    def __setstate__(self, state):
+#        (super_state, vector, index) = state
+#        super().__setstate__(super_state)
+#        self._vector = vector
+#        self._index = index
 
 
 class ParameterVector:

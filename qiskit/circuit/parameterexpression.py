@@ -15,17 +15,13 @@ ParameterExpression Class to enable creating simple expressions of Parameters.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import IntEnum
-from typing import Callable, Union
-from uuid import uuid4, UUID
-import numbers
-import operator
+from typing import Union
+from uuid import UUID
 
 import numpy as np
 
 from qiskit.utils.optionals import HAS_SYMPY
-from qiskit.circuit.exceptions import CircuitError
 import qiskit._accelerate.circuit
 
 ParameterExpressionBase = qiskit._accelerate.circuit.ParameterExpression
@@ -140,6 +136,7 @@ class ParameterExpression(ParameterExpressionBase):
             self._parameter_symbols = symbol_map
         else:
             self._parameter_symbols = set()
+
         return self
 
     @property
@@ -149,6 +146,7 @@ class ParameterExpression(ParameterExpressionBase):
 
     @property
     def parameter_symbols_dict(self) -> dict:
+        """Returns a set of the unbound Parameters in the expression as dict format."""
         return dict(zip(self._parameter_symbols, self._parameter_symbols))
 
     @property
@@ -228,7 +226,7 @@ class ParameterExpression(ParameterExpressionBase):
             A new expression with the specified parameters replaced.
         """
         parameters = self._parameter_symbols - parameter_map.keys()
-        for old_param, new_param in parameter_map.items():
+        for new_param in parameter_map.values():
             parameters = parameters | new_param._parameter_symbols
 
         return ParameterExpression(
@@ -269,7 +267,7 @@ class ParameterExpression(ParameterExpressionBase):
         if isinstance(other, ParameterExpression):
             return self._parameter_symbols | other._parameter_symbols
         else:
-            return self._parameter_symbols.copy()
+            return self._parameter_symbols
 
     def __add__(self, other):
         return ParameterExpression(self._merge_parameters(other), super().py_add(other))
@@ -382,7 +380,7 @@ class ParameterExpression(ParameterExpressionBase):
             if self.is_symbol:
                 return sympy.Symbol(super().sympify())
             else:
-                return sympy.sympify(super().sympify())
+                return self.numeric()
 
         output = None
         for inst in self.replay():
@@ -400,7 +398,7 @@ class ParameterExpression(ParameterExpressionBase):
                     if inst.lhs.is_symbol:
                         lhs = sympy.Symbol(inst.lhs.sympify())
                     else:
-                        lhs = sympy.sympify(inst.lhs.sympify())
+                        lhs = inst.lhs.numeric()
                 else:
                     lhs = ParameterExpression(None, inst.lhs).sympify()
             elif inst.lhs is None:
@@ -417,7 +415,7 @@ class ParameterExpression(ParameterExpressionBase):
                         if inst.rhs.is_symbol:
                             rhs = sympy.Symbol(inst.rhs.sympify())
                         else:
-                            rhs = sympy.sympify(inst.rhs.sympify())
+                            rhs = inst.rhs.numeric()
                     else:
                         rhs = ParameterExpression(None, inst.rhs).sympify()
                 else:

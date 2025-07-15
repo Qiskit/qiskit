@@ -69,13 +69,10 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
         )),
         |(v, array_idx)| -> Result<SymbolExpr, &str> {
             match array_idx {
-                Some(i) => {
-                    // currently array index is stored as string
-                    // if array indexing is required in the future
-                    // add indexing in Symbol struct
-                    let s = format!("{v}[{i}]");
-                    Ok(SymbolExpr::Symbol(Arc::new(s)))
-                }
+                Some(i) => Ok(SymbolExpr::IndexedSymbol {
+                    name: Arc::new(v.to_string()),
+                    index: i.parse().unwrap(),
+                }),
                 None => Ok(SymbolExpr::Symbol(Arc::new(v.to_string()))),
             }
         },
