@@ -135,6 +135,8 @@ pub static CONTROL_FLOW_CONDITION_RESOURCES: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "condition_resources");
 pub static CONTROL_FLOW_NODE_RESOURCES: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "node_resources");
+pub static SYMPIFY_PARAMETER_EXPRESSION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parameterexpression", "sympify");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

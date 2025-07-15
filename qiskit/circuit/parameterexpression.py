@@ -27,8 +27,10 @@ from qiskit.utils.optionals import HAS_SYMPY
 from qiskit.circuit.exceptions import CircuitError
 import qiskit._accelerate.circuit
 
+Parameter = qiskit._accelerate.circuit.Parameter
 ParameterExpression = qiskit._accelerate.circuit.ParameterExpression
 SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
+OpCode = qiskit._accelerate.circuit.OpCode
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -88,6 +90,88 @@ _OP_CODE_MAP = (
 def op_code_to_method(op_code: _OPCode):
     """Return the method name for a given op_code."""
     return _OP_CODE_MAP[op_code]
+
+
+@HAS_SYMPY.require_in_call
+def sympify(expression):
+    """Return symbolic expression as a raw Sympy object.
+
+    .. note::
+
+        This is for interoperability only.  Qiskit will not accept or work with raw Sympy or
+        Symegine expressions in its parameters, because they do not contain the tracking
+        information used in circuit-parameter binding and assignment.
+    """
+    import sympy
+
+    # if the expression is a plain Parameter, we just need to return the Symbol
+    if isinstance(expression, Parameter):
+        return sympy.Symbol(expression.name)
+    elif expression.is_symbol():
+        return sympy.Symbol(expression.parameters.pop().name)
+
+    try:
+        value = expression.numeric()
+        return sympy.Number(value)
+    except TypeError as _:
+        pass
+
+    # Otherwise we rebuild the expression from the QPY replay. We keep track of expressions
+    # in a stack, which will be queried if an lhs or rhs element is None (meaning that it must
+    # be applied to the previous expression).
+    stack = []
+    for inst in expression._qpy_replay:
+        for operand in [inst.lhs, inst.rhs]:
+            if operand is not None:
+                if isinstance(operand, ParameterExpression):
+                    stack.append(operand.sympify())
+                else:
+                    stack.append(operand)
+
+        method_str = _OP_CODE_MAP[int(inst.op)]
+        # checks if we apply a binary operation, requiring lhs and rhs
+        if inst.op in {
+            OpCode.ADD,
+            OpCode.SUB,
+            OpCode.MUL,
+            OpCode.DIV,
+            OpCode.POW,
+            OpCode.RSUB,
+            OpCode.RDIV,
+            OpCode.RPOW,
+        }:
+            rhs = stack.pop()
+            lhs = stack.pop()
+
+            if (
+                not isinstance(lhs, sympy.Basic)
+                and isinstance(rhs, sympy.Basic)
+                and inst.op in [OpCode.ADD, OpCode.MUL]
+            ):
+                if inst.op == OpCode.ADD:
+                    method_str = "__radd__"
+                elif inst.op == OpCode.MUL:
+                    method_str = "__rmul__"
+                stack.append(getattr(rhs, method_str)(lhs))
+            else:
+                stack.append(getattr(lhs, method_str)(rhs))
+
+        # these are unary operands, which only require a lhs operand
+        else:
+            lhs = stack.pop()
+
+            if inst.op == OpCode.ACOS:
+                stack.append(getattr(sympy, "acos")(lhs))
+            elif inst.op == OpCode.ASIN:
+                stack.append(getattr(sympy, "asin")(lhs))
+            elif inst.op == OpCode.ATAN:
+                stack.append(getattr(sympy, "atan")(lhs))
+            elif inst.op == OpCode.ABS:
+                stack.append(getattr(sympy, "Abs")(lhs))
+            else:
+                stack.append(getattr(sympy, method_str)(lhs))
+
+    return stack.pop()
 
 
 @dataclass

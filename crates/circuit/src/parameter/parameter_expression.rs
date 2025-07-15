@@ -28,7 +28,7 @@ use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 
 use crate::circuit_data::CircuitError;
-use crate::imports::{BUILTIN_HASH, UUID};
+use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 use crate::parameter::{self, symbol_expr};
@@ -540,10 +540,9 @@ impl PyParameterExpression {
         }
     }
 
-    pub fn sympify(&self) -> String {
-        let ret = self.expr.optimize().sympify().to_string();
-        ret.replace("$\\", "__begin_sympy_replace__")
-            .replace('$', "__end_sympy_replace__")
+    pub fn sympify(&self, py: Python) -> PyResult<PyObject> {
+        let py_sympify = SYMPIFY_PARAMETER_EXPRESSION.get(py);
+        py_sympify.call1(py, (self.clone(),))
     }
 
     #[getter]
@@ -1112,6 +1111,12 @@ impl PyParameter {
     pub fn __getnewargs__(&self, py: Python) -> PyResult<(String, Option<PyObject>)> {
         Ok((self.symbol.name(), Some(self.uuid(py)?)))
     }
+
+    /// This function is to get the types right on Python side
+    pub fn sympify(&self, py: Python) -> PyResult<PyObject> {
+        let py_sympify = SYMPIFY_PARAMETER_EXPRESSION.get(py);
+        py_sympify.call1(py, (self.clone(),))
+    }
 }
 
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
@@ -1287,9 +1292,9 @@ impl ParameterValueType {
 }
 
 #[pyclass(module = "qiskit._accelerate.circuit")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[repr(u8)]
-pub enum _OPCode {
+pub enum OpCode {
     ADD = 0,
     SUB = 1,
     MUL = 2,
@@ -1313,24 +1318,39 @@ pub enum _OPCode {
     RPOW = 20,
 }
 
+#[pymethods]
+impl OpCode {
+    fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
+        if let Ok(code) = other.downcast::<OpCode>() {
+            *code.borrow() == *self
+        } else {
+            false
+        }
+    }
+
+    fn __hash__(&self) -> u8 {
+        *self as u8
+    }
+}
+
 // enum for QPY replay
 #[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub enum OPReplay {
     _INSTRUCTION {
-        op: _OPCode,
+        op: OpCode,
         lhs: Option<ParameterValueType>,
         rhs: Option<ParameterValueType>,
     },
     _SUBS {
         binds: HashMap<PyParameterExpression, ParameterValueType>,
-        op: _OPCode,
+        op: OpCode,
     },
 }
 
 impl OPReplay {
     pub fn new_instruction(
-        op: _OPCode,
+        op: OpCode,
         lhs: Option<ParameterValueType>,
         rhs: Option<ParameterValueType>,
     ) -> OPReplay {
@@ -1382,18 +1402,18 @@ pub fn qpy_replay(
                 }
                 SymbolExpr::Unary { op, expr } => {
                     let op = match op {
-                        symbol_expr::UnaryOp::Abs => _OPCode::ABS,
-                        symbol_expr::UnaryOp::Acos => _OPCode::ACOS,
-                        symbol_expr::UnaryOp::Asin => _OPCode::ASIN,
-                        symbol_expr::UnaryOp::Atan => _OPCode::ATAN,
-                        symbol_expr::UnaryOp::Conj => _OPCode::CONJ,
-                        symbol_expr::UnaryOp::Cos => _OPCode::COS,
-                        symbol_expr::UnaryOp::Exp => _OPCode::EXP,
-                        symbol_expr::UnaryOp::Log => _OPCode::LOG,
-                        symbol_expr::UnaryOp::Neg => _OPCode::MUL,
-                        symbol_expr::UnaryOp::Sign => _OPCode::SIGN,
-                        symbol_expr::UnaryOp::Sin => _OPCode::SIN,
-                        symbol_expr::UnaryOp::Tan => _OPCode::TAN,
+                        symbol_expr::UnaryOp::Abs => OpCode::ABS,
+                        symbol_expr::UnaryOp::Acos => OpCode::ACOS,
+                        symbol_expr::UnaryOp::Asin => OpCode::ASIN,
+                        symbol_expr::UnaryOp::Atan => OpCode::ATAN,
+                        symbol_expr::UnaryOp::Conj => OpCode::CONJ,
+                        symbol_expr::UnaryOp::Cos => OpCode::COS,
+                        symbol_expr::UnaryOp::Exp => OpCode::EXP,
+                        symbol_expr::UnaryOp::Log => OpCode::LOG,
+                        symbol_expr::UnaryOp::Neg => OpCode::MUL,
+                        symbol_expr::UnaryOp::Sign => OpCode::SIGN,
+                        symbol_expr::UnaryOp::Sin => OpCode::SIN,
+                        symbol_expr::UnaryOp::Tan => OpCode::TAN,
                     };
                     // TODO filter shouldn't be necessary for unary ops
                     let lhs = ParameterValueType::extract_from_expr(expr, name_map);
@@ -1401,7 +1421,7 @@ pub fn qpy_replay(
                     qpy_replay(&lhs, name_map, replay);
 
                     // MUL is special: we implement ``neg`` as multiplication by -1
-                    if let _OPCode::MUL = &op {
+                    if let OpCode::MUL = &op {
                         let lhs_value = (!lhs.is_expression()).then_some(lhs.clone());
                         replay.push(OPReplay::new_instruction(
                             op,
@@ -1423,11 +1443,11 @@ pub fn qpy_replay(
                     match lhs {
                         ParameterValueType::Expression(_) | ParameterValueType::Parameter(_) => {
                             let op = match op {
-                                symbol_expr::BinaryOp::Add => _OPCode::ADD,
-                                symbol_expr::BinaryOp::Sub => _OPCode::SUB,
-                                symbol_expr::BinaryOp::Mul => _OPCode::MUL,
-                                symbol_expr::BinaryOp::Div => _OPCode::DIV,
-                                symbol_expr::BinaryOp::Pow => _OPCode::POW,
+                                symbol_expr::BinaryOp::Add => OpCode::ADD,
+                                symbol_expr::BinaryOp::Sub => OpCode::SUB,
+                                symbol_expr::BinaryOp::Mul => OpCode::MUL,
+                                symbol_expr::BinaryOp::Div => OpCode::DIV,
+                                symbol_expr::BinaryOp::Pow => OpCode::POW,
                             };
                             replay.push(OPReplay::new_instruction(
                                 op,
@@ -1437,13 +1457,13 @@ pub fn qpy_replay(
                         }
                         _ => {
                             let op = match op {
-                                symbol_expr::BinaryOp::Add => _OPCode::ADD,
-                                symbol_expr::BinaryOp::Sub => _OPCode::RSUB,
-                                symbol_expr::BinaryOp::Mul => _OPCode::MUL,
-                                symbol_expr::BinaryOp::Div => _OPCode::RDIV,
-                                symbol_expr::BinaryOp::Pow => _OPCode::RPOW,
+                                symbol_expr::BinaryOp::Add => OpCode::ADD,
+                                symbol_expr::BinaryOp::Sub => OpCode::RSUB,
+                                symbol_expr::BinaryOp::Mul => OpCode::MUL,
+                                symbol_expr::BinaryOp::Div => OpCode::RDIV,
+                                symbol_expr::BinaryOp::Pow => OpCode::RPOW,
                             };
-                            if let _OPCode::ADD | _OPCode::MUL = op {
+                            if let OpCode::ADD | OpCode::MUL = op {
                                 replay.push(OPReplay::new_instruction(
                                     op,
                                     (!lhs.is_expression()).then_some(lhs.clone()),
