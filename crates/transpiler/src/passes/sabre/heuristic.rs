@@ -21,7 +21,7 @@ use qiskit_circuit::impl_intopyobject_for_copy_pyclass;
 /// Affect the dynamic scaling of the weight of node-set-based heuristics (basic and lookahead).
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen, eq)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SetScaling {
     /// No dynamic scaling of the weight.
     Constant,
@@ -49,7 +49,7 @@ impl SetScaling {
 /// distances of every gate in the front layer.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct BasicHeuristic {
     /// The relative weighting of this heuristic to others.  Typically you should just set this to
     /// 1.0 and define everything else in terms of this.
@@ -89,7 +89,7 @@ impl BasicHeuristic {
 /// of every gate in the lookahead set, which is gates immediately after the front layer.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct LookaheadHeuristic {
     /// The relative weight of this heuristic.  Typically this is defined relative to the
     /// :class:`.BasicHeuristic`, which generally has its weight set to 1.0.
@@ -137,7 +137,7 @@ impl LookaheadHeuristic {
 /// components by the maximum multiplier involved in a given swap.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct DecayHeuristic {
     /// The amount to add onto the multiplier of a physical qubit when it is used.
     pub increment: f64,
@@ -176,7 +176,7 @@ impl DecayHeuristic {
 /// greater description.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Heuristic {
     pub basic: Option<BasicHeuristic>,
     pub lookahead: Option<LookaheadHeuristic>,
