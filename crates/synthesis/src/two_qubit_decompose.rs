@@ -66,8 +66,14 @@ const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
 const PI32: f64 = 3.0 * PI2;
 const TWO_PI: f64 = 2.0 * PI;
-
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
+// Worst case length is 5x 1q gates for each 1q decomposition + 1x 2q gate
+// We might overallocate a bit if the euler basis is different but
+// the worst case is just 16 extra elements with just a String and 2 smallvecs
+// each. This is only transient though as the circuit sequences aren't long lived
+// and are just used to create a QuantumCircuit or DAGCircuit when we return to
+// Python space.
+const TWO_QUBIT_SEQUENCE_DEFAULT_CAPACITY: usize = 21;
 
 static B_NON_NORMALIZED: GateArray2Q = [
     [C_ONE, IM, C_ZERO, C_ZERO],
@@ -1898,13 +1904,7 @@ impl TwoQubitBasisDecomposer {
                 )
             })
             .collect();
-        // Worst case length is 5x 1q gates for each 1q decomposition + 1x 2q gate
-        // We might overallocate a bit if the euler basis is different but
-        // the worst case is just 16 extra elements with just a String and 2 smallvecs
-        // each. This is only transient though as the circuit sequences aren't long lived
-        // and are just used to create a QuantumCircuit or DAGCircuit when we return to
-        // Python space.
-        let mut gates = Vec::with_capacity(21);
+        let mut gates = Vec::with_capacity(TWO_QUBIT_SEQUENCE_DEFAULT_CAPACITY);
         let mut global_phase = target_decomposed.global_phase;
         global_phase -= best_nbasis as f64 * self.basis_decomposer.global_phase;
         if best_nbasis == 2 {
@@ -1998,13 +1998,7 @@ impl TwoQubitBasisDecomposer {
                 )
             })
             .collect();
-        // Worst case length is 5x 1q gates for each 1q decomposition + 1x 2q gate
-        // We might overallocate a bit if the euler basis is different but
-        // the worst case is just 16 extra elements with just a String and 2 smallvecs
-        // each. This is only transient though as the circuit sequences aren't long lived
-        // and are just used to create a QuantumCircuit or DAGCircuit when we return to
-        // Python space.
-        let mut gates = Vec::with_capacity(21);
+        let mut gates = Vec::with_capacity(TWO_QUBIT_SEQUENCE_DEFAULT_CAPACITY);
         let mut global_phase = target_decomposed.global_phase;
         global_phase -= best_nbasis as f64 * self.basis_decomposer.global_phase;
         if best_nbasis == 2 {
