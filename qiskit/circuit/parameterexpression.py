@@ -380,7 +380,7 @@ class ParameterExpression(ParameterExpressionBase):
             if self.is_symbol:
                 return sympy.Symbol(super().sympify())
             else:
-                return self.numeric()
+                return sympy.sympify(super().sympify())
 
         output = None
         for inst in self.replay():
@@ -398,7 +398,7 @@ class ParameterExpression(ParameterExpressionBase):
                     if inst.lhs.is_symbol:
                         lhs = sympy.Symbol(inst.lhs.sympify())
                     else:
-                        lhs = inst.lhs.numeric()
+                        lhs = sympy.sympify(super().sympify())
                 else:
                     lhs = ParameterExpression(None, inst.lhs).sympify()
             elif inst.lhs is None:
@@ -415,7 +415,7 @@ class ParameterExpression(ParameterExpressionBase):
                         if inst.rhs.is_symbol:
                             rhs = sympy.Symbol(inst.rhs.sympify())
                         else:
-                            rhs = inst.rhs.numeric()
+                            rhs = sympy.sympify(super().sympify())
                     else:
                         rhs = ParameterExpression(None, inst.rhs).sympify()
                 else:

@@ -1608,9 +1608,9 @@ impl ParameterExpression {
     pub fn py_get_replay(&self) -> Option<Vec<OPReplay>> {
         self.make_qpy_replay()
     }
+
     #[getter("_qpy_replay")]
     pub fn py_qpy_replay(&self) -> Option<Vec<OPReplay>> {
         self.make_qpy_replay()
     }
 }
-
