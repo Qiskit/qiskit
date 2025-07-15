@@ -193,9 +193,9 @@ pub enum ConditionData {
     Expression(GenericDataPack),
 }
 
-//most of the data here is "virtual" in the sense that is is not stored as-is
-//we use custom reader/writer to enable spreading the data to its relevant places in the qpy instruction
-//in newer versions of qpy it may be better to store all the data consecutively
+// most of the data here is "virtual" in the sense that is is not stored as-is
+// we use custom reader/writer to enable spreading the data to its relevant places in the qpy instruction
+// in newer versions of qpy it may be better to store all the data consecutively
 #[derive(Debug)]
 pub struct ConditionPack {
     pub key: u8,

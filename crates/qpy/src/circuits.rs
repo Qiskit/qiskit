@@ -58,6 +58,7 @@ use crate::value::{
 };
 use crate::value::{
     deserialize, expression_var_declaration, pack_generic_data, pack_standalone_var, serialize,
+    unpack_generic_data,
 };
 use crate::UnsupportedFeatureForVersion;
 
@@ -363,6 +364,49 @@ fn dump_register(
     }
 }
 
+fn load_register(py: Python, data_bytes: Bytes, circuit_data: &CircuitData) -> PyResult<Py<PyAny>> {
+    // If register name prefixed with null character it's a clbit index for single bit condition.
+    if data_bytes.is_empty() {
+        return Err(PyValueError::new_err(
+            "Failed to load register - name missing",
+        ));
+    }
+    if data_bytes[0] == 0u8 {
+        let index: Clbit = Clbit(std::str::from_utf8(&data_bytes[1..])?.parse()?);
+        match circuit_data.clbits().get(index) {
+            Some(shareable_clbit) => {
+                Ok(shareable_clbit.into_pyobject(py)?.as_any().clone().unbind())
+            }
+            None => Err(PyValueError::new_err(format!(
+                "Could not find clbit {:?}",
+                index
+            ))),
+        }
+    } else {
+        let name = std::str::from_utf8(&data_bytes)?;
+        let mut register = None;
+        for creg in circuit_data.cregs() {
+            if creg.name() == name {
+                register = Some(creg);
+            }
+        }
+        match register {
+            Some(register) => Ok(register.into_pyobject(py)?.into_any().unbind()),
+            None => Err(PyValueError::new_err(format!(
+                "Could not find classical register {:?}",
+                name
+            ))),
+        }
+    }
+}
+
+// ef _loads_register_param(data_bytes, circuit, registers):
+//     # If register name prefixed with null character it's a clbit index for single bit condition.
+//     if data_bytes[0] == "\x00":
+//         conditional_bit = int(data_bytes[1:])
+//         return circuit.clbits[conditional_bit]
+//     return registers["c"][data_bytes]
+
 fn get_condition_data_from_inst(
     py: Python,
     inst: &Py<PyAny>,
@@ -622,6 +666,26 @@ fn unpack_custom_instruction(
     Ok(inst_obj.extract::<OperationFromPython>(py)?.operation)
 }
 
+fn unpack_condition(
+    py: Python,
+    condition: &formats::ConditionPack,
+    circuit_data: &CircuitData,
+    qpy_data: &mut QPYData,
+) -> PyResult<Option<Py<PyAny>>> {
+    match &condition.data {
+        formats::ConditionData::Expression(exp_data_pack) => {
+            Ok(Some(unpack_generic_data(py, exp_data_pack, qpy_data)?))
+        }
+        formats::ConditionData::Register(register_data) => {
+            let register = load_register(py, register_data.clone(), circuit_data)?;
+            let condition_value = condition.value.into_pyobject(py)?.unbind().into_any();
+            let tuple = PyTuple::new(py, &[register, condition_value])?;
+            Ok(Some(tuple.into_any().unbind()))
+        }
+        formats::ConditionData::None => Ok(None),
+    }
+}
+
 fn unpack_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
@@ -631,6 +695,7 @@ fn unpack_instruction(
 ) -> PyResult<PackedInstruction> {
     let name = instruction.gate_class_name.clone();
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
+    let condition = unpack_condition(py, &instruction.condition, circuit_data, qpy_data)?;
     let mut inst_params: Vec<Param> = instruction
         .params
         .iter()
@@ -656,9 +721,17 @@ fn unpack_instruction(
         let gate_class = get_python_gate_class(py, &instruction.gate_class_name)?;
         let gate_object = match name.as_str() {
             "IfElseOp" | "WhileLoopOp" => {
-                // TODO: should load condition and do gate_class(condition, *params, label=label)
-                let args = PyTuple::new(py, &py_params)?;
-                gate_class.call1(args)?
+                // TODO: should handle labels
+                let py_condition = match condition {
+                    Some(py_obj) => py_obj,
+                    None => py.None(),
+                };
+                let mut args = vec![py_condition];
+                for param in py_params {
+                    args.push(param.unbind());
+                }
+                // let args = PyTuple::new(py, &py_params)?;
+                gate_class.call1(PyTuple::new(py, args)?)?
             }
             "BoxOp" => {
                 if py_params.len() < 2 {
@@ -1618,6 +1691,7 @@ fn read_custom_instructions(
                         qpy_data._use_symengine,
                         qpy_data.annotation_handler.annotation_factories.clone(),
                     )?
+                    .0
                     .unbind(),
                 )
             }
@@ -1772,7 +1846,7 @@ pub fn deserialize_circuit<'py>(
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
     annotation_factories: Py<PyDict>,
-) -> PyResult<Bound<'py, PyAny>> {
+) -> PyResult<(Bound<'py, PyAny>, usize)> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYData {
         version,
@@ -1782,7 +1856,7 @@ pub fn deserialize_circuit<'py>(
         vectors: HashMap::new(),
         annotation_handler,
     };
-    let (packed_circuit, _) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
+    let (packed_circuit, pos) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
     let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
         .annotation_headers
         .state_headers
@@ -1826,7 +1900,7 @@ pub fn deserialize_circuit<'py>(
     if let Some(layout) = unpacked_layout {
         circuit.setattr("_layout", layout)?;
     }
-    Ok(circuit)
+    Ok((circuit, pos))
 }
 
 #[pyfunction]
@@ -1865,15 +1939,17 @@ pub fn py_read_circuit<'py>(
     use_symengine: bool,
     annotation_factories: Py<PyDict>,
 ) -> PyResult<Bound<'py, PyAny>> {
-    // TODO: this currently reads *everything* so storing multiple files will fail
+    let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes.downcast::<PyBytes>()?.as_bytes();
-    deserialize_circuit(
+    let (deserialized_ciruit, bytes_read) = deserialize_circuit(
         py,
         serialized_circuit,
         version,
         metadata_deserializer,
         use_symengine,
         annotation_factories,
-    )
+    )?;
+    file_obj.call_method1("seek", (pos + bytes_read,))?;
+    Ok(deserialized_ciruit)
 }

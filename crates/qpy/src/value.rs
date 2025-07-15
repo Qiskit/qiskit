@@ -98,14 +98,14 @@ where
     Ok(result)
 }
 
-pub fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, &[u8])>
+pub fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, usize)>
 where
     T: BinRead<Args<'static> = ()> + Debug,
 {
     let mut cursor = Cursor::new(bytes);
     let value = T::read_options(&mut cursor, Endian::Big, ()).unwrap(); //TODO better error handling
-    let pos = cursor.position() as usize;
-    Ok((value, &bytes[pos..]))
+    let bytes_read = cursor.position() as usize;
+    Ok((value, bytes_read))
 }
 
 pub fn deserialize_vec<T>(mut bytes: &[u8]) -> PyResult<Vec<T>>
@@ -114,9 +114,9 @@ where
 {
     let mut result = Vec::new();
     while !bytes.is_empty() {
-        let (item, rest) = deserialize::<T>(bytes)?;
+        let (item, pos) = deserialize::<T>(bytes)?;
         result.push(item);
-        bytes = rest;
+        bytes = &bytes[pos..];
     }
     Ok(result)
 }
@@ -240,6 +240,18 @@ pub fn pack_generic_data(
 ) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = dumps_value(py_data, qpy_data)?;
     Ok(formats::GenericDataPack { type_key, data })
+}
+
+pub fn unpack_generic_data(
+    py: Python,
+    data_pack: &formats::GenericDataPack,
+    qpy_data: &mut QPYData,
+) -> PyResult<Py<PyAny>> {
+    DumpedValue {
+        data_type: data_pack.type_key,
+        data: data_pack.data.clone(),
+    }
+    .to_python(py, qpy_data)
 }
 
 pub fn pack_generic_sequence(
@@ -504,6 +516,7 @@ impl DumpedValue {
                 qpy_data._use_symengine,
                 qpy_data.annotation_handler.annotation_factories.clone(),
             )?
+            .0
             .unbind(),
             _ => {
                 return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
