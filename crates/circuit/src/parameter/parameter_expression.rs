@@ -29,9 +29,9 @@ use pyo3::IntoPyObjectExt;
 
 use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, UUID};
-use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
+use crate::parameter::{self, symbol_expr};
 use crate::util::c64;
 
 use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
@@ -78,13 +78,13 @@ impl From<ParameterError> for PyErr {
     module = "qiskit._accelerate.circuit",
     name = "ParameterExpression"
 )]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct PyParameterExpression {
     // The symbolic expression.
-    expr: SymbolExpr,
+    pub expr: SymbolExpr,
     // A map keeping track of all symbols, with their name. This map *must* be kept
     // up to date upon any operation performed on the expression.
-    name_map: HashMap<String, PyParameter>,
+    pub name_map: HashMap<String, PyParameter>,
 }
 
 impl Hash for PyParameterExpression {
@@ -92,6 +92,14 @@ impl Hash for PyParameterExpression {
         self.expr.to_string().hash(state);
     }
 }
+
+impl PartialEq for PyParameterExpression {
+    fn eq(&self, other: &Self) -> bool {
+        self.expr.eq(&other.expr)
+    }
+}
+
+impl Eq for PyParameterExpression {}
 
 #[inline]
 fn _extract_value(value: &Bound<PyAny>) -> Option<PyParameterExpression> {
@@ -500,6 +508,14 @@ impl PyParameterExpression {
         }
     }
 
+    /// Check if the expression corresponds to a plain symbol.
+    pub fn is_symbol(&self) -> bool {
+        match &self.expr {
+            SymbolExpr::Symbol(_) => true,
+            _ => false,
+        }
+    }
+
     /// return value if expression does not contain any symbols
     pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
         match self.expr.eval(true) {
@@ -524,8 +540,10 @@ impl PyParameterExpression {
         }
     }
 
-    pub fn sympify(&self) -> PyResult<()> {
-        Err(PyNotImplementedError::new_err("sympify is todo!"))
+    pub fn sympify(&self) -> String {
+        let ret = self.expr.optimize().sympify().to_string();
+        ret.replace("$\\", "__begin_sympy_replace__")
+            .replace('$', "__end_sympy_replace__")
     }
 
     #[getter]
@@ -979,6 +997,14 @@ impl PyParameterExpression {
             self.expr = expr;
         }
     }
+
+    #[getter]
+    fn _qpy_replay(&self) -> Vec<OPReplay> {
+        let input = ParameterValueType::Expression(self.clone());
+        let mut replay = Vec::new();
+        qpy_replay(&input, &self.name_map, &mut replay);
+        replay
+    }
 }
 
 impl Default for PyParameterExpression {
@@ -1016,6 +1042,20 @@ pub struct PyParameter {
 impl Hash for PyParameter {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.symbol.hash(state);
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyParameter {
+    type Target = PyParameter;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let symbol = &self.symbol;
+        let expr = SymbolExpr::Symbol(symbol.clone());
+        let py_expr = PyParameterExpression::new(expr);
+
+        Ok(Py::new(py, (self, py_expr))?.into_bound(py))
     }
 }
 
@@ -1202,5 +1242,225 @@ fn symbol_from_py_parameter(param: &Bound<'_, PyAny>) -> PyResult<Symbol> {
         Ok(parameter.symbol.clone())
     } else {
         Err(PyValueError::new_err("Could not extract parameter"))
+    }
+}
+
+#[derive(IntoPyObject, FromPyObject, Clone, Debug)]
+pub enum ParameterValueType {
+    Int(i64),
+    Float(f64),
+    Complex(Complex64),
+    Parameter(PyParameter),
+    Expression(PyParameterExpression),
+}
+
+impl ParameterValueType {
+    fn extract_from_expr(
+        expr: &Box<SymbolExpr>,
+        name_map: &HashMap<String, PyParameter>,
+    ) -> ParameterValueType {
+        if let Some(value) = expr.eval(true) {
+            match value {
+                Value::Int(i) => ParameterValueType::Int(i),
+                Value::Real(r) => ParameterValueType::Float(r),
+                Value::Complex(c) => ParameterValueType::Complex(c),
+            }
+        } else {
+            if let SymbolExpr::Symbol(symbol) = expr.as_ref() {
+                let param = PyParameter {
+                    symbol: symbol.clone(),
+                };
+                ParameterValueType::Parameter(param)
+            } else {
+                let param = filter_name_map(expr, name_map);
+                ParameterValueType::Expression(param)
+            }
+        }
+    }
+
+    fn is_expression(&self) -> bool {
+        match &self {
+            Self::Expression(expr) => !expr.is_symbol(),
+            _ => false,
+        }
+    }
+}
+
+#[pyclass(module = "qiskit._accelerate.circuit")]
+#[derive(Clone, Debug)]
+#[repr(u8)]
+pub enum _OPCode {
+    ADD = 0,
+    SUB = 1,
+    MUL = 2,
+    DIV = 3,
+    POW = 4,
+    SIN = 5,
+    COS = 6,
+    TAN = 7,
+    ASIN = 8,
+    ACOS = 9,
+    EXP = 10,
+    LOG = 11,
+    SIGN = 12,
+    GRAD = 13,
+    CONJ = 14,
+    SUBSTITUTE = 15,
+    ABS = 16,
+    ATAN = 17,
+    RSUB = 18,
+    RDIV = 19,
+    RPOW = 20,
+}
+
+// enum for QPY replay
+#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
+#[derive(Clone, Debug)]
+pub enum OPReplay {
+    _INSTRUCTION {
+        op: _OPCode,
+        lhs: Option<ParameterValueType>,
+        rhs: Option<ParameterValueType>,
+    },
+    _SUBS {
+        binds: HashMap<PyParameterExpression, ParameterValueType>,
+        op: _OPCode,
+    },
+}
+
+impl OPReplay {
+    pub fn new_instruction(
+        op: _OPCode,
+        lhs: Option<ParameterValueType>,
+        rhs: Option<ParameterValueType>,
+    ) -> OPReplay {
+        OPReplay::_INSTRUCTION { op, lhs, rhs }
+    }
+}
+
+/// Internal helper. Extract one part of the expression tree, keeping the name map up to date.
+///
+/// Example: Given expr1 + expr2, each being [PyParameterExpression], we need the ability to
+/// extract one of the expressions with the proper name map.
+///
+/// Args:
+///     - joint_parameter_expr: The full expression, e.g. expr1 + expr2.
+///     - sub_expr: The sub expression, on whose symbols we restrict the name map.
+fn filter_name_map(
+    sub_expr: &Box<SymbolExpr>,
+    name_map: &HashMap<String, PyParameter>,
+) -> PyParameterExpression {
+    let sub_symbols = sub_expr.parameters();
+    let restricted_name_map: HashMap<String, PyParameter> = name_map
+        .iter()
+        .filter(|(_, param)| sub_symbols.contains(&param.symbol))
+        .map(|(name, param)| (name.clone(), param.clone()))
+        .collect();
+
+    PyParameterExpression {
+        expr: *sub_expr.clone(),
+        name_map: restricted_name_map,
+    }
+}
+
+pub fn qpy_replay(
+    expr: &ParameterValueType,
+    name_map: &HashMap<String, PyParameter>,
+    replay: &mut Vec<OPReplay>,
+) {
+    match &expr {
+        ParameterValueType::Int(_)
+        | ParameterValueType::Float(_)
+        | ParameterValueType::Complex(_)
+        | ParameterValueType::Parameter(_) => {
+            // end points, no QPY replay to add for these values
+        }
+        ParameterValueType::Expression(param) => {
+            match &param.expr {
+                SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => {
+                    // nothing to do here, we only need to traverse instructions
+                }
+                SymbolExpr::Unary { op, expr } => {
+                    let op = match op {
+                        symbol_expr::UnaryOp::Abs => _OPCode::ABS,
+                        symbol_expr::UnaryOp::Acos => _OPCode::ACOS,
+                        symbol_expr::UnaryOp::Asin => _OPCode::ASIN,
+                        symbol_expr::UnaryOp::Atan => _OPCode::ATAN,
+                        symbol_expr::UnaryOp::Conj => _OPCode::CONJ,
+                        symbol_expr::UnaryOp::Cos => _OPCode::COS,
+                        symbol_expr::UnaryOp::Exp => _OPCode::EXP,
+                        symbol_expr::UnaryOp::Log => _OPCode::LOG,
+                        symbol_expr::UnaryOp::Neg => _OPCode::MUL,
+                        symbol_expr::UnaryOp::Sign => _OPCode::SIGN,
+                        symbol_expr::UnaryOp::Sin => _OPCode::SIN,
+                        symbol_expr::UnaryOp::Tan => _OPCode::TAN,
+                    };
+                    // TODO filter shouldn't be necessary for unary ops
+                    let lhs = ParameterValueType::extract_from_expr(expr, name_map);
+                    // recurse on the instruction
+                    qpy_replay(&lhs, name_map, replay);
+
+                    // MUL is special: we implement ``neg`` as multiplication by -1
+                    if let _OPCode::MUL = &op {
+                        let lhs_value = (!lhs.is_expression()).then_some(lhs.clone());
+                        replay.push(OPReplay::new_instruction(
+                            op,
+                            lhs_value,
+                            Some(ParameterValueType::Int(-1)),
+                        ));
+                    } else {
+                        let lhs_value = (!lhs.is_expression()).then_some(lhs.clone());
+                        replay.push(OPReplay::new_instruction(op, lhs_value, None));
+                    }
+                }
+                SymbolExpr::Binary { op, lhs, rhs } => {
+                    let lhs = ParameterValueType::extract_from_expr(lhs, name_map);
+                    let rhs = ParameterValueType::extract_from_expr(rhs, name_map);
+
+                    qpy_replay(&lhs, name_map, replay);
+                    qpy_replay(&rhs, name_map, replay);
+
+                    match lhs {
+                        ParameterValueType::Expression(_) | ParameterValueType::Parameter(_) => {
+                            let op = match op {
+                                symbol_expr::BinaryOp::Add => _OPCode::ADD,
+                                symbol_expr::BinaryOp::Sub => _OPCode::SUB,
+                                symbol_expr::BinaryOp::Mul => _OPCode::MUL,
+                                symbol_expr::BinaryOp::Div => _OPCode::DIV,
+                                symbol_expr::BinaryOp::Pow => _OPCode::POW,
+                            };
+                            replay.push(OPReplay::new_instruction(
+                                op,
+                                (!lhs.is_expression()).then_some(lhs.clone()),
+                                (!rhs.is_expression()).then_some(rhs.clone()),
+                            ));
+                        }
+                        _ => {
+                            let op = match op {
+                                symbol_expr::BinaryOp::Add => _OPCode::ADD,
+                                symbol_expr::BinaryOp::Sub => _OPCode::RSUB,
+                                symbol_expr::BinaryOp::Mul => _OPCode::MUL,
+                                symbol_expr::BinaryOp::Div => _OPCode::RDIV,
+                                symbol_expr::BinaryOp::Pow => _OPCode::RPOW,
+                            };
+                            if let _OPCode::ADD | _OPCode::MUL = op {
+                                replay.push(OPReplay::new_instruction(
+                                    op,
+                                    (!lhs.is_expression()).then_some(lhs.clone()),
+                                    (!rhs.is_expression()).then_some(rhs.clone()),
+                                ));
+                            } else {
+                                // for some reason, here we swap lhs and rhs
+                                replay.push(OPReplay::new_instruction(
+                                    op,
+                                    (!rhs.is_expression()).then_some(rhs.clone()),
+                                    (!lhs.is_expression()).then_some(lhs.clone()),
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
