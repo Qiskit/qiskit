@@ -2266,7 +2266,6 @@ impl TwoQubitBasisDecomposer {
     #[pyo3(signature = (unitary, basis_fidelity=None, approximate=true, _num_basis_uses=None))]
     fn to_circuit(
         &self,
-        py: Python,
         unitary: PyReadonlyArray2<Complex64>,
         basis_fidelity: Option<f64>,
         approximate: bool,
@@ -2275,7 +2274,6 @@ impl TwoQubitBasisDecomposer {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         CircuitData::from_packed_operations(
-            py,
             2,
             0,
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
@@ -2340,7 +2338,6 @@ fn two_qubit_decompose_up_to_diagonal(
 
     let circ_seq = decomp.call_inner(mapped_su4.view(), None, true, None)?;
     let circ = CircuitData::from_packed_operations(
-        py,
         2,
         0,
         circ_seq
@@ -2963,13 +2960,11 @@ impl TwoQubitControlledUDecomposer {
     #[pyo3(signature=(unitary, atol=None))]
     fn __call__(
         &self,
-        py: Python,
         unitary: PyReadonlyArray2<Complex64>,
         atol: Option<f64>,
     ) -> PyResult<CircuitData> {
         let sequence = self.call_inner(unitary.as_array(), atol)?;
         CircuitData::from_packed_operations(
-            py,
             2,
             0,
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
