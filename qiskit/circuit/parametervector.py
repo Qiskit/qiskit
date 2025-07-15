@@ -49,7 +49,7 @@ class ParameterVectorElement(Parameter):
     @property
     def _index(self):
         """Get the index of this element in the parent vector."""
-        return self.index()
+        return self.index
 
     @property
     def vector(self):
