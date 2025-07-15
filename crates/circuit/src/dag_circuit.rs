@@ -550,7 +550,7 @@ impl DAGCircuit {
     ///
     /// To be removed with get_unit.
     #[getter("_unit")]
-    fn get_internal_unit(&self) -> PyResult<String> {
+    pub fn get_internal_unit(&self) -> PyResult<String> {
         Ok(self.unit.clone())
     }
 

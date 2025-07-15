@@ -28,6 +28,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.passes.scheduling.padding.base_padding import BasePadding
 from qiskit.transpiler.target import Target
+from qiskit._accelerate.pad_dynamical_decoupling import pad_dynamical_decoupling
 
 
 logger = logging.getLogger(__name__)
@@ -271,130 +272,28 @@ class PadDynamicalDecoupling(BasePadding):
         t_end: int,
         next_node: DAGNode,
         prev_node: DAGNode,
-    ):
-        # This routine takes care of the pulse alignment constraint for the DD sequence.
-        # Note that the alignment constraint acts on the t0 of the DAGOpNode.
-        # Now this constrained scheduling problem is simplified to the problem of
-        # finding a delay amount which is a multiple of the constraint value by assuming
-        # that the duration of every DAGOpNode is also a multiple of the constraint value.
-        #
-        # For example, given the constraint value of 16 and XY4 with 160 dt gates.
-        # Here we assume current interval is 992 dt.
-        #
-        # relative spacing := [0.125, 0.25, 0.25, 0.25, 0.125]
-        # slack = 992 dt - 4 x 160 dt = 352 dt
-        #
-        # unconstraind sequence: 44dt-X1-88dt-Y2-88dt-X3-88dt-Y4-44dt
-        # constrained sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
-        #
-        # Now we evenly split extra slack into start and end of the sequence.
-        # The distributed slack should be multiple of 16.
-        # Start = +16, End += 32
-        #
-        # final sequence       : 48dt-X1-80dt-Y2-80dt-X3-80dt-Y4-64dt / in total 992 dt
-        #
-        # Now we verify t0 of every node starts from multiple of 16 dt.
-        #
-        # X1:  48 dt (3 x 16 dt)
-        # Y2:  48 dt + 160 dt + 80 dt = 288 dt (18 x 16 dt)
-        # Y3: 288 dt + 160 dt + 80 dt = 528 dt (33 x 16 dt)
-        # Y4: 368 dt + 160 dt + 80 dt = 768 dt (48 x 16 dt)
-        #
-        # As you can see, constraints on t0 are all satisfied without explicit scheduling.
-        time_interval = t_end - t_start
-        if time_interval % self._alignment != 0:
-            raise TranspilerError(
-                f"Time interval {time_interval} is not divisible by alignment {self._alignment} "
-                f"between {_format_node(prev_node)} and {_format_node(next_node)}."
-            )
-
-        if not self.__is_dd_qubit(dag.qubits.index(qubit)):
-            # Target physical qubit is not the target of this DD sequence.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
-            return
-
-        if self._skip_reset_qubits and (
-            isinstance(prev_node, DAGInNode) or isinstance(prev_node.op, Reset)
-        ):
-            # Previous node is the start edge or reset, i.e. qubit is ground state.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
-            return
-
-        slack = time_interval - np.sum(self._dd_sequence_lengths[qubit])
-        sequence_gphase = self._sequence_phase
-
-        if slack <= 0:
-            # Interval too short.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
-            return
-
-        if len(self._dd_sequence) == 1:
-            # Special case of using a single gate for DD
-            u_inv = self._dd_sequence[0].inverse().to_matrix()
-            theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(u_inv)
-            if isinstance(next_node, DAGOpNode) and isinstance(next_node.op, (UGate, U3Gate)):
-                # Absorb the inverse into the successor (from left in circuit)
-                op = next_node.op
-                theta_r, phi_r, lam_r = op.params
-                op.params = Optimize1qGates.compose_u3(theta_r, phi_r, lam_r, theta, phi, lam)
-                next_node.op = op
-                sequence_gphase += phase
-            elif isinstance(prev_node, DAGOpNode) and isinstance(prev_node.op, (UGate, U3Gate)):
-                # Absorb the inverse into the predecessor (from right in circuit)
-                op = prev_node.op
-                theta_l, phi_l, lam_l = op.params
-                op.params = Optimize1qGates.compose_u3(theta, phi, lam, theta_l, phi_l, lam_l)
-                new_prev_node = dag.substitute_node(prev_node, op)
-                start_time = self.property_set["node_start_time"].pop(prev_node)
-                if start_time is not None:
-                    self.property_set["node_start_time"][new_prev_node] = start_time
-                sequence_gphase += phase
-            else:
-                # Don't do anything if there's no single-qubit gate to absorb the inverse
-                self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
-                return
-
-        def _constrained_length(values):
-            return self._alignment * np.floor(values / self._alignment)
-
-        # (1) Compute DD intervals satisfying the constraint
-        taus = _constrained_length(slack * np.asarray(self._spacing))
-        extra_slack = slack - np.sum(taus)
-
-        # (2) Distribute extra slack
-        if self._extra_slack_distribution == "middle":
-            mid_ind = int((len(taus) - 1) / 2)
-            to_middle = _constrained_length(extra_slack)
-            taus[mid_ind] += to_middle
-            if extra_slack - to_middle:
-                # If to_middle is not a multiple value of the pulse alignment,
-                # it is truncated to the nearlest multiple value and
-                # the rest of slack is added to the end.
-                taus[-1] += extra_slack - to_middle
-        elif self._extra_slack_distribution == "edges":
-            to_begin_edge = _constrained_length(extra_slack / 2)
-            taus[0] += to_begin_edge
-            taus[-1] += extra_slack - to_begin_edge
-        else:
-            raise TranspilerError(
-                f"Option extra_slack_distribution = {self._extra_slack_distribution} is invalid."
-            )
-
-        # (3) Construct DD sequence with delays
-        num_elements = max(len(self._dd_sequence), len(taus))
-        idle_after = t_start
-        for dd_ind in range(num_elements):
-            if dd_ind < len(taus):
-                tau = taus[dd_ind]
-                if tau > 0:
-                    self._apply_scheduled_op(dag, idle_after, Delay(tau, dag._unit), qubit)
-                    idle_after += tau
-            if dd_ind < len(self._dd_sequence):
-                gate = self._dd_sequence[dd_ind]
-                gate_length = self._dd_sequence_lengths[qubit][dd_ind]
-                self._apply_scheduled_op(dag, idle_after, gate, qubit)
-                idle_after += gate_length
-        dag.global_phase = dag.global_phase + sequence_gphase
+    ):  
+        # NOTE: The :meth:`._pad` method is currently being ported as it is the core logic within the ``PadDynamicalDecoupling`` pass
+        # and the :meth:`.run` method would need to be ported along with the :class:`.BasePadding` class when the ``PadDelay`` pass is also ported.
+        pad_dynamical_decoupling(
+            t_end,
+            t_start,
+            self._alignment,
+            prev_node,
+            next_node,
+            self._no_dd_qubits,
+            self._qubits,
+            qubit,
+            dag,
+            self.property_set,
+            self._skip_reset_qubits,
+            self._dd_sequence_lengths,
+            self._sequence_phase,
+            self._dd_sequence,
+            hasattr(prev_node, "op") and isinstance(prev_node.op, Reset),
+            self._spacing,
+            self._extra_slack_distribution,
+        )
 
     @staticmethod
     def _resolve_params(gate: Gate) -> tuple:

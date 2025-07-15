@@ -60,6 +60,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::remove_identity_equiv_mod, "remove_identity_equiv")?;
     add_submodule(m, ::qiskit_accelerate::results::results, "results")?;
     add_submodule(m, ::qiskit_transpiler::passes::sabre::sabre, "sabre")?;
+    add_submodule(m, ::qiskit_transpiler::passes::pad_dynamical_decoupling_mod, "pad_dynamical_decoupling")?;
     add_submodule(m, ::qiskit_accelerate::sampled_exp_val::sampled_exp_val, "sampled_exp_val")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_observable::sparse_observable, "sparse_observable")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_pauli_op::sparse_pauli_op, "sparse_pauli_op")?;
