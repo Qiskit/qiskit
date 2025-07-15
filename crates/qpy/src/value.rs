@@ -481,13 +481,14 @@ impl DumpedValue {
                     deserialize::<formats::ParameterExpressionPack>(&self.data)?;
                 unpack_parameter_expression(py, parameter_expression, qpy_data)?
             }
-            // tags::NUMPY_OBJ => {
-            //     let np = py.import("numpy")?;
-            //     let io = py.import("io")?;
-            //     let buffer = io.call_method0("BytesIO")?;
-            //     np.call_method1("save", (&buffer, py_object))?;
-            //     buffer.call_method0("getvalue")?.extract::<Bytes>()?
-            // }
+            tags::NUMPY_OBJ => {
+                let np = py.import("numpy")?;
+                let io = py.import("io")?;
+                let buffer = io.call_method0("BytesIO")?;
+                buffer.call_method1("write", (self.data.clone(),))?;
+                buffer.call_method1("seek", (0,))?;
+                np.call_method1("load", (buffer,))?.unbind()
+            }
             // tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
             tags::STRING => {
                 let data_string: &str = (&self.data).try_into()?;

@@ -34,3 +34,5 @@ features = ["py-clone"]
 workspace = true
 features = ["nalgebra"]
 
+[features]
+cache_pygates = ["qiskit-circuit/cache_pygates"]

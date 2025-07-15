@@ -1686,6 +1686,11 @@ impl CircuitData {
         self.cargs_interner().get(index)
     }
 
+    /// Insert cargs into the interner and return the interned value
+    pub fn add_cargs(&mut self, clbits: &[Clbit]) -> Interned<[Clbit]> {
+        self.cargs_interner.insert(clbits)
+    }
+
     fn assign_parameters_inner<I, T>(&mut self, py: Python, iter: I) -> PyResult<()>
     where
         I: IntoIterator<Item = (Py<PyAny>, T, HashSet<ParameterUse>)>,
