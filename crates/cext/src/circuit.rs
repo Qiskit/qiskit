@@ -837,7 +837,7 @@ pub struct CInstruction {
 ///     QkCircuit *qc = qk_circuit_new(100);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
-///     QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
+///     qk_circuit_get_instruction(qc, 0, inst);
 ///
 /// # Safety
 ///
