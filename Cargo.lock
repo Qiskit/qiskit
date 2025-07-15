@@ -1491,6 +1491,7 @@ version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "cbindgen",
+ "hashbrown 0.15.4",
  "indexmap",
  "nalgebra",
  "ndarray",
