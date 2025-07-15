@@ -2082,7 +2082,7 @@ impl DAGCircuit {
                                     .params_view()
                                     .iter()
                                     .zip(inst2.params_view().iter())
-                                    .all(|(a, b)| a.is_close(py, b, 1e-10).unwrap()))
+                                    .all(|(a, b)| a.is_close(b, 1e-10).unwrap()))
                         }
                         [OperationRef::Instruction(op1), OperationRef::Instruction(op2)] => {
                             if op1.control_flow() && op2.control_flow() {
