@@ -1922,7 +1922,7 @@ pub fn deserialize_circuit<'py>(
             &mut circuit_data,
             &mut qpy_data,
         )?;
-        circuit_data.push(py, inst)?;
+        circuit_data.push(inst)?;
     }
 
     let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &circuit_data)?;
