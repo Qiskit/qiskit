@@ -4673,6 +4673,26 @@ class QuantumCircuit:
         """The number of parameter objects in the circuit."""
         return self._data.num_parameters()
 
+    def get_parameter_instruction_indices(self, parameter: Parameter) -> list[tuple[int, int]]:
+        """Get the instruction indices where a parameter is used.
+
+        This method returns a list of tuples where each tuple contains:
+        - instruction_index: The index of the instruction in the circuit
+        - parameter_index: The index of the parameter within that instruction's parameters
+
+        For parameters used in the global phase, a tuple of (None, None) is returned.
+
+        Args:
+            parameter: The parameter to query for
+
+        Returns:
+            A list of tuples (instruction_index, parameter_index) where the parameter is used
+
+        Raises:
+            CircuitError: If the parameter is not tracked in the circuit
+        """
+        return self._data.get_parameter_instruction_indices(parameter)
+
     def _unsorted_parameters(self) -> set[Parameter]:
         """Efficiently get all parameters in the circuit, without any sorting overhead.
 
