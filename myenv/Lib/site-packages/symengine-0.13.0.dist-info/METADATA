@@ -1,0 +1,31 @@
+Metadata-Version: 2.1
+Name: symengine
+Version: 0.13.0
+Summary: Python library providing wrappers to SymEngine
+Home-page: https://github.com/symengine/symengine.py
+Author: SymEngine development team
+Author-email: symengine@googlegroups.com
+License: MIT
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Scientific/Engineering :: Mathematics
+Classifier: Topic :: Scientific/Engineering :: Physics
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.8,<4
+License-File: LICENSE
+License-File: AUTHORS
+
+
+SymEngine is a standalone fast C++ symbolic manipulation library.
+Optional thin Python wrappers (SymEngine) allow easy usage from Python and
+integration with SymPy and Sage.
+
+See https://github.com/symengine/symengine.py for information about License
+and dependencies of wheels
+
