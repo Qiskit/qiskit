@@ -18,11 +18,9 @@ generally means users cannot write code that will work with two subsequent
 versions of Qiskit, which is not acceptable.
 
 Beware that users will often be using functions, classes and methods that we,
-the Qiskit developers, may consider internal or not widely used.  Do not make
+the Qiskit developers, may consider unused.  Do not make
 assumptions that "this is buried, so nobody will be using it"; if it is public,
-it is subject to the policy.  The only exceptions here are functions and modules
-that are explicitly internal, *i.e.* those whose names begin with a leading
-underscore (`_`).
+it is subject to the policy.
 
 The guiding principles are:
 
