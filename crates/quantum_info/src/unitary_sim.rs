@@ -24,20 +24,17 @@ use crate::{unitary_compose, QiskitError};
 const MAX_NUM_QUBITS: usize = 12;
 
 /// Create a unitary matrix for a circuit.
-#[pyfunction]
-pub fn sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObject> {
+pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, String> {
     if circuit.num_clbits() > 0 {
-        return Err(QiskitError::new_err(
-            "Cannot simulate circuit involving classical bits.".to_string(),
-        ));
+        return Err("Cannot simulate circuit involving classical bits.".to_string());
     }
 
     let num_qubits = circuit.num_qubits();
 
     if num_qubits > MAX_NUM_QUBITS {
-        return Err(QiskitError::new_err(format!(
+        return Err(format!(
             "The number of circuit qubits ({num_qubits}) exceeds the maximum allowed number of qubits allowed for simulation ({MAX_NUM_QUBITS})."  
-        )));
+        ));
     }
 
     // Product matrix holding the result
@@ -45,9 +42,9 @@ pub fn sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObje
 
     for inst in circuit.data() {
         if !circuit.get_cargs(inst.clbits).is_empty() {
-            return Err(QiskitError::new_err(
+            return Err(
                 "Cannot simulate circuit with instructions involving classical bits".to_string(),
-            ));
+            );
         }
 
         // Ignore barriers
@@ -57,21 +54,26 @@ pub fn sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObje
 
         let qubits = circuit.get_qargs(inst.qubits);
 
-        let mat = inst.op.matrix(inst.params_view()).ok_or_else(|| {
-            QiskitError::new_err(format!(
-                "Cannot extract matrix for operation {:?}.",
-                inst.op.name()
-            ))
-        })?;
+        let mat = inst
+            .op
+            .matrix(inst.params_view())
+            .ok_or_else(|| format!("Cannot extract matrix for operation {:?}.", inst.op.name()))?;
 
-        product_mat = unitary_compose::compose(&product_mat.view(), &mat.view(), qubits, false)
-            .map_err(QiskitError::new_err)?;
+        product_mat = unitary_compose::compose(&product_mat.view(), &mat.view(), qubits, false)?;
     }
 
+    Ok(product_mat)
+}
+
+/// Create a unitary matrix for a circuit.
+#[pyfunction]
+#[pyo3(name = "sim_unitary_circuit")]
+pub fn py_sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObject> {
+    let product_mat = sim_unitary_circuit(circuit).map_err(QiskitError::new_err)?;
     Ok(product_mat.into_pyarray(py).into_any().unbind())
 }
 
 pub fn unitary_sim(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(sim_unitary_circuit))?;
+    m.add_wrapped(wrap_pyfunction!(py_sim_unitary_circuit))?;
     Ok(())
 }
