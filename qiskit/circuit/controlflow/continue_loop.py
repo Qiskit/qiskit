@@ -15,6 +15,7 @@
 from typing import Optional
 
 from qiskit.circuit.instruction import Instruction
+from qiskit._accelerate.circuit import ControlFlowType
 from .builder import InstructionPlaceholder, InstructionResources
 
 
@@ -22,6 +23,8 @@ class ContinueLoopOp(Instruction):
     """A circuit operation which, when encountered, moves to the next iteration of the nearest
     enclosing loop.  Can only be used inside loops.
     """
+
+    _control_flow_type = ControlFlowType.ContinueLoop
 
     def __init__(self, num_qubits: int, num_clbits: int, label: Optional[str] = None):
         """

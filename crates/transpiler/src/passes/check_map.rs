@@ -11,18 +11,15 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashSet;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::imports::CIRCUIT_TO_DAG;
-use qiskit_circuit::operations::{Operation, OperationRef};
+use qiskit_circuit::instruction::IntoInstructionView;
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::Qubit;
 
 fn recurse<'py>(
-    py: Python<'py>,
     dag: &'py DAGCircuit,
     edge_set: &'py HashSet<[u32; 2]>,
     wire_map: Option<&'py [Qubit]>,
@@ -38,31 +35,21 @@ fn recurse<'py>(
     };
     for (_node, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
-        if inst.op.control_flow() {
-            if let OperationRef::Instruction(py_inst) = inst.op.view() {
-                let raw_blocks = py_inst.instruction.getattr(py, "blocks")?;
-                let circuit_to_dag = CIRCUIT_TO_DAG.get_bound(py);
-                for raw_block in raw_blocks.bind(py).try_iter()? {
-                    let block_obj = raw_block?;
-                    let block = block_obj
-                        .getattr(intern!(py, "_data"))?
-                        .downcast::<CircuitData>()?
-                        .borrow();
-                    let new_dag: DAGCircuit =
-                        circuit_to_dag.call1((block_obj.clone(),))?.extract()?;
-                    let wire_map = (0..block.num_qubits())
-                        .map(|inner| {
-                            let outer = qubits[inner];
-                            match wire_map {
-                                Some(wire_map) => wire_map[outer.index()],
-                                None => outer,
-                            }
-                        })
-                        .collect::<Vec<_>>();
-                    let res = recurse(py, &new_dag, edge_set, Some(&wire_map))?;
-                    if res.is_some() {
-                        return Ok(res);
-                    }
+        if let Some(control_flow) = inst.try_view_control_flow() {
+            for block in control_flow.blocks() {
+                let wire_map = (0..block.num_qubits())
+                    .map(|inner| {
+                        let outer = qubits[inner];
+                        match wire_map {
+                            Some(wire_map) => wire_map[outer.index()],
+                            None => outer,
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                let res = recurse(block, edge_set, Some(&wire_map))?;
+                if res.is_some() {
+                    return Ok(res);
                 }
             }
         } else if qubits.len() == 2 && !check_qubits(qubits) {
@@ -78,11 +65,10 @@ fn recurse<'py>(
 #[pyfunction]
 #[pyo3(name = "check_map")]
 pub fn run_check_map(
-    py: Python,
     dag: &DAGCircuit,
     edge_set: HashSet<[u32; 2]>,
 ) -> PyResult<Option<(String, [u32; 2])>> {
-    recurse(py, dag, &edge_set, None)
+    recurse(dag, &edge_set, None)
 }
 
 pub fn check_map_mod(m: &Bound<PyModule>) -> PyResult<()> {
