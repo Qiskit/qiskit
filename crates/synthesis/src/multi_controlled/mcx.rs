@@ -923,3 +923,28 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
 
     Ok(circuit)
 }
+
+#[cfg(test)]
+mod test {
+    use approx::abs_diff_eq;
+    use qiskit_quantum_info::unitary_sim::sim_unitary_circuit;
+
+    use super::{increment_n_dirty_large, increment_n_dirty_small};
+
+    #[test]
+    fn test_increment_n_dirty() {
+        // Check that both methods to implement the :math:`n`-qubit increment gate using
+        // :math:`n` dirty ancilla qubits produce the same matrix (for small number of qubits).
+        for nq in 1..6 {
+            let circuit1 = increment_n_dirty_small(nq).unwrap();
+            let mat1 = sim_unitary_circuit(&circuit1).unwrap();
+
+            let circuit2 = increment_n_dirty_large(nq).unwrap();
+            let mat2 = sim_unitary_circuit(&circuit2).unwrap();
+
+            const EPS: f64 = 1e-10;
+            let close = abs_diff_eq!(mat1, mat2, epsilon = EPS);
+            assert!(close);
+        }
+    }
+}
