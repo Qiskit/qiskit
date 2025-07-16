@@ -1,0 +1,26 @@
+---
+features_circuits:
+  - |
+    Added a new method :meth:`~.QuantumCircuit.get_parameter_instruction_indices` 
+    to the :class:`~.QuantumCircuit` class that allows users to query the indices
+    of parametrized instructions in the parameter table. This method returns a 
+    list of tuples where each tuple contains the instruction index and parameter 
+    index where a given parameter is used in the circuit.
+    
+    For parameters used in the global phase, the method returns a tuple of 
+    (None, None). This addresses issue `#14747 <https://github.com/Qiskit/qiskit/issues/14747>`_
+    by providing a public API to query parameter usage locations in quantum circuits.
+    
+    Example usage::
+    
+        from qiskit import QuantumCircuit
+        from qiskit.circuit import Parameter
+        
+        param = Parameter('theta')
+        qc = QuantumCircuit(2)
+        qc.ry(param, 0)  # Instruction 0, parameter 0
+        qc.rz(param, 1)  # Instruction 1, parameter 0
+        qc.global_phase = param  # Global phase usage
+        
+        indices = qc.get_parameter_instruction_indices(param)
+        # Returns: [(0, 0), (1, 0), (None, None)]

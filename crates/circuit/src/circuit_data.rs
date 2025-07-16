@@ -571,6 +571,36 @@ impl CircuitData {
         self.param_table._py_raw_entry(param)
     }
 
+    /// Get the instruction indices where a parameter is used.
+    ///
+    /// This method returns a list of tuples where each tuple contains:
+    /// - instruction_index: The index of the instruction in the circuit
+    /// - parameter_index: The index of the parameter within that instruction's parameters
+    ///
+    /// For parameters used in the global phase, a tuple of (None, None) is returned.
+    ///
+    /// Args:
+    ///     param: The parameter to query for
+    ///
+    /// Returns:
+    ///     A list of tuples (instruction_index, parameter_index) where the parameter is used
+    ///
+    /// Raises:
+    ///     CircuitError: If the parameter is not tracked in the circuit
+    pub fn get_parameter_instruction_indices(&self, param: Bound<PyAny>) -> PyResult<Py<PyList>> {
+        let py = param.py();
+        let raw_entries = self.param_table._py_raw_entry(param)?;
+        let raw_set = raw_entries.bind(py);
+        
+        // Convert the set to a list - handle iterator properly
+        let mut result = Vec::new();
+        for item in raw_set.iter() {
+            result.push(item);
+        }
+        
+        Ok(PyList::new(py, result)?.unbind())
+    }
+
     pub fn get_parameter_by_name(&self, py: Python, name: PyBackedStr) -> Option<Py<PyAny>> {
         self.param_table
             .py_parameter_by_name(&name)
