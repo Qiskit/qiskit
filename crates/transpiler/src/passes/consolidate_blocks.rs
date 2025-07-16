@@ -65,32 +65,10 @@ fn is_supported(
 // If depth > 20, there will be 1q gates to consolidate.
 const MAX_2Q_DEPTH: usize = 20;
 
-/// Replaces each block of consecutive gates by a single unitary node.
-///
-/// This is the main function of the `ConsolidateBlocks` transpiler pass
-/// which replaces uninterrupted sequences of gates acting on the same qubits
-/// into a Unitary node, which will consecutively be resynthesized into a
-/// more optimal subcircuit.
-///
-/// If blocks are provided in standalone mode (Rust or C only) the blocks must not be
-/// operations with more than 2 qubits. Any consolidation with more than 2 qubits will use
-/// the Python class `Operator` which is not yet available through standalone mode and
-/// may lead to a panic.
-///
-/// # Arguments
-/// * `dag` - The circuit for which we will consolidate gates.
-/// * `decomposer` - The type of decomposer to be used, could be of types
-///   [TwoQubitBasisDecomposer] or [TwoQubitControlledUDecomposer].
-/// * `basis_gate_name` - The basis gate selected for the decomposition.
-/// * `force_consolidate` - Decides whether to force all consolidations or not.
-/// * `target` - The target representing the backend for which the pass is consolidating.
-/// * `basis_gates` - The basis gates from which the decomposer will choose.
-/// * `blocks` - The pre-collected blocks from the dag.
-/// * `runs` - The pre-collected runs from the dag.
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None))]
-pub fn run_consolidate_blocks(
+fn py_run_consolidate_blocks(
     dag: &mut DAGCircuit,
     decomposer: DecomposerType,
     basis_gate_name: &str,
@@ -374,7 +352,42 @@ pub fn run_consolidate_blocks(
     Ok(())
 }
 
+/// Replaces each block of consecutive gates by a single unitary node.
+///
+/// This is the main function of the `ConsolidateBlocks` transpiler pass
+/// which replaces uninterrupted sequences of gates acting on the same qubits
+/// into a Unitary node, which will consecutively be resynthesized into a
+/// more optimal subcircuit.
+///
+/// # Arguments
+/// * `dag` - The circuit for which we will consolidate gates.
+/// * `decomposer` - The type of decomposer to be used, could be of types
+///   [TwoQubitBasisDecomposer] or [TwoQubitControlledUDecomposer].
+/// * `basis_gate_name` - The basis gate selected for the decomposition.
+/// * `force_consolidate` - Decides whether to force all consolidations or not.
+/// * `target` - The target representing the backend for which the pass is consolidating.
+/// * `basis_gates` - The basis gates from which the decomposer will choose.
+pub fn run_consolidate_blocks(
+    dag: &mut DAGCircuit,
+    decomposer: DecomposerType,
+    basis_gate_name: &str,
+    force_consolidate: bool,
+    target: Option<&Target>,
+    basis_gates: Option<HashSet<String>>,
+) -> PyResult<()> {
+    py_run_consolidate_blocks(
+        dag,
+        decomposer,
+        basis_gate_name,
+        force_consolidate,
+        target,
+        basis_gates,
+        None,
+        None,
+    )
+}
+
 pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_consolidate_blocks))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_consolidate_blocks))?;
     Ok(())
 }
