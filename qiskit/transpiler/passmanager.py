@@ -214,6 +214,12 @@ class PassManager(BasePassManager):
                         property_set = kwargs['property_set']
                         count = kwargs['count']
                         ...
+                .. note::
+
+                    When running transpilation with multi-processing, the callback function
+                    is invoked within the context of each sub-process,
+                    independently of the parent process.
+
             num_processes: The maximum number of parallel processes to launch if parallel
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set

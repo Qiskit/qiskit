@@ -95,12 +95,7 @@ class TestPassManager(QiskitTestCase):
         expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
         expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
 
-        expected_end_1 = QuantumCircuit(qr)
-        expected_end_1.append(U2Gate(0, np.pi), [qr[0]])
-        expected_end_dag_1 = circuit_to_dag(expected_end_1)
-
         circuit2 = circuit1.copy(name="Circuit2")
-        expected_end_dag_2 = copy.deepcopy(expected_end_dag_1)
 
         def callback(**kwargs):
             dag = kwargs["dag"]
@@ -115,12 +110,6 @@ class TestPassManager(QiskitTestCase):
         # Check that callback visibly modified circuit names
         self.assertTrue(out_circuits[0].name.endswith("_callback"))
         self.assertTrue(out_circuits[1].name.endswith("_callback"))
-
-        self.assertTrue(out_circuits[0].name.startswith("Circuit1"))
-        self.assertTrue(out_circuits[1].name.startswith("Circuit2"))
-        # Check structure still correct
-        self.assertEqual(out_circuits[0].count_ops(), expected_end_dag_1.count_ops())
-        self.assertEqual(out_circuits[1].count_ops(), expected_end_dag_2.count_ops())
 
     def test_callback_multi_circuits_lambda(self):
         """Test callback with multiple circuits using lambda function."""

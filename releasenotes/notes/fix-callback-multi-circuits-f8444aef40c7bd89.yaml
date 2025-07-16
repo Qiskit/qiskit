@@ -1,8 +1,5 @@
----
 fixes:
   - |
-    Fixed a bug in ``PassManager.run()`` where the ``callback`` function was not
+    Fixed a bug in :meth:`.PassManager.run` where the ``callback`` function was not
     invoked when running with multiple circuits. The callback is now correctly
     triggered for each pass on each circuit, including in parallel execution.
-    The fix is validated through a unit test that also demonstrates the use of
-    a lambda callback, and highlights the expected behavior under parallelism.
