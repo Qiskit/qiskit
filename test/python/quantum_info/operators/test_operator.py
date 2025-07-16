@@ -1340,7 +1340,7 @@ class TestOperator(OperatorTestCase):
 
 
 class TestUnitarySim(QiskitTestCase):
-    """Tests simulation of unitary circuits in Rust."""
+    """Test simulation of unitary circuits in Rust."""
 
     def test_equivalence(self):
         """Test equivalence of Python and Rust code"""
@@ -1376,6 +1376,16 @@ class TestUnitarySim(QiskitTestCase):
         python_mat = Operator(qc).data
         rust_mat = unitary_sim.sim_unitary_circuit(qc._data)
         assert_allclose(python_mat, rust_mat)
+
+    def test_raises_on_classical_bits(self):
+        """Test that simulating circuits with classical bits
+        raises an error."""
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(QiskitError):
+            _ = unitary_sim.sim_unitary_circuit(qc._data)
 
 
 if __name__ == "__main__":

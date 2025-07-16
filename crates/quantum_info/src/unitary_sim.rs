@@ -14,10 +14,10 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 
-use crate::unitary_compose;
+use crate::{unitary_compose, QiskitError};
 
 // The code is based on top of unitary_compose. For circuits with 13 or more qubits, einsum
 // throws an "index out of bounds" error.
@@ -27,7 +27,7 @@ const MAX_NUM_QUBITS: usize = 12;
 #[pyfunction]
 pub fn sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObject> {
     if circuit.num_clbits() > 0 {
-        return Err(CircuitError::new_err(
+        return Err(QiskitError::new_err(
             "Cannot simulate circuit involving classical bits.".to_string(),
         ));
     }
@@ -35,7 +35,7 @@ pub fn sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObje
     let num_qubits = circuit.num_qubits();
 
     if num_qubits > MAX_NUM_QUBITS {
-        return Err(CircuitError::new_err(format!(
+        return Err(QiskitError::new_err(format!(
             "The number of circuit qubits ({num_qubits}) exceeds the maximum allowed number of qubits allowed for simulation ({MAX_NUM_QUBITS})."  
         )));
     }
@@ -45,7 +45,7 @@ pub fn sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObje
 
     for inst in circuit.data() {
         if !circuit.get_cargs(inst.clbits).is_empty() {
-            return Err(CircuitError::new_err(
+            return Err(QiskitError::new_err(
                 "Cannot simulate circuit with instructions involving classical bits".to_string(),
             ));
         }
@@ -58,14 +58,14 @@ pub fn sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObje
         let qubits = circuit.get_qargs(inst.qubits);
 
         let mat = inst.op.matrix(inst.params_view()).ok_or_else(|| {
-            CircuitError::new_err(format!(
+            QiskitError::new_err(format!(
                 "Cannot extract matrix for operation {:?}.",
                 inst.op.name()
             ))
         })?;
 
         product_mat = unitary_compose::compose(&product_mat.view(), &mat.view(), qubits, false)
-            .map_err(CircuitError::new_err)?;
+            .map_err(QiskitError::new_err)?;
     }
 
     Ok(product_mat.into_pyarray(py).into_any().unbind())
