@@ -15,7 +15,7 @@ use num_complex::Complex64;
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitError};
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 
 use crate::unitary_compose;
 
@@ -50,12 +50,17 @@ pub fn sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<PyObje
             ));
         }
 
+        // Ignore barriers
+        if let OperationRef::StandardInstruction(StandardInstruction::Barrier(_)) = inst.op.view() {
+            continue;
+        }
+
         let qubits = circuit.get_qargs(inst.qubits);
 
         let mat = inst.op.matrix(inst.params_view()).ok_or_else(|| {
             CircuitError::new_err(format!(
                 "Cannot extract matrix for operation {:?}.",
-                inst.op
+                inst.op.name()
             ))
         })?;
 

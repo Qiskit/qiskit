@@ -1357,6 +1357,25 @@ class TestUnitarySim(QiskitTestCase):
         rust_mat = unitary_sim.sim_unitary_circuit(qc._data)
         assert_allclose(python_mat, rust_mat)
 
+    def test_equivalence_with_barriers(self):
+        """Test equivalence of Python and Rust code where the
+        circuit includes barriers"""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.barrier()
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+        qc.s(1)
+        qc.cx(3, 1)
+        qc.rz(0.1, 2)
+        qc.barrier()
+        qc.ccx(3, 4, 0)
+        qc.s(4)
+        qc.barrier()
+
+        python_mat = Operator(qc).data
+        rust_mat = unitary_sim.sim_unitary_circuit(qc._data)
+        assert_allclose(python_mat, rust_mat)
 
 
 if __name__ == "__main__":
