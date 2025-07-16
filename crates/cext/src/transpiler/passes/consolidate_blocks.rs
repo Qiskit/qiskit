@@ -26,6 +26,7 @@ use qiskit_transpiler::{
     passes::{run_consolidate_blocks, DecomposerType},
     target::Target,
 };
+use smallvec::SmallVec;
 
 use crate::pointers::const_ptr_as_ref;
 
@@ -94,7 +95,8 @@ fn get_decomposer_and_basis_gate(
         if let Some(gate) = target_basis_supported {
             return (DecomposerType::TwoQubitBasis(
                 TwoQubitBasisDecomposer::new_inner(
-                    gate.name().to_string(),
+                    gate.into(),
+                    SmallVec::default(),
                     gate.matrix(&[]).unwrap_or_else(|| panic!("Error while obtaining the matrix form of gate '{}' without params.", gate.name())).view(),
                     approximation_degree,
                     "U",
@@ -110,7 +112,8 @@ fn get_decomposer_and_basis_gate(
     (
         DecomposerType::TwoQubitBasis(
             TwoQubitBasisDecomposer::new_inner(
-                gate.name().to_string(),
+                gate.into(),
+                SmallVec::default(),
                 gate.matrix(&[])
                     .expect("Error while obtaining the matrix form of gate 'cx' without params.")
                     .view(),
