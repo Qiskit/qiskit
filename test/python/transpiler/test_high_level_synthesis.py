@@ -2746,12 +2746,15 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
-        with self.subTest(method="2_clean_kg24", num_clean_ancillas=1, num_dirty_ancillas=0):
+        with self.subTest(method="2_clean_kg24", num_clean_ancillas=1, num_dirty_ancillas=1):
             # should not have a decomposition
             decomposition = MCXSynthesis2CleanKG24().run(
-                gate, num_clean_ancillas=1, num_dirty_ancillas=0
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
             )
             self.assertIsNone(decomposition)
+
+        with self.subTest(method="2_clean_kg24", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should not have a decomposition
             decomposition = MCXSynthesis2CleanKG24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=0
             )
@@ -2764,12 +2767,22 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
+        with self.subTest(method="2_dirty_kg24", num_clean_ancillas=1, num_dirty_ancillas=1):
+            # should have a decomposition
+            decomposition = MCXSynthesis2DirtyKG24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
         with self.subTest(method="2_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=1):
             # should not have a decomposition
             decomposition = MCXSynthesis2DirtyKG24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=1
             )
             self.assertIsNone(decomposition)
+
+        with self.subTest(method="2_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should not have a decomposition
             decomposition = MCXSynthesis2DirtyKG24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=0
             )
@@ -2795,6 +2808,14 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
                 gate, num_clean_ancillas=0, num_dirty_ancillas=1
             )
             self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="1_dirty_kg24", num_clean_ancillas=1, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesis1DirtyKG24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
         with self.subTest(method="1_dirty_kg24", num_clean_ancillas=0, num_dirty_ancillas=0):
             # should not have a decomposition
             decomposition = MCXSynthesis1DirtyKG24().run(

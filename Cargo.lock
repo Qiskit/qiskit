@@ -760,9 +760,9 @@ checksum = "fc0fef456e4baa96da950455cd02c081ca953b141298e41db3fc7e36b1da849c"
 
 [[package]]
 name = "indexmap"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
+checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.4",
@@ -1491,6 +1491,7 @@ version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "cbindgen",
+ "hashbrown 0.15.4",
  "indexmap",
  "nalgebra",
  "ndarray",
@@ -1634,6 +1635,7 @@ version = "2.2.0"
 dependencies = [
  "ahash 0.8.12",
  "approx",
+ "fixedbitset 0.5.7",
  "hashbrown 0.15.4",
  "indexmap",
  "itertools 0.14.0",
@@ -1648,6 +1650,7 @@ dependencies = [
  "rand 0.9.1",
  "rand_pcg 0.9.0",
  "rayon",
+ "rayon-cond 0.4.0",
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.12",
@@ -1809,6 +1812,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rayon-cond"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2964d0cf57a3e7a06e8183d14a8b527195c706b7983549cd5462d5aa3747438f"
+dependencies = [
+ "either",
+ "itertools 0.14.0",
+ "rayon",
+]
+
+[[package]]
 name = "rayon-core"
 version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1936,7 +1950,7 @@ dependencies = [
  "rand 0.8.5",
  "rand_pcg 0.3.1",
  "rayon",
- "rayon-cond",
+ "rayon-cond 0.3.0",
 ]
 
 [[package]]
