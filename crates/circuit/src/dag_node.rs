@@ -16,7 +16,7 @@ use std::sync::OnceLock;
 
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::imports::QUANTUM_CIRCUIT;
-use crate::operations::{Operation, Param};
+use crate::operations::{Operation, OperationRef, Param, PythonOperation};
 use crate::TupleLikeArg;
 
 use ahash::AHasher;
@@ -227,7 +227,14 @@ impl DAGOpNode {
         deepcopy: bool,
     ) -> PyResult<PyObject> {
         if deepcopy {
-            instruction.operation = instruction.operation.py_deepcopy(py, None)?;
+            instruction.operation = match instruction.operation.view() {
+                OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
+                OperationRef::Instruction(instruction) => instruction.py_deepcopy(py, None)?.into(),
+                OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
+            };
             #[cfg(feature = "cache_pygates")]
             {
                 instruction.py_op = OnceLock::new();
@@ -265,7 +272,16 @@ impl DAGOpNode {
     fn _to_circuit_instruction(&self, py: Python, deepcopy: bool) -> PyResult<CircuitInstruction> {
         Ok(CircuitInstruction {
             operation: if deepcopy {
-                self.instruction.operation.py_deepcopy(py, None)?
+                match self.instruction.operation.view() {
+                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        instruction.py_deepcopy(py, None)?.into()
+                    }
+                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                }
             } else {
                 self.instruction.operation.clone()
             },

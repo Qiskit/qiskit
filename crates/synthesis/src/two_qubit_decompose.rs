@@ -534,19 +534,19 @@ impl TwoQubitWeylDecomposition {
         self.c
     }
 
-    pub fn k1l_view(&self) -> ArrayView2<Complex64> {
+    pub fn k1l_view(&self) -> ArrayView2<'_, Complex64> {
         self.K1l.view()
     }
 
-    pub fn k2l_view(&self) -> ArrayView2<Complex64> {
+    pub fn k2l_view(&self) -> ArrayView2<'_, Complex64> {
         self.K2l.view()
     }
 
-    pub fn k1r_view(&self) -> ArrayView2<Complex64> {
+    pub fn k1r_view(&self) -> ArrayView2<'_, Complex64> {
         self.K1r.view()
     }
 
-    pub fn k2r_view(&self) -> ArrayView2<Complex64> {
+    pub fn k2r_view(&self) -> ArrayView2<'_, Complex64> {
         self.K2r.view()
     }
 
@@ -677,7 +677,7 @@ impl TwoQubitWeylDecomposition {
         }
         if !found {
             return Err(QiskitError::new_err(format!(
-                "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {:?}", unitary_matrix
+                "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {unitary_matrix:?}"
             )));
         }
         let mut d = -d.map(|x| x.arg() / 2.);
@@ -2235,7 +2235,6 @@ impl TwoQubitBasisDecomposer {
         let sequence = self.__call__(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         match kak_gate.operation.try_standard_gate() {
             Some(std_kak_gate) => CircuitData::from_standard_gates(
-                py,
                 2,
                 sequence
                     .gates
@@ -2255,7 +2254,6 @@ impl TwoQubitBasisDecomposer {
                 Param::Float(sequence.global_phase),
             ),
             None => CircuitData::from_packed_operations(
-                py,
                 2,
                 0,
                 sequence
@@ -2324,7 +2322,6 @@ fn two_qubit_decompose_up_to_diagonal(
 
     let circ_seq = decomp.call_inner(mapped_su4.view(), None, true, None)?;
     let circ = CircuitData::from_standard_gates(
-        py,
         2,
         circ_seq
             .gates
@@ -2970,7 +2967,6 @@ impl TwoQubitControlledUDecomposer {
         let sequence = self.call_inner(unitary.as_array(), atol)?;
         match &self.rxx_equivalent_gate {
             RXXEquivalent::Standard(rxx_gate) => CircuitData::from_standard_gates(
-                py,
                 2,
                 sequence
                     .gates
@@ -2990,7 +2986,6 @@ impl TwoQubitControlledUDecomposer {
                 Param::Float(sequence.global_phase),
             ),
             RXXEquivalent::CustomPython(gate_cls) => CircuitData::from_packed_operations(
-                py,
                 2,
                 0,
                 sequence

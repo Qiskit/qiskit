@@ -403,7 +403,7 @@ pub fn py_pauli_evolution(
         global_phase = multiply_param(&global_phase, -0.5, py);
     }
 
-    CircuitData::from_packed_operations(py, num_qubits as u32, 0, evos, global_phase)
+    CircuitData::from_packed_operations(num_qubits as u32, 0, evos, global_phase)
 }
 
 /// Build a CX chain over the active qubits. E.g. with q_1 inactive, this would return

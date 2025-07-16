@@ -93,7 +93,6 @@ fn ccx_chain<'a>(
 #[pyfunction]
 #[pyo3(signature = (controlled_gate, num_ctrl_qubits, num_target_qubits, control_state=None))]
 pub fn mcmt_v_chain(
-    py: Python,
     controlled_gate: OperationFromPython,
     num_ctrl_qubits: usize,
     num_target_qubits: usize,
@@ -145,7 +144,6 @@ pub fn mcmt_v_chain(
     // Finally we add the V-chain (or return in case of 1 control).
     if num_ctrl_qubits == 1 {
         CircuitData::from_packed_operations(
-            py,
             num_qubits as u32,
             0,
             flip_control_state
@@ -163,7 +161,6 @@ pub fn mcmt_v_chain(
         let up_chain = ccx_chain(&controls, &auxiliaries).rev();
 
         CircuitData::from_packed_operations(
-            py,
             num_qubits as u32,
             0,
             flip_control_state

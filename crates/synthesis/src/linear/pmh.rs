@@ -154,7 +154,6 @@ fn lower_cnot_synth(
 #[pyfunction]
 #[pyo3(signature = (matrix, section_size=None))]
 pub fn synth_cnot_count_full_pmh(
-    py: Python,
     matrix: PyReadonlyArray2<bool>,
     section_size: Option<i64>,
 ) -> PyResult<CircuitData> {
@@ -191,5 +190,5 @@ pub fn synth_cnot_count_full_pmh(
             )
         });
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+    CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))
 }

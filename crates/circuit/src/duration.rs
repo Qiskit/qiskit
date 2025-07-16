@@ -78,11 +78,11 @@ impl Duration {
 
     fn __repr__(&self) -> String {
         match self {
-            Duration::ns(t) => format!("Duration.ns({})", t),
-            Duration::us(t) => format!("Duration.us({})", t),
-            Duration::ms(t) => format!("Duration.ms({})", t),
-            Duration::s(t) => format!("Duration.s({})", t),
-            Duration::dt(t) => format!("Duration.dt({})", t),
+            Duration::ns(t) => format!("Duration.ns({t})"),
+            Duration::us(t) => format!("Duration.us({t})"),
+            Duration::ms(t) => format!("Duration.ms({t})"),
+            Duration::s(t) => format!("Duration.s({t})"),
+            Duration::dt(t) => format!("Duration.dt({t})"),
         }
     }
 

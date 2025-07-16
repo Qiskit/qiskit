@@ -40,6 +40,7 @@ from qiskit.circuit import (
     IfElseOp,
     BoxOp,
     Parameter,
+    ParameterVector,
     Qubit,
     SwitchCaseOp,
     WhileLoopOp,
@@ -2303,6 +2304,27 @@ class TestTranspile(QiskitTestCase):
         _ = transpile(qc, backend, optimization_level=optimization_level)
         # No meaningful assertions; this is a simple regression test for "stretches don't explode
         # backends with alignments" more than anything.
+
+    @data(0, 1, 2, 3)
+    def test_single_qubit_circuit_deterministic_output(self, optimization_level):
+        """Test that the transpiler's output is deterministic in a single qubit example.
+
+        Reproduce from `#14729 <https://github.com/Qiskit/qiskit/issues/14729>`__"""
+        params = ParameterVector("θ", length=3)
+
+        circ = QuantumCircuit(3)
+        for i, par in enumerate(params):
+            circ.rx(par, i)
+        circ.measure_all()
+        backend = GenericBackendV2(10, noise_info=True, seed=123)
+        isa_circs = []
+        for _ in range(10):
+            pm = generate_preset_pass_manager(
+                optimization_level=optimization_level, target=backend.target, seed_transpiler=123
+            )
+            isa_circs.append(pm.run(circ))
+        for i in range(10):
+            self.assertEqual(isa_circs[0], isa_circs[i])
 
 
 @ddt
