@@ -23,7 +23,7 @@ from qiskit.utils.optionals import HAS_SYMENGINE
 
 from qiskit.qpy import formats, exceptions
 
-QPY_VERSION = 15
+QPY_VERSION = 16
 QPY_COMPATIBILITY_VERSION = 13
 QPY_RUST_VERSION = 15  # we do not support encoding/decoding in Rust for previous versions yet
 ENCODE = "utf8"
