@@ -64,6 +64,7 @@ pub struct CircuitHeaderV12Pack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[br(import(read_bits: bool))]
 pub struct CircuitInstructionV2Pack {
     #[bw(calc = gate_class_name.len() as u16)]
     pub name_size: u16,
@@ -90,12 +91,14 @@ pub struct CircuitInstructionV2Pack {
     #[bw(write_with = ConditionPack::write)]
     pub condition: ConditionPack,
     #[br(count = num_qargs + num_cargs)]
+    #[br(if(read_bits))]
     pub bit_data: Vec<CircuitInstructionArgPack>,
     #[br(count = num_parameters as usize)]
     pub params: Vec<PackedParam>,
     #[br(if(has_annotations(extras_key)))]
     pub annotations: Option<InstructionsAnnotationPack>,
 }
+
 pub mod extras_key_parts {
     pub const ANNOTATIONS: u8 = 0b1000_0000;
     pub const CONDITIONAL: u8 = 0b0000_0011;
@@ -647,7 +650,12 @@ impl BinRead for QPYFormatV15 {
         let custom_instructions = CustomCircuitInstructionsPack::read_options(reader, endian, ())?;
         let mut instructions = Vec::with_capacity(header.num_vars as usize);
         for _ in 0..header.num_instructions {
-            instructions.push(CircuitInstructionV2Pack::read_options(reader, endian, ())?);
+            // read instructions, including circuit bits (the `true` arg)
+            instructions.push(CircuitInstructionV2Pack::read_options(
+                reader,
+                endian,
+                (true,),
+            )?);
         }
         let calibrations = CalibrationsPack::read_options(reader, endian, ())?;
         let layout = LayoutV2Pack::read_options(reader, endian, ())?;

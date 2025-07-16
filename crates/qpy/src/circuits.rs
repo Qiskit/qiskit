@@ -53,6 +53,7 @@ use crate::formats::QPYFormatV15;
 use crate::formats::RegisterV4Pack;
 use crate::params::pack_param;
 use crate::params::unpack_param;
+use crate::value::deserialize_with_args;
 use crate::value::{
     circuit_instruction_types, dumps_value, get_circuit_type_key, tags, DumpedValue, QPYData,
 };
@@ -75,7 +76,7 @@ struct CustomCircuitInstructionData {
     definition_circuit: Option<Py<PyAny>>,
     // num_ctrl_qubits: u32,
     // ctrl_state: u32,
-    // base_gate_raw: Bytes,
+    base_gate_raw: Bytes,
 }
 
 type CustomInstructionsMap = HashMap<String, CustomCircuitInstructionData>;
@@ -601,10 +602,12 @@ fn unpack_custom_instruction(
     py_params: &Vec<Bound<PyAny>>,
     label: Option<&String>,
     custom_instruction: &CustomCircuitInstructionData,
+    extra_data: (&CustomInstructionsMap, &mut CircuitData, &mut QPYData),
 ) -> PyResult<PackedOperation> {
     // TODO: handle all the remaining cases
 
     // TODO: if version >= 11
+    let (custom_instructions_map, circuit_data, qpy_data) = extra_data;
     let gate_class_name = match instruction.gate_class_name.rfind('_') {
         Some(pos) => &instruction.gate_class_name[..pos],
         None => &instruction.gate_class_name,
@@ -655,6 +658,40 @@ fn unpack_custom_instruction(
                     "Pauli Evolution Gate missing definition",
                 ));
             }
+        }
+        circuit_instruction_types::CONTROLLED_GATE => {
+            let packed_base_gate = deserialize_with_args::<
+                formats::CircuitInstructionV2Pack,
+                (bool,),
+            >(&custom_instruction.base_gate_raw, (false,))?
+            .0;
+            let base_gate = unpack_instruction(
+                py,
+                &packed_base_gate,
+                custom_instructions_map,
+                circuit_data,
+                qpy_data,
+            )?;
+            // TODO: is this needed? We do it earlier in any case
+            // If open controls, we need to discard the control suffix when setting the name.
+            // if ctrl_state < 2**num_ctrl_qubits - 1:
+            //     gate_name = gate_name.rsplit("_", 1)[0]
+            let py_controlled_gate_class = py
+                .import("qiskit.circuit.controlledgate")?
+                .getattr("ControlledGate")?;
+            let kwargs = PyDict::new(py);
+            kwargs.set_item(intern!(py, "num_ctrl_qubits"), instruction.num_ctrl_qubits)?;
+            kwargs.set_item(intern!(py, "ctrl_state"), instruction.ctrl_state)?;
+            kwargs.set_item(intern!(py, "base_gate"), base_gate.unpack_py_op(py)?)?;
+
+            let controlled_gate_object = py_controlled_gate_class.call(
+                (&gate_class_name, custom_instruction.num_qubits, py_params),
+                Some(&kwargs),
+            )?;
+            if let Some(definition) = &custom_instruction.definition_circuit {
+                controlled_gate_object.setattr("definition", definition)?;
+            }
+            controlled_gate_object.unbind()
         }
         _ => {
             return Err(PyValueError::new_err(format!(
@@ -712,6 +749,7 @@ fn unpack_instruction(
             &py_params,
             label.as_deref(),
             custom_instruction,
+            (custom_instructions, circuit_data, qpy_data),
         )?
     } else if let Some(gate) = standard_gate_from_gate_class_name(name.as_str()) {
         PackedOperation::from_standard_gate(gate)
@@ -1706,7 +1744,7 @@ fn read_custom_instructions(
             definition_circuit: definition,
             // num_ctrl_qubits: operation.num_ctrl_qubits,
             // ctrl_state: operation.ctrl_state,
-            // base_gate_raw: operation.base_gate_raw.clone(),
+            base_gate_raw: operation.base_gate_raw.clone(),
         };
         result.insert(operation.name.clone(), custom_instruction_data);
     }

@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use binrw::meta::WriteEndian;
+use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use hashbrown::HashMap;
 use pyo3::exceptions::PyValueError;
@@ -104,6 +104,17 @@ where
 {
     let mut cursor = Cursor::new(bytes);
     let value = T::read_options(&mut cursor, Endian::Big, ()).unwrap(); //TODO better error handling
+    let bytes_read = cursor.position() as usize;
+    Ok((value, bytes_read))
+}
+
+pub fn deserialize_with_args<T, A>(bytes: &[u8], args: A) -> PyResult<(T, usize)>
+where
+    T: BinRead<Args<'static> = A> + ReadEndian + Debug,
+    A: Clone + Debug,
+{
+    let mut cursor = Cursor::new(bytes);
+    let value = T::read_args(&mut cursor, args).unwrap(); //TODO better error handling
     let bytes_read = cursor.position() as usize;
     Ok((value, bytes_read))
 }
