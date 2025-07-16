@@ -122,6 +122,8 @@ from __future__ import annotations
 from qiskit._accelerate.pauli_lindblad_map import (
     QubitSparsePauliList,
     QubitSparsePauli,
+    PhasedQubitSparsePauli,
+    PhasedQubitSparsePauliList,
     PauliLindbladMap,
 )
 from qiskit._accelerate.sparse_observable import SparseObservable

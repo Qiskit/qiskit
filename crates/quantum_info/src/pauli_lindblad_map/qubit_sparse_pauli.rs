@@ -161,6 +161,8 @@ impl ::std::convert::TryFrom<u8> for Pauli {
 /// failures on entry to Rust from Python space will automatically raise `TypeError`.
 #[derive(Error, Debug)]
 pub enum CoherenceError {
+    #[error("`phases` ({phases}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
+    MismatchedPhaseCount { phases: usize, qspl: usize },
     #[error("`rates` ({rates}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
     MismatchedTermCount { rates: usize, qspl: usize },
     #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
