@@ -49,7 +49,7 @@ pub struct PhasedQubitSparsePauliList {
     /// The paulis.
     qubit_sparse_pauli_list: QubitSparsePauliList,
     /// Phases.
-    phases: Vec<u8>,
+    phases: Vec<isize>,
 }
 
 impl PhasedQubitSparsePauliList {
@@ -59,7 +59,7 @@ impl PhasedQubitSparsePauliList {
     /// correct values, you can call `new_unchecked` instead.
     pub fn new(
         qubit_sparse_pauli_list: QubitSparsePauliList,
-        phases: Vec<u8>,
+        phases: Vec<isize>,
     ) -> Result<Self, CoherenceError> {
         if phases.len() != qubit_sparse_pauli_list.num_terms() {
             return Err(CoherenceError::MismatchedPhaseCount {
@@ -80,7 +80,7 @@ impl PhasedQubitSparsePauliList {
     #[inline(always)]
     pub unsafe fn new_unchecked(
         qubit_sparse_pauli_list: QubitSparsePauliList,
-        phases: Vec<u8>,
+        phases: Vec<isize>,
     ) -> Self {
         Self {
             qubit_sparse_pauli_list,
@@ -118,7 +118,7 @@ impl PhasedQubitSparsePauliList {
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct PhasedQubitSparsePauliView<'a> {
     pub qubit_sparse_pauli_view: QubitSparsePauliView<'a>,
-    pub phase: &'a u8,
+    pub phase: &'a isize,
 }
 impl PhasedQubitSparsePauliView<'_> {
     /// Convert this `PhasedQubitSparsePauliView` into an owning [PhasedQubitSparsePauli] of the same data.
@@ -128,18 +128,19 @@ impl PhasedQubitSparsePauliView<'_> {
             phase: *self.phase
         }
     }
-    //************************************************************************************************ */
-    //pub fn to_sparse_str(self) -> String {
-    //    let paulis = self
-    //        .indices
-    //        .iter()
-    //        .zip(self.paulis)
-    //        .rev()
-    //        .map(|(i, op)| format!("{}_{}", op.py_label(), i))
-    //        .collect::<Vec<String>>()
-    //        .join(" ");
-    //    paulis.to_string()
-    //}
+    
+    pub fn to_sparse_str(self) -> String {
+        let num_ys = self.qubit_sparse_pauli_view.num_ys();
+        let phase_str = match (self.phase - num_ys).rem_euclid(4) {
+            0 => "",
+            1 => "-i",
+            2 => "-",
+            3 => "i",
+            _ => unreachable!("`x % 4` has only four values"),
+        };
+
+        phase_str.to_owned() + &self.qubit_sparse_pauli_view.to_sparse_str()
+    }
 }
 
 /// A single phased qubit-sparse Pauli operator.
@@ -148,14 +149,14 @@ pub struct PhasedQubitSparsePauli {
     /// The qubit sparse Pauli.
     qubit_sparse_pauli: QubitSparsePauli,
     /// phase.
-    phase: u8,
+    phase: isize,
 }
 
 impl PhasedQubitSparsePauli {
     /// Create a new phased qubit-sparse Pauli from the raw components that make it up.
     pub fn new(
         qubit_sparse_pauli: QubitSparsePauli,
-        phase: u8,
+        phase: isize,
     ) -> Self {
 
         Self {
@@ -296,22 +297,32 @@ impl PyPhasedQubitSparsePauli {
             .extract::<PyReadonlyArray1<bool>>()?;
         let mut paulis = Vec::new();
         let mut indices = Vec::new();
+        let mut num_ys = 0;
         for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
             // The only failure case possible here is the identity, because of how we're
             // constructing the value to convert.
             let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
                 continue;
             };
+            num_ys += (term == Pauli::Y) as isize;
             indices.push(i as u32);
             paulis.push(term);
         }
+        let group_phase = pauli
+            // `Pauli`'s `_phase` is a Numpy array ...
+            .getattr(intern!(py, "_phase"))?
+            // ... that should have exactly 1 element ...
+            .call_method0(intern!(py, "item"))?
+            // ... which is some integral type.
+            .extract::<isize>()?;
+
         let inner = PhasedQubitSparsePauli::new(
             QubitSparsePauli::new(
                 num_qubits,
                 paulis.into_boxed_slice(),
                 indices.into_boxed_slice(),
             )?,
-            0
+            group_phase
         );
         Ok(inner.into())
     }
@@ -356,19 +367,19 @@ impl PyPhasedQubitSparsePauli {
         Ok(slf.inner.eq(&other.inner))
     }
 
-    //fn __repr__(&self) -> PyResult<String> {
-    //    Ok(format!(
-    //        "<{} on {} qubit{}: {}>",
-    //        "PhasedQubitSparsePauli",
-    //        self.inner.num_qubits(),
-    //        if self.inner.num_qubits() == 1 {
-    //            ""
-    //        } else {
-    //            "s"
-    //        },
-    //        self.inner.view().to_sparse_str(),
-    //    ))
-    //}
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!(
+            "<{} on {} qubit{}: {}>",
+            "PhasedQubitSparsePauli",
+            self.inner.num_qubits(),
+            if self.inner.num_qubits() == 1 {
+                ""
+            } else {
+                "s"
+            },
+            self.inner.view().to_sparse_str(),
+        ))
+    }
 
     //fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
     //    let py = slf_.py();
