@@ -10,12 +10,36 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+
+use hashbrown::HashSet;
+
+use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
+use pyo3::{
+    exceptions::{PyRuntimeError, PyTypeError, PyValueError},
+    intern,
+    prelude::*,
+    sync::GILOnceCell,
+    types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
+    IntoPyObjectExt, PyErr,
+};
+use std::{
+    collections::btree_map,
+    sync::{Arc, RwLock},
+};
+use thiserror::Error;
+
+use qiskit_circuit::{
+    imports::ImportOnceCell,
+    slice::{PySequenceIndex, SequenceIndex},
+};
+
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
     QubitSparsePauliList, QubitSparsePauliView,
 };
 
+static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
 
 /// A list of Pauli operators stored in a qubit-sparse format.
 ///
@@ -37,10 +61,10 @@ impl PhasedQubitSparsePauliList {
         qubit_sparse_pauli_list: QubitSparsePauliList,
         phases: Vec<u8>,
     ) -> Result<Self, CoherenceError> {
-        if phases.len() != qubit_sparse_pauli_list.len() {
+        if phases.len() != qubit_sparse_pauli_list.num_terms() {
             return Err(CoherenceError::MismatchedPhaseCount {
                 phases: phases.len(),
-                qspl: qubit_sparse_pauli_list.len(),
+                qspl: qubit_sparse_pauli_list.num_terms(),
             });
         }
         // SAFETY: we've just done the coherence checks.
@@ -64,10 +88,26 @@ impl PhasedQubitSparsePauliList {
         }
     }
 
+    
+    /// Get the number of qubits the paulis are defined on.
+    #[inline]
+    pub fn num_qubits(&self) -> u32 {
+        self.qubit_sparse_pauli_list.num_qubits()
+    }
+
     /// Get the number of elements in the list.
     #[inline]
     pub fn num_terms(&self) -> usize {
         self.phases.len()
+    }
+
+    /// Clear all the elements of the list.
+    ///
+    /// This does not change the capacity of the internal allocations, so subsequent addition or
+    /// substraction of elements in the list may not need to reallocate.
+    pub fn clear(&mut self) {
+        self.qubit_sparse_pauli_list.clear();
+        self.phases.clear();
     }
 }
 
@@ -77,7 +117,7 @@ impl PhasedQubitSparsePauliList {
 /// (in the case that the term is the identity).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct PhasedQubitSparsePauliView<'a> {
-    pub qubit_sparse_pauli_view: QubitSparsePauliView,
+    pub qubit_sparse_pauli_view: QubitSparsePauliView<'a>,
     pub phase: &'a u8,
 }
 impl PhasedQubitSparsePauliView<'_> {
@@ -85,21 +125,21 @@ impl PhasedQubitSparsePauliView<'_> {
     pub fn to_term(&self) -> PhasedQubitSparsePauli {
         PhasedQubitSparsePauli {
             qubit_sparse_pauli: self.qubit_sparse_pauli_view.to_term(),
-            phase: phase.into()
+            phase: *self.phase
         }
     }
-
-    pub fn to_sparse_str(self) -> String {
-        let paulis = self
-            .indices
-            .iter()
-            .zip(self.paulis)
-            .rev()
-            .map(|(i, op)| format!("{}_{}", op.py_label(), i))
-            .collect::<Vec<String>>()
-            .join(" ");
-        paulis.to_string()
-    }
+    //************************************************************************************************ */
+    //pub fn to_sparse_str(self) -> String {
+    //    let paulis = self
+    //        .indices
+    //        .iter()
+    //        .zip(self.paulis)
+    //        .rev()
+    //        .map(|(i, op)| format!("{}_{}", op.py_label(), i))
+    //        .collect::<Vec<String>>()
+    //        .join(" ");
+    //    paulis.to_string()
+    //}
 }
 
 /// A single phased qubit-sparse Pauli operator.
@@ -127,23 +167,22 @@ impl PhasedQubitSparsePauli {
     /// Get the number of qubits the paulis are defined on.
     #[inline]
     pub fn num_qubits(&self) -> u32 {
-        self.qubit_sparse_pauli.num_qubits
+        self.qubit_sparse_pauli.num_qubits()
     }
 
     /// Create the identity [QubitSparsePauli] on ``num_qubits`` qubits.
     pub fn identity(num_qubits: u32) -> Self {
         Self {
-            qubit_sparse_pauli: QubitSparsePauli.identity(num_qubits),
+            qubit_sparse_pauli: QubitSparsePauli::identity(num_qubits),
             phase: 0
         }
     }
 
     /// Get a view version of this object.
-    pub fn view(&self) -> QubitSparsePauliView<'_> {
-        QubitSparsePauliView {
-            num_qubits: self.num_qubits,
-            paulis: &self.paulis,
-            indices: &self.indices,
+    pub fn view(&self) -> PhasedQubitSparsePauliView<'_> {
+        PhasedQubitSparsePauliView {
+            qubit_sparse_pauli_view: self.qubit_sparse_pauli.view(),
+            phase: &self.phase
         }
     }
 
@@ -156,65 +195,15 @@ impl PhasedQubitSparsePauli {
     }
 
     // Check if `self` commutes with `other`
-    pub fn commutes(&self, other: &QubitSparsePauli) -> Result<bool, ArithmeticError> {
-        if self.num_qubits != other.num_qubits {
+    pub fn commutes(&self, other: &PhasedQubitSparsePauli) -> Result<bool, ArithmeticError> {
+        if self.num_qubits() != other.num_qubits() {
             return Err(ArithmeticError::MismatchedQubits {
-                left: self.num_qubits,
-                right: other.num_qubits,
+                left: self.num_qubits(),
+                right: other.num_qubits(),
             });
         }
 
-        return self.qubit_sparse_pauli.commutes(other)
-    }
-}
-
-#[derive(Error, Debug)]
-pub struct InnerReadError;
-
-#[derive(Error, Debug)]
-pub struct InnerWriteError;
-
-impl ::std::fmt::Display for InnerReadError {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "Failed acquiring lock for reading.")
-    }
-}
-
-impl ::std::fmt::Display for InnerWriteError {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "Failed acquiring lock for writing.")
-    }
-}
-
-impl From<InnerReadError> for PyErr {
-    fn from(value: InnerReadError) -> PyErr {
-        PyRuntimeError::new_err(value.to_string())
-    }
-}
-impl From<InnerWriteError> for PyErr {
-    fn from(value: InnerWriteError) -> PyErr {
-        PyRuntimeError::new_err(value.to_string())
-    }
-}
-
-impl From<PauliFromU8Error> for PyErr {
-    fn from(value: PauliFromU8Error) -> PyErr {
-        PyValueError::new_err(value.to_string())
-    }
-}
-impl From<CoherenceError> for PyErr {
-    fn from(value: CoherenceError) -> PyErr {
-        PyValueError::new_err(value.to_string())
-    }
-}
-impl From<LabelError> for PyErr {
-    fn from(value: LabelError) -> PyErr {
-        PyValueError::new_err(value.to_string())
-    }
-}
-impl From<ArithmeticError> for PyErr {
-    fn from(value: ArithmeticError) -> PyErr {
-        PyValueError::new_err(value.to_string())
+        return self.qubit_sparse_pauli.commutes(&other.qubit_sparse_pauli)
     }
 }
 
@@ -322,7 +311,7 @@ impl PyPhasedQubitSparsePauli {
                 paulis.into_boxed_slice(),
                 indices.into_boxed_slice(),
             )?,
-            phase=0
+            0
         );
         Ok(inner.into())
     }
@@ -367,43 +356,43 @@ impl PyPhasedQubitSparsePauli {
         Ok(slf.inner.eq(&other.inner))
     }
 
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!(
-            "<{} on {} qubit{}: {}>",
-            "PhasedQubitSparsePauli",
-            self.inner.num_qubits(),
-            if self.inner.num_qubits() == 1 {
-                ""
-            } else {
-                "s"
-            },
-            self.inner.view().to_sparse_str(),
-        ))
-    }
+    //fn __repr__(&self) -> PyResult<String> {
+    //    Ok(format!(
+    //        "<{} on {} qubit{}: {}>",
+    //        "PhasedQubitSparsePauli",
+    //        self.inner.num_qubits(),
+    //        if self.inner.num_qubits() == 1 {
+    //            ""
+    //        } else {
+    //            "s"
+    //        },
+    //        self.inner.view().to_sparse_str(),
+    //    ))
+    //}
 
-    fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
-        let py = slf_.py();
-        let borrowed = slf_.borrow();
-        (
-            borrowed.inner.num_qubits(),
-            Self::get_paulis(slf_.clone()),
-            Self::get_indices(slf_),
-        )
-            .into_pyobject(py)
-    }
+    //fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
+    //    let py = slf_.py();
+    //    let borrowed = slf_.borrow();
+    //    (
+    //        borrowed.inner.num_qubits(),
+    //        Self::get_paulis(slf_.clone()),
+    //        Self::get_indices(slf_),
+    //    )
+    //        .into_pyobject(py)
+    //}
 
-    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.paulis());
-        (
-            py.get_type::<Self>().getattr("from_raw_parts")?,
-            (
-                self.inner.num_qubits(),
-                PyArray1::from_slice(py, paulis),
-                PyArray1::from_slice(py, self.inner.indices()),
-            ),
-        )
-            .into_pyobject(py)
-    }
+    //fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+    //    let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.paulis());
+    //    (
+    //        py.get_type::<Self>().getattr("from_raw_parts")?,
+    //        (
+    //            self.inner.num_qubits(),
+    //            PyArray1::from_slice(py, paulis),
+    //            PyArray1::from_slice(py, self.inner.indices()),
+    //        ),
+    //    )
+    //        .into_pyobject(py)
+    //}
 
     /// Get a copy of this term.
     fn copy(&self) -> Self {
@@ -486,10 +475,10 @@ impl PyPhasedQubitSparsePauliList {
         //if let Ok(pauli_list) = Self::from_qubit_sparse_paulis(data, num_qubits) {
         //    return Ok(pauli_list);
         //}
-        //Err(PyTypeError::new_err(format!(
-        //    "unknown input format for 'QubitSparsePauliList': {}",
-        //    data.get_type().repr()?,
-        //)))
+        Err(PyTypeError::new_err(format!(
+            "unknown input format for 'PhasedQubitSparsePauliList': {}",
+            data.get_type().repr()?,
+        )))
     }
 
     /// Get a copy of this qubit sparse Pauli list.
@@ -536,11 +525,11 @@ impl PyPhasedQubitSparsePauliList {
     ///
     ///         >>> QubitSparsePauliList.empty(100)
     ///         <QubitSparsePauliList with 0 elements on 100 qubits: []>
-    #[pyo3(signature = (/, num_qubits))]
-    #[staticmethod]
-    pub fn empty(num_qubits: u32) -> Self {
-        PhasedQubitSparsePauliList::empty(num_qubits).into()
-    }
+    //#[pyo3(signature = (/, num_qubits))]
+    //#[staticmethod]
+    //pub fn empty(num_qubits: u32) -> Self {
+    //    PhasedQubitSparsePauliList::empty(num_qubits).into()
+    //}
 
     /// Construct a :class:`.QubitSparsePauliList` from a single :class:`~.quantum_info.Pauli`
     /// instance.
@@ -582,7 +571,11 @@ impl PyPhasedQubitSparsePauliList {
             paulis.push(term);
         }
         let boundaries = vec![0, indices.len()];
-        let inner = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
+        let qspl = QubitSparsePauliList::new(num_qubits, paulis, indices, boundaries)?;
+        let inner = PhasedQubitSparsePauliList{
+            qubit_sparse_pauli_list: qspl,
+            phases: vec![0] //needs to be corrected ***************************************************
+        };
         Ok(inner.into())
     }
 
@@ -608,14 +601,14 @@ impl PyPhasedQubitSparsePauliList {
         self.num_terms()
     }
 
-    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        (
-            py.get_type::<Self>().getattr("from_sparse_list")?,
-            (self.to_sparse_list(py)?, inner.num_qubits()),
-        )
-            .into_pyobject(py)
-    }
+    //fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+    //    let inner = self.inner.read().map_err(|_| InnerReadError)?;
+    //    (
+    //        py.get_type::<Self>().getattr("from_sparse_list")?,
+    //        (self.to_sparse_list(py)?, inner.num_qubits()),
+    //    )
+    //        .into_pyobject(py)
+    //}
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
         // this is also important to check before trying to read both slf and other
@@ -633,12 +626,12 @@ impl PyPhasedQubitSparsePauliList {
     }
 }
 
-impl From<PhasedQubitSparsePauli> for PhasedPyQubitSparsePauli {
+impl From<PhasedQubitSparsePauli> for PyPhasedQubitSparsePauli {
     fn from(val: PhasedQubitSparsePauli) -> PyPhasedQubitSparsePauli {
         PyPhasedQubitSparsePauli { inner: val }
     }
 }
-impl<'py> IntoPyObject<'py> for QubitSparsePauli {
+impl<'py> IntoPyObject<'py> for PhasedQubitSparsePauli {
     type Target = PyPhasedQubitSparsePauli;
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
