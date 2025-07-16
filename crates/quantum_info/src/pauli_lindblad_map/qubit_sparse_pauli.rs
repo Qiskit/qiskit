@@ -579,6 +579,14 @@ impl QubitSparsePauliView<'_> {
         }
     }
 
+    pub fn num_ys(self) -> isize {
+        let mut num_ys = 0;
+        for pauli in self.paulis{
+            num_ys += (*pauli == Pauli::Y) as isize;
+        }
+        return num_ys
+    }
+
     pub fn to_sparse_str(self) -> String {
         let paulis = self
             .indices
@@ -1267,7 +1275,7 @@ impl PyQubitSparsePauli {
     ///         >>> assert QubitSparsePauli.from_label(label) == QubitSparsePauli.from_pauli(pauli)
     #[staticmethod]
     #[pyo3(signature = (pauli, /))]
-    fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
         let py = pauli.py();
         let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
         let z = pauli
