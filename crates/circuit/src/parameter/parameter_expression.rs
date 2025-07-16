@@ -16,7 +16,7 @@ use num_complex::Complex64;
 use pyo3::exceptions::{
     PyNotImplementedError, PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError,
 };
-use pyo3::types::{IntoPyDict, PySet, PyString};
+use pyo3::types::{IntoPyDict, PyNotImplemented, PySet, PyString};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -565,33 +565,40 @@ impl PyParameterExpression {
         PySet::new(py, py_parameters)
     }
 
+    /// Sine of the expression.
     #[pyo3(name = "sin")]
     pub fn py_sin(&self) -> Self {
         self.sin()
     }
 
+    /// Cosine of the expression.
     #[pyo3(name = "cos")]
     pub fn py_cos(&self) -> Self {
         self.cos()
     }
 
+    /// Tangent of the expression.
     #[pyo3(name = "tan")]
     pub fn py_tan(&self) -> Self {
         self.tan()
     }
 
+    /// Arcsine of the expression.
     pub fn arcsin(&self) -> Self {
         self.asin()
     }
 
+    /// Arccosine of the expression.
     pub fn arccos(&self) -> Self {
         self.acos()
     }
 
+    /// Arctangent of the expression.
     pub fn arctan(&self) -> Self {
         self.atan()
     }
 
+    /// Exponentiate the expression
     #[pyo3(name = "exp")]
     pub fn py_exp(&self) -> Self {
         self.exp()
@@ -612,9 +619,14 @@ impl PyParameterExpression {
         self.sign()
     }
 
-    #[pyo3(name = "copy")]
-    pub fn py_copy(&self) -> Self {
-        self.copy()
+    fn __copy__(slf: PyRef<Self>) -> PyRef<Self> {
+        // ParameterExpression is immutable.
+        slf
+    }
+
+    fn __deepcopy__<'py>(slf: PyRef<'py, Self>, _memo: Bound<'py, PyAny>) -> PyRef<'py, Self> {
+        // Everything a ParameterExpression contains is immutable.
+        slf
     }
 
     #[pyo3(name = "conjugate")]
@@ -805,18 +817,22 @@ impl PyParameterExpression {
             )),
         }
     }
-    pub fn __mul__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
         match _extract_value(rhs) {
             Some(rhs) => {
                 let name_map = self.update_name_map(&rhs)?;
-                Ok(Self {
+                Self {
                     expr: &self.expr * &rhs.expr,
                     name_map,
-                })
+                }
+                .into_bound_py_any(py)
             }
-            None => Err(pyo3::exceptions::PyTypeError::new_err(
-                "Unsupported data type for __mul__",
-            )),
+            None => PyNotImplemented::get(py).into_bound_py_any(py),
+            // None => rhs.call_method1("__rmul__", (self.clone(),)),
+            // Err(pyo3::exceptions::PyTypeError::new_err(
+            // "Unsupported data type for __mul__",
+            // )),
         }
     }
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
@@ -1117,12 +1133,36 @@ impl PyParameter {
         let py_sympify = SYMPIFY_PARAMETER_EXPRESSION.get(py);
         py_sympify.call1(py, (self.clone(),))
     }
+
+    fn __copy__(slf: PyRef<Self>) -> PyRef<Self> {
+        // ParameterExpression is immutable.
+        slf
+    }
+
+    fn __deepcopy__<'py>(slf: PyRef<'py, Self>, _memo: Bound<'py, PyAny>) -> PyRef<'py, Self> {
+        // Everything a ParameterExpression contains is immutable.
+        slf
+    }
 }
 
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 pub struct PyParameterVectorElement {
     symbol: Symbol,
+}
+
+impl<'py> IntoPyObject<'py> for PyParameterVectorElement {
+    type Target = PyParameterVectorElement;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let symbol = &self.symbol;
+        let py_param = PyParameter::from_symbol(symbol);
+        let py_element = py_param.add_subclass(self);
+
+        Ok(Py::new(py, py_element)?.into_bound(py))
+    }
 }
 
 impl PyParameterVectorElement {
@@ -1156,7 +1196,6 @@ impl PyParameterVectorElement {
             Some(vector.clone_ref(py)),
         )?;
 
-        // let name = format!("{}[{}]", vector_name, index);
         let py_parameter = PyParameter::from_symbol(&symbol);
         let py_element = Self { symbol };
 
@@ -1213,6 +1252,16 @@ impl PyParameterVectorElement {
     #[getter]
     pub fn _vector(&self) -> PyObject {
         self.vector()
+    }
+
+    fn __copy__(slf: PyRef<Self>) -> PyRef<Self> {
+        // ParameterExpression is immutable.
+        slf
+    }
+
+    fn __deepcopy__<'py>(slf: PyRef<'py, Self>, _memo: Bound<'py, PyAny>) -> PyRef<'py, Self> {
+        // Everything a ParameterExpression contains is immutable.
+        slf
     }
 }
 

@@ -2268,7 +2268,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Symbol(e) => match with_uuid {
                 true => format!("{}_{}", e.name(), e.py_uuid()),
-                false => e.name.to_string(),
+                false => e.name(),
             },
             SymbolExpr::Value(e) => e.to_string(),
             SymbolExpr::Unary { op, expr } => {
