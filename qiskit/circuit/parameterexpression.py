@@ -277,8 +277,6 @@ class ParameterExpression(ParameterExpressionBase):
         return ParameterExpression(self._parameter_symbols, super().py_neg())
 
     def __rmul__(self, other):
-        if not isinstance(other, (ParameterExpression, int, float, complex)):
-            return other * self
         return ParameterExpression(self._merge_parameters(other), super().py_rmul(other))
 
     def __truediv__(self, other):

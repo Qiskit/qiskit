@@ -56,15 +56,13 @@ class ParameterVectorElement(Parameter):
         """Get the parent vector instance."""
         return self._vector
 
+    def __getstate__(self):
+        return (super().__getstate__(), self._vector)
 
-#    def __getstate__(self):
-#        return (super().__getstate__(), self._vector, self._index)
-
-#    def __setstate__(self, state):
-#        (super_state, vector, index) = state
-#        super().__setstate__(super_state)
-#        self._vector = vector
-#        self._index = index
+    def __setstate__(self, state):
+        (super_state, vector) = state
+        super().__setstate__(super_state)
+        self._vector = vector
 
 
 class ParameterVector:
