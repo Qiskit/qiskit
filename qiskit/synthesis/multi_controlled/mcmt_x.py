@@ -19,6 +19,26 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 def synth_mcmt_x(
     num_ctrl_qubits: int, num_target_qubits: int, ctrl_state: int | None = None
 ) -> QuantumCircuit:
+    """Synthesize MCMT X gate.
+
+    This uses a special circuit structure that is efficient for MCMT X gates. It does not require
+    any ancillary qubits and benefits from efficient MCX decompositions.
+
+    E.g. a 3-control, 3-target X gate will be synthesized as::
+        q_0: ─────────────■────────────
+                          |
+        q_1: ─────────────■────────────
+                          |
+        q_2: ─────────────■────────────
+                        ┌─┴─┐
+        q_3: ────────■──┤ X ├──■───────
+                   ┌─┴─┐└───┘┌─┴─┐
+        q_4: ───■──┤ X ├─────┤ X ├──■──
+              ┌─┴─┐└───┘     └───┘┌─┴─┐
+        q_5: ─┤ X ├───────────────┤ X ├
+              └───┘               └───┘
+
+    """
     if ctrl_state is not None:
         assert len(ctrl_state) == num_ctrl_qubits, "ctrl_state must match num_ctrl length"
 
