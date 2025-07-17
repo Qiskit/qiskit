@@ -111,7 +111,7 @@ def sympify(expression):
         return sympy.Symbol(expression.parameters.pop().name)
 
     try:
-        value = expression.numeric()
+        value = expression.numeric(strict=False)
         return sympy.Number(value)
     except TypeError as _:
         pass

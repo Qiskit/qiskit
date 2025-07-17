@@ -131,6 +131,9 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<PyParameterExpression> {
 }
 
 impl PyParameterExpression {
+    /// Construct from a [SymbolExpr].
+    ///
+    /// This populates the name map with the symbols in the expression.
     pub fn new(expr: SymbolExpr) -> Self {
         Self {
             expr: expr.clone(),
@@ -142,6 +145,7 @@ impl PyParameterExpression {
         }
     }
 
+    /// Load from a sequence of [OPReplay]s. Used in serialization.
     pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
         let binary_ops: HashSet<OpCode> = [
             OpCode::ADD,
@@ -203,44 +207,49 @@ impl PyParameterExpression {
         Ok(stack.pop().expect("Final pop is empty"))
     }
 
+    /// Add an expression; ``self + rhs``.
     pub fn add(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(&rhs)?;
+        let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr + &rhs.expr,
             name_map,
         })
     }
 
+    /// Multiply with an expression; ``self * rhs``.
     pub fn mul(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(&rhs)?;
+        let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr * &rhs.expr,
             name_map,
         })
     }
 
+    /// Subtract another expression; ``self - rhs``.
     pub fn sub(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(&rhs)?;
+        let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr - &rhs.expr,
             name_map,
         })
     }
 
+    /// Subtract this expression from another one; ``lhs - self``.
     pub fn rsub(&self, lhs: &PyParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(&lhs)?;
+        let name_map = self.update_name_map(lhs)?;
         Ok(Self {
             expr: &lhs.expr - &self.expr,
             name_map,
         })
     }
 
+    /// Divide by another expression; ``self / rhs``.
     pub fn div(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
         if rhs.expr.is_zero() {
             return Err(ParameterError::ZeroDivisionError);
         }
 
-        let name_map = self.update_name_map(&rhs)?;
+        let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr / &rhs.expr,
             name_map,
@@ -252,7 +261,7 @@ impl PyParameterExpression {
             return Err(ParameterError::ZeroDivisionError);
         }
 
-        let name_map = self.update_name_map(&lhs)?;
+        let name_map = self.update_name_map(lhs)?;
         Ok(Self {
             expr: &lhs.expr / &self.expr,
             name_map,
@@ -260,7 +269,7 @@ impl PyParameterExpression {
     }
 
     pub fn pow(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(&rhs)?;
+        let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: self.expr.pow(&rhs.expr),
             name_map,
@@ -268,7 +277,7 @@ impl PyParameterExpression {
     }
 
     pub fn rpow(&self, lhs: &PyParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(&lhs)?;
+        let name_map = self.update_name_map(lhs)?;
         Ok(Self {
             expr: lhs.expr.pow(&self.expr),
             name_map,
@@ -679,10 +688,11 @@ impl PyParameterExpression {
 
     /// TODO we should add an argument that allows casting to numeric, even in the (0*x) case.
     /// return value if expression does not contain any symbols
-    pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
+    #[pyo3(signature = (strict=true))]
+    pub fn numeric(&self, py: Python, strict: bool) -> PyResult<PyObject> {
         // Check if we have unbound symbols. Then we'll always say we are non-numeric,
         // even if the expression is 0. (Example: (0 * x).numeric() fails.)
-        if self.name_map.len() > 0 {
+        if strict && self.name_map.len() > 0 {
             let free_symbols = self.name_map.values();
             return Err(PyTypeError::new_err(format!(
                 "Parameter expression with unbound parameters {free_symbols:?} is not numeric."
