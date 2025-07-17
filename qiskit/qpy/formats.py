@@ -93,6 +93,11 @@ CIRCUIT_HEADER = namedtuple(
 CIRCUIT_HEADER_PACK = "!HdIIQIQ"
 CIRCUIT_HEADER_SIZE = struct.calcsize(CIRCUIT_HEADER_PACK)
 
+# CIRCUIT_TABLE_ENTRY
+CIRCUIT_TABLE_ENTRY = namedtuple("CIRCUIT_TABLE_ENTRY", ["offset"])
+CIRCUIT_TABLE_ENTRY_PACK = "!Q"
+CIRCUIT_TABLE_ENTRY_SIZE = struct.calcsize(CIRCUIT_TABLE_ENTRY_PACK)
+
 # REGISTER
 REGISTER_V4 = namedtuple("REGISTER", ["type", "standalone", "size", "name_size", "in_circuit"])
 REGISTER_V4_PACK = "!1c?IH?"

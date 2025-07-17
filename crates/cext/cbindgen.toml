@@ -52,3 +52,4 @@ prefix_with_name = true
 "ClassicalRegister" = "QkClassicalRegister"
 "Target" = "QkTarget"
 "TargetEntry" = "QkTargetEntry"
+"VF2LayoutResult" = "QkVF2LayoutResult"
