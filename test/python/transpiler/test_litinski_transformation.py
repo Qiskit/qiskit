@@ -36,7 +36,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         self.assertEqual(qct.count_ops(), {"PauliEvolution": 4, "cx": 2, "h": 1, "s": 1})
-        self.assertTrue(Operator(qct), Operator(qc))
+        self.assertEqual(Operator(qct), Operator(qc))
 
     def test_rz_gates(self):
         """Test circuit with RZ-rotation gates."""
@@ -52,7 +52,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         self.assertEqual(qct.count_ops(), {"PauliEvolution": 3, "cx": 2, "h": 1, "s": 1})
-        self.assertTrue(Operator(qct), Operator(qc))
+        self.assertEqual(Operator(qct), Operator(qc))
 
     def test_parametric_rz_gates(self):
         """Test circuit with parameterized RZ-rotation gates."""
@@ -73,4 +73,4 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         qc_bound = qc.assign_parameters([0.123, -1.234])
         qct_bound = qct.assign_parameters([0.123, -1.234])
-        self.assertTrue(Operator(qct_bound), Operator(qc_bound))
+        self.assertEqual(Operator(qct_bound), Operator(qc_bound))
