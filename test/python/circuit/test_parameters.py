@@ -165,6 +165,7 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(gate_param, [0], copy=True)
         self.assertIsNot(qc.data[-1].operation, gate_param)
+        self.assertEqual(qc.data[-1].operation, gate_param)
 
         # Standard gates are not stored as Python objects so a fresh object
         # is always instantiated on accessing `CircuitInstruction.operation`
@@ -173,6 +174,7 @@ class TestParameters(QiskitTestCase):
 
         qc.append(gate_expr, [0], copy=True)
         self.assertIsNot(qc.data[-1].operation, gate_expr)
+        self.assertEqual(qc.data[-1].operation, gate_expr)
 
         # Standard gates are not stored as Python objects so a fresh object
         # is always instantiated on accessing `CircuitInstruction.operation`
@@ -897,6 +899,8 @@ class TestParameters(QiskitTestCase):
 
         self.assertIs(x1_p[0].vector, x1_p)
         self.assertIs(x2_p[0].vector, x2_p)
+        self.assertEqual([p.index for p in x1_p], list(range(len(x1_p))))
+        self.assertEqual([p.index for p in x2_p], list(range(len(x2_p))))
 
     @data("single", "vector")
     def test_parameter_equality_to_expression(self, ptype):
