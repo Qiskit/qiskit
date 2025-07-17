@@ -27,9 +27,9 @@ use pyo3::IntoPyObjectExt;
 
 use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID};
+use crate::parameter::symbol_expr;
 use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
-use crate::parameter::{self, symbol_expr};
 use crate::util::c64;
 
 use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
@@ -1772,7 +1772,9 @@ pub fn qpy_replay(
 
             // add the expression to the replay
             match lhs_value {
-                None | Some(ParameterValueType::Parameter(_)) => {
+                None
+                | Some(ParameterValueType::Parameter(_))
+                | Some(ParameterValueType::VectorElement(_)) => {
                     let op = match op {
                         symbol_expr::BinaryOp::Add => OpCode::ADD,
                         symbol_expr::BinaryOp::Sub => OpCode::SUB,
@@ -1804,8 +1806,8 @@ pub fn qpy_replay(
                         // this covers RSUB, RDIV, RPOW, hence we swap lhs and rhs
                         replay.push(OPReplay {
                             op,
-                            rhs: rhs_value,
-                            lhs: lhs_value,
+                            lhs: rhs_value,
+                            rhs: lhs_value,
                         });
                     }
                 }

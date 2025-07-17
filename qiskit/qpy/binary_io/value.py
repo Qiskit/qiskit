@@ -147,7 +147,6 @@ def _write_parameter_expression_v13(file_obj, obj, version):
     # A symbol is `Parameter` or `ParameterVectorElement`.
     # `symbol_map` maps symbols to ParameterExpression (which may be a symbol).
     symbol_map = {}
-    print("obj:", obj, "replay:", obj._qpy_replay)
     for inst in obj._qpy_replay:
         if isinstance(inst, _SUBS):
             symbol_map.update(_encode_replay_subs(inst, file_obj, version))
@@ -627,9 +626,7 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
     name_map = {str(v): k for k, v in symbol_map.items()}
     data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
     stack = []
-    print("start")
     while data:
-        print("stack:", stack)
         expression_data = formats.PARAM_EXPR_ELEM_V13._make(
             struct.unpack(formats.PARAM_EXPR_ELEM_V13_PACK, data)
         )
@@ -717,7 +714,6 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             stack.append(getattr(lhs, method_str)())
         data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
 
-    print("this is the end")
     return stack.pop()
 
 
@@ -997,7 +993,6 @@ def dumps_value(
     Raises:
         QpyError: Serializer for given format is not ready.
     """
-    print(obj, type(obj))
     type_key = type_keys.Value.assign(obj)
 
     if type_key == type_keys.Value.INTEGER:
@@ -1013,13 +1008,10 @@ def dumps_value(
     elif type_key in (type_keys.Value.NULL, type_keys.Value.CASE_DEFAULT):
         binary_data = b""
     elif type_key == type_keys.Value.PARAMETER_VECTOR:
-        print("key is PV")
         binary_data = common.data_to_binary(obj, _write_parameter_vec)
     elif type_key == type_keys.Value.PARAMETER:
-        print("key is P")
         binary_data = common.data_to_binary(obj, _write_parameter)
     elif type_key == type_keys.Value.PARAMETER_EXPRESSION:
-        print("key is X")
         binary_data = common.data_to_binary(
             obj, _write_parameter_expression, use_symengine=use_symengine, version=version
         )
