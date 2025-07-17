@@ -26,13 +26,6 @@ HAS_SYMPY = False
 from qiskit._accelerate.circuit import ParameterExpression
 from qiskit._accelerate.circuit import Parameter
 
-# from qiskit.circuit.rust_parameter_expression import Parameter
-
-
-# def Parameter(name):
-#     return ParameterExpression.Symbol(name)
-
-
 param_x = Parameter("x")
 param_y = Parameter("y")
 nested_expr = param_x + param_y - param_x
@@ -434,7 +427,7 @@ class TestParameterExpression(QiskitTestCase):
             ("arccos", lambda x: -((1 - x**2) ** (-0.5))),
             ("arcsin", lambda x: (1 - x**2) ** (-0.5)),
             ("arctan", lambda x: 1 / (1 + x**2)),
-            ("conjugate", lambda x: 1),
+            ("conjugate", lambda _: 1),
         ]
 
         x = Parameter("x")

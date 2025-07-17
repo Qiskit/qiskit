@@ -354,8 +354,15 @@ impl PyParameterExpression {
     }
 
     /// Compute the derivative of the expression with respect to the provided symbol.
+    ///
+    /// Note that this keeps the name map unchanged. Meaning that computing the derivative
+    /// of ``x`` will yield ``1`` but the expression still owns the symbol ``x``. This is
+    /// done such that we can still bind the value ``x`` in an automated process.
     pub fn derivative(&self, param: &Symbol) -> Result<Self, String> {
-        self.expr.derivative(param).map(Self::new)
+        Ok(Self {
+            expr: self.expr.derivative(param)?,
+            name_map: self.name_map.clone(),
+        })
     }
 
     /// Expand the expression.
@@ -670,8 +677,18 @@ impl PyParameterExpression {
         }
     }
 
+    /// TODO we should add an argument that allows casting to numeric, even in the (0*x) case.
     /// return value if expression does not contain any symbols
     pub fn numeric(&self, py: Python) -> PyResult<PyObject> {
+        // Check if we have unbound symbols. Then we'll always say we are non-numeric,
+        // even if the expression is 0. (Example: (0 * x).numeric() fails.)
+        if self.name_map.len() > 0 {
+            let free_symbols = self.name_map.values();
+            return Err(PyTypeError::new_err(format!(
+                "Parameter expression with unbound parameters {free_symbols:?} is not numeric."
+            )));
+        }
+
         match self.expr.eval(true) {
             Some(v) => match v {
                 symbol_expr::Value::Real(r) => r.into_py_any(py),
@@ -1113,16 +1130,12 @@ impl PyParameterExpression {
     ) -> PyResult<()> {
         self.name_map = state.1;
         let from_qpy = Self::from_qpy(&state.0)?;
-        // if let Ok(expr) = parse_expression(&state.0) {
-        //     self.expr = expr;
-        // }
         self.expr = from_qpy.expr;
         Ok(())
     }
 
     #[getter]
     fn _qpy_replay(&self) -> Vec<OPReplay> {
-        // let input = ParameterValueType::Expression(self.clone());
         let mut replay = Vec::new();
         qpy_replay(&self, &self.name_map, &mut replay);
         replay
@@ -1216,18 +1229,11 @@ impl PyParameter {
     /// The UUID of the parameter.
     #[getter]
     fn uuid(&self, py: Python<'_>) -> PyResult<PyObject> {
-        // let uuid = self.symbol.py_uuid();
-        // let kwargs = [("int", uuid)].into_py_dict(py)?;
-        // Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
         uuid_to_py(py, self.symbol.uuid)
     }
 
     pub fn __repr__<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
-        let str = format!(
-            "Parameter(name={}, uuid={})",
-            self.symbol.name(),
-            self.symbol.py_uuid()
-        );
+        let str = format!("Parameter({})", self.symbol.name(),);
         PyString::new(py, str.as_str())
     }
 
@@ -1336,12 +1342,12 @@ impl PyParameter {
         parameter: PyParameter,
         value: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if let Ok(_) = value.extract::<Value>() {
-            let map = [(parameter, value.clone())].into_iter().collect();
-            self.py_bind(py, map, false).map_err(|e| e.into())
-        } else if let Ok(_) = value.downcast::<PyParameterExpression>() {
+        if let Ok(_) = value.downcast::<PyParameterExpression>() {
             let map = [(parameter, value.clone())].into_iter().collect();
             self.py_subs(py, map, false).map_err(|e| e.into())
+        } else if let Ok(_) = value.extract::<Value>() {
+            let map = [(parameter, value.clone())].into_iter().collect();
+            self.py_bind(py, map, false).map_err(|e| e.into())
         } else {
             Err(PyValueError::new_err(
                 "Unexpected value in assign: {replacement:?}",
@@ -1419,6 +1425,11 @@ impl PyParameterVectorElement {
             .expect("vector element should have an index");
         let uuid = uuid_to_py(py, self.symbol.uuid)?;
         Ok((vector, index, Some(uuid)))
+    }
+
+    pub fn __repr__<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        let str = format!("ParameterVectorElement({})", self.symbol.name(),);
+        PyString::new(py, str.as_str())
     }
 
     pub fn __getstate__(&self, py: Python) -> PyResult<(PyObject, u32, Option<PyObject>)> {
