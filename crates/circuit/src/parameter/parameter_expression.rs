@@ -13,6 +13,7 @@
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
+use pyo3::conversion::FromPyObjectBound;
 use pyo3::exceptions::{
     PyNotImplementedError, PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError,
 };
@@ -52,6 +53,8 @@ pub enum ParameterError {
     UnknownParameters(HashSet<Symbol>),
     #[error("Name conflict adding parameters.")]
     NameConflict,
+    #[error("Invalid cast to OpCode: {0}")]
+    InvalidU8ToOpCode(u8),
 }
 
 impl From<ParameterError> for PyErr {
@@ -140,6 +143,139 @@ impl PyParameterExpression {
                 .map(|(name, symbol)| (name, PyParameter { symbol }))
                 .collect(),
         }
+    }
+
+    pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
+        let binary_ops: HashSet<OpCode> = [
+            OpCode::ADD,
+            OpCode::SUB,
+            OpCode::MUL,
+            OpCode::DIV,
+            OpCode::POW,
+            OpCode::RSUB,
+            OpCode::RDIV,
+            OpCode::RPOW,
+        ]
+        .into();
+        let mut stack: Vec<PyParameterExpression> = Vec::new();
+        for inst in replay.iter() {
+            let OPReplay { op, lhs, rhs } = inst;
+            if let Some(value) = lhs {
+                stack.push(value.clone().into());
+            }
+            if let Some(value) = rhs {
+                stack.push(value.clone().into());
+            }
+
+            let rhs = if binary_ops.contains(op) {
+                Some(stack.pop().expect("Pop from empty stack"))
+            } else {
+                None
+            };
+
+            let lhs = stack.pop().expect("Pop from empty stack");
+
+            let result: PyParameterExpression = match op {
+                OpCode::ADD => lhs.add(&rhs.unwrap())?,
+                OpCode::MUL => lhs.mul(&rhs.unwrap())?,
+                OpCode::SUB => lhs.sub(&rhs.unwrap())?,
+                OpCode::RSUB => lhs.rsub(&rhs.unwrap())?,
+                OpCode::POW => lhs.pow(&rhs.unwrap())?,
+                OpCode::RPOW => lhs.rpow(&rhs.unwrap())?,
+                OpCode::DIV => lhs.div(&rhs.unwrap())?,
+                OpCode::RDIV => lhs.rdiv(&rhs.unwrap())?,
+                OpCode::ABS => lhs.py_abs(),
+                OpCode::SIN => lhs.sin(),
+                OpCode::ASIN => lhs.asin(),
+                OpCode::COS => lhs.cos(),
+                OpCode::ACOS => lhs.acos(),
+                OpCode::TAN => lhs.tan(),
+                OpCode::ATAN => lhs.atan(),
+                OpCode::CONJ => lhs.conjugate(),
+                OpCode::LOG => lhs.log(),
+                OpCode::EXP => lhs.exp(),
+                OpCode::SIGN => lhs.sign(),
+                OpCode::GRAD | OpCode::SUBSTITUTE => {
+                    unreachable!("GRAD and SUBSTITUTE are not supported.")
+                }
+            };
+
+            stack.push(result);
+        }
+
+        Ok(stack.pop().expect("Final pop is empty"))
+    }
+
+    pub fn add(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+        let name_map = self.update_name_map(&rhs)?;
+        Ok(Self {
+            expr: &self.expr + &rhs.expr,
+            name_map,
+        })
+    }
+
+    pub fn mul(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+        let name_map = self.update_name_map(&rhs)?;
+        Ok(Self {
+            expr: &self.expr * &rhs.expr,
+            name_map,
+        })
+    }
+
+    pub fn sub(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+        let name_map = self.update_name_map(&rhs)?;
+        Ok(Self {
+            expr: &self.expr - &rhs.expr,
+            name_map,
+        })
+    }
+
+    pub fn rsub(&self, lhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+        let name_map = self.update_name_map(&lhs)?;
+        Ok(Self {
+            expr: &lhs.expr - &self.expr,
+            name_map,
+        })
+    }
+
+    pub fn div(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+        if rhs.expr.is_zero() {
+            return Err(ParameterError::ZeroDivisionError);
+        }
+
+        let name_map = self.update_name_map(&rhs)?;
+        Ok(Self {
+            expr: &self.expr / &rhs.expr,
+            name_map,
+        })
+    }
+
+    pub fn rdiv(&self, lhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+        if self.expr.is_zero() {
+            return Err(ParameterError::ZeroDivisionError);
+        }
+
+        let name_map = self.update_name_map(&lhs)?;
+        Ok(Self {
+            expr: &lhs.expr / &self.expr,
+            name_map,
+        })
+    }
+
+    pub fn pow(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+        let name_map = self.update_name_map(&rhs)?;
+        Ok(Self {
+            expr: self.expr.pow(&rhs.expr),
+            name_map,
+        })
+    }
+
+    pub fn rpow(&self, lhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+        let name_map = self.update_name_map(&lhs)?;
+        Ok(Self {
+            expr: lhs.expr.pow(&self.expr),
+            name_map,
+        })
     }
 
     pub fn sin(&self) -> Self {
@@ -298,8 +434,10 @@ impl PyParameterExpression {
             }
         }
 
+        let res = self.expr.subs(&symbol_map);
+        // println!("Called subs -- output is {res:?} and name map {name_map:?}");
         Ok(Self {
-            expr: self.expr.subs(&symbol_map),
+            expr: res,
             name_map,
         })
     }
@@ -366,6 +504,13 @@ impl PyParameterExpression {
             .map(|(name, symbol)| (name.clone(), symbol.clone()))
             .collect();
 
+        // println!("- Called bind");
+        // println!(
+        //     "-- self is {:?} and name map {:?}",
+        //     self.expr, self.name_map
+        // );
+        // println!("-- bind instr is {:?}", map);
+        // println!("-- output is {bound:?} and name map {bound_name_map:?}");
         Ok(Self {
             expr: bound,
             name_map: bound_name_map,
@@ -673,6 +818,7 @@ impl PyParameterExpression {
         parameter_map: HashMap<PyParameter, Self>,
         allow_unknown_parameters: bool,
     ) -> PyResult<Self> {
+        println!("called expr subs");
         let map = parameter_map
             .iter()
             .map(|(param, expr)| (param.symbol.clone(), expr.clone()))
@@ -705,6 +851,7 @@ impl PyParameterExpression {
     pub fn py_assign(&self, parameter: PyParameter, value: &Bound<PyAny>) -> PyResult<Self> {
         let symbol = parameter.symbol.clone();
 
+        println!("called expr assign");
         if let Ok(expr) = value.downcast::<Self>() {
             let map = [(symbol, expr.borrow().clone())].into_iter().collect();
             self.subs(&map, false).map_err(|e| e.into())
@@ -763,18 +910,13 @@ impl PyParameterExpression {
 
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => {
-                let name_map = self.update_name_map(&rhs)?;
-                Ok(Self {
-                    expr: &self.expr + &rhs.expr,
-                    name_map,
-                })
-            }
+            Some(rhs) => self.add(&rhs).map_err(|e| e.into()),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __add__",
             )),
         }
     }
+
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
@@ -789,52 +931,37 @@ impl PyParameterExpression {
             )),
         }
     }
+
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => {
-                let name_map = self.update_name_map(&rhs)?;
-                Ok(Self {
-                    expr: &self.expr - &rhs.expr,
-                    name_map,
-                })
-            }
+            Some(rhs) => self.sub(&rhs).map_err(|e| e.into()),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __sub__",
             )),
         }
     }
+
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
-            Some(lhs) => {
-                let name_map = self.update_name_map(&lhs)?;
-                Ok(Self {
-                    expr: &lhs.expr - &self.expr,
-                    name_map,
-                })
-            }
+            // TODO do we need .rsub or can I just  do lhs.sub(&self) ???
+            Some(lhs) => self.rsub(&lhs).map_err(|e| e.into()),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rsub__",
             )),
         }
     }
+
     pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let py = rhs.py();
         match _extract_value(rhs) {
-            Some(rhs) => {
-                let name_map = self.update_name_map(&rhs)?;
-                Self {
-                    expr: &self.expr * &rhs.expr,
-                    name_map,
-                }
-                .into_bound_py_any(py)
-            }
+            Some(rhs) => match self.mul(&rhs) {
+                Ok(result) => result.into_bound_py_any(py),
+                Err(e) => Err(PyErr::from(e)),
+            },
             None => PyNotImplemented::get(py).into_bound_py_any(py),
-            // None => rhs.call_method1("__rmul__", (self.clone(),)),
-            // Err(pyo3::exceptions::PyTypeError::new_err(
-            // "Unsupported data type for __mul__",
-            // )),
         }
     }
+
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
             Some(lhs) => {
@@ -852,19 +979,7 @@ impl PyParameterExpression {
 
     pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => {
-                if rhs.expr.is_zero() {
-                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                        "Division by 0.",
-                    ))
-                } else {
-                    let name_map = self.update_name_map(&rhs)?;
-                    Ok(Self {
-                        expr: &self.expr / &rhs.expr,
-                        name_map,
-                    })
-                }
-            }
+            Some(rhs) => self.div(&rhs).map_err(|e| e.into()),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __truediv__",
             )),
@@ -872,19 +987,7 @@ impl PyParameterExpression {
     }
     pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         match _extract_value(lhs) {
-            Some(lhs) => {
-                if self.expr.is_zero() {
-                    Err(pyo3::exceptions::PyZeroDivisionError::new_err(
-                        "Division by 0.",
-                    ))
-                } else {
-                    let name_map = self.update_name_map(&lhs)?;
-                    Ok(Self {
-                        expr: &lhs.expr / &self.expr,
-                        name_map,
-                    })
-                }
-            }
+            Some(lhs) => self.rdiv(&lhs).map_err(|e| e.into()),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rtruediv__",
             )),
@@ -892,13 +995,7 @@ impl PyParameterExpression {
     }
     pub fn __pow__(&self, rhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         match _extract_value(rhs) {
-            Some(rhs) => {
-                let name_map = self.update_name_map(&rhs)?;
-                Ok(Self {
-                    expr: self.expr.pow(&rhs.expr),
-                    name_map,
-                })
-            }
+            Some(rhs) => self.pow(&rhs).map_err(|e| e.into()),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __pow__",
             )),
@@ -906,13 +1003,7 @@ impl PyParameterExpression {
     }
     pub fn __rpow__(&self, lhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         match _extract_value(lhs) {
-            Some(lhs) => {
-                let name_map = self.update_name_map(&lhs)?;
-                Ok(Self {
-                    expr: lhs.expr.pow(&self.expr),
-                    name_map,
-                })
-            }
+            Some(lhs) => self.rpow(&lhs).map_err(|e| e.into()),
             None => Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rpow__",
             )),
@@ -1004,20 +1095,30 @@ impl PyParameterExpression {
     }
 
     // for pickle, we can reproduce equation from expression string
-    fn __getstate__(&self) -> String {
-        self.__str__()
+    fn __getstate__(&self) -> (Vec<OPReplay>, HashMap<String, PyParameter>) {
+        // (self.expr.to_string(), self.name_map.clone())
+        (self._qpy_replay(), self.name_map.clone())
     }
-    fn __setstate__(&mut self, state: String) {
-        if let Ok(expr) = parse_expression(&state) {
-            self.expr = expr;
-        }
+
+    fn __setstate__(
+        &mut self,
+        state: (Vec<OPReplay>, HashMap<String, PyParameter>),
+    ) -> PyResult<()> {
+        self.name_map = state.1;
+        let from_qpy = Self::from_qpy(&state.0)?;
+        // if let Ok(expr) = parse_expression(&state.0) {
+        //     self.expr = expr;
+        // }
+        self.expr = from_qpy.expr;
+        // println!("-- expr post pickle: {:?} {:?}", self.expr, self.name_map);
+        Ok(())
     }
 
     #[getter]
     fn _qpy_replay(&self) -> Vec<OPReplay> {
-        let input = ParameterValueType::Expression(self.clone());
+        // let input = ParameterValueType::Expression(self.clone());
         let mut replay = Vec::new();
-        qpy_replay(&input, &self.name_map, &mut replay);
+        qpy_replay(&self, &self.name_map, &mut replay);
         replay
     }
 }
@@ -1124,8 +1225,20 @@ impl PyParameter {
         PyString::new(py, str.as_str())
     }
 
-    pub fn __getnewargs__(&self, py: Python) -> PyResult<(String, Option<PyObject>)> {
-        Ok((self.symbol.name(), Some(self.uuid(py)?)))
+    pub fn __getnewargs__(&self) -> (String, u128) {
+        (self.symbol.name(), self.symbol.py_uuid())
+    }
+
+    pub fn __getstate__(&self) -> (String, u128) {
+        (self.symbol.name(), self.symbol.py_uuid())
+    }
+
+    pub fn __setstate__(&mut self, state: (String, u128)) {
+        let name = state.0.as_str();
+        let uuid = Uuid::from_u128(state.1);
+        let symbol = Symbol::new(name, Some(uuid), None);
+        self.symbol = symbol;
+        // println!("--- param post pickle: {:?}", self.symbol);
     }
 
     /// This function is to get the types right on Python side
@@ -1142,6 +1255,94 @@ impl PyParameter {
     fn __deepcopy__<'py>(slf: PyRef<'py, Self>, _memo: Bound<'py, PyAny>) -> PyRef<'py, Self> {
         // Everything a ParameterExpression contains is immutable.
         slf
+    }
+
+    #[pyo3(name = "subs")]
+    #[pyo3(signature = (parameter_map, allow_unknown_parameters=false))]
+    pub fn py_subs<'py>(
+        &self,
+        py: Python<'py>,
+        parameter_map: HashMap<PyParameter, Bound<'py, PyAny>>,
+        allow_unknown_parameters: bool,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        // This is such that x.subs({x: y}) remains a Parameter, and is not upgraded to an expression
+        println!("called param subs");
+        match parameter_map.get(self) {
+            None => {
+                if allow_unknown_parameters {
+                    self.clone().into_bound_py_any(py)
+                } else {
+                    Err(CircuitError::new_err(
+                        "Cannot bind parameters not present in parameter.",
+                    ))
+                }
+            }
+            Some(replacement) => {
+                if allow_unknown_parameters || parameter_map.len() == 1 {
+                    Ok(replacement.clone())
+                } else {
+                    Err(CircuitError::new_err(
+                        "Cannot bind parameters not present in parameter.",
+                    ))
+                }
+            }
+        }
+    }
+
+    #[pyo3(name = "bind")]
+    #[pyo3(signature = (parameter_values, allow_unknown_parameters=false))]
+    pub fn py_bind<'py>(
+        &self,
+        py: Python<'py>,
+        parameter_values: HashMap<PyParameter, Bound<'py, PyAny>>,
+        allow_unknown_parameters: bool,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        // return PyObject to cover Parameter and ParameterExpression(value)
+        match parameter_values.get(self) {
+            None => {
+                if allow_unknown_parameters {
+                    self.clone().into_bound_py_any(py)
+                } else {
+                    Err(CircuitError::new_err(
+                        "Cannot bind parameters not present in parameter.",
+                    ))
+                }
+            }
+            Some(replacement) => {
+                if allow_unknown_parameters || parameter_values.len() == 1 {
+                    if let Some(expr) = _extract_value(replacement) {
+                        if let SymbolExpr::Value(_) = expr.expr {
+                            return expr.into_bound_py_any(py);
+                        }
+                    }
+                    Err(PyValueError::new_err("Invalid binding value."))
+                } else {
+                    Err(CircuitError::new_err(
+                        "Cannot bind parameters not present in parameter.",
+                    ))
+                }
+            }
+        }
+    }
+
+    #[pyo3(name = "assign")]
+    pub fn py_assign<'py>(
+        &self,
+        py: Python<'py>,
+        parameter: PyParameter,
+        value: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        if let Ok(_) = value.extract::<Value>() {
+            let map = [(parameter, value.clone())].into_iter().collect();
+            self.py_bind(py, map, false).map_err(|e| e.into())
+        } else if let Ok(_) = value.downcast::<PyParameterExpression>() {
+            let map = [(parameter, value.clone())].into_iter().collect();
+            self.py_subs(py, map, false).map_err(|e| e.into())
+        } else {
+            Err(PyValueError::new_err(
+                "Unexpected value in assign: {replacement:?}",
+            ))
+        }
     }
 }
 
@@ -1305,43 +1506,70 @@ pub enum ParameterValueType {
     Float(f64),
     Complex(Complex64),
     Parameter(PyParameter),
-    Expression(PyParameterExpression),
+    VectorElement(PyParameterVectorElement),
 }
 
 impl ParameterValueType {
-    fn extract_from_expr(
-        expr: &Box<SymbolExpr>,
-        name_map: &HashMap<String, PyParameter>,
-    ) -> ParameterValueType {
+    fn extract_from_expr(expr: &Box<SymbolExpr>) -> Option<ParameterValueType> {
         if let Some(value) = expr.eval(true) {
             match value {
-                Value::Int(i) => ParameterValueType::Int(i),
-                Value::Real(r) => ParameterValueType::Float(r),
-                Value::Complex(c) => ParameterValueType::Complex(c),
+                Value::Int(i) => Some(ParameterValueType::Int(i)),
+                Value::Real(r) => Some(ParameterValueType::Float(r)),
+                Value::Complex(c) => Some(ParameterValueType::Complex(c)),
             }
         } else {
             if let SymbolExpr::Symbol(symbol) = expr.as_ref() {
-                let param = PyParameter {
-                    symbol: symbol.clone(),
-                };
-                ParameterValueType::Parameter(param)
+                match symbol.index {
+                    None => {
+                        let param = PyParameter {
+                            symbol: symbol.clone(),
+                        };
+                        Some(ParameterValueType::Parameter(param))
+                    }
+                    Some(_) => {
+                        let param = PyParameterVectorElement {
+                            symbol: symbol.clone(),
+                        };
+                        Some(ParameterValueType::VectorElement(param))
+                    }
+                }
             } else {
-                let param = filter_name_map(expr, name_map);
-                ParameterValueType::Expression(param)
+                // ParameterExpressions have the value None, as they must be constructed
+                None
             }
         }
     }
+}
 
-    fn is_expression(&self) -> bool {
-        match &self {
-            Self::Expression(expr) => !expr.is_symbol(),
-            _ => false,
+impl From<ParameterValueType> for PyParameterExpression {
+    fn from(value: ParameterValueType) -> Self {
+        match value {
+            ParameterValueType::Parameter(param) => {
+                let expr = SymbolExpr::Symbol(param.symbol);
+                Self::new(expr)
+            }
+            ParameterValueType::VectorElement(param) => {
+                let expr = SymbolExpr::Symbol(param.symbol);
+                Self::new(expr)
+            }
+            ParameterValueType::Int(i) => {
+                let expr = SymbolExpr::Value(Value::Int(i));
+                Self::new(expr)
+            }
+            ParameterValueType::Float(f) => {
+                let expr = SymbolExpr::Value(Value::Real(f));
+                Self::new(expr)
+            }
+            ParameterValueType::Complex(c) => {
+                let expr = SymbolExpr::Value(Value::Complex(c));
+                Self::new(expr)
+            }
         }
     }
 }
 
 #[pyclass(module = "qiskit._accelerate.circuit")]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum OpCode {
     ADD = 0,
@@ -1357,9 +1585,9 @@ pub enum OpCode {
     EXP = 10,
     LOG = 11,
     SIGN = 12,
-    GRAD = 13,
+    GRAD = 13, // for backward compatibility, unused in Rust's ParameterExpression
     CONJ = 14,
-    SUBSTITUTE = 15,
+    SUBSTITUTE = 15, // for backward compatibility, unused in Rust's ParameterExpression
     ABS = 16,
     ATAN = 17,
     RSUB = 18,
@@ -1367,8 +1595,32 @@ pub enum OpCode {
     RPOW = 20,
 }
 
+impl From<OpCode> for u8 {
+    fn from(value: OpCode) -> Self {
+        value as u8
+    }
+}
+
+unsafe impl ::bytemuck::CheckedBitPattern for OpCode {
+    type Bits = u8;
+
+    #[inline(always)]
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        *bits <= 20
+    }
+}
+
+unsafe impl ::bytemuck::NoUninit for OpCode {}
+
 #[pymethods]
 impl OpCode {
+    #[new]
+    fn py_new(value: u8) -> PyResult<Self> {
+        let code: OpCode = ::bytemuck::checked::try_cast(value)
+            .map_err(|_| ParameterError::InvalidU8ToOpCode(value))?;
+        Ok(code)
+    }
+
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
         if let Ok(code) = other.downcast::<OpCode>() {
             *code.borrow() == *self
@@ -1380,30 +1632,55 @@ impl OpCode {
     fn __hash__(&self) -> u8 {
         *self as u8
     }
+
+    fn __getnewargs__(&self) -> (u8,) {
+        (*self as u8,)
+    }
 }
 
 // enum for QPY replay
 #[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
-pub enum OPReplay {
-    _INSTRUCTION {
-        op: OpCode,
-        lhs: Option<ParameterValueType>,
-        rhs: Option<ParameterValueType>,
-    },
-    _SUBS {
-        binds: HashMap<PyParameterExpression, ParameterValueType>,
-        op: OpCode,
-    },
+pub struct OPReplay {
+    pub op: OpCode,
+    pub lhs: Option<ParameterValueType>,
+    pub rhs: Option<ParameterValueType>,
 }
 
+#[pymethods]
 impl OPReplay {
-    pub fn new_instruction(
+    #[new]
+    pub fn py_new(
         op: OpCode,
         lhs: Option<ParameterValueType>,
         rhs: Option<ParameterValueType>,
     ) -> OPReplay {
-        OPReplay::_INSTRUCTION { op, lhs, rhs }
+        OPReplay { op, lhs, rhs }
+    }
+
+    #[getter]
+    fn op(&self) -> OpCode {
+        self.op
+    }
+
+    #[getter]
+    fn lhs(&self) -> Option<ParameterValueType> {
+        self.lhs.clone()
+    }
+
+    #[getter]
+    fn rhs(&self) -> Option<ParameterValueType> {
+        self.rhs.clone()
+    }
+
+    fn __getnewargs__(
+        &self,
+    ) -> (
+        OpCode,
+        Option<ParameterValueType>,
+        Option<ParameterValueType>,
+    ) {
+        (self.op, self.lhs.clone(), self.rhs.clone())
     }
 }
 
@@ -1433,100 +1710,99 @@ fn filter_name_map(
 }
 
 pub fn qpy_replay(
-    expr: &ParameterValueType,
+    expr: &PyParameterExpression,
     name_map: &HashMap<String, PyParameter>,
     replay: &mut Vec<OPReplay>,
 ) {
-    match &expr {
-        ParameterValueType::Int(_)
-        | ParameterValueType::Float(_)
-        | ParameterValueType::Complex(_)
-        | ParameterValueType::Parameter(_) => {
-            // end points, no QPY replay to add for these values
+    match &expr.expr {
+        SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => {
+            // nothing to do here, we only need to traverse instructions
         }
-        ParameterValueType::Expression(param) => {
-            match &param.expr {
-                SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => {
-                    // nothing to do here, we only need to traverse instructions
-                }
-                SymbolExpr::Unary { op, expr } => {
+        SymbolExpr::Unary { op, expr } => {
+            let op = match op {
+                symbol_expr::UnaryOp::Abs => OpCode::ABS,
+                symbol_expr::UnaryOp::Acos => OpCode::ACOS,
+                symbol_expr::UnaryOp::Asin => OpCode::ASIN,
+                symbol_expr::UnaryOp::Atan => OpCode::ATAN,
+                symbol_expr::UnaryOp::Conj => OpCode::CONJ,
+                symbol_expr::UnaryOp::Cos => OpCode::COS,
+                symbol_expr::UnaryOp::Exp => OpCode::EXP,
+                symbol_expr::UnaryOp::Log => OpCode::LOG,
+                symbol_expr::UnaryOp::Neg => OpCode::MUL,
+                symbol_expr::UnaryOp::Sign => OpCode::SIGN,
+                symbol_expr::UnaryOp::Sin => OpCode::SIN,
+                symbol_expr::UnaryOp::Tan => OpCode::TAN,
+            };
+            // TODO filter shouldn't be necessary for unary ops
+            // let lhs = ParameterValueType::extract_from_expr(expr, name_map);
+            // recurse on the instruction
+            let lhs = filter_name_map(expr, name_map);
+            qpy_replay(&lhs, name_map, replay);
+
+            let lhs_value = ParameterValueType::extract_from_expr(expr);
+
+            // MUL is special: we implement ``neg`` as multiplication by -1
+            if let OpCode::MUL = &op {
+                replay.push(OPReplay {
+                    op,
+                    lhs: lhs_value,
+                    rhs: Some(ParameterValueType::Int(-1)),
+                });
+            } else {
+                replay.push(OPReplay {
+                    op,
+                    lhs: lhs_value,
+                    rhs: None,
+                });
+            }
+        }
+        SymbolExpr::Binary { op, lhs, rhs } => {
+            let lhs_value = ParameterValueType::extract_from_expr(lhs);
+            let rhs_value = ParameterValueType::extract_from_expr(rhs);
+
+            // recurse on the parameter expressions
+            let lhs = filter_name_map(lhs, name_map);
+            let rhs = filter_name_map(rhs, name_map);
+            qpy_replay(&lhs, name_map, replay);
+            qpy_replay(&rhs, name_map, replay);
+
+            // add the expression to the replay
+            match lhs_value {
+                None | Some(ParameterValueType::Parameter(_)) => {
                     let op = match op {
-                        symbol_expr::UnaryOp::Abs => OpCode::ABS,
-                        symbol_expr::UnaryOp::Acos => OpCode::ACOS,
-                        symbol_expr::UnaryOp::Asin => OpCode::ASIN,
-                        symbol_expr::UnaryOp::Atan => OpCode::ATAN,
-                        symbol_expr::UnaryOp::Conj => OpCode::CONJ,
-                        symbol_expr::UnaryOp::Cos => OpCode::COS,
-                        symbol_expr::UnaryOp::Exp => OpCode::EXP,
-                        symbol_expr::UnaryOp::Log => OpCode::LOG,
-                        symbol_expr::UnaryOp::Neg => OpCode::MUL,
-                        symbol_expr::UnaryOp::Sign => OpCode::SIGN,
-                        symbol_expr::UnaryOp::Sin => OpCode::SIN,
-                        symbol_expr::UnaryOp::Tan => OpCode::TAN,
+                        symbol_expr::BinaryOp::Add => OpCode::ADD,
+                        symbol_expr::BinaryOp::Sub => OpCode::SUB,
+                        symbol_expr::BinaryOp::Mul => OpCode::MUL,
+                        symbol_expr::BinaryOp::Div => OpCode::DIV,
+                        symbol_expr::BinaryOp::Pow => OpCode::POW,
                     };
-                    // TODO filter shouldn't be necessary for unary ops
-                    let lhs = ParameterValueType::extract_from_expr(expr, name_map);
-                    // recurse on the instruction
-                    qpy_replay(&lhs, name_map, replay);
-
-                    // MUL is special: we implement ``neg`` as multiplication by -1
-                    if let OpCode::MUL = &op {
-                        let lhs_value = (!lhs.is_expression()).then_some(lhs.clone());
-                        replay.push(OPReplay::new_instruction(
-                            op,
-                            lhs_value,
-                            Some(ParameterValueType::Int(-1)),
-                        ));
-                    } else {
-                        let lhs_value = (!lhs.is_expression()).then_some(lhs.clone());
-                        replay.push(OPReplay::new_instruction(op, lhs_value, None));
-                    }
+                    replay.push(OPReplay {
+                        op,
+                        lhs: lhs_value,
+                        rhs: rhs_value,
+                    });
                 }
-                SymbolExpr::Binary { op, lhs, rhs } => {
-                    let lhs = ParameterValueType::extract_from_expr(lhs, name_map);
-                    let rhs = ParameterValueType::extract_from_expr(rhs, name_map);
-
-                    qpy_replay(&lhs, name_map, replay);
-                    qpy_replay(&rhs, name_map, replay);
-
-                    match lhs {
-                        ParameterValueType::Expression(_) | ParameterValueType::Parameter(_) => {
-                            let op = match op {
-                                symbol_expr::BinaryOp::Add => OpCode::ADD,
-                                symbol_expr::BinaryOp::Sub => OpCode::SUB,
-                                symbol_expr::BinaryOp::Mul => OpCode::MUL,
-                                symbol_expr::BinaryOp::Div => OpCode::DIV,
-                                symbol_expr::BinaryOp::Pow => OpCode::POW,
-                            };
-                            replay.push(OPReplay::new_instruction(
-                                op,
-                                (!lhs.is_expression()).then_some(lhs.clone()),
-                                (!rhs.is_expression()).then_some(rhs.clone()),
-                            ));
-                        }
-                        _ => {
-                            let op = match op {
-                                symbol_expr::BinaryOp::Add => OpCode::ADD,
-                                symbol_expr::BinaryOp::Sub => OpCode::RSUB,
-                                symbol_expr::BinaryOp::Mul => OpCode::MUL,
-                                symbol_expr::BinaryOp::Div => OpCode::RDIV,
-                                symbol_expr::BinaryOp::Pow => OpCode::RPOW,
-                            };
-                            if let OpCode::ADD | OpCode::MUL = op {
-                                replay.push(OPReplay::new_instruction(
-                                    op,
-                                    (!lhs.is_expression()).then_some(lhs.clone()),
-                                    (!rhs.is_expression()).then_some(rhs.clone()),
-                                ));
-                            } else {
-                                // for some reason, here we swap lhs and rhs
-                                replay.push(OPReplay::new_instruction(
-                                    op,
-                                    (!rhs.is_expression()).then_some(rhs.clone()),
-                                    (!lhs.is_expression()).then_some(lhs.clone()),
-                                ));
-                            }
-                        }
+                _ => {
+                    let op = match op {
+                        symbol_expr::BinaryOp::Add => OpCode::ADD,
+                        symbol_expr::BinaryOp::Sub => OpCode::RSUB,
+                        symbol_expr::BinaryOp::Mul => OpCode::MUL,
+                        symbol_expr::BinaryOp::Div => OpCode::RDIV,
+                        symbol_expr::BinaryOp::Pow => OpCode::RPOW,
+                    };
+                    if let OpCode::ADD | OpCode::MUL = op {
+                        replay.push(OPReplay {
+                            op,
+                            lhs: lhs_value,
+                            rhs: rhs_value,
+                        });
+                    } else {
+                        // this covers RSUB, RDIV, RPOW, hence we swap lhs and rhs
+                        replay.push(OPReplay {
+                            op,
+                            rhs: rhs_value,
+                            lhs: lhs_value,
+                        });
                     }
                 }
             }
