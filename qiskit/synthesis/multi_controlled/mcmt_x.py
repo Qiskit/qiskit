@@ -17,9 +17,9 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
 def synth_mcmt_x(
-        num_ctrl_qubits: int, num_target_qubits: int, ctrl_state: int | None = None
+    num_ctrl_qubits: int, num_target_qubits: int, ctrl_state: int | None = None
 ) -> QuantumCircuit:
-    if len(ctrl_state) > 0:
+    if ctrl_state is not None:
         assert len(ctrl_state) == num_ctrl_qubits, "ctrl_state must match num_ctrl length"
 
     qr_c = QuantumRegister(num_ctrl_qubits, "ctrl")
@@ -27,7 +27,7 @@ def synth_mcmt_x(
     qc = QuantumCircuit(qr_c, qr_t)
 
     if num_ctrl_qubits == 1:
-        qc.cx([qr_c[0]]* num_target_qubits, qr_t, ctrl_state=ctrl_state)
+        qc.cx([qr_c[0]] * num_target_qubits, qr_t, ctrl_state=ctrl_state)
         return qc
 
     # Linear nearest-neighbor style CX ladder before and after MCX
