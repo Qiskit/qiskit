@@ -91,6 +91,7 @@ Optimizations
    Split2QUnitaries
    RemoveIdentityEquivalent
    ContractIdleWiresInControlFlow
+   LitiskiTransformation
 
 Scheduling
 =============
@@ -227,6 +228,7 @@ from .optimization import RemoveIdentityEquivalent
 from .optimization import Split2QUnitaries
 from .optimization import ContractIdleWiresInControlFlow
 from .optimization import OptimizeCliffordT
+from .optimization import LitinskiTransformation
 
 # circuit analysis
 from .analysis import ResourceEstimation
