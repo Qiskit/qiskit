@@ -13,10 +13,7 @@
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
-use pyo3::conversion::FromPyObjectBound;
-use pyo3::exceptions::{
-    PyNotImplementedError, PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError,
-};
+use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
 use pyo3::types::{IntoPyDict, PyNotImplemented, PySet, PyString};
 use thiserror::Error;
 use uuid::Uuid;
@@ -435,7 +432,6 @@ impl PyParameterExpression {
         }
 
         let res = self.expr.subs(&symbol_map);
-        // println!("Called subs -- output is {res:?} and name map {name_map:?}");
         Ok(Self {
             expr: res,
             name_map,
@@ -504,13 +500,6 @@ impl PyParameterExpression {
             .map(|(name, symbol)| (name.clone(), symbol.clone()))
             .collect();
 
-        // println!("- Called bind");
-        // println!(
-        //     "-- self is {:?} and name map {:?}",
-        //     self.expr, self.name_map
-        // );
-        // println!("-- bind instr is {:?}", map);
-        // println!("-- output is {bound:?} and name map {bound_name_map:?}");
         Ok(Self {
             expr: bound,
             name_map: bound_name_map,
@@ -571,18 +560,38 @@ impl PyParameterExpression {
 
 #[pymethods]
 impl PyParameterExpression {
-    /// parse expression from string
+    /// This is a **strictly internal** constructor and **should not be used**.
+    /// It is subject to arbitrary change in between Qiskit versions and cannot be relied on.
+    /// Parameter expressions should always be constructed from applying operations on
+    /// parameters, or by loading via QPY.
+    ///
+    /// The input values are allowed to be None for pickling purposes.
     #[new]
-    #[pyo3(signature = (in_expr=None))]
-    pub fn py_new(in_expr: Option<String>) -> PyResult<Self> {
-        match in_expr {
-            Some(e) => match parse_expression(&e) {
-                Ok(expr) => Ok(PyParameterExpression::new(expr)),
-                Err(s) => Err(pyo3::exceptions::PyRuntimeError::new_err(s)),
-            },
-            None => Ok(PyParameterExpression::new(SymbolExpr::Value(
-                symbol_expr::Value::Int(0),
-            ))),
+    #[pyo3(signature = (name_map=None, expr=None))]
+    pub fn py_new(
+        name_map: Option<HashMap<String, PyParameter>>,
+        expr: Option<String>,
+    ) -> PyResult<Self> {
+        match (name_map, expr) {
+            (None, None) => Ok(Self::default()),
+            (Some(name_map), Some(expr)) => {
+                // We first parse the expression and then update the symbols with the ones
+                // the user provided. The replacement relies on the names to match.
+                // This is hacky and we likely want a more reliably conversion from a SymPy object,
+                // if we decide we want to continue supporting this.
+                let mut expr = parse_expression(&expr)
+                    .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
+                let symbol_map: HashMap<String, Symbol> = name_map
+                    .iter()
+                    .map(|(string, param)| (string.clone(), param.symbol.clone()))
+                    .collect();
+                replace_symbol(&mut expr, &symbol_map);
+
+                Ok(PyParameterExpression { expr, name_map })
+            }
+            _ => Err(PyValueError::new_err(
+                "Pass either both a name_map and expr, or neither",
+            )),
         }
     }
 
@@ -818,7 +827,6 @@ impl PyParameterExpression {
         parameter_map: HashMap<PyParameter, Self>,
         allow_unknown_parameters: bool,
     ) -> PyResult<Self> {
-        println!("called expr subs");
         let map = parameter_map
             .iter()
             .map(|(param, expr)| (param.symbol.clone(), expr.clone()))
@@ -851,7 +859,6 @@ impl PyParameterExpression {
     pub fn py_assign(&self, parameter: PyParameter, value: &Bound<PyAny>) -> PyResult<Self> {
         let symbol = parameter.symbol.clone();
 
-        println!("called expr assign");
         if let Ok(expr) = value.downcast::<Self>() {
             let map = [(symbol, expr.borrow().clone())].into_iter().collect();
             self.subs(&map, false).map_err(|e| e.into())
@@ -1110,7 +1117,6 @@ impl PyParameterExpression {
         //     self.expr = expr;
         // }
         self.expr = from_qpy.expr;
-        // println!("-- expr post pickle: {:?} {:?}", self.expr, self.name_map);
         Ok(())
     }
 
@@ -1238,7 +1244,6 @@ impl PyParameter {
         let uuid = Uuid::from_u128(state.1);
         let symbol = Symbol::new(name, Some(uuid), None);
         self.symbol = symbol;
-        // println!("--- param post pickle: {:?}", self.symbol);
     }
 
     /// This function is to get the types right on Python side
@@ -1266,7 +1271,6 @@ impl PyParameter {
         allow_unknown_parameters: bool,
     ) -> PyResult<Bound<'py, PyAny>> {
         // This is such that x.subs({x: y}) remains a Parameter, and is not upgraded to an expression
-        println!("called param subs");
         match parameter_map.get(self) {
             None => {
                 if allow_unknown_parameters {
@@ -1806,6 +1810,25 @@ pub fn qpy_replay(
                     }
                 }
             }
+        }
+    }
+}
+
+fn replace_symbol(symbol_expr: &mut SymbolExpr, name_map: &HashMap<String, Symbol>) {
+    match symbol_expr {
+        SymbolExpr::Symbol(existing_symbol) => {
+            let name = existing_symbol.name();
+            if let Some(new_symbol) = name_map.get(&name) {
+                *symbol_expr = SymbolExpr::Symbol(new_symbol.clone());
+            }
+        }
+        SymbolExpr::Value(_) => (), // nothing to do
+        SymbolExpr::Binary { op: _, lhs, rhs } => {
+            replace_symbol(rhs.as_mut(), name_map);
+            replace_symbol(lhs.as_mut(), name_map);
+        }
+        SymbolExpr::Unary { op: _, expr } => {
+            replace_symbol(expr.as_mut(), name_map);
         }
     }
 }
