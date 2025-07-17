@@ -17,9 +17,6 @@ from __future__ import annotations
 
 from enum import IntEnum
 from typing import Union
-from uuid import UUID
-
-import numpy as np
 
 from qiskit.utils.optionals import HAS_SYMPY
 import qiskit._accelerate.circuit
@@ -86,20 +83,6 @@ _OP_CODE_MAP = (
 def op_code_to_method(op_code: _OPCode):
     """Return the method name for a given op_code."""
     return _OP_CODE_MAP[op_code]
-
-
-def inst_to_parameter_class(expr):
-    """Return Python Parameter/ParameterExpression from Rust ParameterExpression"""
-    if isinstance(expr, ParameterExpressionBase):
-        if expr.is_symbol:
-            from .parameter import Parameter
-
-            return Parameter(str(expr), UUID(int=expr.get_uuid()))
-        else:
-            return ParameterExpression(None, expr)
-    else:
-        # return value as is
-        return expr
 
 
 class ParameterExpression(ParameterExpressionBase):
@@ -283,7 +266,7 @@ class ParameterExpression(ParameterExpressionBase):
         return ParameterExpression(self._merge_parameters(other), super().py_rsub(other))
 
     def __mul__(self, other):
-        if isinstance(other, np.ndarray):
+        if not isinstance(other, (ParameterExpression, int, float, complex)):
             return other * self
         return ParameterExpression(self._merge_parameters(other), super().py_mul(other))
 
@@ -294,7 +277,7 @@ class ParameterExpression(ParameterExpressionBase):
         return ParameterExpression(self._parameter_symbols, super().py_neg())
 
     def __rmul__(self, other):
-        if isinstance(other, np.ndarray):
+        if not isinstance(other, (ParameterExpression, int, float, complex)):
             return other * self
         return ParameterExpression(self._merge_parameters(other), super().py_rmul(other))
 
@@ -389,7 +372,7 @@ class ParameterExpression(ParameterExpressionBase):
             if self.is_symbol:
                 return sympy.Symbol(super().sympify())
             else:
-                return sympy.sympify(super().sympify())
+                return sympy.Number(self.numeric())
 
         output = None
         for inst in self.replay():
@@ -407,7 +390,7 @@ class ParameterExpression(ParameterExpressionBase):
                     if inst.lhs.is_symbol:
                         lhs = sympy.Symbol(inst.lhs.sympify())
                     else:
-                        lhs = sympy.sympify(super().sympify())
+                        lhs = sympy.Number(self.lhs.numeric())
                 else:
                     lhs = ParameterExpression(None, inst.lhs).sympify()
             elif inst.lhs is None:
@@ -424,7 +407,7 @@ class ParameterExpression(ParameterExpressionBase):
                         if inst.rhs.is_symbol:
                             rhs = sympy.Symbol(inst.rhs.sympify())
                         else:
-                            rhs = sympy.sympify(super().sympify())
+                            rhs = sympy.Number(self.rhs.numeric())
                     else:
                         rhs = ParameterExpression(None, inst.rhs).sympify()
                 else:

@@ -583,11 +583,8 @@ class TestTemplateMatching(QiskitTestCase):
         # Ensure that the bound parameter in the output is referentially the same as the one we put
         # in the input circuit..
         self.assertEqual(len(circuit_out.parameters), 1)
-        # use equal since Rust's Parameter object can not compare by pointer
-        # self.assertIs(circuit_in.parameters[0], a_circuit)
-        # self.assertIs(circuit_out.parameters[0], a_circuit)
-        self.assertEqual(circuit_in.parameters[0], a_circuit)
-        self.assertEqual(circuit_out.parameters[0], a_circuit)
+        self.assertIs(circuit_in.parameters[0], a_circuit)
+        self.assertIs(circuit_out.parameters[0], a_circuit)
 
     def test_naming_clash_in_expression(self):
         """Test that the template matching works and correctly replaces a template if there is a
@@ -609,11 +606,8 @@ class TestTemplateMatching(QiskitTestCase):
         # Ensure that the bound parameter in the output is referentially the same as the one we put
         # in the input circuit..
         self.assertEqual(len(circuit_out.parameters), 1)
-        # use equal since Rust's Parameter object can not compare by pointer
-        # self.assertIs(circuit_in.parameters[0], a_circuit)
-        # self.assertIs(circuit_out.parameters[0], a_circuit)
-        self.assertEqual(circuit_in.parameters[0], a_circuit)
-        self.assertEqual(circuit_out.parameters[0], a_circuit)
+        self.assertIs(circuit_in.parameters[0], a_circuit)
+        self.assertIs(circuit_out.parameters[0], a_circuit)
 
     def test_template_match_with_uninvolved_parameter(self):
         """Test that the template matching algorithm succeeds at matching a circuit that contains an

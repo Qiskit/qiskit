@@ -290,9 +290,7 @@ class TestMCMT(QiskitTestCase):
 
         self.assertEqual(circuit.count_ops().get("cry", 0), num_target)
         self.assertEqual(circuit.num_parameters, 1)
-        # use equal since Rust's Parameter object can not compare by pointer
-        # self.assertIs(circuit.parameters[0], theta)
-        self.assertEqual(circuit.parameters[0], theta)
+        self.assertIs(circuit.parameters[0], theta)
 
     def test_mcmt_circuit_as_gate(self):
         """Test the MCMT plugin is only triggered for the gate, not the same-named circuit.

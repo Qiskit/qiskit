@@ -26,6 +26,18 @@ from .parameterexpression import ParameterExpression
 ParameterExpressionBase = qiskit._accelerate.circuit.ParameterExpression
 
 
+def inst_to_parameter_class(expr):
+    """Return Python Parameter/ParameterExpression from Rust ParameterExpression"""
+    if isinstance(expr, ParameterExpressionBase):
+        if expr.is_symbol:
+            return Parameter(str(expr), UUID(int=expr.get_uuid()))
+        else:
+            return ParameterExpression(None, expr)
+    else:
+        # return value as is
+        return expr
+
+
 class Parameter(ParameterExpression):
     """A compile-time symbolic parameter.
 

@@ -338,7 +338,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp(labels, coeffs)
         target = np.zeros((4, 4), dtype=object)
         for coeff, label in zip(coeffs, labels):
-            target += pauli_mat(label) * coeff
+            target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
 
     def test_to_operator(self):
@@ -348,7 +348,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp(labels, coeffs)
         target = Operator(np.zeros((4, 4), dtype=complex))
         for coeff, label in zip(coeffs, labels):
-            target = target + Operator(pauli_mat(label) * coeff)
+            target = target + Operator(coeff * pauli_mat(label))
         self.assertEqual(spp_op.to_operator(), target)
 
     def test_to_list(self):
@@ -485,7 +485,7 @@ class TestSparsePauliOpIteration(QiskitTestCase):
         coeffs = np.array([1, 2, 3, 4, 5, 6])
         op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.matrix_iter()):
-            np.testing.assert_array_equal(i, pauli_mat(labels[idx]) * coeffs[idx])
+            np.testing.assert_array_equal(i, coeffs[idx] * pauli_mat(labels[idx]))
 
     def test_matrix_iter_parameters(self):
         """Test SparsePauliOp dense matrix_iter method. with parameters"""
@@ -493,7 +493,7 @@ class TestSparsePauliOpIteration(QiskitTestCase):
         coeffs = np.array(ParameterVector("a", 6))
         op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.matrix_iter()):
-            np.testing.assert_array_equal(i, pauli_mat(labels[idx]) * coeffs[idx])
+            np.testing.assert_array_equal(i, coeffs[idx] * pauli_mat(labels[idx]))
 
     def test_matrix_iter_sparse(self):
         """Test SparsePauliOp sparse matrix_iter method."""
@@ -501,7 +501,7 @@ class TestSparsePauliOpIteration(QiskitTestCase):
         coeffs = np.array([1, 2, 3, 4, 5, 6])
         op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.matrix_iter(sparse=True)):
-            np.testing.assert_array_equal(i.toarray(), pauli_mat(labels[idx]) * coeffs[idx])
+            np.testing.assert_array_equal(i.toarray(), coeffs[idx] * pauli_mat(labels[idx]))
 
 
 def bind_parameters_to_one(array):
@@ -744,8 +744,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
     def test_mul(self, num_qubits, value, param):
         """Test * method for {num_qubits} qubits and value {value}."""
         spp_op = self.random_spp_op(num_qubits, 2**num_qubits, param)
-        target = spp_op.to_matrix() * value
-        op = spp_op * value
+        target = value * spp_op.to_matrix()
+        op = value * spp_op
         value_mat = op.to_matrix()
         has_parameters = isinstance(value, ParameterExpression) or param is not None
         if value != 0 and has_parameters:
@@ -756,8 +756,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         else:
             np.testing.assert_allclose(value_mat, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
-        target = spp_op.to_matrix() * value
-        op = spp_op * value
+        target = value * spp_op.to_matrix()
+        op = value * spp_op
         value_mat = op.to_matrix()
         if value != 0 and has_parameters:
             value_mat = bind_parameters_to_one(value_mat)

@@ -24,11 +24,10 @@ import numpy as np
 import qiskit._accelerate.circuit
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameter import Parameter, inst_to_parameter_class
 from qiskit.circuit.parameterexpression import (
     ParameterExpression,
     op_code_to_method,
-    inst_to_parameter_class,
     _OPCode,
 )
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
