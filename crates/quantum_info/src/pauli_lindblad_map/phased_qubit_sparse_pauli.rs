@@ -297,14 +297,12 @@ impl PyPhasedQubitSparsePauli {
             .extract::<PyReadonlyArray1<bool>>()?;
         let mut paulis = Vec::new();
         let mut indices = Vec::new();
-        let mut num_ys = 0;
         for (i, (x, z)) in x.as_array().iter().zip(z.as_array().iter()).enumerate() {
             // The only failure case possible here is the identity, because of how we're
             // constructing the value to convert.
             let Ok(term) = ::bytemuck::checked::try_cast(((*x as u8) << 1) | (*z as u8)) else {
                 continue;
             };
-            num_ys += (term == Pauli::Y) as isize;
             indices.push(i as u32);
             paulis.push(term);
         }
@@ -340,6 +338,16 @@ impl PyPhasedQubitSparsePauli {
     #[staticmethod]
     pub fn identity(num_qubits: u32) -> Self {
         PhasedQubitSparsePauli::identity(num_qubits).into()
+    }
+
+    /// Read-only view onto the phase.
+    #[getter]
+    fn get_phase(slf_: Bound<Self>) -> isize {
+        let borrowed = slf_.borrow();
+        let phase = borrowed.inner.phase;
+
+        let num_ys = borrowed.inner.qubit_sparse_pauli.view().num_ys();
+        return (phase - num_ys).rem_euclid(4)
     }
 
     /// Convert this Pauli into a single element :class:`PhaseddQubitSparsePauliList`.
