@@ -680,10 +680,7 @@ impl PyParameterExpression {
 
     /// Check if the expression corresponds to a plain symbol.
     pub fn is_symbol(&self) -> bool {
-        match &self.expr {
-            SymbolExpr::Symbol(_) => true,
-            _ => false,
-        }
+        matches!(&self.expr, SymbolExpr::Symbol(_))
     }
 
     /// TODO we should add an argument that allows casting to numeric, even in the (0*x) case.
@@ -692,7 +689,7 @@ impl PyParameterExpression {
     pub fn numeric(&self, py: Python, strict: bool) -> PyResult<PyObject> {
         // Check if we have unbound symbols. Then we'll always say we are non-numeric,
         // even if the expression is 0. (Example: (0 * x).numeric() fails.)
-        if strict && self.name_map.len() > 0 {
+        if strict && !self.name_map.is_empty() {
             let free_symbols = self.name_map.values();
             return Err(PyTypeError::new_err(format!(
                 "Parameter expression with unbound parameters {free_symbols:?} is not numeric."
@@ -1147,7 +1144,7 @@ impl PyParameterExpression {
     #[getter]
     fn _qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::new();
-        qpy_replay(&self, &self.name_map, &mut replay);
+        qpy_replay(self, &self.name_map, &mut replay);
         replay
     }
 }
@@ -1352,12 +1349,12 @@ impl PyParameter {
         parameter: PyParameter,
         value: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if let Ok(_) = value.downcast::<PyParameterExpression>() {
+        if value.downcast::<PyParameterExpression>().is_ok() {
             let map = [(parameter, value.clone())].into_iter().collect();
-            self.py_subs(py, map, false).map_err(|e| e.into())
-        } else if let Ok(_) = value.extract::<Value>() {
+            self.py_subs(py, map, false)
+        } else if value.extract::<Value>().is_ok() {
             let map = [(parameter, value.clone())].into_iter().collect();
-            self.py_bind(py, map, false).map_err(|e| e.into())
+            self.py_bind(py, map, false)
         } else {
             Err(PyValueError::new_err(
                 "Unexpected value in assign: {replacement:?}",
@@ -1535,33 +1532,31 @@ pub enum ParameterValueType {
 }
 
 impl ParameterValueType {
-    fn extract_from_expr(expr: &Box<SymbolExpr>) -> Option<ParameterValueType> {
+    fn extract_from_expr(expr: &SymbolExpr) -> Option<ParameterValueType> {
         if let Some(value) = expr.eval(true) {
             match value {
                 Value::Int(i) => Some(ParameterValueType::Int(i)),
                 Value::Real(r) => Some(ParameterValueType::Float(r)),
                 Value::Complex(c) => Some(ParameterValueType::Complex(c)),
             }
-        } else {
-            if let SymbolExpr::Symbol(symbol) = expr.as_ref() {
-                match symbol.index {
-                    None => {
-                        let param = PyParameter {
-                            symbol: symbol.clone(),
-                        };
-                        Some(ParameterValueType::Parameter(param))
-                    }
-                    Some(_) => {
-                        let param = PyParameterVectorElement {
-                            symbol: symbol.clone(),
-                        };
-                        Some(ParameterValueType::VectorElement(param))
-                    }
+        } else if let SymbolExpr::Symbol(symbol) = expr {
+            match symbol.index {
+                None => {
+                    let param = PyParameter {
+                        symbol: symbol.clone(),
+                    };
+                    Some(ParameterValueType::Parameter(param))
                 }
-            } else {
-                // ParameterExpressions have the value None, as they must be constructed
-                None
+                Some(_) => {
+                    let param = PyParameterVectorElement {
+                        symbol: symbol.clone(),
+                    };
+                    Some(ParameterValueType::VectorElement(param))
+                }
             }
+        } else {
+            // ParameterExpressions have the value None, as they must be constructed
+            None
         }
     }
 }
@@ -1718,7 +1713,7 @@ impl OPReplay {
 ///     - joint_parameter_expr: The full expression, e.g. expr1 + expr2.
 ///     - sub_expr: The sub expression, on whose symbols we restrict the name map.
 fn filter_name_map(
-    sub_expr: &Box<SymbolExpr>,
+    sub_expr: &SymbolExpr,
     name_map: &HashMap<String, PyParameter>,
 ) -> PyParameterExpression {
     let sub_symbols = sub_expr.parameters();
@@ -1729,7 +1724,7 @@ fn filter_name_map(
         .collect();
 
     PyParameterExpression {
-        expr: *sub_expr.clone(),
+        expr: sub_expr.clone(),
         name_map: restricted_name_map,
     }
 }
