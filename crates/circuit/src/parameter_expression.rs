@@ -50,7 +50,7 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
         None
     } else if let Ok(i) = value.extract::<i64>() {
         Some(ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::from(i)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::from(i))),
             parameter_symbols: None,
         })
     } else if let Ok(c) = value.extract::<Complex64>() {
@@ -58,7 +58,7 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
             return None;
         }
         Some(ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::from(c)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::from(c))),
             parameter_symbols: None,
         })
     } else if let Ok(r) = value.extract::<f64>() {
@@ -66,7 +66,7 @@ fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
             return None;
         }
         Some(ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::from(r)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::from(r))),
             parameter_symbols: None,
         })
     } else {
@@ -132,7 +132,7 @@ impl OPReplay {
 #[pyclass(sequence, subclass, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct ParameterExpression {
-    expr: SymbolExpr,                                          // expression
+    expr: Arc<SymbolExpr>,                                     // expression
     parameter_symbols: Option<HashMap<Arc<SymbolExpr>, u128>>, // symbols with UUID
 }
 
@@ -146,7 +146,7 @@ impl Default for ParameterExpression {
     // default constructor returns zero
     fn default() -> Self {
         ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::Int(0)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::Int(0))),
             parameter_symbols: None,
         }
     }
@@ -169,18 +169,18 @@ impl ParameterExpression {
         };
         let mut ret = match index {
             Some(index) => ParameterExpression {
-                expr: SymbolExpr::IndexedSymbol {
+                expr: Arc::new(SymbolExpr::IndexedSymbol {
                     name: Arc::new(name),
                     index,
-                },
+                }),
                 parameter_symbols: None,
             },
             None => ParameterExpression {
-                expr: SymbolExpr::Symbol(Arc::new(name)),
+                expr: Arc::new(SymbolExpr::Symbol(Arc::new(name))),
                 parameter_symbols: None,
             },
         };
-        let rexpr = Arc::new(ret.expr.clone());
+        let rexpr = Arc::clone(&ret.expr);
         ret.parameter_symbols = Some(HashMap::<Arc<SymbolExpr>, u128>::from([(rexpr, uuid)]));
         ret
     }
@@ -197,7 +197,7 @@ impl ParameterExpression {
 
     /// get name of parameter
     pub fn name(&self) -> String {
-        match &self.expr {
+        match self.expr.as_ref() {
             SymbolExpr::Symbol(name) => name.as_ref().clone(),
             SymbolExpr::IndexedSymbol { name, .. } => name.as_ref().clone(),
             _ => "".to_string(),
@@ -206,7 +206,7 @@ impl ParameterExpression {
 
     /// get index of PrameterVectorElement
     pub fn index(&self) -> Option<usize> {
-        match &self.expr {
+        match self.expr.as_ref() {
             SymbolExpr::IndexedSymbol { name: _, index } => Some(*index),
             _ => None,
         }
@@ -214,25 +214,25 @@ impl ParameterExpression {
 
     // clone SymbolExpr
     pub fn expr(&self) -> SymbolExpr {
-        self.expr.clone()
+        self.expr.as_ref().clone()
     }
 
     /// check if this is symbol
     pub fn is_symbol(&self) -> bool {
         matches!(
-            self.expr,
+            self.expr.as_ref(),
             SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. }
         )
     }
 
     /// check if this is vector element
     pub fn is_vector_element(&self) -> bool {
-        matches!(self.expr, SymbolExpr::IndexedSymbol { .. })
+        matches!(self.expr.as_ref(), SymbolExpr::IndexedSymbol { .. })
     }
 
     /// check if this is numeric
     pub fn is_numeric(&self) -> bool {
-        matches!(self.expr, SymbolExpr::Value(_))
+        matches!(self.expr.as_ref(), SymbolExpr::Value(_))
     }
 
     /// return number of symbols in this expression
@@ -306,73 +306,73 @@ impl ParameterExpression {
     // default functions for unary operations
     pub fn neg(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: -&self.expr,
+            expr: Arc::new(-self.expr.as_ref()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn pos(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.clone(),
+            expr: Arc::clone(&self.expr),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn sin(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.sin(),
+            expr: Arc::new(self.expr.sin()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn cos(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.cos(),
+            expr: Arc::new(self.expr.cos()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn tan(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.tan(),
+            expr: Arc::new(self.expr.tan()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn asin(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.asin(),
+            expr: Arc::new(self.expr.asin()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn acos(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.acos(),
+            expr: Arc::new(self.expr.acos()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn atan(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.atan(),
+            expr: Arc::new(self.expr.atan()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn exp(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.exp(),
+            expr: Arc::new(self.expr.exp()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn log(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.log(),
+            expr: Arc::new(self.expr.log()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn abs(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.abs(),
+            expr: Arc::new(self.expr.abs()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
     pub fn sign(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.sign(),
+            expr: Arc::new(self.expr.sign()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
@@ -380,7 +380,7 @@ impl ParameterExpression {
     /// return conjugate of expression
     pub fn conjugate(&self) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.conjugate(),
+            expr: Arc::new(self.expr.conjugate()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
@@ -388,61 +388,61 @@ impl ParameterExpression {
     // default functions for binary operations
     pub fn add(&self, rhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: &self.expr + &rhs.expr,
+            expr: Arc::new(self.expr.as_ref() + rhs.expr.as_ref()),
             parameter_symbols: self.merge_parameter_symbols(rhs),
         }
     }
     pub fn radd(&self, lhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: &lhs.expr + &self.expr,
+            expr: Arc::new(lhs.expr.as_ref() + self.expr.as_ref()),
             parameter_symbols: self.merge_parameter_symbols(lhs),
         }
     }
     pub fn sub(&self, rhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: &self.expr - &rhs.expr,
+            expr: Arc::new(self.expr.as_ref() - rhs.expr.as_ref()),
             parameter_symbols: self.merge_parameter_symbols(rhs),
         }
     }
     pub fn rsub(&self, lhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: &lhs.expr - &self.expr,
+            expr: Arc::new(lhs.expr.as_ref() - self.expr.as_ref()),
             parameter_symbols: self.merge_parameter_symbols(lhs),
         }
     }
     pub fn mul(&self, rhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: &self.expr * &rhs.expr,
+            expr: Arc::new(self.expr.as_ref() * rhs.expr.as_ref()),
             parameter_symbols: self.merge_parameter_symbols(rhs),
         }
     }
     pub fn rmul(&self, lhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: &lhs.expr * &self.expr,
+            expr: Arc::new(lhs.expr.as_ref() * self.expr.as_ref()),
             parameter_symbols: self.merge_parameter_symbols(lhs),
         }
     }
     pub fn div(&self, rhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: &self.expr / &rhs.expr,
+            expr: Arc::new(self.expr.as_ref() / rhs.expr.as_ref()),
             parameter_symbols: self.merge_parameter_symbols(rhs),
         }
     }
     pub fn rdiv(&self, lhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: &lhs.expr / &self.expr,
+            expr: Arc::new(lhs.expr.as_ref() / self.expr.as_ref()),
             parameter_symbols: self.merge_parameter_symbols(lhs),
         }
     }
     pub fn pow(&self, rhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: self.expr.pow(&rhs.expr),
+            expr: Arc::new(self.expr.pow(rhs.expr.as_ref())),
             parameter_symbols: self.merge_parameter_symbols(rhs),
         }
     }
     pub fn rpow(&self, lhs: &ParameterExpression) -> ParameterExpression {
         ParameterExpression {
-            expr: lhs.expr.pow(&self.expr),
+            expr: Arc::new(lhs.expr.pow(self.expr.as_ref())),
             parameter_symbols: self.merge_parameter_symbols(lhs),
         }
     }
@@ -462,13 +462,13 @@ impl ParameterExpression {
 
         for (key, param) in &in_map {
             // check if value in map is valid
-            if let SymbolExpr::Value(Value::Real(r)) = &param.expr {
+            if let SymbolExpr::Value(Value::Real(r)) = param.expr.as_ref() {
                 if r.is_nan() || r.is_infinite() {
                     return Err(CircuitError::new_err(
                         "Expression cannot bind non-numeric values",
                     ));
                 }
-            } else if let SymbolExpr::Value(Value::Complex(c)) = &param.expr {
+            } else if let SymbolExpr::Value(Value::Complex(c)) = param.expr.as_ref() {
                 if c.is_nan() || c.is_infinite() {
                     return Err(CircuitError::new_err(
                         "Expression cannot bind non-numeric values",
@@ -539,7 +539,7 @@ impl ParameterExpression {
                 None => bound,
             };
             Ok(ParameterExpression {
-                expr: ret,
+                expr: Arc::new(ret),
                 parameter_symbols: if !symbols.is_empty() {
                     Some(symbols)
                 } else {
@@ -548,7 +548,7 @@ impl ParameterExpression {
             })
         } else {
             Ok(ParameterExpression {
-                expr: bound,
+                expr: Arc::new(bound),
                 parameter_symbols: if !symbols.is_empty() {
                     Some(symbols)
                 } else {
@@ -561,7 +561,7 @@ impl ParameterExpression {
     // compare 2 expression
     // check_uuid = true also compares uuid for equality
     pub fn compare_eq(&self, other: &ParameterExpression, check_uuid: bool) -> bool {
-        match (&self.expr, &other.expr) {
+        match (self.expr.as_ref(), other.expr.as_ref()) {
             (
                 SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. },
                 SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. },
@@ -595,7 +595,7 @@ impl ParameterExpression {
     /// expand expression
     pub fn expand(&self) -> Self {
         ParameterExpression {
-            expr: self.expr.expand(),
+            expr: Arc::new(self.expr.expand()),
             parameter_symbols: self.parameter_symbols.clone(),
         }
     }
@@ -605,7 +605,7 @@ impl ParameterExpression {
         if let Some(parameter_symbols) = &self.parameter_symbols {
             if parameter_symbols.is_empty() {
                 return Ok(ParameterExpression {
-                    expr: SymbolExpr::Value(Value::Int(0)),
+                    expr: Arc::new(SymbolExpr::Value(Value::Int(0))),
                     parameter_symbols: None,
                 });
             }
@@ -616,7 +616,7 @@ impl ParameterExpression {
             };
             match expr_grad.eval(true) {
                 Some(v) => Ok(ParameterExpression {
-                    expr: SymbolExpr::Value(v),
+                    expr: Arc::new(SymbolExpr::Value(v)),
                     parameter_symbols: None,
                 }),
                 None => {
@@ -629,22 +629,22 @@ impl ParameterExpression {
                         }
                     }
                     Ok(ParameterExpression {
-                        expr: expr_grad,
+                        expr: Arc::new(expr_grad),
                         parameter_symbols: Some(new_map),
                     })
                 }
             }
         } else {
             Ok(ParameterExpression {
-                expr: SymbolExpr::Value(Value::Int(0)),
+                expr: Arc::new(SymbolExpr::Value(Value::Int(0))),
                 parameter_symbols: None,
             })
         }
     }
 
     // make parameter value from expr
-    fn _make_parameter_value_type(&self, expr: &SymbolExpr) -> Option<ParameterValueType> {
-        match expr {
+    fn _make_parameter_value_type(&self, expr: &Arc<SymbolExpr>) -> Option<ParameterValueType> {
+        match expr.as_ref() {
             SymbolExpr::Value(v) => match v {
                 symbol_expr::Value::Int(i) => Some(ParameterValueType::Int(*i)),
                 symbol_expr::Value::Real(r) => Some(ParameterValueType::Float(*r)),
@@ -654,8 +654,8 @@ impl ParameterExpression {
                 match &self.parameter_symbols {
                     Some(map) => {
                         for (k, u) in map {
-                            if k.as_ref() == expr {
-                                if let SymbolExpr::IndexedSymbol { name, index } = expr {
+                            if k == expr {
+                                if let SymbolExpr::IndexedSymbol { name, index } = expr.as_ref() {
                                     return Some(ParameterValueType::Parameter(
                                         ParameterExpression::new(
                                             name.as_ref().clone(),
@@ -686,7 +686,7 @@ impl ParameterExpression {
                     }
                 }
                 Some(ParameterValueType::Parameter(ParameterExpression {
-                    expr: expr.clone(),
+                    expr: Arc::clone(expr),
                     parameter_symbols: Some(map),
                 }))
             }
@@ -695,10 +695,10 @@ impl ParameterExpression {
 
     // make replay
     fn make_qpy_replay(&self) -> Option<Vec<OPReplay>> {
-        match &self.expr {
+        match self.expr.as_ref() {
             SymbolExpr::Unary { op, expr } => {
                 let mut replay = Vec::<OPReplay>::new();
-                match self._make_parameter_value_type(expr.as_ref()) {
+                match self._make_parameter_value_type(expr) {
                     Some(lhs) => {
                         let op = match op {
                             symbol_expr::UnaryOp::Abs => _OPCode::ABS,
@@ -740,18 +740,18 @@ impl ParameterExpression {
                     if let symbol_expr::BinaryOp::Mul | symbol_expr::BinaryOp::Div = op {
                         replay.push(OPReplay::_INSTRUCTION {
                             op: _OPCode::DIV,
-                            lhs: self._make_parameter_value_type(&SymbolExpr::Binary {
+                            lhs: self._make_parameter_value_type(&Arc::new(SymbolExpr::Binary {
                                 op: op.clone(),
                                 lhs: Arc::new(SymbolExpr::Value(Value::Int(numerator))),
                                 rhs: rhs.clone(),
-                            }),
+                            })),
                             rhs: Some(ParameterValueType::Int(denominator)),
                         });
                         return Some(replay);
                     }
                 }
-                let lhs = self._make_parameter_value_type(lhs.as_ref());
-                let rhs = self._make_parameter_value_type(rhs.as_ref());
+                let lhs = self._make_parameter_value_type(lhs);
+                let rhs = self._make_parameter_value_type(rhs);
                 if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
                     match lhs {
                         ParameterValueType::Parameter(_) => {
@@ -810,13 +810,13 @@ impl Eq for ParameterExpression {}
 
 impl PartialEq<f64> for ParameterExpression {
     fn eq(&self, r: &f64) -> bool {
-        &self.expr == r
+        self.expr.as_ref() == r
     }
 }
 
 impl PartialEq<Complex64> for ParameterExpression {
     fn eq(&self, c: &Complex64) -> bool {
-        &self.expr == c
+        self.expr.as_ref() == c
     }
 }
 
@@ -827,7 +827,7 @@ impl PartialEq<Complex64> for ParameterExpression {
 impl From<i32> for ParameterExpression {
     fn from(v: i32) -> Self {
         ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::Real(v as f64)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::Real(v as f64))),
             parameter_symbols: None,
         }
     }
@@ -835,7 +835,7 @@ impl From<i32> for ParameterExpression {
 impl From<i64> for ParameterExpression {
     fn from(v: i64) -> Self {
         ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::Real(v as f64)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::Real(v as f64))),
             parameter_symbols: None,
         }
     }
@@ -844,7 +844,7 @@ impl From<i64> for ParameterExpression {
 impl From<u32> for ParameterExpression {
     fn from(v: u32) -> Self {
         ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::Real(v as f64)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::Real(v as f64))),
             parameter_symbols: None,
         }
     }
@@ -853,7 +853,7 @@ impl From<u32> for ParameterExpression {
 impl From<f64> for ParameterExpression {
     fn from(v: f64) -> Self {
         ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::Real(v)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::Real(v))),
             parameter_symbols: None,
         }
     }
@@ -862,7 +862,7 @@ impl From<f64> for ParameterExpression {
 impl From<Complex64> for ParameterExpression {
     fn from(v: Complex64) -> Self {
         ParameterExpression {
-            expr: SymbolExpr::Value(symbol_expr::Value::Complex(v)),
+            expr: Arc::new(SymbolExpr::Value(symbol_expr::Value::Complex(v))),
             parameter_symbols: None,
         }
     }
@@ -1023,9 +1023,9 @@ impl ParameterExpression {
                             let u = param.uuid();
                             if *u == 0_u128 {
                                 parameter_symbols
-                                    .insert(Arc::new(param.expr.clone()), Uuid::new_v4().as_u128());
+                                    .insert(Arc::clone(&param.expr), Uuid::new_v4().as_u128());
                             } else {
-                                parameter_symbols.insert(Arc::new(param.expr.clone()), *u);
+                                parameter_symbols.insert(Arc::clone(&param.expr), *u);
                             }
                         }
                     } else {
@@ -1038,10 +1038,10 @@ impl ParameterExpression {
                     }
                     // substitute 'I' to imaginary number i before returning expression
                     Ok(ParameterExpression {
-                        expr: expr.bind(&HashMap::from([(
+                        expr: Arc::new(expr.bind(&HashMap::from([(
                             "I".to_string(),
                             symbol_expr::Value::from(Complex64::i()),
-                        )])),
+                        )]))),
                         parameter_symbols: Some(parameter_symbols),
                     })
                 }
@@ -1237,7 +1237,7 @@ impl ParameterExpression {
     ///     or complex or float number
     pub fn py_gradient(&self, param: &Self, py: Python) -> PyResult<PyObject> {
         match self.gradient(param) {
-            Ok(grad) => match &grad.expr {
+            Ok(grad) => match grad.expr.as_ref() {
                 SymbolExpr::Value(v) => match v {
                     symbol_expr::Value::Real(r) => r.into_py_any(py),
                     symbol_expr::Value::Int(i) => i.into_py_any(py),
@@ -1265,7 +1265,7 @@ impl ParameterExpression {
             Some(symbols) => {
                 for (s, u) in symbols {
                     out.add(ParameterExpression {
-                        expr: s.as_ref().clone(),
+                        expr: Arc::clone(s),
                         parameter_symbols: Some(HashMap::<Arc<SymbolExpr>, u128>::from([(
                             Arc::clone(s),
                             *u,
@@ -1306,7 +1306,7 @@ impl ParameterExpression {
 
     pub fn py_assign(&self, param: &ParameterExpression, value: &Bound<PyAny>) -> PyResult<Self> {
         if let Some(e) = _extract_value(value) {
-            let eval = matches!(&e.expr, SymbolExpr::Value(_));
+            let eval = matches!(e.expr.as_ref(), SymbolExpr::Value(_));
             if self == param {
                 return Ok(e);
             }
@@ -1492,7 +1492,7 @@ impl ParameterExpression {
     pub fn py_div(&self, rhs: &Bound<PyAny>) -> PyResult<ParameterExpression> {
         match _extract_value(rhs) {
             Some(rhs) => {
-                if let SymbolExpr::Value(v) = &rhs.expr {
+                if let SymbolExpr::Value(v) = rhs.expr.as_ref() {
                     let zero = match v {
                         symbol_expr::Value::Int(i) => *i == 0,
                         symbol_expr::Value::Real(r) => *r == 0.0,
@@ -1549,7 +1549,7 @@ impl ParameterExpression {
     }
 
     pub fn __str__(&self) -> String {
-        if let SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. } = &self.expr {
+        if let SymbolExpr::Symbol(_) | SymbolExpr::IndexedSymbol { .. } = self.expr.as_ref() {
             return self.to_string();
         }
         match self.expr.eval(true) {
@@ -1591,10 +1591,10 @@ impl ParameterExpression {
                             parameter_symbols.insert(Arc::new(e), uuid);
                         }
                     }
-                    self.expr = expr;
+                    self.expr = Arc::new(expr);
                     self.parameter_symbols = Some(parameter_symbols);
                 } else {
-                    self.expr = expr;
+                    self.expr = Arc::new(expr);
                     self.parameter_symbols = None;
                 }
                 Ok(())

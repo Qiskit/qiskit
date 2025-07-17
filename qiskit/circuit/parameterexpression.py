@@ -130,6 +130,7 @@ class ParameterExpression(ParameterExpressionBase):
         if symbol_map is not None:
             if isinstance(symbol_map, dict):
                 symbol_map = set(symbol_map.keys())
+        # pylint: disable=too-many-function-args
         self = super().__new__(cls, symbol_map, expr)
 
         if symbol_map is not None:
@@ -363,6 +364,14 @@ class ParameterExpression(ParameterExpressionBase):
 
     def __deepcopy__(self, memo=None):
         return self
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        return (state, self._parameter_symbols)
+
+    def __setstate__(self, state):
+        state, self._parameter_symbols = state
+        super().__setstate__(state)
 
     @HAS_SYMPY.require_in_call
     def sympify(self):
