@@ -13,6 +13,7 @@
 """Module containing multi-controlled circuits synthesis"""
 
 from .mcmt_vchain import synth_mcmt_vchain
+from .mcmt_x import synth_mcmt_x
 from .mcx_synthesis import (
     synth_mcx_1_clean_kg24,
     synth_mcx_1_dirty_kg24,
