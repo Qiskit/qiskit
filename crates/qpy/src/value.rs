@@ -16,7 +16,7 @@ use hashbrown::HashMap;
 use pyo3::exceptions::PyValueError;
 
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyString, PyTuple};
+use pyo3::types::{PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 
 use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::imports;
@@ -42,7 +42,9 @@ pub struct QPYData {
     pub version: u32,
     pub _use_symengine: bool,
     pub clbit_indices: Py<PyDict>,
+    pub cregs: Py<PyDict>,
     pub standalone_var_indices: Py<PyDict>,
+    pub standalone_vars: Py<PyList>,
     pub vectors: HashMap<String, Py<PyAny>>,
     pub annotation_handler: AnnotationHandler,
 }
@@ -276,10 +278,20 @@ pub fn pack_generic_sequence(
             pack_generic_data(&data_item, qpy_data)
         })
         .collect::<PyResult<_>>()?;
-    Ok(formats::GenericDataSequencePack {
-        num_elements: elements.len() as u64,
-        elements,
-    })
+    Ok(formats::GenericDataSequencePack { elements })
+}
+
+pub fn unpack_generic_sequence_to_tuple(
+    py: Python,
+    packed_sequence: formats::GenericDataSequencePack,
+    qpy_data: &mut QPYData,
+) -> PyResult<Py<PyAny>> {
+    let elements: Vec<Py<PyAny>> = packed_sequence
+        .elements
+        .iter()
+        .map(|data_pack| unpack_generic_data(py, data_pack, qpy_data))
+        .collect::<PyResult<_>>()?;
+    Ok(PyTuple::new(py, elements)?.unbind().into_any())
 }
 
 pub mod circuit_instruction_types {
@@ -334,6 +346,13 @@ fn serialize_range(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
     Ok(buffer.into())
 }
 
+fn deserialize_range(py: Python, raw_range: &Bytes) -> PyResult<Py<PyAny>> {
+    let range_pack = deserialize::<formats::RangePack>(raw_range)?.0;
+    let py_range_class = py.import("builtins")?.getattr("range")?;
+    let py_range = py_range_class.call1((range_pack.start, range_pack.stop, range_pack.step))?;
+    Ok(py_range.unbind())
+}
+
 fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<Bytes> {
     let py = py_object.py();
     let clbit_indices = PyDict::new(py);
@@ -356,6 +375,33 @@ fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResul
     )?;
     let result = buffer.call_method0("getvalue")?.extract::<Bytes>()?;
     Ok(result)
+}
+
+fn deserialize_expression(
+    py: Python,
+    raw_expression: &Bytes,
+    qpy_data: &QPYData,
+) -> PyResult<Py<PyAny>> {
+    let clbit_indices = PyDict::new(py);
+    for (key, val) in qpy_data.clbit_indices.bind(py).iter() {
+        let index = val.getattr("index")?;
+        clbit_indices.set_item(index, key)?;
+    }
+    let io = py.import("io")?;
+    let buffer = io.call_method0("BytesIO")?;
+    buffer.call_method1("write", (raw_expression.clone(),))?;
+    buffer.call_method1("seek", (0,))?;
+    let value = py.import("qiskit.qpy.binary_io.value")?;
+    let expression = value.call_method1(
+        "_read_expr",
+        (
+            &buffer,
+            clbit_indices,
+            &qpy_data.cregs,
+            &qpy_data.standalone_vars,
+        ),
+    )?;
+    Ok(expression.unbind())
 }
 
 fn pack_modifier(modifier: &Bound<PyAny>) -> PyResult<formats::ModifierPack> {
@@ -487,8 +533,12 @@ impl DumpedValue {
             }
 
             // }
-            // tags::RANGE => serialize_range(py_object)?,
-            // tags::TUPLE => serialize(&pack_generic_sequence(py_object, qpy_data)?)?,
+            tags::RANGE => deserialize_range(py, &self.data)?,
+            tags::TUPLE => unpack_generic_sequence_to_tuple(
+                py,
+                deserialize::<formats::GenericDataSequencePack>(&self.data)?.0,
+                qpy_data,
+            )?,
             tags::PARAMETER => {
                 let (parameter, _) = deserialize::<formats::ParameterPack>(&self.data)?;
                 unpack_parameter(py, &parameter)?
@@ -517,7 +567,7 @@ impl DumpedValue {
                 let data_string: &str = (&self.data).try_into()?;
                 PyString::new(py, data_string).into_any().unbind()
             }
-            // tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
+            tags::EXPRESSION => deserialize_expression(py, &self.data, qpy_data)?,
             tags::NULL | tags::CASE_DEFAULT => py.None(),
             tags::CIRCUIT => deserialize_circuit(
                 py,

@@ -31,8 +31,10 @@ use qiskit_circuit::bit::Register;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::CircuitStretchType;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitVarType};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 
 use qiskit_circuit::classical::expr::Expr;
@@ -55,7 +57,8 @@ use crate::params::pack_param;
 use crate::params::unpack_param;
 use crate::value::deserialize_with_args;
 use crate::value::{
-    circuit_instruction_types, dumps_value, get_circuit_type_key, tags, DumpedValue, QPYData,
+    circuit_instruction_types, dumps_value, get_circuit_type_key, tags, DumpedValue,
+    ExpressionType, QPYData,
 };
 use crate::value::{
     deserialize, expression_var_declaration, pack_generic_data, pack_standalone_var, serialize,
@@ -568,9 +571,12 @@ fn get_python_gate_class<'a>(
     gate_class_name: &String,
 ) -> PyResult<Bound<'a, PyAny>> {
     let library = py.import("qiskit.circuit.library")?;
+    let circuit_mod = py.import("qiskit.circuit")?;
     let control_flow = py.import("qiskit.circuit.controlflow")?;
     if library.hasattr(gate_class_name)? {
         library.getattr(gate_class_name)
+    } else if circuit_mod.hasattr(gate_class_name)? {
+        circuit_mod.getattr(gate_class_name)
     } else if control_flow.hasattr(gate_class_name)? {
         control_flow.getattr(gate_class_name)
     } else {
@@ -733,6 +739,17 @@ fn unpack_instruction(
     let name = instruction.gate_class_name.clone();
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
     let condition = unpack_condition(py, &instruction.condition, circuit_data, qpy_data)?;
+    let mut qubit_indices = Vec::new();
+    let mut clbit_indices = Vec::new();
+    for arg in &instruction.bit_data {
+        match arg.bit_type {
+            bit_types::QUBIT => qubit_indices.push(Qubit(arg.index)),
+            bit_types::CLBIT => clbit_indices.push(Clbit(arg.index)),
+            _ => return Err(PyErr::new::<PyValueError, _>("Unrecognized bit type")),
+        };
+    }
+    let qubits = circuit_data.add_qargs(&qubit_indices);
+    let clbits = circuit_data.add_cargs(&clbit_indices);
     let mut inst_params: Vec<Param> = instruction
         .params
         .iter()
@@ -806,6 +823,14 @@ fn unpack_instruction(
                 let args = PyTuple::new(py, &py_params)?;
                 gate_class.call(args, Some(&kwargs))?
             }
+            "BreakLoopOp" | "ContinueLoopOp" => {
+                let args = (qubit_indices.len(), clbit_indices.len());
+                let gate = gate_class.call1(args)?;
+                if let Some(label_text) = &label {
+                    gate.setattr("label", label_text.as_str())?;
+                }
+                gate
+            }
             _ => {
                 let args = PyTuple::new(py, &py_params)?;
                 gate_class.call1(args)?
@@ -814,17 +839,6 @@ fn unpack_instruction(
         let op_parts = gate_object.extract::<OperationFromPython>()?;
         op_parts.operation
     };
-    let mut qubit_indices = Vec::new();
-    let mut clbit_indices = Vec::new();
-    for arg in &instruction.bit_data {
-        match arg.bit_type {
-            bit_types::QUBIT => qubit_indices.push(Qubit(arg.index)),
-            bit_types::CLBIT => clbit_indices.push(Clbit(arg.index)),
-            _ => return Err(PyErr::new::<PyValueError, _>("Unrecognized bit type")),
-        };
-    }
-    let qubits = circuit_data.add_qargs(&qubit_indices);
-    let clbits = circuit_data.add_cargs(&clbit_indices);
     let params =
         (!inst_params.is_empty()).then(|| Box::new(SmallVec::<[Param; 3]>::from_vec(inst_params)));
     Ok(PackedInstruction {
@@ -1605,13 +1619,16 @@ pub fn pack_circuit(
     let mut circuit_data = circuit.getattr("_data")?.extract::<CircuitData>()?;
     let clbit_indices = circuit_data.get_clbit_indices(py).clone();
     let standalone_var_indices = PyDict::new(py);
+    let cregs = PyDict::new(py);
     let standalone_vars = pack_standalone_vars(circuit, version, &standalone_var_indices)?;
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYData {
         version,
         _use_symengine: use_symengine,
         clbit_indices,
+        cregs: cregs.unbind(),
         standalone_var_indices: standalone_var_indices.unbind(),
+        standalone_vars: PyList::empty(py).unbind(),
         vectors: HashMap::new(),
         annotation_handler,
     };
@@ -1750,10 +1767,57 @@ fn read_custom_instructions(
     }
     Ok(result)
 }
+fn add_standalone_vars(
+    py: Python,
+    circuit_data: &mut CircuitData,
+    packed_circuit: &QPYFormatV15,
+    qpy_data: &mut QPYData,
+) -> PyResult<()> {
+    for packed_var in &packed_circuit.standalone_vars {
+        let ty = match packed_var.exp_type {
+            ExpressionType::Bool => classical::types::Type::Bool,
+            ExpressionType::Duration => classical::types::Type::Duration,
+            ExpressionType::Float => classical::types::Type::Float,
+            ExpressionType::Uint(val) => classical::types::Type::Uint(val.try_into().unwrap()), // TODO: why rust uses u16 and not u32?
+        };
+        let uuid = u128::from_be_bytes(packed_var.uuid_bytes);
+        let name = packed_var.name.clone();
+        match packed_var.usage {
+            expression_var_declaration::LOCAL => {
+                let var = classical::expr::Var::Standalone { uuid, name, ty };
+                qpy_data.standalone_vars.bind(py).append(var.clone())?;
+                circuit_data.add_var(var, CircuitVarType::Declare)?;
+            }
+            expression_var_declaration::INPUT => {
+                let var = classical::expr::Var::Standalone { uuid, name, ty };
+                qpy_data.standalone_vars.bind(py).append(var.clone())?;
+                circuit_data.add_var(var, CircuitVarType::Input)?;
+            }
+            expression_var_declaration::CAPTURE => {
+                let var = classical::expr::Var::Standalone { uuid, name, ty };
+                qpy_data.standalone_vars.bind(py).append(var.clone())?;
+                circuit_data.add_var(var, CircuitVarType::Capture)?;
+            }
+            expression_var_declaration::STRETCH_LOCAL => {
+                let var = classical::expr::Stretch { uuid, name };
+                qpy_data.standalone_vars.bind(py).append(var.clone())?;
+                circuit_data.add_stretch(var, CircuitStretchType::Declare)?;
+            }
+            expression_var_declaration::STRETCH_CAPTURE => {
+                let var = classical::expr::Stretch { uuid, name };
+                qpy_data.standalone_vars.bind(py).append(var.clone())?;
+                circuit_data.add_stretch(var, CircuitStretchType::Capture)?;
+            }
+            _ => (),
+        }
+    }
+    Ok(())
+}
 
 fn add_registers_and_bits(
     circuit_data: &mut CircuitData,
     packed_circuit: &QPYFormatV15,
+    qpy_data: &mut QPYData,
 ) -> PyResult<()> {
     let num_qubits = packed_circuit.header.num_qubits as usize;
     let num_clbits = packed_circuit.header.num_clbits as usize;
@@ -1795,6 +1859,13 @@ fn add_registers_and_bits(
                             clbits[index as usize] = Some(clbit);
                         }
                     }
+                    Python::with_gil(|py| -> PyResult<()> {
+                        qpy_data
+                            .cregs
+                            .bind(py)
+                            .set_item(&packed_register.name, creg.clone())?;
+                        Ok(())
+                    })?;
                     if packed_register.in_circuit != 0 {
                         cregs.push(creg);
                     }
@@ -1808,7 +1879,23 @@ fn add_registers_and_bits(
             }
         }
     }
-    // first pass is done. we collected owning registers to qregs, cregs and can now deal with the non-standalone ones
+    // First pass is done. Now add Anonymous bits that are not part of any register
+    let final_qubit_list: Vec<ShareableQubit> = qubits
+        .iter()
+        .map(|element| match element {
+            Some(qubit) => qubit.clone(),
+            None => ShareableQubit::new_anonymous(),
+        })
+        .collect();
+    let final_clbit_list: Vec<ShareableClbit> = clbits
+        .iter()
+        .map(|element| match element {
+            Some(clbit) => clbit.clone(),
+            None => ShareableClbit::new_anonymous(),
+        })
+        .collect();
+
+    // We collected owning registers to qregs, cregs and added all remaining bits and can now deal with the non-standalone registers
     for packed_register in non_standalone_registers {
         match packed_register.register_type {
             register_types::QREG => {
@@ -1817,7 +1904,7 @@ fn add_registers_and_bits(
                     .iter()
                     .filter_map(|&index| {
                         if index >= 0 {
-                            qubits[index as usize].clone()
+                            Some(final_qubit_list[index as usize].clone())
                         } else {
                             None
                         }
@@ -1832,7 +1919,7 @@ fn add_registers_and_bits(
                     .iter()
                     .filter_map(|&index| {
                         if index >= 0 {
-                            clbits[index as usize].clone()
+                            Some(final_clbit_list[index as usize].clone())
                         } else {
                             None
                         }
@@ -1849,15 +1936,7 @@ fn add_registers_and_bits(
             }
         }
     }
-    // now add Anonymous bits that are not part of any register
-    let final_qubit_list = qubits.iter().map(|element| match element {
-        Some(qubit) => qubit.clone(),
-        None => ShareableQubit::new_anonymous(),
-    });
-    let final_clbit_list = clbits.iter().map(|element| match element {
-        Some(clbit) => clbit.clone(),
-        None => ShareableClbit::new_anonymous(),
-    });
+
     // now add the bits to the ciruit, and then add the registers
     for qubit in final_qubit_list {
         circuit_data.add_qubit(qubit, true)?;
@@ -1874,6 +1953,10 @@ fn add_registers_and_bits(
         circuit_data.add_creg(creg, true)?;
     }
 
+    Python::with_gil(|py| -> PyResult<()> {
+        qpy_data.clbit_indices = circuit_data.get_clbit_indices(py).clone();
+        Ok(())
+    })?;
     Ok(())
 }
 
@@ -1890,7 +1973,9 @@ pub fn deserialize_circuit<'py>(
         version,
         _use_symengine: use_symengine,
         clbit_indices: PyDict::new(py).unbind(),
+        cregs: PyDict::new(py).unbind(),
         standalone_var_indices: PyDict::new(py).unbind(),
+        standalone_vars: PyList::empty(py).unbind(),
         vectors: HashMap::new(),
         annotation_handler,
     };
@@ -1911,7 +1996,8 @@ pub fn deserialize_circuit<'py>(
     let instruction_capacity = packed_circuit.instructions.len();
     // create the circuit without qubits and clbits; we'll add registers and then fill in the anon bits yet remaining
     let mut circuit_data = CircuitData::with_capacity(0, 0, instruction_capacity, global_phase)?;
-    add_registers_and_bits(&mut circuit_data, &packed_circuit)?;
+    add_standalone_vars(py, &mut circuit_data, &packed_circuit, &mut qpy_data)?;
+    add_registers_and_bits(&mut circuit_data, &packed_circuit, &mut qpy_data)?;
 
     let custom_instructions = read_custom_instructions(py, &packed_circuit, &mut qpy_data)?;
     for instruction in &packed_circuit.instructions {

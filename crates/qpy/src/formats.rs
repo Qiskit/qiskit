@@ -295,10 +295,13 @@ pub struct GenericDataPack {
     pub data: Bytes,
 }
 
-#[derive(BinWrite, Debug)]
+#[binrw]
+#[derive(Debug)]
 #[brw(big)]
 pub struct GenericDataSequencePack {
+    #[bw(calc = elements.len() as u64)]
     pub num_elements: u64,
+    #[br(count = num_elements)]
     pub elements: Vec<GenericDataPack>,
 }
 
@@ -538,7 +541,7 @@ pub struct MappingItem {
     pub item_bytes: Bytes,
 }
 
-#[derive(BinWrite)]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct RangePack {

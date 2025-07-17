@@ -13,8 +13,7 @@ use pyo3::basic::CompareOp;
 use pyo3::exceptions::PyAttributeError;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::PyComplex;
-use pyo3::types::{PyAny, PyDict, PyIterator};
+use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyTuple};
 use pyo3::PyObject;
 use qiskit_circuit::imports::PARAMETER_SUBS;
 use qiskit_circuit::operations::Param;
@@ -680,10 +679,22 @@ pub fn pack_generic_instruction_param_sequence(
             pack_generic_instruction_param_data(&data_item, qpy_data)
         })
         .collect::<PyResult<_>>()?;
-    Ok(formats::GenericDataSequencePack {
-        num_elements: elements.len() as u64,
-        elements,
-    })
+    Ok(formats::GenericDataSequencePack { elements })
+}
+
+pub fn unpack_generic_instruction_param_sequence_to_tuple(
+    py: Python,
+    packed_sequence: formats::GenericDataSequencePack,
+    qpy_data: &mut QPYData,
+) -> PyResult<Py<PyAny>> {
+    let elements: Vec<Py<PyAny>> = packed_sequence
+        .elements
+        .iter()
+        .map(|data_pack| {
+            load_instruction_param_value(py, data_pack.type_key, &data_pack.data, qpy_data)
+        })
+        .collect::<PyResult<_>>()?;
+    Ok(PyTuple::new(py, elements)?.unbind().into_any())
 }
 
 pub fn dumps_instruction_param_value(
@@ -707,6 +718,41 @@ pub fn dumps_instruction_param_value(
         }
     };
     Ok((type_key, value))
+}
+
+pub fn load_instruction_param_value(
+    py: Python,
+    type_key: u8,
+    data: &Bytes,
+    qpy_data: &mut QPYData,
+) -> PyResult<Py<PyAny>> {
+    Ok(match type_key {
+        tags::INTEGER => {
+            let value = i64::from_le_bytes(data[..8].try_into()?);
+            PyInt::new(py, value).into()
+        }
+        tags::FLOAT => {
+            let value = f64::from_le_bytes(data[..8].try_into()?);
+            PyFloat::new(py, value).into()
+        }
+        tags::TUPLE => unpack_generic_instruction_param_sequence_to_tuple(
+            py,
+            deserialize::<formats::GenericDataSequencePack>(data)?.0,
+            qpy_data,
+        )?,
+        // tags::REGISTER => dumps_register(py_object)?,
+        _ => {
+            DumpedValue {
+                data_type: type_key,
+                data: data.clone(),
+            }
+            .to_python(py, qpy_data)?
+            // return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+            //     "Unhandled type_key {} when deserializing instruction params",
+            //     type_key
+            // )))
+        }
+    })
 }
 
 pub fn pack_param(py: Python, param: &Param, qpy_data: &QPYData) -> PyResult<formats::PackedParam> {
@@ -738,11 +784,19 @@ pub fn unpack_param(
         _ => {
             // TODO cloning the data in order to leverage DumpedValue's converter is far from optimal, we should find
             // as way to use some common interface for both DumpedValue and PackedParam conversions
-            let dumped_value = DumpedValue {
-                data_type: packed_param.type_key,
-                data: packed_param.data.clone(),
-            };
-            Ok(Param::Obj(dumped_value.to_python(py, qpy_data)?))
+            let param_value = load_instruction_param_value(
+                py,
+                packed_param.type_key,
+                &packed_param.data,
+                qpy_data,
+            )?;
+            Ok(Param::Obj(param_value))
+            // let dumped_value = DumpedValue {
+            //     data_type: packed_param.type_key,
+            //     data: packed_param.data.clone(),
+            // };
+            // println!("param as dumpedvalue: {:?}", dumped_value);
+            // Ok(Param::Obj(dumped_value.to_python(py, qpy_data)?))
         }
     }
 }
