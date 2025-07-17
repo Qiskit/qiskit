@@ -91,7 +91,7 @@ Optimizations
    Split2QUnitaries
    RemoveIdentityEquivalent
    ContractIdleWiresInControlFlow
-   LitiskiTransformation
+   LitinskiTransformation
 
 Scheduling
 =============
