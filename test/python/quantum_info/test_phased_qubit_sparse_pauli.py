@@ -204,7 +204,7 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             QubitSparsePauli.from_sparse_label(("XZ", (3, 3)), num_qubits=5)
         with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
             QubitSparsePauli.from_sparse_label(("XYZXZ", (3, 0, 1, 2, 3)), num_qubits=5)
-
+    
     def test_from_pauli(self):
         # This function should be infallible provided `Pauli` doesn't change its interface and the
         # user doesn't violate the typing.

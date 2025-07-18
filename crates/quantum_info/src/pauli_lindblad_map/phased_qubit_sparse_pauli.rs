@@ -133,8 +133,8 @@ impl PhasedQubitSparsePauliView<'_> {
         let num_ys = self.qubit_sparse_pauli_view.num_ys();
         let phase_str = match (self.phase - num_ys).rem_euclid(4) {
             0 => "",
-            1 => "-i",
-            2 => "-",
+            1 => "(-i)",
+            2 => "(-1)",
             3 => "i",
             _ => unreachable!("`x % 4` has only four values"),
         };
@@ -177,6 +177,95 @@ impl PhasedQubitSparsePauli {
             qubit_sparse_pauli: QubitSparsePauli::identity(num_qubits),
             phase: 0
         }
+    }
+    
+    // Composition of two pauli operators self @ other.
+    pub fn compose(&self, other: &PhasedQubitSparsePauli) -> Result<PhasedQubitSparsePauli, ArithmeticError> {
+        if self.num_qubits() != other.num_qubits() {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits(),
+                right: other.num_qubits(),
+            });
+        }
+
+        // if either are proportional to the identity, return a clone of the other with corrected
+        // phase
+        if self.qubit_sparse_pauli.indices().is_empty() {
+            return Ok(PhasedQubitSparsePauli { 
+                qubit_sparse_pauli: other.qubit_sparse_pauli.clone(), 
+                phase: self.phase + other.phase 
+            });
+        }
+
+        if other.qubit_sparse_pauli.indices().is_empty() {
+            return Ok(PhasedQubitSparsePauli { 
+                qubit_sparse_pauli: self.qubit_sparse_pauli.clone(), 
+                phase: self.phase + other.phase 
+            });
+        }
+
+        let mut paulis = Vec::new();
+        let mut indices = Vec::new();
+        let mut new_phase = self.phase + other.phase;
+
+        let mut self_idx = 0;
+        let mut other_idx = 0;
+
+        let self_indices = self.qubit_sparse_pauli.indices();
+        let self_paulis = self.qubit_sparse_pauli.paulis();
+        let other_indices = other.qubit_sparse_pauli.indices();
+        let other_paulis = other.qubit_sparse_pauli.paulis();
+        
+        // iterate through each entry of self and other one time, incrementing based on the ordering
+        // or equality of self_idx and other_idx, until one of them runs out of entries
+        while self_idx < self_indices.len() && other_idx < other_indices.len() {
+            if self_indices[self_idx] < other_indices[other_idx] {
+                // if the current qubit index of self is strictly less than other, append the pauli
+                paulis.push(self_paulis[self_idx]);
+                indices.push(self_indices[self_idx]);
+                self_idx += 1;
+            } else if self_indices[self_idx] == other_indices[other_idx] {
+                // if the indices are the same, perform multiplication and append if non-identity
+                let new_pauli = (self_paulis[self_idx] as u8) ^ (other_paulis[other_idx] as u8);
+                if new_pauli != 0 {
+                    paulis.push(match new_pauli {
+                        0b01 => Ok(Pauli::Z),
+                        0b10 => Ok(Pauli::X),
+                        0b11 => Ok(Pauli::Y),
+                        _ => Err(ArithmeticError::PauliMultiplication { b: new_pauli }),
+                    }?);
+                    indices.push(self_indices[self_idx])
+                }
+                if (self_paulis[self_idx] == Pauli::X || self_paulis[self_idx] == Pauli::Y) && (other_paulis[other_idx] == Pauli::Z || other_paulis[other_idx] == Pauli::Y) {
+                    new_phase += 2;
+                }
+                self_idx += 1;
+                other_idx += 1;
+            } else {
+                // same as the first if block but with roles of self and other reversed
+                paulis.push(other_paulis[other_idx]);
+                indices.push(other_indices[other_idx]);
+                other_idx += 1;
+            }
+        }
+
+        // if any entries remain in either pauli, append them
+        if other_idx != other_indices.len() {
+            paulis.append(&mut other_paulis[other_idx..].to_vec());
+            indices.append(&mut other_indices[other_idx..].to_vec());
+        } else if self_idx != self_indices.len() {
+            paulis.append(&mut self_paulis[self_idx..].to_vec());
+            indices.append(&mut self_indices[self_idx..].to_vec());
+        }
+
+        Ok(PhasedQubitSparsePauli { 
+            qubit_sparse_pauli: unsafe {QubitSparsePauli::new_unchecked(
+                self.num_qubits(),
+                paulis.into_boxed_slice(),
+                indices.into_boxed_slice(),
+            )}, 
+            phase: new_phase
+        })
     }
 
     /// Get a view version of this object.
@@ -353,6 +442,20 @@ impl PyPhasedQubitSparsePauli {
     /// Convert this Pauli into a single element :class:`PhaseddQubitSparsePauliList`.
     fn to_phased_qubit_sparse_pauli_list(&self) -> PyResult<PyPhasedQubitSparsePauliList> {
         Ok(self.inner.to_phased_qubit_sparse_pauli_list().into())
+    }
+
+    /// Composition with another :class:`PhasedQubitSparsePauli`.
+    ///
+    /// Args:
+    ///     other (PhasedQubitSparsePauli): the qubit sparse Pauli to compose with.
+    fn compose(&self, other: PyPhasedQubitSparsePauli) -> PyResult<Self> {
+        Ok(PyPhasedQubitSparsePauli {
+            inner: self.inner.compose(&other.inner)?,
+        })
+    }
+
+    fn __matmul__(&self, other: PyPhasedQubitSparsePauli) -> PyResult<Self> {
+        self.compose(other)
     }
 
     /// Check if `self`` commutes with another qubit sparse pauli.
