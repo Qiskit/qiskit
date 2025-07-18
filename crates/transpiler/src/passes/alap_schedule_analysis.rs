@@ -23,24 +23,24 @@ use rustworkx_core::petgraph::prelude::NodeIndex;
 // This enum takes care of the calculations when the durations are specified
 // either in seconds (as float) or in dt (as integers).
 #[derive(Debug, Clone)]
-pub enum Duration {
+pub enum TimeValue {
     Float(f64),
     Int(u64),
 }
 
-impl Duration {
+impl TimeValue {
     fn as_f64(&self) -> f64 {
         match self {
-            Duration::Float(f) => *f,
-            Duration::Int(i) => *i as f64,
+            TimeValue::Float(f) => *f,
+            TimeValue::Int(i) => *i as f64,
         }
     }
 
-    fn from_f64(value: f64, is_int_type: bool) -> Duration {
+    fn from_f64(value: f64, is_int_type: bool) -> TimeValue {
         if is_int_type {
-            Duration::Int(value as u64)
+            TimeValue::Int(value as u64)
         } else {
-            Duration::Float(value)
+            TimeValue::Float(value)
         }
     }
 }
@@ -48,8 +48,8 @@ impl Duration {
 pub fn run_alap_schedule_analysis(
     dag: &DAGCircuit,
     clbit_write_latency: u64,
-    node_durations: HashMap<NodeIndex, Duration>,
-) -> PyResult<HashMap<NodeIndex, Duration>> {
+    node_durations: HashMap<NodeIndex, TimeValue>,
+) -> PyResult<HashMap<NodeIndex, TimeValue>> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
         return Err(TranspilerError::new_err(
             "ALAP schedule runs on physical circuits only",
@@ -59,7 +59,7 @@ pub fn run_alap_schedule_analysis(
     let is_int_type = node_durations
         .values()
         .next()
-        .map(|d| matches!(d, Duration::Int(_)))
+        .map(|d| matches!(d, TimeValue::Int(_)))
         .unwrap_or(false);
 
     let mut node_start_time: HashMap<NodeIndex, f64> = HashMap::new();
@@ -177,10 +177,10 @@ pub fn run_alap_schedule_analysis(
     // Note that ALAP pass is inversely scheduled, thus
     // t0 is computed by subtracting t1 from the entire circuit duration.
 
-    let mut result: HashMap<NodeIndex, Duration> = HashMap::new();
+    let mut result: HashMap<NodeIndex, TimeValue> = HashMap::new();
     for (node_idx, t1) in node_start_time {
         let final_time = circuit_duration - t1;
-        result.insert(node_idx, Duration::from_f64(final_time, is_int_type));
+        result.insert(node_idx, TimeValue::from_f64(final_time, is_int_type));
     }
 
     Ok(result)
@@ -206,7 +206,7 @@ pub fn py_run_alap_schedule_analysis(
     unit: &str,
 ) -> PyResult<Py<PyDict>> {
     // Extract indices and durations from PyDict
-    let mut op_durations: HashMap<NodeIndex, Duration> = HashMap::new();
+    let mut op_durations: HashMap<NodeIndex, TimeValue> = HashMap::new();
 
     for (py_node, py_duration) in node_durations.iter() {
         let node_idx = py_node
@@ -217,11 +217,11 @@ pub fn py_run_alap_schedule_analysis(
         let op_duration = match unit {
             "dt" => {
                 let val: u64 = py_duration.extract()?;
-                Duration::Int(val)
+                TimeValue::Int(val)
             }
             "s" => {
                 let val: f64 = py_duration.extract()?;
-                Duration::Float(val)
+                TimeValue::Float(val)
             }
             _ => return Err(TranspilerError::new_err("Invalid time unit")),
         };
@@ -234,8 +234,8 @@ pub fn py_run_alap_schedule_analysis(
     for (node_idx, t1) in node_start_time {
         let node = dag.get_node(py, node_idx)?;
         match t1 {
-            Duration::Float(val) => py_dict.set_item(node, val)?,
-            Duration::Int(val) => py_dict.set_item(node, val)?,
+            TimeValue::Float(val) => py_dict.set_item(node, val)?,
+            TimeValue::Int(val) => py_dict.set_item(node, val)?,
         }
     }
 
