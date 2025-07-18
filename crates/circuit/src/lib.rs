@@ -209,7 +209,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_circuit::PyBitLocations>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
-    m.add_class::<parameter::parameter_expression::PyParameterExpression>()?;
+    m.add_class::<parameter::parameter_expression::ParameterExpression>()?;
     m.add_class::<parameter::parameter_expression::PyParameter>()?;
     m.add_class::<parameter::parameter_expression::PyParameterVectorElement>()?;
     m.add_class::<parameter::parameter_expression::OpCode>()?;

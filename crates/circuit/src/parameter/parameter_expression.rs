@@ -75,36 +75,33 @@ impl From<ParameterError> for PyErr {
 ///
 /// This is backed by Qiskit's symbolic expression engine and a cache
 /// for the parameters inside the expression.
-#[pyclass(
-    subclass,
-    sequence,
-    module = "qiskit._accelerate.circuit",
-    name = "ParameterExpression"
-)]
+#[pyclass(subclass, sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
-pub struct PyParameterExpression {
+pub struct ParameterExpression {
     // The symbolic expression.
     pub expr: SymbolExpr,
     // A map keeping track of all symbols, with their name. This map *must* be kept
     // up to date upon any operation performed on the expression.
+    // TODO it would be nicer to just store [Symbol]s as values, which can maybe be done
+    // with a secondary PyParameterExpression storing the [PyParameter] in a map.
     pub name_map: HashMap<String, PyParameter>,
 }
 
-impl Hash for PyParameterExpression {
+impl Hash for ParameterExpression {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.expr.to_string().hash(state);
     }
 }
 
-impl PartialEq for PyParameterExpression {
+impl PartialEq for ParameterExpression {
     fn eq(&self, other: &Self) -> bool {
         self.expr.eq(&other.expr)
     }
 }
 
-impl Eq for PyParameterExpression {}
+impl Eq for ParameterExpression {}
 
-impl Default for PyParameterExpression {
+impl Default for ParameterExpression {
     /// The default constructor returns zero.
     fn default() -> Self {
         Self {
@@ -114,7 +111,7 @@ impl Default for PyParameterExpression {
     }
 }
 
-impl fmt::Display for PyParameterExpression {
+impl fmt::Display for ParameterExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", {
             if let SymbolExpr::Symbol(s) = &self.expr {
@@ -133,31 +130,25 @@ impl fmt::Display for PyParameterExpression {
 ///
 /// If no valid value can be extracted, none is returned (e.g. for inf or nan values).
 #[inline]
-fn _extract_value(value: &Bound<PyAny>) -> Option<PyParameterExpression> {
+fn _extract_value(value: &Bound<PyAny>) -> Option<ParameterExpression> {
     if let Ok(i) = value.extract::<i64>() {
-        Some(PyParameterExpression::new(SymbolExpr::Value(Value::from(
-            i,
-        ))))
+        Some(ParameterExpression::new(SymbolExpr::Value(Value::from(i))))
     } else if let Ok(c) = value.extract::<Complex64>() {
         if c.is_infinite() || c.is_nan() {
             return None;
         }
-        Some(PyParameterExpression::new(SymbolExpr::Value(Value::from(
-            c,
-        ))))
+        Some(ParameterExpression::new(SymbolExpr::Value(Value::from(c))))
     } else if let Ok(r) = value.extract::<f64>() {
         if r.is_infinite() || r.is_nan() {
             return None;
         }
-        Some(PyParameterExpression::new(SymbolExpr::Value(Value::from(
-            r,
-        ))))
+        Some(ParameterExpression::new(SymbolExpr::Value(Value::from(r))))
     } else if let Ok(parameter) = value.extract::<PyParameter>() {
         Some(parameter.symbol.as_expr())
     } else if let Ok(element) = value.extract::<PyParameterVectorElement>() {
         Some(element.symbol.as_expr())
     } else {
-        value.extract::<PyParameterExpression>().ok()
+        value.extract::<ParameterExpression>().ok()
     }
 }
 
@@ -174,7 +165,7 @@ static BINARY_OPS: [OpCode; 8] = [
     OpCode::RPOW,
 ];
 
-impl PyParameterExpression {
+impl ParameterExpression {
     /// Construct from a [SymbolExpr].
     ///
     /// This populates the name map with the symbols in the expression.
@@ -192,7 +183,7 @@ impl PyParameterExpression {
     /// Load from a sequence of [OPReplay]s. Used in serialization.
     pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
         // the stack contains the latest lhs and rhs values
-        let mut stack: Vec<PyParameterExpression> = Vec::new();
+        let mut stack: Vec<ParameterExpression> = Vec::new();
 
         for inst in replay.iter() {
             let OPReplay { op, lhs, rhs } = inst;
@@ -216,7 +207,7 @@ impl PyParameterExpression {
             let lhs = stack.pop().expect("Pop from empty stack");
 
             // apply the operation and put the result onto the stack for the next replay
-            let result: PyParameterExpression = match op {
+            let result: ParameterExpression = match op {
                 OpCode::ADD => lhs.add(&rhs.unwrap())?,
                 OpCode::MUL => lhs.mul(&rhs.unwrap())?,
                 OpCode::SUB => lhs.sub(&rhs.unwrap())?,
@@ -250,7 +241,7 @@ impl PyParameterExpression {
     }
 
     /// Add an expression; ``self + rhs``.
-    pub fn add(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+    pub fn add(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr + &rhs.expr,
@@ -259,7 +250,7 @@ impl PyParameterExpression {
     }
 
     /// Multiply with an expression; ``self * rhs``.
-    pub fn mul(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+    pub fn mul(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr * &rhs.expr,
@@ -268,7 +259,7 @@ impl PyParameterExpression {
     }
 
     /// Subtract another expression; ``self - rhs``.
-    pub fn sub(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+    pub fn sub(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr - &rhs.expr,
@@ -277,7 +268,7 @@ impl PyParameterExpression {
     }
 
     /// Subtract this expression from another one; ``lhs - self``.
-    pub fn rsub(&self, lhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+    pub fn rsub(&self, lhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.update_name_map(lhs)?;
         Ok(Self {
             expr: &lhs.expr - &self.expr,
@@ -286,7 +277,7 @@ impl PyParameterExpression {
     }
 
     /// Divide by another expression; ``self / rhs``.
-    pub fn div(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+    pub fn div(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         if rhs.expr.is_zero() {
             return Err(ParameterError::ZeroDivisionError);
         }
@@ -299,7 +290,7 @@ impl PyParameterExpression {
     }
 
     /// Divide another expression by this one; ``lhs / self``.
-    pub fn rdiv(&self, lhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+    pub fn rdiv(&self, lhs: &ParameterExpression) -> Result<Self, ParameterError> {
         if self.expr.is_zero() {
             return Err(ParameterError::ZeroDivisionError);
         }
@@ -312,7 +303,7 @@ impl PyParameterExpression {
     }
 
     /// Raise this expression to a power; ``self ^ rhs``.
-    pub fn pow(&self, rhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+    pub fn pow(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: self.expr.pow(&rhs.expr),
@@ -321,7 +312,7 @@ impl PyParameterExpression {
     }
 
     /// Raise an expression to the power of this expression; ``lhs ^ self``.
-    pub fn rpow(&self, lhs: &PyParameterExpression) -> Result<Self, ParameterError> {
+    pub fn rpow(&self, lhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.update_name_map(lhs)?;
         Ok(Self {
             expr: lhs.expr.pow(&self.expr),
@@ -663,7 +654,7 @@ impl PyParameterExpression {
 }
 
 #[pymethods]
-impl PyParameterExpression {
+impl ParameterExpression {
     /// This is a **strictly internal** constructor and **should not be used**.
     /// It is subject to arbitrary change in between Qiskit versions and cannot be relied on.
     /// Parameter expressions should always be constructed from applying operations on
@@ -691,7 +682,7 @@ impl PyParameterExpression {
                     .collect();
                 replace_symbol(&mut expr, &symbol_map);
 
-                Ok(PyParameterExpression { expr, name_map })
+                Ok(ParameterExpression { expr, name_map })
             }
             _ => Err(PyValueError::new_err(
                 "Pass either both a name_map and expr, or neither",
@@ -1303,7 +1294,7 @@ impl PyParameterExpression {
 ///         bc = qc.assign_parameters({phi: 3.14})
 ///         bc.measure_all()
 ///         bc.draw("mpl")
-#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
+#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=ParameterExpression, name="Parameter")]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub struct PyParameter {
     pub symbol: Symbol,
@@ -1325,7 +1316,7 @@ impl<'py> IntoPyObject<'py> for PyParameter {
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let symbol = &self.symbol;
         let expr = SymbolExpr::Symbol(symbol.clone());
-        let py_expr = PyParameterExpression::new(expr);
+        let py_expr = ParameterExpression::new(expr);
 
         Ok(Py::new(py, (self, py_expr))?.into_bound(py))
     }
@@ -1339,7 +1330,7 @@ impl PyParameter {
         let py_parameter = Self {
             symbol: symbol.clone(),
         };
-        let py_expr = PyParameterExpression::new(expr);
+        let py_expr = ParameterExpression::new(expr);
 
         PyClassInitializer::from(py_expr).add_subclass(py_parameter)
     }
@@ -1368,9 +1359,15 @@ impl PyParameter {
         let expr = SymbolExpr::Symbol(symbol.clone());
 
         let py_parameter = Self { symbol };
-        let py_expr = PyParameterExpression::new(expr);
+        let py_expr = ParameterExpression::new(expr);
 
         Ok(PyClassInitializer::from(py_expr).add_subclass(py_parameter))
+    }
+
+    /// Returns the name of the :class:`.Parameter`.
+    #[getter]
+    fn name<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
+        self.symbol.py_name(py)
     }
 
     /// Returns the :class:`~uuid.UUID` of the :class:`Parameter`.
@@ -1498,7 +1495,7 @@ impl PyParameter {
         parameter: PyParameter,
         value: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if value.downcast::<PyParameterExpression>().is_ok() {
+        if value.downcast::<ParameterExpression>().is_ok() {
             let map = [(parameter, value.clone())].into_iter().collect();
             self.py_subs(py, map, false)
         } else if value.extract::<Value>().is_ok() {
@@ -1724,7 +1721,7 @@ impl ParameterValueType {
     }
 }
 
-impl From<ParameterValueType> for PyParameterExpression {
+impl From<ParameterValueType> for ParameterExpression {
     fn from(value: ParameterValueType) -> Self {
         match value {
             ParameterValueType::Parameter(param) => {
@@ -1878,7 +1875,7 @@ impl OPReplay {
 fn filter_name_map(
     sub_expr: &SymbolExpr,
     name_map: &HashMap<String, PyParameter>,
-) -> PyParameterExpression {
+) -> ParameterExpression {
     let sub_symbols = sub_expr.parameters();
     let restricted_name_map: HashMap<String, PyParameter> = name_map
         .iter()
@@ -1886,14 +1883,14 @@ fn filter_name_map(
         .map(|(name, param)| (name.clone(), param.clone()))
         .collect();
 
-    PyParameterExpression {
+    ParameterExpression {
         expr: sub_expr.clone(),
         name_map: restricted_name_map,
     }
 }
 
 pub fn qpy_replay(
-    expr: &PyParameterExpression,
+    expr: &ParameterExpression,
     name_map: &HashMap<String, PyParameter>,
     replay: &mut Vec<OPReplay>,
 ) {

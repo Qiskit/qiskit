@@ -24,7 +24,7 @@ use uuid::Uuid;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 
-use super::parameter_expression::PyParameterExpression;
+use super::parameter_expression::ParameterExpression;
 
 // epsilon for SymbolExpr is heuristically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
@@ -113,9 +113,9 @@ impl Symbol {
         self.uuid.as_u128()
     }
 
-    pub fn as_expr(&self) -> PyParameterExpression {
+    pub fn as_expr(&self) -> ParameterExpression {
         let expr = SymbolExpr::Symbol(self.clone());
-        PyParameterExpression::new(expr)
+        ParameterExpression::new(expr)
     }
 
     pub fn __str__<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
