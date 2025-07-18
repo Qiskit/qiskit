@@ -183,7 +183,12 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisNoAuxV24`
       - `0`
       - `0`
-      - quadratic number of CX gates; use instead of ``"gray_code"`` for large values of `k`
+      - quadratic number of CX gates
+    * - ``"noaux_hp24"``
+      - :class:`~.MCXSynthesisNoAuxHP24`
+      - `0`
+      - `0`
+      - linear number of CX gates; use instead of ``"noaux_v24"`` or ``"gray_code"`` for `k>5`
     * - ``"n_clean_m15"``
       - :class:`~.MCXSynthesisNCleanM15`
       - `k-2`
