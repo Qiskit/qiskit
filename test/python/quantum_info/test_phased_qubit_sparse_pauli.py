@@ -75,16 +75,16 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
         self.assertEqual(PhasedQubitSparsePauli(with_phase).phase, 1)
 
         self.assertEqual(PhasedQubitSparsePauli(Pauli("")), PhasedQubitSparsePauli.from_pauli(Pauli("")))
-    '''
+    
     def test_default_constructor_label(self):
         data = "IXIIZ"
-        self.assertEqual(QubitSparsePauli(data), QubitSparsePauli.from_label(data))
-        self.assertEqual(QubitSparsePauli(data, num_qubits=5), QubitSparsePauli.from_label(data))
+        self.assertEqual(PhasedQubitSparsePauli(data), PhasedQubitSparsePauli.from_label(data))
+        self.assertEqual(PhasedQubitSparsePauli(data, num_qubits=5), PhasedQubitSparsePauli.from_label(data))
         with self.assertRaisesRegex(ValueError, "does not match label"):
-            QubitSparsePauli(data, num_qubits=4)
+            PhasedQubitSparsePauli(data, num_qubits=4)
         with self.assertRaisesRegex(ValueError, "does not match label"):
-            QubitSparsePauli(data, num_qubits=6)
-
+            PhasedQubitSparsePauli(data, num_qubits=6)
+    '''
     def test_default_constructor_sparse_label(self):
         data = ("ZX", (0, 3))
         self.assertEqual(
@@ -101,25 +101,25 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             QubitSparsePauli(("", []), num_qubits=5),
             QubitSparsePauli.from_sparse_label(("", []), num_qubits=5),
         )
-
+    '''
     def test_from_label(self):
         # The label is interpreted like a bitstring, with the right-most item associated with qubit
         # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
         self.assertEqual(
             # Ruler for counting terms:  dcba9876543210
-            QubitSparsePauli.from_label("IXXIIZZIYYIXYZ"),
+            PhasedQubitSparsePauli.from_label("IXXIIZZIYYIXYZ"),
             QubitSparsePauli.from_raw_parts(
                 14,
                 [
-                    QubitSparsePauli.Pauli.Z,
-                    QubitSparsePauli.Pauli.Y,
-                    QubitSparsePauli.Pauli.X,
-                    QubitSparsePauli.Pauli.Y,
-                    QubitSparsePauli.Pauli.Y,
-                    QubitSparsePauli.Pauli.Z,
-                    QubitSparsePauli.Pauli.Z,
-                    QubitSparsePauli.Pauli.X,
-                    QubitSparsePauli.Pauli.X,
+                    PhasedQubitSparsePauli.Pauli.Z,
+                    PhasedQubitSparsePauli.Pauli.Y,
+                    PhasedQubitSparsePauli.Pauli.X,
+                    PhasedQubitSparsePauli.Pauli.Y,
+                    PhasedQubitSparsePauli.Pauli.Y,
+                    PhasedQubitSparsePauli.Pauli.Z,
+                    PhasedQubitSparsePauli.Pauli.Z,
+                    PhasedQubitSparsePauli.Pauli.X,
+                    PhasedQubitSparsePauli.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5, 7, 8, 11, 12],
             ),
@@ -128,11 +128,11 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
     def test_from_label_failures(self):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Bad letters that are still ASCII.
-            QubitSparsePauli.from_label("I+-$%I")
+            PhasedQubitSparsePauli.from_label("I+-$%I")
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Unicode shenangigans.
-            QubitSparsePauli.from_label("🐍")
-
+            PhasedQubitSparsePauli.from_label("🐍")
+    '''
     def test_from_sparse_label(self):
         self.assertEqual(
             QubitSparsePauli.from_sparse_label(("XY", (0, 1)), num_qubits=5),
