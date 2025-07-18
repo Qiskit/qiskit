@@ -35,12 +35,12 @@ use qiskit_circuit::imports::TRANSPILE_LAYOUT;
 pub struct TranspileLayout {
     /// The initial layout which is mapping the virtual qubits in the input circuit to the
     /// transpiler to the physical qubits used on the transpilation target
-    initial_layout: Option<NLayout>,
+    pub initial_layout: Option<NLayout>,
     /// The optional routing permutation that
     /// represents the permutation caused by routing or permutation elision during
     /// transpilation. This vector maps the qubits at the start of the circuit to their
     /// final position/physical qubit at the end of the circuit.
-    output_permutation: Option<Vec<Qubit>>,
+    pub output_permutation: Option<Vec<Qubit>>,
     /// The virtual qubits [`ShareableQubit`] objects from the input circuit to the transpiler.
     /// This vec should be arranged in order as in the original circuit, the index of the `Vec`
     /// corresponds to the [`VirtualQubit`] in the `initial_layout` attribute. This should include
