@@ -81,3 +81,5 @@ prefix_with_name = true
 "VF2LayoutResult" = "QkVF2LayoutResult"
 "ElidePermutationsResult" = "QkElidePermutationsResult"
 "TranspileLayout" = "QkTranspileLayout"
+"TranspileResult" = "QkTranspileResult"
+"TranspileOptions" = "QkTranspileOptions"
