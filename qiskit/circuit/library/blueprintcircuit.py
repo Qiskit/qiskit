@@ -318,6 +318,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         cpy._data = self._data.copy()
 
         if name is not None:
+            cpy._base_name = name
             cpy.name = name
 
         return cpy
