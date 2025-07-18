@@ -21,10 +21,8 @@ from test import QiskitTestCase
 
 import ddt
 
-HAS_SYMPY = False
-
-from qiskit._accelerate.circuit import ParameterExpression
-from qiskit._accelerate.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.utils.optionals import HAS_SYMPY
 
 param_x = Parameter("x")
 param_y = Parameter("y")
@@ -469,7 +467,7 @@ class TestParameterExpression(QiskitTestCase):
         c = Parameter("c")
         d = Parameter("d")
 
-        expression = (a + b.sin() / 4) * c**2
+        expression = (a + b.sin() * 0.25) * c**2
         final_expr = (
             (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
             + expression.gradient(a)
@@ -485,7 +483,7 @@ class TestParameterExpression(QiskitTestCase):
         b = sympy.Symbol("b")
         c = sympy.Symbol("c")
         d = sympy.Symbol("d")
-        expression = (a + sympy.sin(b) / 4) * c**2
+        expression = (a + sympy.sin(b) * 0.25) * c**2
         expected = (
             (sympy.cos(expression) + sympy.acos(d) - sympy.asin(d) + sympy.atan(d) + sympy.tan(d))
             / sympy.exp(d)
@@ -496,4 +494,5 @@ class TestParameterExpression(QiskitTestCase):
         )
         expected = sympy.Abs(expected)
         expected = expected.subs({c: a})
+
         self.assertEqual(result, expected)

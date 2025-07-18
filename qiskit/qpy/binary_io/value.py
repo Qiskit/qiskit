@@ -18,6 +18,7 @@ import collections.abc
 import io
 import struct
 import uuid
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -26,13 +27,26 @@ from qiskit.circuit.classical import expr, types
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import (
     ParameterExpression,
+    ParameterValueType,
+    OpCode,
     op_code_to_method,
-    _OPCode,
-    _SUBS,
 )
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
+
+
+@dataclass
+class _INSTRUCTION:
+    op: OpCode
+    lhs: ParameterValueType | None
+    rhs: ParameterValueType | None = None
+
+
+@dataclass
+class _SUBS:
+    binds: dict
+    op: OpCode = OpCode.SUBSTITUTE
 
 
 def _write_parameter(file_obj, obj):
@@ -689,7 +703,7 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             )
         if expression_data.OP_CODE == 255:
             continue
-        method_str = op_code_to_method(_OPCode(expression_data.OP_CODE))
+        method_str = op_code_to_method(expression_data.OP_CODE)
         if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
             rhs = stack.pop()
             lhs = stack.pop()
