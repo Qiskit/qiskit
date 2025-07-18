@@ -414,6 +414,34 @@ impl PyPhasedQubitSparsePauli {
         Ok(inner.into())
     }
 
+    /// Construct from a dense string label.
+    ///
+    /// The label must be a sequence of the alphabet ``'IXYZ'``.  The label is interpreted
+    /// analogously to a bitstring.  In other words, the right-most letter is associated with qubit
+    /// 0, and so on.  This is the same as the labels for :class:`~.quantum_info.Pauli` and
+    /// :class:`.SparsePauliOp`.
+    ///
+    /// Args:
+    ///     label (str): the dense label.
+    ///
+    /// Examples:
+    ///
+    ///     .. code-block:: python
+    ///
+    ///         >>> QubitSparsePauli.from_label("IIIIXZI")
+    ///         <QubitSparsePauli on 7 qubits: X_2 Z_1>
+    ///         >>> label = "IYXZI"
+    ///         >>> pauli = Pauli(label)
+    ///         >>> assert QubitSparsePauli.from_label(label) == QubitSparsePauli.from_pauli(pauli)
+    //#[staticmethod]
+    //#[pyo3(signature = (label, /))]
+    //fn from_label(label: &str) -> PyResult<Self> {
+    //    
+    //    let temp_pauli: PyQubitSparsePauli = PyQubitSparsePauli::from_label(label)?;
+
+
+    //}
+
 
     /// Get the identity operator for a given number of qubits.
     ///

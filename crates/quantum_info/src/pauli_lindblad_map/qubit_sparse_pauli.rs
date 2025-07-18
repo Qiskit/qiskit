@@ -636,6 +636,32 @@ impl QubitSparsePauli {
         })
     }
 
+    pub fn from_dense_label(label: &str) -> Result<QubitSparsePauli, LabelError> {
+        let label: &[u8] = label.as_ref();
+        let num_qubits = label.len() as u32;
+        let mut paulis = Vec::new();
+        let mut indices = Vec::new();
+        // The only valid characters in the alphabet are ASCII, so if we see something other than
+        // ASCII, we're already in the failure path.
+        for (i, letter) in label.iter().rev().enumerate() {
+            match Pauli::try_from_u8(*letter) {
+                Ok(Some(term)) => {
+                    paulis.push(term);
+                    indices.push(i as u32);
+                }
+                Ok(None) => (),
+                Err(_) => {
+                    return Err(LabelError::OutsideAlphabet);
+                }
+            }
+        }
+        Ok(unsafe {QubitSparsePauli::new_unchecked(
+            num_qubits,
+            paulis.into_boxed_slice(),
+            indices.into_boxed_slice(),
+        )})
+    }
+
     /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
     ///
     /// # Safety
@@ -1231,29 +1257,7 @@ impl PyQubitSparsePauli {
     #[staticmethod]
     #[pyo3(signature = (label, /))]
     fn from_label(label: &str) -> PyResult<Self> {
-        let label: &[u8] = label.as_ref();
-        let num_qubits = label.len() as u32;
-        let mut paulis = Vec::new();
-        let mut indices = Vec::new();
-        // The only valid characters in the alphabet are ASCII, so if we see something other than
-        // ASCII, we're already in the failure path.
-        for (i, letter) in label.iter().rev().enumerate() {
-            match Pauli::try_from_u8(*letter) {
-                Ok(Some(term)) => {
-                    paulis.push(term);
-                    indices.push(i as u32);
-                }
-                Ok(None) => (),
-                Err(_) => {
-                    return Err(PyErr::from(LabelError::OutsideAlphabet));
-                }
-            }
-        }
-        let inner = QubitSparsePauli::new(
-            num_qubits,
-            paulis.into_boxed_slice(),
-            indices.into_boxed_slice(),
-        )?;
+        let inner = QubitSparsePauli::from_dense_label(label)?;
         Ok(inner.into())
     }
 
