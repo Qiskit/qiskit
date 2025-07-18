@@ -18,6 +18,10 @@ pub mod standard_gates_commutations;
 pub mod target;
 pub mod transpile_layout;
 
+mod transpiler;
+
+pub use transpiler::transpile;
+
 mod gate_metrics;
 
 use pyo3::import_exception_bound;
