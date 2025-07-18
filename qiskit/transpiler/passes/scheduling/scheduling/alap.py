@@ -38,7 +38,8 @@ class ALAPScheduleAnalysis(BaseScheduler):
             TranspilerError: if conditional bit is added to non-supported instruction.
         """
 
-        if self.property_set["time_unit"] == "stretch":
+        unit = self.property_set["time_unit"]
+        if unit == "stretch":
             raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
 
         node_durations = {
@@ -46,7 +47,7 @@ class ALAPScheduleAnalysis(BaseScheduler):
         }
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
         self.property_set["node_start_time"] = alap_schedule_analysis(
-            dag, clbit_write_latency, node_durations
+            dag, clbit_write_latency, node_durations, unit
         )
 
         return dag

@@ -14,22 +14,53 @@ use crate::TranspilerError;
 use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::dag_node::DAGNode;
+use qiskit_circuit::dag_circuit::{DAGCircuit, Wire};
+use qiskit_circuit::dag_node::{DAGNode, DAGOpNode};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
+// This enum takes care of the calculations when the durations are specified
+// either in seconds (as float) or in dt (as integers).
+#[derive(Debug, Clone)]
+pub enum Duration {
+    Float(f64),
+    Int(u64),
+}
+
+impl Duration {
+    fn as_f64(&self) -> f64 {
+        match self {
+            Duration::Float(f) => *f,
+            Duration::Int(i) => *i as f64,
+        }
+    }
+
+    fn from_f64(value: f64, is_int_type: bool) -> Duration {
+        if is_int_type {
+            Duration::Int(value as u64)
+        } else {
+            Duration::Float(value)
+        }
+    }
+}
+
 pub fn run_alap_schedule_analysis(
     dag: &DAGCircuit,
     clbit_write_latency: u64,
-    node_durations: HashMap<NodeIndex, f64>,
-) -> PyResult<HashMap<NodeIndex, f64>> {
+    node_durations: HashMap<NodeIndex, Duration>,
+) -> PyResult<HashMap<NodeIndex, Duration>> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
         return Err(TranspilerError::new_err(
             "ALAP schedule runs on physical circuits only",
         ));
     }
+
+    let is_int_type = node_durations
+        .values()
+        .next()
+        .map(|d| matches!(d, Duration::Int(_)))
+        .unwrap_or(false);
 
     let mut node_start_time: HashMap<NodeIndex, f64> = HashMap::new();
     let mut idle_before: HashMap<Wire, f64> = HashMap::new();
@@ -52,10 +83,7 @@ pub fn run_alap_schedule_analysis(
         .into_iter()
         .rev()
     {
-        let op = match dag.dag().node_weight(node_index) {
-            Some(NodeType::Operation(op)) => op,
-            _ => panic!("topological_op_nodes() should only return instances of DagOpNode."),
-        };
+        let op = dag[node_index].unwrap_operation();
 
         let qargs: Vec<Wire> = dag
             .qargs_interner()
@@ -70,12 +98,15 @@ pub fn run_alap_schedule_analysis(
             .map(|&c| Wire::Clbit(c))
             .collect();
 
-        let op_duration = *node_durations.get(&node_index).ok_or_else(|| {
-            TranspilerError::new_err(format!(
-                "No duration for node index {} in node_durations",
-                node_index.index()
-            ))
-        })?;
+        let op_duration = node_durations
+            .get(&node_index)
+            .ok_or_else(|| {
+                TranspilerError::new_err(format!(
+                    "No duration for node index {} in node_durations",
+                    node_index.index()
+                ))
+            })?
+            .as_f64();
 
         let op_view = op.op.view();
         let is_gate_or_delay = matches!(
@@ -146,11 +177,13 @@ pub fn run_alap_schedule_analysis(
     // Note that ALAP pass is inversely scheduled, thus
     // t0 is computed by subtracting t1 from the entire circuit duration.
 
-    for (_, t1) in node_start_time.iter_mut() {
-        *t1 = circuit_duration - *t1;
+    let mut result: HashMap<NodeIndex, Duration> = HashMap::new();
+    for (node_idx, t1) in node_start_time {
+        let final_time = circuit_duration - t1;
+        result.insert(node_idx, Duration::from_f64(final_time, is_int_type));
     }
 
-    Ok(node_start_time)
+    Ok(result)
 }
 
 #[pyfunction]
@@ -164,23 +197,34 @@ pub fn run_alap_schedule_analysis(
 /// Returns:
 ///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time.
 ///
-#[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations))]
+#[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations, unit))]
 pub fn py_run_alap_schedule_analysis(
     py: Python,
     dag: &DAGCircuit,
     clbit_write_latency: u64,
     node_durations: &Bound<PyDict>,
+    unit: &str,
 ) -> PyResult<Py<PyDict>> {
     // Extract indices and durations from PyDict
-    let mut op_durations: HashMap<NodeIndex, f64> = HashMap::new();
+    let mut op_durations: HashMap<NodeIndex, Duration> = HashMap::new();
 
     for (py_node, py_duration) in node_durations.iter() {
         let node_idx = py_node
+            .downcast_into::<DAGOpNode>()?
             .extract::<DAGNode>()?
             .node
             .expect("Node index not found.");
-        let op_duration: f64 = py_duration.extract()?;
-
+        let op_duration = match unit {
+            "dt" => {
+                let val: u64 = py_duration.extract()?;
+                Duration::Int(val)
+            }
+            "s" => {
+                let val: f64 = py_duration.extract()?;
+                Duration::Float(val)
+            }
+            _ => return Err(TranspilerError::new_err("Invalid time unit")),
+        };
         op_durations.insert(node_idx, op_duration);
     }
 
@@ -189,10 +233,9 @@ pub fn py_run_alap_schedule_analysis(
     let py_dict = PyDict::new(py);
     for (node_idx, t1) in node_start_time {
         let node = dag.get_node(py, node_idx)?;
-        if t1.fract() == 0.0 {
-            py_dict.set_item(node, t1 as u64)?;
-        } else {
-            py_dict.set_item(node, t1)?;
+        match t1 {
+            Duration::Float(val) => py_dict.set_item(node, val)?,
+            Duration::Int(val) => py_dict.set_item(node, val)?,
         }
     }
 
