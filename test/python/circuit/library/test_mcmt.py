@@ -20,7 +20,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter
 from qiskit.circuit.library import (
-    ZGate,
     MCMT,
     MCMTVChain,
     CHGate,
