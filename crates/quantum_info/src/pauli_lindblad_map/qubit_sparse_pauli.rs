@@ -1527,7 +1527,7 @@ impl PyQubitSparsePauli {
     // :class:`QubitSparsePauliList`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+    pub fn Pauli(py: Python) -> PyResult<Py<PyType>> {
         PAULI_PY_ENUM
             .get_or_try_init(py, || make_py_pauli(py))
             .map(|obj| obj.clone_ref(py))

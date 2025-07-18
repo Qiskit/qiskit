@@ -29,17 +29,17 @@ use std::{
 use thiserror::Error;
 
 use qiskit_circuit::{
-    imports::ImportOnceCell,
-    slice::{PySequenceIndex, SequenceIndex},
+    bit::PyQubit, imports::ImportOnceCell, slice::{PySequenceIndex, SequenceIndex}
 };
 
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliView,
+    QubitSparsePauliList, QubitSparsePauliView
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
+static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
 
 /// A list of Pauli operators stored in a qubit-sparse format.
 ///
@@ -332,17 +332,17 @@ impl PyPhasedQubitSparsePauli {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
-        //if let Ok(label) = data.extract::<String>() {
-        //    let num_qubits = num_qubits.unwrap_or(label.len() as u32);
-        //    if num_qubits as usize != label.len() {
-        //        return Err(PyValueError::new_err(format!(
-        //            "explicitly given 'num_qubits' ({}) does not match label ({})",
-        //            num_qubits,
-        //            label.len(),
-        //        )));
-        //    }
-        //    return Self::from_label(&label);
-        //}
+        if let Ok(label) = data.extract::<String>() {
+            let num_qubits = num_qubits.unwrap_or(label.len() as u32);
+            if num_qubits as usize != label.len() {
+                return Err(PyValueError::new_err(format!(
+                    "explicitly given 'num_qubits' ({}) does not match label ({})",
+                    num_qubits,
+                    label.len(),
+                )));
+            }
+            return Self::from_label(&label);
+        }
         //if let Ok(sparse_label) = data.extract() {
         //    let Some(num_qubits) = num_qubits else {
         //        return Err(PyValueError::new_err(
@@ -433,14 +433,18 @@ impl PyPhasedQubitSparsePauli {
     ///         >>> label = "IYXZI"
     ///         >>> pauli = Pauli(label)
     ///         >>> assert QubitSparsePauli.from_label(label) == QubitSparsePauli.from_pauli(pauli)
-    //#[staticmethod]
-    //#[pyo3(signature = (label, /))]
-    //fn from_label(label: &str) -> PyResult<Self> {
-    //    
-    //    let temp_pauli: PyQubitSparsePauli = PyQubitSparsePauli::from_label(label)?;
+    #[staticmethod]
+    #[pyo3(signature = (label, /))]
+    fn from_label(label: &str) -> PyResult<Self> {
+        
+        let qubit_sparse_pauli: QubitSparsePauli = QubitSparsePauli::from_dense_label(label)?;
 
-
-    //}
+        let inner = PhasedQubitSparsePauli {
+            qubit_sparse_pauli: qubit_sparse_pauli,
+            phase: 0
+        };
+        Ok(inner.into())
+    }
 
 
     /// Get the identity operator for a given number of qubits.
@@ -549,10 +553,53 @@ impl PyPhasedQubitSparsePauli {
         self.clone()
     }
 
+    /// Read-only view onto the individual single-qubit terms.
+    ///
+    /// The only valid values in the array are those with a corresponding
+    /// :class:`~QubitSparsePauli.Pauli`.
+    #[getter]
+    fn get_paulis(slf_: Bound<Self>) -> Bound<PyArray1<u8>> {
+        let borrowed = slf_.borrow();
+        let paulis = borrowed.inner.qubit_sparse_pauli.paulis();
+        let arr = ::ndarray::aview1(::bytemuck::cast_slice::<_, u8>(paulis));
+        // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
+        // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
+        // `Box<[Pauli]>` allocation (including dropping or reallocating it) other than the entire
+        // object getting dropped, which Python will keep safe.
+        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
+        out.readwrite().make_nonwriteable();
+        out
+    }
+
     /// The number of qubits the term is defined on.
     #[getter]
     fn get_num_qubits(&self) -> u32 {
         self.inner.num_qubits()
+    }
+
+    /// Read-only view onto the indices of each non-identity single-qubit term.
+    ///
+    /// The indices will always be in sorted order.
+    #[getter]
+    fn get_indices(slf_: Bound<Self>) -> Bound<PyArray1<u32>> {
+        let borrowed = slf_.borrow();
+        let indices = borrowed.inner.qubit_sparse_pauli.indices();
+        let arr = ::ndarray::aview1(indices);
+        // SAFETY: in order to call this function, the lifetime of `self` must be managed by Python.
+        // We tie the lifetime of the array to `slf_`, and there are no public ways to modify the
+        // `Box<[u32]>` allocation (including dropping or reallocating it) other than the entire
+        // object getting dropped, which Python will keep safe.
+        let out = unsafe { PyArray1::borrow_from_array(&arr, slf_.into_any()) };
+        out.readwrite().make_nonwriteable();
+        out
+    }
+
+    // The documentation for this is inlined into the class-level documentation of
+    // :class:`QubitSparsePauliList`.
+    #[allow(non_snake_case)]
+    #[classattr]
+    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+        PyQubitSparsePauli::Pauli(py)
     }
 }
 
