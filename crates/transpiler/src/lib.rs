@@ -15,6 +15,10 @@ pub mod equivalence;
 pub mod passes;
 pub mod target;
 
+mod transpiler;
+
+pub use transpiler::transpile;
+
 mod gate_metrics;
 
 use pyo3::import_exception_bound;
