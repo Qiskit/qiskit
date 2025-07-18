@@ -33,14 +33,13 @@ use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
 use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
-    operations::{Operation, OperationRef},
+    operations::{Operation, OperationRef, PythonOperation},
 };
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -478,7 +477,7 @@ fn apply_translation(
     >,
 ) -> PyResult<(DAGCircuit, bool)> {
     let mut is_updated = false;
-    let out_dag = dag.copy_empty_like("alike")?;
+    let out_dag = dag.copy_empty_like(VarsMode::Alike)?;
     let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes()? {
         let node_obj = dag[node].unwrap_operation();
@@ -497,8 +496,7 @@ fn apply_translation(
                 let blocks = bound_obj.getattr("blocks")?;
                 for block in blocks.try_iter()? {
                     let block = block?;
-                    let dag_block: DAGCircuit =
-                        circuit_to_dag(py, block.extract()?, true, None, None)?;
+                    let dag_block: DAGCircuit = circuit_to_dag(block.extract()?, true, None, None)?;
                     let updated_dag: DAGCircuit;
                     (updated_dag, is_updated) = apply_translation(
                         py,
@@ -621,10 +619,13 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
-            } else {
-                inner_node.op.clone()
+            let new_op = match inner_node.op.view() {
+                OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
+                OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
+                OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
             };
             let new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
@@ -665,11 +666,15 @@ fn replace_node(
                 .iter()
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
-            let new_op = if inner_node.op.try_standard_gate().is_none() {
-                inner_node.op.py_copy(py)?
-            } else {
-                inner_node.op.clone()
+            let new_op: PackedOperation = match inner_node.op.view() {
+                OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
+                OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
+                OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
+                OperationRef::StandardGate(gate) => gate.into(),
+                OperationRef::StandardInstruction(instruction) => instruction.into(),
+                OperationRef::Unitary(unitary) => unitary.clone().into(),
             };
+
             let mut new_params: SmallVec<[Param; 3]> = inner_node
                 .params_view()
                 .iter()

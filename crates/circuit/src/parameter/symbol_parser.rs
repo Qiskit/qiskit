@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-/// Parser for equation strings to generate symbolic expression
+//! Parser for equation strings to generate symbolic expression
+use std::sync::Arc;
+
 use nom::branch::{alt, permutation};
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1, multispace0};
@@ -53,22 +55,18 @@ fn alphanumeric1(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
 
 fn parse_symbol_string(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
     recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0_count(alt((alphanumeric1, tag("_")))),
+        alt((alpha1, tag("_"), tag("\\"), tag("$"))),
+        many0_count(alt((alphanumeric1, tag("_"), tag("\\"), tag("$")))),
     ))
     .parse(s)
 }
 
-fn parse_mpl_special_char(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    recognize(tuple((tag("$\\"), alpha1, tag("$")))).parse(s)
-}
-
 // parse string as symbol
-// symbol starting with alphabet and can contain numbers and '_', '[', ']'
+// symbol starting with alphabet and can contain numbers and '_', '\', '$', '[', ']'
 fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     map_res(
         tuple((
-            alt((parse_mpl_special_char, parse_symbol_string)),
+            parse_symbol_string,
             opt(delimited(char('['), digit1, char(']'))),
         )),
         |(v, array_idx)| -> Result<SymbolExpr, &str> {
@@ -77,7 +75,7 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                     // currently array index is stored as string
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
-                    let s = format!("{}[{}]", v, i);
+                    let s = format!("{v}[{i}]");
                     Ok(SymbolExpr::Symbol(Symbol::new(&s, None, None)))
                 }
                 None => Ok(SymbolExpr::Symbol(Symbol::new(v, None, None))),
@@ -108,11 +106,13 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                 "log" => UnaryOp::Log,
                 "exp" => UnaryOp::Exp,
                 "sign" => UnaryOp::Sign,
+                "conjugate" => UnaryOp::Conj,
+                "abs" => UnaryOp::Abs,
                 &_ => return Err("unsupported unary operation found."),
             };
             Ok(SymbolExpr::Unary {
                 op,
-                expr: Box::new(expr),
+                expr: Arc::new(expr),
             })
         },
     )(s)
@@ -141,7 +141,7 @@ fn parse_sign(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
             } else {
                 Ok(SymbolExpr::Unary {
                     op: UnaryOp::Neg,
-                    expr: Box::new(expr),
+                    expr: Arc::new(expr),
                 })
             }
         },
@@ -250,7 +250,7 @@ pub fn parse_expression(s: &str) -> Result<SymbolExpr, String> {
         Ok(o) => Ok(o.1),
         Err(e) => match e {
             nom::Err::Error(e) => Err(convert_error(s, e)),
-            _ => Err(format!(" Error occurs while parsing expression {}.", s)),
+            _ => Err(format!(" Error occurs while parsing expression {s}.")),
         },
     }
 }

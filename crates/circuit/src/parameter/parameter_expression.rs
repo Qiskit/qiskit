@@ -21,6 +21,7 @@ use uuid::Uuid;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
@@ -674,15 +675,18 @@ impl ParameterExpression {
                 // the user provided. The replacement relies on the names to match.
                 // This is hacky and we likely want a more reliably conversion from a SymPy object,
                 // if we decide we want to continue supporting this.
-                let mut expr = parse_expression(&expr)
+                let expr = parse_expression(&expr)
                     .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
                 let symbol_map: HashMap<String, Symbol> = name_map
                     .iter()
                     .map(|(string, param)| (string.clone(), param.symbol.clone()))
                     .collect();
-                replace_symbol(&mut expr, &symbol_map);
 
-                Ok(ParameterExpression { expr, name_map })
+                let replaced_expr = replace_symbol(&expr, &symbol_map);
+                Ok(ParameterExpression {
+                    expr: replaced_expr,
+                    name_map,
+                })
             }
             _ => Err(PyValueError::new_err(
                 "Pass either both a name_map and expr, or neither",
@@ -1994,21 +1998,25 @@ pub fn qpy_replay(
 
 /// Replace [Symbol]s in a [SymbolExpr] according to the name map. This
 /// is used to reconstruct a parameter expression from a string.
-fn replace_symbol(symbol_expr: &mut SymbolExpr, name_map: &HashMap<String, Symbol>) {
+fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> SymbolExpr {
     match symbol_expr {
         SymbolExpr::Symbol(existing_symbol) => {
             let name = existing_symbol.name();
             if let Some(new_symbol) = name_map.get(&name) {
-                *symbol_expr = SymbolExpr::Symbol(new_symbol.clone());
+                SymbolExpr::Symbol(new_symbol.clone())
+            } else {
+                symbol_expr.clone()
             }
         }
-        SymbolExpr::Value(_) => (), // nothing to do
-        SymbolExpr::Binary { op: _, lhs, rhs } => {
-            replace_symbol(rhs.as_mut(), name_map);
-            replace_symbol(lhs.as_mut(), name_map);
-        }
-        SymbolExpr::Unary { op: _, expr } => {
-            replace_symbol(expr.as_mut(), name_map);
-        }
+        SymbolExpr::Value(_) => symbol_expr.clone(), // nothing to do
+        SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
+            op: op.clone(),
+            lhs: Arc::new(replace_symbol(lhs, name_map)),
+            rhs: Arc::new(replace_symbol(rhs, name_map)),
+        },
+        SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
+            op: op.clone(),
+            expr: Arc::new(replace_symbol(expr, name_map)),
+        },
     }
 }

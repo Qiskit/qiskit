@@ -32,6 +32,7 @@ from qiskit import (
     qpy,
 )
 from qiskit.circuit import (
+    Annotation,
     Clbit,
     ControlFlowOp,
     ForLoopOp,
@@ -39,6 +40,7 @@ from qiskit.circuit import (
     IfElseOp,
     BoxOp,
     Parameter,
+    ParameterVector,
     Qubit,
     SwitchCaseOp,
     WhileLoopOp,
@@ -1545,10 +1547,14 @@ class TestTranspile(QiskitTestCase):
         qc.h(0)
         qc.delay(a, 1)
         qc.cx(0, 1)
+        with qc.box(duration=a):
+            pass
 
         out = transpile(
             qc,
-            backend=GenericBackendV2(num_qubits=2, basis_gates=["cx", "h"], seed=0),
+            backend=GenericBackendV2(
+                num_qubits=2, basis_gates=["cx", "h"], control_flow=True, seed=0
+            ),
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
@@ -2299,6 +2305,27 @@ class TestTranspile(QiskitTestCase):
         # No meaningful assertions; this is a simple regression test for "stretches don't explode
         # backends with alignments" more than anything.
 
+    @data(0, 1, 2, 3)
+    def test_single_qubit_circuit_deterministic_output(self, optimization_level):
+        """Test that the transpiler's output is deterministic in a single qubit example.
+
+        Reproduce from `#14729 <https://github.com/Qiskit/qiskit/issues/14729>`__"""
+        params = ParameterVector("θ", length=3)
+
+        circ = QuantumCircuit(3)
+        for i, par in enumerate(params):
+            circ.rx(par, i)
+        circ.measure_all()
+        backend = GenericBackendV2(10, noise_info=True, seed=123)
+        isa_circs = []
+        for _ in range(10):
+            pm = generate_preset_pass_manager(
+                optimization_level=optimization_level, target=backend.target, seed_transpiler=123
+            )
+            isa_circs.append(pm.run(circ))
+        for i in range(10):
+            self.assertEqual(isa_circs[0], isa_circs[i])
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
@@ -2700,6 +2727,55 @@ class TestPostTranspileIntegration(QiskitTestCase):
         tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
         self.assertTrue(vf2_post_layout_called)
         self.assertEqual([2, 1, 0], _get_index_layout(tqc, qubits))
+
+    @data(0, 1, 2, 3)
+    def test_annotations_survive(self, optimization_level):
+        """Test that custom annotations survive a full transpile."""
+
+        # When the annotation framework expands to have more semantics, the test here might need to
+        # expand to mark the custom annotations as being safe under any circuit transformation.
+        class Custom(Annotation):  # pylint: disable=missing-class-docstring
+            namespace = "custom"
+
+            def __init__(self, value):
+                self.value = value
+
+            def __eq__(self, other):
+                return isinstance(other, Custom) and self.value == other.value
+
+        qc = QuantumCircuit(4, 4)
+        qc.h(0)
+        outer_annotations = [Custom("hello"), Custom("world")]
+        with qc.box(outer_annotations.copy()):
+            qc.cx(0, 1)
+            qc.cx(0, 2)
+            qc.cx(0, 3)
+            with qc.box([Custom("inner hello"), Custom("inner world")]):
+                qc.cx(0, 1)
+                qc.cx(0, 2)
+                qc.cx(0, 3)
+        qc.measure(qc.qubits, qc.clbits)
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=CouplingMap.from_line(5),
+            basis_gates=["rz", "sx", "cx"],
+            control_flow=True,
+            seed=0,
+        )
+        out = transpile(
+            qc, backend, optimization_level=optimization_level, seed_transpiler=2025_06_05
+        )
+
+        def get_first_box_op(qc):
+            return next(inst.operation for inst in qc.data if inst.name == "box")
+
+        outer_box_qc = get_first_box_op(qc)
+        outer_box_out = get_first_box_op(out)
+        self.assertEqual(outer_box_qc.annotations, outer_annotations)  # Check for no mutation.
+        self.assertEqual(outer_box_qc.annotations, outer_box_out.annotations)
+        inner_box_qc = get_first_box_op(outer_box_qc.blocks[0])
+        inner_box_out = get_first_box_op(outer_box_out.blocks[0])
+        self.assertEqual(inner_box_qc.annotations, inner_box_out.annotations)
 
 
 class StreamHandlerRaiseException(StreamHandler):
