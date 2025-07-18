@@ -108,7 +108,7 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
         self.assertEqual(
             # Ruler for counting terms:  dcba9876543210
             PhasedQubitSparsePauli.from_label("IXXIIZZIYYIXYZ"),
-            QubitSparsePauli.from_raw_parts(
+            PhasedQubitSparsePauli.from_raw_parts(
                 14,
                 [
                     PhasedQubitSparsePauli.Pauli.Z,
@@ -122,6 +122,7 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
                     PhasedQubitSparsePauli.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5, 7, 8, 11, 12],
+                3
             ),
         )
 
@@ -204,57 +205,46 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             QubitSparsePauli.from_sparse_label(("XZ", (3, 3)), num_qubits=5)
         with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
             QubitSparsePauli.from_sparse_label(("XYZXZ", (3, 0, 1, 2, 3)), num_qubits=5)
-    
+    '''
+
     def test_from_pauli(self):
         # This function should be infallible provided `Pauli` doesn't change its interface and the
         # user doesn't violate the typing.
 
         # Simple check that the labels are interpreted in the same order.
         self.assertEqual(
-            QubitSparsePauli.from_pauli(Pauli("IIXZI")), QubitSparsePauli.from_label("IIXZI")
+            PhasedQubitSparsePauli.from_pauli(Pauli("IIXZI")), PhasedQubitSparsePauli.from_label("IIXZI")
         )
 
-        # `Pauli` accepts a phase in its label, which gets dropped
         self.assertEqual(
-            QubitSparsePauli.from_pauli(Pauli("iIXZIX")),
-            QubitSparsePauli.from_label("IXZIX"),
+            PhasedQubitSparsePauli.from_pauli(Pauli("iIXZIX")).phase,
+            3,
         )
         self.assertEqual(
-            QubitSparsePauli.from_pauli(Pauli("-iIXZIX")),
-            QubitSparsePauli.from_label("IXZIX"),
+            PhasedQubitSparsePauli.from_pauli(Pauli("-iIXZIX")).phase,
+            1,
         )
         self.assertEqual(
-            QubitSparsePauli.from_pauli(Pauli("-IXZIX")),
-            QubitSparsePauli.from_label("IXZIX"),
+            PhasedQubitSparsePauli.from_pauli(Pauli("-IXZIX")).phase,
+            2,
         )
 
-        # `Pauli` has its internal phase convention for how it stores `Y`; we should get this right
-        # regardless of how many Ys are in the label, or if there's a phase.
         paulis = {"IXYZ" * n: Pauli("IXYZ" * n) for n in range(1, 5)}
         from_paulis, from_labels = zip(
             *(
-                (QubitSparsePauli.from_pauli(pauli), QubitSparsePauli.from_label(label))
+                (PhasedQubitSparsePauli.from_pauli(pauli), PhasedQubitSparsePauli.from_label(label))
                 for label, pauli in paulis.items()
             )
         )
         self.assertEqual(from_paulis, from_labels)
 
-        phased_paulis = {"IXYZ" * n: Pauli("j" + "IXYZ" * n) for n in range(1, 5)}
-        from_paulis, from_lists = zip(
-            *(
-                (QubitSparsePauli.from_pauli(pauli), QubitSparsePauli.from_label(label))
-                for label, pauli in phased_paulis.items()
-            )
-        )
-        self.assertEqual(from_paulis, from_lists)
-
     def test_default_constructor_failed_inference(self):
         with self.assertRaises(TypeError):
-            QubitSparsePauli(5, num_qubits=5)
+            PhasedQubitSparsePauli(5, num_qubits=5)
 
     def test_num_qubits(self):
-        self.assertEqual(QubitSparsePauli("").num_qubits, 0)
-        self.assertEqual(QubitSparsePauli("I" * 10).num_qubits, 10)
+        self.assertEqual(PhasedQubitSparsePauli("").num_qubits, 0)
+        self.assertEqual(PhasedQubitSparsePauli("I" * 10).num_qubits, 10)
 
     def test_pauli_enum(self):
         # These are very explicit tests that effectively just duplicate magic numbers, but the point
@@ -262,32 +252,32 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
         # public interface.
 
         self.assertEqual(
-            set(QubitSparsePauli.Pauli),
+            set(PhasedQubitSparsePauli.Pauli),
             {
-                QubitSparsePauli.Pauli.X,
-                QubitSparsePauli.Pauli.Y,
-                QubitSparsePauli.Pauli.Z,
+                PhasedQubitSparsePauli.Pauli.X,
+                PhasedQubitSparsePauli.Pauli.Y,
+                PhasedQubitSparsePauli.Pauli.Z,
             },
         )
         # All the enumeration items should also be integers.
-        self.assertIsInstance(QubitSparsePauli.Pauli.X, int)
+        self.assertIsInstance(PhasedQubitSparsePauli.Pauli.X, int)
         values = {
             "X": 0b10,
             "Y": 0b11,
             "Z": 0b01,
         }
-        self.assertEqual({name: getattr(QubitSparsePauli.Pauli, name) for name in values}, values)
+        self.assertEqual({name: getattr(PhasedQubitSparsePauli.Pauli, name) for name in values}, values)
 
         # The single-character label aliases can be accessed with index notation.
         labels = {
-            "X": QubitSparsePauli.Pauli.X,
-            "Y": QubitSparsePauli.Pauli.Y,
-            "Z": QubitSparsePauli.Pauli.Z,
+            "X": PhasedQubitSparsePauli.Pauli.X,
+            "Y": PhasedQubitSparsePauli.Pauli.Y,
+            "Z": PhasedQubitSparsePauli.Pauli.Z,
         }
-        self.assertEqual({label: QubitSparsePauli.Pauli[label] for label in labels}, labels)
+        self.assertEqual({label: PhasedQubitSparsePauli.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
-        self.assertEqual({pauli.label: pauli for pauli in QubitSparsePauli.Pauli}, labels)
-
+        self.assertEqual({pauli.label: pauli for pauli in PhasedQubitSparsePauli.Pauli}, labels)
+    '''
     @ddt.idata(single_cases())
     def test_pickle(self, qubit_sparse_pauli):
         self.assertEqual(qubit_sparse_pauli, copy.copy(qubit_sparse_pauli))
@@ -401,18 +391,19 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             np.array([0, 1, 2], dtype=np.uint8),
             strict=True,
         )
+    '''
 
     def test_identity(self):
-        identity_5 = QubitSparsePauli.identity(5)
+        identity_5 = PhasedQubitSparsePauli.identity(5)
         self.assertEqual(identity_5.num_qubits, 5)
         self.assertEqual(len(identity_5.paulis), 0)
         self.assertEqual(len(identity_5.indices), 0)
 
-        identity_0 = QubitSparsePauli.identity(0)
+        identity_0 = PhasedQubitSparsePauli.identity(0)
         self.assertEqual(identity_0.num_qubits, 0)
         self.assertEqual(len(identity_0.paulis), 0)
         self.assertEqual(len(identity_0.indices), 0)
-
+    '''
     def test_compose(self):
         p0 = QubitSparsePauli.from_label("XZY")
         p1 = QubitSparsePauli.from_label("ZIY")
@@ -448,41 +439,40 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             p0.compose(p1)
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
             p1.compose(p0)
-
+    '''
     def test_commutes(self):
-        p0 = QubitSparsePauli("XIY")
-        p1 = QubitSparsePauli("IZI")
+        p0 = PhasedQubitSparsePauli("XIY")
+        p1 = PhasedQubitSparsePauli("IZI")
         self.assertTrue(p0.commutes(p1))
         self.assertTrue(p1.commutes(p0))
 
-        p0 = QubitSparsePauli("XXY")
-        p1 = QubitSparsePauli("IZI")
+        p0 = PhasedQubitSparsePauli(Pauli("-XXY"))
+        p1 = PhasedQubitSparsePauli("IZI")
         self.assertFalse(p0.commutes(p1))
         self.assertFalse(p1.commutes(p0))
 
-        p0 = QubitSparsePauli("XXY")
-        p1 = QubitSparsePauli("IZX")
+        p0 = PhasedQubitSparsePauli("XXY")
+        p1 = PhasedQubitSparsePauli(Pauli("-iIZX"))
         self.assertTrue(p0.commutes(p1))
         self.assertTrue(p1.commutes(p0))
 
-        p0 = QubitSparsePauli("XXYY")
-        p1 = QubitSparsePauli("IZXY")
+        p0 = PhasedQubitSparsePauli(Pauli("-jXXYY"))
+        p1 = PhasedQubitSparsePauli(Pauli("jIZXY"))
         self.assertTrue(p0.commutes(p1))
         self.assertTrue(p1.commutes(p0))
 
-        p0 = QubitSparsePauli("XXYYZ")
-        p1 = QubitSparsePauli("IZXYX")
+        p0 = PhasedQubitSparsePauli("XXYYZ")
+        p1 = PhasedQubitSparsePauli("IZXYX")
         self.assertFalse(p0.commutes(p1))
         self.assertFalse(p1.commutes(p0))
 
     def test_commutes_errors(self):
-        p0 = QubitSparsePauli.from_label("XZYI")
-        p1 = QubitSparsePauli.from_label("ZIY")
+        p0 = PhasedQubitSparsePauli.from_label("XZYI")
+        p1 = PhasedQubitSparsePauli(Pauli("jZIY"))
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 4, 3"):
             p0.commutes(p1)
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
             p1.commutes(p0)
-    '''
 
 @ddt.ddt
 class TestPhasedQubitSparsePauliList(QiskitTestCase):
