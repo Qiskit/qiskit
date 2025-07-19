@@ -590,7 +590,7 @@ impl DumpedValue {
     pub fn to_param(&self, py: Python, qpy_data: &mut QPYData) -> PyResult<Param> {
         match self.data_type {
             tags::FLOAT => Ok(Param::Float((&self.data).try_into()?)),
-            tags::PARAMETER_EXPRESSION => {
+            tags::PARAMETER_EXPRESSION | tags::PARAMETER | tags::PARAMETER_VECTOR => {
                 Ok(Param::ParameterExpression(self.to_python(py, qpy_data)?))
             }
             _ => Ok(Param::Obj(self.to_python(py, qpy_data)?)),

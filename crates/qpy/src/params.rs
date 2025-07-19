@@ -15,6 +15,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyTuple};
 use pyo3::PyObject;
+use qiskit_circuit::imports;
 use qiskit_circuit::imports::PARAMETER_SUBS;
 use qiskit_circuit::operations::Param;
 use std::vec;
@@ -195,25 +196,6 @@ fn pack_replay_subs(
     let mapping_data = serialize(&mapping)?;
     let entry = formats::ParameterExpressionSubsOpPack { mapping_data };
     Ok(formats::ParameterExpressionElementPack::Substitute(entry))
-}
-
-fn unpack_mapping<'py>(
-    py: Python<'py>,
-    mapping_data: &formats::MappingPack,
-    qpy_data: &mut QPYData,
-) -> PyResult<Bound<'py, PyDict>> {
-    let py_dict = PyDict::new(py);
-    for item in &mapping_data.items {
-        // the key type is always assumed to be a string
-        let key: String = (&item.key_bytes).try_into()?;
-        let value = DumpedValue {
-            data_type: item.item_type,
-            data: item.item_bytes.clone(),
-        };
-        let value_py = value.to_python(py, qpy_data)?;
-        py_dict.set_item(key, value_py)?;
-    }
-    Ok(py_dict)
 }
 
 fn getattr_or_none<'py>(py_object: &'py Bound<PyAny>, name: &str) -> PyResult<Bound<'py, PyAny>> {
@@ -525,6 +507,7 @@ pub fn unpack_parameter_expression(
             }
         };
         param_uuid_map.insert(symbol_uuid, value.clone());
+        // name_map should only be used for version < 15
         name_map.insert(
             value
                 .bind(py)
@@ -536,17 +519,24 @@ pub fn unpack_parameter_expression(
     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
         &parameter_expression.expression_data,
     )?;
-
     for element in parameter_expression_data {
         let opcode = if let formats::ParameterExpressionElementPack::Substitute(subs) = element {
             // we construct a pydictionary describing the substitution and letting the python Parameter class handle it
-            let (mapping_pack, _) = deserialize::<formats::MappingPack>(&subs.mapping_data)?;
-            let mapping = unpack_mapping(py, &mapping_pack, qpy_data)?;
             let subs_mapping = PyDict::new(py);
-            for item in mapping.iter() {
-                let key: String = item.0.extract()?;
-                let value = item.1;
-                subs_mapping.set_item(name_map.get(&key), value)?;
+            let mapping_pack = deserialize::<formats::MappingPack>(&subs.mapping_data)?.0;
+            for item in mapping_pack.items {
+                let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
+                let value = DumpedValue {
+                    data_type: item.item_type,
+                    data: item.item_bytes.clone(),
+                };
+                let key = param_uuid_map.get(&key_uuid).ok_or_else(|| {
+                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Parameter UUID not found: {:?}",
+                        &key_uuid
+                    ))
+                })?;
+                subs_mapping.set_item(key, value.to_python(py, qpy_data)?)?;
             }
             stack.push(subs_mapping.unbind().as_any().clone());
             15 // return substitution opcode
@@ -618,9 +608,27 @@ pub fn unpack_parameter_expression(
             let lhs = stack.pop().ok_or(pyo3::exceptions::PyValueError::new_err(
                 "Stack underflow while parsing parameter expression",
             ))?;
-            // TODO: in the python code they switch order for commutatve operations - why?
-
-            stack.push(lhs.getattr(py, method_str)?.call1(py, (rhs,))?);
+            // Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
+            // op codes 13 and 15 can never be reversed and 18, 19, 20
+            // are the reversed versions of non-commuative operations
+            // so 1, 3, 4 and 18, 19, 20 handle this explicitly.
+            if [0, 2].contains(&opcode)
+                && !lhs
+                    .bind(py)
+                    .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
+                && rhs
+                    .bind(py)
+                    .is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))?
+            {
+                let method_str = match &opcode {
+                    0 => "__radd__",
+                    2 => "__rmul__",
+                    _ => method_str,
+                };
+                stack.push(rhs.getattr(py, method_str)?.call1(py, (lhs,))?);
+            } else {
+                stack.push(lhs.getattr(py, method_str)?.call1(py, (rhs,))?);
+            }
         } else {
             // unary op
             let lhs = stack.pop().ok_or(pyo3::exceptions::PyValueError::new_err(
@@ -771,8 +779,7 @@ pub fn unpack_param(
 ) -> PyResult<Param> {
     match packed_param.type_key {
         tags::FLOAT => Ok(Param::Float(packed_param.data.try_to_le_f64()?)),
-        tags::PARAMETER_EXPRESSION | tags::PARAMETER => {
-            // TODO - should we also do this for parameter vector?
+        tags::PARAMETER_EXPRESSION | tags::PARAMETER | tags::PARAMETER_VECTOR => {
             let dumped_value = DumpedValue {
                 data_type: packed_param.type_key,
                 data: packed_param.data.clone(),
@@ -791,12 +798,6 @@ pub fn unpack_param(
                 qpy_data,
             )?;
             Ok(Param::Obj(param_value))
-            // let dumped_value = DumpedValue {
-            //     data_type: packed_param.type_key,
-            //     data: packed_param.data.clone(),
-            // };
-            // println!("param as dumpedvalue: {:?}", dumped_value);
-            // Ok(Param::Obj(dumped_value.to_python(py, qpy_data)?))
         }
     }
 }

@@ -93,6 +93,18 @@ impl TryFrom<&Bytes> for i64 {
     }
 }
 
+impl TryFrom<&Bytes> for [u8; 16] {
+    type Error = PyErr;
+    fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
+        let byte_array: [u8; 16] = bytes
+            .0
+            .as_slice()
+            .try_into()
+            .map_err(|_| PyValueError::new_err("Expected exactly 16 bytes"))?;
+        Ok(byte_array)
+    }
+}
+
 impl TryFrom<&Bytes> for String {
     type Error = PyErr;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
