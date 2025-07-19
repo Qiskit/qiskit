@@ -498,6 +498,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.circuit.library import (
     LinearFunction,
     QFTGate,
+    XGate,
     MCXGate,
     C3XGate,
     C4XGate,
@@ -560,6 +561,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
     synth_mcmt_vchain,
+    synth_mcmt_x,
 )
 from qiskit.synthesis.evolution import ProductFormula, synth_pauli_network_rustiq
 from qiskit.synthesis.arithmetic import (
@@ -1463,6 +1465,13 @@ class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
         # first try to use the V-chain synthesis if enough auxiliary qubits are available
         if not isinstance(high_level_object, MCMTGate):
             return None
+
+        if isinstance(high_level_object.base_gate, XGate):
+            # If the base gate is an X gate, we can use the specialised synthesis
+            ctrl_state = options.get("ctrl_state", None)
+            return synth_mcmt_x(
+                high_level_object.num_ctrl_qubits, high_level_object.num_target_qubits, ctrl_state
+            )
 
         if (
             decomposition := MCMTSynthesisVChain().run(

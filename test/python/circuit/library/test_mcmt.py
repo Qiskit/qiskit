@@ -184,7 +184,7 @@ class TestMCMT(QiskitTestCase):
         num_target = 2
         num_vchain_ancillas = num_controls - 1
 
-        gate = XGate()
+        gate = ZGate()  # Anything other than XGate as XGate has special handling
         mcmt = MCMTGate(gate, num_controls, num_target)
 
         # make sure MCX-synthesis does not use ancilla qubits
