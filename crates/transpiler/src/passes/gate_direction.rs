@@ -219,6 +219,7 @@ pub fn fix_direction_target(
                                     .bind(py),
                             ),
                             Some(inst.params_view().to_vec()),
+                            false,
                         )
                         .unwrap_or(false)
                 }
