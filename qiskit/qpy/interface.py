@@ -83,6 +83,7 @@ def dump(
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
     annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
+    use_rust: bool = True,
 ):
     """Write QPY binary data to a file
 
@@ -141,6 +142,7 @@ def dump(
             to generate an older QPY format version.  You can access the current QPY version and
             minimum compatible version with :attr:`.qpy.QPY_VERSION` and
             :attr:`.qpy.QPY_COMPATIBILITY_VERSION` respectively.
+        use_rust: whether to use the rust based serialization engine. On by default.
 
             .. note::
 
@@ -185,6 +187,9 @@ def dump(
             f"{common.QPY_VERSION}"
         )
 
+    if version < common.QPY_RUST_VERSION:
+        use_rust = False
+
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     encoding = type_keys.SymExprEncoding.assign(use_symengine)
@@ -221,6 +226,7 @@ def dump(
             use_symengine=use_symengine,
             version=version,
             annotation_factories=annotation_factories,
+            use_rust=use_rust,
         )
 
     if version >= 16:
@@ -238,6 +244,7 @@ def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
     annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
+    use_rust: bool = False,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
@@ -278,6 +285,7 @@ def load(
         annotation_factories: Mapping of namespaces to functions that create new instances of
             :class:`.annotation.QPUSerializer`, for handling the loading of custom
             :class:`.Annotation` objects.
+        use_rust: whether to use the rust based deserialization engine. Off by default.
 
     Returns:
         The list of Qiskit programs contained in the QPY data.
@@ -317,6 +325,9 @@ def load(
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
         )
+
+    if version < common.QPY_RUST_VERSION:
+        use_rust = False
 
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
@@ -396,6 +407,7 @@ def load(
                 metadata_deserializer=metadata_deserializer,
                 use_symengine=use_symengine,
                 annotation_factories=annotation_factories,
+                use_rust=use_rust,
             )
         )
     return programs
