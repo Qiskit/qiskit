@@ -56,7 +56,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
     def _qsd_l2_a1a2_mod(self, n):
         """expected optimized cnot count with opt_a1=True and opt_a2=True for down to 2q"""
-        return (23 / 48) * 4**n - (3 / 2) * 2**n + 4 / 3
+        return (22 / 48) * 4**n - (3 / 2) * 2**n + 5 / 3
 
     def _qsd_ucrz(self, n):
         """expected cnot count of ucry/ucrz for down to 2q"""
@@ -143,7 +143,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(Operator(umat) == Operator(ccirc))
         if nqubits > 2:
-            self.assertEqual(
+            self.assertLessEqual(
                 ccirc.count_ops().get("cx"),
                 self._qsd_l2_a1a2_mod(nqubits),
             )
