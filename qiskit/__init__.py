@@ -126,6 +126,7 @@ sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
 sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
+sys.modules["qiskit._accelerate.pad_dynamical_decoupling"] = _accelerate.pad_dynamical_decoupling
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
