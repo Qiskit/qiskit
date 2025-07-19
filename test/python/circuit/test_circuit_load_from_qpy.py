@@ -740,6 +740,9 @@ class TestLoadFromQPY(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             qaoa = QAOAAnsatz(cost_operator, reps=2)
 
+        # new_params = [Parameter(f"{i}") for i in range(qaoa.num_parameters)]
+        # qaoa.assign_parameters(new_params, inplace=True)
+
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
         qpy_file.seek(0)
@@ -1165,7 +1168,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(7)
         entanglement = [[i, i + 1] for i in range(7 - 1)]
         input_params = ParameterVector("x_par", 14)
-        user_params = ParameterVector("\u03B8_par", 1)
+        user_params = ParameterVector("\u03b8_par", 1)
 
         for i in range(qc.num_qubits):
             qc.ry(user_params[0], qc.qubits[i])

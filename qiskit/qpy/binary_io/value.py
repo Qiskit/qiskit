@@ -18,6 +18,7 @@ import collections.abc
 import io
 import struct
 import uuid
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -26,13 +27,26 @@ from qiskit.circuit.classical import expr, types
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import (
     ParameterExpression,
+    ParameterValueType,
+    OpCode,
     op_code_to_method,
-    _OPCode,
-    _SUBS,
 )
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
+
+
+@dataclass
+class _INSTRUCTION:
+    op: OpCode
+    lhs: ParameterValueType | None
+    rhs: ParameterValueType | None = None
+
+
+@dataclass
+class _SUBS:
+    binds: dict
+    op: OpCode = OpCode.SUBSTITUTE
 
 
 def _write_parameter(file_obj, obj):
@@ -42,14 +56,14 @@ def _write_parameter(file_obj, obj):
 
 
 def _write_parameter_vec(file_obj, obj):
-    name_bytes = obj._vector._name.encode(common.ENCODE)
+    name_bytes = obj.vector._name.encode(common.ENCODE)
     file_obj.write(
         struct.pack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
             len(name_bytes),
-            len(obj._vector),
+            len(obj.vector),
             obj.uuid.bytes,
-            obj._index,
+            obj.index,
         )
     )
     file_obj.write(name_bytes)
@@ -155,7 +169,7 @@ def _write_parameter_expression_v13(file_obj, obj, version):
         rhs_type, rhs = _encode_replay_entry(inst.rhs, file_obj, version, True)
         entry = struct.pack(
             formats.PARAM_EXPR_ELEM_V13_PACK,
-            inst.op,
+            int(inst.op),
             lhs_type.encode("utf8"),
             lhs,
             rhs_type.encode("utf8"),
@@ -170,7 +184,10 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     with io.BytesIO() as buf:
         extra_symbols = _write_parameter_expression_v13(buf, obj, version)
         expr_bytes = buf.getvalue()
-    symbol_table_len = len(obj._parameter_symbols)
+
+    parameters = obj.parameters
+    fake_symbols_dict = dict(zip(parameters, parameters))
+    symbol_table_len = len(fake_symbols_dict)
     if extra_symbols:
         symbol_table_len += 2 * len(extra_symbols)
     param_expr_header_raw = struct.pack(
@@ -178,7 +195,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     )
     file_obj.write(param_expr_header_raw)
     file_obj.write(expr_bytes)
-    for symbol, value in obj._parameter_symbols.items():
+    for symbol, value in fake_symbols_dict.items():
         symbol_key = type_keys.Value.assign(symbol)
 
         # serialize key
@@ -188,7 +205,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             symbol_data = common.data_to_binary(symbol, _write_parameter)
 
         # serialize value
-        if value == symbol._symbol_expr:
+        if value.is_symbol():
             value_key = symbol_key
             value_data = bytes()
         else:
@@ -603,7 +620,7 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
         elif elem_key == type_keys.Value.COMPLEX:
             value = complex(*struct.unpack(formats.COMPLEX_PACK, binary_data))
         elif elem_key in (type_keys.Value.PARAMETER, type_keys.Value.PARAMETER_VECTOR):
-            value = symbol._symbol_expr
+            value = symbol  # ._symbol_expr
         elif elem_key == type_keys.Value.PARAMETER_EXPRESSION:
             value = common.data_from_binary(
                 binary_data,
@@ -686,13 +703,13 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             )
         if expression_data.OP_CODE == 255:
             continue
-        method_str = op_code_to_method(_OPCode(expression_data.OP_CODE))
+        method_str = op_code_to_method(expression_data.OP_CODE)
         if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
             rhs = stack.pop()
             lhs = stack.pop()
             # Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
             # op codes 13 and 15 can never be reversed and 18, 19, 20
-            # are the reversed versions of non-commuative operations
+            # are the reversed versions of non-commutative operations
             # so 1, 3, 4 and 18, 19, 20 handle this explicitly.
             if (
                 not isinstance(lhs, ParameterExpression)
@@ -710,6 +727,7 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
             lhs = stack.pop()
             stack.append(getattr(lhs, method_str)())
         data = buf.read(formats.PARAM_EXPR_ELEM_V13_SIZE)
+
     return stack.pop()
 
 
