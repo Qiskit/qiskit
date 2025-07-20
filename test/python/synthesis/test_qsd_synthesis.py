@@ -24,7 +24,6 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.unitary import qsd
 from qiskit.circuit.library import XGate, PhaseGate, UGate, UCGate, UnitaryGate
 from qiskit.quantum_info import random_unitary
-from qiskit.quantum_info.operators.predicates import matrix_equal
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -48,7 +47,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
     def _qsd_l2_a1_mod(self, n):
         """expected optimized cnot count with opt_a1=True for down to 2q"""
-        return (4 ** (n - 2) - 1) // 3
+        return (2 * 4 ** (n - 2) - 3) // 3
 
     def _qsd_l2_a2_mod(self, n):
         """expected optimized cnot count with opt_a2=True for down to 2q"""
@@ -136,13 +135,13 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
     @data(*list(range(1, 6)))
     def test_opt_a1a2(self, nqubits):
-        """Test decomposition with both optimization a1 and a2 from shende2006"""
+        """Test decomposition with both optimization a1 and a2"""
         dim = 2**nqubits
         umat = scipy.stats.unitary_group.rvs(dim, random_state=1224)
         circ = self.qsd(umat, opt_a1=True, opt_a2=True)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(Operator(umat) == Operator(ccirc))
-        if nqubits > 2:
+        if nqubits > 2:  # if nqubits = 3 this bound is 19
             self.assertLessEqual(
                 ccirc.count_ops().get("cx"),
                 self._qsd_l2_a1a2_mod(nqubits),
@@ -334,6 +333,8 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         op2 = Operator(qc2)
         self.assertEqual(hidden_op, op2)
         self.assertLess(cqc2.count_ops().get("cx", 0), 0.6 * cqc.count_ops().get("cx", 0))
+        # checking how much we improve with the multiplex reduction trick
+        # 0.6 was chosen experimentally
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
@@ -355,8 +356,8 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
         qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
-        # we compare the equality with the UnitaryGate which can use QSD or Isometry
-        self.assertTrue(matrix_equal(hidden_op.data, UnitaryGate(hidden_op).to_matrix(), atol=1e-7))
+        op2 = Operator(qc2)
+        self.assertEqual(hidden_op, op2)
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
@@ -378,8 +379,8 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
 
         qc2 = qsd.qs_decomposition(hidden_mat, opt_a2=False)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
-        # we compare the equality with the UnitaryGate which can use QSD or Isometry
-        self.assertTrue(matrix_equal(hidden_op.data, UnitaryGate(hidden_op).to_matrix(), atol=1e-7))
+        op2 = Operator(qc2)
+        self.assertEqual(hidden_op, op2)
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
