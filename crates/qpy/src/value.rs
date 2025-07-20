@@ -14,10 +14,11 @@ use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use hashbrown::HashMap;
 use pyo3::exceptions::PyValueError;
-
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
+use pyo3::IntoPyObjectExt;
 
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{OperationRef, Param};
@@ -35,17 +36,26 @@ use crate::{QpyError, UnsupportedFeatureForVersion};
 use core::fmt;
 use std::fmt::Debug;
 use std::io::{Cursor, Read, Seek, Write};
+use uuid::Uuid;
 
-const QPY_VERSION: u32 = 14;
+const QPY_VERSION: u32 = 15;
 
-pub struct QPYData {
+pub struct QPYWriteData {
     pub version: u32,
     pub _use_symengine: bool,
     pub clbit_indices: Py<PyDict>,
-    pub cregs: Py<PyDict>,
     pub standalone_var_indices: Py<PyDict>,
+    pub annotation_handler: AnnotationHandler,
+}
+
+pub struct QPYReadData<'a> {
+    pub circuit_data: &'a mut CircuitData,
+    pub version: u32,
+    pub use_symengine: bool,
+    pub clbit_indices: Py<PyDict>,
+    pub cregs: Py<PyDict>,
     pub standalone_vars: Py<PyList>,
-    pub vectors: HashMap<String, Py<PyAny>>,
+    pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u64>)>,
     pub annotation_handler: AnnotationHandler,
 }
 
@@ -154,9 +164,7 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
         || py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
     {
         return Ok(tags::REGISTER);
-    } else if py_object.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))?
-        || py_object.extract::<Expr>().is_ok()
-    {
+    } else if py_object.extract::<Expr>().is_ok() {
         return Ok(tags::EXPRESSION);
     } else if py_object.is_instance(imports::BUILTIN_RANGE.get_bound(py))? {
         return Ok(tags::RANGE);
@@ -186,7 +194,7 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
     )))
 }
 
-pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<(u8, Bytes)> {
+pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<(u8, Bytes)> {
     let py = py_object.py();
     let type_key: u8 = get_type_key(py_object)?;
     let value: Bytes = match type_key {
@@ -249,7 +257,7 @@ pub fn dumps_register(register: &Bound<PyAny>) -> PyResult<Bytes> {
 
 pub fn pack_generic_data(
     py_data: &Bound<PyAny>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = dumps_value(py_data, qpy_data)?;
     Ok(formats::GenericDataPack { type_key, data })
@@ -258,7 +266,7 @@ pub fn pack_generic_data(
 pub fn unpack_generic_data(
     py: Python,
     data_pack: &formats::GenericDataPack,
-    qpy_data: &mut QPYData,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<Py<PyAny>> {
     DumpedValue {
         data_type: data_pack.type_key,
@@ -269,7 +277,7 @@ pub fn unpack_generic_data(
 
 pub fn pack_generic_sequence(
     py_sequence: &Bound<PyAny>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<formats::GenericDataSequencePack> {
     let elements: Vec<formats::GenericDataPack> = py_sequence
         .try_iter()?
@@ -284,14 +292,14 @@ pub fn pack_generic_sequence(
 pub fn unpack_generic_sequence_to_tuple(
     py: Python,
     packed_sequence: formats::GenericDataSequencePack,
-    qpy_data: &mut QPYData,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<Py<PyAny>> {
     let elements: Vec<Py<PyAny>> = packed_sequence
         .elements
         .iter()
         .map(|data_pack| unpack_generic_data(py, data_pack, qpy_data))
         .collect::<PyResult<_>>()?;
-    Ok(PyTuple::new(py, elements)?.unbind().into_any())
+    elements.into_py_any(py)
 }
 
 pub mod circuit_instruction_types {
@@ -353,7 +361,7 @@ fn deserialize_range(py: Python, raw_range: &Bytes) -> PyResult<Py<PyAny>> {
     Ok(py_range.unbind())
 }
 
-fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<Bytes> {
+fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
     let py = py_object.py();
     let clbit_indices = PyDict::new(py);
     for (key, val) in qpy_data.clbit_indices.bind(py).iter() {
@@ -380,7 +388,7 @@ fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResul
 fn deserialize_expression(
     py: Python,
     raw_expression: &Bytes,
-    qpy_data: &QPYData,
+    qpy_data: &QPYReadData,
 ) -> PyResult<Py<PyAny>> {
     let clbit_indices = PyDict::new(py);
     for (key, val) in qpy_data.clbit_indices.bind(py).iter() {
@@ -494,7 +502,7 @@ pub struct DumpedValue {
 }
 
 impl DumpedValue {
-    pub fn from(py_object: &Bound<PyAny>, qpy_data: &QPYData) -> PyResult<Self> {
+    pub fn from(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Self> {
         let (data_type, data) = dumps_value(py_object, qpy_data)?;
         Ok(DumpedValue { data_type, data })
     }
@@ -520,7 +528,7 @@ impl DumpedValue {
         })
     }
 
-    pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYData) -> PyResult<PyObject> {
+    pub fn to_python(&self, py: Python<'_>, qpy_data: &mut QPYReadData) -> PyResult<PyObject> {
         Ok(match self.data_type {
             tags::INTEGER => {
                 let value: i64 = (&self.data).try_into()?;
@@ -565,16 +573,17 @@ impl DumpedValue {
             // tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
             tags::STRING => {
                 let data_string: &str = (&self.data).try_into()?;
-                PyString::new(py, data_string).into_any().unbind()
+                data_string.into_py_any(py)?
             }
             tags::EXPRESSION => deserialize_expression(py, &self.data, qpy_data)?,
-            tags::NULL | tags::CASE_DEFAULT => py.None(),
+            tags::NULL => py.None(),
+            tags::CASE_DEFAULT => imports::CASE_DEFAULT.get(py).clone(),
             tags::CIRCUIT => deserialize_circuit(
                 py,
                 &self.data,
                 qpy_data.version,
                 py.None().bind(py),
-                qpy_data._use_symengine,
+                qpy_data.use_symengine,
                 qpy_data.annotation_handler.annotation_factories.clone(),
             )?
             .0
@@ -587,7 +596,7 @@ impl DumpedValue {
             }
         })
     }
-    pub fn to_param(&self, py: Python, qpy_data: &mut QPYData) -> PyResult<Param> {
+    pub fn to_param(&self, py: Python, qpy_data: &mut QPYReadData) -> PyResult<Param> {
         match self.data_type {
             tags::FLOAT => Ok(Param::Float((&self.data).try_into()?)),
             tags::PARAMETER_EXPRESSION | tags::PARAMETER | tags::PARAMETER_VECTOR => {

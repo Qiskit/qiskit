@@ -60,6 +60,7 @@ pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list"
 pub static BUILTIN_TUPLE: ImportOnceCell = ImportOnceCell::new("builtins", "tuple");
 pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
 pub static BUILTIN_RANGE: ImportOnceCell = ImportOnceCell::new("builtins", "range");
+pub static BUILTIN_USER_WARNING: ImportOnceCell = ImportOnceCell::new("builtins", "UserWarning");
 pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
 pub static INSTRUCTION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");

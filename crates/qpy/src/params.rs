@@ -19,13 +19,16 @@ use qiskit_circuit::imports;
 use qiskit_circuit::imports::PARAMETER_SUBS;
 use qiskit_circuit::operations::Param;
 use std::vec;
+use uuid::Uuid;
 
 use crate::bytes::Bytes;
+use crate::circuits::load_register;
 use crate::formats;
 use crate::formats::PackedParam;
 use crate::value::DumpedValue;
 use crate::value::{
-    bytes_to_uuid, dumps_register, dumps_value, get_type_key, serialize, tags, QPYData,
+    bytes_to_uuid, dumps_register, dumps_value, get_type_key, serialize, tags, QPYReadData,
+    QPYWriteData,
 };
 use crate::value::{deserialize, deserialize_vec};
 use hashbrown::HashMap;
@@ -45,7 +48,7 @@ fn pack_parameter_replay_entry(
     py: Python,
     inst: &Bound<PyAny>,
     r_side: bool,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<(u8, [u8; 16], Vec<formats::ParameterExpressionElementPack>)> {
     // This is different from `dumps_value` since we aim specifically for [u8; 16]
     // This means parameters are not fully stored, only their uuid
@@ -169,7 +172,7 @@ fn unpack_parameter_replay_entry(
 fn pack_replay_subs(
     subs_obj: &Bound<PyAny>,
     extra_symbols: &mut Bound<PyDict>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ParameterExpressionElementPack> {
     let py = subs_obj.py();
     let binds = subs_obj.getattr("binds")?;
@@ -214,7 +217,7 @@ fn getattr_or_none<'py>(py_object: &'py Bound<PyAny>, name: &str) -> PyResult<Bo
 fn pack_parameter_expression_element(
     replay_obj: &Bound<PyAny>,
     extra_symbols: &mut Bound<PyDict>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
     let py = replay_obj.py();
     let mut result = Vec::new();
@@ -312,7 +315,7 @@ pub fn unpack_parameter_expression_standard_op(
 fn pack_parameter_expression_elements(
     py_object: &Bound<PyAny>,
     extra_symbols: &mut Bound<PyDict>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
     let py = py_object.py();
     let qpy_replay = py_object
@@ -330,7 +333,7 @@ fn pack_parameter_expression_elements(
 fn pack_symbol(
     symbol: &Bound<PyAny>,
     value: &Bound<PyAny>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ParameterExpressionSymbolPack> {
     let symbol_key = get_type_key(symbol)?;
     let (value_key, value_data): (u8, Bytes) = match value
@@ -381,7 +384,7 @@ fn pack_symbol(
 fn pack_symbol_table(
     py: Python,
     py_object: &Bound<PyAny>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<Vec<formats::ParameterExpressionSymbolPack>> {
     py_object
         .getattr(intern!(py, "_parameter_symbols"))?
@@ -393,7 +396,7 @@ fn pack_symbol_table(
 
 fn pack_extra_symbol_table(
     extra_symbols: &Bound<PyDict>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<(
     Vec<formats::ParameterExpressionSymbolPack>,
     Vec<formats::ParameterExpressionSymbolPack>,
@@ -415,7 +418,7 @@ fn pack_extra_symbol_table(
 
 pub fn pack_parameter_expression(
     py_object: &Bound<PyAny>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ParameterExpressionPack> {
     let py = py_object.py();
     let mut extra_symbols = PyDict::new(py);
@@ -468,7 +471,7 @@ fn op_code_to_method(opcode: u8) -> PyResult<&'static str> {
 pub fn unpack_parameter_expression(
     py: Python,
     parameter_expression: formats::ParameterExpressionPack,
-    qpy_data: &mut QPYData,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<PyObject> {
     let mut param_uuid_map: HashMap<[u8; 16], PyObject> = HashMap::new();
     let mut name_map: HashMap<String, PyObject> = HashMap::new();
@@ -670,7 +673,7 @@ pub fn unpack_parameter(py: Python, parameter: &formats::ParameterPack) -> PyRes
 // sadly, we currently need this code duplication to handle the special le encoding for parameters
 pub fn pack_generic_instruction_param_data(
     py_data: &Bound<PyAny>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<formats::GenericDataPack> {
     let (type_key, data) = dumps_instruction_param_value(py_data, qpy_data)?;
     Ok(formats::GenericDataPack { type_key, data })
@@ -678,7 +681,7 @@ pub fn pack_generic_instruction_param_data(
 
 pub fn pack_generic_instruction_param_sequence(
     py_sequence: &Bound<PyAny>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<formats::GenericDataSequencePack> {
     let elements: Vec<formats::GenericDataPack> = py_sequence
         .try_iter()?
@@ -693,7 +696,7 @@ pub fn pack_generic_instruction_param_sequence(
 pub fn unpack_generic_instruction_param_sequence_to_tuple(
     py: Python,
     packed_sequence: formats::GenericDataSequencePack,
-    qpy_data: &mut QPYData,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<Py<PyAny>> {
     let elements: Vec<Py<PyAny>> = packed_sequence
         .elements
@@ -707,7 +710,7 @@ pub fn unpack_generic_instruction_param_sequence_to_tuple(
 
 pub fn dumps_instruction_param_value(
     py_object: &Bound<PyAny>,
-    qpy_data: &QPYData,
+    qpy_data: &QPYWriteData,
 ) -> PyResult<(u8, Bytes)> {
     // we need a hack here to encode floats and integers are little endian
     // since for some reason it was done in the original python code
@@ -732,7 +735,7 @@ pub fn load_instruction_param_value(
     py: Python,
     type_key: u8,
     data: &Bytes,
-    qpy_data: &mut QPYData,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<Py<PyAny>> {
     Ok(match type_key {
         tags::INTEGER => {
@@ -748,7 +751,7 @@ pub fn load_instruction_param_value(
             deserialize::<formats::GenericDataSequencePack>(data)?.0,
             qpy_data,
         )?,
-        // tags::REGISTER => dumps_register(py_object)?,
+        tags::REGISTER => load_register(py, data.clone(), qpy_data.circuit_data)?,
         _ => {
             DumpedValue {
                 data_type: type_key,
@@ -763,7 +766,11 @@ pub fn load_instruction_param_value(
     })
 }
 
-pub fn pack_param(py: Python, param: &Param, qpy_data: &QPYData) -> PyResult<formats::PackedParam> {
+pub fn pack_param(
+    py: Python,
+    param: &Param,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::PackedParam> {
     let (type_key, data) = match param {
         Param::Float(val) => (tags::FLOAT, val.to_le_bytes().into()), // using le instead of be for this QPY version
         Param::ParameterExpression(py_object) => dumps_value(py_object.bind(py), qpy_data)?,
@@ -775,7 +782,7 @@ pub fn pack_param(py: Python, param: &Param, qpy_data: &QPYData) -> PyResult<for
 pub fn unpack_param(
     py: Python,
     packed_param: &PackedParam,
-    qpy_data: &mut QPYData,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<Param> {
     match packed_param.type_key {
         tags::FLOAT => Ok(Param::Float(packed_param.data.try_to_le_f64()?)),
@@ -821,28 +828,34 @@ pub fn pack_parameter_vector(py_object: &Bound<PyAny>) -> PyResult<formats::Para
 pub fn unpack_parameter_vector(
     py: Python,
     pack: &formats::ParameterVectorPack,
-    qpy_data: &mut QPYData,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<PyObject> {
-    let vector = match qpy_data.vectors.get(&pack.name) {
-        Some(vector) => vector,
+    // println!("unpack_parameter_vector called with {:?}", pack);
+    let root_uuid_int = u128::from_be_bytes(pack.uuid) - (pack.index as u128);
+    let root_uuid = Uuid::from_bytes(root_uuid_int.to_be_bytes());
+    let vector_data = match qpy_data.vectors.get_mut(&root_uuid) {
+        Some(value) => value,
         None => {
             let vector = py
                 .import("qiskit.circuit.parametervector")?
                 .getattr("ParameterVector")?
                 .call1((pack.name.clone(), pack.vector_size))?
                 .unbind();
-            qpy_data.vectors.insert(pack.name.clone(), vector);
-            qpy_data.vectors.get(&pack.name).unwrap()
+            qpy_data.vectors.insert(root_uuid, (vector, Vec::new()));
+            qpy_data.vectors.get_mut(&root_uuid).unwrap()
         }
-    }
-    .bind(py);
+    };
+    let vector = vector_data.0.bind(py);
     let vector_element = vector.get_item(pack.index)?;
-    let vector_element_uuid = vector_element
-        .getattr(intern!(py, "uuid"))?
-        .getattr(intern!(py, "bytes"))?
-        .extract::<[u8; 16]>()?;
-    if vector_element_uuid != pack.uuid {
+    let vector_element_uuid = Uuid::from_bytes(
+        vector_element
+            .getattr(intern!(py, "uuid"))?
+            .getattr(intern!(py, "bytes"))?
+            .extract::<[u8; 16]>()?,
+    );
+    if vector_element_uuid != root_uuid {
         // we need to create a new parameter vector element and hack it into the vector
+        vector_data.1.push(pack.index);
         let param_vector_element = py
             .import("qiskit.circuit.parametervector")?
             .getattr("ParameterVectorElement")?
