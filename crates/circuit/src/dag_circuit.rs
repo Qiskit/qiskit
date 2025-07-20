@@ -2613,118 +2613,16 @@ impl DAGCircuit {
         // when perform the substitution.
         drop(node_vars);
 
-        let new_input_dag: Option<DAGCircuit> = None;
         // It doesn't make sense to try and propagate a condition from a control-flow op; a
         // replacement for the control-flow op should implement the operation completely.
-        let node_map = self.substitute_node_with_subgraph(
+        let node_map = self.substitute_node_with_dag(
             node_index,
             input_dag,
-            &qubit_wire_map,
-            &clbit_wire_map,
-            &var_map,
+            Some(qubit_wire_map),
+            Some(clbit_wire_map),
+            Some(var_map),
         )?;
-        self.global_phase = add_global_phase(&self.global_phase, &input_dag.global_phase)?;
 
-        let mut wire_map_dict = HashMap::new();
-        for (source, target) in clbit_wire_map.iter() {
-            let source_bit = match new_input_dag {
-                Some(ref in_dag) => in_dag.clbits.get(*source),
-                None => input_dag.clbits.get(*source),
-            };
-            let target_bit = self.clbits.get(*target);
-            wire_map_dict.insert(source_bit.cloned().unwrap(), target_bit.cloned().unwrap());
-        }
-
-        let variable_mapper = VariableMapper::new(
-            self.cregs.registers().to_vec(),
-            wire_map_dict,
-            var_map,
-            None,
-        );
-
-        for (old_node_index, new_node_index) in node_map.iter() {
-            let old_node = match new_input_dag {
-                Some(ref in_dag) => &in_dag.dag[*old_node_index],
-                None => &input_dag.dag[*old_node_index],
-            };
-            if let NodeType::Operation(old_inst) = old_node {
-                if let OperationRef::Instruction(old_op) = old_inst.op.view() {
-                    if old_op.name() == "switch_case" {
-                        let target = old_op.instruction.bind(py).getattr("target")?.extract()?;
-                        let kwargs = PyDict::new(py);
-                        kwargs.set_item(
-                            "label",
-                            old_inst
-                                .label
-                                .as_ref()
-                                .map(|x| PyString::new(py, x.as_str())),
-                        )?;
-
-                        let mapped_target = variable_mapper
-                            .map_target(&target, |new_reg| self.add_creg(new_reg.clone()))?;
-                        let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
-                            (
-                                mapped_target,
-                                old_op.instruction.call_method0(py, "cases_specifier")?,
-                            ),
-                            Some(&kwargs),
-                        )?;
-
-                        if let NodeType::Operation(ref mut new_inst) =
-                            &mut self.dag[*new_node_index]
-                        {
-                            new_inst.op = PyInstruction {
-                                qubits: old_op.num_qubits(),
-                                clbits: old_op.num_clbits(),
-                                params: old_op.num_params(),
-                                control_flow: old_op.control_flow(),
-                                op_name: old_op.name().to_string(),
-                                instruction: new_op.clone().unbind(),
-                            }
-                            .into();
-                            #[cfg(feature = "cache_pygates")]
-                            {
-                                new_inst.py_op = new_op.unbind().into();
-                            }
-                        }
-                    } else if old_inst.op.control_flow() {
-                        if let Ok(condition) = old_op
-                            .instruction
-                            .bind(py)
-                            .getattr(intern!(py, "condition"))
-                            .and_then(|c| c.extract())
-                        {
-                            if old_inst.op.name() != "switch_case" {
-                                let new_condition = variable_mapper.map_condition(
-                                    &condition,
-                                    false,
-                                    |new_reg| self.add_creg(new_reg.clone()),
-                                )?;
-
-                                if let NodeType::Operation(ref mut new_inst) =
-                                    &mut self.dag[*new_node_index]
-                                {
-                                    #[cfg(feature = "cache_pygates")]
-                                    {
-                                        new_inst.py_op.take();
-                                    }
-                                    match new_inst.op.view() {
-                                        OperationRef::Instruction(py_inst) => {
-                                            py_inst.instruction.setattr(
-                                                py,
-                                                "condition",
-                                                new_condition,
-                                            )?;
-                                        }
-                                        _ => panic!("Instruction mismatch"),
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         let out_dict = PyDict::new(py);
         for (old_index, new_index) in node_map {
             out_dict.set_item(old_index.index(), self.get_node(py, new_index)?)?;
@@ -5958,7 +5856,194 @@ impl DAGCircuit {
             .filter(|node| matches!(self.dag.node_weight(*node).unwrap(), NodeType::Operation(_)))
     }
 
-    fn substitute_node_with_subgraph(
+    /// Substitutes a node by a given DAGCircuit and adds the replacement DAG's global phase to the current DAG.
+    ///
+    /// # Arguments:
+    /// * node_index: The node in the DAGCircuit to replace.
+    ///     other: The replacement DAGCircuit.
+    /// * qubit_map: A mapping from the replacement DAGCircuit qubits to the replaced node's qargs.
+    ///         If None, trivial mapping will be used.
+    /// * clbit_map: A mapping from the replacement DAGCircuit clbits to the replaced node's clbits.
+    ///         If None, trivial mapping will be used.
+    /// * var_map: A mapping from the replacement DAGCircuit variables to the replaced node's variables.
+    ///         Note: Inferring variable mapping automatically is currently not implemented.
+    ///
+    /// # Returns:
+    /// A mapping the indices of the nodes in the replacement DAGCircuit to their corresponding node indices in the
+    /// current DAGCircuit.
+    pub fn substitute_node_with_dag(
+        &mut self,
+        node_index: NodeIndex,
+        other: &DAGCircuit,
+        qubit_map: Option<HashMap<Qubit, Qubit>>,
+        clbit_map: Option<HashMap<Clbit, Clbit>>,
+        var_map: Option<HashMap<expr::Var, expr::Var>>,
+    ) -> PyResult<IndexMap<NodeIndex, NodeIndex, RandomState>> {
+        if self.dag.node_weight(node_index).is_none() {
+            return Err(PyIndexError::new_err(format!(
+                "Specified node {} is not in this graph",
+                node_index.index()
+            )));
+        }
+
+        let node = match &self.dag[node_index] {
+            NodeType::Operation(op) => op.clone(),
+            _ => return Err(DAGCircuitError::new_err("expected node")),
+        };
+
+        let qubit_map = match qubit_map {
+            Some(qubit_map) => qubit_map,
+            None => {
+                let node_qubits = self.qargs_interner.get(node.qubits);
+                let other_qubits = (0..other.num_qubits()).map(Qubit::new);
+                if node_qubits.len() != other_qubits.len() {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "Replacement DAG has {} qubits, expected {}",
+                        other_qubits.len(),
+                        node_qubits.len()
+                    )));
+                }
+                HashMap::<Qubit, Qubit>::from_iter(other_qubits.zip(node_qubits.iter().copied()))
+            }
+        };
+
+        let clbit_map = match clbit_map {
+            Some(clbit_map) => clbit_map,
+            None => {
+                let node_clbits = self.cargs_interner.get(node.clbits);
+                let other_clbits = (0..other.num_clbits()).map(Clbit::new);
+                if node_clbits.len() != other_clbits.len() {
+                    return Err(DAGCircuitError::new_err(format!(
+                        "Replacement DAG has {} clbits, expected {}",
+                        other_clbits.len(),
+                        node_clbits.len()
+                    )));
+                }
+                HashMap::<Clbit, Clbit>::from_iter(other_clbits.zip(node_clbits.iter().copied()))
+            }
+        };
+
+        let var_map = match var_map {
+            Some(var_map) => var_map,
+            None => {
+                if self.num_vars() > 0 || other.num_vars() > 0 {
+                    unimplemented!("Inferring variable mapping in substitute_node_with_dag is not implemented yet. Consider using py_substitute_node instead.");
+                }
+                HashMap::<expr::Var, expr::Var>::new()
+            }
+        };
+
+        let out_map =
+            self.substitute_node_with_graph(node_index, other, &qubit_map, &clbit_map, &var_map)?;
+        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+
+        let mut wire_map_dict = HashMap::new();
+        for (source, target) in clbit_map.iter() {
+            let source_bit = other.clbits.get(*source);
+            let target_bit = self.clbits.get(*target);
+            wire_map_dict.insert(source_bit.cloned().unwrap(), target_bit.cloned().unwrap());
+        }
+
+        let variable_mapper = VariableMapper::new(
+            self.cregs.registers().to_vec(),
+            wire_map_dict,
+            var_map.clone(),
+            None,
+        );
+
+        for (old_node_index, new_node_index) in out_map.iter() {
+            let old_node = &other.dag[*old_node_index];
+            if let NodeType::Operation(old_inst) = old_node {
+                if let OperationRef::Instruction(old_op) = old_inst.op.view() {
+                    if old_op.name() == "switch_case" {
+                        Python::with_gil(|py| -> PyResult<()> {
+                            let target =
+                                old_op.instruction.bind(py).getattr("target")?.extract()?;
+                            let kwargs = PyDict::new(py);
+                            kwargs.set_item(
+                                "label",
+                                old_inst
+                                    .label
+                                    .as_ref()
+                                    .map(|x| PyString::new(py, x.as_str())),
+                            )?;
+
+                            let mapped_target = variable_mapper
+                                .map_target(&target, |new_reg| self.add_creg(new_reg.clone()))?;
+                            let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
+                                (
+                                    mapped_target,
+                                    old_op.instruction.call_method0(py, "cases_specifier")?,
+                                ),
+                                Some(&kwargs),
+                            )?;
+
+                            if let NodeType::Operation(ref mut new_inst) =
+                                &mut self.dag[*new_node_index]
+                            {
+                                new_inst.op = PyInstruction {
+                                    qubits: old_op.num_qubits(),
+                                    clbits: old_op.num_clbits(),
+                                    params: old_op.num_params(),
+                                    control_flow: old_op.control_flow(),
+                                    op_name: old_op.name().to_string(),
+                                    instruction: new_op.clone().unbind(),
+                                }
+                                .into();
+                                #[cfg(feature = "cache_pygates")]
+                                {
+                                    new_inst.py_op = new_op.unbind().into();
+                                }
+                            }
+
+                            Ok(())
+                        })?;
+                    } else if old_inst.op.control_flow() {
+                        Python::with_gil(|py| -> PyResult<()> {
+                            if let Ok(condition) = old_op
+                                .instruction
+                                .bind(py)
+                                .getattr(intern!(py, "condition"))
+                                .and_then(|c| c.extract())
+                            {
+                                if old_inst.op.name() != "switch_case" {
+                                    let new_condition = variable_mapper.map_condition(
+                                        &condition,
+                                        false,
+                                        |new_reg| self.add_creg(new_reg.clone()),
+                                    )?;
+
+                                    if let NodeType::Operation(ref mut new_inst) =
+                                        &mut self.dag[*new_node_index]
+                                    {
+                                        #[cfg(feature = "cache_pygates")]
+                                        {
+                                            new_inst.py_op.take();
+                                        }
+                                        match new_inst.op.view() {
+                                            OperationRef::Instruction(py_inst) => {
+                                                py_inst.instruction.setattr(
+                                                    py,
+                                                    "condition",
+                                                    new_condition,
+                                                )?;
+                                            }
+                                            _ => panic!("Instruction mismatch"),
+                                        }
+                                    }
+                                }
+                            }
+                            Ok(())
+                        })?;
+                    }
+                }
+            }
+        }
+
+        Ok(out_map)
+    }
+
+    fn substitute_node_with_graph(
         &mut self,
         node: NodeIndex,
         other: &DAGCircuit,
