@@ -23,7 +23,6 @@ use qiskit_circuit::{
     converters::{circuit_to_dag, QuantumCircuitData},
     dag_circuit::DAGCircuit,
     imports,
-    imports::get_std_gate_class,
     operations::Operation,
     operations::Param,
     operations::StandardGate,
@@ -210,14 +209,9 @@ pub fn fix_direction_target(
                 StandardGate::RXX | StandardGate::RYY | StandardGate::RZZ | StandardGate::RZX => {
                     return target
                         .py_instruction_supported(
-                            py,
-                            None,
+                            Some(std_gate.get_name().to_string()),
                             qargs.into(),
-                            Some(
-                                get_std_gate_class(py, std_gate)
-                                    .expect("These gates should have Python classes")
-                                    .bind(py),
-                            ),
+                            None,
                             Some(inst.params_view().to_vec()),
                         )
                         .unwrap_or(false)
