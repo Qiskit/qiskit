@@ -67,7 +67,7 @@ def qs_decomposition(
 
     .. math::
 
-        \frac{2}{3} 4^{n - 2} - 3.
+        \frac{2}{3} (4^{n - 2} - 1).
 
     Saving two :class:`.CXGate`\ s instead of one in each step of the recursion.
 
