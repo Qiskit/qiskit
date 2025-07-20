@@ -13,6 +13,7 @@
 """Test library of multi-controlled multi-target circuits."""
 
 import unittest
+from itertools import product
 from ddt import ddt, data, unpack
 import numpy as np
 
@@ -266,6 +267,19 @@ class TestMCMT(QiskitTestCase):
                 ignore_phase=True,
             )
         )
+
+    def test_mcmt_x_gate(self):
+        """Test MCMT gate uses `synth_mcmt_x` for X gate synthesis."""
+        for num_ctrl, num_targ in product(range(1, 6), range(2, 6)):
+            mcmt_x_gate = MCMTGate(XGate(), num_ctrl_qubits=num_ctrl, num_target_qubits=num_targ)
+            qc = QuantumCircuit(num_ctrl + num_targ)
+            qc.compose(mcmt_x_gate, range(num_ctrl + num_targ), inplace=True)
+
+            qc_transpiled = transpile(qc, basis_gates=["u", "cx"], qubits_initially_zero=False)
+            expected_cx_count = 12 * num_ctrl + 2 * (
+                num_targ - 1
+            )  # 1 MCX + 2(num_targ - 1) CX gates
+            self.assertLessEqual(qc_transpiled.count_ops().get("cx", 0), expected_cx_count)
 
     def test_invalid_base_gate_width(self):
         """Test only 1-qubit base gates are accepted."""
