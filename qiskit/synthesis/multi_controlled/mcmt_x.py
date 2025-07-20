@@ -26,6 +26,7 @@ def synth_mcmt_x(
     any ancillary qubits and benefits from efficient MCX decompositions.
 
     E.g. a 3-control, 3-target X gate will be synthesized as::
+
         q_0: ─────────────■────────────
                           |
         q_1: ─────────────■────────────
@@ -39,9 +40,15 @@ def synth_mcmt_x(
         q_5: ─┤ X ├───────────────┤ X ├
               └───┘               └───┘
 
+    Args:
+        num_ctrl_qubits: Number of control qubits.
+        num_target_qubits: Number of target qubits.
+        ctrl_state: Optional control state as an integer.
+
+    Returns:
+        QuantumCircuit: The synthesized circuit for the MCMT X gate.
+
     """
-    if ctrl_state is not None:
-        assert len(ctrl_state) == num_ctrl_qubits, "ctrl_state must match num_ctrl length"
 
     qr_c = QuantumRegister(num_ctrl_qubits, "ctrl")
     qr_t = QuantumRegister(num_target_qubits, "targ")
