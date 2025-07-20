@@ -77,6 +77,12 @@ def qs_decomposition(
 
         4^{n-2} - 1.
 
+    Hence, the number of :class:`.CXGate`\ s generated with the decomposition with optimizations is
+
+    .. math::
+
+        \frac{22}{48} 4^n - \frac{3}{2} 2^n + \frac{5}{3}.
+
     .. note::
 
         When the original unitary is controlled then the default value of ``opt_a2 = False``
