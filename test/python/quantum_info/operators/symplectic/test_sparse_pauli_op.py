@@ -1351,7 +1351,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
     def test_simplify_sum_below_tolerance(self):
         """Test that simplify sums duplicates before applying atol threshold."""
-        # Each coeff < atol, but sum > atol
+        # Each coeff > atol, but sum < atol
         op = SparsePauliOp(["YY", "YY"], [1e-6, -1e-6])
         res = op.simplify(atol=1e-7)
         self.assertEqual(SparsePauliOp(["II"], [0j]), res)
