@@ -6,7 +6,7 @@ QkTarget
 
     typedef struct QkTarget QkTarget
 
-A mapping of instructions and properties representing the partiucular constraints
+A mapping of instructions and properties representing the particular constraints
 of a backend. Its purpose is to provide the compiler with information that allows it
 to compile an input circuit into another that is optimized taking in consideration the
 ``QkTarget``'s specifications. This structure represents a low level interface to the main
@@ -28,7 +28,7 @@ Here's an example of how this structure works:
     uint32_t qargs[2] = {0, 1};
     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
     qk_target_entry_add(entry, qargs, 2, 0.0123, NAN);
-    
+
     // Add a CX Gate to the target
     qk_target_add_instruction(target, entry);
 

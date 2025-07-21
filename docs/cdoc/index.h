@@ -41,3 +41,11 @@
 /**
  * @defgroup QkVF2LayoutResult QkVF2LayoutResult
  */
+
+ /**
+ * @defgroup QkCheckGateDirection QkCheckGateDirection
+ */
+
+ /**
+ * @defgroup QkGateDirection QkGateDirection
+ */
