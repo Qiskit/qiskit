@@ -33,11 +33,72 @@ class InstructionDurations:
     Note that these fields are used as keys in dictionaries that are used to retrieve the
     instruction durations. Therefore, users must use the exact same parameter value to retrieve
     an instruction duration as the value with which it was added.
+
+    Attributes:
+        duration_by_name: Dictionary mapping instruction names to (duration, unit) tuples.
+        duration_by_name_qubits: Dictionary mapping (name, qubits) to (duration, unit) tuples.
+        duration_by_name_qubits_params: Dictionary mapping (name, qubits, params) to
+            (duration, unit) tuples.
+        dt: Sampling duration in seconds for unit conversion.
+
+        Example:
+            >>> # Create InstructionDurations with various tuple formats
+            >>> durations = InstructionDurations([
+            ...     ('x', None, 160, 'dt'),           # x gate on any qubit: 160 dt
+            ...     ('sx', [0], 80, 'dt'),            # sx gate on qubit 0 only: 80 dt
+            ...     ('cx', [0, 1], 800, 'dt'),        # cx gate on qubits 0,1: 800 dt
+            ...     ('measure', None, 5000, 'dt'),    # measure on any qubit: 5000 dt
+            ...     ('rx', [0], 150, [1.5708], 'dt'), # rx(π/2) on qubit 0: 150 dt
+            ...     ('ry', [1], 120, None, 'dt')      # ry with any parameters on qubit 1: 120 dt
+            ... ], dt=1e-7)
+            >>>
+            >>> durations.duration_by_name
+            {'x': (160, 'dt'), 'measure': (5000, 'dt')}
+            >>> durations.duration_by_name_qubits
+            {('sx', (0,)): (80, 'dt'), ('cx', (0, 1)): (800, 'dt'), ('ry', (1,)): (120, 'dt')}
+            >>> durations.duration_by_name_qubits_params
+            {('rx', (0,), (1.5708,)): (150, 'dt')}
+            >>>
+            >>> durations.get("x", 0)      # Uses default from duration_by_name (qubits=None)
+            160.0
+            >>> durations.get("x", 5)      # Also uses default (qubits=None applies to all qubits)
+            160.0
+            >>> durations.get("sx", 0)     # Uses specific qubit duration
+            80.0
+            >>> durations.get("ry", 1)     # Uses qubit-specific duration (parameters=None)
+            120.0
+            >>> durations.get("rx", [0], parameters=[1.5708])  # Uses parameterized duration
+            150.0
+
+    .. note::
+            - When ``qubits`` is ``None``, the duration applies to all qubits as a default.
+            - When ``parameters`` is ``None``, the duration applies to any parameter values.
+            - More specific entries (with qubits/parameters) take priority over general ones.
+
     """
 
     def __init__(
         self, instruction_durations: "InstructionDurationsType" | None = None, dt: float = None
     ):
+        """
+        Initialize an InstructionDurations object.
+
+        Args:
+            instruction_durations: A list of tuples in one of the following formats:
+                - (name, qubits, duration)
+                - (name, qubits, duration, unit)
+                - (name, qubits, duration, parameters)
+                - (name, qubits, duration, parameters, unit)
+                Or an existing InstructionDurations object.
+            Where:
+                - name (str): Instruction name (e.g., 'x', 'cx', 'measure')
+                - qubits (int | list[int] | None): Target qubits. If None, applies to all qubits as default
+                - duration (float): Duration value
+                - parameters (list[float] | None): Parameters for parameterized instructions. If None, applies to any parameters
+                - unit (str): Time unit ('dt', 's', 'ms', 'us', 'ns'), defaults to 'dt'
+
+            dt: Sampling duration in seconds.
+        """
         self.duration_by_name: dict[str, tuple[float, str]] = {}
         self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
         self.duration_by_name_qubits_params: dict[
@@ -81,7 +142,7 @@ class InstructionDurations:
             return backend.target.durations()
         raise TypeError("Unsupported backend type: {backend}")
 
-    def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
+    def update(self, inst_durations: InstructionDurationsType | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
 
         Args:
@@ -260,4 +321,6 @@ InstructionDurationsType = Union[
     List[Tuple[str, Optional[Iterable[int]], float]],
     InstructionDurations,
 ]
-"""List of tuples representing (instruction name, qubits indices, parameters, duration)."""
+"""
+Type alias for instruction durations.
+"""
