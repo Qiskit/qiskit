@@ -121,17 +121,44 @@ class Optimize1qGatesDecomposition(TransformationPass):
             and self._target.num_qubits is not None
             and len(self._target.operation_names) > 0
         ):
-            if qubit is not None:
-                qubits_tuple = (qubit,)
-            else:
-                qubits_tuple = None
+            qubits_tuple = (qubit,) if qubit is not None else None
             if qubits_tuple in self._local_decomposers_cache:
                 decomposers = self._local_decomposers_cache[qubits_tuple]
             else:
-                available_1q_basis = set(self._target.operation_names_for_qargs(qubits_tuple))
-                decomposers = _possible_decomposers(available_1q_basis)
+                available_1q_basis = set()
+                for inst_name in self._target.operation_names_for_qargs(qubits_tuple):
+                    insts = self._target[inst_name]
+                    keep_gate = False
+                    for inst_props in insts.values():
+                        # Skip if inst_props is None
+                        if inst_props is None:
+                            # Try to infer from gate class if it has free parameters
+                            gate_class = NAME_MAP.get(inst_name)
+                            if gate_class is None:
+                                continue
+                            try:
+                                gate = gate_class()
+                                if gate.is_parameterized():
+                                    keep_gate = True
+                                    break
+                            except Exception:
+                                continue
+                        else:
+                            # Use calibration if available
+                            gate = inst_props.calibration
+                            if gate is None:
+                                continue
+                            if gate.is_parameterized():
+                                keep_gate = True
+                                break
+
+                if keep_gate:
+                    available_1q_basis.add(inst_name)
+
+            decomposers = _possible_decomposers(available_1q_basis)
         else:
             decomposers = self._global_decomposers
+        print(f"[DEBUG] Decomposer set for qubit {qubit}: {decomposers}")
         return decomposers
 
     def _resynthesize_run(self, matrix, qubit=None):
@@ -145,6 +172,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         error when the circuit is applied to `qubit`.
         """
         decomposers = self._get_decomposer(qubit)
+        print(f"[DEBUG] Calling decomposer with matrix and basis: {decomposers}")
 
         best_synth_circuit = euler_one_qubit_decomposer.unitary_to_gate_sequence(
             matrix,
