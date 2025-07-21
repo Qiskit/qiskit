@@ -244,7 +244,7 @@ def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
     annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
-    use_rust: bool = False,
+    use_rust: bool = True,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 

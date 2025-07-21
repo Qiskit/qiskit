@@ -550,7 +550,7 @@ pub struct RangePack {
     pub step: i64,
 }
 
-#[derive(BinWrite)]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct ModifierPack {

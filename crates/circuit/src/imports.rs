@@ -96,6 +96,12 @@ pub static ANNOTATED_OPERATION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "AnnotatedOperation");
 pub static MODIFIER: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.annotated_operation", "Modifier");
+pub static INVERSE_MODIFIER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.annotated_operation", "InverseModifier");
+pub static CONTROL_MODIFIER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.annotated_operation", "ControlModifier");
+pub static POWER_MODIFIER: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.annotated_operation", "PowerModifier");
 pub static CASE_DEFAULT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "CASE_DEFAULT");
 pub static CLBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Clbit");
 pub static CLASSICAL_REGISTER: ImportOnceCell =

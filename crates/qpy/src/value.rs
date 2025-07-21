@@ -13,10 +13,10 @@
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use hashbrown::HashMap;
-use pyo3::exceptions::PyValueError;
-use pyo3::prelude::*;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::types::{PyAny, PyBytes, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use pyo3::IntoPyObjectExt;
+use pyo3::{intern, prelude::*};
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::Expr;
@@ -76,6 +76,12 @@ pub mod tags {
     pub const EXPRESSION: u8 = b'x';
     pub const MODIFIER: u8 = b'm';
     pub const CIRCUIT: u8 = b'q';
+}
+
+pub mod modifier_types {
+    pub const INVERSE: u8 = b'i';
+    pub const CONTROL: u8 = b'c';
+    pub const POWER: u8 = b'p';
 }
 
 #[binrw]
@@ -188,7 +194,7 @@ pub fn get_type_key(py_object: &Bound<PyAny>) -> PyResult<u8> {
         return Ok(tags::NULL);
     }
 
-    Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+    Err(PyTypeError::new_err(format!(
         "Unidentified type_key for: {}",
         py_object
     )))
@@ -232,7 +238,7 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResul
             qpy_data.annotation_handler.annotation_factories.clone(),
         )?)?,
         _ => {
-            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+            return Err(PyTypeError::new_err(format!(
                 "dumps_value: Unhandled type_key: {}",
                 type_key
             )))
@@ -417,29 +423,54 @@ fn pack_modifier(modifier: &Bound<PyAny>) -> PyResult<formats::ModifierPack> {
     let module = py.import("qiskit.circuit.annotated_operation")?;
     if modifier.is_instance(&module.getattr("InverseModifier")?)? {
         Ok(formats::ModifierPack {
-            modifier_type: b"i"[0],
+            modifier_type: modifier_types::INVERSE,
             num_ctrl_qubits: 0,
             ctrl_state: 0,
             power: 0.0,
         })
     } else if modifier.is_instance(&module.getattr("ControlModifier")?)? {
         Ok(formats::ModifierPack {
-            modifier_type: b"c"[0],
+            modifier_type: modifier_types::CONTROL,
             num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
             ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
             power: 0.0,
         })
     } else if modifier.is_instance(&module.getattr("PowerModifier")?)? {
         Ok(formats::ModifierPack {
-            modifier_type: b"p"[0],
+            modifier_type: modifier_types::POWER,
             num_ctrl_qubits: 0,
             ctrl_state: 0,
             power: modifier.getattr("power")?.extract::<f64>()?,
         })
     } else {
-        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-            "Unsupported modifier.",
-        ))
+        Err(PyTypeError::new_err("Unsupported modifier."))
+    }
+}
+
+fn unpack_modifier(py: Python, packed_modifier: &formats::ModifierPack) -> PyResult<Py<PyAny>> {
+    match packed_modifier.modifier_type {
+        modifier_types::INVERSE => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
+        modifier_types::CONTROL => {
+            let kwargs = PyDict::new(py);
+            kwargs.set_item(
+                intern!(py, "num_ctrl_qubits"),
+                packed_modifier.num_ctrl_qubits,
+            )?;
+            kwargs.set_item(intern!(py, "ctrl_state"), packed_modifier.ctrl_state)?;
+            Ok(imports::CONTROL_MODIFIER
+                .get_bound(py)
+                .call((), Some(&kwargs))?
+                .unbind())
+        }
+        modifier_types::POWER => {
+            let kwargs = PyDict::new(py);
+            kwargs.set_item(intern!(py, "power"), packed_modifier.power)?;
+            Ok(imports::POWER_MODIFIER
+                .get_bound(py)
+                .call((), Some(&kwargs))?
+                .unbind())
+        }
+        _ => Err(PyTypeError::new_err("Unsupported modifier.")),
     }
 }
 
@@ -570,7 +601,10 @@ impl DumpedValue {
                 buffer.call_method1("seek", (0,))?;
                 np.call_method1("load", (buffer,))?.unbind()
             }
-            // tags::MODIFIER => serialize(&pack_modifier(py_object)?)?,
+            tags::MODIFIER => {
+                let (packed_modifier, _) = deserialize::<formats::ModifierPack>(&self.data)?;
+                unpack_modifier(py, &packed_modifier)?
+            }
             tags::STRING => {
                 let data_string: &str = (&self.data).try_into()?;
                 data_string.into_py_any(py)?

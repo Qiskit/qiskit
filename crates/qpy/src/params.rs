@@ -830,7 +830,6 @@ pub fn unpack_parameter_vector(
     pack: &formats::ParameterVectorPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<PyObject> {
-    // println!("unpack_parameter_vector called with {:?}", pack);
     let root_uuid_int = u128::from_be_bytes(pack.uuid) - (pack.index as u128);
     let root_uuid = Uuid::from_bytes(root_uuid_int.to_be_bytes());
     let vector_data = match qpy_data.vectors.get_mut(&root_uuid) {
@@ -853,7 +852,7 @@ pub fn unpack_parameter_vector(
             .getattr(intern!(py, "bytes"))?
             .extract::<[u8; 16]>()?,
     );
-    if vector_element_uuid != root_uuid {
+    if vector_element_uuid != Uuid::from_bytes(pack.uuid) {
         // we need to create a new parameter vector element and hack it into the vector
         vector_data.1.push(pack.index);
         let param_vector_element = py

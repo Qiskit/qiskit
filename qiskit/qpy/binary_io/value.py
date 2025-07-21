@@ -470,7 +470,7 @@ def _read_parameter_vec(file_obj, vectors):
         vectors[root_uuid] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[root_uuid][0]
 
-    if vector[data.index].uuid != root_uuid:
+    if vector[data.index].uuid != uuid.UUID(bytes=data.uuid):
         vectors[root_uuid][1].add(data.index)
         vector._params[data.index] = ParameterVectorElement(
             vector, data.index, uuid=uuid.UUID(int=root_uuid_int + data.index)
