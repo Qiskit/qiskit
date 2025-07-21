@@ -787,7 +787,7 @@ impl ParameterExpression {
     ///     
     ///     Qiskit guarantees equality (via ``==``) of parameters retrieved from an expression
     ///     with the original :class:`.Parameter` objects used to create this expression,
-    ///     but does _not guarantee_ ``is`` comparisons to succeed.
+    ///     but does **not guarantee** ``is`` comparisons to succeed.
     ///
     #[getter]
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {

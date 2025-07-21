@@ -502,7 +502,7 @@ def _read_parameter_expression(file_obj):
 
     sympy_str = file_obj.read(data.expr_size).decode(common.ENCODE)
     expr_ = parse_sympy_repr(sympy_str)
-    symbol_map = {}
+    name_map = {}
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM(
             *struct.unpack(
@@ -521,14 +521,14 @@ def _read_parameter_expression(file_obj):
         elif elem_key == type_keys.Value.COMPLEX:
             value = complex(*struct.unpack(formats.COMPLEX_PACK, binary_data))
         elif elem_key == type_keys.Value.PARAMETER:
-            value = symbol._symbol_expr
+            value = symbol
         elif elem_key == type_keys.Value.PARAMETER_EXPRESSION:
             value = common.data_from_binary(binary_data, _read_parameter_expression)
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
-        symbol_map[symbol] = value
+        name_map[symbol.name] = value
 
-    return ParameterExpression(symbol_map, str(expr_))
+    return ParameterExpression(name_map, str(expr_))
 
 
 def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
@@ -543,7 +543,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         sympy_str = payload.decode(common.ENCODE)
         expr_ = parse_sympy_repr(sympy_str)
 
-    symbol_map = {}
+    name_map = {}
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM_V3(
             *struct.unpack(
@@ -569,7 +569,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         elif elem_key == type_keys.Value.COMPLEX:
             value = complex(*struct.unpack(formats.COMPLEX_PACK, binary_data))
         elif elem_key in (type_keys.Value.PARAMETER, type_keys.Value.PARAMETER_VECTOR):
-            value = symbol._symbol_expr
+            value = symbol
         elif elem_key == type_keys.Value.PARAMETER_EXPRESSION:
             value = common.data_from_binary(
                 binary_data,
@@ -579,9 +579,9 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
             )
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
-        symbol_map[symbol] = value
+        name_map[symbol.name] = value
 
-    return ParameterExpression(symbol_map, str(expr_))
+    return ParameterExpression(name_map, str(expr_))
 
 
 def _read_parameter_expression_v13(file_obj, vectors, version):
@@ -620,7 +620,7 @@ def _read_parameter_expression_v13(file_obj, vectors, version):
         elif elem_key == type_keys.Value.COMPLEX:
             value = complex(*struct.unpack(formats.COMPLEX_PACK, binary_data))
         elif elem_key in (type_keys.Value.PARAMETER, type_keys.Value.PARAMETER_VECTOR):
-            value = symbol  # ._symbol_expr
+            value = symbol
         elif elem_key == type_keys.Value.PARAMETER_EXPRESSION:
             value = common.data_from_binary(
                 binary_data,
