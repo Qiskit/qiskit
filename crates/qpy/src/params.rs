@@ -153,7 +153,7 @@ fn unpack_parameter_replay_entry(
     match opcode {
         tags::NULL => Ok(Some(py.None())),
         tags::INTEGER => {
-            let value = u64::from_be_bytes(value[8..16].try_into()?);
+            let value = i64::from_be_bytes(value[8..16].try_into()?);
             Ok(Some(value.into_pyobject(py)?.into_any().unbind()))
         }
         tags::FLOAT => {
