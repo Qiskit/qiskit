@@ -71,9 +71,9 @@ class InstructionDurations:
             150.0
 
     .. note::
-            - When ``qubits`` is ``None``, the duration applies to all qubits as a default.
-            - When ``parameters`` is ``None``, the duration applies to any parameter values.
-            - More specific entries (with qubits/parameters) take priority over general ones.
+        - When ``qubits`` is ``None``, the duration applies to all qubits as a default.
+        - When ``parameters`` is ``None``, the duration applies to any parameter values.
+        - More specific entries (with qubits/parameters) take priority over general ones.
 
     """
 
