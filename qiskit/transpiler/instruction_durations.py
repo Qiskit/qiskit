@@ -91,11 +91,13 @@ class InstructionDurations:
                 - (name, qubits, duration, parameters, unit)
                 Or an existing InstructionDurations object.
             Where:
-                - name (str): Instruction name (e.g., 'x', 'cx', 'measure')
-                - qubits (int | list[int] | None): Target qubits. If None, applies to all qubits as default
-                - duration (float): Duration value
-                - parameters (list[float] | None): Parameters for parameterized instructions. If None, applies to any parameters
-                - unit (str): Time unit ('dt', 's', 'ms', 'us', 'ns'), defaults to 'dt'
+                - name (str): Instruction name (e.g., 'x', 'cx', 'measure').
+                - qubits (int | list[int] | None): Target qubits. If None, applies to
+                all qubits by default.
+                - duration (float): Duration value.
+                - parameters (list[float] | None): Parameters for parameterized instructions.
+                If None, applies to any parameters.
+                - unit (str): Time unit ('dt', 's', 'ms', 'us', 'ns'), defaults to 'dt'.
 
             dt: Sampling duration in seconds.
         """
