@@ -288,7 +288,7 @@ class ObservablesArray(ShapedMixin):
             coeffs = np.real_if_close(observable.coeffs)
             if np.iscomplexobj(coeffs):
                 raise ValueError(
-                    "Non-Hermitian input observable: the input observable has non-zero"
+                    "Non-Hermitian input observable: the simplified input observable has a non-zero"
                     " imaginary part in its coefficients."
                 )
 
