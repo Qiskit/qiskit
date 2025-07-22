@@ -277,7 +277,7 @@ MCMT Synthesis
 
    MCMTSynthesisVChain
    MCMTSynthesisNoAux
-    MCMTSynthesisXGate
+   MCMTSynthesisXGate
    MCMTSynthesisDefault
 
    
@@ -1474,7 +1474,6 @@ class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
         for synthesis_method in [
             MCMTSynthesisXGate,
             MCMTSynthesisVChain,
-            MCMTSynthesisNoAux,
         ]:
             if (
                 decomposition := synthesis_method().run(
@@ -1482,6 +1481,8 @@ class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
                 )
             ) is not None:
                 return decomposition
+
+        return MCMTSynthesisNoAux().run(high_level_object, coupling_map, target, qubits, **options)
 
 
 class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
