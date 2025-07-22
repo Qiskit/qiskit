@@ -174,6 +174,7 @@ def _for_loop_eq(node1, node2, bit_indices1, bit_indices2):
 def _box_eq(node1, node2, bit_indices1, bit_indices2):
     return (
         (node1.op.duration == node2.op.duration)
+        and (node1.op.unit == node2.op.unit)
         and (
             _circuit_to_dag(node1.op.blocks[0], node1.qargs, node1.cargs, bit_indices1)
             == _circuit_to_dag(node2.op.blocks[0], node2.qargs, node2.cargs, bit_indices2)
