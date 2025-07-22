@@ -110,6 +110,8 @@ pub static DEEPCOPY: ImportOnceCell = ImportOnceCell::new("copy", "deepcopy");
 pub static QI_OPERATOR: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Operator");
 pub static CLIFFORD: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info.operators.symplectic", "Clifford");
+pub static SPARSE_PAULI_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.quantum_info.operators", "SparsePauliOp");
 pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
 pub static CIRCUIT_TO_DAG: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "circuit_to_dag");
@@ -165,6 +167,9 @@ pub static CONTROL_FLOW_SWITCH_CASE_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "SwitchCaseOp");
 pub static CONTROL_FLOW_BOX_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "BoxOp");
+pub static TRANSPILER_LAYOUT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.transpiler.layout", "TranspileLayout");
+pub static LAYOUT: ImportOnceCell = ImportOnceCell::new("qiskit.transpiler.layout", "Layout");
 pub static NUMPY_ARRAY: ImportOnceCell = ImportOnceCell::new("numpy", "ndarray");
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

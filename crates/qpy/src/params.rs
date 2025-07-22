@@ -10,27 +10,21 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 use pyo3::basic::CompareOp;
-use pyo3::exceptions::PyAttributeError;
-use pyo3::intern;
-use pyo3::prelude::*;
+use pyo3::exceptions::{PyAttributeError, PyTypeError, PyValueError};
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyTuple};
-use pyo3::PyObject;
+use pyo3::{intern, prelude::*, IntoPyObjectExt, PyObject};
 use qiskit_circuit::imports;
-use qiskit_circuit::imports::PARAMETER_SUBS;
 use qiskit_circuit::operations::Param;
 use std::vec;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
-use crate::circuits::load_register;
+use crate::circuits::{dumps_register, load_register};
 use crate::formats;
-use crate::formats::PackedParam;
-use crate::value::DumpedValue;
 use crate::value::{
-    bytes_to_uuid, dumps_register, dumps_value, get_type_key, serialize, tags, QPYReadData,
-    QPYWriteData,
+    bytes_to_uuid, deserialize, deserialize_vec, dumps_value, get_type_key, serialize, tags,
+    DumpedValue, QPYReadData, QPYWriteData,
 };
-use crate::value::{deserialize, deserialize_vec};
 use hashbrown::HashMap;
 
 pub mod parameter_tags {
@@ -130,7 +124,7 @@ fn pack_parameter_replay_entry(
             [0u8; 16] // return empty
         }
         _ => {
-            return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+            return Err(PyTypeError::new_err(format!(
                 "Unhandled key_type: {}",
                 key_type
             )))
@@ -154,17 +148,17 @@ fn unpack_parameter_replay_entry(
         tags::NULL => Ok(Some(py.None())),
         tags::INTEGER => {
             let value = i64::from_be_bytes(value[8..16].try_into()?);
-            Ok(Some(value.into_pyobject(py)?.into_any().unbind()))
+            Ok(Some(value.into_py_any(py)?))
         }
         tags::FLOAT => {
             let value = f64::from_be_bytes(value[8..16].try_into()?);
-            Ok(Some(value.into_pyobject(py)?.into_any().unbind()))
+            Ok(Some(value.into_py_any(py)?))
         }
         tags::COMPLEX => {
             let real = f64::from_be_bytes(value[0..8].try_into()?);
             let imag = f64::from_be_bytes(value[8..16].try_into()?);
             let complex_value = PyComplex::from_doubles(py, real, imag);
-            Ok(Some(complex_value.into_any().unbind()))
+            Ok(Some(complex_value.into_py_any(py)?))
         }
         _ => Ok(None),
     }
@@ -222,7 +216,7 @@ fn pack_parameter_expression_element(
     let py = replay_obj.py();
     let mut result = Vec::new();
     if replay_obj
-        .is_instance(PARAMETER_SUBS.get_bound(py))
+        .is_instance(imports::PARAMETER_SUBS.get_bound(py))
         .unwrap()
     {
         return Ok(vec![pack_replay_subs(replay_obj, extra_symbols, qpy_data)?]);
@@ -272,10 +266,7 @@ fn pack_parameter_expression_by_op(
         19 => Ok(Rdiv(data)),
         20 => Ok(Rpow(data)),
         255 => Ok(Expression(data)),
-        _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
-            "Invalid opcode: {}",
-            opcode
-        ))),
+        _ => Err(PyTypeError::new_err(format!("Invalid opcode: {}", opcode))),
     }
 }
 
@@ -305,7 +296,7 @@ pub fn unpack_parameter_expression_standard_op(
         Rdiv(op) => Ok((19, op)),
         Rpow(op) => Ok((20, op)),
         Expression(op) => Ok((255, op)),
-        _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+        _ => Err(PyTypeError::new_err(format!(
             "Non standard operation {:?}",
             packed_parameter
         ))),
@@ -374,7 +365,7 @@ fn pack_symbol(
                 },
             ))
         }
-        _ => Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+        _ => Err(PyTypeError::new_err(format!(
             "Unhandled symbol_key: {}",
             symbol_key
         ))),
@@ -459,12 +450,7 @@ fn op_code_to_method(opcode: u8) -> PyResult<&'static str> {
         18 => "__rsub__",
         19 => "__rtruediv__",
         20 => "__rpow__",
-        _ => {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Invalid opcode: {}",
-                opcode
-            )))
-        }
+        _ => return Err(PyValueError::new_err(format!("Invalid opcode: {}", opcode))),
     };
     Ok(method)
 }
@@ -534,10 +520,7 @@ pub fn unpack_parameter_expression(
                     data: item.item_bytes.clone(),
                 };
                 let key = param_uuid_map.get(&key_uuid).ok_or_else(|| {
-                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                        "Parameter UUID not found: {:?}",
-                        &key_uuid
-                    ))
+                    PyValueError::new_err(format!("Parameter UUID not found: {:?}", &key_uuid))
                 })?;
                 subs_mapping.set_item(key, value.to_python(py, qpy_data)?)?;
             }
@@ -551,7 +534,7 @@ pub fn unpack_parameter_expression(
                     if let Some(value) = param_uuid_map.get(&op.lhs) {
                         stack.push(value.clone());
                     } else {
-                        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        return Err(PyValueError::new_err(format!(
                             "Parameter UUID not found: {:?}",
                             op.lhs
                         )));
@@ -565,7 +548,7 @@ pub fn unpack_parameter_expression(
                 parameter_tags::NULL => (), // pass
                 parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
                 _ => {
-                    return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    return Err(PyValueError::new_err(format!(
                         "Unknown ParameterExpression operation type: {}",
                         op.lhs_type
                     )))
@@ -577,7 +560,7 @@ pub fn unpack_parameter_expression(
                     if let Some(value) = param_uuid_map.get(&op.rhs) {
                         stack.push(value.clone());
                     } else {
-                        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        return Err(PyValueError::new_err(format!(
                             "Parameter UUID not found: {:?}",
                             op.rhs
                         )));
@@ -591,7 +574,7 @@ pub fn unpack_parameter_expression(
                 parameter_tags::NULL => (), // pass
                 parameter_tags::LHS_EXPRESSION | parameter_tags::RHS_EXPRESSION => continue,
                 _ => {
-                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+                    return Err(PyTypeError::new_err(format!(
                         "Unknown ParameterExpression operation type: {}",
                         op.rhs_type
                     )))
@@ -605,10 +588,10 @@ pub fn unpack_parameter_expression(
         let method_str = op_code_to_method(opcode)?;
 
         if [0, 1, 2, 3, 4, 13, 15, 18, 19, 20].contains(&opcode) {
-            let rhs = stack.pop().ok_or(pyo3::exceptions::PyValueError::new_err(
+            let rhs = stack.pop().ok_or(PyTypeError::new_err(
                 "Stack underflow while parsing parameter expression",
             ))?;
-            let lhs = stack.pop().ok_or(pyo3::exceptions::PyValueError::new_err(
+            let lhs = stack.pop().ok_or(PyTypeError::new_err(
                 "Stack underflow while parsing parameter expression",
             ))?;
             // Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
@@ -634,14 +617,14 @@ pub fn unpack_parameter_expression(
             }
         } else {
             // unary op
-            let lhs = stack.pop().ok_or(pyo3::exceptions::PyValueError::new_err(
+            let lhs = stack.pop().ok_or(PyValueError::new_err(
                 "Stack underflow while parsing parameter expression",
             ))?;
             stack.push(lhs.getattr(py, method_str)?.call0(py)?);
         }
     }
 
-    let result = stack.pop().ok_or(pyo3::exceptions::PyValueError::new_err(
+    let result = stack.pop().ok_or(PyValueError::new_err(
         "Stack underflow while parsing parameter expression",
     ))?;
     Ok(result)
@@ -663,9 +646,8 @@ pub fn unpack_parameter(py: Python, parameter: &formats::ParameterPack) -> PyRes
     let kwargs = PyDict::new(py);
     kwargs.set_item("name", parameter.name.clone())?;
     kwargs.set_item("uuid", bytes_to_uuid(py, parameter.uuid)?)?;
-    Ok(py
-        .import("qiskit.circuit.parameter")?
-        .getattr("Parameter")?
+    Ok(imports::PARAMETER
+        .get_bound(py)
         .call((), Some(&kwargs))?
         .unbind())
 }
@@ -705,7 +687,7 @@ pub fn unpack_generic_instruction_param_sequence_to_tuple(
             load_instruction_param_value(py, data_pack.type_key, &data_pack.data, qpy_data)
         })
         .collect::<PyResult<_>>()?;
-    Ok(PyTuple::new(py, elements)?.unbind().into_any())
+    PyTuple::new(py, elements)?.into_py_any(py)
 }
 
 pub fn dumps_instruction_param_value(
@@ -752,17 +734,11 @@ pub fn load_instruction_param_value(
             qpy_data,
         )?,
         tags::REGISTER => load_register(py, data.clone(), qpy_data.circuit_data)?,
-        _ => {
-            DumpedValue {
-                data_type: type_key,
-                data: data.clone(),
-            }
-            .to_python(py, qpy_data)?
-            // return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
-            //     "Unhandled type_key {} when deserializing instruction params",
-            //     type_key
-            // )))
+        _ => DumpedValue {
+            data_type: type_key,
+            data: data.clone(),
         }
+        .to_python(py, qpy_data)?,
     })
 }
 
@@ -781,7 +757,7 @@ pub fn pack_param(
 
 pub fn unpack_param(
     py: Python,
-    packed_param: &PackedParam,
+    packed_param: &formats::PackedParam,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Param> {
     match packed_param.type_key {
@@ -796,8 +772,6 @@ pub fn unpack_param(
             ))
         }
         _ => {
-            // TODO cloning the data in order to leverage DumpedValue's converter is far from optimal, we should find
-            // as way to use some common interface for both DumpedValue and PackedParam conversions
             let param_value = load_instruction_param_value(
                 py,
                 packed_param.type_key,
@@ -835,9 +809,8 @@ pub fn unpack_parameter_vector(
     let vector_data = match qpy_data.vectors.get_mut(&root_uuid) {
         Some(value) => value,
         None => {
-            let vector = py
-                .import("qiskit.circuit.parametervector")?
-                .getattr("ParameterVector")?
+            let vector = imports::PARAMETER_VECTOR
+                .get_bound(py)
                 .call1((pack.name.clone(), pack.vector_size))?
                 .unbind();
             qpy_data.vectors.insert(root_uuid, (vector, Vec::new()));
@@ -855,9 +828,8 @@ pub fn unpack_parameter_vector(
     if vector_element_uuid != Uuid::from_bytes(pack.uuid) {
         // we need to create a new parameter vector element and hack it into the vector
         vector_data.1.push(pack.index);
-        let param_vector_element = py
-            .import("qiskit.circuit.parametervector")?
-            .getattr("ParameterVectorElement")?
+        let param_vector_element = imports::PARAMETER_VECTOR_ELEMENT
+            .get_bound(py)
             .call1((vector, pack.index, bytes_to_uuid(py, pack.uuid)?))?
             .unbind();
         vector

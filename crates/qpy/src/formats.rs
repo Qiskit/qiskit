@@ -104,7 +104,7 @@ pub mod extras_key_parts {
     pub const CONDITIONAL: u8 = 0b0000_0011;
 }
 // TODO: It may be possible to create two virtual fields, annotations_key and conditional_key
-// such that they are set byt the code and binrw generated extras_key from them
+// such that they are set by the code and have binrw generate extras_key from them
 fn has_annotations(extras_key: u8) -> bool {
     extras_key & extras_key_parts::ANNOTATIONS != 0
 }
@@ -580,7 +580,7 @@ pub struct ExpressionVarDeclarationPack {
 #[derive(Debug)]
 pub struct CalibrationsPack {
     pub num_cals: u16,
-    // TODO: incomplete
+    // TODO: incomplete; will be needed for previous versions support
 }
 
 // annotation-related data types

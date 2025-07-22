@@ -121,7 +121,7 @@ where
     T: BinRead<Args<'static> = ()> + Debug,
 {
     let mut cursor = Cursor::new(bytes);
-    let value = T::read_options(&mut cursor, Endian::Big, ()).unwrap(); //TODO better error handling
+    let value = T::read_options(&mut cursor, Endian::Big, ()).unwrap();
     let bytes_read = cursor.position() as usize;
     Ok((value, bytes_read))
 }
@@ -132,7 +132,7 @@ where
     A: Clone + Debug,
 {
     let mut cursor = Cursor::new(bytes);
-    let value = T::read_args(&mut cursor, args).unwrap(); //TODO better error handling
+    let value = T::read_args(&mut cursor, args).unwrap();
     let bytes_read = cursor.position() as usize;
     Ok((value, bytes_read))
 }
@@ -230,7 +230,6 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResul
         tags::EXPRESSION => serialize_expression(py_object, qpy_data)?,
         tags::NULL | tags::CASE_DEFAULT => Bytes::new(),
         tags::CIRCUIT => serialize(&pack_circuit(
-            py,
             py_object,
             py.None().bind(py),
             false,
@@ -245,20 +244,6 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResul
         }
     };
     Ok((type_key, value))
-}
-
-pub fn dumps_register(register: &Bound<PyAny>) -> PyResult<Bytes> {
-    let py = register.py();
-    if register.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
-        Ok(register.getattr("name")?.extract::<String>()?.into())
-    } else {
-        let index: usize = register.getattr("_index")?.extract()?;
-        //let index_string = index.to_be_bytes().to_vec();
-        let index_string = index.to_string().as_bytes().to_vec();
-        let mut result = Bytes(vec![0x00]);
-        result.extend_from_slice(&index_string);
-        Ok(result)
-    }
 }
 
 pub fn pack_generic_data(
@@ -362,9 +347,10 @@ fn serialize_range(py_object: &Bound<PyAny>) -> PyResult<Bytes> {
 
 fn deserialize_range(py: Python, raw_range: &Bytes) -> PyResult<Py<PyAny>> {
     let range_pack = deserialize::<formats::RangePack>(raw_range)?.0;
-    let py_range_class = py.import("builtins")?.getattr("range")?;
-    let py_range = py_range_class.call1((range_pack.start, range_pack.stop, range_pack.step))?;
-    Ok(py_range.unbind())
+    Ok(imports::BUILTIN_RANGE
+        .get_bound(py)
+        .call1((range_pack.start, range_pack.stop, range_pack.step))?
+        .unbind())
 }
 
 fn serialize_expression(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
@@ -623,7 +609,7 @@ impl DumpedValue {
             .0
             .unbind(),
             _ => {
-                return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+                return Err(PyTypeError::new_err(format!(
                     "Dumped Value to python: Unhandled type_key: {}",
                     self.data_type
                 )))
