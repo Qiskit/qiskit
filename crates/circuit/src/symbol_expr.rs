@@ -1010,7 +1010,7 @@ impl SymbolExpr {
         }
     }
 
-    /// cehck if the type of the node is Value
+    /// check if the type of the node is a value; that is it matches Value or is an integer fraction
     #[inline(always)]
     pub fn is_value(&self) -> bool {
         self.is_rational() || matches!(self, SymbolExpr::Value(_))
