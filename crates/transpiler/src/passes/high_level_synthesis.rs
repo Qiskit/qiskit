@@ -47,9 +47,6 @@ use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
 /// and the states are distinguished into clean (:math:`|0\rangle`)
@@ -700,7 +697,8 @@ fn extract_definition(
                 // Run 2q synthesis
                 [4, 4] => {
                     let decomposer = TwoQubitBasisDecomposer::new_inner(
-                        "cx".to_string(),
+                        StandardGate::CX.into(),
+                        SmallVec::new(),
                         aview2(&CX_GATE),
                         1.0,
                         "U",
@@ -708,16 +706,16 @@ fn extract_definition(
                     )?;
                     let two_qubit_sequence =
                         decomposer.call_inner(unitary.view(), None, false, None)?;
-                    let circuit_data = CircuitData::from_standard_gates(
+                    let circuit_data = CircuitData::from_packed_operations(
                         2,
+                        0,
                         two_qubit_sequence.gates().iter().map(
                             |(gate, params_floats, qubit_indices)| {
-                                let unwrapped_gate = gate.unwrap_or(StandardGate::CX);
                                 let params: SmallVec<[Param; 3]> =
                                     params_floats.iter().map(|p| Param::Float(*p)).collect();
                                 let qubits =
                                     qubit_indices.iter().map(|q| Qubit(*q as u32)).collect();
-                                (unwrapped_gate, params, qubits)
+                                Ok((gate.clone(), params, qubits, vec![]))
                             },
                         ),
                         Param::Float(two_qubit_sequence.global_phase()),
