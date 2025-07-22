@@ -28,20 +28,15 @@ pub enum TimeValue {
     Int(u64),
 }
 
-impl TimeValue {
-    fn as_f64(&self) -> f64 {
-        match self {
-            TimeValue::Float(f) => *f,
-            TimeValue::Int(i) => *i as f64,
-        }
+impl From<f64> for TimeValue {
+    fn from(value: f64) -> Self {
+        TimeValue::Float(value)
     }
+}
 
-    fn from_f64(value: f64, is_int_type: bool) -> TimeValue {
-        if is_int_type {
-            TimeValue::Int(value as u64)
-        } else {
-            TimeValue::Float(value)
-        }
+impl From<u64> for TimeValue {
+    fn from(value: u64) -> Self {
+        TimeValue::Int(value)
     }
 }
 
@@ -55,12 +50,6 @@ pub fn run_alap_schedule_analysis(
             "ALAP schedule runs on physical circuits only",
         ));
     }
-
-    let is_int_type = node_durations
-        .values()
-        .next()
-        .map(|d| matches!(d, TimeValue::Int(_)))
-        .unwrap_or(false);
 
     let mut node_start_time: HashMap<NodeIndex, f64> = HashMap::new();
     let mut idle_before: HashMap<Wire, f64> = HashMap::new();
@@ -98,15 +87,11 @@ pub fn run_alap_schedule_analysis(
             .map(|&c| Wire::Clbit(c))
             .collect();
 
-        let op_duration = node_durations
-            .get(&node_index)
-            .ok_or_else(|| {
-                TranspilerError::new_err(format!(
-                    "No duration for node index {} in node_durations",
-                    node_index.index()
-                ))
-            })?
-            .as_f64();
+        let op_duration = match node_durations.get(&node_index) {
+            Some(TimeValue::Float(f)) => *f,
+            Some(TimeValue::Int(i)) => *i as f64,
+            None => return Err(TranspilerError::new_err("No duration for node")),
+        };
 
         let op_view = op.op.view();
         let is_gate_or_delay = matches!(
@@ -179,8 +164,12 @@ pub fn run_alap_schedule_analysis(
 
     let mut result: HashMap<NodeIndex, TimeValue> = HashMap::new();
     for (node_idx, t1) in node_start_time {
-        let final_time = circuit_duration - t1;
-        result.insert(node_idx, TimeValue::from_f64(final_time, is_int_type));
+        let final_time = match node_durations.get(&node_idx) {
+            Some(TimeValue::Int(_)) => TimeValue::from((circuit_duration - t1).round() as u64),
+            Some(TimeValue::Float(_)) => TimeValue::from(circuit_duration - t1),
+            None => return Err(TranspilerError::new_err("No duration for node")),
+        };
+        result.insert(node_idx, final_time);
     }
 
     Ok(result)
@@ -197,13 +186,12 @@ pub fn run_alap_schedule_analysis(
 /// Returns:
 ///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time.
 ///
-#[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations, unit))]
+#[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations))]
 pub fn py_run_alap_schedule_analysis(
     py: Python,
     dag: &DAGCircuit,
     clbit_write_latency: u64,
     node_durations: &Bound<PyDict>,
-    unit: &str,
 ) -> PyResult<Py<PyDict>> {
     // Extract indices and durations from PyDict
     let mut op_durations: HashMap<NodeIndex, TimeValue> = HashMap::new();
@@ -214,17 +202,15 @@ pub fn py_run_alap_schedule_analysis(
             .extract::<DAGNode>()?
             .node
             .expect("Node index not found.");
-        let op_duration = match unit {
-            "dt" => {
-                let val: u64 = py_duration.extract()?;
-                TimeValue::Int(val)
-            }
-            "s" => {
-                let val: f64 = py_duration.extract()?;
-                TimeValue::Float(val)
-            }
-            _ => return Err(TranspilerError::new_err("Invalid time unit")),
+
+        let op_duration = if let Ok(val) = py_duration.extract::<u64>() {
+            val.into()
+        } else if let Ok(val) = py_duration.extract::<f64>() {
+            val.into()
+        } else {
+            return Err(TranspilerError::new_err("Duration must be u64 or f64"));
         };
+
         op_durations.insert(node_idx, op_duration);
     }
 
