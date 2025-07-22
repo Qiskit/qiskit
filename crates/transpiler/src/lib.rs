@@ -14,6 +14,7 @@ pub mod commutation_checker;
 pub mod equivalence;
 pub mod passes;
 pub mod target;
+pub mod transpile_layout;
 
 mod gate_metrics;
 
