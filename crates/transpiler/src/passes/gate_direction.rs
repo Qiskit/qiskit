@@ -210,7 +210,6 @@ pub fn fix_direction_target(
                 StandardGate::RXX | StandardGate::RYY | StandardGate::RZZ | StandardGate::RZX => {
                     return target
                         .py_instruction_supported(
-                            py,
                             None,
                             qargs.into(),
                             Some(
