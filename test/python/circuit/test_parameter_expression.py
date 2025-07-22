@@ -520,3 +520,13 @@ class TestParameterExpression(QiskitTestCase):
         result = expression.sympify()
         expected = sympy.Symbol("p[0]") + 1
         self.assertEqual(expected, result)
+
+    def test_print_rational(self):
+        """Test printing parameter expression with rational numbers"""
+        a = Parameter("a")
+        self.assertEqual("2*a/3", str(2*a/3))
+        self.assertEqual("(-2)*a/3", str((-2)*a/3))
+        self.assertEqual("a/3", str(1*a/3))
+        self.assertEqual("(-2)*a/3", str(2*(-a)/3))
+
+
