@@ -747,7 +747,7 @@ pub fn dumps_register_param(register: &Bound<PyAny>) -> PyResult<Bytes> {
     if register.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
         Ok(register.getattr("name")?.extract::<String>()?.into())
     } else {
-        let index: usize = register.getattr("index")?.extract()?;
+        let index: usize = register.getattr("_index")?.extract()?;
         let index_string = index.to_string().as_bytes().to_vec();
         let mut result = Bytes(vec![0x00]);
         result.extend_from_slice(&index_string);
