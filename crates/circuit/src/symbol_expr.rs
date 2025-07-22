@@ -272,53 +272,53 @@ impl fmt::Display for SymbolExpr {
                             }
                         },
                         BinaryOp::Mul => {
-                            if let Some((numerator, denominator)) = lhs.fraction() {
+                            if let Some((numerator, denominator)) = lhs.rational() {
                                 if numerator == 1 {
                                     if op_rhs {
                                         if denominator == 1 {
-                                            format!("({})", s_rhs)
+                                            format!("({s_rhs})")
                                         } else if denominator < 0 {
-                                            format!("({})/({})", s_rhs, denominator)
+                                            format!("({s_rhs})/({denominator})")
                                         } else {
-                                            format!("({})/{}", s_rhs, denominator)
+                                            format!("({s_rhs})/{denominator}")
                                         }
                                     } else if denominator == 1 {
                                         s_rhs.to_string()
                                     } else if denominator < 0 {
-                                        format!("{}/({})", s_rhs, denominator)
+                                        format!("{s_rhs}/({denominator})")
                                     } else {
-                                        format!("{}/{}", s_rhs, denominator)
+                                        format!("{s_rhs}/{denominator}")
                                     }
                                 } else if numerator < 0 {
                                     if op_rhs {
                                         if denominator == 1 {
-                                            format!("({})*({})", numerator, s_rhs)
+                                            format!("({numerator})*({s_rhs})")
                                         } else if denominator < 0 {
-                                            format!("({})*({})/({})", numerator, s_rhs, denominator)
+                                            format!("({numerator})*({s_rhs})/({denominator})")
                                         } else {
-                                            format!("({})*({})/{}", numerator, s_rhs, denominator)
+                                            format!("({numerator})*({s_rhs})/{denominator}")
                                         }
                                     } else if denominator == 1 {
-                                        format!("({})*{}", numerator, s_rhs)
+                                        format!("({numerator})*{s_rhs}")
                                     } else if denominator < 0 {
-                                        format!("({})*{}/({})", numerator, s_rhs, denominator)
+                                        format!("({numerator})*{s_rhs}/({denominator})")
                                     } else {
-                                        format!("({})*{}/{}", numerator, s_rhs, denominator)
+                                        format!("({numerator})*{s_rhs}/{denominator}")
                                     }
                                 } else if op_rhs {
                                     if denominator == 1 {
-                                        format!("{}*({})", numerator, s_rhs)
+                                        format!("{numerator}*({s_rhs})")
                                     } else if denominator < 0 {
-                                        format!("{}*({})/({})", numerator, s_rhs, denominator)
+                                        format!("{numerator}*({s_rhs})/({denominator})")
                                     } else {
-                                        format!("{}*({})/{}", numerator, s_rhs, denominator)
+                                        format!("{numerator}*({s_rhs})/{denominator}")
                                     }
                                 } else if denominator == 1 {
-                                    format!("{}*{}", numerator, s_rhs)
+                                    format!("{numerator}*{s_rhs}")
                                 } else if denominator < 0 {
-                                    format!("{}*{}/({})", numerator, s_rhs, denominator)
+                                    format!("{numerator}*{s_rhs}/({denominator})")
                                 } else {
-                                    format!("{}*{}/{}", numerator, s_rhs, denominator)
+                                    format!("{numerator}*{s_rhs}/{denominator}")
                                 }
                             } else if op_lhs {
                                 if op_rhs {
@@ -333,37 +333,37 @@ impl fmt::Display for SymbolExpr {
                             }
                         }
                         BinaryOp::Div => {
-                            if let Some((numerator, denominator)) = lhs.fraction() {
+                            if let Some((numerator, denominator)) = lhs.rational() {
                                 if numerator < 0 {
                                     if op_rhs {
                                         if denominator == 1 {
-                                            format!("({})/({})", numerator, s_rhs)
+                                            format!("({numerator})/({s_rhs})")
                                         } else if denominator < 0 {
-                                            format!("({})/({})/({})", numerator, s_rhs, denominator)
+                                            format!("({numerator})/({s_rhs})/({denominator})")
                                         } else {
-                                            format!("({})/({})/{}", numerator, s_rhs, denominator)
+                                            format!("({numerator})/({s_rhs})/{denominator}")
                                         }
                                     } else if denominator == 1 {
-                                        format!("({})/{}", numerator, s_rhs)
+                                        format!("({numerator})/{s_rhs}")
                                     } else if denominator < 0 {
-                                        format!("({})/{}/({})", numerator, s_rhs, denominator)
+                                        format!("({numerator})/{s_rhs}/({denominator})")
                                     } else {
-                                        format!("({})/{}/{}", numerator, s_rhs, denominator)
+                                        format!("({numerator})/{s_rhs}/{denominator}")
                                     }
                                 } else if op_rhs {
                                     if denominator == 1 {
-                                        format!("{}/({})", numerator, s_rhs)
+                                        format!("{numerator}/({s_rhs})")
                                     } else if denominator < 0 {
-                                        format!("{}/({})/({})", numerator, s_rhs, denominator)
+                                        format!("{numerator}/({s_rhs})/({denominator})")
                                     } else {
-                                        format!("{}/({})/{}", numerator, s_rhs, denominator)
+                                        format!("{numerator}/({s_rhs})/{denominator}")
                                     }
                                 } else if denominator == 1 {
-                                    format!("{}/{}", numerator, s_rhs)
+                                    format!("{numerator}/{s_rhs}")
                                 } else if denominator < 0 {
-                                    format!("{}/{}/({})", numerator, s_rhs, denominator)
+                                    format!("{numerator}/{s_rhs}/({denominator})")
                                 } else {
-                                    format!("{}/{}/{}", numerator, s_rhs, denominator)
+                                    format!("{numerator}/{s_rhs}/{denominator}")
                                 }
                             } else if op_lhs {
                                 if op_rhs {
@@ -551,6 +551,8 @@ impl SymbolExpr {
                             rval = right;
                         }
                         _ => {
+                            // if there are still some unbound parameters
+                            // we try to optimize equation if we can eliminate some
                             let val = match op {
                                 BinaryOp::Add => lhs.add_opt(rhs, true),
                                 BinaryOp::Sub => lhs.sub_opt(rhs, true),
@@ -610,7 +612,7 @@ impl SymbolExpr {
         if self == param {
             Ok(SymbolExpr::Value(Value::Real(1.0)))
         } else {
-            if self.is_fraction() {
+            if self.is_rational() {
                 return Ok(SymbolExpr::Value(Value::Real(0.0)));
             }
 
@@ -762,7 +764,7 @@ impl SymbolExpr {
                 }
             }
             SymbolExpr::Binary { op, lhs, rhs } => {
-                if self.is_fraction() {
+                if self.is_rational() {
                     return self.clone();
                 }
 
@@ -839,9 +841,9 @@ impl SymbolExpr {
         }
     }
 
-    /// return fraction as tuple
+    /// return integer rational number as tuple
     #[inline(always)]
-    pub fn fraction(&self) -> Option<(i64, i64)> {
+    pub fn rational(&self) -> Option<(i64, i64)> {
         match self {
             SymbolExpr::Binary { op, lhs, rhs } => match (op, lhs.as_ref(), rhs.as_ref()) {
                 (
@@ -894,7 +896,7 @@ impl SymbolExpr {
             SymbolExpr::Value(v) => Vec::<Value>::from([*v]),
             SymbolExpr::Unary { op: _, expr } => expr.values(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     return Vec::from([Value::Real(numerator as f64 / denominator as f64)]);
                 }
                 let mut l = lhs.values();
@@ -923,7 +925,7 @@ impl SymbolExpr {
                 SymbolExpr::Symbol(e.clone()),
             ),
             SymbolExpr::Value(e) => match e {
-                Value::Int(i) => _fraction(1, *i),
+                Value::Int(i) => _rational(1, *i),
                 _ => SymbolExpr::Value(e.rcp()),
             },
             SymbolExpr::Unary { .. } => _div(SymbolExpr::Value(Value::Int(1)), self.clone()),
@@ -961,7 +963,7 @@ impl SymbolExpr {
                 expr: Arc::new(expr.conjugate()),
             },
             SymbolExpr::Binary { op, lhs, rhs } => {
-                if self.is_fraction() {
+                if self.is_rational() {
                     self.clone()
                 } else {
                     SymbolExpr::Binary {
@@ -1011,12 +1013,12 @@ impl SymbolExpr {
     /// cehck if the type of the node is Value
     #[inline(always)]
     pub fn is_value(&self) -> bool {
-        self.is_fraction() || matches!(self, SymbolExpr::Value(_))
+        self.is_rational() || matches!(self, SymbolExpr::Value(_))
     }
 
-    /// check if fraction or not
+    /// check if integer rational number or not
     #[inline(always)]
-    pub fn is_fraction(&self) -> bool {
+    pub fn is_rational(&self) -> bool {
         match self {
             SymbolExpr::Binary { op, lhs, rhs } => match (op, lhs.as_ref(), rhs.as_ref()) {
                 (
@@ -1064,7 +1066,7 @@ impl SymbolExpr {
                 _ => false, // TO DO add heuristic determination
             },
             SymbolExpr::Binary { .. } => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     return numerator * denominator < 0;
                 }
                 false
@@ -1081,8 +1083,8 @@ impl SymbolExpr {
                 expr,
             } => expr.abs(),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
-                    _fraction(numerator.abs(), denominator.abs())
+                if let Some((numerator, denominator)) = self.rational() {
+                    _rational(numerator.abs(), denominator.abs())
                 } else {
                     SymbolExpr::Unary {
                         op: UnaryOp::Abs,
@@ -1096,7 +1098,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.sin()),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).sin())
                 } else {
                     SymbolExpr::Unary {
@@ -1111,7 +1113,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.asin()),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).asin())
                 } else {
                     SymbolExpr::Unary {
@@ -1126,7 +1128,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.cos()),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).cos())
                 } else {
                     SymbolExpr::Unary {
@@ -1141,7 +1143,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.acos()),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).acos())
                 } else {
                     SymbolExpr::Unary {
@@ -1156,7 +1158,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.tan()),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).tan())
                 } else {
                     SymbolExpr::Unary {
@@ -1171,7 +1173,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.atan()),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).atan())
                 } else {
                     SymbolExpr::Unary {
@@ -1186,7 +1188,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.exp()),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).exp())
                 } else {
                     SymbolExpr::Unary {
@@ -1201,7 +1203,7 @@ impl SymbolExpr {
         match self {
             SymbolExpr::Value(l) => SymbolExpr::Value(l.log()),
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     SymbolExpr::Value(Value::Real(numerator as f64 / denominator as f64).log())
                 } else {
                     SymbolExpr::Unary {
@@ -1217,7 +1219,7 @@ impl SymbolExpr {
             SymbolExpr::Value(l) => match rhs {
                 SymbolExpr::Value(r) => SymbolExpr::Value(l.pow(r)),
                 _ => {
-                    if let Some((numerator, denominator)) = rhs.fraction() {
+                    if let Some((numerator, denominator)) = rhs.rational() {
                         SymbolExpr::Value(
                             l.pow(&Value::Real(numerator as f64 / denominator as f64)),
                         )
@@ -1231,11 +1233,11 @@ impl SymbolExpr {
                 }
             },
             _ => {
-                if let Some((numerator, denominator)) = self.fraction() {
+                if let Some((numerator, denominator)) = self.rational() {
                     if let SymbolExpr::Value(r) = rhs {
                         return match r {
                             Value::Int(r) => {
-                                _fraction(numerator.pow(*r as u32), denominator.pow(*r as u32))
+                                _rational(numerator.pow(*r as u32), denominator.pow(*r as u32))
                             }
                             _ => SymbolExpr::Value(
                                 Value::Real(numerator as f64 / denominator as f64).pow(r),
@@ -1259,20 +1261,20 @@ impl SymbolExpr {
             if let SymbolExpr::Value(l) = self {
                 if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(l + r));
-                } else if let Some((rn, rd)) = rhs.fraction() {
+                } else if let Some((rn, rd)) = rhs.rational() {
                     if let Value::Int(l) = l {
-                        return Some(_fraction(*l * rd + rn, rd));
+                        return Some(_rational(*l * rd + rn, rd));
                     } else {
                         return Some(SymbolExpr::Value(
                             (l * &Value::Int(rd) + Value::Int(rn)) / Value::Int(rd),
                         ));
                     }
                 }
-            } else if let Some((ln, ld)) = self.fraction() {
-                if let Some((rn, rd)) = rhs.fraction() {
-                    return Some(_fraction(ln * rd + rn * ld, ld * rd));
+            } else if let Some((ln, ld)) = self.rational() {
+                if let Some((rn, rd)) = rhs.rational() {
+                    return Some(_rational(ln * rd + rn * ld, ld * rd));
                 } else if let SymbolExpr::Value(Value::Int(r)) = rhs {
-                    return Some(_fraction(ln + *r * ld, ld));
+                    return Some(_rational(ln + *r * ld, ld));
                 } else if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(
                         (Value::Int(ln) + r * &Value::Int(ld)) / Value::Int(ld),
@@ -1390,20 +1392,20 @@ impl SymbolExpr {
             if let SymbolExpr::Value(l) = self {
                 if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(l - r));
-                } else if let Some((rn, rd)) = rhs.fraction() {
+                } else if let Some((rn, rd)) = rhs.rational() {
                     if let Value::Int(l) = l {
-                        return Some(_fraction(*l * rd - rn, rd));
+                        return Some(_rational(*l * rd - rn, rd));
                     } else {
                         return Some(SymbolExpr::Value(
                             (l * &Value::Int(rd) - Value::Int(rn)) / Value::Int(rd),
                         ));
                     }
                 }
-            } else if let Some((ln, ld)) = self.fraction() {
-                if let Some((rn, rd)) = rhs.fraction() {
-                    return Some(_fraction(ln * rd - rn * ld, ld * rd));
+            } else if let Some((ln, ld)) = self.rational() {
+                if let Some((rn, rd)) = rhs.rational() {
+                    return Some(_rational(ln * rd - rn * ld, ld * rd));
                 } else if let SymbolExpr::Value(Value::Int(r)) = rhs {
-                    return Some(_fraction(ln - *r * ld, ld));
+                    return Some(_rational(ln - *r * ld, ld));
                 } else if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(
                         (Value::Int(ln) - r * &Value::Int(ld)) / Value::Int(ld),
@@ -1521,18 +1523,18 @@ impl SymbolExpr {
             if let SymbolExpr::Value(l) = self {
                 if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(l * r));
-                } else if let Some((rn, rd)) = rhs.fraction() {
+                } else if let Some((rn, rd)) = rhs.rational() {
                     if let Value::Int(l) = l {
-                        return Some(_fraction(*l * rn, rd));
+                        return Some(_rational(*l * rn, rd));
                     } else {
                         return Some(SymbolExpr::Value(l * &Value::Int(rn) / Value::Int(rd)));
                     }
                 }
-            } else if let Some((ln, ld)) = self.fraction() {
-                if let Some((rn, rd)) = rhs.fraction() {
-                    return Some(_fraction(ln * rn, ld * rd));
+            } else if let Some((ln, ld)) = self.rational() {
+                if let Some((rn, rd)) = rhs.rational() {
+                    return Some(_rational(ln * rn, ld * rd));
                 } else if let SymbolExpr::Value(Value::Int(r)) = rhs {
-                    return Some(_fraction(ln * *r, ld));
+                    return Some(_rational(ln * *r, ld));
                 } else if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(&Value::Int(ln) * r / Value::Int(ld)));
                 }
@@ -1646,21 +1648,21 @@ impl SymbolExpr {
             if let SymbolExpr::Value(l) = self {
                 if let SymbolExpr::Value(r) = rhs {
                     return match (l, r) {
-                        (Value::Int(l), Value::Int(r)) => Some(_fraction(*l, *r)),
+                        (Value::Int(l), Value::Int(r)) => Some(_rational(*l, *r)),
                         (_, _) => Some(SymbolExpr::Value(l / r)),
                     };
-                } else if let Some((rn, rd)) = rhs.fraction() {
+                } else if let Some((rn, rd)) = rhs.rational() {
                     if let Value::Int(l) = l {
-                        return Some(_fraction(*l * rd, rn));
+                        return Some(_rational(*l * rd, rn));
                     } else {
                         return Some(SymbolExpr::Value(l * &Value::Int(rd) / Value::Int(rn)));
                     }
                 }
-            } else if let Some((ln, ld)) = self.fraction() {
-                if let Some((rn, rd)) = rhs.fraction() {
-                    return Some(_fraction(ln * rd, ld * rn));
+            } else if let Some((ln, ld)) = self.rational() {
+                if let Some((rn, rd)) = rhs.rational() {
+                    return Some(_rational(ln * rd, ld * rn));
                 } else if let SymbolExpr::Value(Value::Int(r)) = rhs {
-                    return Some(_fraction(ln, ld * *r));
+                    return Some(_rational(ln, ld * *r));
                 } else if let SymbolExpr::Value(r) = rhs {
                     return Some(SymbolExpr::Value(Value::Int(ln) / (&Value::Int(ld) * r)));
                 }
@@ -1772,7 +1774,7 @@ impl SymbolExpr {
                     return Some(e);
                 }
             }
-            if recursive && !rhs.is_fraction() {
+            if recursive && !rhs.is_rational() {
                 if let SymbolExpr::Binary {
                     op,
                     lhs: r_lhs,
@@ -1949,7 +1951,7 @@ impl SymbolExpr {
                         rhs: r_rhs,
                     } = rhs
                     {
-                        if op == rop && !rhs.is_fraction() {
+                        if op == rop && !rhs.is_rational() {
                             if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
                                 if let Some(v) = l_lhs.add_values(r_lhs, false) {
                                     // check equality only for symbols if recursive is not true for performance
@@ -2138,7 +2140,7 @@ impl SymbolExpr {
                     return Some(e);
                 }
             }
-            if recursive && !rhs.is_fraction() {
+            if recursive && !rhs.is_rational() {
                 if let SymbolExpr::Binary {
                     op,
                     lhs: r_lhs,
@@ -2196,7 +2198,7 @@ impl SymbolExpr {
                         lhs: r_lhs,
                         rhs: r_rhs,
                     } => {
-                        if rhs.is_fraction() {
+                        if rhs.is_rational() {
                             return Some(_add(_neg(rhs.clone()), self.clone()));
                         }
                         match rop {
@@ -2310,7 +2312,7 @@ impl SymbolExpr {
                         rhs: r_rhs,
                     } = rhs
                     {
-                        if op == rop && !rhs.is_fraction() {
+                        if op == rop && !rhs.is_rational() {
                             if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
                                 if let Some(v) = l_lhs.sub_values(r_lhs, false) {
                                     // check equality only for symbols if recursive is not true for performance
@@ -2507,7 +2509,7 @@ impl SymbolExpr {
                 return Some(v);
             }
 
-            if matches!(rhs, SymbolExpr::Value(_) | SymbolExpr::Symbol(_)) || rhs.is_fraction() {
+            if matches!(rhs, SymbolExpr::Value(_) | SymbolExpr::Symbol(_)) || rhs.is_rational() {
                 if let SymbolExpr::Unary { .. } = self {
                     return match rhs.mul_opt(self, recursive) {
                         Some(e) => Some(e),
@@ -2530,7 +2532,7 @@ impl SymbolExpr {
                         }
                     }
                     SymbolExpr::Binary { op, lhs: l, rhs: r } => {
-                        if rhs.is_fraction() {
+                        if rhs.is_rational() {
                             return self.mul_values(rhs, recursive);
                         }
                         if recursive {
@@ -2611,7 +2613,7 @@ impl SymbolExpr {
                         _ => None,
                     },
                     SymbolExpr::Binary { .. } => {
-                        if rhs.is_fraction() {
+                        if rhs.is_rational() {
                             Some(_mul(rhs.clone(), self.clone()))
                         } else {
                             None
@@ -2650,7 +2652,7 @@ impl SymbolExpr {
                     lhs: l_lhs,
                     rhs: l_rhs,
                 } => {
-                    if recursive && !rhs.is_fraction() {
+                    if recursive && !rhs.is_rational() {
                         if let SymbolExpr::Binary {
                             op: rop,
                             lhs: r_lhs,
@@ -2906,7 +2908,7 @@ impl SymbolExpr {
                 };
             }
             if let BinaryOp::Div = &rop {
-                if !rhs.is_fraction() {
+                if !rhs.is_rational() {
                     return match self.mul_expand(r_lhs) {
                         Some(e) => match e.mul_expand(r_rhs) {
                             Some(ee) => Some(ee),
@@ -3007,7 +3009,7 @@ impl SymbolExpr {
                     },
                 },
                 BinaryOp::Div => {
-                    if self.is_fraction() {
+                    if self.is_rational() {
                         None
                     } else {
                         match l_lhs.div_expand(rhs) {
@@ -3052,13 +3054,13 @@ impl SymbolExpr {
                     };
                 }
             } else if let SymbolExpr::Value(Value::Int(i)) = rhs {
-                let t = _fraction(1, *i);
+                let t = _rational(1, *i);
                 return match self.mul_opt(&t, recursive) {
                     Some(e) => Some(e),
                     None => Some(_mul(t, self.clone())),
                 };
-            } else if let Some((numerator, denominator)) = rhs.fraction() {
-                return self.mul_opt(&_fraction(denominator, numerator), recursive);
+            } else if let Some((numerator, denominator)) = rhs.rational() {
+                return self.mul_opt(&_rational(denominator, numerator), recursive);
             }
             if let Some(v) = self.div_values(rhs, recursive) {
                 return Some(v);
@@ -3078,7 +3080,7 @@ impl SymbolExpr {
                         }
                     }
                     SymbolExpr::Binary { op, lhs: l, rhs: r } => {
-                        if rhs.is_fraction() {
+                        if rhs.is_rational() {
                             return self.div_values(rhs, recursive);
                         }
                         match op {
@@ -3139,7 +3141,7 @@ impl SymbolExpr {
                     lhs: l_lhs,
                     rhs: l_rhs,
                 } => {
-                    if recursive && !rhs.is_fraction() {
+                    if recursive && !rhs.is_rational() {
                         if let SymbolExpr::Binary {
                             op: rop,
                             lhs: r_lhs,
@@ -3311,7 +3313,7 @@ impl SymbolExpr {
                     }
                 }
                 _ => {
-                    if self.is_fraction() {
+                    if self.is_rational() {
                         self.div_opt(rhs, true)
                     } else {
                         None
@@ -3324,8 +3326,8 @@ impl SymbolExpr {
 
     /// optimization for neg
     fn neg_opt(&self) -> Option<SymbolExpr> {
-        if let Some((n, d)) = self.fraction() {
-            return Some(_fraction(-n, d));
+        if let Some((n, d)) = self.rational() {
+            return Some(_rational(-n, d));
         }
         match self {
             SymbolExpr::Value(v) => Some(SymbolExpr::Value(-v)),
@@ -4312,7 +4314,8 @@ fn _gcd(a: u64, b: u64) -> u64 {
     }
 }
 
-fn _fraction(numerator: i64, denominator: i64) -> SymbolExpr {
+// make new integer rational number as Binary div
+fn _rational(numerator: i64, denominator: i64) -> SymbolExpr {
     if numerator == 0 {
         return SymbolExpr::Value(Value::Int(0));
     }
