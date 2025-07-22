@@ -19,7 +19,7 @@ use std::vec;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
-use crate::circuits::{dumps_register, load_register};
+use crate::circuits::load_register;
 use crate::formats;
 use crate::value::{
     bytes_to_uuid, deserialize, deserialize_vec, dumps_value, get_type_key, serialize, tags,
@@ -704,7 +704,7 @@ pub fn dumps_instruction_param_value(
         tags::TUPLE => serialize(&pack_generic_instruction_param_sequence(
             py_object, qpy_data,
         )?)?,
-        tags::REGISTER => dumps_register(py_object)?,
+        tags::REGISTER => dumps_register_param(py_object)?,
         _ => {
             let (_, value) = dumps_value(py_object, qpy_data)?;
             value
@@ -740,6 +740,19 @@ pub fn load_instruction_param_value(
         }
         .to_python(py, qpy_data)?,
     })
+}
+
+pub fn dumps_register_param(register: &Bound<PyAny>) -> PyResult<Bytes> {
+    let py = register.py();
+    if register.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
+        Ok(register.getattr("name")?.extract::<String>()?.into())
+    } else {
+        let index: usize = register.getattr("index")?.extract()?;
+        let index_string = index.to_string().as_bytes().to_vec();
+        let mut result = Bytes(vec![0x00]);
+        result.extend_from_slice(&index_string);
+        Ok(result)
+    }
 }
 
 pub fn pack_param(

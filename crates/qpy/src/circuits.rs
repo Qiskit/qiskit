@@ -28,7 +28,8 @@ use pyo3::types::{PyAny, PyBytes, PyDict, PyIterator, PyList, PyString, PyTuple,
 use pyo3::IntoPyObjectExt;
 
 use qiskit_circuit::bit::{
-    ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
+    ClassicalRegister, PyClassicalRegister, PyClbit, QuantumRegister, Register, ShareableClbit,
+    ShareableQubit,
 };
 use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
@@ -331,16 +332,25 @@ fn get_instruction_annotations(
     Ok(None)
 }
 
-pub fn dumps_register(register: &Bound<PyAny>) -> PyResult<Bytes> {
+fn dumps_register(register: Bound<PyAny>, circuit_data: &CircuitData) -> PyResult<Bytes> {
     let py = register.py();
-    if register.is_instance(imports::CLASSICAL_REGISTER.get_bound(py))? {
+    if register.is_instance_of::<PyClassicalRegister>() {
         Ok(register.getattr("name")?.extract::<String>()?.into())
+    } else if register.is_instance_of::<PyClbit>() {
+        let key = &register.extract::<ShareableClbit>()?;
+        let name = circuit_data
+            .get_clbit_indices(py)
+            .bind(py)
+            .get_item(key)?
+            .ok_or(PyErr::new::<PyValueError, _>("Clbit not found"))?
+            .getattr("index")?
+            .str()?;
+        let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len()? + 1));
+        bytes.push(0u8);
+        bytes.extend_from_slice(name.extract::<String>()?.as_bytes());
+        Ok(bytes)
     } else {
-        let index: usize = register.getattr("_index")?.extract()?;
-        let index_string = index.to_string().as_bytes().to_vec();
-        let mut result = Bytes(vec![0x00]);
-        result.extend_from_slice(&index_string);
-        Ok(result)
+        Ok(Bytes::new())
     }
 }
 
@@ -387,6 +397,7 @@ pub fn load_register(
 fn get_condition_data_from_inst(
     py: Python,
     inst: &Py<PyAny>,
+    circuit_data: &CircuitData,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
     match getattr_or_none(inst.bind(py), "_condition")? {
@@ -411,7 +422,8 @@ fn get_condition_data_from_inst(
                     .downcast::<PyTuple>()?
                     .get_item(1)?
                     .extract::<i64>()?;
-                let register = dumps_register(&condition.downcast::<PyTuple>()?.get_item(0)?)?;
+                let register =
+                    dumps_register(condition.downcast::<PyTuple>()?.get_item(0)?, circuit_data)?;
                 Ok(formats::ConditionPack {
                     key,
                     register_size: register.len() as u16,
@@ -430,11 +442,12 @@ fn get_condition_data_from_inst(
 fn get_condition_data(
     py: Python,
     op: &PackedOperation,
+    circuit_data: &CircuitData,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ConditionPack> {
     match op.view() {
         OperationRef::Instruction(py_inst) => {
-            get_condition_data_from_inst(py, &py_inst.instruction, qpy_data)
+            get_condition_data_from_inst(py, &py_inst.instruction, circuit_data, qpy_data)
         }
         // we assume only PyInstructions have condition data at this stage
         _ => Ok(formats::ConditionPack {
@@ -512,7 +525,7 @@ fn pack_instruction(
     let ctrl_state = get_ctrl_state(py, &instruction.op, num_ctrl_qubits).unwrap_or(0);
     let params: Vec<formats::PackedParam> = get_instruction_params(py, instruction, qpy_data)?;
     let bit_data = get_packed_bit_list(instruction, circuit_data);
-    let condition = get_condition_data(py, &instruction.op, qpy_data)?;
+    let condition = get_condition_data(py, &instruction.op, circuit_data, qpy_data)?;
     let annotations = get_instruction_annotations(py, instruction, qpy_data)?;
     let mut extras_key = condition.key;
     if annotations.is_some() {
