@@ -28,6 +28,7 @@ use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
+use crate::parameter::parameter_expression::ParameterExpression;
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
@@ -1451,11 +1452,7 @@ impl CircuitData {
     pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
         if let Param::ParameterExpression(expr) = &self.global_phase {
             Python::with_gil(|py| -> PyResult<()> {
-                for param_ob in expr
-                    .bind(py)
-                    .getattr(intern!(py, "parameters"))?
-                    .try_iter()?
-                {
+                for param_ob in expr.parameters(py)?.try_iter()? {
                     match self.param_table.remove_use(
                         ParameterUuid::from_parameter(&param_ob?)?,
                         ParameterUse::GlobalPhase,
@@ -2332,13 +2329,7 @@ impl CircuitData {
                          value: &Param,
                          coerce: bool|
          -> PyResult<Param> {
-            // let as_str = expr.call_method0("__str__")?;
-            // let params = expr.getattr(parameters_attr)?;
-            // println!("expr {as_str:?} {params:?}");
             let new_expr = expr.call_method1(assign_attr, (param_ob, value.into_py_any(py)?))?;
-            // let as_str = new_expr.call_method0("__str__")?;
-            // let params = new_expr.getattr(parameters_attr)?;
-            // println!("new_expr {as_str:?} {params:?}");
             if new_expr.getattr(parameters_attr)?.len()? == 0 {
                 let out = new_expr.call_method0(numeric_attr)?;
                 if coerce {
@@ -2347,7 +2338,9 @@ impl CircuitData {
                     Param::extract_no_coerce(&out)
                 }
             } else {
-                Ok(Param::ParameterExpression(new_expr.unbind()))
+                Ok(Param::ParameterExpression(
+                    new_expr.extract::<ParameterExpression>()?,
+                ))
             }
         };
 
@@ -2366,7 +2359,7 @@ impl CircuitData {
                             return Err(inconsistent());
                         };
                         self.set_global_phase(bind_expr(
-                            expr.bind_borrowed(py),
+                            expr.into_bound_py_any(py)?.as_borrowed(),
                             &param_ob,
                             value.as_ref(),
                             true,
@@ -2383,8 +2376,12 @@ impl CircuitData {
                             let Param::ParameterExpression(expr) = &params[parameter] else {
                                 return Err(inconsistent());
                             };
-                            let new_param =
-                                bind_expr(expr.bind_borrowed(py), &param_ob, value.as_ref(), true)?;
+                            let new_param = bind_expr(
+                                expr.into_bound_py_any(py)?.as_borrowed(),
+                                &param_ob,
+                                value.as_ref(),
+                                true,
+                            )?;
                             params[parameter] = match new_param.clone_ref(py) {
                                 Param::Obj(obj) => {
                                     return Err(CircuitError::new_err(format!(
@@ -2426,7 +2423,7 @@ impl CircuitData {
                                     // For user gates, we don't coerce floats to integers in `Param`
                                     // so that users can use them if they choose.
                                     let new_param = bind_expr(
-                                        expr.bind_borrowed(py),
+                                        expr.into_bound_py_any(py)?.as_borrowed(),
                                         &param_ob,
                                         value.as_ref(),
                                         false,

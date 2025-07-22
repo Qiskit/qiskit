@@ -198,8 +198,7 @@ impl CircuitDataForSynthesis for CircuitData {
 
     /// Construct the inverse circuit
     fn inverse(&self) -> PyResult<CircuitData> {
-        let inverse_global_phase =
-            Python::with_gil(|py| -> Param { multiply_param(self.global_phase(), -1.0, py) });
+        let inverse_global_phase = multiply_param(self.global_phase(), -1.0);
 
         let mut inverse_circuit = CircuitData::copy_empty_like(self, VarsMode::Alike)?;
         inverse_circuit.set_global_phase(inverse_global_phase)?;

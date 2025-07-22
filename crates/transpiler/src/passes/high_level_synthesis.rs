@@ -645,7 +645,6 @@ fn run_on_circuitdata(
                 let updated_global_phase = radd_param(
                     output_circuit.global_phase().clone(),
                     synthesized_circuit.global_phase().clone(),
-                    py,
                 );
                 output_circuit.set_global_phase(updated_global_phase)?;
             }

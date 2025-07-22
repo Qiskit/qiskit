@@ -27,8 +27,8 @@ use exceptions::CircuitError;
 
 use ahash::RandomState;
 use indexmap::{IndexMap, IndexSet};
-use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PySet, PyString};
+use pyo3::{prelude::*, IntoPyObjectExt};
 
 use rustworkx_core::petgraph::{
     graph::{EdgeIndex, NodeIndex},
@@ -760,7 +760,10 @@ fn rebind_equiv(
             .zip(query_params.iter())
             .filter_map(|(param_x, param_y)| match param_x {
                 Param::ParameterExpression(param) => {
-                    let param_uuid = ParameterUuid::from_parameter(param.bind(py));
+                    // TODO make this use parameter expr via rust
+                    let bound_param = param.into_bound_py_any(py).unwrap();
+
+                    let param_uuid = ParameterUuid::from_parameter(&bound_param);
                     Some(param_uuid.map(|uuid| (uuid, param_y)))
                 }
                 _ => None,

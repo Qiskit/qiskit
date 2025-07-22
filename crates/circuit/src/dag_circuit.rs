@@ -34,6 +34,8 @@ use crate::operations::{
     ArrayType, Operation, OperationRef, Param, PyInstruction, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
+use crate::parameter::parameter_expression::ParameterExpression;
+use crate::parameter::symbol_expr::Value;
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
@@ -1885,19 +1887,24 @@ impl DAGCircuit {
         };
         let normalize_param = |param: &Param| {
             if let Param::ParameterExpression(ob) = param {
-                ob.bind(py)
-                    .call_method0(intern!(py, "numeric"))
-                    .ok()
-                    .map(|ob| ob.extract::<Param>())
-                    .unwrap_or_else(|| Ok(param.clone()))
+                // try casting ParameterExpression to Param, prioritizing Float
+                // TODO this could maybe be done by a custom constructor on Param too
+                match ob.try_numeric(true) {
+                    Ok(value) => match value {
+                        Value::Int(i) => Param::Float(i as f64),
+                        Value::Real(r) => Param::Float(r),
+                        Value::Complex(_) => param.clone(),
+                    },
+                    Err(_) => param.clone(),
+                }
             } else {
-                Ok(param.clone())
+                param.clone()
             }
         };
 
         let phase_eq = match [
-            normalize_param(&self.global_phase)?,
-            normalize_param(&other.global_phase)?,
+            normalize_param(&self.global_phase),
+            normalize_param(&other.global_phase),
         ] {
             [Param::Float(self_phase), Param::Float(other_phase)] => {
                 Ok(phase_is_close(self_phase, other_phase))
@@ -7627,26 +7634,18 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
 /// does not handle the full possibility of parameter values.
+/// TODO replace/merge this with add_param/radd_param
 pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> {
     Ok(match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                b.clone_ref(py)
-                    .call_method1(py, intern!(py, "__radd__"), (*a,))
-            })?)
+            Param::ParameterExpression(b.add(&ParameterExpression::from_f64(*a)).unwrap())
         }
         [Param::ParameterExpression(a), Param::Float(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                a.clone_ref(py)
-                    .call_method1(py, intern!(py, "__add__"), (*b,))
-            })?)
+            Param::ParameterExpression(a.add(&ParameterExpression::from_f64(*b)).unwrap())
         }
         [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Python::with_gil(|py| -> PyResult<PyObject> {
-                a.clone_ref(py)
-                    .call_method1(py, intern!(py, "__add__"), (b,))
-            })?)
+            Param::ParameterExpression(a.add(b).expect("Name conflict in add."))
         }
         _ => panic!("Invalid global phase"),
     })

@@ -26,6 +26,7 @@ mod basis_search;
 mod compose_transforms;
 
 use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
+use pyo3::IntoPyObjectExt;
 use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
@@ -688,7 +689,10 @@ fn replace_node(
                 new_params = SmallVec::new();
                 for param in inner_node.params_view() {
                     if let Param::ParameterExpression(param_obj) = param {
-                        let bound_param = param_obj.bind(py);
+                        // TODO make this use ParameterExpression via Rust directly, this is
+                        // just a placeholder right now
+                        let bound_param = param_obj.into_bound_py_any(py)?;
+
                         let exp_params = param.iter_parameters(py)?;
                         let bind_dict = PyDict::new(py);
                         for key in exp_params {
@@ -756,7 +760,9 @@ fn replace_node(
 
         match target_dag.global_phase() {
             Param::ParameterExpression(old_phase) => {
-                let bound_old_phase = old_phase.bind(py);
+                // TODO make this use Rust
+                let bound_old_phase = old_phase.into_bound_py_any(py)?;
+
                 let bind_dict = PyDict::new(py);
                 for key in target_dag.global_phase().iter_parameters(py)? {
                     let key = key?;
