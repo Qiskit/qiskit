@@ -17,7 +17,7 @@ from __future__ import annotations
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
-def synth_mcmt_x(
+def synth_mcmt_xgate(
     num_ctrl_qubits: int, num_target_qubits: int, ctrl_state: int | None = None
 ) -> QuantumCircuit:
     """Synthesize MCMT X gate.

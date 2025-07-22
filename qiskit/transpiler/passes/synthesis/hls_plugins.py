@@ -567,7 +567,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
     synth_mcmt_vchain,
-    synth_mcmt_x,
+    synth_mcmt_xgate,
 )
 from qiskit.synthesis.evolution import ProductFormula, synth_pauli_network_rustiq
 from qiskit.synthesis.arithmetic import (
@@ -1543,7 +1543,7 @@ class MCMTSynthesisXGate(HighLevelSynthesisPlugin):
             return None  # this plugin only supports X gates
 
         ctrl_state = options.get("ctrl_state", None)
-        return synth_mcmt_x(
+        return synth_mcmt_xgate(
             high_level_object.num_ctrl_qubits, high_level_object.num_target_qubits, ctrl_state
         )
 
