@@ -261,6 +261,11 @@ MCMT Synthesis
       - `0`
       - `0`
       - uses Qiskit's standard control mechanism
+    * - ``"xgate"``
+      - :class:`.MCMTSynthesisXGate`
+      - `0`
+      - `0`
+      - uses a linear number of Toffoli gates
     * - ``"default"``
       - :class:`~.MCMTSynthesisDefault`
       - any
@@ -272,6 +277,7 @@ MCMT Synthesis
 
    MCMTSynthesisVChain
    MCMTSynthesisNoAux
+    MCMTSynthesisXGate
    MCMTSynthesisDefault
 
    
@@ -1462,25 +1468,20 @@ class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
     """A default decomposition for MCMT gates."""
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        # first try to use the V-chain synthesis if enough auxiliary qubits are available
         if not isinstance(high_level_object, MCMTGate):
             return None
 
-        if isinstance(high_level_object.base_gate, XGate):
-            # If the base gate is an X gate, we can use the specialised synthesis
-            ctrl_state = options.get("ctrl_state", None)
-            return synth_mcmt_x(
-                high_level_object.num_ctrl_qubits, high_level_object.num_target_qubits, ctrl_state
-            )
-
-        if (
-            decomposition := MCMTSynthesisVChain().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
-
-        return MCMTSynthesisNoAux().run(high_level_object, coupling_map, target, qubits, **options)
+        for synthesis_method in [
+            MCMTSynthesisXGate,
+            MCMTSynthesisVChain,
+            MCMTSynthesisNoAux,
+        ]:
+            if (
+                decomposition := synthesis_method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
+                return decomposition
 
 
 class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
@@ -1528,6 +1529,22 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
             high_level_object.num_ctrl_qubits,
             high_level_object.num_target_qubits,
             ctrl_state,
+        )
+
+
+class MCMTSynthesisXGate(HighLevelSynthesisPlugin):
+    """A synthesis for ``MCMTGate`` with X gate as the base gate."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
+        if not isinstance(high_level_object.base_gate, XGate):
+            return None  # this plugin only supports X gates
+
+        ctrl_state = options.get("ctrl_state", None)
+        return synth_mcmt_x(
+            high_level_object.num_ctrl_qubits, high_level_object.num_target_qubits, ctrl_state
         )
 
 
