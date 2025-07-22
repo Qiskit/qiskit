@@ -354,8 +354,8 @@ where
         dag.py_substitute_node(py, dag.get_node(py, node)?.bind(py), &new_op, false, None)?;
     }
 
-    for (node, replacemanet_dag) in nodes_to_replace {
-        dag.substitute_node_with_dag(node, &replacemanet_dag, None, None, None)?;
+    for (node, replacement_dag) in nodes_to_replace {
+        dag.substitute_node_with_dag(node, &replacement_dag, None, None, None)?;
     }
 
     Ok(dag)
