@@ -13,8 +13,9 @@
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use crate::circuit_data::CircuitData;
-use crate::classical::expr;
+use crate::bit::{ShareableClbit, ShareableQubit};
+use crate::circuit_data::{CircuitData, CircuitVar};
+use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
 use crate::packed_instruction::PackedInstruction;
@@ -27,11 +28,6 @@ pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<String>,
     pub metadata: Option<Bound<'py, PyAny>>,
-    pub input_vars: Vec<expr::Var>,
-    pub captured_vars: Vec<expr::Var>,
-    pub declared_vars: Vec<expr::Var>,
-    pub captured_stretches: Vec<expr::Stretch>,
-    pub declared_stretches: Vec<expr::Stretch>,
 }
 
 impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
@@ -43,31 +39,6 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
-            input_vars: ob
-                .call_method0(intern!(py, "iter_input_vars"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
-            captured_vars: ob
-                .call_method0(intern!(py, "iter_captured_vars"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
-            declared_vars: ob
-                .call_method0(intern!(py, "iter_declared_vars"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
-            captured_stretches: ob
-                .call_method0(intern!(py, "iter_captured_stretches"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
-            declared_stretches: ob
-                .call_method0(intern!(py, "iter_declared_stretches"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
         })
     }
 }
@@ -76,20 +47,15 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
 pub fn circuit_to_dag(
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
-    qubit_order: Option<Vec<Bound<PyAny>>>,
-    clbit_order: Option<Vec<Bound<PyAny>>>,
+    qubit_order: Option<Vec<ShareableQubit>>,
+    clbit_order: Option<Vec<ShareableClbit>>,
 ) -> PyResult<DAGCircuit> {
     DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
-pub fn dag_to_circuit(
-    py: Python,
-    dag: &DAGCircuit,
-    copy_operations: bool,
-) -> PyResult<CircuitData> {
+pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
     CircuitData::from_packed_instructions(
-        py,
         dag.qubits().clone(),
         dag.clbits().clone(),
         dag.qargs_interner().clone(),
@@ -106,11 +72,15 @@ pub fn dag_to_circuit(
             };
             if copy_operations {
                 let op: PackedOperation = match instr.op().view() {
-                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                    OperationRef::Instruction(instruction) => {
-                        instruction.py_deepcopy(py, None)?.into()
+                    OperationRef::Gate(gate) => {
+                        Python::with_gil(|py| gate.py_deepcopy(py, None))?.into()
                     }
-                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        Python::with_gil(|py| instruction.py_deepcopy(py, None))?.into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        Python::with_gil(|py| operation.py_deepcopy(py, None))?.into()
+                    }
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -128,6 +98,22 @@ pub fn dag_to_circuit(
             }
         }),
         dag.get_global_phase(),
+        dag.identifiers() // Map and pass DAGCircuit variables and stretches to CircuitData style
+            .map(|identifier| match identifier {
+                DAGIdentifierInfo::Stretch(dag_stretch_info) => CircuitVar::Stretch(
+                    dag.get_stretch(dag_stretch_info.get_stretch())
+                        .expect("Stretch not found for the specified index")
+                        .clone(),
+                    dag_stretch_info.get_type().into(),
+                ),
+                DAGIdentifierInfo::Var(dag_var_info) => CircuitVar::Var(
+                    dag.get_var(dag_var_info.get_var())
+                        .expect("Var not found for the specified index")
+                        .clone(),
+                    dag_var_info.get_type().into(),
+                ),
+            })
+            .collect::<Vec<CircuitVar>>(),
     )
 }
 

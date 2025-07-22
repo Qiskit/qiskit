@@ -833,11 +833,11 @@ pub struct CInstruction {
 ///
 /// # Example
 ///
-///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
+///     QkCircuitInstruction inst;
 ///     QkCircuit *qc = qk_circuit_new(100);
 ///     uint32_t qubit[1] = {0};
 ///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
-///     QkCircuitInstruction inst = qk_circuit_get_instruction(qc, 0);
+///     qk_circuit_get_instruction(qc, 0, &inst);
 ///
 /// # Safety
 ///
@@ -992,7 +992,7 @@ pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut
         QUANTUM_CIRCUIT
             .get_bound(py)
             .call_method1(intern!(py, "_from_circuit_data"), (*circuit,))
-            .expect("Unabled to create a Python circuit")
+            .expect("Unable to create a Python circuit")
             .into_ptr()
     }
 }
