@@ -524,7 +524,6 @@ impl Target {
     )]
     pub fn py_instruction_supported(
         &self,
-        py: Python,
         operation_name: Option<String>,
         qargs: Qargs,
         operation_class: Option<&Bound<PyAny>>,
@@ -554,6 +553,7 @@ impl Target {
                         }
                     }
                     TargetOperation::Normal(normal) => {
+                        let py = _operation_class.py();
                         if normal.into_pyobject(py)?.is_instance(_operation_class)? {
                             if let Some(parameters) = &parameters {
                                 if parameters.len() != normal.try_legacy_params().unwrap().len() {
@@ -619,19 +619,21 @@ impl Target {
                     if parameters.len() != obj_params.len() {
                         return Ok(false);
                     }
-                    for (index, param) in parameters.iter().enumerate() {
-                        let mut matching_params = false;
+
+                    for (index, params) in parameters.iter().enumerate() {
                         let obj_at_index = &obj_params[index];
-                        if matches!(obj_at_index, Param::ParameterExpression(_))
-                            || python_compare(py, param.clone(), obj_params[index].clone())?
-                        {
-                            matching_params = true;
-                        }
+                        let matching_params = match (obj_at_index, params) {
+                            (Param::Float(obj_f), Param::Float(param_f)) => obj_f == param_f,
+                            (Param::ParameterExpression(_), _) => true,
+                            _ => Python::with_gil(|py| {
+                                python_compare(py, params, &obj_params[index])
+                            })?,
+                        };
+
                         if !matching_params {
                             return Ok(false);
                         }
                     }
-                    return Ok(true);
                 }
             }
             Ok(self.instruction_supported(&operation_name, &qargs))

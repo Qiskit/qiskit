@@ -1090,6 +1090,9 @@ Instructions:
         self.assertTrue(
             mumbai.target.instruction_supported("rzx_45", qargs=(0, 1), parameters=[math.pi / 4])
         )
+        self.assertFalse(
+            mumbai.target.instruction_supported("rzx_45", qargs=(1, 0), parameters=[math.pi / 4])
+        )
         self.assertTrue(mumbai.target.instruction_supported("rzx_45", qargs=(0, 1)))
         self.assertTrue(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 4]))
         self.assertFalse(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 6]))

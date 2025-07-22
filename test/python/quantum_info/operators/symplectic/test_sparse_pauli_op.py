@@ -1342,6 +1342,20 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             res = op.apply_layout(layout=layout, num_qubits=5)
             self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
 
+    def test_simplify_sum_above_tolerance(self):
+        """Test that simplify sums duplicates before applying atol threshold."""
+        # Each coeff < atol, but sum > atol
+        op = SparsePauliOp(["XX"] * 10, [1e-9] * 10)
+        res = op.simplify(atol=2e-9)
+        self.assertEqual(SparsePauliOp.from_list([("XX", 1.0e-08 + 0.0j)]), res)
+
+    def test_simplify_sum_below_tolerance(self):
+        """Test that simplify sums duplicates before applying atol threshold."""
+        # Each coeff > atol, but sum < atol
+        op = SparsePauliOp(["YY", "YY"], [1e-6, -1e-6])
+        res = op.simplify(atol=1e-7)
+        self.assertEqual(SparsePauliOp(["II"], [0j]), res)
+
 
 if __name__ == "__main__":
     unittest.main()

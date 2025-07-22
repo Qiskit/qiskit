@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`.Target.instruction_supported` where the check of instruction's qubit order
+    was skipped when the method was called with ``operation_name`` and ``parameters`` arguments
+    that matched an existing instruction.
