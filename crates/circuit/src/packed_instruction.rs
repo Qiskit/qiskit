@@ -602,6 +602,7 @@ impl Drop for PackedOperation {
 /// A `PackedInstruction` in general cannot be safely mutated outside the context of its
 /// `CircuitData`, because the majority of the data is not actually stored here.
 #[derive(Debug)]
+#[allow(clippy::box_collection)]
 pub struct PackedInstruction {
     op: PackedOperation,
     /// The index under which the interner has stored `qubits`.
