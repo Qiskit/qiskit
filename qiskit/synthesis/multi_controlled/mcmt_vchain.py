@@ -49,7 +49,7 @@ def synth_mcmt_vchain(
         ctrl_state: Optional control state as an integer.
 
     Returns:
-        QuantumCircuit: The synthesized circuit for the MCMT gate.
+        The synthesized circuit for the MCMT gate.
 
     """
     if gate.num_qubits != 1:

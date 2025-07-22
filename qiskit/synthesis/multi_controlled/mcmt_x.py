@@ -46,7 +46,7 @@ def synth_mcmt_x(
         ctrl_state: Optional control state as an integer.
 
     Returns:
-        QuantumCircuit: The synthesized circuit for the MCMT X gate.
+        The synthesized circuit for the MCMT X gate.
 
     """
 
