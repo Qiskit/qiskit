@@ -4574,6 +4574,7 @@ impl DAGCircuit {
     ///
     /// If `num_qubits` is less than the number of qubits in the DAG already.
     pub fn make_physical(&mut self, num_qubits: usize) {
+        // If this method needs updating, `CircuitData::make_physical` probably does too.
         assert!(
             num_qubits >= self.num_qubits(),
             "number of qubits {num_qubits} too small for DAG"
