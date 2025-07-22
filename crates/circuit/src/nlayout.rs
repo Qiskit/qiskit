@@ -223,6 +223,24 @@ impl NLayout {
             phys_to_virt,
         })
     }
+
+    // Compose this layout with another layout
+    //
+    // If this layout represents a mapping from the P-virtual qubits to the
+    // physical Q-qubits, and the other layout is a mapping from virtual Q-qubits to physical
+    // R-qubits, then the composed layout represents a mapping from the virtual
+    // P-qubits to the physical R-qubits.
+    pub fn compose(&self, other: &NLayout) -> PyResult<Self> {
+        let other_v2p = &other.virt_to_phys;
+        let mut new_v2p = self.virt_to_phys.clone();
+        self.virt_to_phys
+            .iter()
+            .enumerate()
+            .for_each(|(virt_idx, phys)| {
+                new_v2p[virt_idx] = other_v2p[phys.index()];
+            });
+        NLayout::from_virtual_to_physical(new_v2p)
+    }
 }
 
 impl NLayout {
@@ -271,4 +289,113 @@ impl NLayout {
 pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_compose() {
+        let first = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(0),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+        ])
+        .unwrap();
+        let second = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(0),
+        ])
+        .unwrap();
+        let result = second.compose(&first).unwrap();
+        let expected = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(0),
+        ])
+        .unwrap();
+        assert_eq!(expected, result);
+        let first = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(0),
+        ])
+        .unwrap();
+        let second = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(0),
+            PhysicalQubit(2),
+            PhysicalQubit(1),
+            PhysicalQubit(3),
+        ])
+        .unwrap();
+        let result = first.compose(&second).unwrap();
+        let expected = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(2),
+            PhysicalQubit(1),
+            PhysicalQubit(3),
+            PhysicalQubit(0),
+        ])
+        .unwrap();
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_compose_no_permutation_original() {
+        let first = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(0),
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+        ])
+        .unwrap();
+        let second = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(0),
+        ])
+        .unwrap();
+        let result = first.compose(&second).unwrap();
+        let expected = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(2),
+            PhysicalQubit(1),
+            PhysicalQubit(3),
+            PhysicalQubit(0),
+        ])
+        .unwrap();
+        assert_eq!(second, result);
+    }
+
+    #[test]
+    fn test_compose_no_permutation_second() {
+        let first = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(0),
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+        ])
+        .unwrap();
+        let second = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(0),
+        ])
+        .unwrap();
+        let result = second.compose(&first).unwrap();
+        let expected = NLayout::from_virtual_to_physical(vec![
+            PhysicalQubit(2),
+            PhysicalQubit(1),
+            PhysicalQubit(3),
+            PhysicalQubit(0),
+        ])
+        .unwrap();
+        assert_eq!(second, result);
+    }
 }

@@ -428,7 +428,7 @@ class LayoutTest(QiskitTestCase):
         second = [2, 3, 1, 0]
         first_layout = Layout(dict(zip(qubits, first)))
         second_layout = Layout(dict(zip(qubits, second)))
-        self.assertEqual(second_layout.compose(first_layout, qubits), second_layout)
+        self.assertEqual(first_layout.compose(second_layout, qubits), second_layout)
 
     def test_compose_no_permutation_second(self):
         """Test compose where the second doesn't permute anything."""
