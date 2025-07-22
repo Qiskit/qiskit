@@ -60,15 +60,14 @@ pub fn run_instruction_duration_check(
                 ));
             }
             let duration = match param {
-                Param::Float(val) => Some(*val as u32),
-                Param::Obj(val) | Param::ParameterExpression(val) => {
-                    val.bind(py).extract::<u32>().ok()
-                }
-            };
-            if let Some(duration) = duration {
-                if !(duration % acquire_align == 0 || duration % pulse_align == 0) {
-                    return Ok(true);
-                }
+                Param::Obj(val) => val.bind(py).extract::<u32>(),
+                _ => Err(TranspilerError::new_err(
+                    "Delay instruction parameter is not an object.",
+                )),
+            }?;
+
+            if !(duration % acquire_align == 0 || duration % pulse_align == 0) {
+                return Ok(true);
             }
         }
     }
