@@ -106,7 +106,7 @@ class ObservablesArray(ShapedMixin):
 
     @staticmethod
     def _obs_to_dict(obs: SparseObservable) -> Mapping[str, float]:
-        """Convert a sparse observable to a mapping from Pauli strings to coefficients."""
+        """Convert a simplified sparse observable to a mapping from Pauli strings to coefficients."""
         result = {}
         for sparse_pauli_str, pauli_qubits, coeff in obs.to_sparse_list():
 
@@ -299,7 +299,7 @@ class ObservablesArray(ShapedMixin):
                 observable.bit_terms,
                 observable.indices,
                 observable.boundaries,
-            ).simplify(tol=0)
+            )
 
             if observable == SparseObservable.zero(observable.num_qubits):
                 raise ValueError("Empty observable was detected.")
