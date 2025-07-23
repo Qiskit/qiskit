@@ -857,7 +857,7 @@ impl SparseObservable {
     /// # Panics
     ///
     /// If the index is out of bounds.
-    pub fn term(&self, index: usize) -> SparseTermView {
+    pub fn term(&self, index: usize) -> SparseTermView<'_> {
         debug_assert!(index < self.num_terms(), "index {index} out of bounds");
         let start = self.boundaries[index];
         let end = self.boundaries[index + 1];
@@ -1345,7 +1345,7 @@ mod compose {
             }
         }
         /// Expose the current iteration item, assuming the state has been updated.
-        fn iter_item(&self) -> SparseTermView {
+        fn iter_item(&self) -> SparseTermView<'_> {
             SparseTermView {
                 num_qubits: self.num_qubits,
                 coeff: *self.coeffs.last().expect("coeffs is never empty"),
@@ -1355,7 +1355,7 @@ mod compose {
         }
         // Not actually the iterator method, because we're borrowing from `self`.
         /// Get the next term in the iteration.
-        pub fn next(&mut self) -> Option<SparseTermView> {
+        pub fn next(&mut self) -> Option<SparseTermView<'_>> {
             if self.exhausted {
                 return None;
             }
@@ -1443,7 +1443,7 @@ impl SparseTermView<'_> {
             .map(|(i, op)| format!("{}_{}", op.py_label(), i))
             .collect::<Vec<String>>()
             .join(" ");
-        format!("({})({})", coeff, paulis)
+        format!("({coeff})({paulis})")
     }
 }
 
@@ -1473,7 +1473,7 @@ pub struct IterMut<'a> {
     i: usize,
 }
 impl<'a> From<&'a mut SparseObservable> for IterMut<'a> {
-    fn from(value: &mut SparseObservable) -> IterMut {
+    fn from(value: &mut SparseObservable) -> IterMut<'_> {
         IterMut {
             num_qubits: value.num_qubits,
             coeffs: &mut value.coeffs,
@@ -1577,7 +1577,7 @@ impl SparseTerm {
         &self.bit_terms
     }
 
-    pub fn view(&self) -> SparseTermView {
+    pub fn view(&self) -> SparseTermView<'_> {
         SparseTermView {
             num_qubits: self.num_qubits,
             coeff: self.coeff,
@@ -1652,7 +1652,7 @@ impl From<ArithmeticError> for PyErr {
 /// alphabet.
 #[pyfunction]
 #[pyo3(name = "label")]
-fn bit_term_label(py: Python, slf: BitTerm) -> &Bound<PyString> {
+fn bit_term_label(py: Python<'_>, slf: BitTerm) -> &Bound<'_, PyString> {
     // This doesn't use `py_label` so we can use `intern!`.
     match slf {
         BitTerm::X => intern!(py, "X"),
@@ -1756,13 +1756,12 @@ impl<'py> FromPyObject<'py> for BitTerm {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
-                Ok(repr) => PyTypeError::new_err(format!("bad type for 'BitTerm': {}", repr)),
+                Ok(repr) => PyTypeError::new_err(format!("bad type for 'BitTerm': {repr}")),
                 Err(err) => err,
             })?;
         let value_error = || {
             PyValueError::new_err(format!(
-                "value {} is not a valid letter of the single-qubit alphabet for 'BitTerm'",
-                value
+                "value {value} is not a valid letter of the single-qubit alphabet for 'BitTerm'"
             ))
         };
         let value: u8 = value.try_into().map_err(|_| value_error())?;
@@ -3657,8 +3656,7 @@ impl PySparseObservable {
                 .join(" + ")
         };
         Ok(format!(
-            "<SparseObservable with {} on {}: {}>",
-            str_num_terms, str_num_qubits, str_terms
+            "<SparseObservable with {str_num_terms} on {str_num_qubits}: {str_terms}>"
         ))
     }
 
