@@ -91,6 +91,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
     let approximation_degree = if approximation_degree.is_nan() {
         None
     } else {
+        if !(0.0..=1.0).contains(&approximation_degree) {
+            panic!("Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid");
+        }
         Some(approximation_degree)
     };
 
