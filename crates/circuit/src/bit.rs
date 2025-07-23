@@ -860,10 +860,10 @@ impl ShareableQubit {
         *self.subclass() == QubitSubclass::ANCILLA
     }
 
-    pub fn index(&self) -> usize {
+    pub fn index(&self) -> Option<usize> {
         match &self.0 {
-            BitInfo::Owned { index, .. } => *index as usize,
-            BitInfo::Anonymous { .. } => panic!("Anonymous qubit has no index"),
+            BitInfo::Owned { index, .. } => Some(*index as usize),
+            BitInfo::Anonymous { .. } => None,
         }
     }
 }

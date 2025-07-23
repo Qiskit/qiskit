@@ -36,7 +36,7 @@ use std::f64::consts::PI;
 #[pyo3(name = "pad_dynamical_decoupling")]
 pub fn run_pad_dynamical_decoupling(
     py: Python,
-    t_end: usize,
+    t_end: usize, // When t_end is passed as a float, it leads to errors & panics (YOU MUST USE A f64...)
     t_start: usize,
     alignment: usize,
     prev_node: &Bound<PyAny>, // Can't I use rust-native struct(s) for this? (No, because you don't know what sub-class of DAGNode it is...)
@@ -84,7 +84,7 @@ pub fn run_pad_dynamical_decoupling(
 
     // As you can see, constraints on t0 are all satisfied without explicit scheduling.
 
-    let time_interval = t_end - t_start;
+    let time_interval = t_end - t_start; //Leads to underflow during conversion
     if time_interval % alignment != 0 {
         return Err(TranspilerError::new_err(
             format!(
@@ -173,7 +173,7 @@ pub fn run_pad_dynamical_decoupling(
                     let inv_packed_op = PackedOperation::from_standard_gate(inv_gate);
                     inv_packed_op
                         .matrix(&[])
-                        .expect("No matrix representation for inverse gate.")
+                        .expect("No matrix representation for inverse gate.") // This is throwing a panic exception in some cases.... (why??; test_insert_midmeas_hahn_asap)
                 } else {
                     panic!("No inverse for this standard gate!");
                 }
@@ -353,8 +353,8 @@ pub fn run_pad_dynamical_decoupling(
                 .unwrap_or(0) as f64;
 
             let new_node = dag.apply_operation_back(
-                gate.clone().into(), // PackedOperation -> Operation
-                &[Qubit(qubit.index() as u32)],
+                gate.clone().into(),                     // PackedOperation -> Operation
+                &[Qubit(qubit.index().unwrap() as u32)], //This is panicking and returing None sometimes (why??)
                 &[],
                 None,
                 None,
@@ -420,7 +420,7 @@ fn apply_scheduled_delay_op(
     let params = Some(smallvec![Param::Float(*time_interval)]);
     let new_node = dag.apply_operation_back(
         delay_instr.into(),
-        &[Qubit(qubit.index() as u32)],
+        &[Qubit(qubit.index().unwrap() as u32)],
         &[],
         params,
         None,
