@@ -19,10 +19,11 @@ use qiskit_circuit::dag_node::{DAGNode, DAGOpNode};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::petgraph::prelude::NodeIndex;
+use std::ops::{Add, Sub};
 
 // This enum takes care of the calculations when the durations are specified
 // either in seconds (as float) or in dt (as integers).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum TimeValue {
     Float(f64),
     Int(u64),
@@ -40,6 +41,50 @@ impl From<u64> for TimeValue {
     }
 }
 
+impl TimeValue {
+    pub fn max<'a>(a: &'a TimeValue, b: &'a TimeValue) -> &'a TimeValue {
+        match (a, b) {
+            (TimeValue::Int(a_val), TimeValue::Int(b_val)) => {
+                if a_val >= b_val {
+                    a
+                } else {
+                    b
+                }
+            }
+            (TimeValue::Float(a_val), TimeValue::Float(b_val)) => {
+                if a_val >= b_val {
+                    a
+                } else {
+                    b
+                }
+            }
+            _ => panic!("Mixed types in TimeValue::max"),
+        }
+    }
+}
+
+impl Add for TimeValue {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        match (self, other) {
+            (TimeValue::Int(a), TimeValue::Int(b)) => TimeValue::Int(a + b),
+            (TimeValue::Float(a), TimeValue::Float(b)) => TimeValue::Float(a + b),
+            _ => panic!("Mixed types in TimeValue::add (operator)"),
+        }
+    }
+}
+
+impl Sub for TimeValue {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self {
+        match (self, other) {
+            (TimeValue::Int(a), TimeValue::Int(b)) => TimeValue::Int(a - b),
+            (TimeValue::Float(a), TimeValue::Float(b)) => TimeValue::Float(a - b),
+            _ => panic!("Mixed types in TimeValue::sub (operator)"),
+        }
+    }
+}
+
 pub fn run_alap_schedule_analysis(
     dag: &DAGCircuit,
     clbit_write_latency: u64,
@@ -51,15 +96,26 @@ pub fn run_alap_schedule_analysis(
         ));
     }
 
-    let mut node_start_time: HashMap<NodeIndex, f64> = HashMap::new();
-    let mut idle_before: HashMap<Wire, f64> = HashMap::new();
+    let mut node_start_time: HashMap<NodeIndex, TimeValue> = HashMap::new();
+    let mut idle_before: HashMap<Wire, TimeValue> = HashMap::new();
+
+    let zero = match node_durations.values().next() {
+        Some(TimeValue::Int(_)) => TimeValue::Int(0),
+        Some(TimeValue::Float(_)) => TimeValue::Float(0.0),
+        None => return Err(TranspilerError::new_err("No durations provided")),
+    };
+
+    let clbit_write_latency = match zero {
+        TimeValue::Int(_) => TimeValue::Int(clbit_write_latency),
+        TimeValue::Float(_) => TimeValue::Float(clbit_write_latency as f64),
+    };
 
     for index in 0..dag.qubits().len() {
-        idle_before.insert(Wire::Qubit(Qubit::new(index)), 0.0);
+        idle_before.insert(Wire::Qubit(Qubit::new(index)), zero);
     }
 
     for index in 0..dag.clbits().len() {
-        idle_before.insert(Wire::Clbit(Clbit::new(index)), 0.0);
+        idle_before.insert(Wire::Clbit(Clbit::new(index)), zero);
     }
 
     // Since this is alap scheduling, node is scheduled in reversed topological ordering
@@ -87,11 +143,9 @@ pub fn run_alap_schedule_analysis(
             .map(|&c| Wire::Clbit(c))
             .collect();
 
-        let op_duration = match node_durations.get(&node_index) {
-            Some(TimeValue::Float(f)) => *f,
-            Some(TimeValue::Int(i)) => *i as f64,
-            None => return Err(TranspilerError::new_err("No duration for node")),
-        };
+        let &op_duration = node_durations
+            .get(&node_index)
+            .ok_or_else(|| TranspilerError::new_err("No duration for node"))?;
 
         let op_view = op.op.view();
         let is_gate_or_delay = matches!(
@@ -106,43 +160,33 @@ pub fn run_alap_schedule_analysis(
         // t1: end time of instruction
 
         let t1 = if is_gate_or_delay {
-            // Gate or Delay operation
-            let t0: f64 = qargs
+            let &t0 = qargs
                 .iter()
-                .map(|q| *idle_before.get(q).unwrap_or(&0.0))
-                .max_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap_or(0.0);
+                .map(|q| idle_before.get(q).unwrap_or(&zero))
+                .fold(&zero, TimeValue::max);
             t0 + op_duration
         } else if matches!(
             op_view,
             OperationRef::StandardInstruction(StandardInstruction::Measure)
         ) {
-            // Measure operation
-            let t0 = qargs
+            let &t0 = qargs
                 .iter()
                 .chain(cargs.iter())
-                .map(|bit| *idle_before.get(bit).unwrap_or(&0.0))
-                .max_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap_or(0.0);
-
-            //           |t1 = t0 + duration
-            //    Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
-            //    C ░░░░░░░░░▒▒▒▒▒▒▒
-            //               |t0 + (duration - clbit_write_latency)
+                .map(|bit| idle_before.get(bit).unwrap_or(&zero))
+                .fold(&zero, TimeValue::max);
 
             let t1 = t0 + op_duration;
             for clbit in cargs.iter() {
-                idle_before.insert(*clbit, t0 + (op_duration - clbit_write_latency as f64));
+                idle_before.insert(*clbit, t0 + op_duration - clbit_write_latency);
             }
             t1
         } else {
             // Directives (like Barrier)
-            let t0 = qargs
+            let &t0 = qargs
                 .iter()
                 .chain(cargs.iter())
-                .map(|bit| *idle_before.get(bit).unwrap_or(&0.0))
-                .max_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap_or(0.0);
+                .map(|bit| idle_before.get(bit).unwrap_or(&zero))
+                .fold(&zero, TimeValue::max);
             t0 + op_duration
         };
 
@@ -154,21 +198,13 @@ pub fn run_alap_schedule_analysis(
     }
 
     // Compute maximum instruction available time
-    let circuit_duration = *idle_before
-        .values()
-        .max_by(|a, b| a.partial_cmp(b).unwrap())
-        .unwrap_or(&0.0);
+    let &circuit_duration = idle_before.values().fold(&zero, TimeValue::max);
 
     // Note that ALAP pass is inversely scheduled, thus
     // t0 is computed by subtracting t1 from the entire circuit duration.
-
     let mut result: HashMap<NodeIndex, TimeValue> = HashMap::new();
     for (node_idx, t1) in node_start_time {
-        let final_time = match node_durations.get(&node_idx) {
-            Some(TimeValue::Int(_)) => TimeValue::from((circuit_duration - t1).round() as u64),
-            Some(TimeValue::Float(_)) => TimeValue::from(circuit_duration - t1),
-            None => return Err(TranspilerError::new_err("No duration for node")),
-        };
+        let final_time = circuit_duration - t1;
         result.insert(node_idx, final_time);
     }
 
@@ -208,7 +244,7 @@ pub fn py_run_alap_schedule_analysis(
         } else if let Ok(val) = py_duration.extract::<f64>() {
             val.into()
         } else {
-            return Err(TranspilerError::new_err("Duration must be u64 or f64"));
+            return Err(TranspilerError::new_err("Duration must be int or float"));
         };
 
         op_durations.insert(node_idx, op_duration);
