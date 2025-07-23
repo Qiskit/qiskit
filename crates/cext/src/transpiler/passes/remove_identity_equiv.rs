@@ -28,12 +28,12 @@ use qiskit_transpiler::target::Target;
 /// gate fidelity with respect to the identity is below :math:`f`. Concretely,
 /// a gate :math:`G` is removed if :math:`\bar F < f` where
 ///
-/// $bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},F_{\text{process}} =
-/// \frac{|\mathrm{Tr}(G)|^2}{d^2}$
+/// $bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}$
 ///
 /// where $d = 2^n$ is the dimension of the gate for $n$ qubits.
 ///
-/// @param circuit A pointer to the circuit to run RemoveIdentityEquivalent on
+/// @param circuit A pointer to the circuit to run RemoveIdentityEquivalent on. This circuit
+/// pointed to will be updated with the modified circuit if the pass is able to remove any gates.
 /// @param target The target for the RemoveIdentityEquivalent pass. If ``approximation_degree`` is set to
 /// ``NAN`` the tolerance for determining whether an operation is equivalent to
 /// identity will be set to the reported error rate in the target. Otherwise
@@ -43,8 +43,6 @@ use qiskit_transpiler::target::Target;
 /// approximate above the floating point precision. For a value < 1 this is used as a
 /// scaling factor for the cutoff fidelity. If the value is ``NAN`` this approximates up
 /// to the fidelity for the gate specified in ``target``.
-///
-/// @return QkCircuit A pointer to a new circuit which results from running the pass.
 ///
 /// # Example
 ///
