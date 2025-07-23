@@ -147,6 +147,36 @@ impl TranspileLayout {
             })
             .collect()
     }
+
+    /// Compose another routing permutation into the contained in this layout
+    ///
+    /// # Args
+    ///
+    /// * `other` - The other permutation array to compose with
+    /// * `reverse` - Whether to compose in reverse order
+    pub fn compose_routing_permutation(&mut self, other: &[PhysicalQubit], reverse: bool) {
+        if let Some(ref routing_permutation) = self.routing_permutation {
+            let new_perm = if !reverse {
+                let mut new_perm = routing_permutation.clone();
+                routing_permutation
+                    .iter()
+                    .enumerate()
+                    .for_each(|(idx, qubit)| {
+                        new_perm[idx] = other[qubit.index()];
+                    });
+                new_perm
+            } else {
+                let mut new_perm = other.to_vec();
+                other.iter().enumerate().for_each(|(idx, qubit)| {
+                    new_perm[idx] = routing_permutation[qubit.index()];
+                });
+                new_perm
+            };
+            self.routing_permutation = Some(new_perm);
+        } else {
+            self.routing_permutation = Some(other.to_vec());
+        }
+    }
 }
 
 #[cfg(test)]
@@ -488,6 +518,96 @@ mod test_transpile_layout {
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let layout = TranspileLayout::new(initial_layout, None, 3, 5);
         let result = layout.initial_layout(false);
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_compose() {
+        let first = vec![
+            PhysicalQubit(0),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+        ];
+        let second = vec![
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(0),
+        ];
+        let mut layout =
+            TranspileLayout::new(NLayout::generate_trivial_layout(4), Some(first), 4, 4);
+        layout.compose_routing_permutation(&second, true);
+        let result = layout.routing_permutation();
+        let expected = vec![
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(0),
+        ];
+        assert_eq!(expected, result);
+        let first = vec![
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(0),
+        ];
+        let second = vec![
+            PhysicalQubit(0),
+            PhysicalQubit(2),
+            PhysicalQubit(1),
+            PhysicalQubit(3),
+        ];
+        let mut layout =
+            TranspileLayout::new(NLayout::generate_trivial_layout(4), Some(first), 4, 4);
+        layout.compose_routing_permutation(&second, false);
+        let result = layout.routing_permutation();
+        let expected = vec![
+            PhysicalQubit(2),
+            PhysicalQubit(1),
+            PhysicalQubit(3),
+            PhysicalQubit(0),
+        ];
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_compose_no_permutation_original() {
+        let second = vec![
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(0),
+        ];
+        let mut layout = TranspileLayout::new(NLayout::generate_trivial_layout(4), None, 4, 4);
+        layout.compose_routing_permutation(&second, false);
+        let result = layout.routing_permutation();
+        let expected = vec![
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(0),
+        ];
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_compose_no_permutation_second() {
+        let second = vec![
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(0),
+        ];
+        let mut layout = TranspileLayout::new(NLayout::generate_trivial_layout(4), None, 4, 4);
+        layout.compose_routing_permutation(&second, true);
+        let result = layout.routing_permutation();
+        let expected = vec![
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(1),
+            PhysicalQubit(0),
+        ];
         assert_eq!(expected, result);
     }
 }
