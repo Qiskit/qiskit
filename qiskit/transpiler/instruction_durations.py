@@ -41,40 +41,39 @@ class InstructionDurations:
             (duration, unit) tuples.
         dt: Sampling duration in seconds for unit conversion.
 
-        Example:
-            >>> # Create InstructionDurations with various tuple formats
-            >>> durations = InstructionDurations([
-            ...     ('x', None, 160, 'dt'),           # x gate on any qubit: 160 dt
-            ...     ('sx', [0], 80, 'dt'),            # sx gate on qubit 0 only: 80 dt
-            ...     ('cx', [0, 1], 800, 'dt'),        # cx gate on qubits 0,1: 800 dt
-            ...     ('measure', None, 5000, 'dt'),    # measure on any qubit: 5000 dt
-            ...     ('rx', [0], 150, [1.5708], 'dt'), # rx(π/2) on qubit 0: 150 dt
-            ...     ('ry', [1], 120, None, 'dt')      # ry with any parameters on qubit 1: 120 dt
-            ... ], dt=1e-7)
-            >>>
-            >>> durations.duration_by_name
-            {'x': (160, 'dt'), 'measure': (5000, 'dt')}
-            >>> durations.duration_by_name_qubits
-            {('sx', (0,)): (80, 'dt'), ('cx', (0, 1)): (800, 'dt'), ('ry', (1,)): (120, 'dt')}
-            >>> durations.duration_by_name_qubits_params
-            {('rx', (0,), (1.5708,)): (150, 'dt')}
-            >>>
-            >>> durations.get("x", 0)      # Uses default from duration_by_name (qubits=None)
-            160.0
-            >>> durations.get("x", 5)      # Also uses default (qubits=None applies to all qubits)
-            160.0
-            >>> durations.get("sx", 0)     # Uses specific qubit duration
-            80.0
-            >>> durations.get("ry", 1)     # Uses qubit-specific duration (parameters=None)
-            120.0
-            >>> durations.get("rx", [0], parameters=[1.5708])  # Uses parameterized duration
-            150.0
-
     .. note::
-        - When ``qubits`` is ``None``, the duration applies to all qubits as a default.
-        - When ``parameters`` is ``None``, the duration applies to any parameter values.
-        - More specific entries (with qubits/parameters) take priority over general ones.
+    - When ``qubits`` is ``None``, the duration applies to all qubits as a default.
+    - When ``parameters`` is ``None``, the duration applies to any parameter values.
+    - More specific entries (with qubits/parameters) take priority over general ones.
 
+    Example:
+        >>> # Create InstructionDurations with various tuple formats
+        >>> durations = InstructionDurations([
+        ...     ('x', None, 160, 'dt'),           # x gate on any qubit: 160 dt
+        ...     ('sx', [0], 80, 'dt'),            # sx gate on qubit 0 only: 80 dt
+        ...     ('cx', [0, 1], 800, 'dt'),        # cx gate on qubits 0,1: 800 dt
+        ...     ('measure', None, 5000, 'dt'),    # measure on any qubit: 5000 dt
+        ...     ('rx', [0], 150, [1.5708], 'dt'), # rx(π/2) on qubit 0: 150 dt
+        ...     ('ry', [1], 120, None, 'dt')      # ry with any parameters on qubit 1: 120 dt
+        ... ], dt=1e-7)
+        >>>
+        >>> durations.duration_by_name
+        {'x': (160, 'dt'), 'measure': (5000, 'dt')}
+        >>> durations.duration_by_name_qubits
+        {('sx', (0,)): (80, 'dt'), ('cx', (0, 1)): (800, 'dt'), ('ry', (1,)): (120, 'dt')}
+        >>> durations.duration_by_name_qubits_params
+        {('rx', (0,), (1.5708,)): (150, 'dt')}
+        >>>
+        >>> durations.get("x", 0)      # Uses default from duration_by_name (qubits=None)
+        160.0
+        >>> durations.get("x", 5)      # Also uses default (qubits=None applies to all qubits)
+        160.0
+        >>> durations.get("sx", 0)     # Uses specific qubit duration
+        80.0
+        >>> durations.get("ry", 1)     # Uses qubit-specific duration (parameters=None)
+        120.0
+        >>> durations.get("rx", [0], parameters=[1.5708])  # Uses parameterized duration
+        150.0
 
     """
 
