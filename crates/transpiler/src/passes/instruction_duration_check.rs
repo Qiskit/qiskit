@@ -62,7 +62,7 @@ pub fn run_instruction_duration_check(
             let duration = match param {
                 Param::Obj(val) => val.bind(py).extract::<u32>(),
                 _ => Err(TranspilerError::new_err(
-                    "Delay instruction parameter is not an object.",
+                    "The provided Delay duration is not in terms of dt.",
                 )),
             }?;
 
