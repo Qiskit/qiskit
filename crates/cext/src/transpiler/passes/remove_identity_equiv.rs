@@ -65,8 +65,10 @@ use qiskit_transpiler::target::Target;
 ///             qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
 ///         }
 ///     }
-///     qk_circuit_gate(qc, QkGate_RZ, {1,}, {0.,});
-///     QkCircuit *output_circuit = qk_transpiler_pass_standalone_remove_identity_equivalent(qc, target, 1.0);
+///     uint32_t rz_qargs[1] = {1,};
+///     double rz_params[1] = {0.,};
+///     qk_circuit_gate(qc, QkGate_RZ, rz_qargs, rz_params);
+///     qk_transpiler_pass_standalone_remove_identity_equivalent(qc, target, 1.0);
 /// ```
 ///
 /// # Safety
