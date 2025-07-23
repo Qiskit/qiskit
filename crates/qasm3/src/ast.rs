@@ -10,18 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::fmt::{self, Debug, Display, Formatter};
+use std::fmt::Debug;
 
 #[allow(dead_code)]
 pub enum Node<'a> {
     Program(&'a Program),
-    Header(&'a Header),
-    Include(&'a Include),
-    Version(&'a Version),
     Expression(&'a Expression),
     ProgramBlock(&'a ProgramBlock),
     QuantumBlock(&'a QuantumBlock),
-    QuantumMeasurement(&'a QuantumMeasurement),
     QuantumGateModifier(&'a QuantumGateModifier),
     QuantumGateSignature(&'a QuantumGateSignature),
     ClassicalType(&'a ClassicalType),
@@ -57,7 +53,6 @@ pub enum Expression {
     Constant(Constant),
     Parameter(Parameter),
     Range(Range),
-    IdentifierOrSubscripted(IdentifierOrSubscripted),
     IntegerLiteral(IntegerLiteral),
     BooleanLiteral(BooleanLiteral),
     BitstringLiteral(BitstringLiteral),
@@ -88,25 +83,15 @@ pub struct Range {
     pub step: Option<Box<Expression>>,
 }
 
-#[derive(Debug, Clone)]
-pub enum IdentifierOrSubscripted {
-    Identifier(Identifier),
-    Subscripted(SubscriptedIdentifier),
-}
 
 #[derive(Debug, Clone)]
 pub struct Identifier {
     pub string: String,
 }
 
-#[derive(Debug, Clone)]
-pub struct SubscriptedIdentifier {
-    pub string: String,
-    pub subscript: Box<Expression>,
-}
 
 #[derive(Debug, Clone)]
-pub struct IntegerLiteral(pub(crate) i32);
+pub struct IntegerLiteral(pub(crate) i64);
 
 #[derive(Debug, Clone)]
 pub struct BooleanLiteral(pub(crate) bool);
@@ -115,7 +100,7 @@ pub struct BooleanLiteral(pub(crate) bool);
 #[derive(Debug, Clone)]
 pub struct BitstringLiteral {
     pub value: String,
-    pub width: u32,
+    pub width: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -133,18 +118,18 @@ pub enum DurationUnit {
     Sample,
 }
 
-impl Display for DurationUnit {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let unit_str = match self {
+impl DurationUnit {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             DurationUnit::Nanosecond => "ns",
             DurationUnit::Microsecond => "us",
-            DurationUnit::Millisecond => "us",
+            DurationUnit::Millisecond => "ms",
             DurationUnit::Second => "s",
             DurationUnit::Sample => "dt",
-        };
-        write!(f, "{unit_str}")
+        }
     }
 }
+
 
 #[derive(Debug, Clone)]
 pub struct Unary {
@@ -160,16 +145,26 @@ pub enum UnaryOp {
     Default,
 }
 
-impl Display for UnaryOp {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let op_str = match self {
+impl UnaryOp {
+    pub fn binding_power(op: &UnaryOp) -> (u8, u8) {
+        match op {
+            UnaryOp::LogicNot => (0, 22),
+            UnaryOp::BitNot => (0, 22),
+            UnaryOp::Default => (0, 0),
+        }
+    }
+}
+
+impl UnaryOp {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             UnaryOp::LogicNot => "!",
             UnaryOp::BitNot => "~",
             UnaryOp::Default => "",
-        };
-        write!(f, "{op_str}")
+        }
     }
 }
+
 
 #[derive(Debug, Clone)]
 pub struct Binary {
@@ -195,9 +190,29 @@ pub enum BinaryOp {
     ShiftRight,
 }
 
-impl Display for BinaryOp {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let op_str = match self {
+impl BinaryOp {
+    pub fn binding_power(op: &BinaryOp) -> (u8, u8) {
+        match op {
+            BinaryOp::ShiftLeft => (15, 16),
+            BinaryOp::ShiftRight => (15, 16),
+            BinaryOp::Less => (13, 14),
+            BinaryOp::LessEqual => (13, 14),
+            BinaryOp::Greater => (13, 14),
+            BinaryOp::GreaterEqual => (13, 14),
+            BinaryOp::Equal => (11, 12),
+            BinaryOp::NotEqual => (11, 12),
+            BinaryOp::BitAnd => (9, 10),
+            BinaryOp::BitXor => (7, 8),
+            BinaryOp::BitOr => (5, 6),
+            BinaryOp::LogicAnd => (3, 4),
+            BinaryOp::LogicOr => (1, 2),
+        }
+    }
+}
+
+impl BinaryOp {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             BinaryOp::BitAnd => "&",
             BinaryOp::BitOr => "|",
             BinaryOp::BitXor => "^",
@@ -211,10 +226,10 @@ impl Display for BinaryOp {
             BinaryOp::NotEqual => "!=",
             BinaryOp::ShiftLeft => "<<",
             BinaryOp::ShiftRight => ">>",
-        };
-        write!(f, "{op_str}")
+        }
     }
 }
+
 
 #[derive(Debug, Clone)]
 pub struct Cast {
@@ -235,52 +250,38 @@ pub enum ClassicalType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Float {
-    Half = 16,
-    Single = 32,
-    Double = 64,
-    Quad = 128,
-    Oct = 256,
+    Half,
+    Single,
+    Double,
+    Quad,
+    Oct,
 }
 
 impl Float {
-    pub fn iter() -> impl Iterator<Item = Float> {
-        [
-            Float::Half,
-            Float::Single,
-            Float::Double,
-            Float::Quad,
-            Float::Oct,
-        ]
-        .iter()
-        .copied()
-    }
-}
-
-impl Display for Float {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let float_str = match self {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             Float::Half => "16",
             Float::Single => "32",
             Float::Double => "64",
             Float::Quad => "128",
             Float::Oct => "256",
-        };
-        write!(f, "{float_str}")
+        }
     }
 }
 
+
 #[derive(Debug, Clone)]
 pub struct Int {
-    pub size: Option<u32>,
+    pub size: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Uint {
-    pub size: Option<u32>,
+    pub size: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
-pub struct BitArray(pub(crate) u32);
+pub struct BitArray(pub(crate) usize);
 
 #[derive(Debug, Clone)]
 pub struct Index {
@@ -301,11 +302,6 @@ pub struct ProgramBlock {
 #[derive(Debug, Clone)]
 pub struct QuantumBlock {
     pub statements: Vec<Statement>,
-}
-
-#[derive(Debug, Clone)]
-pub struct QuantumMeasurement {
-    pub identifier_list: Vec<IdentifierOrSubscripted>,
 }
 
 #[derive(Debug, Clone)]
@@ -380,32 +376,32 @@ pub enum QuantumInstruction {
 #[derive(Debug, Clone)]
 pub struct GateCall {
     pub quantum_gate_name: Identifier,
-    pub index_identifier_list: Vec<IdentifierOrSubscripted>,
+    pub index_identifier_list: Vec<Expression>,
     pub parameters: Vec<Expression>,
     pub modifiers: Option<Vec<QuantumGateModifier>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Reset {
-    pub identifier: IdentifierOrSubscripted,
+    pub identifier: Expression,
 }
 
 #[derive(Debug, Clone)]
 pub struct Barrier {
-    pub index_identifier_list: Vec<IdentifierOrSubscripted>,
+    pub index_identifier_list: Vec<Expression>,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Delay {
     pub duration: DurationLiteral,
-    pub qubits: Vec<IdentifierOrSubscripted>,
+    pub qubits: Vec<Expression>,
 }
 
 #[derive(Debug, Clone)]
 pub struct QuantumMeasurementAssignment {
-    pub identifier: IdentifierOrSubscripted,
-    pub quantum_measurement: QuantumMeasurement,
+    pub target: Expression,  // classical bit to store result
+    pub qubits: Vec<Expression>,  // qubits to measure
 }
 
 #[derive(Debug, Clone)]
@@ -439,8 +435,3 @@ pub struct Break {}
 #[derive(Debug, Clone)]
 pub struct Continue {}
 
-#[derive(Debug, Hash, Eq, PartialEq)]
-pub enum OP<'a> {
-    UnaryOp(&'a UnaryOp),
-    BinaryOp(&'a BinaryOp),
-}
