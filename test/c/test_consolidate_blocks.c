@@ -25,7 +25,7 @@ bool args_cmp(uint32_t *args1, uint32_t args1_len, uint32_t *args2, uint32_t arg
 /**
  * Test a small block of gates can be turned into a unitary on same wires
  */
-int test_consolidate_small_block() {
+int test_consolidate_small_block(void) {
     int result = Ok;
 
     // Build circuit
@@ -61,7 +61,7 @@ cleanup:
 /**
  * Order of qubits and the corresponding unitary is correct
  */
-int test_wire_order() {
+int test_wire_order(void) {
     int result = Ok;
 
     // Build circuit
@@ -100,7 +100,7 @@ cleanup:
 /**
  * blocks of more than 2 qubits work.
  */
-int test_3q_blocks() {
+int test_3q_blocks(void) {
     int result = Ok;
 
     // Build circuit
