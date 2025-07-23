@@ -75,6 +75,7 @@ class InstructionDurations:
         - When ``parameters`` is ``None``, the duration applies to any parameter values.
         - More specific entries (with qubits/parameters) take priority over general ones.
 
+
     """
 
     def __init__(
@@ -90,6 +91,7 @@ class InstructionDurations:
                 - (name, qubits, duration, parameters)
                 - (name, qubits, duration, parameters, unit)
                 Or an existing InstructionDurations object.
+
             Where:
                 - name (str): Instruction name (e.g., 'x', 'cx', 'measure').
                 - qubits (int | list[int] | None): Target qubits. If None, applies to
