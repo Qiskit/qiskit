@@ -7225,7 +7225,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Substitute a give node in the dag with a new operation from python
+    /// Substitute a given node in the dag with a new operation from python
     pub fn substitute_node_with_py_op(
         &mut self,
         node_index: NodeIndex,

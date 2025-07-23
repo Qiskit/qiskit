@@ -194,7 +194,8 @@ pub fn run_pad_dynamical_decoupling(
 
         if next_node.is_instance_of::<DAGOpNode>() {
             let mut next_node_ref: PyRefMut<DAGOpNode> = next_node.extract()?;
-            let next_node_inst: &mut CircuitInstruction = &mut next_node_ref.instruction;
+            let next_node_ind = next_node_ref.as_ref().node.unwrap();
+            let next_node_inst: &mut CircuitInstruction = &mut next_node_ref.instruction; //Replace the node in the DAG instead (or else, just call the python to update it manually...)
             let next_node_op: &PackedOperation = &next_node_inst.operation;
 
             // Check if the next node corresponds to a U/U3 gate
@@ -225,8 +226,11 @@ pub fn run_pad_dynamical_decoupling(
                             Param::Float(phi_new),
                             Param::Float(lam_new),
                         ];
-                        // Based on debugging, it seems that the next_node_inst.params do get updated, but the final DAGCircuit doesn't reflect this change
-                        // (this may be because passing the `dag` passed from Python  doesn't get modified in-place or some other reason...)
+
+                        // Replace the node in the DAG
+                        let op_obj = next_node_inst.get_operation(py).unwrap();
+                        let op: &Bound<PyAny> = op_obj.bind(py);
+                        dag.substitute_node_with_py_op(next_node_ind, op)?;
                         sequence_gphase += phase;
                     }
                     _ => {}
@@ -234,6 +238,7 @@ pub fn run_pad_dynamical_decoupling(
             }
         } else if prev_node.is_instance_of::<DAGOpNode>() {
             let mut prev_node_ref: PyRefMut<DAGOpNode> = prev_node.extract()?;
+            let prev_node_ind = prev_node_ref.as_ref().node.unwrap();
             let prev_node_inst: &mut CircuitInstruction = &mut prev_node_ref.instruction;
             let prev_node_op: &PackedOperation = &prev_node_inst.operation;
 
@@ -268,14 +273,14 @@ pub fn run_pad_dynamical_decoupling(
 
                         let op_obj = prev_node_inst.get_operation(py).unwrap();
                         let op: &Bound<PyAny> = op_obj.bind(py);
-                        let new_prev_node =
-                            dag.py_substitute_node(py, prev_node, op, true, None)?;
+                        dag.substitute_node_with_py_op(prev_node_ind, op)?;
 
                         let node_start_time_obj = property_set.get_item("node_start_time")?;
                         let node_start_time_dict = node_start_time_obj.downcast::<PyDict>()?;
-                        let start_time_opt = node_start_time_dict.del_item(prev_node).ok();
+                        let start_time_opt = node_start_time_dict.get_item(prev_node).ok();
+                        node_start_time_dict.del_item(prev_node).ok();
                         if let Some(start_time) = start_time_opt {
-                            node_start_time_dict.set_item(new_prev_node, start_time)?;
+                            node_start_time_dict.set_item(prev_node, start_time)?;
                         }
 
                         sequence_gphase += phase;
@@ -319,7 +324,7 @@ pub fn run_pad_dynamical_decoupling(
     } else if extra_slack_distribution == "edges" {
         let to_begin_edge: f64 = constrained_length_scalar(alignment as f64, extra_slack / 2.0);
         taus[0] += to_begin_edge;
-        taus[taus_len - 1] = extra_slack - to_begin_edge;
+        taus[taus_len - 1] += extra_slack - to_begin_edge;
     } else {
         return Err(TranspilerError::new_err(format!(
             "Option extra_slack_distribution = {extra_slack_distribution} is invalid."
