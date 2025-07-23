@@ -116,7 +116,7 @@ impl TranspileLayout {
     /// tqc.cx(2, 1)
     /// ```
     ///
-    /// then the `final_layout` method returns:
+    /// then the `final_index_layout` method returns:
     ///
     /// ```python
     /// [2, 0, 1]
@@ -136,7 +136,7 @@ impl TranspileLayout {
     ///     `filter_ancillas` - If set to `true` any ancilla qubits added to
     ///     the circuit by the transpiler will not be included in the output
     ///     array.
-    pub fn final_layout(&self, filter_ancillas: bool) -> Vec<PhysicalQubit> {
+    pub fn final_index_layout(&self, filter_ancillas: bool) -> Vec<PhysicalQubit> {
         let qubit_range = if filter_ancillas {
             0..self.input_qubit_count
         } else {
@@ -153,6 +153,59 @@ impl TranspileLayout {
                 qubit_idx
             })
             .collect()
+    }
+
+    /// Generate the final layout
+    ///
+    /// This method will generate the final layout which is the mapping of the
+    /// the virtual qubits in the input circuit to the transpiler to the
+    /// physical qubits with that virtual qubit's state at the end of the circuit.
+    /// For example, if you had an input circuit like:
+    ///
+    /// ```python
+    /// qc = QuantumCircuit(3)
+    /// qc.h(0)
+    /// qc.cx(0, 1)
+    /// qc.cx(0, 2)
+    /// ```
+    ///
+    /// and then the output from the transpiler was:
+    ///
+    /// ```python
+    /// tqc = QuantumCircuit(3)
+    /// tqc.h(2)
+    /// tqc.cx(2, 1)
+    /// tqc.swap(0, 1)
+    /// tqc.cx(2, 1)
+    /// ```
+    ///
+    /// then the `final_index_layout` method returns:
+    ///
+    /// | Virtual Qubit | Physical Qunit |
+    /// |---------------|----------------|
+    /// | 0             | 2              |
+    /// | 1             | 0              |
+    /// | 2             | 1              |
+    ///
+    /// This can be seen as follows. Qubit 0 in the original circuit is mapped to qubit 2
+    /// in the output circuit during the layout stage, which is mapped to qubit 2 during the
+    /// routing stage. Qubit 1 in the original circuit is mapped to qubit 1 in the output
+    /// circuit during the layout stage, which is mapped to qubit 0 during the routing
+    /// stage. Qubit 2 in the original circuit is mapped to qubit 0 in the output circuit
+    /// during the layout stage, which is mapped to qubit 1 during the routing stage.
+    /// The output list length will be as wide as the input circuit's number of qubits,
+    /// as the output list from this method is for tracking the permutation of qubits in the
+    /// original circuit caused by the transpiler.
+    ///
+    /// # Returns
+    ///
+    /// An [`NLayout`] object. This will always include all ancilla qubits
+    /// allocated by the transpiler because an `NLayout` must have an equal
+    /// number of [`VirtualQubit`] and [`PhysicalQubit`]. If you want a view
+    /// with ancillas filtered you should use [`final_index_layout`] instead
+    /// which returns the layout as a `Vec<PhysicalQubit>`.
+    pub fn final_layout(&self) -> NLayout {
+        NLayout::from_virtual_to_physical(self.final_index_layout(false)).unwrap()
     }
 
     /// Compose another routing permutation into the contained in this layout
@@ -192,14 +245,32 @@ mod test_transpile_layout {
     use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
 
     #[test]
+    fn test_final_index_layout() {
+        let initial_layout_vec = vec![PhysicalQubit(2), PhysicalQubit(1), PhysicalQubit(0)];
+        let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
+        let routing_permutation = vec![PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)];
+        let layout = TranspileLayout::new(initial_layout, Some(routing_permutation), 3, 3);
+        let result = layout.final_index_layout(false);
+        assert_eq!(
+            vec![PhysicalQubit(2), PhysicalQubit(0), PhysicalQubit(1)],
+            result
+        );
+    }
+
+    #[test]
     fn test_final_layout() {
         let initial_layout_vec = vec![PhysicalQubit(2), PhysicalQubit(1), PhysicalQubit(0)];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let routing_permutation = vec![PhysicalQubit(1), PhysicalQubit(0), PhysicalQubit(2)];
         let layout = TranspileLayout::new(initial_layout, Some(routing_permutation), 3, 3);
-        let result = layout.final_layout(false);
+        let result = layout.final_layout();
         assert_eq!(
-            vec![PhysicalQubit(2), PhysicalQubit(0), PhysicalQubit(1)],
+            NLayout::from_virtual_to_physical(vec![
+                PhysicalQubit(2),
+                PhysicalQubit(0),
+                PhysicalQubit(1)
+            ])
+            .unwrap(),
             result
         );
     }
@@ -244,7 +315,7 @@ mod test_transpile_layout {
     }
 
     #[test]
-    fn test_final_layout_with_ancillas() {
+    fn test_final_index_layout_with_ancillas() {
         let initial_layout_vec = vec![
             PhysicalQubit(9),
             PhysicalQubit(4),
@@ -271,7 +342,7 @@ mod test_transpile_layout {
             PhysicalQubit(3),
         ];
         let layout = TranspileLayout::new(initial_layout, Some(routing_permutation), 3, 10);
-        let result = layout.final_layout(true);
+        let result = layout.final_index_layout(true);
         assert_eq!(
             vec![PhysicalQubit(3), PhysicalQubit(5), PhysicalQubit(2)],
             result
@@ -381,6 +452,50 @@ mod test_transpile_layout {
     }
 
     #[test]
+    fn test_final_index_layout_with_ancillas_no_filter() {
+        let initial_layout_vec = vec![
+            PhysicalQubit(9),
+            PhysicalQubit(4),
+            PhysicalQubit(0),
+            PhysicalQubit(1),
+            PhysicalQubit(2),
+            PhysicalQubit(3),
+            PhysicalQubit(5),
+            PhysicalQubit(6),
+            PhysicalQubit(7),
+            PhysicalQubit(8),
+        ];
+        let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
+        let routing_permutation = vec![
+            PhysicalQubit(2),
+            PhysicalQubit(0),
+            PhysicalQubit(1),
+            PhysicalQubit(4),
+            PhysicalQubit(5),
+            PhysicalQubit(6),
+            PhysicalQubit(7),
+            PhysicalQubit(8),
+            PhysicalQubit(9),
+            PhysicalQubit(3),
+        ];
+        let layout = TranspileLayout::new(initial_layout, Some(routing_permutation), 3, 10);
+        let result = layout.final_index_layout(false);
+        let expected = vec![
+            PhysicalQubit(3),
+            PhysicalQubit(5),
+            PhysicalQubit(2),
+            PhysicalQubit(0),
+            PhysicalQubit(1),
+            PhysicalQubit(4),
+            PhysicalQubit(6),
+            PhysicalQubit(7),
+            PhysicalQubit(8),
+            PhysicalQubit(9),
+        ];
+        assert_eq!(expected, result)
+    }
+
+    #[test]
     fn test_final_layout_with_ancillas_no_filter() {
         let initial_layout_vec = vec![
             PhysicalQubit(9),
@@ -408,8 +523,8 @@ mod test_transpile_layout {
             PhysicalQubit(3),
         ];
         let layout = TranspileLayout::new(initial_layout, Some(routing_permutation), 3, 10);
-        let result = layout.final_layout(false);
-        let expected = vec![
+        let result = layout.final_layout();
+        let expected = NLayout::from_virtual_to_physical(vec![
             PhysicalQubit(3),
             PhysicalQubit(5),
             PhysicalQubit(2),
@@ -420,7 +535,8 @@ mod test_transpile_layout {
             PhysicalQubit(7),
             PhysicalQubit(8),
             PhysicalQubit(9),
-        ];
+        ])
+        .unwrap();
         assert_eq!(expected, result)
     }
 
@@ -458,12 +574,22 @@ mod test_transpile_layout {
     }
 
     #[test]
-    fn test_final_layout_no_routing() {
+    fn test_final_index_layout_no_routing() {
         let initial_layout_vec = vec![PhysicalQubit(1), PhysicalQubit(2), PhysicalQubit(0)];
         let expected = initial_layout_vec.clone();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let layout = TranspileLayout::new(initial_layout, None, 3, 3);
-        let result = layout.final_layout(false);
+        let result = layout.final_index_layout(false);
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_final_layout_no_routing() {
+        let initial_layout_vec = vec![PhysicalQubit(1), PhysicalQubit(2), PhysicalQubit(0)];
+        let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
+        let expected = initial_layout.clone();
+        let layout = TranspileLayout::new(initial_layout, None, 3, 3);
+        let result = layout.final_layout();
         assert_eq!(expected, result);
     }
 
@@ -498,7 +624,7 @@ mod test_transpile_layout {
     }
 
     #[test]
-    fn test_final_layout_no_routing_with_ancillas() {
+    fn test_final_index_layout_no_routing_with_ancillas() {
         let initial_layout_vec = vec![
             PhysicalQubit(2),
             PhysicalQubit(4),
@@ -508,7 +634,7 @@ mod test_transpile_layout {
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let layout = TranspileLayout::new(initial_layout, None, 3, 5);
-        let result = layout.final_layout(true);
+        let result = layout.final_index_layout(true);
         assert_eq!(
             vec![PhysicalQubit(2), PhysicalQubit(4), PhysicalQubit(0)],
             result
@@ -565,7 +691,7 @@ mod test_transpile_layout {
     }
 
     #[test]
-    fn test_final_layout_no_routing_with_ancillas_no_filter() {
+    fn test_final_index_layout_no_routing_with_ancillas_no_filter() {
         let initial_layout_vec = vec![
             PhysicalQubit(2),
             PhysicalQubit(4),
@@ -576,7 +702,23 @@ mod test_transpile_layout {
         let expected = initial_layout_vec.clone();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let layout = TranspileLayout::new(initial_layout, None, 3, 5);
-        let result = layout.final_layout(false);
+        let result = layout.final_index_layout(false);
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn test_final_layout_no_routing_with_ancillas_no_filter() {
+        let initial_layout_vec = vec![
+            PhysicalQubit(2),
+            PhysicalQubit(4),
+            PhysicalQubit(0),
+            PhysicalQubit(1),
+            PhysicalQubit(3),
+        ];
+        let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
+        let expected = initial_layout.clone();
+        let layout = TranspileLayout::new(initial_layout, None, 3, 5);
+        let result = layout.final_layout();
         assert_eq!(expected, result);
     }
 
