@@ -87,13 +87,13 @@ int test_wire_order() {
     uint32_t new_cx_qargs[2] = {0, 1};
     if (!args_cmp(new_cx_qargs, 2, instruction->qubits, instruction->num_qubits)) {
         result = EqualityError;
+        qk_circuit_instruction_clear(instruction);
         goto cleanup;
     }
 
 cleanup:
     qk_circuit_free(circuit);
     qk_circuit_free(circ_result);
-    qk_circuit_instruction_clear(instruction);
     return result;
 }
 
