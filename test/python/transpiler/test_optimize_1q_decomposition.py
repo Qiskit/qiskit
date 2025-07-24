@@ -781,7 +781,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(1)
         expected.u(0, 0, np.pi / 2, [0])
         self.assertEqual(result, expected)
-        
+    
     def test_ignore_fixed_angle_gate_in_target(self):
         target = Target(num_qubits=1)
         target.add_instruction(UGate(3.14, 0, -3.14), {(0,): None})  # fixed-angle UGate
@@ -798,57 +798,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         assert not any(
             isinstance(inst.operation, UGate) and inst.operation.params == [3.14, 0, -3.14]
             for inst in out_qc.data
-        ), "Fixed-angle UGate should not appear
-
-
-    def test_custom_gate(self):
-        """Test that pass handles custom single-qubit gates."""
-
-        class CustomGate(Gate):
-            """Custom u1 gate."""
-
-            def __init__(self, lam):
-                super().__init__("custom_u1", 1, [lam])
-
-            def __array__(self, dtype=None, _copy=None):
-                return U1Gate(*self.params).__array__(dtype=dtype)
-
-        qc = QuantumCircuit(1)
-        qc.append(CustomGate(0.5), [0])
-        result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
-
-        expected = QuantumCircuit(1)
-        expected.u(0, 0, 0.5, [0])
-
-        self.assertEqual(result, expected)
-
-    def test_unitary_gate_row_major(self):
-        """Test that pass handles unitary single-qubit gates constructed using the default row-major ordering."""
-        qc = QuantumCircuit(1)
-        mat = np.asarray(SGate().to_matrix(), dtype=complex)
-        qc.append(UnitaryGate(mat), [0])
-        result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
-
-        expected = QuantumCircuit(1)
-        expected.u(0, 0, np.pi / 2, [0])
-        self.assertEqual(result, expected)
-
-    def test_unitary_gate_column_major(self):
-        """Test that pass handles unitary single-qubit gates constructed using the column-major ordering."""
-        qc = QuantumCircuit(1)
-        mat = np.asarray(SGate().to_matrix(), dtype=complex, order="f")
-        qc.append(UnitaryGate(mat), [0])
-        result = Optimize1qGatesDecomposition(["cx", "u"])(qc)
-
-        expected = QuantumCircuit(1)
-        expected.u(0, 0, np.pi / 2, [0])
-        self.assertEqual(result, expected)
-
-
-if __name__ == "__main__":
-    unittest.main()
-
-
+        ), "Fixed-angle UGate should not appear"
 
 if __name__ == "__main__":
     unittest.main()
