@@ -24,7 +24,7 @@ use qiskit_transpiler::target::Target;
 /// Removes gates whose effect is close to an identity operation up to a global phase
 /// and up to the specified tolerance. Parameterized gates are not considered by this pass.
 ///
-/// For a cutoff fidelity \f$f\f, this pass removes gates whose average
+/// For a cutoff fidelity \f$f\f$, this pass removes gates whose average
 /// gate fidelity with respect to the identity is below \f$f\f$. Concretely,
 /// a gate \f$G\f$ is removed if \f$\bar F < f\f$ where
 ///
