@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Determines a commutation library over the unparameterizable standard gates, i.e. a dictionary for
-   each pair of parameterizable standard gates and all qubit overlaps that maps to either True or False,
-   depending on the present commutation relation.
+each pair of parameterizable standard gates and all qubit overlaps that maps to either True or False,
+depending on the present commutation relation.
 """
 
 

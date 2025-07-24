@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""DAGDependency class for representing non-commutativity in a circuit.
-"""
+"""DAGDependency class for representing non-commutativity in a circuit."""
 from __future__ import annotations
 
 import math

@@ -29,7 +29,7 @@ from ..n_local.n_local import NLocal
 
 
 def _normalize_entanglement(
-    entanglement: str | Mapping[int, Sequence[Sequence[int]]]
+    entanglement: str | Mapping[int, Sequence[Sequence[int]]],
 ) -> str | dict[int, list[tuple[int]]]:
     if isinstance(entanglement, str):
         return entanglement

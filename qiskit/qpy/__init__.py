@@ -403,9 +403,9 @@ encoding scheme used for symbolic expressions:
         char symbolic_encoding;
     }
 
-From V16 on, the file header struct is immediately followed by a circuit start table 
+From V16 on, the file header struct is immediately followed by a circuit start table
 containing the byte offsets of each circuit payload in the file. There are ``num_circuits``
-entries in the circuit start table, each of which is of type ``uint64_t``. In all previous 
+entries in the circuit start table, each of which is of type ``uint64_t``. In all previous
 versions, the file header is immediately followed by the circuit payloads in sequence
 without any padding in-between.
 
