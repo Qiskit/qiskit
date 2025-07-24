@@ -783,6 +783,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         self.assertEqual(result, expected)
     
     def test_ignore_fixed_angle_gate_in_target(self):
+        """Test that parametric UGate does not match fixed-angle UGate in target."""
         target = Target(num_qubits=1)
         target.add_instruction(UGate(3.14, 0, -3.14), {(0,): None})  # fixed-angle UGate
         target.add_instruction(SXGate(), {(0,): None})
