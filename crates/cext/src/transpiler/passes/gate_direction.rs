@@ -18,6 +18,32 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::{check_direction_target, fix_direction_target};
 use qiskit_transpiler::target::Target;
 
+/// @ingroup QkTranspilerPasses
+/// Run the CheckGateDirection pass on a circuit.
+///
+/// The pass checks if the directions of two-qubit gates comply with the gate directions specified in a given target.
+///
+/// @param circuit A pointer to the circuit on which to run the CheckGateDirection pass.
+/// @param target A pointer to the target used to check gate directions.
+///
+/// @return bool - true iff the directions of all two-qubit gates in the circuit comply with specified target constraints
+///
+/// # Example
+///
+/// ```c
+///    QkTarget *target = qk_target_new(2);
+///    uint32_t qargs[3] = {0,1};
+///
+///    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+///    qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0);
+///    qk_target_add_instruction(target, cx_entry);
+///
+///    QkCircuit *circuit = qk_circuit_new(2, 0);
+///    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){1,0}, NULL);
+///
+///    bool direction_ok = qk_transpiler_pass_standalone_check_gate_direction(circuit, target);
+/// ```
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
@@ -30,6 +56,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
+
     let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
@@ -41,6 +68,34 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
     }
 }
 
+/// @ingroup QkTranspilerPasses
+/// Run the GateDirection pass on a circuit.
+///
+/// The GateDirection pass modifies asymmetric gates to match the hardware coupling direction.
+/// This pass supports replacements for the ``cx``, ``cz``, ``ecr``, ``swap``, ``rzx``, ``rxx``, ``ryy`` and
+/// ``rzz`` gates, using predefined identities.
+///
+/// @param circuit A pointer to the circuit on which to run the GateDirection pass.
+/// @param target A pointer to the target used to check gate directions.
+///
+/// @return QkCircuit - The updated circuit after applying the pass.
+///
+/// # Example
+/// ```c
+///    QkTarget *target = qk_target_new(3);
+///
+///    uint32_t qargs[2] = {0,1};
+///
+///    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+///    qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0);
+///    qk_target_add_instruction(target, cx_entry);
+///
+///    QkCircuit *circuit = qk_circuit_new(3, 0);
+///    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){1,0}, NULL);
+///
+///    QkCircuit *circuit_fixed = qk_transpiler_pass_standalone_gate_direction(circuit, target);
+/// ```
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
@@ -53,6 +108,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
+
     let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),

@@ -551,9 +551,8 @@ impl Target {
                         }
                     }
                     TargetOperation::Normal(normal) => {
-                        if Python::with_gil(|py| {
-                            normal.into_pyobject(py)?.is_instance(_operation_class)
-                        })? {
+                        let py = _operation_class.py();
+                        if normal.into_pyobject(py)?.is_instance(_operation_class)? {
                             if let Some(parameters) = &parameters {
                                 if parameters.len() != normal.params.len() {
                                     continue;

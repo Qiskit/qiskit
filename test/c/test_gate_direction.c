@@ -17,7 +17,6 @@ static QkTarget* build_target() {
     qk_target_entry_add_property(rzx_entry, qargs, 2, 0.0, 0.0);
     qk_target_add_instruction(target, rzx_entry);
 
-
     return target;
 }
 
@@ -66,7 +65,7 @@ int test_gate_direction(void) {
     return result;
 }
 
-int test_gate_direction(void) {
+int test_gate_direction_passes(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_check_gate_direction);
     num_failed += RUN_TEST(test_gate_direction);

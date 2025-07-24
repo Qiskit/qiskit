@@ -2559,7 +2559,7 @@ impl DAGCircuit {
 
         let node_vars = if self.may_have_additional_wires(node.op.view()) {
             let (_additional_clbits, additional_vars) =
-                Python::with_gil(|py| self.additional_wires(py, node.op.view()))?;
+                self.additional_wires(py, node.op.view())?;
             let var_set: HashSet<&expr::Var> = additional_vars
                 .into_iter()
                 .map(|v| self.vars.get(v).unwrap())
@@ -2618,9 +2618,9 @@ impl DAGCircuit {
         let node_map = self.substitute_node_with_dag(
             node_index,
             input_dag,
-            Some(qubit_wire_map),
-            Some(clbit_wire_map),
-            Some(var_map),
+            Some(&qubit_wire_map),
+            Some(&clbit_wire_map),
+            Some(&var_map),
                                 )?;
 
         let out_dict = PyDict::new(py);
@@ -5869,15 +5869,15 @@ impl DAGCircuit {
     ///         Note: Inferring variable mapping automatically is currently not implemented.
     ///
     /// # Returns:
-    /// A mapping the indices of the nodes in the replacement DAGCircuit to their corresponding node indices in the
+    /// A mapping of the node indices in the replacement DAGCircuit to their corresponding node indices in the
     /// current DAGCircuit.
     pub fn substitute_node_with_dag(
         &mut self,
         node_index: NodeIndex,
         other: &DAGCircuit,
-        qubit_map: Option<HashMap<Qubit, Qubit>>,
-        clbit_map: Option<HashMap<Clbit, Clbit>>,
-        var_map: Option<HashMap<expr::Var, expr::Var>>,
+        qubit_map: Option<&HashMap<Qubit, Qubit>>,
+        clbit_map: Option<&HashMap<Clbit, Clbit>>,
+        var_map: Option<&HashMap<expr::Var, expr::Var>>,
     ) -> PyResult<IndexMap<NodeIndex, NodeIndex, RandomState>> {
         if self.dag.node_weight(node_index).is_none() {
             return Err(PyIndexError::new_err(format!(
@@ -5903,7 +5903,7 @@ impl DAGCircuit {
                         node_qubits.len()
                     )));
                 }
-                HashMap::<Qubit, Qubit>::from_iter(other_qubits.zip(node_qubits.iter().copied()))
+                &HashMap::<Qubit, Qubit>::from_iter(other_qubits.zip(node_qubits.iter().copied()))
             }
         };
 
@@ -5919,7 +5919,7 @@ impl DAGCircuit {
                         node_clbits.len()
                     )));
                 }
-                HashMap::<Clbit, Clbit>::from_iter(other_clbits.zip(node_clbits.iter().copied()))
+                &HashMap::<Clbit, Clbit>::from_iter(other_clbits.zip(node_clbits.iter().copied()))
             }
         };
 
@@ -5928,13 +5928,14 @@ impl DAGCircuit {
             None => {
                 if self.num_vars() > 0 || other.num_vars() > 0 {
                     unimplemented!("Inferring variable mapping in substitute_node_with_dag is not implemented yet. Consider using py_substitute_node instead.");
+                    // TODO: implement once additional_wires becomes Python-free
                 }
-                HashMap::<expr::Var, expr::Var>::new()
+                &HashMap::<expr::Var, expr::Var>::new()
             }
         };
 
         let out_map =
-            self.substitute_node_with_graph(node_index, other, &qubit_map, &clbit_map, &var_map)?;
+            self.substitute_node_with_graph(node_index, other, qubit_map, clbit_map, var_map)?;
         self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
 
         let mut wire_map_dict = HashMap::new();

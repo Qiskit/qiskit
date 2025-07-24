@@ -75,7 +75,7 @@ pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<boo
             PhysicalQubit::new(op_args[1].0),
         ];
 
-        target.instruction_supported(inst.op.name(), &qargs) // TODO: shouldn't we check for parameters also?
+        target.instruction_supported(inst.op.name(), &qargs)
     };
 
     check_gate_direction(dag, &target_check, None)
@@ -237,7 +237,7 @@ where
                 let mut blocks_to_replace = Vec::with_capacity(blocks.len());
                 for block in blocks {
                     let mut inner_dag =
-                        DAGCircuit::from_circuit_data(&block, false, None, None, None, None)?; // TODO: what about metadata?
+                        DAGCircuit::from_circuit_data(&block, false, None, None, None, None)?;
 
                     let inner_dag = if let Some(mapping) = qubit_mapping {
                         let mapping = op_args // Create a temp mapping for the recursive call
