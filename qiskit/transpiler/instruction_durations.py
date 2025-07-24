@@ -49,6 +49,7 @@ class InstructionDurations:
         - More specific entries (with qubits/parameters) take priority over general ones.
 
     Example:
+
         >>> # Create InstructionDurations with various tuple formats
         >>> durations = InstructionDurations([
         ...     ('x', None, 160, 'dt'),           # x gate on any qubit: 160 dt
@@ -72,7 +73,7 @@ class InstructionDurations:
         160.0
         >>> durations.get("sx", 0)     # Uses specific qubit duration
         80.0
-        >>> durations.get("ry", 1)     # Uses qubit-specific duration (parameters=None)
+        >>> durations.get("ry", 1)     # Uses specific qubit duration with parameters=None
         120.0
         >>> durations.get("rx", [0], parameters=[1.5708])  # Uses parameterized duration
         150.0
@@ -87,21 +88,19 @@ class InstructionDurations:
 
         Args:
             instruction_durations:
-                A list of tuples in one of the following formats -
-                - (inst_name, qubits, duration)
-                - (inst_name, qubits, duration, unit)
-                - (inst_name, qubits, duration, parameters)
-                - (inst_name, qubits, duration, parameters, unit)
-                - An existing InstructionDurations object.
+                A list of tuples in one of the following formats:
+                    - (inst_name, qubits, duration)
+                    - (inst_name, qubits, duration, unit)
+                    - (inst_name, qubits, duration, parameters)
+                    - (inst_name, qubits, duration, parameters, unit)
+                    - An existing InstructionDurations object.
 
-            Where:
-                - name (str): Instruction name (e.g., 'x', 'cx', 'measure').
-                - qubits (int | list[int] | None): Target qubits. If None, applies to
-                all qubits by default.
-                - duration (float): Duration value.
-                - parameters (list[float] | None): Parameters for parameterized instructions.
-                If None, applies to any parameters.
-                - unit (str): Time unit ('dt', 's', 'ms', 'us', 'ns'), defaults to 'dt'.
+                Where:
+                    - name (str): Instruction name (e.g., 'x', 'cx', 'measure').
+                    - qubits (int | list[int] | None): Target qubits.
+                    - duration (float): Duration value.
+                    - parameters (list[float] | None): Parameters for parameterized instructions.
+                    - unit (str): Time unit ('dt', 's', 'ms', 'us', 'ns'), defaults to 'dt'.
 
             dt: Sampling duration in seconds.
         """
