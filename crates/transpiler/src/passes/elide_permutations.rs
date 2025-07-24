@@ -42,7 +42,7 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
     for node_index in dag.topological_op_nodes()? {
         if let NodeType::Operation(inst) = &dag[node_index] {
-            match inst.op.view() {
+            match inst.op().view() {
                 OperationRef::StandardGate(StandardGate::Swap) => {
                     let qargs = dag.get_qargs(inst.qubits);
                     let index0 = qargs[0].index();
@@ -51,7 +51,7 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
                 }
                 OperationRef::Gate(gate) if gate.name() == "permutation" => {
                     Python::with_gil(|py| -> PyResult<()> {
-                        if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                        if let Param::Obj(ref pyobj) = inst.params_view()[0] {
                             let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                             let pattern = pyarray.as_array();
                             let qindices: Vec<usize> = dag
@@ -83,11 +83,11 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
                         .collect();
 
                     new_dag.apply_operation_back(
-                        inst.op.clone(),
+                        inst.op().clone(),
                         &mapped_qargs,
                         cargs,
-                        inst.params.as_deref().cloned(),
-                        inst.label.as_ref().map(|x| x.as_ref().clone()),
+                        inst.params_raw().cloned(),
+                        inst.label().map(|x| x.to_string()),
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )?;

@@ -223,8 +223,8 @@ pub fn run_unitary_synthesis(
     for node in dag.topological_op_nodes()? {
         let mut packed_instr = dag[node].unwrap_operation().clone();
 
-        if packed_instr.op.control_flow() {
-            let OperationRef::Instruction(py_instr) = packed_instr.op.view() else {
+        if packed_instr.op().control_flow() {
+            let OperationRef::Instruction(py_instr) = packed_instr.op().view() else {
                 unreachable!("Control flow op must be an instruction")
             };
             let raw_blocks: Vec<PyResult<Bound<PyAny>>> = py_instr
@@ -265,23 +265,27 @@ pub fn run_unitary_synthesis(
                 .bind(py)
                 .call_method1("replace_blocks", (new_blocks,))?;
             let new_node_op: OperationFromPython = new_node.extract()?;
-            packed_instr = PackedInstruction {
-                op: new_node_op.operation,
-                qubits: packed_instr.qubits,
-                clbits: packed_instr.clbits,
-                params: (!new_node_op.params.is_empty()).then(|| Box::new(new_node_op.params)),
-                label: new_node_op.label,
-                #[cfg(feature = "cache_pygates")]
-                py_op: new_node.unbind().into(),
-            };
+            packed_instr = PackedInstruction::new(
+                new_node_op.operation,
+                packed_instr.qubits,
+                packed_instr.clbits,
+            )
+            .with_params(new_node_op.params);
+            if let Some(label) = new_node_op.label {
+                packed_instr = packed_instr.with_label(*label);
+            }
+            #[cfg(feature = "cache_pygates")]
+            {
+                packed_instr = packed_instr.with_py_cache(new_node.unbind().into());
+            }
         }
-        if !(synth_gates.contains(packed_instr.op.name())
-            && packed_instr.op.num_qubits() >= min_qubits as u32)
+        if !(synth_gates.contains(packed_instr.op().name())
+            && packed_instr.op().num_qubits() >= min_qubits as u32)
         {
             out_dag.push_back(packed_instr)?;
             continue;
         }
-        match packed_instr.op.num_qubits() {
+        match packed_instr.op().num_qubits() {
             // Run 1q synthesis
             1 => {
                 let qubit = dag.get_qargs(packed_instr.qubits)[0];
@@ -293,7 +297,7 @@ pub fn run_unitary_synthesis(
                         get_euler_basis_set(basis_gates)
                     }
                 };
-                let sequence = match packed_instr.op.view() {
+                let sequence = match packed_instr.op().view() {
                     OperationRef::Unitary(gate) => unitary_to_gate_sequence_inner(
                         gate.matrix_view(),
                         &target_basis_set,
@@ -302,7 +306,7 @@ pub fn run_unitary_synthesis(
                         true,
                         None,
                     ),
-                    _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                    _ => match packed_instr.op().matrix(packed_instr.params_view()) {
                         Some(matrix) => unitary_to_gate_sequence_inner(
                             matrix.view(),
                             &target_basis_set,
@@ -349,7 +353,7 @@ pub fn run_unitary_synthesis(
                     out_dag.push_back(packed_instr.clone())?;
                     Ok(())
                 };
-                match packed_instr.op.view() {
+                match packed_instr.op().view() {
                     OperationRef::Unitary(gate) => {
                         run_2q_unitary_synthesis(
                             py,
@@ -366,7 +370,7 @@ pub fn run_unitary_synthesis(
                             apply_original_op,
                         )?;
                     }
-                    _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                    _ => match packed_instr.op().matrix(packed_instr.params_view()) {
                         Some(matrix) => {
                             run_2q_unitary_synthesis(
                                 py,
@@ -394,11 +398,11 @@ pub fn run_unitary_synthesis(
                 } else {
                     let qs_decomposition: &Bound<'_, PyAny> =
                         imports::QS_DECOMPOSITION.get_bound(py);
-                    let synth_circ = match packed_instr.op.view() {
+                    let synth_circ = match packed_instr.op().view() {
                         OperationRef::Unitary(gate) => {
                             qs_decomposition.call1((gate.matrix_view().to_pyarray(py),))?
                         }
-                        _ => match packed_instr.op.matrix(packed_instr.params_view()) {
+                        _ => match packed_instr.op().matrix(packed_instr.params_view()) {
                             Some(matrix) => qs_decomposition.call1((matrix.into_pyarray(py),))?,
                             _ => return Err(QiskitError::new_err("Unitary not found")),
                         },
@@ -1020,7 +1024,7 @@ fn synth_su4_dag(
             let mut synth_direction: Option<Vec<u32>> = None;
             for node in synth_dag.topological_op_nodes()? {
                 let inst = &synth_dag[node].unwrap_operation();
-                if inst.op.num_qubits() == 2 {
+                if inst.op().num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
                     synth_direction = Some(vec![qargs[0].0, qargs[1].0]);
                 }
@@ -1309,8 +1313,8 @@ fn run_2q_unitary_synthesis(
                             .map(|q| ref_qubits[q.0 as usize])
                             .collect();
                         (
-                            inst.op.name().to_string(),
-                            inst.params.clone().map(|boxed| *boxed),
+                            inst.op().name().to_string(),
+                            inst.params_raw().cloned(),
                             inst_qubits,
                         )
                     });

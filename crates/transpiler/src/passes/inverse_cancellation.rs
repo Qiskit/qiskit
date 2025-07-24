@@ -22,7 +22,7 @@ use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 fn gate_eq(py: Python, gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
-    if gate_a.op.name() != gate_b.operation.name() {
+    if gate_a.op().name() != gate_b.operation.name() {
         return Ok(false);
     }
     let a_params = gate_a.params_view();
