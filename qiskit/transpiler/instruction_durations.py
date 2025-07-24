@@ -96,7 +96,7 @@ class InstructionDurations:
                     - An existing InstructionDurations object.
 
                 Where:
-                    - name (str): Instruction name (e.g., 'x', 'cx', 'measure').
+                    - inst_name (str): Instruction name (e.g., 'x', 'cx', 'measure').
                     - qubits (int | list[int] | None): Target qubits.
                     - duration (float): Duration value.
                     - parameters (list[float] | None): Parameters for parameterized instructions.
