@@ -43,7 +43,7 @@ def synth_mcmt_vchain(
                   └───┘          └───┘
 
     Args:
-        gate: base gate to be applied to the targets.
+        gate: Base gate to be applied to the targets.
         num_ctrl_qubits: Number of control qubits.
         num_target_qubits: Number of target qubits.
         ctrl_state: Optional control state as an integer.
