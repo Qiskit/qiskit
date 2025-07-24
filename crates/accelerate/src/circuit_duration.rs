@@ -16,9 +16,10 @@ use pyo3::wrap_pyfunction;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, Param, StandardInstruction};
 
-use crate::nlayout::PhysicalQubit;
-use crate::target_transpiler::Target;
+use qiskit_transpiler::target::Target;
+
 use crate::QiskitError;
+use qiskit_circuit::PhysicalQubit;
 use rustworkx_core::dag_algo::longest_path;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
 use rustworkx_core::petgraph::visit::{EdgeRef, IntoEdgeReferences};
@@ -83,8 +84,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                     match target.get_duration(name, &physical_qubits) {
                         Some(dur) => Ok(dur),
                         None => Err(QiskitError::new_err(format!(
-                            "Duration not found for {} on qubits: {:?}",
-                            name, qubits
+                            "Duration not found for {name} on qubits: {qubits:?}"
                         ))),
                     }
                 }

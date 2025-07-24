@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import math
 import pickle
 import copy
 import io
@@ -45,6 +46,7 @@ from qiskit.circuit import (
     WhileLoopOp,
     CASE_DEFAULT,
     Store,
+    BoxOp,
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
@@ -1734,6 +1736,34 @@ class TestDagEquivalence(QiskitTestCase):
 
         self.assertEqual(node1, node2)
 
+    def test_boxop_neq(self):
+        """Test non equality of nonequal DAGOpNodes and QuantumCircuits containing BoxOp gates."""
+        qc = QuantumCircuit()
+
+        box1 = BoxOp(body=qc, duration=300.0, unit="dt")
+        box2 = BoxOp(body=qc, duration=300.0, unit="ms")
+        node1 = DAGOpNode(op=box1, qargs=(), cargs=())
+        node2 = DAGOpNode(op=box2, qargs=(), cargs=())
+        self.assertNotEqual(node1, node2)
+
+        qc1 = QuantumCircuit()
+        qc2 = QuantumCircuit()
+        qc1.append(box1)
+        qc2.append(box2)
+        self.assertNotEqual(qc1, qc2)
+
+        box1 = BoxOp(body=qc, duration=300.0, unit="dt")
+        box2 = BoxOp(body=qc, duration=200.0, unit="dt")
+        node1 = DAGOpNode(op=box1, qargs=(), cargs=())
+        node2 = DAGOpNode(op=box2, qargs=(), cargs=())
+        self.assertNotEqual(node1, node2)
+
+        qc1 = QuantumCircuit()
+        qc2 = QuantumCircuit()
+        qc1.append(box1)
+        qc2.append(box2)
+        self.assertNotEqual(qc1, qc2)
+
     def test_dag_eq(self):
         """DAG equivalence check: True."""
         #        ┌───┐                ┌───┐
@@ -3415,6 +3445,98 @@ class TestDagCausalCone(QiskitTestCase):
         result = dag.quantum_causal_cone(dag.qubits[1])
         expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
         self.assertEqual(result, expected)
+
+
+class TestDAGMakePhysical(QiskitTestCase):
+    """Tests of `make_physical`."""
+
+    def test_basic(self):
+        """Test basic usage of `make_physical`."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        def from_qubit_circuit(qc: QuantumCircuit):
+            qc.add_register(ClassicalRegister(5, "c"))
+            qc.add_input(a)
+            qc.add_var(b, expr.lift(False))
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure([0, 1], [0, 1])
+            return circuit_to_dag(qc, copy_operations=False)
+
+        base = from_qubit_circuit(QuantumCircuit(QuantumRegister(5, "virtuals")))
+        base.make_physical()
+        self.assertEqual(base, from_qubit_circuit(QuantumCircuit(QuantumRegister(5, "q"))))
+
+        expanded = from_qubit_circuit(QuantumCircuit([Qubit() for _ in range(3)]))
+        expanded.make_physical(10)
+        self.assertEqual(expanded, from_qubit_circuit(QuantumCircuit(QuantumRegister(10, "q"))))
+
+    def test_after_substitution(self):
+        """Make sure that having a nonsequential node ordering in the graph doesn't matter."""
+        base = DAGCircuit()
+        base.add_qreg(QuantumRegister(1, "virtuals"))
+        base.apply_operation_back(XGate(), [base.qubits[0]], [])
+        mid = base.apply_operation_back(HGate(), [base.qubits[0]], [])
+        base.apply_operation_back(XGate(), [base.qubits[0]], [])
+
+        replacement = QuantumCircuit(1, global_phase=-math.pi / 4)
+        replacement.s(0)
+        replacement.sx(0)
+        replacement.s(0)
+
+        base.substitute_node_with_dag(mid, circuit_to_dag(replacement))
+        base.make_physical(5)
+
+        expected = QuantumCircuit(QuantumRegister(5, "q"), global_phase=-math.pi / 4)
+        expected.x(0)
+        expected.s(0)
+        expected.sx(0)
+        expected.s(0)
+        expected.x(0)
+
+        raise_if_dagcircuit_invalid(base)
+        self.assertEqual(base, circuit_to_dag(expected))
+
+    def test_empty(self):
+        """An empty DAGCircuit."""
+        empty_0q = DAGCircuit()
+        empty_0q.make_physical()
+        expected = DAGCircuit()
+        expected.add_qreg(QuantumRegister(0, "q"))
+        self.assertEqual(empty_0q, expected)
+
+        empty_8q = DAGCircuit()
+        empty_8q.make_physical(8)
+        expanded = DAGCircuit()
+        expanded.add_qreg(QuantumRegister(8, "q"))
+        self.assertEqual(empty_8q, expanded)
+
+    def test_0q_with_classical(self):
+        """Classical data should still work fine even if there are no qubits."""
+        cr = ClassicalRegister(3, "cr")
+        qc = QuantumCircuit(cr)
+        a = qc.add_input("a", types.Bool())
+        b = qc.add_var("b", expr.lift(False))
+        qc.store(b, a)
+
+        def expected(num_qubits):
+            dag = DAGCircuit()
+            dag.add_qreg(QuantumRegister(num_qubits, "q"))
+            dag.add_creg(cr)
+            dag.add_input_var(a)
+            dag.add_declared_var(b)
+            dag.apply_operation_back(Store(b, expr.lift(False)), [], [])
+            dag.apply_operation_back(Store(b, a), [], [])
+            return dag
+
+        dag = circuit_to_dag(qc)
+        dag.make_physical()
+        self.assertEqual(dag, expected(0))
+
+        dag = circuit_to_dag(qc)
+        dag.make_physical(156)
+        self.assertEqual(dag, expected(156))
 
 
 if __name__ == "__main__":

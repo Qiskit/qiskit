@@ -10,6 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::env;
+
+pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
 pub mod circuit_data;
@@ -24,18 +27,24 @@ pub mod error;
 pub mod gate_matrix;
 pub mod imports;
 pub mod interner;
+pub mod nlayout;
 pub mod object_registry;
 pub mod operations;
 pub mod packed_instruction;
+pub mod parameter_expression;
 pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
+pub mod symbol_expr;
+pub mod symbol_parser;
 pub mod util;
 
 pub mod rustworkx_core_vnext;
+mod variable_mapper;
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PySequence, PyTuple};
+use pyo3::types::{PySequence, PyString, PyTuple};
 use pyo3::PyTypeInfo;
 
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
@@ -47,8 +56,11 @@ pub struct Clbit(pub u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Var(u32);
 
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Stretch(u32);
+
+pub use nlayout::PhysicalQubit;
+pub use nlayout::VirtualQubit;
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {
@@ -145,7 +157,47 @@ macro_rules! impl_intopyobject_for_copy_pyclass {
     };
 }
 
+/// The mode to copy the classical [Var]s in, for operations that create a new [dag_circuit::DAGCircuit] or
+/// [circuit_data::CircuitData] based on an existing one.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum VarsMode {
+    /// Each [Var] has the same type it had in the input.
+    Alike,
+    /// Each [Var] becomes a "capture".  This is useful when building a [dag_circuit::DAGCircuit] or
+    /// [circuit_data::CircuitData] to compose back onto the original base.
+    Captures,
+    /// Do not copy the [Var] data over.
+    Drop,
+}
+
+impl<'py> FromPyObject<'py> for VarsMode {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        match &*ob.downcast::<PyString>()?.to_string_lossy() {
+            "alike" => Ok(VarsMode::Alike),
+            "captures" => Ok(VarsMode::Captures),
+            "drop" => Ok(VarsMode::Drop),
+            mode => Err(PyValueError::new_err(format!(
+                "unknown vars_mode: '{mode}'"
+            ))),
+        }
+    }
+}
+
+#[inline]
+pub fn getenv_use_multiple_threads() -> bool {
+    let parallel_context = env::var("QISKIT_IN_PARALLEL")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    let force_threads = env::var("QISKIT_FORCE_THREADS")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    !parallel_context || force_threads
+}
+
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<annotation::PyAnnotation>()?;
     m.add_class::<bit::PyBit>()?;
     m.add_class::<bit::PyClbit>()?;
     m.add_class::<bit::PyQubit>()?;
@@ -189,11 +241,10 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_circuit::PyBitLocations>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
-
+    m.add_class::<parameter_expression::ParameterExpression>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;
     classical::register_python(&classical_mod)?;
     m.add_submodule(&classical_mod)?;
-
     Ok(())
 }
 

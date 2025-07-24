@@ -51,6 +51,18 @@ class TestApplyLayout(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_empty_layout(self):
+        """If the layout and the backend are empty, the pass should still be well behaved."""
+        qc = QuantumCircuit()
+        out = ApplyLayout()(qc, property_set={"layout": Layout()})
+        self.assertEqual(out.layout.initial_virtual_layout(), Layout())
+
+    def test_empty_post_layout(self):
+        """If the layout and the backend are empty, the pass should still be well behaved."""
+        qc = QuantumCircuit()
+        out = ApplyLayout()(qc, property_set={"layout": Layout(), "post_layout": Layout()})
+        self.assertEqual(out.layout.initial_virtual_layout(), Layout())
+
     def test_raise_when_no_layout_is_supplied(self):
         """Test error is raised if no layout is found in property_set."""
         v = QuantumRegister(2, "v")

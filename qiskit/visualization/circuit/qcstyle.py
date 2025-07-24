@@ -15,15 +15,12 @@
 from __future__ import annotations
 
 import json
-import os
-from typing import Any
 from pathlib import Path
-from warnings import warn
 
-from qiskit import user_config
+from qiskit.visualization.style import StyleDict, DefaultStyle
 
 
-class StyleDict(dict):
+class MPLStyleDict(StyleDict):
     """A dictionary for matplotlib styles.
 
     Defines additional abbreviations for key accesses, such as allowing
@@ -70,40 +67,10 @@ class StyleDict(dict):
         "dispcol": "displaycolor",
     }
 
-    def __setitem__(self, key: Any, value: Any) -> None:
-        # allow using field abbreviations
-        if key in self.ABBREVIATIONS:
-            key = self.ABBREVIATIONS[key]
-
-        if key not in self.VALID_FIELDS:
-            warn(
-                f"style option ({key}) is not supported",
-                UserWarning,
-                2,
-            )
-        return super().__setitem__(key, value)
-
-    def __getitem__(self, key: Any) -> Any:
-        # allow using field abbreviations
-        if key in self.ABBREVIATIONS:
-            key = self.ABBREVIATIONS[key]
-
-        return super().__getitem__(key)
-
-    def update(self, other):
-        # the attributes "displaycolor" and "displaytext" are dictionaries
-        # themselves, therefore we need to propagate the update down to them
-        nested_attrs = {"displaycolor", "displaytext"}
-        for attr in nested_attrs.intersection(other.keys()):
-            if attr in self.keys():
-                self[attr].update(other[attr])
-            else:
-                self[attr] = other[attr]
-
-        super().update((key, value) for key, value in other.items() if key not in nested_attrs)
+    NESTED_ATTRS = {"displaycolor", "displaytext"}
 
 
-class DefaultStyle:
+class MPLDefaultStyle(DefaultStyle):
     """Creates a Default Style dictionary
 
     The style dict contains numerous options that define the style of the
@@ -150,129 +117,14 @@ class DefaultStyle:
             which allows for custom colors for user-created gates.
     """
 
+    DEFAULT_STYLE_NAME = "iqp"
+    DEFAULT_STYLE_PATH = Path(__file__).parent / "styles"
+
     def __init__(self):
-        default_style_dict = "iqp.json"
-        path = Path(__file__).parent / "styles" / default_style_dict
+        path = self.DEFAULT_STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix(".json")
 
         with open(path, "r") as infile:
             default_style = json.load(infile)
 
         # set shortcuts, such as "ec" for "edgecolor"
-        self.style = StyleDict(**default_style)
-
-
-def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
-    """Utility function to load style from json files.
-
-    Args:
-        style: Depending on the type, this acts differently:
-
-            * If a string, it can specify a supported style name (such
-              as "iqp" or "clifford"). It can also specify the name of
-              a custom color scheme stored as JSON file. This JSON file
-              _must_ specify a complete set of colors.
-            * If a dictionary, it may specify the style name via a
-              ``{"name": "<desired style>"}`` entry. If this is not given,
-              the default style will be used. The remaining entries in the
-              dictionary can be used to override certain specs.
-              E.g. ``{"name": "iqp", "ec": "#FF0000"}`` will use the ``"iqp"``
-              color scheme but set the edgecolor to red.
-
-    Returns:
-        A tuple containing the style as dictionary and the default font ratio.
-    """
-
-    # if the style is not given, try to load the configured default (if set),
-    # or use the default style
-    config = user_config.get_config()
-    if style is None:
-        if config:
-            style = config.get("circuit_mpl_style", "default")
-        else:
-            style = "default"
-
-    # determine the style name which could also be inside a dictionary, like
-    # style={"name": "clifford", <other settings...>}
-    if isinstance(style, dict):
-        style_name = style.get("name", "default")
-    elif isinstance(style, str):
-        if style.endswith(".json"):
-            style_name = style[:-5]
-        else:
-            style_name = style
-    else:
-        warn(
-            f'Unsupported style parameter "{style}" of type {type(style)}. '
-            "Will use the default style.",
-            UserWarning,
-            2,
-        )
-        style_name = "default"
-
-    if style_name in ["iqp", "default"]:
-        current_style = DefaultStyle().style
-    else:
-        # Search for file in 'styles' dir, then config_path, and finally the current directory
-        style_name = style_name + ".json"
-        style_paths = []
-
-        default_path = Path(__file__).parent / "styles" / style_name
-        style_paths.append(default_path)
-
-        # check configured paths, if there are any
-        if config:
-            config_path = config.get("circuit_mpl_style_path", "")
-            if config_path:
-                for path in config_path:
-                    style_paths.append(Path(path) / style_name)
-
-        # check current directory
-        cwd_path = Path("") / style_name
-        style_paths.append(cwd_path)
-
-        for path in style_paths:
-            # expand ~ to the user directory and check if the file exists
-            exp_user = path.expanduser()
-            if os.path.isfile(exp_user):
-                try:
-                    with open(exp_user) as infile:
-                        json_style = json.load(infile)
-
-                    current_style = StyleDict(json_style)
-                    break
-                except json.JSONDecodeError as err:
-                    warn(
-                        f"Could not decode JSON in file '{path}': {str(err)}. "
-                        "Will use default style.",
-                        UserWarning,
-                        2,
-                    )
-                    break
-                except (OSError, FileNotFoundError):
-                    warn(
-                        f"Error loading JSON file '{path}'. Will use default style.",
-                        UserWarning,
-                        2,
-                    )
-                    break
-        else:
-            warn(
-                f"Style JSON file '{style_name}' not found in any of these locations: "
-                f"{', '.join(map(str, style_paths))}. "
-                "Will use default style.",
-                UserWarning,
-                2,
-            )
-            current_style = DefaultStyle().style
-
-    # if the style is a dictionary, update the defaults with the new values
-    # this _needs_ to happen after loading by name to cover cases like
-    #   style = {"name": "bw", "edgecolor": "#FF0000"}
-    if isinstance(style, dict):
-        current_style.update(style)
-
-    # this is the default font ratio
-    # if the font- or subfont-sizes are changed, the new size is based on this ratio
-    def_font_ratio = 13 / 8
-
-    return current_style, def_font_ratio
+        self.style = MPLStyleDict(**default_style)
