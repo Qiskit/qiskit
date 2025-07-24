@@ -161,6 +161,8 @@ impl ::std::convert::TryFrom<u8> for Pauli {
 /// failures on entry to Rust from Python space will automatically raise `TypeError`.
 #[derive(Error, Debug)]
 pub enum CoherenceError {
+    #[error("`phases` ({phases}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
+    MismatchedPhaseCount { phases: usize, qspl: usize },
     #[error("`rates` ({rates}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
     MismatchedTermCount { rates: usize, qspl: usize },
     #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
@@ -577,6 +579,14 @@ impl QubitSparsePauliView<'_> {
         }
     }
 
+    pub fn num_ys(self) -> isize {
+        let mut num_ys = 0;
+        for pauli in self.paulis{
+            num_ys += (*pauli == Pauli::Y) as isize;
+        }
+        return num_ys
+    }
+
     pub fn to_sparse_str(self) -> String {
         let paulis = self
             .indices
@@ -624,6 +634,32 @@ impl QubitSparsePauli {
             paulis,
             indices,
         })
+    }
+
+    pub fn from_dense_label(label: &str) -> Result<QubitSparsePauli, LabelError> {
+        let label: &[u8] = label.as_ref();
+        let num_qubits = label.len() as u32;
+        let mut paulis = Vec::new();
+        let mut indices = Vec::new();
+        // The only valid characters in the alphabet are ASCII, so if we see something other than
+        // ASCII, we're already in the failure path.
+        for (i, letter) in label.iter().rev().enumerate() {
+            match Pauli::try_from_u8(*letter) {
+                Ok(Some(term)) => {
+                    paulis.push(term);
+                    indices.push(i as u32);
+                }
+                Ok(None) => (),
+                Err(_) => {
+                    return Err(LabelError::OutsideAlphabet);
+                }
+            }
+        }
+        Ok(unsafe {QubitSparsePauli::new_unchecked(
+            num_qubits,
+            paulis.into_boxed_slice(),
+            indices.into_boxed_slice(),
+        )})
     }
 
     /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
@@ -1221,29 +1257,7 @@ impl PyQubitSparsePauli {
     #[staticmethod]
     #[pyo3(signature = (label, /))]
     fn from_label(label: &str) -> PyResult<Self> {
-        let label: &[u8] = label.as_ref();
-        let num_qubits = label.len() as u32;
-        let mut paulis = Vec::new();
-        let mut indices = Vec::new();
-        // The only valid characters in the alphabet are ASCII, so if we see something other than
-        // ASCII, we're already in the failure path.
-        for (i, letter) in label.iter().rev().enumerate() {
-            match Pauli::try_from_u8(*letter) {
-                Ok(Some(term)) => {
-                    paulis.push(term);
-                    indices.push(i as u32);
-                }
-                Ok(None) => (),
-                Err(_) => {
-                    return Err(PyErr::from(LabelError::OutsideAlphabet));
-                }
-            }
-        }
-        let inner = QubitSparsePauli::new(
-            num_qubits,
-            paulis.into_boxed_slice(),
-            indices.into_boxed_slice(),
-        )?;
+        let inner = QubitSparsePauli::from_dense_label(label)?;
         Ok(inner.into())
     }
 
@@ -1265,7 +1279,7 @@ impl PyQubitSparsePauli {
     ///         >>> assert QubitSparsePauli.from_label(label) == QubitSparsePauli.from_pauli(pauli)
     #[staticmethod]
     #[pyo3(signature = (pauli, /))]
-    fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
         let py = pauli.py();
         let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
         let z = pauli
@@ -1513,7 +1527,7 @@ impl PyQubitSparsePauli {
     // :class:`QubitSparsePauliList`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+    pub fn Pauli(py: Python) -> PyResult<Py<PyType>> {
         PAULI_PY_ENUM
             .get_or_try_init(py, || make_py_pauli(py))
             .map(|obj| obj.clone_ref(py))
