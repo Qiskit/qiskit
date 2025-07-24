@@ -781,7 +781,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(1)
         expected.u(0, 0, np.pi / 2, [0])
         self.assertEqual(result, expected)
-    
+
     def test_ignore_fixed_angle_gate_in_target(self):
         """Test that parametric UGate does not match fixed-angle UGate in target."""
         target = Target(num_qubits=1)
@@ -800,6 +800,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
             isinstance(inst.operation, UGate) and inst.operation.params == [3.14, 0, -3.14]
             for inst in out_qc.data
         ), "Fixed-angle UGate should not appear"
+
 
 if __name__ == "__main__":
     unittest.main()

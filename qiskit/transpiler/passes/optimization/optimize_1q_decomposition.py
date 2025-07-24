@@ -181,6 +181,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         return best_synth_circuit
 
     def _gate_sequence_to_dag(self, best_synth_circuit):
+        """Convert a sequence of gates (or None) to a DAGCircuit."""
+        if best_synth_circuit is None:
+            return None
+
         qubits = (Qubit(),)
         out_dag = DAGCircuit()
         out_dag.add_qubits(qubits)
