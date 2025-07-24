@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Callable, Union
+from typing import Callable, Union, TYPE_CHECKING
 import numbers
 import operator
 
@@ -26,6 +26,9 @@ import numpy
 from qiskit.utils.optionals import HAS_SYMPY
 from qiskit.circuit.exceptions import CircuitError
 import qiskit._accelerate.circuit
+
+if TYPE_CHECKING:
+    from qiskit.circuit import Parameter
 
 SymbolExpr = qiskit._accelerate.circuit.ParameterExpression
 
@@ -250,6 +253,25 @@ class ParameterExpression:
         return ParameterExpression(
             free_parameter_symbols, bound_symbol_expr, _qpy_replay=new_replay
         )
+
+    def bind_all(self, values: dict[Parameter, int | float | complex]) -> int | float | complex:
+        """Bind all of the parameters in `self` to numeric values in the dictionary, returning a
+        numeric value.
+
+        This is a special case of :meth:`bind` which can reach higher performance.  It is no problem
+        for the ``values`` dictionary to contain parameters that are not used in this expression;
+        the expectation is that the same bindings dictinoary will be fed to other expressions as
+        well.
+
+        It is an error to call this method with a ``values`` dictionary that does not bind all of
+        the values, or to call this method with non-numeric values, but this is not explicitly
+        checked, since this method is intended for performance-sensitive use.  Passing an incorrect
+        dictionary may result in unexpected behavior.
+
+        Args:
+            values: mapping of parameters to numeric values.
+        """
+        return self._symbol_expr.bind({p.name: values[p] for p in self._parameter_symbols}).value()
 
     def subs(
         self, parameter_map: dict, allow_unknown_parameters: bool = False
