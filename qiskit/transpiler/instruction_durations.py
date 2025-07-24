@@ -24,7 +24,8 @@ from qiskit.utils.units import apply_prefix
 
 
 class InstructionDurations:
-    """Helper class to provide durations of instructions for scheduling.
+    """
+    Helper class to provide durations of instructions for scheduling.
 
     It stores durations (gate lengths) and dt to be used at the scheduling stage of transpiling.
     It can be constructed from ``backend`` or ``instruction_durations``,
@@ -42,9 +43,10 @@ class InstructionDurations:
         dt: Sampling duration in seconds for unit conversion.
 
     .. note::
-    - When ``qubits`` is ``None``, the duration applies to all qubits as a default.
-    - When ``parameters`` is ``None``, the duration applies to any parameter values.
-    - More specific entries (with qubits/parameters) take priority over general ones.
+
+        - When ``qubits`` is ``None``, the duration applies to all qubits as a default.
+        - When ``parameters`` is ``None``, the duration applies to any parameter values.
+        - More specific entries (with qubits/parameters) take priority over general ones.
 
     Example:
         >>> # Create InstructionDurations with various tuple formats
@@ -84,12 +86,13 @@ class InstructionDurations:
         Initialize an InstructionDurations object.
 
         Args:
-            instruction_durations: A list of tuples in one of the following formats:
-                - (name, qubits, duration)
-                - (name, qubits, duration, unit)
-                - (name, qubits, duration, parameters)
-                - (name, qubits, duration, parameters, unit)
-                Or an existing InstructionDurations object.
+            instruction_durations:
+                A list of tuples in one of the following formats -
+                - (inst_name, qubits, duration)
+                - (inst_name, qubits, duration, unit)
+                - (inst_name, qubits, duration, parameters)
+                - (inst_name, qubits, duration, parameters, unit)
+                - An existing InstructionDurations object.
 
             Where:
                 - name (str): Instruction name (e.g., 'x', 'cx', 'measure').
