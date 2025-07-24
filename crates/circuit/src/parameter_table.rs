@@ -23,6 +23,8 @@ use pyo3::types::{PyList, PySet};
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
 
 use crate::imports::UUID;
+use crate::parameter::parameter_expression::{PyParameter, PyParameterExpression};
+use crate::parameter::symbol_expr;
 
 import_exception!(qiskit.circuit, CircuitError);
 
@@ -80,7 +82,30 @@ impl ParameterUuid {
     /// Extract a UUID from a Python-space `Parameter` object. This assumes that the object is known
     /// to be a parameter.
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
-        ob.getattr(intern!(ob.py(), "uuid"))?.extract()
+        let uuid = if let Ok(param) = ob.downcast::<PyParameter>() {
+            param.borrow().symbol.py_uuid()
+        } else if let Ok(expr) = ob.downcast::<PyParameterExpression>() {
+            let expr_borrowed = expr.borrow();
+            // TODO maybe exchange this for a PyParameterExpression::extract_symbol?
+            // We might also need that on the Rust interface in the follow up PR
+            let inner = expr_borrowed.inner.read().unwrap();
+
+            let symbol_expr = &inner.expr;
+            if let symbol_expr::SymbolExpr::Symbol(symbol) = symbol_expr {
+                symbol.py_uuid()
+            } else {
+                return Err(PyTypeError::new_err(
+                    "Got ParameterExpression that was more than a symbol.",
+                ));
+            }
+        } else {
+            return Err(PyTypeError::new_err(
+                "Could not downcast to Parameter or Expression",
+            ));
+        };
+
+        Ok(Self(uuid))
+        // ob.getattr(intern!(ob.py(), "uuid"))?.extract()
     }
 }
 

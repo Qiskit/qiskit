@@ -23,7 +23,7 @@ use numpy::{
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
 use pyo3::{
-    exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
+    exceptions::{PyTypeError, PyValueError, PyZeroDivisionError},
     intern,
     prelude::*,
     sync::GILOnceCell,
@@ -40,6 +40,7 @@ use thiserror::Error;
 
 use qiskit_circuit::{
     imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED},
+    parameter::parameter_expression::{InnerReadError, InnerWriteError},
     slice::{PySequenceIndex, SequenceIndex},
 };
 
@@ -1595,35 +1596,6 @@ impl SparseTerm {
             indices: self.indices.to_vec(),
             boundaries: vec![0, self.bit_terms.len()],
         }
-    }
-}
-
-#[derive(Error, Debug)]
-struct InnerReadError;
-
-#[derive(Error, Debug)]
-struct InnerWriteError;
-
-impl ::std::fmt::Display for InnerReadError {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "Failed acquiring lock for reading.")
-    }
-}
-
-impl ::std::fmt::Display for InnerWriteError {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "Failed acquiring lock for writing.")
-    }
-}
-
-impl From<InnerReadError> for PyErr {
-    fn from(value: InnerReadError) -> PyErr {
-        PyRuntimeError::new_err(value.to_string())
-    }
-}
-impl From<InnerWriteError> for PyErr {
-    fn from(value: InnerWriteError) -> PyErr {
-        PyRuntimeError::new_err(value.to_string())
     }
 }
 
