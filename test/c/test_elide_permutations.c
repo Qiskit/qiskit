@@ -36,7 +36,7 @@ int test_elide_permutations_no_result(void) {
     int result = Ok;
     QkElidePermutationsResult *pass_result = qk_transpiler_pass_standalone_elide_permutations(qc);
     if (qk_elide_permutations_result_elided_gates(pass_result)) {
-        printf("A gate was elideed when one shouldn't have been");
+        printf("A gate was elided when one shouldn't have been");
         result = EqualityError;
         goto result_cleanup;
     }
@@ -67,7 +67,7 @@ int test_elide_permutations_swap_result(void) {
     int result = Ok;
     QkElidePermutationsResult *pass_result = qk_transpiler_pass_standalone_elide_permutations(qc);
     if (!qk_elide_permutations_result_elided_gates(pass_result)) {
-        printf("A gate wasn't elideed when one should have been");
+        printf("A gate wasn't elided when one should have been");
         result = EqualityError;
         goto result_cleanup;
     }
@@ -83,7 +83,7 @@ int test_elide_permutations_swap_result(void) {
     }
     QkOpCounts op_counts = qk_circuit_count_ops(modified_circuit);
     if (op_counts.len != 1) {
-        printf("more than 1 type of gates in circuit");
+        printf("More than 1 type of gates in circuit");
         result = EqualityError;
         goto result_cleanup;
     }

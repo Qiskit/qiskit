@@ -32,7 +32,7 @@ pub struct ElidePermutationsResult {
 /// # Safety
 ///
 /// Behavior is undefined if ``result`` is not a valid, non-null pointer to a
-/// ``QkVF2LayoutResult``.
+/// ``QkElidePermutationsResult``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_elide_permutations_result_elided_gates(
@@ -48,12 +48,12 @@ pub unsafe extern "C" fn qk_elide_permutations_result_elided_gates(
 /// @param result a pointer to the result of the pass. It must have elided gates as checked by
 /// ``qk_elide_permutations_result_elided_gates()``
 ///
-/// @returns A pointer to a circuit with the elide
+/// @returns A pointer to the circuit with the permutation gates elided
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``result`` is not a valid, non-null pointer to a
-/// ``QkVF2LayoutResult``. The pointer to the returned circuit is owned by the
+/// ``QkElidePermutationsResult``. The pointer to the returned circuit is owned by the
 /// result object, it should not be passed to ``qk_circuit_free()`` as it will
 /// be freed by ``qk_elide_permutations_result_free()``.
 #[no_mangle]
@@ -87,7 +87,7 @@ pub unsafe extern "C" fn qk_elide_permutations_result_circuit(
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
-/// ``QkVF2LayoutResult``. Also qubit must be a valid qubit for the circuit and
+/// ``QkElidePermutationsResult``. Also qubit must be a valid qubit for the circuit and
 /// there must be a result found. The pointer to the permutation array is owned by the
 /// result object, it should not be passed to ``free()`` as it will be freed by
 /// ``qk_elide_permutations_result_free()`` when that is called.
@@ -104,10 +104,10 @@ pub unsafe extern "C" fn qk_elide_permutations_result_permutation(
         .expect("Result didn't elide any gates")
 }
 
-/// @ingroup QkVF2LayoutResult
-/// Free a ``QkVF2LayoutResult`` object
+/// @ingroup QkElidePermutationsResult
+/// Free a ``QkElidePermutationsResult`` object
 ///
-/// @param layout a pointer to the layout to free
+/// @param result a pointer to the result object to free
 ///
 /// # Example
 ///
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn qk_elide_permutations_result_free(result: *mut ElidePer
 /// This pass is intended to be run before a layout (mapping virtual qubits to physical qubits) is
 /// set during the transpilation pipeline. This pass iterates over the circuit
 /// and when a Swap gate is encountered it permutes the virtual qubits in
-/// the circuit and removes the swap gate. This will effectivelyt remove any
+/// the circuit and removes the swap gate. This will effectively remove any
 /// swap gates in the cirucit prior to running layout. This optimization is
 /// not valid after a layout has been set and should not be run in this case.
 ///
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn qk_elide_permutations_result_free(result: *mut ElidePer
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
+/// Behavior is undefined if ``circuit``  is not a valid, non-null pointer to a ``QkCircuit``.
 #[no_mangle]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
