@@ -24,13 +24,17 @@ use qiskit_transpiler::target::Target;
 /// Removes gates whose effect is close to an identity operation up to a global phase
 /// and up to the specified tolerance. Parameterized gates are not considered by this pass.
 ///
-/// For a cutoff fidelity :math:`f`, this pass removes gates whose average
-/// gate fidelity with respect to the identity is below :math:`f`. Concretely,
-/// a gate :math:`G` is removed if :math:`\bar F < f` where
+/// For a cutoff fidelity \f$f\f, this pass removes gates whose average
+/// gate fidelity with respect to the identity is below \f$f\f$. Concretely,
+/// a gate \f$G\f$ is removed if \f$\bar F < f\f$ where
 ///
-/// $bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}$
+/// \f[
+/// bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},\
 ///
-/// where $d = 2^n$ is the dimension of the gate for $n$ qubits.
+/// F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}
+/// \f]
+///
+/// where \f$d = 2^n\f$ is the dimension of the gate for \f$n\f$ qubits.
 ///
 /// @param circuit A pointer to the circuit to run RemoveIdentityEquivalent on. This circuit
 /// pointed to will be updated with the modified circuit if the pass is able to remove any gates.
