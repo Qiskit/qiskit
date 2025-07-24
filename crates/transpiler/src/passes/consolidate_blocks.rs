@@ -68,7 +68,7 @@ const MAX_2Q_DEPTH: usize = 20;
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None))]
-fn py_run_consolidate_blocks(
+pub fn run_consolidate_blocks(
     dag: &mut DAGCircuit,
     decomposer: DecomposerType,
     basis_gate_name: &str,
@@ -352,43 +352,7 @@ fn py_run_consolidate_blocks(
     Ok(())
 }
 
-/// Replaces each block of consecutive gates by a single unitary node.
-///
-/// This is function is the Rust entry point for the `ConsolidateBlocks` transpiler pass
-/// which replaces uninterrupted sequences of gates acting on the same pair of qubits
-/// into a [`UnitaryGate`] representing the unitary of that two qubit block if it estimated to
-/// to optimize the circuit. This [`UnitaryGate`] subsequently will be synthesized by the
-/// unitary synthesis pass into a more optimal subcircuit to replace that block.
-///
-/// # Arguments
-/// * `dag` - The circuit for which we will consolidate gates.
-/// * `decomposer` - The type of decomposer to be used, could be of types
-///   [TwoQubitBasisDecomposer] or [TwoQubitControlledUDecomposer].
-/// * `basis_gate_name` - The basis gate selected for the decomposition.
-/// * `force_consolidate` - Decides whether to force all consolidations or not.
-/// * `target` - The target representing the backend for which the pass is consolidating.
-/// * `basis_gates` - The basis gates from which the decomposer will choose.
-pub fn run_consolidate_blocks(
-    dag: &mut DAGCircuit,
-    decomposer: DecomposerType,
-    basis_gate_name: &str,
-    force_consolidate: bool,
-    target: Option<&Target>,
-    basis_gates: Option<HashSet<String>>,
-) -> PyResult<()> {
-    py_run_consolidate_blocks(
-        dag,
-        decomposer,
-        basis_gate_name,
-        force_consolidate,
-        target,
-        basis_gates,
-        None,
-        None,
-    )
-}
-
 pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_consolidate_blocks))?;
+    m.add_wrapped(wrap_pyfunction!(run_consolidate_blocks))?;
     Ok(())
 }
