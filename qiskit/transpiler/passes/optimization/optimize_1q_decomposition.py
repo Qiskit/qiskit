@@ -80,21 +80,20 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         super().__init__()
 
-        if basis and len(basis) > 0:
-            self._basis_gates = set(basis)
-        else:
-            self._basis_gates = None
-        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
-        # not part of the official target model.
-        self._target = target if target is not None and len(target.operation_names) > 0 else None
-        self._global_decomposers = None
         self._local_decomposers_cache = {}
 
-        if self._basis_gates:
-            self._global_decomposers = _possible_decomposers(set(basis))
-        elif target is None or len(target.operation_names) == 0:
-            self._global_decomposers = _possible_decomposers(None)
+        if target is not None and len(target.operation_names) > 0:
+            self._target = target
+            self._basis_gates = set(target.operation_names)
+            self._global_decomposers = _possible_decomposers(self._basis_gates)
+        elif basis:
+            self._target = None
+            self._basis_gates = set(basis)
+            self._global_decomposers = _possible_decomposers(self._basis_gates)
+        else:
+            self._target = None
             self._basis_gates = None
+            self._global_decomposers = _possible_decomposers(None)
 
         self.error_map = self._build_error_map()
 
