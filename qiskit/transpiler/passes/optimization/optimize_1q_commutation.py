@@ -165,9 +165,10 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         operator = run[0].op.to_matrix()
         for gate in run[1:]:
             operator = gate.op.to_matrix().dot(operator)
-        return self._optimize1q._gate_sequence_to_dag(
-            self._optimize1q._resynthesize_run(operator, qubit)
-        )
+        synth_seq = self._optimize1q._resynthesize_run(operator, qubit)
+        if synth_seq is None:
+            return None
+        return self._optimize1q._gate_sequence_to_dag(synth_seq)
 
     @staticmethod
     def _replace_subdag(dag, old_run, new_dag):
@@ -222,10 +223,14 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run, qubit)
             new_run = self._resynthesize(run_clone, qubit)
 
-            # perform the replacement if it was indeed a good idea
+            # Safe handling: only call .op_nodes() if the run is not None
+            new_preceding_nodes = new_preceding_run.op_nodes() if new_preceding_run else []
+            new_run_nodes = new_run.op_nodes() if new_run else []
+            new_succeeding_nodes = new_succeeding_run.op_nodes() if new_succeeding_run else []
+
             if self._optimize1q._substitution_checks(
                 (preceding_run or []) + run + (succeeding_run or []),
-                new_preceding_run.op_nodes() + new_run.op_nodes() + new_succeeding_run.op_nodes(),
+                new_preceding_nodes + new_run_nodes + new_succeeding_nodes,
                 self._optimize1q._basis_gates,
                 dag.find_bit(run[0].qargs[0]).index,
             ):
