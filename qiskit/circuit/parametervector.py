@@ -14,42 +14,7 @@
 
 from uuid import uuid4, UUID
 
-from .parameter import Parameter
-
-
-class ParameterVectorElement(Parameter):
-    """An element of a :class:`ParameterVector`.
-
-    .. note::
-        There is very little reason to ever construct this class directly.  Objects of this type are
-        automatically constructed efficiently as part of creating a :class:`ParameterVector`.
-    """
-
-    ___slots__ = ("_vector", "_index")
-
-    def __init__(self, vector, index, uuid=None):
-        super().__init__(f"{vector.name}[{index}]", uuid=uuid)
-        self._vector = vector
-        self._index = index
-
-    @property
-    def index(self):
-        """Get the index of this element in the parent vector."""
-        return self._index
-
-    @property
-    def vector(self):
-        """Get the parent vector instance."""
-        return self._vector
-
-    def __getstate__(self):
-        return super().__getstate__() + (self._vector, self._index)
-
-    def __setstate__(self, state):
-        *super_state, vector, index = state
-        super().__setstate__(super_state)
-        self._vector = vector
-        self._index = index
+from qiskit._accelerate.circuit import ParameterVectorElement
 
 
 class ParameterVector:
@@ -108,6 +73,17 @@ class ParameterVector:
 
     def __repr__(self):
         return f"{self.__class__.__name__}(name={repr(self.name)}, length={len(self)})"
+
+    def __getnewargs__(self):
+        return (self._name, len(self._params))
+
+    def __getstate__(self):
+        params = [p.__getstate__() for p in self._params]
+        return (self._name, params, self._root_uuid)
+
+    def __setstate__(self, state):
+        self._name, params, self._root_uuid = state
+        self._params = [ParameterVectorElement(*p) for p in params]
 
     def resize(self, length):
         """Resize the parameter vector.  If necessary, new elements are generated.

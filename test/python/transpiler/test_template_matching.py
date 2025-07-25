@@ -350,43 +350,6 @@ class TestTemplateMatching(QiskitTestCase):
         # however these are equivalent if the operators are the same
         self.assertTrue(Operator(circuit_in).equiv(circuit_out))
 
-    def test_output_symbolic_library_equal(self):
-        """Test that the template matcher returns parameter expressions that use the same symbolic
-        library as the default; it should not coerce everything to Sympy when playing with the
-        `ParameterExpression` internals."""
-
-        a, b = Parameter("a"), Parameter("b")
-
-        template = QuantumCircuit(1)
-        template.p(a, 0)
-        template.p(-a, 0)
-        template.rz(a, 0)
-        template.rz(-a, 0)
-
-        circuit = QuantumCircuit(1)
-        circuit.p(-b, 0)
-        circuit.p(b, 0)
-
-        pass_ = TemplateOptimization(template_list=[template], user_cost_dict={"p": 100, "rz": 1})
-        out = pass_(circuit)
-
-        expected = QuantumCircuit(1)
-        expected.rz(-b, 0)
-        expected.rz(b, 0)
-        self.assertEqual(out, expected)
-
-        def symbolic_library(expr):
-            """Get the symbolic library of the expression - 'sympy' or 'qiskit'."""
-            return type(expr._symbol_expr).__module__.split(".")[0]
-
-        out_exprs = [expr for instruction in out.data for expr in instruction.operation.params]
-        self.assertEqual(
-            [symbolic_library(b)] * len(out_exprs), [symbolic_library(expr) for expr in out_exprs]
-        )
-
-        # Assert that the result still works with parametric assignment.
-        self.assertEqual(out.assign_parameters({b: 1.5}), expected.assign_parameters({b: 1.5}))
-
     def test_optimizer_does_not_replace_unbound_partial_match(self):
         """
         Test that partial matches with parameters will not raise errors.
@@ -583,8 +546,8 @@ class TestTemplateMatching(QiskitTestCase):
         # Ensure that the bound parameter in the output is referentially the same as the one we put
         # in the input circuit..
         self.assertEqual(len(circuit_out.parameters), 1)
-        self.assertIs(circuit_in.parameters[0], a_circuit)
-        self.assertIs(circuit_out.parameters[0], a_circuit)
+        self.assertEqual(circuit_in.parameters[0], a_circuit)
+        self.assertEqual(circuit_out.parameters[0], a_circuit)
 
     def test_naming_clash_in_expression(self):
         """Test that the template matching works and correctly replaces a template if there is a
@@ -606,8 +569,8 @@ class TestTemplateMatching(QiskitTestCase):
         # Ensure that the bound parameter in the output is referentially the same as the one we put
         # in the input circuit..
         self.assertEqual(len(circuit_out.parameters), 1)
-        self.assertIs(circuit_in.parameters[0], a_circuit)
-        self.assertIs(circuit_out.parameters[0], a_circuit)
+        self.assertEqual(circuit_in.parameters[0], a_circuit)
+        self.assertEqual(circuit_out.parameters[0], a_circuit)
 
     def test_template_match_with_uninvolved_parameter(self):
         """Test that the template matching algorithm succeeds at matching a circuit that contains an
