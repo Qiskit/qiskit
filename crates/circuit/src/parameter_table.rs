@@ -83,7 +83,7 @@ impl ParameterUuid {
     /// to be a parameter.
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
         let uuid = if let Ok(param) = ob.downcast::<PyParameter>() {
-            param.borrow().symbol.py_uuid()
+            param.borrow().symbol.uuid.as_u128()
         } else if let Ok(expr) = ob.downcast::<PyParameterExpression>() {
             let expr_borrowed = expr.borrow();
             // TODO maybe exchange this for a PyParameterExpression::extract_symbol?
@@ -92,7 +92,7 @@ impl ParameterUuid {
 
             let symbol_expr = &inner.expr;
             if let symbol_expr::SymbolExpr::Symbol(symbol) = symbol_expr {
-                symbol.py_uuid()
+                symbol.uuid.as_u128()
             } else {
                 return Err(PyTypeError::new_err(
                     "Got ParameterExpression that was more than a symbol.",
