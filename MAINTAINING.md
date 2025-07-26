@@ -39,15 +39,12 @@ like normal.
 
 ## Documentation Structure
 
-The way documentation is structured in Qiskit is to push as much of the actual
-documentation into the docstrings as possible. This makes it easier for
-additions and corrections to be made during development, because the majority
-of the documentation lives near the code being changed. These docstrings are then pulled into
-the API Reference section of https://quantum.cloud.ibm.com/docs.
+Qiskit documentation is structured to keep as much of the content as possible within [docstrings](https://peps.python.org/pep-0257/#what-is-a-docstring).
+This approach makes it easier to add or update documentation during development, since most of it lives close to the code being modified.
+These docstrings are then pulled into [the API Reference section](https://quantum.cloud.ibm.com/docs/api/qiskit) of [quantum.cloud.ibm.com/docs](https://quantum.cloud.ibm.com/docs/).
 
-Refer to https://qiskit.github.io/qiskit_sphinx_theme/apidocs/index.html for how to create and
+Refer to [`qiskit_sphinx_theme` docs](https://qiskit.github.io/qiskit_sphinx_theme/apidocs/index.html) for how to create and
 write effective API documentation, such as setting up the RST files and docstrings.
 
-If changes you are making affect non-API reference content in https://quantum.cloud.ibm.com/docs
-you can open an issue (or better yet a PR) to update the relevant page in https://github.com/Qiskit/documentation.
-You can also use this repo to suggest or contribute brand new content beyond updates to the API reference.
+If your changes affect non-API content on [quantum.cloud.ibm.com/docs](https://quantum.cloud.ibm.com/docs), you can open an issue (or better yet, a PR) in the [Qiskit/documentation](https://github.com/Qiskit/documentation) repository.
+That repository can also be used to suggest or contribute brand-new content beyond updates to the API reference.
