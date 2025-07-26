@@ -69,7 +69,6 @@ const MAX_2Q_DEPTH: usize = 20;
 #[pyfunction]
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None))]
 pub fn run_consolidate_blocks(
-    py: Python,
     dag: &mut DAGCircuit,
     decomposer: DecomposerType,
     basis_gate_name: &str,
@@ -108,6 +107,7 @@ pub fn run_consolidate_blocks(
     });
     let mut all_block_gates: HashSet<NodeIndex> =
         HashSet::with_capacity(blocks.iter().map(|x| x.len()).sum());
+    // In most cases, the qargs in a block will not exceed 2 qubits.
     let mut block_qargs: HashSet<Qubit> = HashSet::with_capacity(2);
     for block in blocks {
         block_qargs.clear();
@@ -121,7 +121,7 @@ pub fn run_consolidate_blocks(
                 dag.get_qargs(inst.qubits),
             ) {
                 all_block_gates.insert(inst_node);
-                let matrix = match get_matrix_from_inst(py, inst) {
+                let matrix = match get_matrix_from_inst(inst) {
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
@@ -183,22 +183,25 @@ pub fn run_consolidate_blocks(
                 }),
                 Param::Float(0.),
             )?;
-            let circuit = QUANTUM_CIRCUIT
-                .get_bound(py)
-                .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
-            let array = QI_OPERATOR
-                .get_bound(py)
-                .call1((circuit,))?
-                .getattr(intern!(py, "data"))?
-                .extract::<PyReadonlyArray2<Complex64>>()?;
-            let matrix = array.as_array();
+            let matrix = Python::with_gil(|py| -> PyResult<_> {
+                let circuit = QUANTUM_CIRCUIT
+                    .get_bound(py)
+                    .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
+                let matrix = QI_OPERATOR
+                    .get_bound(py)
+                    .call1((circuit,))?
+                    .getattr(intern!(py, "data"))?
+                    .extract::<PyReadonlyArray2<Complex64>>()?
+                    .as_array()
+                    .to_owned();
+                Ok(matrix)
+            })?;
             let identity: Array2<Complex64> = Array2::eye(2usize.pow(block_qargs.len() as u32));
-            if approx::abs_diff_eq!(identity, matrix) {
+            if approx::abs_diff_eq!(identity, matrix.view()) {
                 for node in block {
                     dag.remove_op_node(node);
                 }
             } else {
-                let matrix = array.as_array().to_owned();
                 let unitary_gate = UnitaryGate {
                     array: ArrayType::NDArray(matrix),
                 };
@@ -218,7 +221,7 @@ pub fn run_consolidate_blocks(
                 *block_qargs.iter().min().unwrap(),
                 *block_qargs.iter().max().unwrap(),
             ];
-            let matrix = blocks_to_matrix(py, dag, &block, block_index_map).ok();
+            let matrix = blocks_to_matrix(dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
                 let num_basis_gates = match decomposer {
                     DecomposerType::TwoQubitBasis(ref decomp) => {
@@ -282,7 +285,7 @@ pub fn run_consolidate_blocks(
                     first_qubits,
                 )
             {
-                let matrix = match get_matrix_from_inst(py, first_inst) {
+                let matrix = match get_matrix_from_inst(first_inst) {
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
@@ -306,7 +309,7 @@ pub fn run_consolidate_blocks(
                     already_in_block = true;
                 }
                 let gate = dag[*node].unwrap_operation();
-                let operator = match get_matrix_from_inst(py, gate) {
+                let operator = match get_matrix_from_inst(gate) {
                     Ok(mat) => mat,
                     Err(_) => {
                         // Set this to skip this run because we can't compute the matrix of the
