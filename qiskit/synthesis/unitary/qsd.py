@@ -27,6 +27,7 @@ from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
+from qiskit.exceptions import QiskitError
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 
 # pylint: disable=no-member,invalid-name, unused-variable
@@ -122,8 +123,9 @@ def qs_decomposition(
         if decomposer_1q is None:
             decomposer_1q = one_qubit_decompose.OneQubitEulerDecomposer()
         circ = decomposer_1q(mat)
+        return circ
     # Two-qubit unitary
-    elif dim == 4:
+    if dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
                 from qiskit.circuit.library.generalized_gates.unitary import (
@@ -141,6 +143,7 @@ def qs_decomposition(
                 decomposer_2q = TwoQubitBasisDecomposer(CXGate())
         mat = _closest_unitary(mat)
         circ = decomposer_2q(mat)
+        return circ
     else:
         # check whether the matrix is equivalent to a block diagonal wrt ctrl_index
         if opt_a2 is False:
@@ -174,15 +177,13 @@ def qs_decomposition(
 
         # middle circ
         # zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
-        zmat = np.eye(2 ** (nqubits - 1))
-        for i in range(2 ** (nqubits - 2), 2 ** (nqubits - 1)):
-            zmat[i][i] = -1
+        zmat = np.diag([1] * (dim // 4) + [-1] * (dim // 4))
         # wmatA and vmatC are combined into B1 and B2
-        B1 = np.dot(wmatA, vmatC)
+        B1 = wmatA @ vmatC
         if opt_a1:
-            B2 = np.dot(zmat, np.dot(wmatA, np.dot(B, np.dot(vmatC, zmat))))
+            B2 = zmat @ wmatA @ B @ vmatC @ zmat
         else:
-            B2 = np.dot(wmatA, np.dot(B, vmatC))
+            B2 = wmatA @ B @ vmatC
         middle_circ, _, _ = _demultiplex(
             B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="all", _depth=_depth
         )
@@ -211,34 +212,33 @@ def _block_zxz_decomp(Umat):
     U22 = Umat[n:, n:]
 
     VX, S, WXdg = scipy.linalg.svd(X)
-    Sigma = np.zeros((n, n))
-    for i in range(n):
-        Sigma[i, i] = S[i]
-    VXdg = scipy.linalg.inv(VX)
-    SX = np.dot(VX, np.dot(Sigma, VXdg))
-    UX = np.dot(VX, WXdg)
+    Sigma = np.diag(S)
+    VXdg = VX.conj().T
+    SX = VX @ Sigma @ VXdg
+    UX = VX @ WXdg
     VY, S, WYdg = scipy.linalg.svd(Y)
-    Sigma = np.zeros((n, n))
-    for i in range(n):
-        Sigma[i, i] = S[i]
-    VYdg = scipy.linalg.inv(VY)
-    SY = np.dot(VY, np.dot(Sigma, VYdg))
-    UY = np.dot(VY, WYdg)
-    UYdg = scipy.linalg.inv(UY)
-    Cdg = 1j * np.dot(UYdg, UX)
-    C = scipy.linalg.inv(Cdg)
-    A1 = np.dot((SX + 1j * SY), UX)
-    A1dg = scipy.linalg.inv(A1)
-    A2 = U21 + np.dot(U22, (1j * np.dot(UYdg, UX)))
-    B = 2 * np.dot(A1dg, X) - np.eye(n)
+    Sigma = np.diag(S)
+    VYdg = VY.conj().T
+    SY = VY @ Sigma @ VYdg
+    UY = VY @ WYdg
+    UYdg = UY.conj().T
+    Cdg = 1j * UYdg @ UX
+    C = Cdg.conj().T
+    A1 = (SX + 1j * SY) @ UX
+    A1dg = A1.conj().T
+    A2 = U21 + U22 @ (1j * (UYdg @ UX))
+    B = 2 * (A1dg @ X) - np.eye(n)
     zero = np.zeros((n, n))
     iden = np.eye(n)
     Ablock = np.block([[A1, zero], [zero, A2]])
     Bblock = np.block([[iden + B, iden - B], [iden - B, iden + B]])
     Cblock = np.block([[iden, zero], [zero, C]])
-    Ucheck = 0.5 * np.dot(Ablock, np.dot(Bblock, Cblock))
+    Ucheck = 0.5 * Ablock @ Bblock @ Cblock
     # assert that the matrix is decomposed correctly
-    assert np.allclose(Umat, Ucheck)
+    if not np.allclose(Umat, Ucheck):
+        raise QiskitError(
+            "The block ZXZ decomposition matrix is not the same as the original unitary matrix."
+        )
     return A1, A2, B, C
 
 
@@ -246,7 +246,7 @@ def _closest_unitary(mat):
     """Find the closest unitary matrix to a matrix mat."""
 
     V, S, Wdg = scipy.linalg.svd(mat)
-    mat = np.dot(V, Wdg)
+    mat = V @ Wdg
     return mat
 
 
