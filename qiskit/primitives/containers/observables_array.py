@@ -292,7 +292,6 @@ class ObservablesArray(ShapedMixin):
                     " imaginary part in its coefficients."
                 )
 
-            # Simplify again the observable with the new coefficients
             observable = SparseObservable.from_raw_parts(
                 observable.num_qubits,
                 coeffs,
