@@ -653,8 +653,6 @@ impl PackedInstruction {
     ///   [PyOperation].
     /// * `qubits` - The indices of the circuit qubits this instance operates on.
     /// * `clbits` - The indices of the circuit clbits this instance operates on.
-    /// * `params` - The list of parameters stored by this instruction.
-    /// * `label` - The label of this instruction, if any.
     pub fn new<O: Into<PackedOperation>>(
         op: O,
         qubits: Interned<[Qubit]>,
