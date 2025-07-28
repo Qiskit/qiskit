@@ -55,7 +55,8 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
             except (ValueError, TypeError):
                 import qiskit._accelerate.circuit
 
-                # TODO can we avoid using ParameterExpression.Value here?
+                # we need to match the precise string representation of the pi-value,
+                # therefore we use _Value instead of just str(abs(val))
                 sym_str = str(qiskit._accelerate.circuit.ParameterExpression._Value(abs(val)))
                 param_str = param_str.replace(sym_str, pi)
         return param_str

@@ -21,7 +21,7 @@ use uuid::Uuid;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
@@ -34,40 +34,9 @@ use crate::parameter::symbol_parser::parse_expression;
 
 use super::symbol_expr::{Symbol, Value, SYMEXPR_EPSILON};
 
-#[derive(Error, Debug)]
-pub struct InnerReadError;
-
-#[derive(Error, Debug)]
-pub struct InnerWriteError;
-
-impl ::std::fmt::Display for InnerReadError {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "Failed acquiring lock for reading.")
-    }
-}
-
-impl ::std::fmt::Display for InnerWriteError {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "Failed acquiring lock for writing.")
-    }
-}
-
-impl From<InnerReadError> for PyErr {
-    fn from(value: InnerReadError) -> PyErr {
-        PyRuntimeError::new_err(value.to_string())
-    }
-}
-impl From<InnerWriteError> for PyErr {
-    fn from(value: InnerWriteError) -> PyErr {
-        PyRuntimeError::new_err(value.to_string())
-    }
-}
-
 /// Errors for dealing with parameters and parameter expressions.
 #[derive(Error, Debug)]
 pub enum ParameterError {
-    #[error("Encountered unbound parameter.")]
-    UnboundParameter,
     #[error("Division by zero.")]
     ZeroDivisionError,
     #[error("Binding to infinite value.")]
@@ -78,10 +47,14 @@ pub enum ParameterError {
     InvalidValue,
     #[error("Cannot bind following parameters not present in expression: {0:?}")]
     UnknownParameters(HashSet<Symbol>),
+    #[error("Parameter expression with unbound parameters {0:?} is not numeric.")]
+    UnboundParameters(HashSet<Symbol>),
     #[error("Name conflict adding parameters.")]
     NameConflict,
     #[error("Invalid cast to OpCode: {0}")]
     InvalidU8ToOpCode(u8),
+    #[error("Could not cast to Symbol.")]
+    NotASymbol,
 }
 
 impl From<ParameterError> for PyErr {
@@ -96,6 +69,7 @@ impl From<ParameterError> for PyErr {
             ParameterError::UnknownParameters(_) | ParameterError::NameConflict => {
                 CircuitError::new_err(value.to_string())
             }
+            ParameterError::UnboundParameters(_) => PyTypeError::new_err(value.to_string()),
             ParameterError::InvalidValue => PyValueError::new_err(value.to_string()),
             _ => PyRuntimeError::new_err(value.to_string()),
         }
@@ -109,10 +83,10 @@ impl From<ParameterError> for PyErr {
 #[derive(Clone, Debug)]
 pub struct ParameterExpression {
     // The symbolic expression.
-    pub expr: SymbolExpr, // TODO make these attrs private?
+    expr: SymbolExpr,
     // A map keeping track of all symbols, with their name. This map *must* be kept
     // up to date upon any operation performed on the expression.
-    pub name_map: HashMap<String, Symbol>,
+    name_map: HashMap<String, Symbol>,
 }
 
 impl Hash for ParameterExpression {
@@ -187,6 +161,51 @@ impl ParameterExpression {
         }
     }
 
+    /// Try casting to a [Symbol].
+    ///
+    /// This only succeeds if the underlying expression is, in fact, only a symbol.
+    pub fn try_to_symbol(&self) -> Result<Symbol, ParameterError> {
+        if let SymbolExpr::Symbol(symbol) = &self.expr {
+            Ok(symbol.clone())
+        } else {
+            Err(ParameterError::NotASymbol)
+        }
+    }
+
+    /// Try casting to a [Value].
+    ///
+    /// Attempt to evaluate the expression recursively and return a [Value] if fully bound.
+    ///
+    /// # Arguments
+    ///
+    /// * strict - If ``true``, only allow returning a value if all symbols are bound. If
+    ///     ``false``, allow casting expressions to values, even though symbols might still exist.
+    ///     For example, ``0 * x`` will return ``0`` for ``strict=false`` and otherwise return
+    ///     an error.
+    pub fn try_to_value(&self, strict: bool) -> Result<Value, ParameterError> {
+        if strict && !self.name_map.is_empty() {
+            let free_symbols = self.expr.parameters();
+            return Err(ParameterError::UnboundParameters(free_symbols));
+        }
+
+        match self.expr.eval(true) {
+            Some(value) => {
+                // we try to restrict complex to real, if possible
+                if let Value::Complex(c) = value {
+                    if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
+                    {
+                        return Ok(Value::Real(c.re));
+                    }
+                }
+                Ok(value)
+            }
+            None => {
+                let free_symbols = self.expr.parameters();
+                Err(ParameterError::UnboundParameters(free_symbols))
+            }
+        }
+    }
+
     /// Construct from a [SymbolExpr].
     ///
     /// This populates the name map with the symbols in the expression.
@@ -229,11 +248,11 @@ impl ParameterExpression {
                 OpCode::ADD => lhs.add(&rhs.unwrap())?,
                 OpCode::MUL => lhs.mul(&rhs.unwrap())?,
                 OpCode::SUB => lhs.sub(&rhs.unwrap())?,
-                OpCode::RSUB => lhs.rsub(&rhs.unwrap())?,
+                OpCode::RSUB => rhs.unwrap().sub(&lhs)?,
                 OpCode::POW => lhs.pow(&rhs.unwrap())?,
-                OpCode::RPOW => lhs.rpow(&rhs.unwrap())?,
+                OpCode::RPOW => rhs.unwrap().pow(&lhs)?,
                 OpCode::DIV => lhs.div(&rhs.unwrap())?,
-                OpCode::RDIV => lhs.rdiv(&rhs.unwrap())?,
+                OpCode::RDIV => rhs.unwrap().div(&lhs)?,
                 OpCode::ABS => lhs.abs(),
                 OpCode::SIN => lhs.sin(),
                 OpCode::ASIN => lhs.asin(),
@@ -285,15 +304,6 @@ impl ParameterExpression {
         })
     }
 
-    /// Subtract this expression from another one; ``lhs - self``.
-    pub fn rsub(&self, lhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(lhs)?;
-        Ok(Self {
-            expr: &lhs.expr - &self.expr,
-            name_map,
-        })
-    }
-
     /// Divide by another expression; ``self / rhs``.
     pub fn div(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         if rhs.expr.is_zero() {
@@ -307,33 +317,11 @@ impl ParameterExpression {
         })
     }
 
-    /// Divide another expression by this one; ``lhs / self``.
-    pub fn rdiv(&self, lhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        if self.expr.is_zero() {
-            return Err(ParameterError::ZeroDivisionError);
-        }
-
-        let name_map = self.update_name_map(lhs)?;
-        Ok(Self {
-            expr: &lhs.expr / &self.expr,
-            name_map,
-        })
-    }
-
     /// Raise this expression to a power; ``self ^ rhs``.
     pub fn pow(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.update_name_map(rhs)?;
         Ok(Self {
             expr: self.expr.pow(&rhs.expr),
-            name_map,
-        })
-    }
-
-    /// Raise an expression to the power of this expression; ``lhs ^ self``.
-    pub fn rpow(&self, lhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(lhs)?;
-        Ok(Self {
-            expr: lhs.expr.pow(&self.expr),
             name_map,
         })
     }
@@ -414,15 +402,6 @@ impl ParameterExpression {
     pub fn sign(&self) -> Self {
         Self {
             expr: self.expr.sign(),
-            name_map: self.name_map.clone(),
-        }
-    }
-
-    /// Clone the expression.
-    pub fn copy(&self) -> Self {
-        // TODO: Is this necessary? Doesn't ParameterExpression.clone() implement the same thing?
-        Self {
-            expr: self.expr.clone(),
             name_map: self.name_map.clone(),
         }
     }
@@ -584,7 +563,7 @@ impl ParameterExpression {
                 Value::Int(_) => Ok(SymbolExpr::Value(v)),
                 Value::Complex(c) => {
                     if c.re.is_infinite() || c.im.is_infinite() {
-                        Err(ParameterError::ZeroDivisionError) // TODO this should probs be BindingInf
+                        Err(ParameterError::BindingInf)
                     } else if c.re.is_nan() || c.im.is_nan() {
                         Err(ParameterError::BindingNaN)
                     } else if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON)
@@ -654,23 +633,20 @@ impl ParameterExpression {
 )]
 #[derive(Clone, Debug)]
 pub struct PyParameterExpression {
-    pub inner: Arc<RwLock<ParameterExpression>>,
+    pub inner: ParameterExpression,
     // in contrast to ParameterExpression::name_map, this stores [PyParameter]s as value
     pub name_map: HashMap<String, PyParameter>,
 }
 
 impl Hash for PyParameterExpression {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let expr = self.inner.read().map_err(|_| InnerReadError).unwrap();
-        expr.to_string().hash(state);
+        self.inner.to_string().hash(state);
     }
 }
 
 impl PartialEq for PyParameterExpression {
     fn eq(&self, other: &Self) -> bool {
-        let self_expr = self.inner.read().map_err(|_| InnerReadError).unwrap();
-        let other_expr = other.inner.read().map_err(|_| InnerReadError).unwrap();
-        self_expr.eq(&other_expr)
+        self.inner.eq(&other.inner)
     }
 }
 
@@ -680,7 +656,7 @@ impl Default for PyParameterExpression {
     /// The default constructor returns zero.
     fn default() -> Self {
         Self {
-            inner: Arc::new(RwLock::new(ParameterExpression::default())),
+            inner: ParameterExpression::default(),
             name_map: HashMap::new(), // no parameters in the default expression, hence empty name map
         }
     }
@@ -688,8 +664,7 @@ impl Default for PyParameterExpression {
 
 impl fmt::Display for PyParameterExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let expr = self.inner.read().map_err(|_| InnerReadError).unwrap();
-        expr.fmt(f)
+        self.inner.fmt(f)
     }
 }
 
@@ -700,8 +675,10 @@ impl From<ParameterExpression> for PyParameterExpression {
             .iter()
             .map(|(name, symbol)| (name.clone(), PyParameter::new(symbol)))
             .collect();
-        let inner = Arc::new(RwLock::new(value));
-        Self { inner, name_map }
+        Self {
+            inner: value,
+            name_map,
+        }
     }
 }
 
@@ -769,10 +746,7 @@ impl PyParameterExpression {
                 let replaced_expr = replace_symbol(&expr, &symbol_map);
 
                 let inner = ParameterExpression::new(&replaced_expr, &symbol_map);
-                Ok(Self {
-                    inner: Arc::new(RwLock::new(inner)),
-                    name_map: name_map,
-                })
+                Ok(Self { inner, name_map })
             }
             _ => Err(PyValueError::new_err(
                 "Pass either both a name_map and expr, or neither",
@@ -780,8 +754,6 @@ impl PyParameterExpression {
         }
     }
 
-    /// TODO Check whether this is required, this was not part of the parameters API before.
-    /// Marked as private for now.
     #[allow(non_snake_case)]
     #[staticmethod]
     pub fn _Value(value: &Bound<PyAny>) -> PyResult<Self> {
@@ -790,13 +762,10 @@ impl PyParameterExpression {
 
     /// Check if the expression corresponds to a plain symbol.
     ///
-    /// TODO can we delete this? Not part of public interface before.
-    ///
     /// Returns:
     ///     ``True`` is this expression corresponds to a symbol, ``False`` otherwise.
     pub fn is_symbol(&self) -> PyResult<bool> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(matches!(expr.expr, SymbolExpr::Symbol(_)))
+        Ok(matches!(self.inner.expr, SymbolExpr::Symbol(_)))
     }
 
     /// Cast this expression to a numeric value.
@@ -808,35 +777,10 @@ impl PyParameterExpression {
     ///         For example ``(0 * Parameter("x"))`` is 0 but has the symbol ``x`` present.
     #[pyo3(signature = (strict=true))]
     pub fn numeric(&self, py: Python, strict: bool) -> PyResult<PyObject> {
-        // Check if we have unbound symbols. Then we'll always say we are non-numeric,
-        // even if the expression is 0. (Example: (0 * x).numeric() fails.)
-        if strict && !self.name_map.is_empty() {
-            let free_symbols = self.name_map.values();
-            return Err(PyTypeError::new_err(format!(
-                "Parameter expression with unbound parameters {free_symbols:?} is not numeric."
-            )));
-        }
-
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        match inner.expr.eval(true) {
-            Some(v) => match v {
-                Value::Real(r) => r.into_py_any(py),
-                Value::Int(i) => i.into_py_any(py),
-                Value::Complex(c) => {
-                    if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
-                    {
-                        c.re.into_py_any(py)
-                    } else {
-                        c.into_py_any(py)
-                    }
-                }
-            },
-            None => {
-                let free_symbols = inner.expr.parameters();
-                Err(PyTypeError::new_err(format!(
-                    "Parameter expression with unbound parameters {free_symbols:?} is not numeric."
-                )))
-            }
+        match self.inner.try_to_value(strict)? {
+            Value::Real(r) => r.into_py_any(py),
+            Value::Int(i) => i.into_py_any(py),
+            Value::Complex(c) => c.into_py_any(py),
         }
     }
 
@@ -879,76 +823,65 @@ impl PyParameterExpression {
 
     /// Sine of the expression.
     #[pyo3(name = "sin")]
-    pub fn py_sin(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.sin().into())
+    pub fn py_sin(&self) -> Self {
+        self.inner.sin().into()
     }
 
     /// Cosine of the expression.
     #[pyo3(name = "cos")]
-    pub fn py_cos(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.cos().into())
+    pub fn py_cos(&self) -> Self {
+        self.inner.cos().into()
     }
 
     /// Tangent of the expression.
     #[pyo3(name = "tan")]
-    pub fn py_tan(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.tan().into())
+    pub fn py_tan(&self) -> Self {
+        self.inner.tan().into()
     }
 
     /// Arcsine of the expression.
-    pub fn arcsin(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.asin().into())
+    pub fn arcsin(&self) -> Self {
+        self.inner.asin().into()
     }
 
     /// Arccosine of the expression.
-    pub fn arccos(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.acos().into())
+    pub fn arccos(&self) -> Self {
+        self.inner.acos().into()
     }
 
     /// Arctangent of the expression.
-    pub fn arctan(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.atan().into())
+    pub fn arctan(&self) -> Self {
+        self.inner.atan().into()
     }
 
     /// Exponentiate the expression.
     #[pyo3(name = "exp")]
-    pub fn py_exp(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.exp().into())
+    pub fn py_exp(&self) -> Self {
+        self.inner.exp().into()
     }
 
     /// Take the natural logarithm of the expression.
     #[pyo3(name = "log")]
-    pub fn py_log(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.log().into())
+    pub fn py_log(&self) -> Self {
+        self.inner.log().into()
     }
 
     /// Take the absolute value of the expression.
     #[pyo3(name = "abs")]
-    pub fn py_abs(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.abs().into())
+    pub fn py_abs(&self) -> Self {
+        self.inner.abs().into()
     }
 
     /// Return the sign of the expression.
     #[pyo3(name = "sign")]
-    pub fn py_sign(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.sign().into())
+    pub fn py_sign(&self) -> Self {
+        self.inner.sign().into()
     }
 
     /// Return the complex conjugate of the expression.
     #[pyo3(name = "conjugate")]
-    pub fn py_conjugate(&self) -> PyResult<Self> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.conjugate().into())
+    pub fn py_conjugate(&self) -> Self {
+        self.inner.conjugate().into()
     }
 
     /// Check whether the expression represents a real number.
@@ -956,9 +889,8 @@ impl PyParameterExpression {
     /// Note that this will return ``None`` if there are unbound parameters, in which case
     /// it cannot be determined whether the expression is real.
     #[pyo3(name = "is_real")]
-    pub fn py_is_real(&self) -> PyResult<Option<bool>> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(expr.expr.is_real())
+    pub fn py_is_real(&self) -> Option<bool> {
+        self.inner.expr.is_real()
     }
 
     /// Return derivative of this expression with respect to the input parameter.
@@ -970,15 +902,17 @@ impl PyParameterExpression {
     ///     The derivative.
     pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<Self> {
         let symbol = symbol_from_py_parameter(param)?;
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        let d_expr = expr.derivative(&symbol).map_err(PyRuntimeError::new_err)?;
+        let d_expr = self
+            .inner
+            .derivative(&symbol)
+            .map_err(PyRuntimeError::new_err)?;
         Ok(d_expr.into())
     }
 
     /// Return all values in this equation.
     pub fn _values(&self, py: Python) -> PyResult<Vec<PyObject>> {
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        expr.expr
+        self.inner
+            .expr
             .values()
             .iter()
             .map(|val| match val {
@@ -1016,15 +950,11 @@ impl PyParameterExpression {
         // reduce the map to a HashMap<Symbol, ParameterExpression>
         let map = parameter_map
             .iter()
-            .map(|(param, expr)| {
-                let inner_expr = expr.inner.read().map_err(|_| InnerReadError)?;
-                Ok((param.symbol.clone(), inner_expr.clone()))
-            })
+            .map(|(param, expr)| Ok((param.symbol.clone(), expr.inner.clone())))
             .collect::<PyResult<_>>()?;
 
         // apply to the inner expression
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        match expr.subs(&map, allow_unknown_parameters) {
+        match self.inner.subs(&map, allow_unknown_parameters) {
             Ok(subbed) => Ok(subbed.into()),
             Err(e) => Err(e.into()),
         }
@@ -1066,8 +996,7 @@ impl PyParameterExpression {
             .collect::<PyResult<_>>()?;
 
         // apply to the inner expression
-        let expr = self.inner.read().map_err(|_| InnerReadError)?;
-        match expr.bind(&map, allow_unknown_parameters) {
+        match self.inner.bind(&map, allow_unknown_parameters) {
             Ok(bound) => Ok(bound.into()),
             Err(e) => Err(e.into()),
         }
@@ -1087,7 +1016,7 @@ impl PyParameterExpression {
         if let Ok(expr) = value.downcast::<Self>() {
             let map = [(parameter, expr.borrow().clone())].into_iter().collect();
             self.py_subs(map, false)
-        } else if let Ok(_) = value.extract::<Value>() {
+        } else if value.extract::<Value>().is_ok() {
             let map = [(parameter, value.clone())].into_iter().collect();
             self.py_bind(map, false)
         } else {
@@ -1109,61 +1038,36 @@ impl PyParameterExpression {
 
     pub fn __eq__(&self, rhs: &Bound<PyAny>) -> PyResult<bool> {
         if let Ok(rhs) = Self::extract_coerce(rhs) {
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            let rhs_inner = rhs.inner.read().map_err(|_| InnerReadError)?;
-            match rhs_inner.expr {
-                SymbolExpr::Value(v) => match self_inner.expr.eval(true) {
-                    Some(e) => Ok(e == v),
-                    None => Ok(false),
+            match rhs.inner.expr {
+                SymbolExpr::Value(v) => match self.inner.try_to_value(false) {
+                    Ok(e) => Ok(e == v),
+                    Err(_) => Ok(false),
                 },
-                _ => Ok(self_inner.expr == rhs_inner.expr),
+                _ => Ok(self.inner.expr == rhs.inner.expr),
             }
         } else {
             Ok(false)
         }
     }
 
-    // TODO do we need this if we have __eq__ implemented?
-    pub fn __ne__(&self, rhs: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            let rhs_inner = rhs.inner.read().map_err(|_| InnerReadError)?;
-            match rhs_inner.expr {
-                SymbolExpr::Value(v) => match self_inner.expr.eval(true) {
-                    Some(e) => Ok(e != v),
-                    None => Ok(true),
-                },
-                _ => Ok(self_inner.expr != rhs_inner.expr),
-            }
-        } else {
-            Ok(true)
-        }
+    pub fn __abs__(&self) -> Self {
+        self.inner.abs().into()
     }
 
-    pub fn __abs__(&self) -> PyResult<Self> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.abs().into())
+    pub fn __pos__(&self) -> Self {
+        self.clone()
     }
 
-    pub fn __pos__(&self) -> PyResult<Self> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.copy().into())
-    }
-
-    pub fn __neg__(&self) -> PyResult<Self> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let neg_inner = ParameterExpression::new(&(-&inner.expr), &inner.name_map);
-        Ok(Self {
-            inner: Arc::new(RwLock::new(neg_inner)),
+    pub fn __neg__(&self) -> Self {
+        Self {
+            inner: ParameterExpression::new(&-&self.inner.expr, &self.inner.name_map),
             name_map: self.name_map.clone(),
-        })
+        }
     }
 
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(rhs) = Self::extract_coerce(rhs) {
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            let rhs_inner = rhs.inner.read().map_err(|_| InnerReadError)?;
-            Ok(self_inner.add(&rhs_inner)?.into())
+            Ok(self.inner.add(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __add__",
@@ -1173,9 +1077,7 @@ impl PyParameterExpression {
 
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs) {
-            let lhs_inner = lhs.inner.read().map_err(|_| InnerReadError)?;
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            Ok(lhs_inner.add(&self_inner)?.into())
+            Ok(lhs.inner.add(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __radd__",
@@ -1185,9 +1087,7 @@ impl PyParameterExpression {
 
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(rhs) = Self::extract_coerce(rhs) {
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            let rhs_inner = rhs.inner.read().map_err(|_| InnerReadError)?;
-            Ok(self_inner.sub(&rhs_inner)?.into())
+            Ok(self.inner.sub(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __sub__",
@@ -1197,10 +1097,7 @@ impl PyParameterExpression {
 
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs) {
-            let lhs_inner = lhs.inner.read().map_err(|_| InnerReadError)?;
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            // TODO do we need .rsub or can I just  do lhs.sub(&self) ???
-            Ok(self_inner.rsub(&lhs_inner)?.into())
+            Ok(lhs.inner.sub(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rsub__",
@@ -1211,9 +1108,7 @@ impl PyParameterExpression {
     pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let py = rhs.py();
         if let Ok(rhs) = Self::extract_coerce(rhs) {
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            let rhs_inner = rhs.inner.read().map_err(|_| InnerReadError)?;
-            match self_inner.mul(&rhs_inner) {
+            match self.inner.mul(&rhs.inner) {
                 Ok(result) => PyParameterExpression::from(result).into_bound_py_any(py),
                 Err(e) => Err(PyErr::from(e)),
             }
@@ -1224,9 +1119,7 @@ impl PyParameterExpression {
 
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs) {
-            let lhs_inner = lhs.inner.read().map_err(|_| InnerReadError)?;
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            Ok(lhs_inner.mul(&self_inner)?.into())
+            Ok(lhs.inner.mul(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rmul__",
@@ -1236,9 +1129,7 @@ impl PyParameterExpression {
 
     pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(rhs) = Self::extract_coerce(rhs) {
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            let rhs_inner = rhs.inner.read().map_err(|_| InnerReadError)?;
-            Ok(self_inner.div(&rhs_inner)?.into())
+            Ok(self.inner.div(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __truediv__",
@@ -1248,10 +1139,7 @@ impl PyParameterExpression {
 
     pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs) {
-            let lhs_inner = lhs.inner.read().map_err(|_| InnerReadError)?;
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            // TODO do we need .rsub or can I just  do lhs.sub(&self) ???
-            Ok(self_inner.rdiv(&lhs_inner)?.into())
+            Ok(lhs.inner.div(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rtruediv__",
@@ -1261,9 +1149,7 @@ impl PyParameterExpression {
 
     pub fn __pow__(&self, rhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         if let Ok(rhs) = Self::extract_coerce(rhs) {
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            let rhs_inner = rhs.inner.read().map_err(|_| InnerReadError)?;
-            Ok(self_inner.pow(&rhs_inner)?.into())
+            Ok(self.inner.pow(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __pow__",
@@ -1273,10 +1159,7 @@ impl PyParameterExpression {
 
     pub fn __rpow__(&self, lhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs) {
-            let lhs_inner = lhs.inner.read().map_err(|_| InnerReadError)?;
-            let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
-            // TODO do we need .rsub or can I just  do lhs.sub(&self) ???
-            Ok(self_inner.rpow(&lhs_inner)?.into())
+            Ok(lhs.inner.pow(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rpow__",
@@ -1285,67 +1168,39 @@ impl PyParameterExpression {
     }
 
     pub fn __int__(&self) -> PyResult<i64> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        // TODO replace this by try_numeric?
-        match inner.expr.eval(true) {
-            Some(value) => match value {
-                Value::Complex(_) => Err(PyTypeError::new_err(
-                    "Cannot cast complex parameter to float.",
-                )),
-                Value::Real(r) => {
-                    let rounded = r.floor();
-                    Ok(rounded as i64)
-                }
-                Value::Int(i) => Ok(i),
-            },
-            None => {
-                let free_symbols = inner.expr.parameters();
-                Err(PyTypeError::new_err(format!(
-                "Parameter expression with unbound parameters {free_symbols:?} cannot be cast to int.")
-            ))
+        match self.inner.try_to_value(false)? {
+            Value::Complex(_) => Err(PyTypeError::new_err(
+                "Cannot cast complex parameter to int.",
+            )),
+            Value::Real(r) => {
+                let rounded = r.floor();
+                Ok(rounded as i64)
             }
+            Value::Int(i) => Ok(i),
         }
     }
 
     pub fn __float__(&self) -> PyResult<f64> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        match inner.expr.eval(true) {
-            Some(value) => match value {
-                Value::Complex(c) => {
-                    if c.im.abs() > SYMEXPR_EPSILON {
-                        Err(PyTypeError::new_err(
-                            "Could not cast complex parameter expression to float.",
-                        ))
-                    } else {
-                        Ok(c.re)
-                    }
+        match self.inner.try_to_value(false)? {
+            Value::Complex(c) => {
+                if c.im.abs() > SYMEXPR_EPSILON {
+                    Err(PyTypeError::new_err(
+                        "Could not cast complex parameter expression to float.",
+                    ))
+                } else {
+                    Ok(c.re)
                 }
-                Value::Real(r) => Ok(r),
-                Value::Int(i) => Ok(i as f64),
-            },
-            None => {
-                let free_symbols = inner.expr.parameters();
-                Err(PyTypeError::new_err(format!(
-                "Parameter expression with unbound parameters {free_symbols:?} cannot be cast to float.")
-            ))
             }
+            Value::Real(r) => Ok(r),
+            Value::Int(i) => Ok(i as f64),
         }
     }
 
     pub fn __complex__(&self) -> PyResult<Complex64> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        match inner.expr.eval(true) {
-            Some(value) => match value {
-                Value::Complex(c) => Ok(c),
-                Value::Real(r) => Ok(Complex64::new(r, 0.)),
-                Value::Int(i) => Ok(Complex64::new(i as f64, 0.)),
-            },
-            None => {
-                let free_symbols = inner.expr.parameters();
-                Err(PyTypeError::new_err(format!(
-                "Parameter expression with unbound parameters {free_symbols:?} cannot be cast to complex.")
-            ))
-            }
+        match self.inner.try_to_value(false)? {
+            Value::Complex(c) => Ok(c),
+            Value::Real(r) => Ok(Complex64::new(r, 0.)),
+            Value::Int(i) => Ok(Complex64::new(i as f64, 0.)),
         }
     }
 
@@ -1354,10 +1209,9 @@ impl PyParameterExpression {
     }
 
     pub fn __hash__(&self, py: Python) -> PyResult<u64> {
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        match inner.expr.eval(true) {
+        match self.inner.try_to_value(false) {
             // if a value, we promise to match the hash of the raw value!
-            Some(value) => {
+            Ok(value) => {
                 let py_hash = BUILTIN_HASH.get_bound(py);
                 match value {
                     Value::Complex(c) => py_hash.call1((c,))?.extract::<u64>(),
@@ -1365,9 +1219,9 @@ impl PyParameterExpression {
                     Value::Int(i) => py_hash.call1((i,))?.extract::<u64>(),
                 }
             }
-            None => {
+            Err(_) => {
                 let mut hasher = DefaultHasher::new();
-                inner.expr.string_id().hash(&mut hasher);
+                self.inner.expr.string_id().hash(&mut hasher);
                 Ok(hasher.finish())
             }
         }
@@ -1384,15 +1238,14 @@ impl PyParameterExpression {
     ) -> PyResult<()> {
         self.name_map = state.1;
         let from_qpy = ParameterExpression::from_qpy(&state.0)?;
-        self.inner = Arc::new(RwLock::new(from_qpy));
+        self.inner = from_qpy;
         Ok(())
     }
 
     #[getter]
     fn _qpy_replay(&self) -> PyResult<Vec<OPReplay>> {
         let mut replay = Vec::new();
-        let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        qpy_replay(&inner, &inner.name_map, &mut replay);
+        qpy_replay(&self.inner, &self.inner.name_map, &mut replay);
         Ok(replay)
     }
 }
@@ -1433,7 +1286,7 @@ impl PyParameterExpression {
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub struct PyParameter {
-    pub symbol: Symbol,
+    symbol: Symbol,
 }
 
 impl Hash for PyParameter {
@@ -1476,6 +1329,11 @@ impl PyParameter {
         let py_expr: PyParameterExpression = ParameterExpression::from_symbol_expr(expr).into();
 
         PyClassInitializer::from(py_expr).add_subclass(py_parameter)
+    }
+
+    /// Get a reference to the underlying symbol.
+    pub fn symbol_ref<'a>(&'a self) -> &'a Symbol {
+        &self.symbol
     }
 }
 
@@ -1541,12 +1399,6 @@ impl PyParameter {
         let uuid = Uuid::from_u128(state.1);
         let symbol = Symbol::new(name, Some(uuid), None);
         self.symbol = symbol;
-    }
-
-    pub fn sympify(&self, py: Python) -> PyResult<PyObject> {
-        // TODO can this be removed as it's the same as the parent class one?
-        let py_sympify = SYMPIFY_PARAMETER_EXPRESSION.get(py);
-        py_sympify.call1(py, (self.clone(),))
     }
 
     fn __copy__(slf: PyRef<Self>) -> PyRef<Self> {
@@ -1617,8 +1469,7 @@ impl PyParameter {
             Some(replacement) => {
                 if allow_unknown_parameters || parameter_values.len() == 1 {
                     let expr = PyParameterExpression::extract_coerce(replacement)?;
-                    let inner = expr.inner.read().map_err(|_| InnerReadError)?;
-                    if let SymbolExpr::Value(_) = &inner.expr {
+                    if let SymbolExpr::Value(_) = &expr.inner.expr {
                         expr.clone().into_bound_py_any(py)
                     } else {
                         Err(PyValueError::new_err("Invalid binding value."))
