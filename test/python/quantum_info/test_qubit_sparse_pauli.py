@@ -1229,8 +1229,8 @@ class TestQubitSparsePauliList(QiskitTestCase):
             np.testing.assert_equal(pauli_list.to_dense_array(), expected)
 
         with self.subTest(msg="single"):
-            pauli_list = QubitSparsePauliList.from_sparse_list([("XX", (0, 2))], num_qubits=5)
-            expected = np.array([2, 0, 2, 0, 0]).reshape((5, 1))
+            pauli_list = QubitSparsePauliList.from_sparse_list([("XZ", (0, 2))], num_qubits=5)
+            expected = np.array([2, 0, 1, 0, 0]).reshape((5, 1))
             np.testing.assert_equal(pauli_list.to_dense_array(), expected)
 
         with self.subTest(msg="multiple"):
