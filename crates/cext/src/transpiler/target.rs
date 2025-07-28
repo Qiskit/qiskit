@@ -843,19 +843,19 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 /// # Example
 ///
 ///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, *[3.14]);
-///     qk_target_entry_add(crx_entry, NULL, 0, 0.0, 0.1);
+///     QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, (double[]){3.14});
+///     qk_target_entry_add_property(crx_entry, NULL, 0, 0.0, 0.1);
 ///     qk_target_add_instruction(target, crx_entry);
 ///     qk_target_add_instruction(target, QkGate_H, NULL, NULL);
 ///
-///     qk_target_instruction_supported(target, QkGate_CRX, [0, 1])
+///     qk_target_instruction_supported(target, QkGate_CRX, (uint32_t[]){0, 1});
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
 ///
 /// The ``qargs`` type is expected to be a pointer to an array of ``u32int_t`` where the length
-/// matches the expectation of the gate. If the array is insufficently long the behavior of this
+/// matches the expectation of the gate. If the array is insufficiently long the behavior of this
 /// function is undefined as this will read outside the bounds of the array. It can be a null
 /// pointer if there are no qubits for a given gate. You can check `qk_gate_num_qubits` to
 /// determine how many qubits are required for a given gate.
@@ -864,7 +864,7 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 pub unsafe extern "C" fn qk_target_instruction_supported(
     target: *const Target,
     operation: StandardGate,
-    qargs: *mut u32,
+    qargs: *const u32,
 ) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -889,7 +889,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 ///     QkTarget *target = qk_target_new(5);
 ///     QkTargetEntry *reset_entry = qk_target_entry_new_reset();
 ///     uint32_t qargs[1] = {1};
-///     qk_target_entry_add(reset_entry, qargs, 1, 0.092, 0.1);
+///     qk_target_entry_add_property(reset_entry, qargs, 1, 0.092, 0.1);
 ///     qk_target_add_instruction(target, reset_entry);
 ///
 ///     qk_target_reset_supported(target, 1);
@@ -927,7 +927,7 @@ pub unsafe extern "C" fn qk_target_reset_supported(target: *const Target, qarg: 
 ///     QkTarget *target = qk_target_new(5);
 ///     QkTargetEntry *measure_entry = qk_target_entry_new_measure();
 ///     uint32_t qargs[1] = {0};
-///     qk_target_entry_add(measure_entry, qargs, 1, NaN, NaN);
+///     qk_target_entry_add_property(measure_entry, qargs, 1, NAN, NAN);
 ///     qk_target_add_instruction(target, measure_entry);
 ///
 ///     qk_target_measure_supported(target, 0);
