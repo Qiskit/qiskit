@@ -84,14 +84,15 @@ impl From<ParameterError> for PyErr {
 pub struct ParameterExpression {
     // The symbolic expression.
     expr: SymbolExpr,
-    // A map keeping track of all symbols, with their name. This map *must* be kept
-    // up to date upon any operation performed on the expression.
+    // A map keeping track of all symbols, with their name. This map *must* have
+    // exactly one entry per symbol used in the expression (no more, no less).
     name_map: HashMap<String, Symbol>,
 }
 
 impl Hash for ParameterExpression {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.expr.to_string().hash(state);
+        // The string representation of a tree is unique.
+        self.expr.string_id().hash(state);
     }
 }
 
@@ -146,18 +147,18 @@ impl ParameterExpression {
     ///
     /// Caution: The caller **guarantees** that ``name_map`` is consistent with ``expr``.
     /// If uncertain, call [Self::from_symbol_expr], which automatically builds the correct name map.
-    pub fn new(expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> Self {
+    pub fn new(expr: SymbolExpr, name_map: HashMap<String, Symbol>) -> Self {
         Self {
-            expr: expr.clone(),
-            name_map: name_map.clone(),
+            expr: expr,
+            name_map: name_map,
         }
     }
 
     /// Construct from a [Symbol].
-    pub fn from_symbol(symbol: &Symbol) -> Self {
+    pub fn from_symbol(symbol: Symbol) -> Self {
         Self {
             expr: SymbolExpr::Symbol(symbol.clone()),
-            name_map: [(symbol.name(), symbol.clone())].into(),
+            name_map: [(symbol.name(), symbol)].into(),
         }
     }
 
@@ -210,10 +211,8 @@ impl ParameterExpression {
     ///
     /// This populates the name map with the symbols in the expression.
     pub fn from_symbol_expr(expr: SymbolExpr) -> Self {
-        Self {
-            expr: expr.clone(),
-            name_map: expr.name_map().clone(),
-        }
+        let name_map = expr.name_map();
+        Self { expr, name_map }
     }
 
     // TODO maybe move this to the Python class only
@@ -265,7 +264,7 @@ impl ParameterExpression {
                 OpCode::EXP => lhs.exp(),
                 OpCode::SIGN => lhs.sign(),
                 OpCode::GRAD | OpCode::SUBSTITUTE => {
-                    unreachable!("GRAD and SUBSTITUTE are not supported.")
+                    panic!("GRAD and SUBSTITUTE are not supported.")
                 }
             };
             stack.push(result);
@@ -274,12 +273,12 @@ impl ParameterExpression {
         // once we're done, just return the last element in the stack
         Ok(stack
             .pop()
-            .expect("OPReplay was empty, no expression could be built"))
+            .expect("Invalid QPY replay encountered during deserialization: empty OPReplay."))
     }
 
     /// Add an expression; ``self + rhs``.
     pub fn add(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(rhs)?;
+        let name_map = self.merged_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr + &rhs.expr,
             name_map,
@@ -288,7 +287,7 @@ impl ParameterExpression {
 
     /// Multiply with an expression; ``self * rhs``.
     pub fn mul(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(rhs)?;
+        let name_map = self.merged_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr * &rhs.expr,
             name_map,
@@ -297,7 +296,7 @@ impl ParameterExpression {
 
     /// Subtract another expression; ``self - rhs``.
     pub fn sub(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(rhs)?;
+        let name_map = self.merged_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr - &rhs.expr,
             name_map,
@@ -310,7 +309,7 @@ impl ParameterExpression {
             return Err(ParameterError::ZeroDivisionError);
         }
 
-        let name_map = self.update_name_map(rhs)?;
+        let name_map = self.merged_name_map(rhs)?;
         Ok(Self {
             expr: &self.expr / &rhs.expr,
             name_map,
@@ -319,7 +318,7 @@ impl ParameterExpression {
 
     /// Raise this expression to a power; ``self ^ rhs``.
     pub fn pow(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        let name_map = self.update_name_map(rhs)?;
+        let name_map = self.merged_name_map(rhs)?;
         Ok(Self {
             expr: self.expr.pow(&rhs.expr),
             name_map,
@@ -439,9 +438,9 @@ impl ParameterExpression {
     /// Args:
     ///     - map: A hashmap with [Symbol] keys and [ParameterExpression]s to replace these
     ///         symbols with.
-    ///     - allow_unknown_parameters: If ``false``, returns an error if any symbol in the
-    ///         hashmap is not present in the expression. If ``true``, unknown symbols are ignored.
-    ///         Setting to ``true`` is slightly faster as it does not involve additional checks.
+    ///     - allow_unknown_parameters: If `false`, returns an error if any symbol in the
+    ///         hashmap is not present in the expression. If `true`, unknown symbols are ignored.
+    ///         Setting to `true` is slightly faster as it does not involve additional checks.
     ///
     /// Returns:
     ///     A parameter expression with the substituted symbols.
@@ -458,15 +457,11 @@ impl ParameterExpression {
         if !allow_unknown_parameters {
             let existing: HashSet<&Symbol> = self.name_map.values().collect();
             let to_replace: HashSet<&Symbol> = map.keys().collect();
+            let mut difference = to_replace.difference(&existing).peekable();
 
-            // This could be done a little bit more efficiently, but we want to
-            // show the user all symbols that are not present.
-            let difference: HashSet<Symbol> = to_replace
-                .difference(&existing)
-                .map(|&symbol| symbol.clone())
-                .collect();
-            if !difference.is_empty() {
-                return Err(ParameterError::UnknownParameters(difference));
+            if difference.peek().is_some() {
+                let different_symbols = difference.map(|s| (**s).clone()).collect();
+                return Err(ParameterError::UnknownParameters(different_symbols));
             }
         }
 
@@ -534,16 +529,17 @@ impl ParameterExpression {
         allow_unknown_parameters: bool,
     ) -> Result<Self, ParameterError> {
         // The set of symbols we will bind. Used twice, hence pre-computed here.
-        let bind_symbols: HashSet<Symbol> = map.keys().cloned().collect();
+        let bind_symbols: HashSet<&Symbol> = map.keys().collect();
 
+        // If we don't allow for unknown parameters, check if there are any.
         if !allow_unknown_parameters {
-            let existing_symbols: HashSet<Symbol> = self.name_map.values().cloned().collect();
-            let difference: HashSet<Symbol> = bind_symbols
-                .difference(&existing_symbols)
-                .cloned()
-                .collect();
-            if !difference.is_empty() {
-                return Err(ParameterError::UnknownParameters(difference));
+            let existing: HashSet<&Symbol> = self.name_map.values().collect();
+            let to_replace: HashSet<&Symbol> = map.keys().collect();
+            let mut difference = to_replace.difference(&existing).peekable();
+
+            if difference.peek().is_some() {
+                let different_symbols = difference.map(|s| (**s).clone()).collect();
+                return Err(ParameterError::UnknownParameters(different_symbols));
             }
         }
 
@@ -582,7 +578,7 @@ impl ParameterExpression {
         let bound_name_map: HashMap<String, Symbol> = self
             .name_map
             .iter()
-            .filter(|(_, symbol)| !bind_symbols.contains(*symbol))
+            .filter(|(_, symbol)| !bind_symbols.contains(symbol))
             .map(|(name, symbol)| (name.clone(), symbol.clone()))
             .collect();
 
@@ -602,7 +598,7 @@ impl ParameterExpression {
     ///
     /// * `Ok(HashMap<String, Symbol>)` - The merged name map.
     /// * `Err(ParameterError)` - An error if there was a name conflict.
-    fn update_name_map(&self, other: &Self) -> Result<HashMap<String, Symbol>, ParameterError> {
+    fn merged_name_map(&self, other: &Self) -> Result<HashMap<String, Symbol>, ParameterError> {
         let mut merged = self.name_map.clone();
         for (name, param) in other.name_map.iter() {
             match merged.get(name) {
@@ -627,7 +623,6 @@ impl ParameterExpression {
 /// for the parameters inside the expression.
 #[pyclass(
     subclass,
-    sequence,
     module = "qiskit._accelerate.circuit",
     name = "ParameterExpression"
 )]
@@ -673,7 +668,7 @@ impl From<ParameterExpression> for PyParameterExpression {
         let name_map = value
             .name_map
             .iter()
-            .map(|(name, symbol)| (name.clone(), PyParameter::new(symbol)))
+            .map(|(name, symbol)| (name.clone(), PyParameter::new(symbol.clone())))
             .collect();
         Self {
             inner: value,
@@ -685,30 +680,21 @@ impl From<ParameterExpression> for PyParameterExpression {
 impl PyParameterExpression {
     fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(i) = ob.extract::<i64>() {
-            Ok(
-                ParameterExpression::new(&SymbolExpr::Value(Value::from(i)), &HashMap::new())
-                    .into(),
-            )
+            Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(i)), HashMap::new()).into())
         } else if let Ok(c) = ob.extract::<Complex64>() {
             if c.is_infinite() || c.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
-            Ok(
-                ParameterExpression::new(&SymbolExpr::Value(Value::from(c)), &HashMap::new())
-                    .into(),
-            )
+            Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(c)), HashMap::new()).into())
         } else if let Ok(r) = ob.extract::<f64>() {
             if r.is_infinite() || r.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
-            Ok(
-                ParameterExpression::new(&SymbolExpr::Value(Value::from(r)), &HashMap::new())
-                    .into(),
-            )
+            Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(r)), HashMap::new()).into())
         } else if let Ok(parameter) = ob.extract::<PyParameter>() {
-            Ok(ParameterExpression::from_symbol(&parameter.symbol).into())
+            Ok(ParameterExpression::from_symbol(parameter.symbol.clone()).into())
         } else if let Ok(element) = ob.extract::<PyParameterVectorElement>() {
-            Ok(ParameterExpression::from_symbol(&element.symbol).into())
+            Ok(ParameterExpression::from_symbol(element.symbol.clone()).into())
         } else {
             ob.extract::<PyParameterExpression>()
         }
@@ -745,7 +731,7 @@ impl PyParameterExpression {
 
                 let replaced_expr = replace_symbol(&expr, &symbol_map);
 
-                let inner = ParameterExpression::new(&replaced_expr, &symbol_map);
+                let inner = ParameterExpression::new(replaced_expr, symbol_map);
                 Ok(Self { inner, name_map })
             }
             _ => Err(PyValueError::new_err(
@@ -810,11 +796,13 @@ impl PyParameterExpression {
                 let s = &param.symbol;
                 match (s.index, &s.vector) {
                     // if index and vector is set, it is an element
-                    (Some(_index), Some(_vector)) => {
-                        Ok(Py::new(py, PyParameterVectorElement::from_symbol(s))?.into_any())
-                    }
+                    (Some(_index), Some(_vector)) => Ok(Py::new(
+                        py,
+                        PyParameterVectorElement::from_symbol(s.clone()),
+                    )?
+                    .into_any()),
                     // else, a normal parameter
-                    _ => Ok(Py::new(py, PyParameter::from_symbol(s))?.into_any()),
+                    _ => Ok(Py::new(py, PyParameter::from_symbol(s.clone()))?.into_any()),
                 }
             })
             .collect::<PyResult<_>>()?;
@@ -1060,7 +1048,7 @@ impl PyParameterExpression {
 
     pub fn __neg__(&self) -> Self {
         Self {
-            inner: ParameterExpression::new(&-&self.inner.expr, &self.inner.name_map),
+            inner: ParameterExpression::new(-&self.inner.expr, self.inner.name_map.clone()),
             name_map: self.name_map.clone(),
         }
     }
@@ -1313,19 +1301,15 @@ impl<'py> IntoPyObject<'py> for PyParameter {
 }
 
 impl PyParameter {
-    fn new(symbol: &Symbol) -> Self {
-        Self {
-            symbol: symbol.clone(),
-        }
+    fn new(symbol: Symbol) -> Self {
+        Self { symbol }
     }
 
     /// Get a Python class initialization from a symbol.
-    fn from_symbol(symbol: &Symbol) -> PyClassInitializer<Self> {
+    fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
         let expr = SymbolExpr::Symbol(symbol.clone());
 
-        let py_parameter = Self {
-            symbol: symbol.clone(),
-        };
+        let py_parameter = Self { symbol };
         let py_expr: PyParameterExpression = ParameterExpression::from_symbol_expr(expr).into();
 
         PyClassInitializer::from(py_expr).add_subclass(py_parameter)
@@ -1522,7 +1506,7 @@ impl<'py> IntoPyObject<'py> for PyParameterVectorElement {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let symbol = &self.symbol;
-        let py_param = PyParameter::from_symbol(symbol);
+        let py_param = PyParameter::from_symbol(symbol.clone());
         let py_element = py_param.add_subclass(self);
 
         Ok(Py::new(py, py_element)?.into_bound(py))
@@ -1530,7 +1514,7 @@ impl<'py> IntoPyObject<'py> for PyParameterVectorElement {
 }
 
 impl PyParameterVectorElement {
-    fn from_symbol(symbol: &Symbol) -> PyClassInitializer<Self> {
+    fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
         let py_element = Self {
             symbol: symbol.clone(),
         };
@@ -1560,7 +1544,7 @@ impl PyParameterVectorElement {
             Some(vector.clone_ref(py)),
         )?;
 
-        let py_parameter = PyParameter::from_symbol(&symbol);
+        let py_parameter = PyParameter::from_symbol(symbol.clone());
         let py_element = Self { symbol };
 
         Ok(py_parameter.add_subclass(py_element))
