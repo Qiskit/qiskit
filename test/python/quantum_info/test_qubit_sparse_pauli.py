@@ -1226,17 +1226,17 @@ class TestQubitSparsePauliList(QiskitTestCase):
         with self.subTest(msg="empty"):
             pauli_list = QubitSparsePauliList.empty(100)
             expected = np.zeros((100, 0), dtype=np.uint8)
-            np.testing.assert_equal(pauli_list.to_dense_array(), expected)
+            np.testing.assert_equal(pauli_list.to_dense_array(), expected, strict=True)
 
         with self.subTest(msg="single"):
             pauli_list = QubitSparsePauliList.from_sparse_list([("XZ", (0, 2))], num_qubits=5)
-            expected = np.array([2, 0, 1, 0, 0]).reshape((5, 1))
-            np.testing.assert_equal(pauli_list.to_dense_array(), expected)
+            expected = np.array([2, 0, 1, 0, 0], dtype=np.uint8).reshape((5, 1))
+            np.testing.assert_equal(pauli_list.to_dense_array(), expected, strict=True)
 
         with self.subTest(msg="multiple"):
             pauli_list = QubitSparsePauliList.from_list(["IXI", "YII", "IIZ"])
-            expected = np.array([[0, 0, 1], [2, 0, 0], [0, 3, 0]])
-            np.testing.assert_equal(pauli_list.to_dense_array(), expected)
+            expected = np.array([[0, 0, 1], [2, 0, 0], [0, 3, 0]], dtype=np.uint8)
+            np.testing.assert_equal(pauli_list.to_dense_array(), expected, strict=True)
 
 
 def canonicalize_term(pauli, indices):
