@@ -1144,28 +1144,7 @@ impl SymbolExpr {
                             }
                         }
                     }
-
-                    // swap nodes by sorting rule
-                    match rhs {
-                        SymbolExpr::Binary { op: rop, .. } => {
-                            if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
-                                if self > rhs {
-                                    Some(_add(rhs.clone(), self.clone()))
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        }
-                        _ => {
-                            if self > rhs {
-                                Some(_add(rhs.clone(), self.clone()))
-                            } else {
-                                None
-                            }
-                        }
-                    }
+                    None
                 }
                 SymbolExpr::Binary {
                     op,
@@ -1322,31 +1301,7 @@ impl SymbolExpr {
                             }
                         }
                     }
-                    // swap nodes by sorting rule
-                    if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
-                        match rhs {
-                            SymbolExpr::Binary { op: rop, .. } => {
-                                if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
-                                    if self > rhs {
-                                        Some(_add(rhs.clone(), self.clone()))
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    None
-                                }
-                            }
-                            _ => {
-                                if self > rhs {
-                                    Some(_add(rhs.clone(), self.clone()))
-                                } else {
-                                    None
-                                }
-                            }
-                        }
-                    } else {
-                        None
-                    }
+                    None
                 }
             }
         }
@@ -1503,34 +1458,7 @@ impl SymbolExpr {
                             }
                         }
                     }
-
-                    // swap nodes by sorting rule
-                    match rhs {
-                        SymbolExpr::Binary { op: rop, .. } => {
-                            if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
-                                if self > rhs {
-                                    match rhs.neg_opt() {
-                                        Some(e) => Some(_add(e, self.clone())),
-                                        None => Some(_add(_neg(rhs.clone()), self.clone())),
-                                    }
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        }
-                        _ => {
-                            if self > rhs {
-                                match rhs.neg_opt() {
-                                    Some(e) => Some(_add(e, self.clone())),
-                                    None => Some(_add(_neg(rhs.clone()), self.clone())),
-                                }
-                            } else {
-                                None
-                            }
-                        }
-                    }
+                    None
                 }
                 SymbolExpr::Binary {
                     op,
@@ -1684,37 +1612,7 @@ impl SymbolExpr {
                             }
                         }
                     }
-                    // swap nodes by sorting rule
-                    if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
-                        match rhs {
-                            SymbolExpr::Binary { op: rop, .. } => {
-                                if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
-                                    if self > rhs {
-                                        match rhs.neg_opt() {
-                                            Some(e) => Some(_add(e, self.clone())),
-                                            None => Some(_add(_neg(rhs.clone()), self.clone())),
-                                        }
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    None
-                                }
-                            }
-                            _ => {
-                                if self > rhs {
-                                    match rhs.neg_opt() {
-                                        Some(e) => Some(_add(e, self.clone())),
-                                        None => Some(_add(_neg(rhs.clone()), self.clone())),
-                                    }
-                                } else {
-                                    None
-                                }
-                            }
-                        }
-                    } else {
-                        None
-                    }
+                    None
                 }
             }
         }
