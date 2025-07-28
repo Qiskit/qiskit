@@ -2,26 +2,20 @@
 features_transpiler:
   - |
     Add functions ``qk_target_instruction_supported``, ``qk_target_reset_supported``, and
-    ``qk_target_measure_supported`` to check the compatibility of a ``QkGate``, a :class:`.Reset`
-    instruction, or a :class:`.Measure` with the instance of ``QkTarget``
+    ``qk_target_measure_supported`` to check the compatibility of a :c::`QkGate`, a :class:`.Reset`
+    instruction, or a :class:`.Measure` with the instance of :c:type:`QkTarget`.
 
     .. code-block:: c
       
-      // Create sample target
+      // Build a sample target
       QkTarget *target = qk_target_new(0);
       
       // Create an entry for a CX gate
       QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-      uint32_t qarg_samples[8][2] = {
-          {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
-      };
-      double props[8][2] = {
-          {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
-          {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
-      };
-      for (int i = 0; i < 8; i++) {
-          qk_target_entry_add_property(cx_entry, qarg_samples[i], 2, props[i][0], props[i][1]);
-      }
+      
+      // Add some properties to the entry
+      qk_target_entry_add_property(cx_entry, (uint32_t[2]){3,4}, 2, 2.7022e-11, 0.00713);
+      qk_target_entry_add_property(cx_entry, (uint32_t[2]){4,3}, 2, 3.0577e-11, 0.00713);
 
       // Add the CX Gate to the Target
       qk_target_add_instruction(target, cx_entry);
@@ -29,8 +23,8 @@ features_transpiler:
       // Add global Y Gate
       qk_target_add_instruction(target, qk_target_entry_new(QkGate_Y));
 
-      // Check if a CX gate at qargs (2, 1) is compatible
-      uint32_t cx_qargs[2] = { 2, 1 };
+      // Check if a CX gate at qargs (3, 4) is compatible
+      uint32_t cx_qargs[2] = { 3, 4 };
       qk_target_instruction_supported(target, QkGate_CX, cx_qargs);
 
       // Check if a Y gate at qargs (4,) is compatible
