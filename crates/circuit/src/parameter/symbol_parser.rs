@@ -75,8 +75,8 @@ fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                     // currently array index is stored as string
                     // if array indexing is required in the future
                     // add indexing in Symbol struct
-                    let s = format!("{v}[{i}]");
-                    Ok(SymbolExpr::Symbol(Symbol::new(&s, None, None)))
+                    let i_u32 = i.parse::<u32>().map_err(|_| "Failed to parse index.")?;
+                    Ok(SymbolExpr::Symbol(Symbol::new(v, None, Some(i_u32))))
                 }
                 None => Ok(SymbolExpr::Symbol(Symbol::new(v, None, None))),
             }
