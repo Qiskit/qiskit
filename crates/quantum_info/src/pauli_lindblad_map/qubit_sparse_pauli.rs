@@ -12,7 +12,7 @@
 
 use hashbrown::HashSet;
 
-use ndarray::{Array2};
+use ndarray::Array2;
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods, PyReadonlyArray1};
 use pyo3::{
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
@@ -2016,10 +2016,10 @@ impl PyQubitSparsePauliList {
     }
 
     /// Express the list in a dense array format.
-    /// 
+    ///
     /// Each entry is a u8 following the :class:`Pauli` representation, while the columns index
     /// distinct Paulis and the rows distinct qubits.
-    /// 
+    ///
     /// Examples:
     /// 
     ///         >>> paulis = QubitSparsePauliList.from_sparse_list(
