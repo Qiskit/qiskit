@@ -1221,6 +1221,23 @@ class TestQubitSparsePauliList(QiskitTestCase):
                 canonicalize_sparse_list(pauli_list.to_sparse_list()),
             )
 
+    def test_to_dense_array(self):
+        """Test converting to a dense array."""
+        with self.subTest(msg="empty"):
+            pauli_list = QubitSparsePauliList.empty(100)
+            expected = np.zeros((100, 0), dtype=np.uint8)
+            np.testing.assert_equal(pauli_list.to_dense_array(), expected)
+
+        with self.subTest(msg="single"):
+            pauli_list = QubitSparsePauliList.from_sparse_list([("XX", (0, 2))], num_qubits=5)
+            expected = np.array([2, 0, 2, 0, 0]).reshape((5, 1))
+            np.testing.assert_equal(pauli_list.to_dense_array(), expected)
+
+        with self.subTest(msg="multiple"):
+            pauli_list = QubitSparsePauliList.from_list(["IXI", "YII", "IIZ"])
+            expected = np.array([[0, 0, 1], [2, 0, 0], [0, 3, 0]])
+            np.testing.assert_equal(pauli_list.to_dense_array(), expected)
+
 
 def canonicalize_term(pauli, indices):
     # canonicalize a sparse list term by sorting by indices (which is unique as
