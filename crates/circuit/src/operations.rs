@@ -17,7 +17,7 @@ use std::{fmt, vec};
 use crate::circuit_data::CircuitData;
 use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
 use crate::imports::{DEEPCOPY, QUANTUM_CIRCUIT, UNITARY_GATE};
-use crate::parameter::parameter_expression::ParameterExpression;
+use crate::parameter::parameter_expression::{ParameterExpression, PyParameterExpression};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use nalgebra::{Matrix2, Matrix4};
@@ -34,13 +34,42 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
 
-#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
+#[derive(Clone, Debug, IntoPyObjectRef)]
 pub enum Param {
     // TODO I wonder if we need to store an enum here with Parameter, ParameterVectorElement
     // and ParameterExpression here?
     ParameterExpression(ParameterExpression),
     Float(f64),
     Obj(PyObject),
+}
+
+impl<'py> IntoPyObject<'py> for Param {
+    type Target = PyAny; // target type is PyAny to cover f64, PyObject and PyParameterExpression
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match &self {
+            Param::Float(value) => value.into_bound_py_any(py),
+            Param::Obj(py_obj) => py_obj.into_bound_py_any(py),
+            Param::ParameterExpression(expr) => {
+                let py_expr = PyParameterExpression::from(expr.clone());
+                py_expr.into_bound_py_any(py)
+            }
+        }
+    }
+}
+
+impl<'py> FromPyObject<'py> for Param {
+    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+        Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
+            Param::ParameterExpression(py_expr.inner)
+        } else if let Ok(val) = b.extract::<f64>() {
+            Param::Float(val)
+        } else {
+            Param::Obj(b.clone().unbind())
+        })
+    }
 }
 
 impl Param {
@@ -70,18 +99,6 @@ impl Param {
     }
 }
 
-impl<'py> FromPyObject<'py> for Param {
-    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        Ok(if let Ok(expr) = b.extract::<ParameterExpression>() {
-            Param::ParameterExpression(expr)
-        } else if let Ok(val) = b.extract::<f64>() {
-            Param::Float(val)
-        } else {
-            Param::Obj(b.clone().unbind())
-        })
-    }
-}
-
 impl Param {
     /// Get an iterator over any Python-space `Parameter` instances tracked within this `Param`.
     pub fn iter_parameters<'py>(&self, py: Python<'py>) -> PyResult<ParamParameterIter<'py>> {
@@ -89,7 +106,11 @@ impl Param {
         match self {
             Param::Float(_) => Ok(ParamParameterIter(None)),
             Param::ParameterExpression(expr) => {
-                Ok(ParamParameterIter(Some(expr.parameters(py)?.try_iter()?)))
+                // TODO remove the Py
+                let py_expr = PyParameterExpression::from(expr.clone());
+                Ok(ParamParameterIter(Some(
+                    py_expr.parameters(py)?.try_iter()?,
+                )))
             }
             Param::Obj(obj) => {
                 let obj = obj.bind(py);
@@ -110,8 +131,8 @@ impl Param {
     pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
-        } else if let Ok(expr) = ob.extract::<ParameterExpression>() {
-            Param::ParameterExpression(expr)
+        } else if let Ok(py_expr) = ob.extract::<PyParameterExpression>() {
+            Param::ParameterExpression(py_expr.inner)
         } else {
             Param::Obj(ob.clone().unbind())
         })

@@ -1889,7 +1889,7 @@ impl DAGCircuit {
             if let Param::ParameterExpression(ob) = param {
                 // try casting ParameterExpression to Param, prioritizing Float
                 // TODO this could maybe be done by a custom constructor on Param too
-                match ob.try_numeric(true) {
+                match ob.try_to_value(true) {
                     Ok(value) => match value {
                         Value::Int(i) => Param::Float(i as f64),
                         Value::Real(r) => Param::Float(r),

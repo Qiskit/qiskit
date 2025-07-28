@@ -28,7 +28,7 @@ use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::parameter::parameter_expression::ParameterExpression;
+use crate::parameter::parameter_expression::PyParameterExpression;
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
@@ -1452,7 +1452,9 @@ impl CircuitData {
     pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
         if let Param::ParameterExpression(expr) = &self.global_phase {
             Python::with_gil(|py| -> PyResult<()> {
-                for param_ob in expr.parameters(py)?.try_iter()? {
+                // TODO remove the Py
+                let py_expr = PyParameterExpression::from(expr.clone());
+                for param_ob in py_expr.parameters(py)?.try_iter()? {
                     match self.param_table.remove_use(
                         ParameterUuid::from_parameter(&param_ob?)?,
                         ParameterUse::GlobalPhase,
@@ -2338,9 +2340,8 @@ impl CircuitData {
                     Param::extract_no_coerce(&out)
                 }
             } else {
-                Ok(Param::ParameterExpression(
-                    new_expr.extract::<ParameterExpression>()?,
-                ))
+                let py_expr = new_expr.extract::<PyParameterExpression>()?;
+                Ok(Param::ParameterExpression(py_expr.inner))
             }
         };
 

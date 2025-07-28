@@ -1320,7 +1320,7 @@ impl<'a> QASM3Builder {
                 // TODO this need to be achievable more easily
                 let symbol = symbol_expr::Symbol::new(name.as_str(), None, None);
                 let symbol_expr = symbol_expr::SymbolExpr::Symbol(symbol);
-                let expr = ParameterExpression::new(symbol_expr);
+                let expr = ParameterExpression::from_symbol_expr(symbol_expr);
                 Param::ParameterExpression(expr)
             })
             .collect();

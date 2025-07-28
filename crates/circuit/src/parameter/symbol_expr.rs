@@ -12,7 +12,6 @@
 
 use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::PyValueError;
-use pyo3::types::PyString;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -25,12 +24,9 @@ use uuid::Uuid;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 
-use super::parameter_expression::ParameterExpression;
-
 // epsilon for SymbolExpr is heuristically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
-#[pyclass]
 #[derive(Debug, Clone)]
 pub struct Symbol {
     name: String,           // the name of the symbol
@@ -71,19 +67,7 @@ impl Symbol {
         }
     }
 
-    pub fn name(&self) -> String {
-        let base_name = &self.name;
-        match self.index {
-            Some(i) => format!("{base_name}[{i}]"),
-            None => base_name.clone(),
-        }
-    }
-}
-
-#[pymethods]
-impl Symbol {
-    #[new]
-    #[pyo3(signature = (name, uuid=None, index=None, vector=None))]
+    /// In addition to ``new``, this also takes a vector.
     pub fn py_new(
         name: &str,
         uuid: Option<u128>,
@@ -104,28 +88,12 @@ impl Symbol {
         })
     }
 
-    #[pyo3(name = "name")]
-    pub fn py_name<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
-        PyString::new(py, self.name().as_str())
-    }
-
-    #[pyo3(name = "uuid")]
-    pub fn py_uuid(&self) -> u128 {
-        self.uuid.as_u128()
-    }
-
-    pub fn as_expr(&self) -> ParameterExpression {
-        let expr = SymbolExpr::Symbol(self.clone());
-        ParameterExpression::new(expr)
-    }
-
-    pub fn __str__<'py>(&self, py: Python<'py>) -> Bound<'py, PyString> {
-        let str = format!("Symbol({})", self.name());
-        PyString::new(py, str.as_str())
-    }
-
-    pub fn __eq__(&self, other: &Symbol) -> bool {
-        self.eq(other)
+    pub fn name(&self) -> String {
+        let base_name = &self.name;
+        match self.index {
+            Some(i) => format!("{base_name}[{i}]"),
+            None => base_name.clone(),
+        }
     }
 }
 
@@ -2509,7 +2477,7 @@ impl SymbolExpr {
     fn display(&self, with_uuid: bool) -> String {
         match self {
             SymbolExpr::Symbol(e) => match with_uuid {
-                true => format!("{}_{}", e.name(), e.py_uuid()),
+                true => format!("{}_{}", e.name(), e.uuid.as_u128()),
                 false => e.name(),
             },
             SymbolExpr::Value(e) => e.to_string(),
