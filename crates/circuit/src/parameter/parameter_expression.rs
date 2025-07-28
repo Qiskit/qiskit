@@ -148,10 +148,7 @@ impl ParameterExpression {
     /// Caution: The caller **guarantees** that ``name_map`` is consistent with ``expr``.
     /// If uncertain, call [Self::from_symbol_expr], which automatically builds the correct name map.
     pub fn new(expr: SymbolExpr, name_map: HashMap<String, Symbol>) -> Self {
-        Self {
-            expr: expr,
-            name_map: name_map,
-        }
+        Self { expr, name_map }
     }
 
     /// Construct from a [Symbol].
@@ -215,7 +212,6 @@ impl ParameterExpression {
         Self { expr, name_map }
     }
 
-    // TODO maybe move this to the Python class only
     /// Load from a sequence of [OPReplay]s. Used in serialization.
     pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
         // the stack contains the latest lhs and rhs values
@@ -425,25 +421,20 @@ impl ParameterExpression {
         })
     }
 
-    /// Expand the expression.
-    pub fn expand(&self) -> Self {
-        Self {
-            expr: self.expr.expand(),
-            name_map: self.name_map.clone(),
-        }
-    }
-
     /// Substitute symbols with [ParameterExpression]s.
     ///
-    /// Args:
-    ///     - map: A hashmap with [Symbol] keys and [ParameterExpression]s to replace these
-    ///         symbols with.
-    ///     - allow_unknown_parameters: If `false`, returns an error if any symbol in the
-    ///         hashmap is not present in the expression. If `true`, unknown symbols are ignored.
-    ///         Setting to `true` is slightly faster as it does not involve additional checks.
+    /// # Arguments
     ///
-    /// Returns:
-    ///     A parameter expression with the substituted symbols.
+    /// * map - A hashmap with [Symbol] keys and [ParameterExpression]s to replace these
+    ///     symbols with.
+    /// * allow_unknown_parameters - If `false`, returns an error if any symbol in the
+    ///     hashmap is not present in the expression. If `true`, unknown symbols are ignored.
+    ///     Setting to `true` is slightly faster as it does not involve additional checks.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self)` - A parameter expression with the substituted expressions.
+    /// * `Err(ParameterError)` - An error if the subtitution failed.
     pub fn subs(
         &self,
         map: &HashMap<Symbol, Self>,
@@ -514,15 +505,18 @@ impl ParameterExpression {
 
     /// Bind symbols to values.
     ///
-    /// Args:
-    ///     - map: A hashmap with [Symbol] keys and [Value]s to replace these
-    ///         symbols with.
-    ///     - allow_unknown_parameters: If ``false``, returns an error if any symbol in the
-    ///         hashmap is not present in the expression. If ``true``, unknown symbols are ignored.
-    ///         Setting to ``true`` is slightly faster as it does not involve additional checks.
+    /// # Arguments
     ///
-    /// Returns:
-    ///     A parameter expression with the bound symbols.
+    /// * map - A hashmap with [Symbol] keys and [Value]s to replace these
+    ///     symbols with.
+    /// * allow_unknown_parameter - If `false`, returns an error if any symbol in the
+    ///     hashmap is not present in the expression. If `true`, unknown symbols are ignored.
+    ///     Setting to `true` is slightly faster as it does not involve additional checks.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self)` - A parameter expression with the bound symbols.
+    /// * `Err(ParameterError)` - An error if binding failed.
     pub fn bind(
         &self,
         map: &HashMap<Symbol, Value>,
@@ -629,8 +623,6 @@ impl ParameterExpression {
 #[derive(Clone, Debug)]
 pub struct PyParameterExpression {
     pub inner: ParameterExpression,
-    // in contrast to ParameterExpression::name_map, this stores [PyParameter]s as value
-    pub name_map: HashMap<String, PyParameter>,
 }
 
 impl Hash for PyParameterExpression {
@@ -652,7 +644,6 @@ impl Default for PyParameterExpression {
     fn default() -> Self {
         Self {
             inner: ParameterExpression::default(),
-            name_map: HashMap::new(), // no parameters in the default expression, hence empty name map
         }
     }
 }
@@ -665,19 +656,24 @@ impl fmt::Display for PyParameterExpression {
 
 impl From<ParameterExpression> for PyParameterExpression {
     fn from(value: ParameterExpression) -> Self {
-        let name_map = value
-            .name_map
-            .iter()
-            .map(|(name, symbol)| (name.clone(), PyParameter::new(symbol.clone())))
-            .collect();
-        Self {
-            inner: value,
-            name_map,
-        }
+        Self { inner: value }
     }
 }
 
 impl PyParameterExpression {
+    /// Attempt to extract a `PyParameterExpression` from a bound `PyAny`.
+    ///
+    /// This will try to coerce to the strictest data type:
+    /// Int - Real - Complex - PyParameterVectorElement - PyParameter - PyParameterExpression.
+    ///
+    /// # Arguments:
+    ///
+    /// * ob - The bound `PyAny` to extract from.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self)` - The extracted expression.
+    /// * `Err(PyResult)` - An error if extraction to all above types failed.
     fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(i) = ob.extract::<i64>() {
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(i)), HashMap::new()).into())
@@ -691,10 +687,10 @@ impl PyParameterExpression {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(r)), HashMap::new()).into())
-        } else if let Ok(parameter) = ob.extract::<PyParameter>() {
-            Ok(ParameterExpression::from_symbol(parameter.symbol.clone()).into())
         } else if let Ok(element) = ob.extract::<PyParameterVectorElement>() {
             Ok(ParameterExpression::from_symbol(element.symbol.clone()).into())
+        } else if let Ok(parameter) = ob.extract::<PyParameter>() {
+            Ok(ParameterExpression::from_symbol(parameter.symbol.clone()).into())
         } else {
             ob.extract::<PyParameterExpression>()
         }
@@ -732,7 +728,7 @@ impl PyParameterExpression {
                 let replaced_expr = replace_symbol(&expr, &symbol_map);
 
                 let inner = ParameterExpression::new(replaced_expr, symbol_map);
-                Ok(Self { inner, name_map })
+                Ok(Self { inner })
             }
             _ => Err(PyValueError::new_err(
                 "Pass either both a name_map and expr, or neither",
@@ -790,19 +786,19 @@ impl PyParameterExpression {
     #[getter]
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
         let py_parameters: Vec<PyObject> = self
+            .inner
             .name_map
             .values()
-            .map(|param| {
-                let s = &param.symbol;
-                match (s.index, &s.vector) {
+            .map(|symbol| {
+                match (&symbol.index, &symbol.vector) {
                     // if index and vector is set, it is an element
                     (Some(_index), Some(_vector)) => Ok(Py::new(
                         py,
-                        PyParameterVectorElement::from_symbol(s.clone()),
+                        PyParameterVectorElement::from_symbol(symbol.clone()),
                     )?
                     .into_any()),
                     // else, a normal parameter
-                    _ => Ok(Py::new(py, PyParameter::from_symbol(s.clone()))?.into_any()),
+                    _ => Ok(Py::new(py, PyParameter::from_symbol(symbol.clone()))?.into_any()),
                 }
             })
             .collect::<PyResult<_>>()?;
@@ -1049,7 +1045,6 @@ impl PyParameterExpression {
     pub fn __neg__(&self) -> Self {
         Self {
             inner: ParameterExpression::new(-&self.inner.expr, self.inner.name_map.clone()),
-            name_map: self.name_map.clone(),
         }
     }
 
@@ -1215,17 +1210,13 @@ impl PyParameterExpression {
         }
     }
 
-    fn __getstate__(&self) -> PyResult<(Vec<OPReplay>, HashMap<String, PyParameter>)> {
+    fn __getstate__(&self) -> PyResult<Vec<OPReplay>> {
         // To pickle the object we use the QPY replay and rebuild from that.
-        Ok((self._qpy_replay()?, self.name_map.clone()))
+        self._qpy_replay()
     }
 
-    fn __setstate__(
-        &mut self,
-        state: (Vec<OPReplay>, HashMap<String, PyParameter>),
-    ) -> PyResult<()> {
-        self.name_map = state.1;
-        let from_qpy = ParameterExpression::from_qpy(&state.0)?;
+    fn __setstate__(&mut self, state: Vec<OPReplay>) -> PyResult<()> {
+        let from_qpy = ParameterExpression::from_qpy(&state)?;
         self.inner = from_qpy;
         Ok(())
     }
@@ -1301,10 +1292,6 @@ impl<'py> IntoPyObject<'py> for PyParameter {
 }
 
 impl PyParameter {
-    fn new(symbol: Symbol) -> Self {
-        Self { symbol }
-    }
-
     /// Get a Python class initialization from a symbol.
     fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
         let expr = SymbolExpr::Symbol(symbol.clone());
@@ -1316,7 +1303,7 @@ impl PyParameter {
     }
 
     /// Get a reference to the underlying symbol.
-    pub fn symbol_ref<'a>(&'a self) -> &'a Symbol {
+    pub fn symbol_ref(&self) -> &Symbol {
         &self.symbol
     }
 }
