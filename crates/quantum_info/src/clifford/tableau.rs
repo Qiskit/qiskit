@@ -10,10 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-
+use crate::clifford::clifford_circuit::CliffordCircuit;
 use crate::clifford::pauli_like::PauliLike;
 use crate::clifford::pauli_set::PauliSet;
-use crate::clifford::clifford_circuit::CliffordCircuit;
 
 fn compute_phase_product_pauli(pset0: &PauliSet, vec: &[bool]) -> bool {
     let mut phase = false;
@@ -49,7 +48,6 @@ fn compute_phase_product_pauli(pset0: &PauliSet, vec: &[bool]) -> bool {
     }
     (((ifact % 4) >> 1) != 0) ^ phase
 }
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tableau {
@@ -245,6 +243,3 @@ impl std::ops::Mul<Tableau> for Tableau {
         new_tableau
     }
 }
-
-
-

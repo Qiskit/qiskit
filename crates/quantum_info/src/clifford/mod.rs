@@ -10,10 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-
-pub mod rotation_extraction;
+mod clifford_circuit;
+mod pauli;
 mod pauli_like;
 mod pauli_set;
-mod pauli;
-mod clifford_circuit;
+pub mod rotation_extraction;
 mod tableau;
