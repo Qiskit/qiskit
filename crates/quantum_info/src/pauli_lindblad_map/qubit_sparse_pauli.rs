@@ -2021,7 +2021,7 @@ impl PyQubitSparsePauliList {
     /// distinct Paulis and the rows distinct qubits.
     ///
     /// Examples:
-    /// 
+    ///
     ///         >>> paulis = QubitSparsePauliList.from_sparse_list(
     ///         ...     [("ZX", (1, 4)), ("YY", (0, 3)), ("XX", (0, 1))],
     ///         ...     num_qubits=5,
