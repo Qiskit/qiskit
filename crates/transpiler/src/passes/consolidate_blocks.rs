@@ -442,10 +442,11 @@ fn py_run_consolidate_blocks(
 
 /// Replaces each block of consecutive gates by a single unitary node.
 ///
-/// This is the main function of the `ConsolidateBlocks` transpiler pass
-/// which replaces uninterrupted sequences of gates acting on the same qubits
-/// into a Unitary node, which will consecutively be resynthesized into a
-/// more optimal subcircuit.
+/// This is function is the Rust entry point for the `ConsolidateBlocks` transpiler pass
+/// which replaces uninterrupted sequences of gates acting on the same pair of qubits
+/// into a [`UnitaryGate`] representing the unitary of that two qubit block if it estimated to
+/// to optimize the circuit. This [`UnitaryGate`] subsequently will be synthesized by the
+/// unitary synthesis pass into a more optimal subcircuit to replace that block.
 ///
 /// # Arguments
 /// * `dag` - The circuit for which we will consolidate gates.
