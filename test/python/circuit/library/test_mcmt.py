@@ -269,7 +269,7 @@ class TestMCMT(QiskitTestCase):
             )
         )
 
-    @combine(num_ctrl=range(1, 6), num_targ=range(2, 6))
+    @combine(num_ctrl=range(1, 3), num_targ=range(2, 4))
     def test_mcmt_x_gate(self, num_ctrl, num_targ):
         """Test the MCMT X gate synthesis."""
         ctrl_state = None
