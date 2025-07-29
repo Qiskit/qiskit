@@ -26,7 +26,7 @@
 int test_elide_permutations_no_result(void) {
     const uint32_t num_qubits = 5;
 
-    QkCircuit *qc = qk_circuit_new(5, 0);
+    QkCircuit *qc = qk_circuit_new(num_qubits, 0);
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
         for (uint32_t j = 0; j < i + 1; j++) {
