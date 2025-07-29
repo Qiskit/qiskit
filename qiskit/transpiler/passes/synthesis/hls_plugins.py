@@ -198,22 +198,22 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesis2CleanKG24`
       - `2`
       - `0`
-      - at most `12*k-18` CX gates
+      - at most `6*k-6` CX gates
     * - ``"2_dirty_kg24"``
       - :class:`~.MCXSynthesis2DirtyKG24`
       - `0`
       - `2`
-      - at most `24*k-48` CX gates
+      - at most `12*k-18` CX gates
     * - ``"1_clean_kg24"``
       - :class:`~.MCXSynthesis1CleanKG24`
       - `1`
       - `0`
-      - at most `12*k-18` CX gates
+      - at most `6*k-6` CX gates
     * - ``"1_dirty_kg24"``
       - :class:`~.MCXSynthesis1DirtyKG24`
       - `0`
       - `1`
-      - at most `24*k-48` CX gates
+      - at most `12*k-18` CX gates
     * - ``"1_clean_b95"``
       - :class:`~.MCXSynthesis1CleanB95`
       - `1`
@@ -1190,7 +1190,7 @@ class MCXSynthesis2CleanKG24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
     :math:`2` additional clean ancillary qubits. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`12 * k - 18` CX gates.
+    qubits and at most :math:`6 * k - 6` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1232,7 +1232,7 @@ class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
     :math:`2` additional dirty ancillary qubits. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`24 * k - 48` CX gates.
+    qubits and at most :math:`12 * k - 18` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1276,7 +1276,7 @@ class MCXSynthesis1CleanKG24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
     :math:`1` additional clean ancillary qubit. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`12 * k - 18` CX gates.
+    qubits and at most :math:`6 * k - 6` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1318,7 +1318,7 @@ class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
     :math:`1` additional dirty ancillary qubit. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`24 * k - 48` CX gates.
+    qubits and at most :math:`12 * k - 18` CX gates.
 
     The plugin supports the following plugin-specific options:
 
