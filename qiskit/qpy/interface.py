@@ -180,8 +180,8 @@ def dump(
         version = common.QPY_VERSION
     elif common.QPY_COMPATIBILITY_VERSION > version or version > common.QPY_VERSION:
         raise ValueError(
-            f"Dumping payloads with the specified QPY version ({version}) is not supported by the "
-            f"currently installed QPY version ({common.QPY_VERSION}). Try selecting a version between "
+            f"Dumping payloads with the specified QPY version ({version}) is not supported by "
+            f"this version of Qiskit. Try selecting a version between "
             f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
