@@ -289,3 +289,18 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.draw("latex_source")
         if optionals.HAS_MATPLOTLIB and optionals.HAS_PYLATEX:
             circuit.draw("mpl")
+
+    def test_identity_gate_with_custom_label(self):
+        """Test that when applied an identity gate (special case) with a custom label
+        the displayed name while drawn is indeed the one provided."""
+        circuit = QuantumCircuit(1)
+        circuit.id(0, label="foo")
+        expected = "\n".join(
+            [
+                "   ┌─────┐",
+                "q: ┤ foo ├",
+                "   └─────┘",
+            ]
+        )
+        result = circuit.draw("text")
+        self.assertEqual(result.__str__(), expected)
