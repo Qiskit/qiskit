@@ -10,10 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::OnceLock;
-
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexSet;
 use nalgebra::Matrix2;
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
@@ -22,7 +19,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::{ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
+use qiskit_circuit::gate_matrix::{CX_GATE, ONE_QUBIT_IDENTITY, TWO_QUBIT_IDENTITY};
 use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
@@ -52,11 +49,25 @@ pub enum DecomposerType {
 
 /// The collection of compatible KAK decomposition gates in a set in order
 /// of priority.
-static KAK_GATES: OnceLock<IndexSet<StandardGate>> = OnceLock::new();
+static KAK_GATES: [StandardGate; 4] = [
+    StandardGate::CX,
+    StandardGate::CZ,
+    StandardGate::ECR,
+    StandardGate::ISwap,
+];
 
 /// The collection of compatible KAK decomposition parametric gates in a set
 /// in order of priority.
-static KAK_GATES_PARAM: OnceLock<IndexSet<StandardGate>> = OnceLock::new();
+static KAK_GATES_PARAM: [StandardGate; 8] = [
+    StandardGate::RXX,
+    StandardGate::RZZ,
+    StandardGate::RYY,
+    StandardGate::RZX,
+    StandardGate::CPhase,
+    StandardGate::CRX,
+    StandardGate::CRY,
+    StandardGate::CRZ,
+];
 
 /// Helper function that extracts the decomposer and basis gate directly from the [Target].
 #[inline]
@@ -65,28 +76,12 @@ fn get_decomposer_and_basis_gate(
     approximation_degree: f64,
 ) -> (DecomposerType, StandardGate) {
     if let Some(target) = target {
-        // Targets from C should only support
-        let target_basis_gates: IndexSet<StandardGate> = target
-            .operations()
-            .filter_map(|op| op.operation.try_standard_gate())
-            .collect();
-        let target_basis_param_supported = KAK_GATES_PARAM
-            .get_or_init(|| {
-                IndexSet::from_iter([
-                    StandardGate::RXX,
-                    StandardGate::RZZ,
-                    StandardGate::RYY,
-                    StandardGate::RZX,
-                    StandardGate::CPhase,
-                    StandardGate::CRX,
-                    StandardGate::CRY,
-                    StandardGate::CRZ,
-                ])
-            })
-            .intersection(&target_basis_gates)
-            .next()
-            .copied();
-        if let Some(gate) = target_basis_param_supported {
+        // Targets from C should only support Standard gates.
+        if let Some(gate) = KAK_GATES_PARAM
+            .iter()
+            .find(|gate| target.contains_key(gate.name()))
+            .copied()
+        {
             return (
                 DecomposerType::TwoQubitControlledU(
                     TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate), "ZXZ")
@@ -100,19 +95,11 @@ fn get_decomposer_and_basis_gate(
                 gate,
             );
         }
-        let target_basis_supported = KAK_GATES
-            .get_or_init(|| {
-                IndexSet::from_iter([
-                    StandardGate::CX,
-                    StandardGate::CZ,
-                    StandardGate::ECR,
-                    StandardGate::ISwap,
-                ])
-            })
-            .intersection(&target_basis_gates)
-            .next()
-            .copied();
-        if let Some(gate) = target_basis_supported {
+        if let Some(gate) = KAK_GATES
+            .iter()
+            .find(|gate| target.contains_key(gate.name()))
+            .copied()
+        {
             return (DecomposerType::TwoQubitBasis(
                 TwoQubitBasisDecomposer::new_inner(
                     gate.into(),
@@ -134,9 +121,7 @@ fn get_decomposer_and_basis_gate(
             TwoQubitBasisDecomposer::new_inner(
                 gate.into(),
                 SmallVec::default(),
-                gate.matrix(&[])
-                    .expect("Error while obtaining the matrix form of gate 'cx' without params.")
-                    .view(),
+                aview2(&CX_GATE),
                 1.0,
                 "U",
                 None,
