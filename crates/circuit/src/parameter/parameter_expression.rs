@@ -21,7 +21,6 @@ use uuid::Uuid;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
 
 use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
@@ -650,20 +649,6 @@ pub struct PyParameterExpression {
     pub inner: ParameterExpression,
 }
 
-impl Hash for PyParameterExpression {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.inner.to_string().hash(state);
-    }
-}
-
-impl PartialEq for PyParameterExpression {
-    fn eq(&self, other: &Self) -> bool {
-        self.inner.eq(&other.inner)
-    }
-}
-
-impl Eq for PyParameterExpression {}
-
 impl Default for PyParameterExpression {
     /// The default constructor returns zero.
     fn default() -> Self {
@@ -775,7 +760,7 @@ impl PyParameterExpression {
                     .map(|(string, param)| (string.clone(), param.symbol.clone()))
                     .collect();
 
-                let replaced_expr = replace_symbol(&expr, &symbol_map);
+                let replaced_expr = symbol_expr::replace_symbol(&expr, &symbol_map);
 
                 let inner = ParameterExpression::new(replaced_expr, symbol_map);
                 Ok(Self { inner })
@@ -856,63 +841,74 @@ impl PyParameterExpression {
     }
 
     /// Sine of the expression.
+    #[inline]
     #[pyo3(name = "sin")]
     pub fn py_sin(&self) -> Self {
         self.inner.sin().into()
     }
 
     /// Cosine of the expression.
+    #[inline]
     #[pyo3(name = "cos")]
     pub fn py_cos(&self) -> Self {
         self.inner.cos().into()
     }
 
     /// Tangent of the expression.
+    #[inline]
     #[pyo3(name = "tan")]
     pub fn py_tan(&self) -> Self {
         self.inner.tan().into()
     }
 
     /// Arcsine of the expression.
+    #[inline]
     pub fn arcsin(&self) -> Self {
         self.inner.asin().into()
     }
 
     /// Arccosine of the expression.
+    #[inline]
     pub fn arccos(&self) -> Self {
         self.inner.acos().into()
     }
 
     /// Arctangent of the expression.
+    #[inline]
     pub fn arctan(&self) -> Self {
         self.inner.atan().into()
     }
 
     /// Exponentiate the expression.
+    #[inline]
     #[pyo3(name = "exp")]
     pub fn py_exp(&self) -> Self {
         self.inner.exp().into()
     }
 
     /// Take the natural logarithm of the expression.
+    #[inline]
     #[pyo3(name = "log")]
     pub fn py_log(&self) -> Self {
         self.inner.log().into()
     }
 
     /// Take the absolute value of the expression.
+    #[inline]
     #[pyo3(name = "abs")]
     pub fn py_abs(&self) -> Self {
         self.inner.abs().into()
     }
 
     /// Return the sign of the expression.
+    #[inline]
     #[pyo3(name = "sign")]
     pub fn py_sign(&self) -> Self {
         self.inner.sign().into()
     }
 
     /// Return the complex conjugate of the expression.
+    #[inline]
     #[pyo3(name = "conjugate")]
     pub fn py_conjugate(&self) -> Self {
         self.inner.conjugate().into()
@@ -922,6 +918,7 @@ impl PyParameterExpression {
     ///
     /// Note that this will return ``None`` if there are unbound parameters, in which case
     /// it cannot be determined whether the expression is real.
+    #[inline]
     #[pyo3(name = "is_real")]
     pub fn py_is_real(&self) -> Option<bool> {
         self.inner.expr.is_real()
@@ -983,8 +980,8 @@ impl PyParameterExpression {
     ) -> PyResult<Self> {
         // reduce the map to a HashMap<Symbol, ParameterExpression>
         let map = parameter_map
-            .iter()
-            .map(|(param, expr)| Ok((param.symbol.clone(), expr.inner.clone())))
+            .into_iter()
+            .map(|(param, expr)| Ok((param.symbol, expr.inner)))
             .collect::<PyResult<_>>()?;
 
         // apply to the inner expression
@@ -1022,10 +1019,10 @@ impl PyParameterExpression {
     ) -> PyResult<Self> {
         // reduce the map to a HashMap<Symbol, Value>
         let map = parameter_values
-            .iter()
+            .into_iter()
             .map(|(param, value)| {
                 let value = value.extract()?;
-                Ok((param.symbol.clone(), value))
+                Ok((param.symbol, value))
             })
             .collect::<PyResult<_>>()?;
 
@@ -1060,11 +1057,13 @@ impl PyParameterExpression {
         }
     }
 
+    #[inline]
     fn __copy__(slf: PyRef<Self>) -> PyRef<Self> {
         // ParameterExpression is immutable.
         slf
     }
 
+    #[inline]
     fn __deepcopy__<'py>(slf: PyRef<'py, Self>, _memo: Bound<'py, PyAny>) -> PyRef<'py, Self> {
         // Everything a ParameterExpression contains is immutable.
         slf
@@ -1084,10 +1083,12 @@ impl PyParameterExpression {
         }
     }
 
+    #[inline]
     pub fn __abs__(&self) -> Self {
         self.inner.abs().into()
     }
 
+    #[inline]
     pub fn __pos__(&self) -> Self {
         self.clone()
     }
@@ -2034,30 +2035,5 @@ pub fn qpy_replay(
                 }
             }
         }
-    }
-}
-
-/// Replace [Symbol]s in a [SymbolExpr] according to the name map. This
-/// is used to reconstruct a parameter expression from a string.
-fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> SymbolExpr {
-    match symbol_expr {
-        SymbolExpr::Symbol(existing_symbol) => {
-            let name = existing_symbol.name();
-            if let Some(new_symbol) = name_map.get(&name) {
-                SymbolExpr::Symbol(new_symbol.clone())
-            } else {
-                symbol_expr.clone()
-            }
-        }
-        SymbolExpr::Value(_) => symbol_expr.clone(), // nothing to do
-        SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
-            op: op.clone(),
-            lhs: Arc::new(replace_symbol(lhs, name_map)),
-            rhs: Arc::new(replace_symbol(rhs, name_map)),
-        },
-        SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
-            op: op.clone(),
-            expr: Arc::new(replace_symbol(expr, name_map)),
-        },
     }
 }

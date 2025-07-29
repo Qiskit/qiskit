@@ -740,9 +740,6 @@ class TestLoadFromQPY(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             qaoa = QAOAAnsatz(cost_operator, reps=2)
 
-        # new_params = [Parameter(f"{i}") for i in range(qaoa.num_parameters)]
-        # qaoa.assign_parameters(new_params, inplace=True)
-
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
         qpy_file.seek(0)
