@@ -138,11 +138,10 @@ pub fn blocks_to_matrix(
     block_index_map: [Qubit; 2],
 ) -> PyResult<Array2<Complex64>> {
     let inst_iter = op_list.iter().map(|node| dag[*node].unwrap_operation());
-    instructions_to_matrix(py, inst_iter, block_index_map, dag.qargs_interner())
+    instructions_to_matrix(inst_iter, block_index_map, dag.qargs_interner())
 }
 
 pub fn instructions_to_matrix<'a>(
-    py: Python,
     op_list: impl Iterator<Item = &'a PackedInstruction>,
     block_index_map: [Qubit; 2],
     qargs_interner: &'a Interner<[Qubit]>,
