@@ -439,7 +439,7 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             p0.compose(p1)
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
             p1.compose(p0)
-    """
+
     def test_commutes(self):
         p0 = PhasedQubitSparsePauli("XIY")
         p1 = PhasedQubitSparsePauli("IZI")
@@ -473,7 +473,7 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             p0.commutes(p1)
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits: 3, 4"):
             p1.commutes(p0)
-    """
+
 @ddt.ddt
 class TestPhasedQubitSparsePauliList(QiskitTestCase):
     pass
