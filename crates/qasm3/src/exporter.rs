@@ -792,7 +792,7 @@ impl<'a> QASM3Builder {
 
     fn hoist_global_params(&mut self) -> ExporterResult<()> {
         Python::with_gil(|py| {
-            for param in self.circuit_scope.circuit_data.get_parameters(py) {
+            for param in self.circuit_scope.circuit_data.get_parameters(py)? {
                 let raw_name: String = match param.getattr("name") {
                     Ok(attr) => match attr.extract() {
                         Ok(name) => name,

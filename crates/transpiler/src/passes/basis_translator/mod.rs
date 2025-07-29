@@ -693,11 +693,12 @@ fn replace_node(
                         // just a placeholder right now
                         let bound_param = param_obj.into_bound_py_any(py)?;
 
-                        let exp_params = param.iter_parameters(py)?;
+                        let exp_params = param.iter_parameters()?;
                         let bind_dict = PyDict::new(py);
                         for key in exp_params {
-                            let key = key?;
-                            bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                            // TODO this should work without Py coercion
+                            let py_key = key.coerce_into_py(py)?;
+                            bind_dict.set_item(&py_key, parameter_map.get_item(&py_key)?)?;
                         }
                         let mut new_value: Bound<PyAny>;
                         let comparison = bind_dict.values().iter().any(|param| {
@@ -764,9 +765,9 @@ fn replace_node(
                 let bound_old_phase = old_phase.into_bound_py_any(py)?;
 
                 let bind_dict = PyDict::new(py);
-                for key in target_dag.global_phase().iter_parameters(py)? {
-                    let key = key?;
-                    bind_dict.set_item(&key, parameter_map.get_item(&key)?)?;
+                for key in target_dag.global_phase().iter_parameters()? {
+                    let py_key = key.coerce_into_py(py)?;
+                    bind_dict.set_item(&py_key, parameter_map.get_item(&py_key)?)?;
                 }
                 let mut new_phase: Bound<PyAny>;
                 if bind_dict.values().iter().any(|param| {

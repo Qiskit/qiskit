@@ -195,7 +195,7 @@ impl ParameterExpression {
     ///     an error.
     pub fn try_to_value(&self, strict: bool) -> Result<Value, ParameterError> {
         if strict && !self.name_map.is_empty() {
-            let free_symbols = self.expr.parameters();
+            let free_symbols = self.expr.symbols();
             return Err(ParameterError::UnboundParameters(free_symbols));
         }
 
@@ -211,7 +211,7 @@ impl ParameterExpression {
                 Ok(value)
             }
             None => {
-                let free_symbols = self.expr.parameters();
+                let free_symbols = self.expr.symbols();
                 Err(ParameterError::UnboundParameters(free_symbols))
             }
         }
@@ -291,6 +291,10 @@ impl ParameterExpression {
         Ok(stack
             .pop()
             .expect("Invalid QPY replay encountered during deserialization: empty OPReplay."))
+    }
+
+    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = Symbol>> {
+        self.expr.iter_symbols()
     }
 
     /// Add an expression; ``self + rhs``.
@@ -729,6 +733,18 @@ impl PyParameterExpression {
             ob.extract::<PyParameterExpression>()
         }
     }
+
+    pub fn coerce_into_py(&self, py: Python) -> PyResult<PyObject> {
+        if let Ok(symbol) = self.inner.try_to_symbol() {
+            if symbol.index.is_some() {
+                Ok(Py::new(py, PyParameterVectorElement::from_symbol(symbol))?.into_any())
+            } else {
+                Ok(Py::new(py, PyParameter::from_symbol(symbol))?.into_any())
+            }
+        } else {
+            self.into_py_any(py)
+        }
+    }
 }
 
 #[pymethods]
@@ -780,8 +796,8 @@ impl PyParameterExpression {
     ///
     /// Returns:
     ///     ``True`` is this expression corresponds to a symbol, ``False`` otherwise.
-    pub fn is_symbol(&self) -> PyResult<bool> {
-        Ok(matches!(self.inner.expr, SymbolExpr::Symbol(_)))
+    pub fn is_symbol(&self) -> bool {
+        matches!(self.inner.expr, SymbolExpr::Symbol(_))
     }
 
     /// Cast this expression to a numeric value.
@@ -1356,7 +1372,7 @@ impl<'py> IntoPyObject<'py> for PyParameter {
 
 impl PyParameter {
     /// Get a Python class initialization from a symbol.
-    fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
+    pub fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
         let expr = SymbolExpr::Symbol(symbol.clone());
 
         let py_parameter = Self { symbol };
@@ -1564,7 +1580,7 @@ impl<'py> IntoPyObject<'py> for PyParameterVectorElement {
 }
 
 impl PyParameterVectorElement {
-    fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
+    pub fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
         let py_element = Self {
             symbol: symbol.clone(),
         };
@@ -1905,7 +1921,7 @@ fn filter_name_map(
     sub_expr: &SymbolExpr,
     name_map: &HashMap<String, Symbol>,
 ) -> ParameterExpression {
-    let sub_symbols = sub_expr.parameters();
+    let sub_symbols = sub_expr.symbols();
     let restricted_name_map: HashMap<String, Symbol> = name_map
         .iter()
         .filter(|(_, symbol)| sub_symbols.contains(*symbol))

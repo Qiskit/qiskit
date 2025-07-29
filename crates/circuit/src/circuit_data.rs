@@ -28,7 +28,7 @@ use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::parameter::parameter_expression::PyParameterExpression;
+use crate::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
@@ -37,7 +37,6 @@ use crate::{Clbit, Qubit, Stretch, Var, VarsMode};
 use numpy::PyReadonlyArray1;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::IntoPyObjectExt;
 use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
@@ -560,22 +559,34 @@ impl CircuitData {
     /// Get a (cached) sorted list of the Python-space `Parameter` instances tracked by this circuit
     /// data's parameter table.
     #[getter]
-    pub fn get_parameters<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
-        self.param_table.py_parameters(py)
+    pub fn get_parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        PyList::new(
+            py,
+            self.param_table
+                .parameters()
+                .iter()
+                .map(|symbol| symbol.coerce_into_py(py).unwrap()),
+        )
     }
 
     pub fn unsorted_parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
-        self.param_table.py_parameters_unsorted(py)
+        PySet::new(
+            py,
+            self.param_table
+                .parameters_unsorted()
+                .iter()
+                .map(|symbol| symbol.coerce_into_py(py).unwrap()),
+        )
     }
 
     fn _raw_parameter_table_entry(&self, param: Bound<PyAny>) -> PyResult<Py<PySet>> {
         self.param_table._py_raw_entry(param)
     }
 
-    pub fn get_parameter_by_name(&self, py: Python, name: PyBackedStr) -> Option<Py<PyAny>> {
+    pub fn get_parameter_by_name(&self, py: Python, name: String) -> Option<Py<PyAny>> {
         self.param_table
-            .py_parameter_by_name(&name)
-            .map(|ob| ob.clone_ref(py))
+            .parameter_by_name(&name)
+            .map(|ob| ob.coerce_into_py(py).unwrap())
     }
 
     /// Return the width of the circuit. This is the number of qubits plus the
@@ -1181,7 +1192,10 @@ impl CircuitData {
                 parameter: parameter_index,
             };
             for param in parameters.try_iter()? {
-                self.param_table.track(&param?, Some(usage))?;
+                let param = param?;
+                let py_param = param.downcast::<PyParameter>()?;
+                let borrowed = py_param.borrow();
+                self.param_table.track(borrowed.symbol_ref(), Some(usage))?;
             }
         }
         Ok(())
@@ -1240,13 +1254,14 @@ impl CircuitData {
                 )));
             }
             let mut old_table = std::mem::take(&mut self.param_table);
+            let py = sequence.py();
             self.assign_parameters_inner(
-                sequence.py(),
+                py,
                 array
                     .iter()
                     .map(|value| Param::Float(*value))
                     .zip(old_table.drain_ordered())
-                    .map(|(value, (obj, uses))| (obj, value, uses)),
+                    .map(|(value, (obj, uses))| (obj.coerce_into_py(py).unwrap(), value, uses)),
             )
         } else {
             let values = sequence
@@ -1426,7 +1441,6 @@ impl CircuitData {
         if let Some(locations) = self.clbit_indices.cached_raw() {
             visit.call(locations)?;
         }
-        self.param_table.py_gc_traverse(&visit)?;
         Ok(())
     }
 
@@ -1451,36 +1465,31 @@ impl CircuitData {
     #[setter]
     pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
         if let Param::ParameterExpression(expr) = &self.global_phase {
-            Python::with_gil(|py| -> PyResult<()> {
-                // TODO remove the Py
-                let py_expr = PyParameterExpression::from(expr.clone());
-                for param_ob in py_expr.parameters(py)?.try_iter()? {
-                    match self.param_table.remove_use(
-                        ParameterUuid::from_parameter(&param_ob?)?,
-                        ParameterUse::GlobalPhase,
-                    ) {
-                        Ok(_)
-                        | Err(ParameterTableError::ParameterNotTracked(_))
-                        | Err(ParameterTableError::UsageNotTracked(_)) => (),
-                        // Any errors added later might want propagating.
-                    }
+            for param_ob in expr.iter_symbols() {
+                match self.param_table.remove_use(
+                    ParameterUuid::from_symbol(&param_ob),
+                    ParameterUse::GlobalPhase,
+                ) {
+                    Ok(_)
+                    | Err(ParameterTableError::ParameterNotTracked(_))
+                    | Err(ParameterTableError::UsageNotTracked(_)) => (),
+                    // Any errors added later might want propagating.
                 }
-                Ok(())
-            })?;
-        }
-        match angle {
+            }
+        };
+        match &angle {
             Param::Float(angle) => {
                 self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
                 Ok(())
             }
-            Param::ParameterExpression(_) => Python::with_gil(|py| -> PyResult<()> {
-                for param_ob in angle.iter_parameters(py)? {
+            Param::ParameterExpression(expr) => {
+                for param_ob in expr.iter_symbols() {
                     self.param_table
-                        .track(&param_ob?, Some(ParameterUse::GlobalPhase))?;
+                        .track(&param_ob, Some(ParameterUse::GlobalPhase))?;
                 }
                 self.global_phase = angle;
                 Ok(())
-            }),
+            }
             Param::Obj(_) => Err(PyTypeError::new_err("invalid type for global phase")),
         }
     }
@@ -2093,12 +2102,9 @@ impl CircuitData {
                 instruction: instruction_index,
                 parameter: index as u32,
             };
-            Python::with_gil(|py| -> PyResult<()> {
-                for param_ob in param.iter_parameters(py)? {
-                    self.param_table.track(&param_ob?, Some(usage))?;
-                }
-                Ok(())
-            })?;
+            for param_ob in param.iter_parameters()? {
+                self.param_table.track(&param_ob, Some(usage))?;
+            }
         }
         Ok(())
     }
@@ -2118,12 +2124,9 @@ impl CircuitData {
                 instruction: instruction_index,
                 parameter: index as u32,
             };
-            Python::with_gil(|py| -> PyResult<()> {
-                for param_ob in param.iter_parameters(py)? {
-                    self.param_table.untrack(&param_ob?, usage)?;
-                }
-                Ok(())
-            })?;
+            for param_ob in param.iter_parameters()? {
+                self.param_table.untrack(&param_ob, usage)?;
+            }
         }
         Ok(())
     }
@@ -2141,13 +2144,11 @@ impl CircuitData {
         if matches!(self.global_phase, Param::Float(_)) {
             return Ok(());
         }
-        Python::with_gil(|py| -> PyResult<()> {
-            for param_ob in self.global_phase.iter_parameters(py)? {
-                self.param_table
-                    .track(&param_ob?, Some(ParameterUse::GlobalPhase))?;
-            }
-            Ok(())
-        })
+        for param_ob in self.global_phase.iter_parameters()? {
+            self.param_table
+                .track(&param_ob, Some(ParameterUse::GlobalPhase))?;
+        }
+        Ok(())
     }
 
     /// Native internal driver of `__delitem__` that uses a Rust-space version of the
@@ -2205,7 +2206,13 @@ impl CircuitData {
             slice
                 .iter()
                 .zip(old_table.drain_ordered())
-                .map(|(value, (param_ob, uses))| (param_ob, value.clone_ref(py), uses)),
+                .map(|(value, (param_ob, uses))| {
+                    (
+                        param_ob.coerce_into_py(py).unwrap(),
+                        value.clone_ref(py),
+                        uses,
+                    )
+                }),
         )
     }
 
@@ -2220,7 +2227,7 @@ impl CircuitData {
         let mut items = Vec::new();
         for (param_uuid, value) in iter {
             // Assume all the Parameters are already in the circuit
-            let param_obj = self.get_parameter_by_uuid(param_uuid);
+            let param_obj = self.get_parameter_by_uuid(py, param_uuid);
             if let Some(param_obj) = param_obj {
                 // Copy or increase ref_count for Parameter, avoid acquiring the GIL.
                 items.push((
@@ -2350,8 +2357,8 @@ impl CircuitData {
         for (param_ob, value, uses) in iter {
             debug_assert!(!uses.is_empty());
             uuids.clear();
-            for inner_param_ob in value.as_ref().iter_parameters(py)? {
-                uuids.push(self.param_table.track(&inner_param_ob?, None)?)
+            for inner_param_ob in value.as_ref().iter_parameters()? {
+                uuids.push(self.param_table.track(&inner_param_ob, None)?)
             }
             for usage in uses {
                 match usage {
@@ -2522,8 +2529,10 @@ impl CircuitData {
     }
 
     /// Retrieves the python `Param` object based on its `ParameterUuid`.
-    pub fn get_parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Py<PyAny>> {
-        self.param_table.py_parameter_by_uuid(uuid)
+    pub fn get_parameter_by_uuid(&self, py: Python, uuid: ParameterUuid) -> Option<Py<PyAny>> {
+        self.param_table
+            .parameter_by_uuid(uuid)
+            .map(|symbol| symbol.coerce_into_py(py).unwrap())
     }
 
     /// Get an immutable view of the instructions in the circuit data

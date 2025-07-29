@@ -17,7 +17,10 @@ use std::{fmt, vec};
 use crate::circuit_data::CircuitData;
 use crate::imports::{get_std_gate_class, BARRIER, DELAY, MEASURE, RESET};
 use crate::imports::{DEEPCOPY, QUANTUM_CIRCUIT, UNITARY_GATE};
-use crate::parameter::parameter_expression::{ParameterExpression, PyParameterExpression};
+use crate::parameter::parameter_expression::{
+    ParameterExpression, PyParameter, PyParameterExpression,
+};
+use crate::parameter::symbol_expr::Symbol;
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use nalgebra::{Matrix2, Matrix4};
@@ -54,7 +57,7 @@ impl<'py> IntoPyObject<'py> for Param {
             Param::Obj(py_obj) => py_obj.into_bound_py_any(py),
             Param::ParameterExpression(expr) => {
                 let py_expr = PyParameterExpression::from(expr.clone());
-                py_expr.into_bound_py_any(py)
+                py_expr.coerce_into_py(py)?.into_bound_py_any(py)
             }
         }
     }
@@ -100,27 +103,32 @@ impl Param {
 }
 
 impl Param {
-    /// Get an iterator over any Python-space `Parameter` instances tracked within this `Param`.
-    pub fn iter_parameters<'py>(&self, py: Python<'py>) -> PyResult<ParamParameterIter<'py>> {
-        let parameters_attr = intern!(py, "parameters");
+    /// Get an iterator over any `Symbol` instances tracked within this `Param`.
+    pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
         match self {
-            Param::Float(_) => Ok(ParamParameterIter(None)),
-            Param::ParameterExpression(expr) => {
-                // TODO remove the Py
-                let py_expr = PyParameterExpression::from(expr.clone());
-                Ok(ParamParameterIter(Some(
-                    py_expr.parameters(py)?.try_iter()?,
-                )))
-            }
+            Param::Float(_) => Ok(Box::new(::std::iter::empty())),
+            Param::ParameterExpression(expr) => Ok(expr.iter_symbols()),
             Param::Obj(obj) => {
-                let obj = obj.bind(py);
-                if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                    Ok(ParamParameterIter(Some(
-                        obj.getattr(parameters_attr)?.try_iter()?,
-                    )))
-                } else {
-                    Ok(ParamParameterIter(None))
-                }
+                Python::with_gil(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
+                    let parameters_attr = intern!(py, "parameters");
+                    let obj = obj.bind(py);
+                    if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                        let collected: Vec<Symbol> = obj
+                            .getattr(parameters_attr)?
+                            .try_iter()?
+                            .map(|elem| {
+                                let elem = elem?;
+                                let py_param_bound = elem.downcast::<PyParameter>()?;
+                                let py_param = py_param_bound.borrow();
+                                let symbol = py_param.symbol_ref();
+                                Ok(symbol.clone())
+                            })
+                            .collect::<PyResult<_>>()?;
+                        Ok(Box::new(collected.into_iter()))
+                    } else {
+                        Ok(Box::new(::std::iter::empty()))
+                    }
+                })
             }
         }
     }

@@ -24,6 +24,9 @@ use uuid::Uuid;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 
+use crate::parameter::parameter_expression::PyParameter;
+use crate::parameter::parameter_expression::PyParameterVectorElement;
+
 // epsilon for SymbolExpr is heuristically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
@@ -93,6 +96,15 @@ impl Symbol {
         match self.index {
             Some(i) => format!("{base_name}[{i}]"),
             None => base_name.clone(),
+        }
+    }
+
+    pub fn coerce_into_py(&self, py: Python) -> PyResult<PyObject> {
+        match (&self.index, &self.vector) {
+            (Some(_index), Some(_vector)) => {
+                Ok(Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?.into_any())
+            }
+            _ => Ok(Py::new(py, PyParameter::from_symbol(self.clone()))?.into_any()),
         }
     }
 }
@@ -623,7 +635,8 @@ impl SymbolExpr {
     }
 
     /// Return hashset of all parameters this equation contains.
-    pub fn parameters(&self) -> HashSet<Symbol> {
+    /// TODO This should just be iter_symbols.collect()
+    pub fn symbols(&self) -> HashSet<Symbol> {
         match self {
             SymbolExpr::Symbol(e) => {
                 let mut set = HashSet::<Symbol>::new();
@@ -631,10 +644,10 @@ impl SymbolExpr {
                 set
             }
             SymbolExpr::Value(_) => HashSet::<Symbol>::new(),
-            SymbolExpr::Unary { op: _, expr } => expr.parameters(),
+            SymbolExpr::Unary { op: _, expr } => expr.symbols(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
                 let mut parameters = HashSet::<Symbol>::new();
-                for s in lhs.parameters().union(&rhs.parameters()) {
+                for s in lhs.symbols().union(&rhs.symbols()) {
                     parameters.insert(s.clone());
                 }
                 parameters
@@ -642,9 +655,21 @@ impl SymbolExpr {
         }
     }
 
+    /// This could maybe be more elegantly resolved with a SymbolIter type>
+    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = Symbol>> {
+        match self {
+            SymbolExpr::Symbol(e) => Box::new(::std::iter::once(e.clone())),
+            SymbolExpr::Value(_) => Box::new(::std::iter::empty()),
+            SymbolExpr::Unary { op: _, expr } => expr.iter_symbols(),
+            SymbolExpr::Binary { op: _, lhs, rhs } => {
+                Box::new(lhs.iter_symbols().chain(rhs.iter_symbols()))
+            }
+        }
+    }
+
     /// Map of parameter name to the parameter.
     pub fn name_map(&self) -> HashMap<String, Symbol> {
-        self.parameters()
+        self.symbols()
             .iter()
             .map(|param| (param.name(), param.clone()))
             .collect()
