@@ -450,15 +450,16 @@ fn py_run_consolidate_blocks(
 ///
 /// # Arguments
 /// * `dag` - The circuit for which we will consolidate gates.
-/// * `approximation_degree` - A float between `[0.0, 1.0]`. Lower approximates more.
 /// * `force_consolidate` - Decides whether to force all consolidations or not.
+/// * `approximation_degree` - A float between `[0.0, 1.0]`. Lower approximates more.
 /// * `target` - The target representing the backend for which the pass is consolidating.
 pub fn run_consolidate_blocks(
     dag: &mut DAGCircuit,
-    approximation_degree: f64,
     force_consolidate: bool,
+    approximation_degree: Option<f64>,
     target: Option<&Target>,
 ) -> PyResult<()> {
+    let approximation_degree = approximation_degree.unwrap_or(1.0);
     let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
     py_run_consolidate_blocks(
         dag,
