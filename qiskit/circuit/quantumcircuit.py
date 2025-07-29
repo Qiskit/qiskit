@@ -5171,18 +5171,19 @@ class QuantumCircuit:
             copy=False,
         )
 
-    def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
+    def id(self, qubit: QubitSpecifier, label: str | None = None) -> InstructionSet:  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.IGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
-        return self._append_standard_gate(StandardGate.I, [qubit], ())
+        return self._append_standard_gate(StandardGate.I, [qubit], (), label=label)
 
     def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MSGate`.
