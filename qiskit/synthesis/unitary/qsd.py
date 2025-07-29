@@ -35,8 +35,8 @@ from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_dia
 
 def qs_decomposition(
     mat: np.ndarray,
-    opt_a1: bool = True,
-    opt_a2: bool = True,
+    opt_a1: bool | None = None,
+    opt_a2: bool | None = None,
     decomposer_1q: Callable[[np.ndarray], QuantumCircuit] | None = None,
     decomposer_2q: Callable[[np.ndarray], QuantumCircuit] | None = None,
     *,
@@ -64,7 +64,7 @@ def qs_decomposition(
 
         \frac{9}{16} 4^n - \frac{3}{2} 2^n
 
-    If ``opt_a1 = True``, the default, the CX count is reduced, improving [1], by:
+    If ``opt_a1 = True``, the CX count is reduced, improving [1], by:
 
     .. math::
 
@@ -72,7 +72,7 @@ def qs_decomposition(
 
     Saving two :class:`.CXGate`\ s instead of one in each step of the recursion.
 
-    If ``opt_a2 = True``, the default, the CX count is reduced, as in [1], by:
+    If ``opt_a2 = True``, the CX count is reduced, as in [1], by:
 
     .. math::
 
@@ -86,8 +86,11 @@ def qs_decomposition(
 
     .. note::
 
-        When the original unitary is controlled then the default value of ``opt_a2 = False``
+        When the original unitary is controlled then it is better to choose ``opt_a2 = False``
         as we do another optimization that does not work with the optimization A.2 of [1, 2].
+        When ``opt_a2 = None`` we choose the optimal value ``opt_a2 = False`` if the unitary is
+        controlled and ``opt_a2 = True`` otherwise.
+        When ``opt_a1 = None`` we choose the optimal value ``opt_a1 = True``.
 
     Args:
         mat: unitary matrix to decompose
@@ -115,6 +118,8 @@ def qs_decomposition(
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
     nqubits = dim.bit_length() - 1
+    if opt_a1 is None:
+        opt_a1 = True
 
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
@@ -146,6 +151,13 @@ def qs_decomposition(
         return circ
     else:
         # check whether the matrix is equivalent to a block diagonal wrt ctrl_index
+        if opt_a2 is None:
+            opt_a2 = True
+            # check if the unitary is controlled
+            for ctrl_index in range(nqubits):
+                um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
+                if _off_diagonals_are_zero(um01, um10):
+                    opt_a2 = False
         if opt_a2 is False:
             for ctrl_index in range(nqubits):
                 um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
