@@ -109,10 +109,6 @@ pub unsafe extern "C" fn qk_elide_permutations_result_permutation(
 ///
 /// @param result a pointer to the result object to free
 ///
-/// # Example
-///
-///     QkCircuit *qc = qk_circuit_new(1, 0);
-///
 /// # Safety
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
