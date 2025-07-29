@@ -295,6 +295,11 @@ impl PhasedQubitSparsePauli {
 
         return self.qubit_sparse_pauli.commutes(&other.qubit_sparse_pauli)
     }
+
+    // Check equality of operators
+    fn eq(&self, other: &PhasedQubitSparsePauli) -> bool {
+        ((self.phase - other.phase).rem_euclid(4) == 0) && self.qubit_sparse_pauli == other.qubit_sparse_pauli
+    }
 }
 
 
