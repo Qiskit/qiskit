@@ -41,7 +41,7 @@ from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
 from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -268,18 +268,18 @@ class TestMCMT(QiskitTestCase):
             )
         )
 
-    def test_mcmt_x_gate(self):
+    @combine(num_ctrl=range(1, 6), num_targ=range(2, 6))
+    def test_mcmt_x_gate(self, num_ctrl, num_targ):
         """Test MCMT gate uses `synth_mcmt_x` for X gate synthesis."""
-        for num_ctrl, num_targ in product(range(1, 6), range(2, 6)):
-            mcmt_x_gate = MCMTGate(XGate(), num_ctrl_qubits=num_ctrl, num_target_qubits=num_targ)
-            qc = QuantumCircuit(num_ctrl + num_targ)
-            qc.compose(mcmt_x_gate, range(num_ctrl + num_targ), inplace=True)
+        mcmt_x_gate = MCMTGate(XGate(), num_ctrl_qubits=num_ctrl, num_target_qubits=num_targ)
+        qc = QuantumCircuit(num_ctrl + num_targ)
+        qc.compose(mcmt_x_gate, range(num_ctrl + num_targ), inplace=True)
 
-            qc_transpiled = transpile(qc, basis_gates=["u", "cx"], qubits_initially_zero=False)
-            expected_cx_count = 12 * num_ctrl + 2 * (
-                num_targ - 1
-            )  # 1 MCX + 2(num_targ - 1) CX gates
-            self.assertLessEqual(qc_transpiled.count_ops().get("cx", 0), expected_cx_count)
+        qc_transpiled = transpile(qc, basis_gates=["u", "cx"], qubits_initially_zero=False)
+        expected_cx_count = 12 * num_ctrl + 2 * (
+            num_targ - 1
+        )  # 1 MCX + 2(num_targ - 1) CX gates
+        self.assertLessEqual(qc_transpiled.count_ops().get("cx", 0), expected_cx_count)
 
     def test_invalid_base_gate_width(self):
         """Test only 1-qubit base gates are accepted."""
