@@ -17,7 +17,7 @@ use std::sync::OnceLock;
 
 use approx::abs_diff_eq;
 use hashbrown::HashMap;
-use nalgebra::{DMatrix, DVector, Matrix4};
+use nalgebra::{DMatrix, DVector, Matrix4, SVD, QR};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -41,6 +41,12 @@ use qiskit_circuit::{Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
+
+enum VWType {
+    All,
+    OnlyV,
+    OnlyW,
+}
 
 pub fn quantum_shannon_decomposition(
     py: Python,
@@ -161,7 +167,7 @@ fn qsd_inner(
             let [um00, um11, um01, um10] = extract_multiplex_blocks(mat, ctrl_index);
 
             if off_diagonals_are_zero(&um01, &um10, None) {
-                return demultiplex(
+                return Ok(demultiplex(
                     py,
                     &um00,
                     &um11,
@@ -169,7 +175,8 @@ fn qsd_inner(
                     opt_a2,
                     depth,
                     Some(num_qubits - 1 - ctrl_index),
-                );
+                    VWType::All,
+                )?.0);
             }
         }
     }
@@ -177,47 +184,73 @@ fn qsd_inner(
         .map(|_| ShareableQubit::new_anonymous())
         .collect::<Vec<_>>();
     let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.)).unwrap();
-    let res = cos_sin_decomp::cos_sin_decomposition(mat);
-    let u1 = res.l0;
-    let mut u2 = res.l1;
-    let vtheta = res.thetas;
-    let v1h = res.r0;
-    let v2h = res.r1;
-    let left_circuit = demultiplex(py, &v1h, &v2h, opt_a1, opt_a2, depth, None)?;
+    // perform block ZXZ decomposition from [2]
+    let (A1, A2, B, C) = _block_zxz_decomp(mat);
+    let iden = DMatrix::<Complex64>::identity(dim / 2, dim / 2);
+    let (left_circuit, vmatC, _) = demultiplex(py, &iden, &C, opt_a1, opt_a2, depth, None, VWType::OnlyW)?;
+    let (right_circuit, _, wmatA) = demultiplex(py, &A1, &A2, opt_a1, opt_a2, depth, None, VWType::OnlyV)?;
+
+    // middle circ
+    // zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
+    let mut zmat = DMatrix::<Complex64>::zeros(dim / 2, dim /2);
+    for i in 0..dim/2 {
+        zmat[(i,i)] = if i < dim / 4 {Complex64::from(1.0)} else {Complex64::from(-1.0)};
+    }
+    // wmatA and vmatC are combined into B1 and B2
+    let B1 = &wmatA * &vmatC;
+    let B2 = if opt_a1 {
+        &zmat * &wmatA * &B * &vmatC * &zmat
+    } else {
+        &wmatA * &B * &vmatC
+    };
+    let middle_circ = demultiplex(py, &B1, &B2, opt_a1, opt_a2, depth, None, VWType::All)?.0;
+    
+    // the output circuit of the block ZXZ decomposition from [2]
     let qr = (0..num_qubits).map(Qubit::new).collect::<Vec<_>>();
     append(&mut out, left_circuit, &qr)?;
-    if opt_a1 {
-        let num_angles = vtheta.len();
-        let half_size = num_angles / 2;
-        let mut angles = vtheta.iter().map(|x| 2. * x).collect::<Vec<_>>();
-        let circ_cz = get_ucry_cz(num_qubits as u32, &mut angles)?;
-        append(&mut out, circ_cz, &qr)?;
-        // merge final cz with right-side generic multiplexer
-        //
-        // u2[:, half_size:] = np.negative(u2[:, half_size:])
-        u2.view_mut((0, half_size), (num_angles, half_size))
-            .iter_mut()
-            .for_each(|x| *x = x.neg());
-    } else {
-        let mut angles = vtheta.iter().map(|x| 2. * x).collect::<Vec<_>>();
-        let ucry_circ = decompose_uc_rotation(&mut angles, StandardGate::RY)?;
-        append(
-            &mut out,
-            ucry_circ,
-            &[
-                std::slice::from_ref(qr.last().unwrap()),
-                &qr[..num_qubits - 1],
-            ]
-            .concat(),
-        )?;
-    }
-    let right_circuit = demultiplex(py, &u1, &u2, opt_a1, opt_a2, depth, None)?;
+    out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits-1) as u32)]);
+    append(&mut out, middle_circ, &qr)?;
+    out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits-1) as u32)]);
     append(&mut out, right_circuit, &qr)?;
-    if opt_a2 && depth == 0 && dim > 4 {
-        apply_a2(py, &out, two_qubit_decomposer)
-    } else {
-        Ok(out)
-    }
+    Ok(out)
+}
+
+fn _zxz_decomp_svd(A: DMatrix<Complex64>) -> (DMatrix<Complex64>, DMatrix<Complex64>) {
+let svd = SVD::new(A, true, true);
+    let V = svd.u.unwrap();    // U matrix
+    let S = svd.singular_values.map(|a| Complex64::from(a));
+    let Wdg = svd.v_t.unwrap(); // V^T matrix
+    let Sigma = DMatrix::<Complex64>::from_diagonal(&S);
+    let S = &V * &Sigma * &V.adjoint();
+    let U = V * Wdg;
+    (S, U)
+}
+
+// fn _zxz_decomp_verify(
+//     mat: &DMatrix<Complex64>,
+//     A1: &DMatrix<Complex64>,
+//     A2: &DMatrix<Complex64>,
+//     B: &DMatrix<Complex64>,
+//     C: &DMatrix<Complex64>,
+// ) -> Result<(), ()> {
+
+// }
+
+fn _block_zxz_decomp(mat: &DMatrix<Complex64>) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
+    let i = Complex64::new(0.0, 1.0);
+    let N = mat.shape().0;
+    let n = N / 2;
+    let X = mat.view((0,0), (n,n));
+    let Y = mat.view((0,n), (n,n));
+    let U21 = mat.view((n,0), (n,n));
+    let U22 = mat.view((n,n), (n,n));
+    let (SX, UX) = _zxz_decomp_svd(X.into_owned());
+    let (SY, UY) = _zxz_decomp_svd(Y.into_owned());
+    let C = ((&UY.adjoint() * &UX)*i).adjoint();
+    let A1 = (SX + SY*i) * &UX;
+    let A2 = U21 + (U22 * (UY.adjoint() * UX)*i);
+    let B = (A1.adjoint() * X)*Complex64::from(2.0) - DMatrix::<Complex64>::identity(n, n);
+    (A1, A2, B, C)
 }
 
 fn demultiplex(
@@ -228,7 +261,8 @@ fn demultiplex(
     opt_a2: bool,
     depth: usize,
     _ctrl_index: Option<usize>,
-) -> PyResult<CircuitData> {
+    vw_type: VWType,
+) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let _ctrl_index = _ctrl_index.unwrap_or_else(|| num_qubits - 1);
@@ -242,7 +276,8 @@ fn demultiplex(
         let eigh = um0um1.symmetric_eigen();
         let evals = eigh.eigenvalues;
         let eigvals = evals.map(|x| Complex64::new(x, 0.));
-        (eigvals, eigh.eigenvectors)
+        let orthonormal_eigenvectors = QR::new(eigh.eigenvectors).q();
+        (eigvals, orthonormal_eigenvectors)
     } else {
         let shur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000).unwrap();
         let (vmat, evals) = shur.unpack();
@@ -250,33 +285,95 @@ fn demultiplex(
         (eigvals, vmat)
     };
     let d_values: DVector<Complex64> = eigvals.map(|x| x.sqrt());
-    let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);
-    let w_mat = d_mat * vmat.adjoint() * um1;
-    let left_circuit = qsd_inner(py, &w_mat, opt_a1, opt_a2, None, None, depth + 1)?;
+    let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);   
+    let wmat = d_mat * vmat.adjoint() * um1;
+    
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
         .collect::<Vec<_>>();
     let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.))?;
-    append(&mut out, left_circuit, &layout[..num_qubits - 1])?;
+    
+    // left gate. In this case we decompose wmat.
+    // Otherwise, it is combined with the B matrix.
+    match vw_type {
+        VWType::OnlyW | VWType::All => {
+            let left_circuit = qsd_inner(py, &wmat, opt_a1, opt_a2, None, None, depth + 1)?;
+            append(&mut out, left_circuit, &layout[..num_qubits - 1])?;
+        }
+        VWType::OnlyV => ()
+    }   
+    
+    // multiplexed Rz gate
+    // If opt_a1 = ``True``, then we reduce 2 ``cx`` gates per call.
     let mut angles = d_values
         .iter()
         .map(|x| 2. * x.conj().arg())
         .collect::<Vec<_>>();
-    let multiplexed_rz = decompose_uc_rotation(&mut angles, StandardGate::RZ)?;
+    let ucrz = match (&vw_type, opt_a1) {
+        (VWType::OnlyW, true) => get_ucrz(num_qubits, &mut angles, false)?,
+        (VWType::OnlyV, true) => get_ucrz(num_qubits, &mut angles, false)?.reverse(),
+        _ => get_ucrz(num_qubits, &mut angles, true)?,
+    };
+    // let multiplexed_rz = decompose_uc_rotation(&mut angles, StandardGate::RZ)?;
     append(
         &mut out,
-        multiplexed_rz,
+        ucrz,
         &[
             std::slice::from_ref(layout.last().unwrap()),
             &layout[..num_qubits - 1],
         ]
         .concat(),
     )?;
-    let right_circuit = qsd_inner(py, &vmat, opt_a1, opt_a2, None, None, depth + 1)?;
-    append(&mut out, right_circuit, &layout[..num_qubits - 1])?;
-    Ok(out)
+    // right gate. In this case we decompose vmat.
+    // Otherwise, it is combined with the B matrix.
+    match vw_type {
+        VWType::OnlyV | VWType::All => {
+            let right_circuit = qsd_inner(py, &vmat, opt_a1, opt_a2, None, None, depth + 1)?;
+            append(&mut out, right_circuit, &layout[..num_qubits - 1])?;
+        }
+        VWType::OnlyW => ()
+    } 
+    Ok((out, vmat, wmat))
 }
 
+// TODO: not sure that's a correct implementation of the python code
+fn get_ucrz(
+    num_qubits: usize,
+    angles: &mut [f64],
+    vw_type_all: bool,
+) -> PyResult<CircuitData> {
+    let out_qubits = (0..num_qubits)
+        .map(|_| ShareableQubit::new_anonymous())
+        .collect::<Vec<_>>();
+    let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.))?;
+    let q_target = Qubit(0);
+    let q_controls: Vec<Qubit> = (1..num_qubits).map(|i| Qubit(i as u32)).collect();
+    decompose_uc_rotations(angles, 0, angles.len(), false);
+    for (i, angle) in angles.iter().enumerate() {
+        if angle.abs() > EPS {
+            out.push_standard_gate(StandardGate::RZ, &[Param::Float(*angle)], &[q_target]);
+        }
+        if i != angles.len() - 1 {
+            // Is this a correct translation from python?
+            // binary_rep = np.binary_repr(i + 1)
+            // q_contr_index = len(binary_rep) - len(binary_rep.rstrip("0"))
+            let q_ctrl_index = (i + 1).trailing_zeros(); 
+            out.push_standard_gate(
+                StandardGate::CX,
+                &[],
+                &[q_controls[q_ctrl_index as usize], q_target],
+            );
+        } else if vw_type_all {
+            let q_ctrl_index = num_qubits - 2; 
+            out.push_standard_gate(
+                StandardGate::CX,
+                &[],
+                &[q_controls[q_ctrl_index as usize], q_target],
+            );
+        };
+    }
+    Ok(out)
+}
 fn decompose_uc_rotation(
     angle_list: &mut [f64],
     rotation_axis: StandardGate,
@@ -534,6 +631,7 @@ fn append(circ: &mut CircuitData, new: CircuitData, qubit_map: &[Qubit]) -> PyRe
         };
         circ.push(out_inst)?;
     }
+    circ.add_global_phase(new.global_phase())?;
     Ok(())
 }
 
@@ -582,7 +680,9 @@ pub fn qs_decomposition(
 ) -> PyResult<CircuitData> {
     let array: ArrayView2<Complex64> = mat.as_array();
     let mat = DMatrix::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
-    quantum_shannon_decomposition(py, &mat, opt_a1, opt_a2, None, None)
+    let res = quantum_shannon_decomposition(py, &mat, opt_a1, opt_a2, None, None)?;
+    Ok(res)
+
 }
 
 pub fn qsd_mod(m: &Bound<PyModule>) -> PyResult<()> {

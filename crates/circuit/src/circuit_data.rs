@@ -2809,6 +2809,10 @@ impl CircuitData {
         .iter()
         .map(|stretch| self.stretches.get(*stretch).unwrap())
     }
+    pub fn reverse(mut self) -> Self {
+        self.data.reverse();
+        self
+    }
 }
 
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in
