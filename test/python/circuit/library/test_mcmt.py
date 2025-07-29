@@ -273,7 +273,7 @@ class TestMCMT(QiskitTestCase):
         """Test MCMT gate uses `synth_mcmt_x` for X gate synthesis."""
         mcmt_x_gate = MCMTGate(XGate(), num_ctrl_qubits=num_ctrl, num_target_qubits=num_targ)
         qc = QuantumCircuit(num_ctrl + num_targ)
-        qc.compose(mcmt_x_gate, range(num_ctrl + num_targ), inplace=True)
+        qc.append(mcmt_x_gate, range(num_ctrl + num_targ))
 
         qc_transpiled = transpile(qc, basis_gates=["u", "cx"], qubits_initially_zero=False)
         expected_cx_count = 12 * num_ctrl + 2 * (
