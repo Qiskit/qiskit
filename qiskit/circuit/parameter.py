@@ -119,6 +119,9 @@ class Parameter(ParameterExpression):
             "expression."
         )
 
+    def bind_all(self, values: dict[Parameter, int | float | complex]) -> int | float | complex:
+        return values[self]
+
     @property
     def name(self):
         """Returns the name of the :class:`Parameter`."""
