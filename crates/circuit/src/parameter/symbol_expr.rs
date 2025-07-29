@@ -29,10 +29,9 @@ pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
 #[derive(Debug, Clone)]
 pub struct Symbol {
-    name: String,           // the name of the symbol
-    pub uuid: Uuid,         // the unique identifier
-    pub index: Option<u32>, // an optional index, if part of a vector
-    #[allow(dead_code)]
+    name: String,                 // the name of the symbol
+    pub uuid: Uuid,               // the unique identifier
+    pub index: Option<u32>,       // an optional index, if part of a vector
     pub vector: Option<PyObject>, // Python only: a reference to the vector, if it is an element
 }
 
@@ -74,7 +73,7 @@ impl Symbol {
         index: Option<u32>,
         vector: Option<PyObject>,
     ) -> PyResult<Self> {
-        if index.is_some() && vector.is_none() || index.is_none() && vector.is_none() {
+        if index.is_some() != vector.is_some() {
             return Err(PyValueError::new_err(
                 "Either both of vector and index must be provided, or neither of them",
             ));
@@ -625,11 +624,7 @@ impl SymbolExpr {
     /// Return hashset of all parameters this equation contains.
     pub fn parameters(&self) -> HashSet<Symbol> {
         match self {
-            SymbolExpr::Symbol(e) => {
-                let mut set = HashSet::<Symbol>::new();
-                set.insert(e.clone()); // TODO can this be done more concisely?
-                set
-            }
+            SymbolExpr::Symbol(e) => HashSet::from_iter([e.clone()]),
             SymbolExpr::Value(_) => HashSet::<Symbol>::new(),
             SymbolExpr::Unary { op: _, expr } => expr.parameters(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
@@ -3603,5 +3598,30 @@ impl PartialOrd for Value {
             },
             Value::Complex(_) => None,
         }
+    }
+}
+
+/// Replace [Symbol]s in a [SymbolExpr] according to the name map. This
+/// is used to reconstruct a parameter expression from a string.
+pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> SymbolExpr {
+    match symbol_expr {
+        SymbolExpr::Symbol(existing_symbol) => {
+            let name = existing_symbol.name();
+            if let Some(new_symbol) = name_map.get(&name) {
+                SymbolExpr::Symbol(new_symbol.clone())
+            } else {
+                symbol_expr.clone()
+            }
+        }
+        SymbolExpr::Value(_) => symbol_expr.clone(), // nothing to do
+        SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
+            op: op.clone(),
+            lhs: Arc::new(replace_symbol(lhs, name_map)),
+            rhs: Arc::new(replace_symbol(rhs, name_map)),
+        },
+        SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
+            op: op.clone(),
+            expr: Arc::new(replace_symbol(expr, name_map)),
+        },
     }
 }

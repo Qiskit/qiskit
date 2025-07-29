@@ -186,8 +186,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
         expr_bytes = buf.getvalue()
 
     parameters = obj.parameters
-    fake_symbols_dict = dict(zip(parameters, parameters))
-    symbol_table_len = len(fake_symbols_dict)
+    symbol_table_len = len(parameters)
     if extra_symbols:
         symbol_table_len += 2 * len(extra_symbols)
     param_expr_header_raw = struct.pack(
@@ -195,7 +194,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     )
     file_obj.write(param_expr_header_raw)
     file_obj.write(expr_bytes)
-    for symbol, value in fake_symbols_dict.items():
+    for symbol in parameters:
         symbol_key = type_keys.Value.assign(symbol)
 
         # serialize key
@@ -205,11 +204,8 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             symbol_data = common.data_to_binary(symbol, _write_parameter)
 
         # serialize value
-        if value.is_symbol():
-            value_key = symbol_key
-            value_data = bytes()
-        else:
-            value_key, value_data = dumps_value(value, version=version, use_symengine=use_symengine)
+        value_key = symbol_key
+        value_data = bytes()
 
         elem_header = struct.pack(
             formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
