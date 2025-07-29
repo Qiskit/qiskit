@@ -8,3 +8,9 @@ features_synthesis:
     (4 ** (n − 2) − 1) / 3 :class:`.CXGate`\ s.
     With the improved decomposition, a general 3-qubit unitary can be decomposed using 19
     :class:`.CXGate`\ s (rather than 20).
+  - |
+    The default values of the parameters `opt_a1` and `opt_a2` of :func:`.qs_decomposition`
+    are now ``opt_a1 = None`` and ``opt_a2 = None``.
+    When ``opt_a2 = None`` we choose the optimal value ``opt_a2 = False`` if the unitary is
+    controlled and ``opt_a2 = True`` if it is not controlled.
+    When ``opt_a1 = None`` we choose the optimal value ``opt_a1 = True``.
