@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    In :method:`.ObservablesArray.coerce_observable` fixed a bug where an exception that an observable was not Hermitian was over-triggered. In addition observables equal to ``zero`` are not allowed, and invoke a graceful failure.
+    In :meth:`.ObservablesArray.coerce_observable` fixed a bug where an exception that an observable was not Hermitian was over-triggered. In addition observables equal to ``zero`` are not allowed, and invoke a graceful failure.
