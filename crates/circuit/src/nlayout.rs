@@ -25,7 +25,17 @@ use hashbrown::HashMap;
 macro_rules! qubit_newtype {
     ($id: ident) => {
         #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, IntoPyObject, IntoPyObjectRef,
+            Debug,
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
+            Default,
+            IntoPyObject,
+            IntoPyObjectRef,
         )]
         pub struct $id(pub u32);
 
@@ -55,6 +65,18 @@ macro_rules! qubit_newtype {
 
             fn clone_ref(&self, _py: Python<'_>) -> Self {
                 *self
+            }
+        }
+
+        unsafe impl ::rustworkx_core::petgraph::graph::IndexType for $id {
+            fn new(x: usize) -> Self {
+                Self::new(x as u32)
+            }
+            fn index(&self) -> usize {
+                self.0 as usize
+            }
+            fn max() -> Self {
+                Self(u32::MAX)
             }
         }
     };
@@ -89,7 +111,7 @@ impl VirtualQubit {
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
 #[pyclass(module = "qiskit._accelerate.nlayout")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NLayout {
     virt_to_phys: Vec<PhysicalQubit>,
     phys_to_virt: Vec<VirtualQubit>,
@@ -189,6 +211,18 @@ impl NLayout {
             phys_to_virt,
         })
     }
+
+    #[staticmethod]
+    pub fn from_physical_to_virtual(phys_to_virt: Vec<VirtualQubit>) -> PyResult<Self> {
+        let mut virt_to_phys = vec![PhysicalQubit(u32::MAX); phys_to_virt.len()];
+        for (phys, virt) in phys_to_virt.iter().enumerate() {
+            virt_to_phys[virt.index()] = PhysicalQubit(phys.try_into()?);
+        }
+        Ok(NLayout {
+            virt_to_phys,
+            phys_to_virt,
+        })
+    }
 }
 
 impl NLayout {
@@ -209,6 +243,28 @@ impl NLayout {
             .iter()
             .enumerate()
             .map(|(p, v)| (PhysicalQubit::new(p as u32), *v))
+    }
+
+    pub fn num_qubits(&self) -> usize {
+        self.virt_to_phys.len()
+    }
+
+    /// Destructure `self` into the two backing arrays.
+    pub fn take(self) -> (Vec<PhysicalQubit>, Vec<VirtualQubit>) {
+        (self.virt_to_phys, self.phys_to_virt)
+    }
+
+    /// Directly create a new layout without sanity checking the coherence of the inputs.
+    ///
+    /// This is the opposite of [take].
+    pub fn from_vecs_unchecked(
+        virt_to_phys: Vec<PhysicalQubit>,
+        phys_to_virt: Vec<VirtualQubit>,
+    ) -> Self {
+        Self {
+            virt_to_phys,
+            phys_to_virt,
+        }
     }
 }
 

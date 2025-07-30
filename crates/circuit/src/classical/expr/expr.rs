@@ -135,7 +135,7 @@ impl Expr {
 
     /// Returns an iterator over all nodes in this expression in some deterministic
     /// order.
-    pub fn iter(&self) -> impl Iterator<Item = ExprRef> {
+    pub fn iter(&self) -> impl Iterator<Item = ExprRef<'_>> {
         ExprIterator { stack: vec![self] }
     }
 
@@ -167,6 +167,82 @@ impl Expr {
             }
         }
         visitor(self.as_mut())
+    }
+
+    /// Do these two expressions have exactly the same tree structure?
+    pub fn structurally_equivalent(&self, other: &Expr) -> bool {
+        let identity_key = |v: &Var| v.clone();
+        self.structurally_equivalent_by_key(identity_key, other, identity_key)
+    }
+
+    /// Do these two expressions have exactly the same tree structure, up to some key function for
+    /// [Var] nodes?
+    ///
+    /// In other words, are these two expressions the exact same trees, except we compare the
+    /// [Var] nodes by calling the appropriate `*_var_key` function on them, and comparing
+    /// that output for equality.  This function does not allow any semantic "equivalences" such as
+    /// asserting that `a == b` is equivalent to `b == a`; the evaluation order of the operands
+    /// could, in general, cause such a statement to be false.
+    pub fn structurally_equivalent_by_key<F1, F2, K>(
+        &self,
+        mut self_var_key: F1,
+        other: &Expr,
+        mut other_var_key: F2,
+    ) -> bool
+    where
+        F1: FnMut(&Var) -> K,
+        F2: FnMut(&Var) -> K,
+        K: PartialEq,
+    {
+        let mut self_nodes = self.iter();
+        let mut other_nodes = other.iter();
+        loop {
+            match (self_nodes.next(), other_nodes.next()) {
+                (Some(a), Some(b)) => match (a, b) {
+                    (ExprRef::Unary(a), ExprRef::Unary(b)) => {
+                        if a.op != b.op || a.ty != b.ty || a.constant != b.constant {
+                            return false;
+                        }
+                    }
+                    (ExprRef::Binary(a), ExprRef::Binary(b)) => {
+                        if a.op != b.op || a.ty != b.ty || a.constant != b.constant {
+                            return false;
+                        }
+                    }
+                    (ExprRef::Cast(a), ExprRef::Cast(b)) => {
+                        if a.ty != b.ty || a.constant != b.constant {
+                            return false;
+                        }
+                    }
+                    (ExprRef::Value(a), ExprRef::Value(b)) => {
+                        if a != b {
+                            return false;
+                        }
+                    }
+                    (ExprRef::Var(a), ExprRef::Var(b)) => {
+                        if a.ty() != b.ty() {
+                            return false;
+                        }
+                        if self_var_key(a) != other_var_key(b) {
+                            return false;
+                        }
+                    }
+                    (ExprRef::Stretch(a), ExprRef::Stretch(b)) => {
+                        if a.uuid != b.uuid {
+                            return false;
+                        }
+                    }
+                    (ExprRef::Index(a), ExprRef::Index(b)) => {
+                        if a.ty != b.ty || a.constant != b.constant {
+                            return false;
+                        }
+                    }
+                    _ => return false,
+                },
+                (None, None) => return true,
+                _ => return false,
+            }
+        }
     }
 }
 
@@ -394,10 +470,10 @@ impl<'py> FromPyObject<'py> for Expr {
 
 #[cfg(test)]
 mod tests {
-    use crate::bit::ShareableClbit;
+    use crate::bit::{ClassicalRegister, ShareableClbit};
     use crate::classical::expr::{
-        Binary, BinaryOp, Expr, ExprRef, ExprRefMut, IdentifierRef, Stretch, Unary, UnaryOp, Value,
-        Var,
+        Binary, BinaryOp, Cast, Expr, ExprRef, ExprRefMut, IdentifierRef, Index, Stretch, Unary,
+        UnaryOp, Value, Var,
     };
     use crate::classical::types::Type;
     use crate::duration::Duration;
@@ -669,6 +745,338 @@ mod tests {
             panic!("wrong var type")
         };
         assert_eq!(name.as_str(), "updated");
+        Ok(())
+    }
+
+    #[test]
+    fn test_structurally_eq_to_self() -> PyResult<()> {
+        let exprs = [
+            Expr::Var(Var::Bit {
+                bit: ShareableClbit::new_anonymous(),
+            }),
+            Expr::Var(Var::Register {
+                register: ClassicalRegister::new_owning("a", 3),
+                ty: Type::Uint(3),
+            }),
+            Expr::Value(Value::Uint {
+                raw: 3,
+                ty: Type::Uint(2),
+            }),
+            Expr::Cast(
+                Cast {
+                    operand: Expr::Var(Var::Register {
+                        register: ClassicalRegister::new_owning("a", 3),
+                        ty: Type::Uint(3),
+                    }),
+                    ty: Type::Bool,
+                    constant: false,
+                    implicit: false,
+                }
+                .into(),
+            ),
+            Expr::Unary(
+                Unary {
+                    op: UnaryOp::LogicNot,
+                    operand: Expr::Var(Var::Bit {
+                        bit: ShareableClbit::new_anonymous(),
+                    }),
+                    ty: Type::Bool,
+                    constant: false,
+                }
+                .into(),
+            ),
+            Expr::Binary(
+                Binary {
+                    op: BinaryOp::BitAnd,
+                    left: Expr::Value(Value::Uint {
+                        raw: 5,
+                        ty: Type::Uint(3),
+                    }),
+                    right: Expr::Var(Var::Register {
+                        register: ClassicalRegister::new_owning("a", 3),
+                        ty: Type::Uint(3),
+                    }),
+                    ty: Type::Uint(3),
+                    constant: false,
+                }
+                .into(),
+            ),
+            Expr::Binary(
+                Binary {
+                    op: BinaryOp::LogicAnd,
+                    left: Expr::Binary(
+                        Binary {
+                            op: BinaryOp::Less,
+                            left: Expr::Value(Value::Uint {
+                                raw: 2,
+                                ty: Type::Uint(3),
+                            }),
+                            right: Expr::Var(Var::Register {
+                                register: ClassicalRegister::new_owning("a", 3),
+                                ty: Type::Uint(3),
+                            }),
+                            ty: Type::Bool,
+                            constant: false,
+                        }
+                        .into(),
+                    ),
+                    right: Expr::Var(Var::Bit {
+                        bit: ShareableClbit::new_anonymous(),
+                    }),
+                    ty: Type::Bool,
+                    constant: false,
+                }
+                .into(),
+            ),
+            Expr::Binary(
+                Binary {
+                    op: BinaryOp::ShiftLeft,
+                    left: Expr::Binary(
+                        Binary {
+                            op: BinaryOp::ShiftRight,
+                            left: Expr::Value(Value::Uint {
+                                raw: 255,
+                                ty: Type::Uint(8),
+                            }),
+                            right: Expr::Value(Value::Uint {
+                                raw: 3,
+                                ty: Type::Uint(8),
+                            }),
+                            ty: Type::Uint(8),
+                            constant: true,
+                        }
+                        .into(),
+                    ),
+                    right: Expr::Value(Value::Uint {
+                        raw: 3,
+                        ty: Type::Uint(8),
+                    }),
+                    ty: Type::Uint(8),
+                    constant: true,
+                }
+                .into(),
+            ),
+            Expr::Index(
+                Index {
+                    target: Expr::Var(Var::Standalone {
+                        uuid: Uuid::new_v4().as_u128(),
+                        name: "a".to_string(),
+                        ty: Type::Uint(8),
+                    }),
+                    index: Expr::Value(Value::Uint {
+                        raw: 0,
+                        ty: Type::Uint(8),
+                    }),
+                    ty: Type::Uint(1),
+                    constant: false,
+                }
+                .into(),
+            ),
+            Expr::Binary(
+                Binary {
+                    op: BinaryOp::Greater,
+                    left: Expr::Stretch(Stretch {
+                        uuid: Uuid::new_v4().as_u128(),
+                        name: "a".to_string(),
+                    }),
+                    right: Expr::Value(Value::Duration(Duration::dt(100))),
+                    ty: Type::Bool,
+                    constant: false,
+                }
+                .into(),
+            ),
+        ];
+
+        for expr in exprs.iter() {
+            assert!(expr.structurally_equivalent(expr));
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_structurally_eq_does_not_compare_symmetrically() {
+        let all_ops = [
+            BinaryOp::BitAnd,
+            BinaryOp::BitOr,
+            BinaryOp::BitXor,
+            BinaryOp::LogicAnd,
+            BinaryOp::LogicOr,
+            BinaryOp::Equal,
+            BinaryOp::NotEqual,
+            BinaryOp::Less,
+            BinaryOp::LessEqual,
+            BinaryOp::Greater,
+            BinaryOp::GreaterEqual,
+            BinaryOp::ShiftLeft,
+            BinaryOp::ShiftRight,
+            BinaryOp::Add,
+            BinaryOp::Sub,
+            BinaryOp::Mul,
+            BinaryOp::Div,
+        ];
+
+        for op in all_ops.iter().copied() {
+            let (left, right, out_ty) = match op {
+                BinaryOp::LogicAnd | BinaryOp::LogicOr => (
+                    Expr::Value(Value::Uint {
+                        raw: 1,
+                        ty: Type::Bool,
+                    }),
+                    Expr::Var(Var::Bit {
+                        bit: ShareableClbit::new_anonymous(),
+                    }),
+                    Type::Bool,
+                ),
+                _ => (
+                    Expr::Value(Value::Uint {
+                        raw: 5,
+                        ty: Type::Uint(3),
+                    }),
+                    Expr::Var(Var::Register {
+                        register: ClassicalRegister::new_owning("a", 3),
+                        ty: Type::Uint(3),
+                    }),
+                    match op {
+                        BinaryOp::BitAnd | BinaryOp::BitOr | BinaryOp::BitXor => Type::Uint(3),
+                        _ => Type::Bool,
+                    },
+                ),
+            };
+
+            let cis = Expr::Binary(
+                Binary {
+                    op,
+                    left: left.clone(),
+                    right: right.clone(),
+                    ty: out_ty,
+                    constant: false,
+                }
+                .into(),
+            );
+
+            let trans = Expr::Binary(
+                Binary {
+                    op,
+                    left: right,
+                    right: left,
+                    ty: out_ty,
+                    constant: false,
+                }
+                .into(),
+            );
+
+            assert!(
+                !cis.structurally_equivalent(&trans),
+                "Expected {op:?} to not be structurally equivalent to its flipped form"
+            );
+            assert!(
+                !trans.structurally_equivalent(&cis),
+                "Expected flipped {op:?} to not be structurally equivalent to original form"
+            );
+        }
+    }
+
+    #[test]
+    fn test_structurally_eq_key_function_both() -> PyResult<()> {
+        let left_clbit = ShareableClbit::new_anonymous();
+        let left_cr = ClassicalRegister::new_owning("a", 3);
+        let right_clbit = ShareableClbit::new_anonymous();
+        let right_cr = ClassicalRegister::new_owning("b", 3);
+        assert_ne!(left_clbit, right_clbit);
+        assert_ne!(left_cr, right_cr);
+
+        let left = Expr::Unary(
+            Unary {
+                op: UnaryOp::LogicNot,
+                operand: Expr::Binary(
+                    Binary {
+                        op: BinaryOp::LogicAnd,
+                        left: Expr::Binary(
+                            Binary {
+                                op: BinaryOp::Less,
+                                left: Expr::Value(Value::Uint {
+                                    raw: 5,
+                                    ty: Type::Uint(3),
+                                }),
+                                right: Expr::Var(Var::Register {
+                                    register: left_cr.clone(),
+                                    ty: Type::Uint(3),
+                                }),
+                                ty: Type::Bool,
+                                constant: false,
+                            }
+                            .into(),
+                        ),
+                        right: Expr::Var(Var::Bit {
+                            bit: left_clbit.clone(),
+                        }),
+                        ty: Type::Bool,
+                        constant: false,
+                    }
+                    .into(),
+                ),
+                ty: Type::Bool,
+                constant: false,
+            }
+            .into(),
+        );
+
+        let right = Expr::Unary(
+            Unary {
+                op: UnaryOp::LogicNot,
+                operand: Expr::Binary(
+                    Binary {
+                        op: BinaryOp::LogicAnd,
+                        left: Expr::Binary(
+                            Binary {
+                                op: BinaryOp::Less,
+                                left: Expr::Value(Value::Uint {
+                                    raw: 5,
+                                    ty: Type::Uint(3),
+                                }),
+                                right: Expr::Var(Var::Register {
+                                    register: right_cr.clone(),
+                                    ty: Type::Uint(3),
+                                }),
+                                ty: Type::Bool,
+                                constant: false,
+                            }
+                            .into(),
+                        ),
+                        right: Expr::Var(Var::Bit {
+                            bit: right_clbit.clone(),
+                        }),
+                        ty: Type::Bool,
+                        constant: false,
+                    }
+                    .into(),
+                ),
+                ty: Type::Bool,
+                constant: false,
+            }
+            .into(),
+        );
+
+        assert!(
+            !left.structurally_equivalent(&right),
+            "Expressions using different registers/clbits should not be structurally equivalent"
+        );
+
+        // We're happy as long as the variables are of the same kind.
+        let key_func = |v: &Var| -> &str {
+            match v {
+                Var::Standalone { .. } => "standalone",
+                Var::Bit { .. } => "bit",
+                Var::Register { .. } => "register",
+            }
+        };
+
+        assert!(
+            left.structurally_equivalent_by_key(key_func, &right, key_func),
+            "Expressions that only care that their vars are of the same kind should be equivalent"
+        );
+
         Ok(())
     }
 }

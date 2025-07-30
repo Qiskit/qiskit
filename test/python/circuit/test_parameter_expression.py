@@ -505,3 +505,17 @@ class TestParameterExpression(QiskitTestCase):
         expected = sympy.Abs(expected)
         expected = expected.subs({c: a})
         self.assertEqual(result, expected)
+
+    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
+    def test_sympify_subs_vector(self):
+        """Test an expression with subbed ParameterVectorElements is sympifiable"""
+        import sympy
+
+        p_vec = ParameterVector("p", length=2)
+        theta = Parameter("theta")
+
+        expression = theta + 1
+        expression = expression.subs({theta: p_vec[0]})
+        result = expression.sympify()
+        expected = sympy.Symbol("p[0]") + 1
+        self.assertEqual(expected, result)
