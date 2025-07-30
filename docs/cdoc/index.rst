@@ -62,6 +62,7 @@ results transpiling circuits from Python via the C API.
    :maxdepth: 1
 
    qk-transpiler-passes
-   qk-vf2-layout-result
    qk-target
    qk-target-entry
+   qk-vf2-layout-result
+   qk-sabre-layout-result
