@@ -2303,6 +2303,91 @@ switch (switch_dummy_0) {
         test = dumps(qc)
         self.assertEqual(test, expected)
 
+    def test_simple_defcal(self):
+        """Test dumping custom non-unitary instructions using implicit defcals."""
+
+        class MyMeasure(Instruction):
+            """Custom measure-like instruction"""
+
+            def __init__(self):
+                super().__init__("measure_2", 1, 1, [])
+
+        class MyReset(Instruction):
+            """Custom reset-like instruction"""
+
+            def __init__(self, angle):
+                super().__init__("reset_2", 1, 0, [angle])
+
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.append(MyMeasure(), [0], [0])
+        with qc.if_test(expr.lift(qc.clbits[0])):
+            qc.append(MyReset(2.5), [0])
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+            "reset_2": DefcalInstruction("reset_2", 1, 1, None),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = measure_2 q[0];
+if (c[0]) {
+  reset_2(2.5) q[0];
+}
+c[0] = measure q[0];
+"""
+        self.assertEqual(expected.strip(), out_qasm.strip())
+
+    def test_parameters_and_defcals_cannot_have_naming_clashes(self):
+        """Test that parameters are renamed to avoid collisions with defcal names."""
+
+        class MyMeasure(Instruction):
+            """Custom measure-like instruction"""
+
+            def __init__(self):
+                super().__init__("measure_2", 1, 1, [])
+
+        class MyReset(Instruction):
+            """Custom reset-like instruction"""
+
+            def __init__(self, angle):
+                super().__init__("reset_2", 1, 0, [angle])
+
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.append(MyMeasure(), [0], [0])
+        with qc.if_test(expr.lift(qc.clbits[0])):
+            qc.append(MyReset(2.5), [0])
+        qc.rz(Parameter("measure_2"), 0)
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+            "reset_2": DefcalInstruction("reset_2", 1, 1, None),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        parameter_name = self.scalar_parameter_regex.search(out_qasm)
+        self.assertTrue(parameter_name)
+        self.assertIn("measure_2", parameter_name["name"])
+        self.assertNotIn(parameter_name["name"], ["measure_2", "reset_2"])
+
 
 class TestExperimentalFeatures(QiskitTestCase):
     """Tests of features that are hidden behind experimental flags."""
@@ -2688,6 +2773,137 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
             dumps(qc, basis_gates=["U", "reset"])
         self.assertIsInstance(cm.exception.__cause__, QASM3ExporterError)
         self.assertRegex(cm.exception.__cause__.message, "cannot use the keyword 'reset'")
+
+    def test_defcal_wrong_num_parameters(self):
+        """Test that defcals must match their corresponding instruction."""
+
+        class MyMeasure(Instruction):
+            """Custom measure-like instruction"""
+
+            def __init__(self):
+                super().__init__("measure_2", 1, 1, [])
+
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 2, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_num_qubits(self):
+        """Test that defcals must have the same number of qubits as their reference instruction."""
+
+        class MyMeasure(Instruction):
+            """Custom measure-like instruction"""
+
+            def __init__(self):
+                super().__init__("measure_2", 1, 1, [])
+
+        qc = QuantumCircuit(2, 1)
+        qc.append(MyMeasure(), [0, 1], [0])
+        qc.rx(Parameter("a"), 0)
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_num_clbits(self):
+        """Test that defcals must have the same number of clbits as their reference instruction."""
+
+        class MyMeasure(Instruction):
+            """Custom measure-like instruction"""
+
+            def __init__(self):
+                super().__init__("measure_2", 1, 1, [])
+
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [])
+        qc.rx(Parameter("a"), 0)
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_return_type(self):
+        """Test that defcals must follow the allowed return types."""
+
+        class MyMeasure(Instruction):
+            """Custom measure-like instruction"""
+
+            def __init__(self):
+                super().__init__("measure_2", 1, 1, [])
+
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Float()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "returns an unsupported classical type: Float()"
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_forbidden_name(self):
+        """Test that defcals must not try to overwrite reserved keywords."""
+
+        class MyMeasure(Instruction):
+            """Custom measure-like instruction"""
+
+            def __init__(self):
+                super().__init__("measure_2", 1, 1, [])
+
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure": DefcalInstruction("measure", 0, 1, types.Bool()),
+        }
+
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "cannot use the keyword 'measure' as a variable name"
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
 
 
 class TestQASM3ExporterRust(QiskitTestCase):
@@ -3257,43 +3473,3 @@ box {
         )
         self.assertEqual(prog.strip(), expected.strip())
         self.assertTrue(skip_triggered)
-
-    def test_simple_defcal(self):
-        class MyMeasure(Instruction):
-            def __init__(self):
-                super().__init__("measure_2", 1, 1, [])
-
-        class MyReset(Instruction):
-            def __init__(self, angle):
-                super().__init__("reset_2", 1, 0, [angle])
-
-        qc = QuantumCircuit(1, 1)
-        qc.h(0)
-        qc.append(MyMeasure(), [0], [0])
-        with qc.if_test(expr.lift(qc.clbits[0])):
-            qc.append(MyReset(2.5), [0])
-        qc.measure(0, 0)
-
-        defcals = {
-            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
-            "reset_2": DefcalInstruction("reset_2", 1, 1, None),
-        }
-        prog = dumps(
-            qc,
-            includes=(),
-            basis_gates=("h", "cx"),
-            disable_constants=True,
-            implicit_defcals=defcals,
-        )
-        expected = """
-OPENQASM 3.0;
-bit[1] c;
-qubit[1] q;
-h q[0];
-c[0] = measure_2 q[0];
-if (c[0]) {
-  reset_2(2.5) q[0];
-}
-c[0] = measure q[0];
-"""
-        self.assertEqual(expected.strip(), prog.strip())
