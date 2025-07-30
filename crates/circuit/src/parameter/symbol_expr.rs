@@ -257,7 +257,7 @@ fn _neg(expr: SymbolExpr) -> SymbolExpr {
 
 impl fmt::Display for SymbolExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.display(false))
+        write!(f, "{}", self.repr(false))
     }
 }
 
@@ -900,7 +900,7 @@ impl SymbolExpr {
     }
 
     pub fn string_id(&self) -> String {
-        self.display(true)
+        self.repr(true)
     }
 
     // Add with heuristic optimization
@@ -2469,7 +2469,7 @@ impl SymbolExpr {
         }
     }
 
-    fn display(&self, with_uuid: bool) -> String {
+    fn repr(&self, with_uuid: bool) -> String {
         match self {
             SymbolExpr::Symbol(e) => match with_uuid {
                 true => format!("{}_{}", e.name(), e.uuid.as_u128()),
@@ -2477,7 +2477,7 @@ impl SymbolExpr {
             },
             SymbolExpr::Value(e) => e.to_string(),
             SymbolExpr::Unary { op, expr } => {
-                let s = expr.display(with_uuid);
+                let s = expr.repr(with_uuid);
                 match op {
                     UnaryOp::Abs => format!("abs({s})"),
                     UnaryOp::Neg => match expr.as_ref() {
@@ -2501,8 +2501,8 @@ impl SymbolExpr {
                 }
             }
             SymbolExpr::Binary { op, lhs, rhs } => {
-                let s_lhs = lhs.display(with_uuid);
-                let s_rhs = rhs.display(with_uuid);
+                let s_lhs = lhs.repr(with_uuid);
+                let s_rhs = rhs.repr(with_uuid);
                 let op_lhs = match lhs.as_ref() {
                     SymbolExpr::Binary { op: lop, .. } => {
                         matches!(lop, BinaryOp::Add | BinaryOp::Sub)
