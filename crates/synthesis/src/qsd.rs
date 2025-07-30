@@ -28,7 +28,7 @@ use smallvec::smallvec;
 use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
 };
-use crate::linalg::{cos_sin_decomp, is_hermitian_matrix};
+use crate::linalg::is_hermitian_matrix;
 use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBasisDecomposer};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
@@ -146,7 +146,11 @@ fn qsd_inner(
         let array = Array2::from_shape_fn((dim, dim), |(i, j)| mat[(i, j)]);
         let sequence = two_qubit_decomposer
             .call_inner(array.view(), None, false, None)
-            .unwrap();
+            .unwrap_or_else(|_|{
+                let u_mat = closest_unitary(mat.clone());
+                let array = Array2::from_shape_fn((dim, dim), |(i, j)| u_mat[(i, j)]);
+                two_qubit_decomposer.call_inner(array.view(), None, false, None).unwrap()
+            });
         return CircuitData::from_packed_operations(
             num_qubits as u32,
             0,
@@ -220,6 +224,18 @@ fn qsd_inner(
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)]);
     append(&mut out, right_circuit, &qr)?;
     Ok(out)
+}
+
+/// Given a matrix that is "close" to unitary, returns the closest
+/// unitary matrix.
+/// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
+fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
+    // This implementation consumes the original mat but avoids calling
+    // an unnecessary clone.
+    let svd = mat.svd(true, true);
+    let u = svd.u.unwrap();
+    let v_t = svd.v_t.unwrap();
+    &u * &v_t
 }
 
 fn _zxz_decomp_svd(A: DMatrix<Complex64>) -> (DMatrix<Complex64>, DMatrix<Complex64>) {
