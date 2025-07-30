@@ -22,13 +22,36 @@ use qiskit_circuit::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
 /// layout. This struct tracks these details and provide an interface to reason
 /// about these permutations.
 pub struct TranspileLayout {
+    /// The initial layout which is mapping the virtual qubits in the input circuit to the
+    /// transpiler to the physical qubits used on the transpilation target
     initial_layout: NLayout,
+    /// The optional routing permutation that
+    /// represents the permutation caused by routing or permutation elision during
+    /// transpilation. This vector maps the qubits at the start of the circuit to their
+    /// final position/physical qubit at the end of the circuit.
     routing_permutation: Option<Vec<PhysicalQubit>>,
+    /// The number of qubits in the input circuit to the transpiler.
     input_qubit_count: u32,
+    /// The number of qubits in the output circuit, this will differ from `input_qubit_count`
+    /// when the transpiler allocates ancilla qubits when the target has more physical qubits
+    /// than the input circuit has virtual qubits.
     output_qubit_count: u32,
 }
 
 impl TranspileLayout {
+
+    /// Construct a new [`TranspileLayout`] object
+    ///
+    /// # Args
+    ///
+    /// - `initial_layout` - The initial layout which is mapping from the virtual qubits in the
+    ///     input circuit to the transpiler to the physical qubits used on the transpilation target
+    /// - `routing_permutation` - The optional routing permutation that
+    ///     represents the permutation caused by routing or permutation elision during
+    ///     transpilation. This vector maps the qubits at the start of the circuit to their
+    ///     final position/physical qubit at the end of the circuit.
+    /// - `input_qubit_count` - The number of qubits in the input circuit
+    /// - `output_qubit_count` - The number of qubits in the output circuit,
     pub fn new(
         initial_layout: NLayout,
         routing_permutation: Option<Vec<PhysicalQubit>>,
@@ -78,11 +101,32 @@ impl TranspileLayout {
     }
 
     /// Return the routing permutation
+    ///
+    /// This method returns an option slice, if it is `Some` then there
+    /// was a permutation introduced by the transpiler typically caused
+    /// by either routing or permutation elision. The slice contained
+    /// in the return represents the mapping of the qubits at the start
+    /// of the circuit for each index to their final position/physical
+    /// qubit at the end of the circuit.
+    ///
+    /// If you would instead prefer to represent no permutation case with
+    /// an explicit trivial permutation (e.g. `[0, 1, 2, 3]`) then you can
+    /// use [`explicit_routing_permutation`] which always returns a slice.
     pub fn routing_permutation(&self) -> Option<&[PhysicalQubit]> {
         self.routing_permutation.as_deref()
     }
 
     /// Return the routing permutation explicitly
+    ///
+    /// This method returns a slice, of the permutation introduced by the
+    /// transpiler typically caused by either routing or permutation elision.
+    /// The slice contained in the return represents the mapping of the qubits
+    /// at the start of the circuit for each index to their final position/physical
+    /// qubit at the end of the circuit.
+    ///
+    /// If you would instead prefer to represent no permutation case with
+    /// a `None` then you can use [`routing_permutation`] which returns an
+    /// `Option<&[PhysicalQubit]>`.
     pub fn explicit_routing_permutation(&self) -> std::borrow::Cow<'_, [PhysicalQubit]> {
         match self.routing_permutation {
             Some(ref perm) => std::borrow::Cow::Borrowed(perm),
@@ -179,7 +223,7 @@ impl TranspileLayout {
     /// tqc.cx(2, 1)
     /// ```
     ///
-    /// then the `final_index_layout` method returns:
+    /// then the `final_layout` method returns:
     ///
     /// | Virtual Qubit | Physical Qunit |
     /// |---------------|----------------|
