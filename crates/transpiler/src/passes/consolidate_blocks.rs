@@ -77,11 +77,11 @@ fn get_decomposer_and_basis_gate(
 ) -> (DecomposerType, StandardGate) {
     if let Some(target) = target {
         // Targets from C should only support Standard gates.
-        if let Some(gate) = KAK_GATES_PARAM
-            .iter()
-            .find(|gate| target.contains_key(gate.name()))
-            .copied()
-        {
+        if let Some(gate) = target.operations().find_map(|op| {
+            op.operation
+                .try_standard_gate()
+                .and_then(|gate| KAK_GATES_PARAM.contains(&gate).then_some(gate))
+        }) {
             return (
                 DecomposerType::TwoQubitControlledU(
                     TwoQubitControlledUDecomposer::new(RXXEquivalent::Standard(gate), "ZXZ")
@@ -95,11 +95,11 @@ fn get_decomposer_and_basis_gate(
                 gate,
             );
         }
-        if let Some(gate) = KAK_GATES
-            .iter()
-            .find(|gate| target.contains_key(gate.name()))
-            .copied()
-        {
+        if let Some(gate) = target.operations().find_map(|op| {
+            op.operation
+                .try_standard_gate()
+                .and_then(|gate| KAK_GATES.contains(&gate).then_some(gate))
+        }) {
             return (DecomposerType::TwoQubitBasis(
                 TwoQubitBasisDecomposer::new_inner(
                     gate.into(),
