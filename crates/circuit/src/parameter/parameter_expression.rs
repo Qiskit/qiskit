@@ -54,6 +54,8 @@ pub enum ParameterError {
     InvalidU8ToOpCode(u8),
     #[error("Could not cast to Symbol.")]
     NotASymbol,
+    #[error("Derivative not supported on expression: {0}")]
+    DerivativeNotSupported(String),
 }
 
 impl From<ParameterError> for PyErr {
@@ -121,7 +123,7 @@ impl fmt::Display for ParameterExpression {
             } else {
                 match self.expr.eval(true) {
                     Some(e) => e.to_string(),
-                    None => self.expr.optimize().to_string(),
+                    None => self.expr.to_string(),
                 }
             }
         })
@@ -413,9 +415,12 @@ impl ParameterExpression {
     /// Note that this keeps the name map unchanged. Meaning that computing the derivative
     /// of ``x`` will yield ``1`` but the expression still owns the symbol ``x``. This is
     /// done such that we can still bind the value ``x`` in an automated process.
-    pub fn derivative(&self, param: &Symbol) -> Result<Self, String> {
+    pub fn derivative(&self, param: &Symbol) -> Result<Self, ParameterError> {
         Ok(Self {
-            expr: self.expr.derivative(param)?,
+            expr: self
+                .expr
+                .derivative(param)
+                .map_err(ParameterError::DerivativeNotSupported)?,
             name_map: self.name_map.clone(),
         })
     }
@@ -883,10 +888,7 @@ impl PyParameterExpression {
     ///     The derivative.
     pub fn gradient(&self, param: &Bound<'_, PyAny>) -> PyResult<Self> {
         let symbol = symbol_from_py_parameter(param)?;
-        let d_expr = self
-            .inner
-            .derivative(&symbol)
-            .map_err(PyRuntimeError::new_err)?;
+        let d_expr = self.inner.derivative(&symbol)?;
         Ok(d_expr.into())
     }
 

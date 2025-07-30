@@ -2332,13 +2332,7 @@ impl CircuitData {
                          value: &Param,
                          coerce: bool|
          -> PyResult<Param> {
-            // let as_str = expr.call_method0("__str__")?;
-            // let params = expr.getattr(parameters_attr)?;
-            // println!("expr {as_str:?} {params:?}");
             let new_expr = expr.call_method1(assign_attr, (param_ob, value.into_py_any(py)?))?;
-            // let as_str = new_expr.call_method0("__str__")?;
-            // let params = new_expr.getattr(parameters_attr)?;
-            // println!("new_expr {as_str:?} {params:?}");
             if new_expr.getattr(parameters_attr)?.len()? == 0 {
                 let out = new_expr.call_method0(numeric_attr)?;
                 if coerce {
