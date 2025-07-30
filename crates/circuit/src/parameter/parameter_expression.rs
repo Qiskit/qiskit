@@ -297,6 +297,11 @@ impl ParameterExpression {
         Box::new(self.name_map.values().cloned())
     }
 
+    /// Whether the expression represents a complex number. None if cannot be determined.
+    pub fn is_complex(&self) -> Option<bool> {
+        self.expr.is_complex()
+    }
+
     /// Add an expression; ``self + rhs``.
     pub fn add(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.merged_name_map(rhs)?;
@@ -701,16 +706,16 @@ impl PyParameterExpression {
     pub fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(i) = ob.extract::<i64>() {
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(i)), HashMap::new()).into())
-        } else if let Ok(c) = ob.extract::<Complex64>() {
-            if c.is_infinite() || c.is_nan() {
-                return Err(ParameterError::InvalidValue.into());
-            }
-            Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(c)), HashMap::new()).into())
         } else if let Ok(r) = ob.extract::<f64>() {
             if r.is_infinite() || r.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(r)), HashMap::new()).into())
+        } else if let Ok(c) = ob.extract::<Complex64>() {
+            if c.is_infinite() || c.is_nan() {
+                return Err(ParameterError::InvalidValue.into());
+            }
+            Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(c)), HashMap::new()).into())
         } else if let Ok(element) = ob.extract::<PyParameterVectorElement>() {
             Ok(ParameterExpression::from_symbol(element.symbol.clone()).into())
         } else if let Ok(parameter) = ob.extract::<PyParameter>() {
@@ -721,7 +726,7 @@ impl PyParameterExpression {
     }
 
     pub fn coerce_into_py(&self, py: Python) -> PyResult<PyObject> {
-        if let Ok(value) = self.inner.try_to_value(false) {
+        if let Ok(value) = self.inner.try_to_value(true) {
             match value {
                 Value::Int(i) => Ok(PyInt::new(py, i).unbind().into_any()),
                 Value::Real(r) => Ok(PyFloat::new(py, r).unbind().into_any()),

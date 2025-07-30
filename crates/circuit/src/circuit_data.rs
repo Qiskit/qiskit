@@ -2365,17 +2365,18 @@ impl CircuitData {
                                 return Err(inconsistent());
                             };
                             let new_param = bind_expr(expr, &param_ob, value.as_ref(), true)?;
-                            params[parameter] = match new_param.clone() {
-                                Param::Obj(obj) => Python::with_gil(|py| {
-                                    let bound_repr = obj.bind(py).repr()?;
-                                    Err(CircuitError::new_err(format!(
-                                        "bad type after binding for gate '{}': '{}'",
+
+                            // standard gates don't allow for complex parameters
+                            if let Param::ParameterExpression(expr) = &new_param {
+                                if expr.is_complex().is_some_and(|val| val) {
+                                    return Err(CircuitError::new_err(format!(
+                                        "bad type after binding for gate '{}': '{:?}'",
                                         standard.name(),
-                                        bound_repr,
-                                    )))
-                                })?,
-                                param => param,
-                            };
+                                        expr,
+                                    )));
+                                }
+                            }
+                            params[parameter] = new_param.clone();
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
                             }
@@ -2423,8 +2424,19 @@ impl CircuitData {
                                         // `ParameterExperssion` after binding would have been coerced
                                         // to a numeric quantity already, so the match here is
                                         // definitely parameterized.
-                                        match new_param {
-                                            Param::ParameterExpression(_) => new_param,
+                                        match &new_param {
+                                            Param::ParameterExpression(expr) => match expr
+                                                .try_to_value(true)
+                                            {
+                                                Ok(_) => {
+                                                    // fully bound, validate parameters
+                                                    Param::extract_no_coerce(&op.call_method1(
+                                                        validate_parameter_attr,
+                                                        (new_param,),
+                                                    )?)?
+                                                }
+                                                Err(_) => new_param, // not bound yet, cannot validate
+                                            },
                                             new_param => {
                                                 Param::extract_no_coerce(&op.call_method1(
                                                     validate_parameter_attr,

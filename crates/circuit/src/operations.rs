@@ -157,7 +157,6 @@ impl Param {
     /// - `Param` - The [Param] object.
     pub fn from_expr(expr: ParameterExpression, coerce: bool) -> Self {
         match expr.try_to_value(true) {
-            // not sure if strict should be false
             Ok(value) => match value {
                 Value::Int(i) => {
                     if coerce {
@@ -185,7 +184,6 @@ impl Param {
     pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
-        // } else if let Ok(py_expr) = ob.extract::<PyParameterExpression>() {
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
             // don't get confused by the `coerce` name here -- we promise to not coerce to
             // Param::Float, but we do want all numeric types to be PyParameterExpression
