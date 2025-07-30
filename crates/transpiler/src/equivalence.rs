@@ -771,7 +771,7 @@ fn rebind_equiv(
             .collect();
     equiv_circuit
         .0
-        .assign_parameters_from_mapping(py, param_mapping?)?;
+        .assign_parameters_from_mapping(param_mapping?)?;
     Ok(equiv_circuit)
 }
 

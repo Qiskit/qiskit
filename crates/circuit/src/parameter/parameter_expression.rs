@@ -14,7 +14,7 @@ use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
-use pyo3::types::{IntoPyDict, PyNotImplemented, PySet, PyString};
+use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PyNotImplemented, PySet, PyString};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -698,7 +698,7 @@ impl PyParameterExpression {
     ///
     /// * `Ok(Self)` - The extracted expression.
     /// * `Err(PyResult)` - An error if extraction to all above types failed.
-    fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
+    pub fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
         if let Ok(i) = ob.extract::<i64>() {
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(i)), HashMap::new()).into())
         } else if let Ok(c) = ob.extract::<Complex64>() {
@@ -721,7 +721,13 @@ impl PyParameterExpression {
     }
 
     pub fn coerce_into_py(&self, py: Python) -> PyResult<PyObject> {
-        if let Ok(symbol) = self.inner.try_to_symbol() {
+        if let Ok(value) = self.inner.try_to_value(false) {
+            match value {
+                Value::Int(i) => Ok(PyInt::new(py, i).unbind().into_any()),
+                Value::Real(r) => Ok(PyFloat::new(py, r).unbind().into_any()),
+                Value::Complex(c) => Ok(PyComplex::from_complex_bound(py, c).unbind().into_any()),
+            }
+        } else if let Ok(symbol) = self.inner.try_to_symbol() {
             if symbol.index.is_some() {
                 Ok(Py::new(py, PyParameterVectorElement::from_symbol(symbol))?.into_any())
             } else {
@@ -1383,6 +1389,10 @@ impl PyParameter {
         PyClassInitializer::from(py_expr).add_subclass(py_parameter)
     }
 
+    pub fn symbol(&self) -> Symbol {
+        self.symbol.clone()
+    }
+
     /// Get a reference to the underlying symbol.
     pub fn symbol_ref(&self) -> &Symbol {
         &self.symbol
@@ -1582,6 +1592,10 @@ impl<'py> IntoPyObject<'py> for PyParameterVectorElement {
 }
 
 impl PyParameterVectorElement {
+    pub fn symbol(&self) -> Symbol {
+        self.symbol.clone()
+    }
+
     pub fn from_symbol(symbol: Symbol) -> PyClassInitializer<Self> {
         let py_element = Self {
             symbol: symbol.clone(),

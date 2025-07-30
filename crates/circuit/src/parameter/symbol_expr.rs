@@ -11,7 +11,9 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
+use pyo3::exceptions::PyTypeError;
 use pyo3::exceptions::PyValueError;
+use pyo3::IntoPyObjectExt;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -56,6 +58,32 @@ impl PartialOrd for Symbol {
 impl Hash for Symbol {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         (&self.name, self.uuid, self.index).hash(state);
+    }
+}
+
+impl<'py> FromPyObject<'py> for Symbol {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(py_vector_element) = ob.extract::<PyParameterVectorElement>() {
+            Ok(py_vector_element.symbol())
+        } else if let Ok(py_param) = ob.extract::<PyParameter>() {
+            Ok(py_param.symbol())
+        } else {
+            Err(PyTypeError::new_err("Cannot extract Symbol from {ob:?}"))
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Symbol {
+    type Target = PyAny; // to cover PyParameter and PyParameterVectorElement
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match (&self.index, &self.vector) {
+            (Some(_), Some(_)) => Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?
+                .into_bound_py_any(py),
+            _ => Py::new(py, PyParameter::from_symbol(self.clone()))?.into_bound_py_any(py),
+        }
     }
 }
 
@@ -758,13 +786,7 @@ impl SymbolExpr {
 
     /// check if real number or not
     pub fn is_real(&self) -> Option<bool> {
-        match self.eval(true) {
-            Some(v) => match v {
-                Value::Real(_) | Value::Int(_) => Some(true),
-                Value::Complex(c) => Some((-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)),
-            },
-            None => None,
-        }
+        self.eval(true).map(|value| value.is_real())
     }
 
     /// check if integer or not
@@ -2931,6 +2953,13 @@ impl Value {
             Value::Real(e) => *e,
             Value::Int(e) => *e as f64,
             Value::Complex(e) => e.re,
+        }
+    }
+
+    pub fn is_real(&self) -> bool {
+        match self {
+            Value::Real(_) | Value::Int(_) => true,
+            Value::Complex(c) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im),
         }
     }
 

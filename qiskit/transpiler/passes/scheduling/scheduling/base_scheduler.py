@@ -15,7 +15,6 @@
 import warnings
 
 from qiskit.circuit import Delay, Gate
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -74,11 +73,14 @@ class BaseScheduler(AnalysisPass):
             except TranspilerError:
                 duration = None
 
-        if isinstance(duration, ParameterExpression):
+        try:
+            duration = float(duration)  # duration could be a ParameterExpression
+        except TypeError as exc:
             raise TranspilerError(
                 f"Parameterized duration ({duration}) "
                 f"of {node.op.name} on qubits {indices} is not bounded."
-            )
+            ) from exc
+
         if duration is None:
             raise TranspilerError(f"Duration of {node.op.name} on qubits {indices} is not found.")
 

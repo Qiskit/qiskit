@@ -20,7 +20,7 @@ use crate::imports::{DEEPCOPY, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
-use crate::parameter::symbol_expr::Symbol;
+use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::{gate_matrix, impl_intopyobject_for_copy_pyclass, Qubit};
 
 use nalgebra::{Matrix2, Matrix4};
@@ -143,13 +143,52 @@ impl Param {
         }
     }
 
+    /// Construct a [Param] from a [ParameterExpression]. Allows type coercion.
+    ///
+    /// # Arguments
+    ///
+    /// * expr - The expression to construct the [Param] from.
+    /// * coerce - If `true`, coerce integers and complex (with 0 imaginary part) types to
+    ///     [Param::Float]. If `false`, only float types are [Param::Float] and integers and
+    ///     complex numbers are represented as [Param::ParameterExpression].
+    ///
+    /// # Returns
+    ///
+    /// - `Param` - The [Param] object.
+    pub fn from_expr(expr: ParameterExpression, coerce: bool) -> Self {
+        match expr.try_to_value(true) {
+            // not sure if strict should be false
+            Ok(value) => match value {
+                Value::Int(i) => {
+                    if coerce {
+                        Self::Float(i as f64) // coerce integer to float
+                    } else {
+                        Self::ParameterExpression(expr) // keep integer inside the expression
+                    }
+                }
+                Value::Real(f) => Self::Float(f),
+                Value::Complex(c) => {
+                    if coerce && value.is_real() {
+                        Self::Float(c.re)
+                    } else {
+                        Self::ParameterExpression(expr)
+                    }
+                }
+            },
+            Err(_) => Self::ParameterExpression(expr),
+        }
+    }
+
     /// Extract from a Python object without numeric coercion to float.  The default conversion will
     /// coerce integers into floats, but in things like `assign_parameters`, this is not always
     /// desirable.
     pub fn extract_no_coerce(ob: &Bound<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
-        } else if let Ok(py_expr) = ob.extract::<PyParameterExpression>() {
+        // } else if let Ok(py_expr) = ob.extract::<PyParameterExpression>() {
+        } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
+            // don't get confused by the `coerce` name here -- we promise to not coerce to
+            // Param::Float, but we do want all numeric types to be PyParameterExpression
             Param::ParameterExpression(py_expr.inner)
         } else {
             Param::Obj(ob.clone().unbind())

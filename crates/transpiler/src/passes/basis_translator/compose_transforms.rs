@@ -46,6 +46,9 @@ pub(super) fn compose_transforms<'a>(
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
 
+        // TODO: Follow-up by replacing with Param::ParamterExpression(Symbol),
+        // as ParameterVector is not exposed in Rust. Maybe we ought to add a function
+        // for convenient construction, if it would be useful.
         let placeholder_params: SmallVec<[Param; 3]> = PARAMETER_VECTOR
             .get_bound(py)
             .call1((&gate_name, num_params))?
@@ -112,7 +115,7 @@ pub(super) fn compose_transforms<'a>(
                     let mut replacement = equiv.clone();
                     replacement
                         .0
-                        .assign_parameters_from_mapping(py, param_mapping)?;
+                        .assign_parameters_from_mapping(param_mapping)?;
                     let replace_dag: DAGCircuit = DAGCircuit::from_circuit_data(
                         &replacement.0,
                         true,
