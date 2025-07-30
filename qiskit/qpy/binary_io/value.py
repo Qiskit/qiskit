@@ -238,35 +238,6 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
             file_obj.write(elem_header)
             file_obj.write(symbol_data)
             file_obj.write(value_data)
-        for symbol in extra_symbols.values():
-            symbol_key = type_keys.Value.assign(symbol)
-            # serialize key
-            if symbol_key == type_keys.Value.PARAMETER_VECTOR:
-                symbol_data = common.data_to_binary(symbol, _write_parameter_vec)
-            elif symbol_key == type_keys.Value.PARAMETER_EXPRESSION:
-                symbol_data = common.data_to_binary(
-                    symbol,
-                    _write_parameter_expression,
-                    use_symengine=use_symengine,
-                    version=version,
-                )
-            else:
-                symbol_data = common.data_to_binary(symbol, _write_parameter)
-            # serialize value
-
-            value_key, value_data = dumps_value(
-                symbol, version=version, use_symengine=use_symengine
-            )
-
-            elem_header = struct.pack(
-                formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
-                symbol_key,
-                value_key,
-                len(value_data),
-            )
-            file_obj.write(elem_header)
-            file_obj.write(symbol_data)
-            file_obj.write(value_data)
 
 
 class _ExprWriter(expr.ExprVisitor[None]):
@@ -1003,6 +974,7 @@ def dumps_value(
     Raises:
         QpyError: Serializer for given format is not ready.
     """
+    # patch to ensure Parameter objects are treated as such
     type_key = type_keys.Value.assign(obj)
 
     if type_key == type_keys.Value.INTEGER:

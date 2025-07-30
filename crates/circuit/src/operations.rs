@@ -37,7 +37,7 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
 
-#[derive(Clone, Debug, IntoPyObjectRef)]
+#[derive(Clone, Debug)]
 pub enum Param {
     // TODO I wonder if we need to store an enum here with Parameter, ParameterVectorElement
     // and ParameterExpression here?
@@ -46,13 +46,13 @@ pub enum Param {
     Obj(PyObject),
 }
 
-impl<'py> IntoPyObject<'py> for Param {
+impl<'py> IntoPyObject<'py> for &Param {
     type Target = PyAny; // target type is PyAny to cover f64, PyObject and PyParameterExpression
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match &self {
+        match self {
             Param::Float(value) => value.into_bound_py_any(py),
             Param::Obj(py_obj) => py_obj.into_bound_py_any(py),
             Param::ParameterExpression(expr) => {
@@ -60,6 +60,16 @@ impl<'py> IntoPyObject<'py> for Param {
                 py_expr.coerce_into_py(py)?.into_bound_py_any(py)
             }
         }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Param {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (&self).into_pyobject(py)
     }
 }
 
@@ -104,7 +114,7 @@ impl Param {
 
 impl Param {
     /// Get an iterator over any `Symbol` instances tracked within this `Param`.
-    pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
+    pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol> + '_>> {
         match self {
             Param::Float(_) => Ok(Box::new(::std::iter::empty())),
             Param::ParameterExpression(expr) => Ok(expr.iter_symbols()),

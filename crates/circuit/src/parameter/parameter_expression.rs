@@ -292,8 +292,9 @@ impl ParameterExpression {
             .expect("Invalid QPY replay encountered during deserialization: empty OPReplay."))
     }
 
-    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = Symbol>> {
-        self.expr.iter_symbols()
+    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = Symbol> + '_> {
+        // self.expr.iter_symbols()
+        Box::new(self.name_map.values().cloned())
     }
 
     /// Add an expression; ``self + rhs``.
