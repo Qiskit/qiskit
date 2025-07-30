@@ -39,17 +39,16 @@ pub struct TranspileLayout {
 }
 
 impl TranspileLayout {
-
     /// Construct a new [`TranspileLayout`] object
     ///
     /// # Args
     ///
     /// - `initial_layout` - The initial layout which is mapping from the virtual qubits in the
-    ///     input circuit to the transpiler to the physical qubits used on the transpilation target
+    ///   input circuit to the transpiler to the physical qubits used on the transpilation target
     /// - `routing_permutation` - The optional routing permutation that
-    ///     represents the permutation caused by routing or permutation elision during
-    ///     transpilation. This vector maps the qubits at the start of the circuit to their
-    ///     final position/physical qubit at the end of the circuit.
+    ///   represents the permutation caused by routing or permutation elision during
+    ///   transpilation. This vector maps the qubits at the start of the circuit to their
+    ///   final position/physical qubit at the end of the circuit.
     /// - `input_qubit_count` - The number of qubits in the input circuit
     /// - `output_qubit_count` - The number of qubits in the output circuit,
     pub fn new(
