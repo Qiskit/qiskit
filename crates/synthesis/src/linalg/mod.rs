@@ -36,3 +36,15 @@ pub fn is_hermitian_matrix(mat: &DMatrix<Complex64>) -> bool {
     }
     true
 }
+
+/// Given a matrix that is "close" to unitary, returns the closest
+/// unitary matrix.
+/// See https://michaelgoerz.net/notes/finding-the-closest-unitary-for-a-given-matrix/,
+pub fn closest_unitary(mat: DMatrix<Complex64>) -> DMatrix<Complex64> {
+    // This implementation consumes the original mat but avoids calling
+    // an unnecessary clone.
+    let svd = mat.svd(true, true);
+    let u = svd.u.unwrap();
+    let v_t = svd.v_t.unwrap();
+    &u * &v_t
+}

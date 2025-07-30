@@ -2540,7 +2540,7 @@ impl CircuitData {
     /// Clone an empty CircuitData from a given reference.
     ///
     /// The new copy will have the global properties from the provided `CircuitData`.
-    /// The the bit data fields and interners, global phase, etc will be copied to
+    /// The bit data fields and interners, global phase, etc will be copied to
     /// the new returned `CircuitData`, but the `data` field's instruction list will
     /// be empty. This can be useful for scenarios where you want to rebuild a copy
     /// of the circuit from a reference but insert new gates in the middle.
