@@ -341,6 +341,40 @@ impl CircuitData {
         Ok(self_)
     }
 
+    /// Put ``self`` into the canonical physical form, with the given number of qubits.
+    ///
+    /// This acts in place, and does not need to traverse the circuit.  It is intended for use when
+    /// the circuit is known to already represent a physical circuit, and we just need to assert
+    /// that it is canonical physical form.
+    ///
+    /// This erases any information about virtual qubits in the :class:`CircuitData`; if using this
+    /// yourself, you may need to ensure you have created and stored a suitable :class:`.Layout`.
+    /// Effectively, this applies the "trivial" layout mapping virtual qubit 0 to physical qubit 0,
+    /// and so on.
+    ///
+    /// Args:
+    ///     num_qubits: if given, the total number of physical qubits in the output; it must be at
+    ///         least as large as the number of qubits in the circuit.  If not given, the number of
+    ///         qubits is unchanged.
+    #[pyo3(name = "make_physical", signature = (num_qubits=None))]
+    pub fn py_make_physical(&mut self, num_qubits: Option<u32>) -> PyResult<()> {
+        let num_qubits = match num_qubits {
+            Some(num_qubits) => {
+                if (num_qubits as usize) < self.num_qubits() {
+                    return Err(PyValueError::new_err(format!(
+                        "cannot have fewer physical qubits ({}) than virtual ({})",
+                        num_qubits,
+                        self.num_qubits()
+                    )));
+                }
+                num_qubits as usize
+            }
+            None => self.num_qubits(),
+        };
+        self.make_physical(num_qubits);
+        Ok(())
+    }
+
     pub fn __reduce__(self_: &Bound<CircuitData>, py: Python<'_>) -> PyResult<PyObject> {
         let ty: Bound<PyType> = self_.get_type();
         let args = {
@@ -2041,6 +2075,50 @@ impl CircuitData {
             }
         }
         Ok(res)
+    }
+
+    /// Modify `self` to mark its qubits as physical.
+    ///
+    /// This deletes the information about the virtual registers, and replaces it with the single
+    /// (implicitly) physical register.  This method does not need to traverse the circuit.
+    ///
+    /// The qubit indices all stay the same; effectively, this is the application of the "trivial"
+    /// layout.  If the incoming circuit is supposed to be considered physical, this method can be
+    /// used to ensure it is in the canonical physical form.
+    ///
+    /// # Panics
+    ///
+    /// If `num_qubits` is less than the number of qubits in the circuit already.
+    pub fn make_physical(&mut self, num_qubits: usize) {
+        // If this method needs updating, `DAGCircuit::make_physical` probably does too.
+        assert!(
+            num_qubits >= self.num_qubits(),
+            "number of qubits {num_qubits} too small for circuit"
+        );
+        let num_qubits: u32 = num_qubits
+            .try_into()
+            .expect("number of qubits must fit in a u32");
+        // The strategy here is just to modify the qubit and quantum register objects entirely
+        // inplace; we maintain all relative indices, so we don't need to modify any interner keys.
+        let register = QuantumRegister::new_owning("q", num_qubits);
+        let mut registry = ObjectRegistry::with_capacity(num_qubits as usize);
+        let mut locator = BitLocator::with_capacity(num_qubits as usize);
+        for (index, bit) in register.iter().enumerate() {
+            registry
+                .add(bit.clone(), false)
+                .expect("no duplicates, and in-bounds check already performed");
+            locator.insert(
+                bit,
+                BitLocations::new(index as u32, [(register.clone(), index)]),
+            );
+        }
+        let mut register_data = RegisterData::with_capacity(1);
+        register_data
+            .add_register(register, false)
+            .expect("infallible when 'strict=false'");
+        self.qubits = registry;
+        self.qregs = register_data;
+        self.qubit_indices = locator;
     }
 
     /// Append a standard gate to this CircuitData
