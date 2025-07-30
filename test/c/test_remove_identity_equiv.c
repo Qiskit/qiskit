@@ -28,22 +28,23 @@ int test_remove_identity_equiv_removes_gates(void) {
     uint32_t qargs[1] = {
         0,
     };
-    double params[1] = {
+    double params_zero[1] = {
         0.,
     };
+    double params[1] = {
+        1.23,
+    };
     qk_circuit_gate(qc, QkGate_I, qargs, NULL);
-    qk_circuit_gate(qc, QkGate_RZ, qargs, params);
+    qk_circuit_gate(qc, QkGate_RZ, qargs, params_zero);
     qk_circuit_gate(qc, QkGate_RX, qargs, params);
 
     qk_transpiler_pass_standalone_remove_identity_equivalent(qc, target, 1.0);
-    if (qk_circuit_num_instructions(qc) != 0) {
+    if (qk_circuit_num_instructions(qc) != 1) {
         result = EqualityError;
         printf("The gates weren't removed by this circuit");
     }
 
-circuit_cleanup:
     qk_circuit_free(qc);
-cleanup:
     qk_target_free(target);
     return result;
 }
