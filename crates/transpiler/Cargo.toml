@@ -14,6 +14,7 @@ workspace = true
 
 [dependencies]
 rayon.workspace = true
+rayon-cond = "0.4.0"
 numpy.workspace = true
 ahash.workspace = true
 itertools.workspace = true
@@ -26,6 +27,7 @@ qiskit-circuit.workspace = true
 qiskit-synthesis.workspace = true
 qiskit-quantum-info.workspace = true
 thiserror.workspace = true
+fixedbitset = "0.5.7"
 
 [dependencies.uuid]
 workspace = true
@@ -59,4 +61,4 @@ features = ["rayon"]
 pyo3 = { workspace = true, features = ["auto-initialize"] }
 
 [features]
-cache_pygates = ["qiskit-circuit/cache_pygates"]
+cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-synthesis/cache_pygates"]
