@@ -19,15 +19,17 @@ use qiskit_circuit::object_registry::PyObjectAsKey;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
+use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyRuntimeError;
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyTuple};
 use pyo3::BoundObject;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
+use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::object_registry::ObjectRegistry;
-use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
 };
@@ -292,7 +294,7 @@ impl CommutationChecker {
     /// - `library`: An optional existing [CommutationLibrary] with cached entries.
     /// - `cache_max_entries`: The maximum size of the cache.
     /// - `gates`: An optional set of gates (by name) to check commutations for. If `None`,
-    ///     commutation is cached and checked for all gates.
+    ///   commutation is cached and checked for all gates.
     pub fn new(
         library: Option<CommutationLibrary>,
         cache_max_entries: usize,
@@ -618,13 +620,40 @@ fn commutation_precheck(
 }
 
 fn get_matrix(operation: &OperationRef, params: &[Param]) -> Option<Array2<Complex64>> {
-    match operation.matrix(params) {
-        Some(matrix) => Some(matrix),
-        None => match operation {
-            PyGateType(gate) => gate.matrix(&[]),
-            PyOperationType(op) => op.matrix(&[]),
+    if let Some(matrix) = operation.matrix(params) {
+        Some(matrix)
+    } else {
+        match operation {
+            OperationRef::Gate(gate) => Python::with_gil(|py| -> Option<_> {
+                Some(
+                    QI_OPERATOR
+                        .get_bound(py)
+                        .call1((gate.gate.clone_ref(py),))
+                        .ok()?
+                        .getattr(intern!(py, "data"))
+                        .ok()?
+                        .extract::<PyReadonlyArray2<Complex64>>()
+                        .ok()?
+                        .as_array()
+                        .to_owned(),
+                )
+            }),
+            OperationRef::Operation(operation) => Python::with_gil(|py| -> Option<_> {
+                Some(
+                    QI_OPERATOR
+                        .get_bound(py)
+                        .call1((operation.operation.clone_ref(py),))
+                        .ok()?
+                        .getattr(intern!(py, "data"))
+                        .ok()?
+                        .extract::<PyReadonlyArray2<Complex64>>()
+                        .ok()?
+                        .as_array()
+                        .to_owned(),
+                )
+            }),
             _ => None,
-        },
+        }
     }
 }
 
