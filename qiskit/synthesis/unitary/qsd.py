@@ -29,7 +29,7 @@ from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 
-# pylint: disable=no-member,invalid-name, unused-variable
+# pylint: disable=invalid-name
 
 
 def qs_decomposition(
@@ -170,11 +170,11 @@ def qs_decomposition(
         A1, A2, B, C = _block_zxz_decomp(np.asarray(mat, dtype=complex))
         iden = np.eye(2 ** (nqubits - 1))
         # left circ
-        left_circ, vmatC, wmatC = _demultiplex(
+        left_circ, vmatC, _wmatC = _demultiplex(
             iden, C, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_w", _depth=_depth
         )
         # right circ
-        right_circ, vmatA, wmatA = _demultiplex(
+        right_circ, _vmatA, wmatA = _demultiplex(
             A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_v", _depth=_depth
         )
 
@@ -237,7 +237,7 @@ def _block_zxz_decomp(Umat):
 def _closest_unitary(mat):
     """Find the closest unitary matrix to a matrix mat."""
 
-    V, S, Wdg = scipy.linalg.svd(mat)
+    V, _S, Wdg = scipy.linalg.svd(mat)
     mat = V @ Wdg
     return mat
 
