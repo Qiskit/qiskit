@@ -84,24 +84,24 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             PhasedQubitSparsePauli(data, num_qubits=4)
         with self.assertRaisesRegex(ValueError, "does not match label"):
             PhasedQubitSparsePauli(data, num_qubits=6)
-    '''
+
     def test_default_constructor_sparse_label(self):
-        data = ("ZX", (0, 3))
+        data = (1, "ZX", (0, 3))
         self.assertEqual(
-            QubitSparsePauli(data, num_qubits=5),
-            QubitSparsePauli.from_sparse_label(data, num_qubits=5),
+            PhasedQubitSparsePauli(data, num_qubits=5),
+            PhasedQubitSparsePauli.from_sparse_label(data, num_qubits=5),
         )
         self.assertEqual(
-            QubitSparsePauli(data, num_qubits=10),
-            QubitSparsePauli.from_sparse_label(data, num_qubits=10),
+            PhasedQubitSparsePauli(data, num_qubits=10),
+            PhasedQubitSparsePauli.from_sparse_label(data, num_qubits=10),
         )
         with self.assertRaisesRegex(ValueError, "'num_qubits' must be provided"):
-            QubitSparsePauli(data)
+            PhasedQubitSparsePauli(data)
         self.assertEqual(
-            QubitSparsePauli(("", []), num_qubits=5),
-            QubitSparsePauli.from_sparse_label(("", []), num_qubits=5),
+            PhasedQubitSparsePauli((0, "", []), num_qubits=5),
+            PhasedQubitSparsePauli.from_sparse_label((0, "", []), num_qubits=5),
         )
-    '''
+
     def test_from_label(self):
         # The label is interpreted like a bitstring, with the right-most item associated with qubit
         # 0, and increasing as we move to the left (like `Pauli`, and other bitstring conventions).
