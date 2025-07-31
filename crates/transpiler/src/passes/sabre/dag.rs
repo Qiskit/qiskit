@@ -148,7 +148,7 @@ impl SabreDAG {
             let NodeType::Operation(inst) = &dag[dag_node] else {
                 panic!("op nodes should always be of type `Operation`");
             };
-            let kind = InteractionKind::from_op(&inst.op, dag.get_qargs(inst.qubits))?;
+            let kind = InteractionKind::from_op(inst.op(), dag.get_qargs(inst.qubits))?;
             let sabre_node = sabre.add_node(SabreNode::new(dag_node, kind));
             for edge in dag.dag().edges_directed(dag_node, Direction::Incoming) {
                 if let Some(parent) = wire_pos.insert(*edge.weight(), sabre_node) {
