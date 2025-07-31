@@ -178,9 +178,9 @@ impl ParameterExpression {
     /// # Arguments
     ///
     /// * strict - If ``true``, only allow returning a value if all symbols are bound. If
-    ///     ``false``, allow casting expressions to values, even though symbols might still exist.
-    ///     For example, ``0 * x`` will return ``0`` for ``strict=false`` and otherwise return
-    ///     an error.
+    ///   ``false``, allow casting expressions to values, even though symbols might still exist.
+    ///   For example, ``0 * x`` will return ``0`` for ``strict=false`` and otherwise return
+    ///   an error.
     pub fn try_to_value(&self, strict: bool) -> Result<Value, ParameterError> {
         if strict && !self.name_map.is_empty() {
             let free_symbols = self.expr.parameters();
@@ -430,10 +430,10 @@ impl ParameterExpression {
     /// # Arguments
     ///
     /// * map - A hashmap with [Symbol] keys and [ParameterExpression]s to replace these
-    ///     symbols with.
+    ///   symbols with.
     /// * allow_unknown_parameters - If `false`, returns an error if any symbol in the
-    ///     hashmap is not present in the expression. If `true`, unknown symbols are ignored.
-    ///     Setting to `true` is slightly faster as it does not involve additional checks.
+    ///   hashmap is not present in the expression. If `true`, unknown symbols are ignored.
+    ///   Setting to `true` is slightly faster as it does not involve additional checks.
     ///
     /// # Returns
     ///
@@ -512,10 +512,10 @@ impl ParameterExpression {
     /// # Arguments
     ///
     /// * map - A hashmap with [Symbol] keys and [Value]s to replace these
-    ///     symbols with.
+    ///   symbols with.
     /// * allow_unknown_parameter - If `false`, returns an error if any symbol in the
-    ///     hashmap is not present in the expression. If `true`, unknown symbols are ignored.
-    ///     Setting to `true` is slightly faster as it does not involve additional checks.
+    ///   hashmap is not present in the expression. If `true`, unknown symbols are ignored.
+    ///   Setting to `true` is slightly faster as it does not involve additional checks.
     ///
     /// # Returns
     ///
@@ -768,7 +768,7 @@ impl PyParameterExpression {
     /// Get the parameters present in the expression.
     ///
     /// .. note::
-    ///     
+    ///
     ///     Qiskit guarantees equality (via ``==``) of parameters retrieved from an expression
     ///     with the original :class:`.Parameter` objects used to create this expression,
     ///     but does **not guarantee** ``is`` comparisons to succeed.
