@@ -81,6 +81,70 @@ class TestPassManager(QiskitTestCase):
         self.assertEqual(calls[0]["property_set"], PropertySet())
         self.assertEqual("MyCircuit", calls[1]["dag"].name)
 
+    def test_callback_multi_circuits(self):
+        """Test callback with multiple circuits."""
+
+        qr = QuantumRegister(1, "qr")
+
+        circuit1 = QuantumCircuit(qr, name="Circuit1")
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+        expected_start_1 = QuantumCircuit(qr)
+        expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
+        expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
+        expected_start_1.append(U2Gate(0, np.pi), [qr[0]])
+
+        circuit2 = circuit1.copy(name="Circuit2")
+
+        def callback(**kwargs):
+            dag = kwargs["dag"]
+            dag.name += "_callback"
+
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
+        passmanager.append(Optimize1qGates())
+
+        out_circuits = passmanager.run([circuit1, circuit2], callback=callback)
+
+        # Check that callback visibly modified circuit names
+        self.assertTrue(out_circuits[0].name.endswith("_callback"))
+        self.assertTrue(out_circuits[1].name.endswith("_callback"))
+
+    def test_callback_multi_circuits_lambda(self):
+        """Test callback with multiple circuits using lambda function."""
+
+        qr = QuantumRegister(1, "qr")
+
+        circuit1 = QuantumCircuit(qr, name="Circuit1")
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+        circuit1.h(qr[0])
+
+        circuit2 = circuit1.copy(name="Circuit2")
+
+        # Run pass manager with lambda callback that modifies the DAG by appending XGate
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
+        passmanager.append(Optimize1qGates())
+
+        from qiskit.circuit.library import XGate
+
+        out_circuits = passmanager.run(
+            [circuit1, circuit2],
+            callback=lambda **kwargs: kwargs["dag"].apply_operation_back(
+                XGate(), [kwargs["dag"].qubits[0]]
+            ),
+        )
+
+        # Check that callback visibly modified the circuits by adding an XGate
+        self.assertIn("x", out_circuits[0].count_ops())
+        self.assertIn("x", out_circuits[1].count_ops())
+
+        # Optional: structure checks for original circuit
+        self.assertTrue(out_circuits[0].name.startswith("Circuit1"))
+        self.assertTrue(out_circuits[1].name.startswith("Circuit2"))
+
     def test_callback_with_pass_requires(self):
         """Test the callback with a pass with pass requirements."""
         qr = QuantumRegister(3, "qr")
