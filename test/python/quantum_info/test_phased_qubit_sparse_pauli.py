@@ -122,7 +122,7 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
                     PhasedQubitSparsePauli.Pauli.X,
                 ],
                 [0, 1, 2, 4, 5, 7, 8, 11, 12],
-                3
+                0
             ),
         )
 

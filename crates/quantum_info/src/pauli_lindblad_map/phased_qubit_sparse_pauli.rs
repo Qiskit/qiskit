@@ -364,8 +364,8 @@ impl PyPhasedQubitSparsePauli {
         )))
     }
 
-    /// Construct a :class:`.QubitSparsePauli` from raw Numpy arrays that match :ref:`the required
-    /// data representation described in the class-level documentation
+    /// Construct a :class:`.PhasedQubitSparsePauli` from raw Numpy arrays that match :ref:`the
+    /// required data representation described in the class-level documentation
     /// <qubit-sparse-pauli-arrays>`.
     ///
     /// The data from each array is copied into fresh, growable Rust-space allocations.
@@ -376,20 +376,20 @@ impl PyPhasedQubitSparsePauli {
     ///         :attr:`~numpy.uint8` (which is compatible with :class:`.Pauli`).
     ///     indices: sorted list of the qubits each single-qubit term corresponds to.  This should
     ///         be a Numpy array with dtype :attr:`~numpy.uint32`.
+    ///     phase: The phase of the operator.
     ///
     /// Examples:
     ///
     ///     Construct a :math:`Z` operator acting on qubit 50 of 100 qubits.
     ///
     ///         >>> num_qubits = 100
-    ///         >>> terms = np.array([QubitSparsePauli.Pauli.Z], dtype=np.uint8)
+    ///         >>> terms = np.array([PhasedQubitSparsePauli.Pauli.Z], dtype=np.uint8)
     ///         >>> indices = np.array([50], dtype=np.uint32)
-    ///         >>> QubitSparsePauli.from_raw_parts(num_qubits, terms, indices)
-    ///         <QubitSparsePauli on 100 qubits: Z_50>
-    /// NOTE: *********************************************************************************************
-    /// The phase here is the internally stored phase, not the "group phase". Need to think about this
+    ///         >>> phase = 0
+    ///         >>> PhasedQubitSparsePauli.from_raw_parts(num_qubits, terms, indices, phase)
+    ///         <PhasedQubitSparsePauli on 100 qubits: Z_50>
     #[staticmethod]
-    #[pyo3(signature = (/, num_qubits, paulis, indices, phase))]
+    #[pyo3(signature = (/, num_qubits, paulis, indices, phase=0))]
     fn from_raw_parts(num_qubits: u32, paulis: Vec<Pauli>, indices: Vec<u32>, phase: isize) -> PyResult<Self> {
         if paulis.len() != indices.len() {
             return Err(CoherenceError::MismatchedItemCount {
@@ -414,7 +414,8 @@ impl PyPhasedQubitSparsePauli {
             sorted_indices.push(index)
         }
         let qubit_sparse_pauli = QubitSparsePauli::new(num_qubits, paulis, sorted_indices.into_boxed_slice())?;
-        let inner = PhasedQubitSparsePauli::new(qubit_sparse_pauli, phase);
+        let num_ys = qubit_sparse_pauli.view().num_ys();
+        let inner = PhasedQubitSparsePauli::new(qubit_sparse_pauli, (phase + num_ys).rem_euclid(4));
         Ok(PyPhasedQubitSparsePauli { inner })
     }
 
