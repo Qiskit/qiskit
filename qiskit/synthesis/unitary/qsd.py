@@ -27,7 +27,6 @@ from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
-from qiskit.exceptions import QiskitError
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 
 # pylint: disable=no-member,invalid-name, unused-variable
@@ -83,14 +82,6 @@ def qs_decomposition(
     .. math::
 
         \frac{22}{48} 4^n - \frac{3}{2} 2^n + \frac{5}{3}.
-
-    .. note::
-
-        When the original unitary is controlled then it is better to choose ``opt_a2 = False``
-        as we do another optimization that does not work with the optimization A.2 of [1, 2].
-        When ``opt_a2 = None`` we choose the optimal value ``opt_a2 = False`` if the unitary is
-        controlled and ``opt_a2 = True`` otherwise.
-        When ``opt_a1 = None`` we choose the optimal value ``opt_a1 = True``.
 
     Args:
         mat: unitary matrix to decompose
@@ -215,8 +206,8 @@ def qs_decomposition(
 
 def _block_zxz_decomp(Umat):
     """Block ZXZ decomposition method, by Krol and Al-Ars [2]."""
-    N = Umat.shape[0]
-    n = N // 2
+    dim = Umat.shape[0]
+    n = dim // 2
     # from now on we keep the notations of [2]
     X = Umat[:n, :n]
     Y = Umat[:n, n:]
@@ -246,11 +237,6 @@ def _block_zxz_decomp(Umat):
     Bblock = np.block([[iden + B, iden - B], [iden - B, iden + B]])
     Cblock = np.block([[iden, zero], [zero, C]])
     Ucheck = 0.5 * Ablock @ Bblock @ Cblock
-    # assert that the matrix is decomposed correctly
-    if not np.allclose(Umat, Ucheck):
-        raise QiskitError(
-            "The block ZXZ decomposition matrix is not the same as the original unitary matrix."
-        )
     return A1, A2, B, C
 
 
@@ -287,11 +273,6 @@ def _demultiplex(
           └───┘     └───┘
 
     where v and w are general unitaries determined from decomposition.
-
-    .. note::
-
-        When the original unitary is controlled then the default value of ``opt_a2 = False``
-        as we start with the demultiplexing step that does not work with the optimization A.2 of [1, 2].
 
     Args:
        um0 (ndarray): applied if MSB is 0

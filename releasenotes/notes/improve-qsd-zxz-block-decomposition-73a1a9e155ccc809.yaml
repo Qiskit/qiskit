@@ -1,5 +1,5 @@
 ---
-features_synthesis:
+upgrade_synthesis:
   - |
     Improve the :func:`.qs_decomposition` function which was originally based on
     Shende et. al. (https://arxiv.org/abs/quant-ph/0406176).
