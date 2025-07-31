@@ -350,14 +350,14 @@ impl PyPhasedQubitSparsePauli {
             }
             return Self::from_label(&label);
         }
-        //if let Ok(sparse_label) = data.extract() {
-        //    let Some(num_qubits) = num_qubits else {
-        //        return Err(PyValueError::new_err(
-        //            "if using the sparse-label form, 'num_qubits' must be provided",
-        //        ));
-        //    };
-        //    return Self::from_sparse_label(sparse_label, num_qubits);
-        //}
+        if let Ok(sparse_label) = data.extract() {
+            let Some(num_qubits) = num_qubits else {
+                return Err(PyValueError::new_err(
+                    "if using the sparse-label form, 'num_qubits' must be provided",
+                ));
+            };
+            return Self::from_sparse_label(sparse_label, num_qubits);
+        }
         Err(PyTypeError::new_err(format!(
             "unknown input format for 'PhasedQubitSparsePauli': {}",
             data.get_type().repr()?,
@@ -475,14 +475,14 @@ impl PyPhasedQubitSparsePauli {
         Ok(inner.into())
     }
 
-    /// Construct a qubit sparse Pauli from a sparse label, given as a tuple of a string of Paulis,
-    /// and the indices of the corresponding qubits.
+    /// Construct a phased qubit sparse Pauli from a sparse label, given as a tuple of an int for
+    /// phase, a string of Paulis, and the indices of the corresponding qubits.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`.
     ///
     /// Args:
-    ///     sparse_label (tuple[str, Sequence[int]]): labels and the qubits each single-qubit term
-    ///         applies to.
+    ///     sparse_label (tuple[int, str, Sequence[int]]): labels and the qubits each single-qubit
+    ///         term applies to.
     ///
     ///     num_qubits (int): the number of qubits the operator acts on.
     ///
@@ -490,19 +490,19 @@ impl PyPhasedQubitSparsePauli {
     ///
     ///     Construct a simple Pauli::
     ///
-    ///         >>> QubitSparsePauli.from_sparse_label(
-    ///         ...     ("ZX", (1, 4)),
+    ///         >>> PhasedQubitSparsePauli.from_sparse_label(
+    ///         ...     (0, "ZX", (1, 4)),
     ///         ...     num_qubits=5,
     ///         ... )
-    ///         <QubitSparsePauli on 5 qubits: X_4 Z_1>
+    ///         <PhasedQubitSparsePauli on 5 qubits: X_4 Z_1>
     ///
     ///     This method can replicate the behavior of :meth:`from_label`, if the qubit-arguments
     ///     field of the tuple is set to decreasing integers::
     ///
     ///         >>> label = "XYXZ"
-    ///         >>> from_label = QubitSparsePauli.from_label(label)
-    ///         >>> from_sparse_label = QubitSparsePauli.from_sparse_label(
-    ///         ...     (label, (3, 2, 1, 0)),
+    ///         >>> from_label = PhasedQubitSparsePauli.from_label(label)
+    ///         >>> from_sparse_label = PhasedQubitSparsePauli.from_sparse_label(
+    ///         ...     (0, label, (3, 2, 1, 0)),
     ///         ...     num_qubits=4
     ///         ... )
     ///         >>> assert from_label == from_sparse_label
