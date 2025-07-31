@@ -59,6 +59,7 @@ def pauli_two_design(
     Examples:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit.circuit.library import pauli_two_design
@@ -148,6 +149,7 @@ class PauliTwoDesign(TwoLocal):
     Examples:
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit.circuit.library import PauliTwoDesign
@@ -168,9 +170,9 @@ class PauliTwoDesign(TwoLocal):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use the function qiskit.circuit.library.pauli_two_design instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,

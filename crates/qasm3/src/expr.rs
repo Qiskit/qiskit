@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use pyo3::IntoPyObjectExt;
 
 use hashbrown::HashMap;
 
@@ -43,14 +44,12 @@ pub fn eval_gate_param(
                         })
                     }
                     expr => Err(QASM3ImporterError::new_err(format!(
-                        "unhandled expression for floating-point constant: {:?}",
-                        expr
+                        "unhandled expression for floating-point constant: {expr:?}"
                     ))),
                 }
             } else {
                 Err(QASM3ImporterError::new_err(format!(
-                    "expected a constant float, but found a runtime value: {:?}",
-                    param
+                    "expected a constant float, but found a runtime value: {param:?}"
                 )))
             }
         }
@@ -58,8 +57,7 @@ pub fn eval_gate_param(
             "the OpenQASM 3 'angle' type is not yet supported",
         )),
         ty => Err(QASM3ImporterError::new_err(format!(
-            "expected an angle-like type, but saw {:?}",
-            ty
+            "expected an angle-like type, but saw {ty:?}"
         ))),
     }
 }
@@ -71,20 +69,17 @@ fn eval_const_int(_py: Python, _ast_symbols: &SymbolTable, expr: &asg::TExpr) ->
                 match expr.expression() {
                     asg::Expr::Literal(asg::Literal::Int(lit)) => Ok(*lit.value() as isize),
                     expr => Err(QASM3ImporterError::new_err(format!(
-                        "unhandled expression type for constant-integer evaluation: {:?}",
-                        expr
+                        "unhandled expression type for constant-integer evaluation: {expr:?}"
                     ))),
                 }
             } else {
                 Err(QASM3ImporterError::new_err(format!(
-                    "expected a constant integer, but found a runtime value: {:?}",
-                    expr
+                    "expected a constant integer, but found a runtime value: {expr:?}"
                 )))
             }
         }
         ty => Err(QASM3ImporterError::new_err(format!(
-            "expected a constant integer, but found a value of type: {:?}",
-            ty
+            "expected a constant integer, but found a value of type: {ty:?}"
         ))),
     }
 }
@@ -92,7 +87,7 @@ fn eval_const_int(_py: Python, _ast_symbols: &SymbolTable, expr: &asg::TExpr) ->
 fn eval_const_uint(py: Python, ast_symbols: &SymbolTable, expr: &asg::TExpr) -> PyResult<usize> {
     eval_const_int(py, ast_symbols, expr).and_then(|val| {
         val.try_into().map_err(|_| {
-            QASM3ImporterError::new_err(format!("expected an unsigned integer but found '{}'", val))
+            QASM3ImporterError::new_err(format!("expected an unsigned integer but found '{val}'"))
         })
     })
 }
@@ -122,10 +117,7 @@ impl<'py> Iterator for BroadcastQubitsIter<'py> {
             BroadcastItem::Register(bits) => bits[offset].clone_ref(self.py),
         };
         self.offset += 1;
-        Some(PyTuple::new_bound(
-            self.py,
-            self.items.iter().map(to_scalar),
-        ))
+        Some(PyTuple::new(self.py, self.items.iter().map(to_scalar)).unwrap())
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -156,8 +148,8 @@ impl<'py> Iterator for BroadcastMeasureIter<'_, 'py> {
         };
         self.offset += 1;
         Some((
-            PyTuple::new_bound(self.py, &[to_scalar(self.qarg)]),
-            PyTuple::new_bound(self.py, &[to_scalar(self.carg)]),
+            PyTuple::new(self.py, &[to_scalar(self.qarg)]).unwrap(),
+            PyTuple::new(self.py, &[to_scalar(self.carg)]).unwrap(),
         ))
     }
 
@@ -177,12 +169,14 @@ fn broadcast_bits_for_identifier<T: PyRegister>(
         Ok(BroadcastItem::Bit(bit.clone()))
     } else if let Some(reg) = registers.get(iden_symbol) {
         Ok(BroadcastItem::Register(
-            reg.bit_list(py).iter().map(|obj| obj.into_py(py)).collect(),
+            reg.bit_list(py)
+                .iter()
+                .map(|obj| obj.into_py_any(py).unwrap())
+                .collect(),
         ))
     } else {
         Err(QASM3ImporterError::new_err(format!(
-            "unknown symbol: {:?}",
-            iden_symbol
+            "unknown symbol: {iden_symbol:?}"
         )))
     }
 }
@@ -229,8 +223,7 @@ fn broadcast_apply_index(
                     Ok(BroadcastItem::Bit(eval_single_index(expr)?))
                 }
                 ty => Err(QASM3ImporterError::new_err(format!(
-                    "unhandled index type: {:?}",
-                    ty
+                    "unhandled index type: {ty:?}"
                 ))),
             }
         }
@@ -280,7 +273,7 @@ pub fn eval_measure_carg(
         asg::LValue::Identifier(iden) => {
             let symbol_id = iden
                 .as_ref()
-                .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
+                .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {err:?}")))?;
             broadcast_bits_for_identifier(py, &our_symbols.clbits, &our_symbols.cregs, symbol_id)
         }
         asg::LValue::IndexedIdentifier(indexed) => {
@@ -305,16 +298,14 @@ pub fn expect_gate_operand(expr: &asg::TExpr) -> PyResult<&asg::GateOperand> {
         Type::Qubit | Type::QubitArray(_) | Type::HardwareQubit => (),
         ty => {
             return Err(QASM3ImporterError::new_err(format!(
-                "unhandled gate operand expression type: {:?}",
-                ty
+                "unhandled gate operand expression type: {ty:?}"
             )));
         }
     }
     match expr.expression() {
         asg::Expr::GateOperand(operand) => Ok(operand),
         expr => Err(QASM3ImporterError::new_err(format!(
-            "internal error: not a gate operand {:?}",
-            expr
+            "internal error: not a gate operand {expr:?}"
         ))),
     }
 }

@@ -17,7 +17,7 @@ from collections.abc import Callable, Iterable
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library.standard_gates import RZGate
+from qiskit.circuit.library.standard_gates import RZGate, XXPlusYYGate
 from qiskit.utils.deprecation import deprecate_func
 from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
@@ -37,7 +37,7 @@ def excitation_preserving(
     parameter_prefix: str = "θ",
     insert_barriers: bool = False,
     name: str = "ExcitationPreserving",
-):
+) -> QuantumCircuit:
     r"""The heuristic excitation-preserving wave function ansatz.
 
     The ``excitation_preserving`` circuit preserves the ratio of :math:`|00\rangle`,
@@ -70,19 +70,21 @@ def excitation_preserving(
         With linear entanglement, this circuit is given by:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
-            :context:
+            :context: close-figs
 
             from qiskit.circuit.library import excitation_preserving
 
             ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
             ansatz.draw("mpl")
 
-        The entanglement structure can be explicitly specified with the ``entanglement`` 
+        The entanglement structure can be explicitly specified with the ``entanglement``
         argument. The ``"fsim"`` mode includes an additional parameterized :class:`.CPhaseGate`
         in each block:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
             :context:
 
@@ -114,8 +116,7 @@ def excitation_preserving(
     theta = Parameter("θ")
     if num_qubits > 1:
         swap = QuantumCircuit(2, name="Interaction")
-        swap.rxx(theta, 0, 1)
-        swap.ryy(theta, 0, 1)
+        swap.append(XXPlusYYGate(2 * theta), [0, 1])
         if mode == "fsim":
             phi = Parameter("φ")
             swap.cp(phi, 0, 1)
@@ -207,15 +208,15 @@ class ExcitationPreserving(TwoLocal):
 
     .. seealso::
 
-        The :func:`.excitation_preserving` function constructs a functionally equivalent circuit, 
+        The :func:`.excitation_preserving` function constructs a functionally equivalent circuit,
         but faster.
 
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use the function qiskit.circuit.library.excitation_preserving instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -270,8 +271,7 @@ class ExcitationPreserving(TwoLocal):
 
         theta = Parameter("θ")
         swap = QuantumCircuit(2, name="Interaction")
-        swap.rxx(theta, 0, 1)
-        swap.ryy(theta, 0, 1)
+        swap.append(XXPlusYYGate(2 * theta), [0, 1])
         if mode == "fsim":
             phi = Parameter("φ")
             swap.cp(phi, 0, 1)

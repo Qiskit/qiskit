@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 """A pass to check if input circuit requires reschedule."""
 
-from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.target import Target
+from qiskit._accelerate.instruction_duration_check import run_instruction_duration_check
 
 
 class InstructionDurationCheck(AnalysisPass):
@@ -22,7 +22,7 @@ class InstructionDurationCheck(AnalysisPass):
 
     This pass investigates the input quantum circuit and checks if the circuit requires
     rescheduling for execution. Note that this pass can be triggered without scheduling.
-    This pass only checks the duration of delay instructions and user defined pulse gates,
+    This pass only checks the duration of delay instructions,
     which report duration values without pre-scheduling.
 
     This pass assumes backend supported instructions, i.e. basis gates, have no violation
@@ -56,23 +56,6 @@ class InstructionDurationCheck(AnalysisPass):
         Args:
             dag: DAG circuit to check instruction durations.
         """
-        self.property_set["reschedule_required"] = False
-
-        # Rescheduling is not necessary
-        if self.acquire_align == 1 and self.pulse_align == 1:
-            return
-
-        # Check delay durations
-        for delay_node in dag.op_nodes(Delay):
-            dur = delay_node.op.duration
-            if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):
-                self.property_set["reschedule_required"] = True
-                return
-
-        # Check custom gate durations
-        for inst_defs in dag._calibrations_prop.values():
-            for caldef in inst_defs.values():
-                dur = caldef.duration
-                if not (dur % self.acquire_align == 0 and dur % self.pulse_align == 0):
-                    self.property_set["reschedule_required"] = True
-                    return
+        self.property_set["reschedule_required"] = run_instruction_duration_check(
+            dag, self.acquire_align, self.pulse_align
+        )

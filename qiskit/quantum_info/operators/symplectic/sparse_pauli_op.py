@@ -30,6 +30,7 @@ from qiskit._accelerate.sparse_pauli_op import (
     to_matrix_sparse,
     unordered_unique,
 )
+from qiskit._accelerate.sparse_observable import SparseObservable
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametertable import ParameterView
@@ -167,7 +168,16 @@ class SparsePauliOp(LinearOp):
             # move the phase of `pauli_list` to `self._coeffs`
             phase = pauli_list._phase
             count_y = pauli_list._count_y()
-            self._coeffs = np.asarray((-1j) ** (phase - count_y) * coeffs, dtype=coeffs.dtype)
+
+            # Compute exponentiation via integer arithmetic and lookup table to avoid
+            # floating point errors
+            exponent = (phase - count_y) % 4
+            lookup = np.array([1 + 0j, -1j, -1 + 0j, 1j], dtype=coeffs.dtype)
+
+            vals = lookup[exponent]
+            self._coeffs = vals * coeffs
+
+            # Update pauli_list phase
             pauli_list._phase = np.mod(count_y, 4)
             self._pauli_list = pauli_list
 
@@ -466,6 +476,18 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
+        paulis_x = self.paulis.x
+        paulis_z = self.paulis.z
+        nz_coeffs = self.coeffs
+
+        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
+            paulis_z, axis=1
+        )
+        indexes, inverses = unordered_unique(array)
+
+        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
+        np.add.at(coeffs, inverses, nz_coeffs)
+
         # Filter non-zero coefficients
         if self.coeffs.dtype == object:
 
@@ -480,21 +502,7 @@ class SparsePauliOp(LinearOp):
             )
         else:
             non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
-        paulis_x = self.paulis.x[non_zero]
-        paulis_z = self.paulis.z[non_zero]
-        nz_coeffs = self.coeffs[non_zero]
 
-        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
-            paulis_z, axis=1
-        )
-        indexes, inverses = unordered_unique(array)
-
-        if np.all(non_zero) and indexes.shape[0] == array.shape[0]:
-            # No zero operator or duplicate operator
-            return self.copy()
-
-        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
-        np.add.at(coeffs, inverses, nz_coeffs)
         # Delete zero coefficient rows
         if self.coeffs.dtype == object:
             is_zero = np.array(
@@ -920,6 +928,27 @@ class SparsePauliOp(LinearOp):
         paulis = PauliList(labels)
         return SparsePauliOp(paulis, coeffs, copy=False)
 
+    @staticmethod
+    def from_sparse_observable(obs: SparseObservable) -> SparsePauliOp:
+        r"""Initialize from a :class:`.SparseObservable`.
+
+        .. warning::
+
+            A :class:`.SparseObservable` can efficiently represent eigenstate projectors
+            (such as :math:`|0\langle\rangle 0|`), but a :class:`.SparsePauliOp` **cannot**.
+            If the input ``obs`` has :math:`n` single-qubit projectors, the resulting
+            :class:`.SparsePauliOp` will use :math:`2^n` terms, which is an exponentially
+            expensive representation that can quickly run out of memory.
+
+        Args:
+            obs: The :class:`.SparseObservable` to convert.
+
+        Returns:
+            A :class:`.SparsePauliOp` version of the observable.
+        """
+        as_sparse_list = obs.as_paulis().to_sparse_list()
+        return SparsePauliOp.from_sparse_list(as_sparse_list, obs.num_qubits)
+
     def to_list(self, array: bool = False):
         """Convert to a list Pauli string labels and coefficients.
 
@@ -961,7 +990,7 @@ class SparsePauliOp(LinearOp):
                 array (the default).
             force_serial: if ``True``, use an unthreaded implementation, regardless of the state of
                 the `Qiskit threading-control environment variables
-                <https://docs.quantum.ibm.com/guides/configure-qiskit-local#environment-variables>`__.
+                <https://quantum.cloud.ibm.com/docs/guides/configure-qiskit-local#environment-variables>`__.
                 By default, this will use threaded parallelism over the available CPUs.
 
         Returns:

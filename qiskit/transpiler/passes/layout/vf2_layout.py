@@ -23,6 +23,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
+from qiskit._accelerate.vf2_layout import vf2_layout_pass, MultiQEncountered
 
 
 logger = logging.getLogger(__name__)
@@ -80,7 +81,6 @@ class VF2Layout(AnalysisPass):
         seed=None,
         call_limit=None,
         time_limit=None,
-        properties=None,
         max_trials=None,
         target=None,
     ):
@@ -94,16 +94,13 @@ class VF2Layout(AnalysisPass):
             call_limit (int): The number of state visits to attempt in each execution of
                 VF2.
             time_limit (float): The total time limit in seconds to run ``VF2Layout``
-            properties (BackendProperties): The backend properties for the backend. If
-                :meth:`~qiskit.providers.models.BackendProperties.readout_error` is available
-                it is used to score the layout.
             max_trials (int): The maximum number of trials to run VF2 to find
                 a layout. If this is not specified the number of trials will be limited
                 based on the number of edges in the interaction graph or the coupling graph
                 (whichever is larger) if no other limits are set. If set to a value <= 0 no
                 limit on the number of trials will be set.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
-                If specified it will supersede a set value for ``properties`` and
+                If specified it will supersede a set value for
                 ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
                 of ``target`` models an ideal backend without any constraints then the value of
                 ``coupling_map``
@@ -114,14 +111,7 @@ class VF2Layout(AnalysisPass):
         """
         super().__init__()
         self.target = target
-        if (
-            target is not None
-            and (target_coupling_map := self.target.build_coupling_map()) is not None
-        ):
-            self.coupling_map = target_coupling_map
-        else:
-            self.coupling_map = coupling_map
-        self.properties = properties
+        self.coupling_map = coupling_map
         self.strict_direction = strict_direction
         self.seed = seed
         self.call_limit = call_limit
@@ -131,13 +121,52 @@ class VF2Layout(AnalysisPass):
 
     def run(self, dag):
         """run the layout method"""
-        if self.coupling_map is None:
+        if self.target is None and self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
+        if self.coupling_map is None:
+            target, coupling_map = self.target, self.target.build_coupling_map()
+        elif self.target is None:
+            coupling_map = self.coupling_map
+            target = vf2_utils.build_dummy_target(coupling_map)
+        else:
+            # We have both, but may need to override the target if it has no connectivity.
+            coupling_map = self.target.build_coupling_map()
+            if coupling_map is None:
+                target = vf2_utils.build_dummy_target(self.coupling_map)
+                coupling_map = self.coupling_map
+            else:
+                target = self.target
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
+        # Run rust fast path if we have no randomization
+        if self.seed == -1:
+            try:
+                layout = vf2_layout_pass(
+                    dag,
+                    target,
+                    self.strict_direction,
+                    self.call_limit,
+                    self.time_limit,
+                    self.max_trials,
+                    self.avg_error_map,
+                )
+            except MultiQEncountered:
+                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
+                return
+            if layout is None:
+                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
+                return
+
+            self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.SOLUTION_FOUND
+            mapping = {dag.qubits[virt]: phys for virt, phys in layout.items()}
+            chosen_layout = Layout(mapping)
+            self.property_set["layout"] = chosen_layout
+            for reg in dag.qregs.values():
+                self.property_set["layout"].add_register(reg)
+            return
+        # We can't use the rust fast path because we have a seed set, or no target so continue with
+        # the python path
         if self.avg_error_map is None:
-            self.avg_error_map = vf2_utils.build_average_error_map(
-                self.target, self.properties, self.coupling_map
-            )
+            self.avg_error_map = vf2_utils.build_average_error_map(target, coupling_map)
 
         result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
         if result is None:
@@ -147,12 +176,12 @@ class VF2Layout(AnalysisPass):
         scoring_edge_list = vf2_utils.build_edge_list(im_graph)
         scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
         cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
-            self.coupling_map, self.seed, self.strict_direction
+            coupling_map, self.seed, self.strict_direction
         )
         # Filter qubits without any supported operations. If they don't support any operations
         # They're not valid for layout selection
-        if self.target is not None and self.target.qargs is not None:
-            has_operations = set(itertools.chain.from_iterable(self.target.qargs))
+        if target is not None and target.qargs is not None:
+            has_operations = set(itertools.chain.from_iterable(target.qargs))
             to_remove = set(range(len(cm_nodes))).difference(has_operations)
             if to_remove:
                 cm_graph.remove_nodes_from([cm_nodes[i] for i in to_remove])
@@ -163,7 +192,7 @@ class VF2Layout(AnalysisPass):
         # mapping in the search space if no other limits are set
         if self.max_trials is None and self.call_limit is None and self.time_limit is None:
             im_graph_edge_count = len(im_graph.edge_list())
-            cm_graph_edge_count = len(self.coupling_map.graph.edge_list())
+            cm_graph_edge_count = len(coupling_map.graph.edge_list())
             self.max_trials = max(im_graph_edge_count, cm_graph_edge_count) + 15
 
         logger.debug("Running VF2 to find mappings")

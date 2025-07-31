@@ -18,8 +18,7 @@ from cmath import exp
 from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -37,17 +36,17 @@ class RZGate(Gate):
     .. code-block:: text
 
              ┌───────┐
-        q_0: ┤ Rz(λ) ├
+        q_0: ┤ Rz(φ) ├
              └───────┘
 
     **Matrix Representation:**
 
     .. math::
 
-        RZ(\lambda) = \exp\left(-i\frac{\lambda}{2}Z\right) =
+        RZ(\phi) = \exp\left(-i\frac{\phi}{2}Z\right) =
             \begin{pmatrix}
-                e^{-i\frac{\lambda}{2}} & 0 \\
-                0 & e^{i\frac{\lambda}{2}}
+                e^{-i\frac{\phi}{2}} & 0 \\
+                0 & e^{i\frac{\phi}{2}}
             \end{pmatrix}
 
     .. seealso::
@@ -57,36 +56,31 @@ class RZGate(Gate):
 
             .. math::
 
-                U1(\lambda) = e^{i{\lambda}/2}RZ(\lambda)
+                U1(\theta=\phi) = e^{i{\phi}/2}RZ(\phi)
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.RZGate
+    _standard_gate = StandardGate.RZ
 
-    def __init__(
-        self, phi: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
-    ):
+    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new RZ gate."""
-        super().__init__("rz", 1, [phi], label=label, duration=duration, unit=unit)
+        super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
-        """
-        gate rz(phi) a { u1(phi) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
-        rules = [(U1Gate(theta), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # global phase: -0.5*φ
+        #    ┌──────┐
+        # q: ┤ P(φ) ├
+        #    └──────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RZ._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def control(
         self,
@@ -115,11 +109,6 @@ class RZGate(Gate):
             gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
         else:
-            # If the gate parameters contain free parameters, we cannot eagerly synthesize
-            # the controlled gate decomposition. In this case, we annotate the gate per default.
-            if annotated is None:
-                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,
@@ -186,10 +175,10 @@ class CRZGate(ControlledGate):
     .. math::
 
         CRZ(\theta)\ q_0, q_1 =
-            I \otimes |0\rangle\langle 0| + RZ(\theta) \otimes |1\rangle\langle 1| =
+            I \otimes |0\rangle\langle 0| + RZ(\phi=\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & e^{-i\frac{\lambda}{2}} & 0 & 0 \\
+                0 & e^{-i\frac{\theta}{2}} & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
                 0 & 0 & 0 & e^{i\frac{\theta}{2}}
             \end{pmatrix}
@@ -228,7 +217,7 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CRZGate
+    _standard_gate = StandardGate.CRZ
 
     def __init__(
         self,
@@ -236,8 +225,6 @@ class CRZGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CRZ gate."""
@@ -249,37 +236,21 @@ class CRZGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=RZGate(theta, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
-        """
-        gate crz(lambda) a,b
-        { rz(lambda/2) b; cx a,b;
-          rz(-lambda/2) b; cx a,b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──
         #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
-        # q_1: ┤ Rz(λ/2) ├┤ X ├┤ Rz(-λ/2) ├┤ X ├
+        # q_1: ┤ Rz(θ/2) ├┤ X ├┤ Rz(-θ/2) ├┤ X ├
         #      └─────────┘└───┘└──────────┘└───┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RZGate(self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CRZ._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse CRZ gate (i.e. with the negative rotation angle).

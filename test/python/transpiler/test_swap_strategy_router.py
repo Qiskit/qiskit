@@ -259,7 +259,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             mixer.ry(-idx, idx)
 
         op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
-        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+        with self.assertWarns(DeprecationWarning):
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
         swapped = self.pm_.run(circ.decompose())
 
         param_dict = {p: idx + 1 for idx, p in enumerate(swapped.parameters)}
@@ -575,10 +576,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             mixer.ry(-idx, idx)
 
         op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
-        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
-
-        expected_swap_permutation = [3, 1, 2, 0]
-        expected_full_permutation = [1, 3, 2, 0]
+        with self.assertWarns(DeprecationWarning):
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
 
         cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
         swap_strat = SwapStrategy(cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
@@ -600,8 +599,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         pm.pre_routing = swap_pm
         full = pm.run(circ.decompose())
 
-        self.assertEqual(swapped.layout.routing_permutation(), expected_swap_permutation)
-        self.assertEqual(full.layout.routing_permutation(), expected_full_permutation)
+        self.assertEqual(swapped.layout.routing_permutation(), [3, 1, 2, 0])
+        self.assertEqual(full.layout.routing_permutation(), [0, 1, 2, 3])
 
 
 class TestSwapRouterExceptions(QiskitTestCase):

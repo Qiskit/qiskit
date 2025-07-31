@@ -1,0 +1,24 @@
+---
+features_synthesis:
+  - |
+    Added new synthesis algorithm for :class:`.HalfAdderGate` that requires no ancillary qubits
+    and has better CX count compared to :func:`.adder_qft_d00`:
+
+    * :func:`.adder_ripple_r25`
+
+features_transpiler:
+  - |
+    Added new high-level-synthesis plugin for synthesizing a :class:`.HalfAdderGate`:
+
+    * :class:`.HalfAdderSynthesisR25`, based on :func:`.adder_ripple_rv_25`.
+
+    The :class:`.HalfAdderSynthesisDefault` has also been updated to follow the following sequence
+    of half adder synthesizers: ``"HalfAdder.ripple_r25"`` when the number of qubits is 
+    :math:`\leq 3`, ``"HalfAdder.ripple_c04"`` when 1 ancillary qubit is available, 
+    ``"HalfAdder.ripple_r25"`` in all remaining cases.
+
+upgrade_circuits:
+  - |
+    The circuit definition of :class:`.HalfAdderGate` has been upgraded to use
+    :func:`.adder_ripple_r25`. To obtain the old behaviour, use the definition of
+    :func:`.adder_qft_d00` instead.

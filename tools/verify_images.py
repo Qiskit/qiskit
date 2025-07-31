@@ -10,6 +10,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=bad-builtin
 
 """Utility script to verify that all images have alt text"""
 
@@ -19,64 +20,7 @@ import sys
 import glob
 
 # List of allowlist files that the checker will not verify
-ALLOWLIST_MISSING_ALT_TEXT = [
-    "qiskit/primitives/statevector_estimator.py",
-    "qiskit/pulse/builder.py",
-    "qiskit/pulse/library/symbolic_pulses.py",
-    "qiskit/transpiler/layout.py",
-    "qiskit/transpiler/__init__.py",
-    "qiskit/transpiler/passes/utils/filter_op_nodes.py",
-    "qiskit/transpiler/passes/utils/remove_barriers.py",
-    "qiskit/transpiler/passes/scheduling/dynamical_decoupling.py",
-    "qiskit/transpiler/passes/scheduling/padding/dynamical_decoupling.py",
-    "qiskit/transpiler/passes/routing/star_prerouting.py",
-    "qiskit/providers/fake_provider/__init__.py",
-    "qiskit/quantum_info/states/statevector.py",
-    "qiskit/qasm3/__init__.py",
-    "qiskit/converters/dag_to_circuit.py",
-    "qiskit/circuit/controlledgate.py",
-    "qiskit/circuit/operation.py",
-    "qiskit/circuit/quantumcircuit.py",
-    "qiskit/circuit/__init__.py",
-    "qiskit/circuit/parameter.py",
-    "qiskit/circuit/random/utils.py",
-    "qiskit/circuit/library/overlap.py",
-    "qiskit/circuit/library/iqp.py",
-    "qiskit/circuit/library/graph_state.py",
-    "qiskit/circuit/library/phase_estimation.py",
-    "qiskit/circuit/library/grover_operator.py",
-    "qiskit/circuit/library/quantum_volume.py",
-    "qiskit/circuit/library/hidden_linear_function.py",
-    "qiskit/circuit/library/fourier_checking.py",
-    "qiskit/circuit/library/__init__.py",
-    "qiskit/circuit/library/boolean_logic/quantum_xor.py",
-    "qiskit/circuit/library/boolean_logic/quantum_and.py",
-    "qiskit/circuit/library/boolean_logic/inner_product.py",
-    "qiskit/circuit/library/boolean_logic/quantum_or.py",
-    "qiskit/circuit/library/basis_change/qft.py",
-    "qiskit/circuit/library/generalized_gates/gms.py",
-    "qiskit/circuit/library/generalized_gates/permutation.py",
-    "qiskit/circuit/library/generalized_gates/gr.py",
-    "qiskit/circuit/library/generalized_gates/mcmt.py",
-    "qiskit/circuit/library/arithmetic/piecewise_chebyshev.py",
-    "qiskit/circuit/library/n_local/real_amplitudes.py",
-    "qiskit/circuit/library/n_local/evolved_operator_ansatz.py",
-    "qiskit/circuit/library/n_local/n_local.py",
-    "qiskit/circuit/library/n_local/pauli_two_design.py",
-    "qiskit/circuit/library/n_local/qaoa_ansatz.py",
-    "qiskit/circuit/library/n_local/excitation_preserving.py",
-    "qiskit/circuit/library/n_local/efficient_su2.py",
-    "qiskit/synthesis/arithmetic/multipliers/rg_qft_multiplier.py",
-    "qiskit/synthesis/arithmetic/multipliers/hrs_cumulative_multiplier.py",
-    "qiskit/visualization/dag_visualization.py",
-    "qiskit/visualization/gate_map.py",
-    "qiskit/visualization/state_visualization.py",
-    "qiskit/visualization/counts_visualization.py",
-    "qiskit/visualization/__init__.py",
-    "qiskit/visualization/timeline/interface.py",
-    "qiskit/visualization/circuit/circuit_visualization.py",
-    "qiskit/visualization/pulse_v2/interface.py",
-]
+ALLOWLIST_MISSING_ALT_TEXT = []
 
 
 def is_image(line: str) -> bool:

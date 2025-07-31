@@ -54,9 +54,9 @@ class FourierChecking(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.fourier_checking instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, f: Sequence[int], g: Sequence[int]) -> None:
         """Create Fourier checking circuit.
@@ -70,6 +70,7 @@ class FourierChecking(QuantumCircuit):
 
         Reference Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                from qiskit.circuit.library import FourierChecking
                from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -124,6 +125,7 @@ def fourier_checking(f: Sequence[int], g: Sequence[int]) -> QuantumCircuit:
     **Reference Circuit:**
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit.library import fourier_checking

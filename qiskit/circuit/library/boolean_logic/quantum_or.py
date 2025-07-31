@@ -33,6 +33,7 @@ class OR(QuantumCircuit):
     The OR gate without special flags:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import OR
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -44,6 +45,7 @@ class OR(QuantumCircuit):
     flags ``[-1, 0, 0, 1, 1]``.
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import OR
        from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -53,9 +55,9 @@ class OR(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.OrGate instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -117,6 +119,7 @@ class OrGate(Gate):
     The OrGate gate without special flags:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit import QuantumCircuit
        from qiskit.circuit.library import OrGate
@@ -130,8 +133,9 @@ class OrGate(Gate):
     flags ``[-1, 0, 0, 1, 1]``.
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
-       from qiskit.circuit import QuantumCircuit
+       from qiskit import QuantumCircuit
        from qiskit.circuit.library import OrGate
        from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = QuantumCircuit(6)
@@ -147,11 +151,11 @@ class OrGate(Gate):
     ) -> None:
         """
         Args:
-            num_variable_qubits: The qubits of which the AND is computed. The result will be written
+            num_variable_qubits: The qubits of which the OR is computed. The result will be written
                 into an additional result qubit.
             flags: A list of +1/0/-1 marking negations or omissions of qubits.
         """
-        super().__init__("and", num_variable_qubits + 1, [])
+        super().__init__("or", num_variable_qubits + 1, [])
         self.num_variable_qubits = num_variable_qubits
         self.flags = flags
 

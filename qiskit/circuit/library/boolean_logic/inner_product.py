@@ -55,6 +55,7 @@ class InnerProduct(QuantumCircuit):
 
     Reference Circuit:
         .. plot::
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit.library import InnerProduct
            from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -63,9 +64,9 @@ class InnerProduct(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.InnerProductGate instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_qubits: int) -> None:
         """Return a circuit to compute the inner product of 2 n-qubit registers.
@@ -121,6 +122,7 @@ class InnerProductGate(Gate):
 
     Reference Circuit:
         .. plot::
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit import QuantumCircuit
            from qiskit.circuit.library import InnerProductGate

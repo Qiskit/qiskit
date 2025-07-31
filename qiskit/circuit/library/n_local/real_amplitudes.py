@@ -68,6 +68,7 @@ def real_amplitudes(
     Examples:
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
            :context:
 
@@ -77,22 +78,25 @@ def real_amplitudes(
            ansatz.draw("mpl")
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
-           :context:
+           :context: close-figs
 
            ansatz = real_amplitudes(3, entanglement="full", reps=2)  # it is the same unitary as above
            ansatz.draw("mpl")
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
-           :context:
+           :context: close-figs
 
            ansatz = real_amplitudes(3, entanglement="linear", reps=2, insert_barriers=True)
            ansatz.draw("mpl")
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
-           :context:
+           :context: close-figs
 
            ansatz = real_amplitudes(4, reps=2, entanglement=[[0,3], [0,2]], skip_unentangled_qubits=True)
            ansatz.draw("mpl")
@@ -234,9 +238,9 @@ class RealAmplitudes(TwoLocal):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use the function qiskit.circuit.library.real_amplitudes instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,

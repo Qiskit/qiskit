@@ -69,14 +69,16 @@ class TestQFT(QiskitTestCase):
     def test_qft_matrix(self, inverse):
         """Test the matrix representation of the QFT."""
         num_qubits = 5
-        qft = QFT(num_qubits)
+        qft = QuantumCircuit(num_qubits)
+        qft.append(QFTGate(num_qubits), range(num_qubits))
         if inverse:
             qft = qft.inverse()
         self.assertQFTIsCorrect(qft, inverse=inverse)
 
     def test_qft_is_inverse(self):
         """Test the is_inverse() method."""
-        qft = QFT(2)
+        with self.assertWarns(DeprecationWarning):
+            qft = QFT(2)
 
         with self.subTest(msg="initial object is not inverse"):
             self.assertFalse(qft.is_inverse())
@@ -91,7 +93,8 @@ class TestQFT(QiskitTestCase):
 
     def test_qft_mutability(self):
         """Test the mutability of the QFT circuit."""
-        qft = QFT()
+        with self.assertWarns(DeprecationWarning):
+            qft = QFT()
 
         with self.subTest(msg="empty initialization"):
             self.assertEqual(qft.num_qubits, 0)
@@ -135,10 +138,12 @@ class TestQFT(QiskitTestCase):
     def test_qft_num_gates(self, num_qubits, approximation_degree, insert_barriers):
         """Test the number of gates in the QFT and the approximated QFT."""
         basis_gates = ["h", "swap", "cu1"]
-
-        qft = QFT(
-            num_qubits, approximation_degree=approximation_degree, insert_barriers=insert_barriers
-        )
+        with self.assertWarns(DeprecationWarning):
+            qft = QFT(
+                num_qubits,
+                approximation_degree=approximation_degree,
+                insert_barriers=insert_barriers,
+            )
         ops = transpile(qft, basis_gates=basis_gates, optimization_level=1).count_ops()
 
         with self.subTest(msg="assert H count"):
@@ -160,7 +165,8 @@ class TestQFT(QiskitTestCase):
 
     def test_name_after_inverting(self):
         """Test the name after inverting the QFT is IQFT and not QFT_dg."""
-        iqft = QFT(1).inverse()
+        with self.assertWarns(DeprecationWarning):
+            iqft = QFT(1).inverse()
         i2qft = iqft.inverse()
 
         with self.subTest(msg="inverted once"):
@@ -170,7 +176,9 @@ class TestQFT(QiskitTestCase):
             self.assertEqual(i2qft.name, "QFT")
 
         with self.subTest(msg="inverse as kwarg"):
-            self.assertEqual(QFT(1, inverse=True).name, "IQFT")
+            with self.assertWarns(DeprecationWarning):
+                qft = QFT(1, inverse=True)
+            self.assertEqual(qft.name, "IQFT")
 
     def test_warns_if_too_large(self):
         """Test that a warning is issued if the user tries to make a circuit that would need to
@@ -196,8 +204,8 @@ class TestQFT(QiskitTestCase):
                 module=r"qiskit\..*",
                 message=r".*precision loss in QFT.*",
             )
-            warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
-            qft = QFT()
+            with self.assertWarns(DeprecationWarning):
+                qft = QFT()
             # Even with the approximation this will trigger the warning.
             qft.num_qubits = 1080
             qft.approximation_degree = 20
@@ -210,6 +218,27 @@ class TestQFT(QiskitTestCase):
             with self.assertWarnsRegex(RuntimeWarning, "precision loss in QFT"):
                 with self.assertRaises(SentinelException):
                     qft._build()
+
+    def test_name_after_inverse_rebuild(self):
+        """Test the inverse QFT is correctly labeled, even after triggering rebuilds.
+
+        Regression test of #14758.
+        """
+        with self.assertWarns(DeprecationWarning):
+            qft = QFT(2)
+
+        iqft = qft.inverse()  # name is IQFT
+        iqft.num_qubits = 1  # name should still be IQFT, and not display IQFT_dg
+
+        expect = "\n".join(
+            [
+                "   ┌──────┐",
+                "q: ┤ IQFT ├",
+                "   └──────┘",
+            ]
+        )
+        out = str(iqft.draw())
+        self.assertEqual(expect, out)
 
 
 @ddt
@@ -231,7 +260,8 @@ class TestQFTGate(QiskitTestCase):
         equivalent to the Operator constructed out of a QFT circuit.
         """
         qft_gate = QFTGate(num_qubits=num_qubits)
-        qft_circuit = QFT(num_qubits=num_qubits)
+        with self.assertWarns(DeprecationWarning):
+            qft_circuit = QFT(num_qubits=num_qubits)
         self.assertEqual(Operator(qft_gate), Operator(qft_circuit))
 
     def test_append_to_circuit(self):
@@ -248,7 +278,8 @@ class TestQFTGate(QiskitTestCase):
         qft_gate = QFTGate(num_qubits=num_qubits)
         circuit_with_qft_gate = QuantumCircuit(num_qubits)
         circuit_with_qft_gate.append(qft_gate, range(num_qubits))
-        qft_circuit = QFT(num_qubits=num_qubits)
+        with self.assertWarns(DeprecationWarning):
+            qft_circuit = QFT(num_qubits=num_qubits)
         self.assertEqual(Operator(circuit_with_qft_gate), Operator(qft_circuit))
 
     def test_inverse(self):
@@ -270,14 +301,6 @@ class TestQFTGate(QiskitTestCase):
         expected.append(QFTGate(4), [1, 2, 0, 4])
         expected.cx(1, 3)
         self.assertEqual(qcr, expected)
-
-    def test_conditional(self):
-        """Test adding conditional to a QFTGate."""
-        qc = QuantumCircuit(5, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.append(QFTGate(4), [1, 2, 0, 4]).c_if(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            self.assertIsNotNone(qc.data[0].operation.condition)
 
     def test_qasm(self):
         """Test qasm for circuits with QFTGates."""

@@ -48,17 +48,18 @@ class ApplyLayout(TransformationPass):
             TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
         """
         layout = self.property_set["layout"]
-        if not layout:
+        if layout is None:
             raise TranspilerError(
                 "No 'layout' is found in property_set. Please run a Layout pass in advance."
             )
-        if len(layout) != (1 + max(layout.get_physical_bits())):
+        if len(layout) != (1 + max(layout.get_physical_bits(), default=-1)):
             raise TranspilerError("The 'layout' must be full (with ancilla).")
 
         post_layout = self.property_set["post_layout"]
         q = QuantumRegister(len(layout), "q")
 
         new_dag = DAGCircuit()
+        new_dag.name = dag.name
         new_dag.add_qreg(q)
         for var in dag.iter_input_vars():
             new_dag.add_input_var(var)
@@ -66,6 +67,10 @@ class ApplyLayout(TransformationPass):
             new_dag.add_captured_var(var)
         for var in dag.iter_declared_vars():
             new_dag.add_declared_var(var)
+        for stretch in dag.iter_captured_stretches():
+            new_dag.add_captured_stretch(stretch)
+        for stretch in dag.iter_declared_stretches():
+            new_dag.add_declared_stretch(stretch)
         new_dag.metadata = dag.metadata
         new_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():

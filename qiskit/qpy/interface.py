@@ -15,23 +15,25 @@
 from __future__ import annotations
 
 from json import JSONEncoder, JSONDecoder
-from typing import Union, List, BinaryIO, Type, Optional
-from collections.abc import Iterable
+from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
+from collections.abc import Iterable, Mapping
 import struct
 import warnings
 import re
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.pulse import ScheduleBlock
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
-from qiskit.qpy.exceptions import QPYLoadingDeprecatedFeatureWarning, QpyError
+from qiskit.qpy.exceptions import QpyError
+from qiskit import user_config
 from qiskit.version import __version__
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
+
+if TYPE_CHECKING:
+    from qiskit.circuit import annotation
 
 
 # pylint: disable=invalid-name
-QPY_SUPPORTED_TYPES = Union[QuantumCircuit, ScheduleBlock]
+QPY_SUPPORTED_TYPES = QuantumCircuit
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -74,17 +76,13 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
-@deprecate_pulse_arg(
-    "programs",
-    deprecation_description="Passing `ScheduleBlock` to `programs`",
-    predicate=lambda p: isinstance(p, ScheduleBlock),
-)
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
-    use_symengine: bool = True,
+    use_symengine: bool = False,
     version: int = common.QPY_VERSION,
+    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
 ):
     """Write QPY binary data to a file
 
@@ -127,18 +125,14 @@ def dump(
 
     Args:
         programs: QPY supported object(s) to store in the specified file like object.
-            QPY supports :class:`.QuantumCircuit` and :class:`.ScheduleBlock`.
-            Different data types must be separately serialized.
-            Support for :class:`.ScheduleBlock` is deprecated since Qiskit 1.3.0.
+            QPY supports :class:`.QuantumCircuit`.
         file_obj: The file like object to write the QPY data too
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
-        use_symengine: If True, all objects containing symbolic expressions will be serialized
-            using symengine's native mechanism. This is a faster serialization alternative,
-            but not supported in all platforms. This flag only has an effect if the emitted QPY format
-            version is 10, 11, or 12. For QPY format version >= 13 (which is the default starting in
-            Qiskit 1.3.0) this flag is no longer used.
+        use_symengine: This flag is no longer used by QPY versions supported by this function and
+            will have no impact on the generated QPY payload except to set a field in a QPY v13 file
+            header which is unused.
         version: The QPY format version to emit. By default this defaults to
             the latest supported format of :attr:`~.qpy.QPY_VERSION`, however for
             compatibility reasons if you need to load the generated QPY payload with an older
@@ -156,50 +150,39 @@ def dump(
 
             .. note::
 
-                If serializing a :class:`.QuantumCircuit` or :class:`.ScheduleBlock` that contain
+                If serializing a :class:`.QuantumCircuit` that contains
                 :class:`.ParameterExpression` objects with ``version`` set low with the intent to
                 load the payload using a historical release of Qiskit, it is safest to set the
                 ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
                 QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
                 unless the version of ``symengine`` used between the loading and generating
                 environments matches.
+        annotation_factories: Mapping of namespaces to functions that create new instances of
+            :class:`.annotation.QPUSerializer`, for handling the dumping of custom
+            :class:`.Annotation` objects.  The subsequent call to :func:`load` will need to use
+            similar serializer objects, that understand the custom output format of those
+            serializers.
 
 
     Raises:
-        QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
-        ValueError: When an unsupported version number is passed in for the ``version`` argument
+        ValueError: When an unsupported version number is passed in for the ``version`` argument.
     """
     if not isinstance(programs, Iterable):
         programs = [programs]
 
-    program_types = set()
+    # dump accepts only QuantumCircuit typed objects
     for program in programs:
-        program_types.add(type(program))
-
-    if len(program_types) > 1:
-        raise QpyError(
-            "Input programs contain multiple data types. "
-            "Different data type must be serialized separately."
-        )
-    program_type = next(iter(program_types))
-
-    if issubclass(program_type, QuantumCircuit):
-        type_key = type_keys.Program.CIRCUIT
-        writer = binary_io.write_circuit
-    elif program_type is ScheduleBlock:
-        type_key = type_keys.Program.SCHEDULE_BLOCK
-        writer = binary_io.write_schedule_block
-    else:
-        raise TypeError(f"'{program_type}' is not supported data type.")
+        if not issubclass(type(program), QuantumCircuit):
+            raise TypeError(f"'{type(program)}' is not a supported data type.")
 
     if version is None:
         version = common.QPY_VERSION
     elif common.QPY_COMPATIBILITY_VERSION > version or version > common.QPY_VERSION:
         raise ValueError(
-            f"The specified QPY version {version} is not support for dumping with this version, "
-            f"of Qiskit. The only supported versions between {common.QPY_COMPATIBILITY_VERSION} and "
-            f"{common.QPY_VERSION}"
+            f"Dumping payloads with the specified QPY version ({version}) is not supported by "
+            f"this version of Qiskit. Try selecting a version between "
+            f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
@@ -216,37 +199,50 @@ def dump(
         encoding,
     )
     file_obj.write(header)
-    common.write_type_key(file_obj, type_key)
+    common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
 
-    pulse_gates = False
+    # Table of byte offsets for each program (supported in QPY v16+)
+    byte_offsets = []
+    table_start = None
+    if version >= 16:
+        table_start = file_obj.tell()
+        # Skip the file position to write the byte offsets later
+        file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
+
+    # Serialize each program and write it to the file
     for program in programs:
-        if type_key == type_keys.Program.CIRCUIT and program._calibrations_prop:
-            pulse_gates = True
-        writer(
+        if version >= 16:
+            # Determine the byte offset before writing each program
+            byte_offsets.append(file_obj.tell())
+        binary_io.write_circuit(
             file_obj,
             program,
             metadata_serializer=metadata_serializer,
             use_symengine=use_symengine,
             version=version,
+            annotation_factories=annotation_factories,
         )
 
-    if pulse_gates:
-        warnings.warn(
-            category=DeprecationWarning,
-            message="Pulse gates serialization is deprecated as of Qiskit 1.3. "
-            "It will be removed in Qiskit 2.0.",
-        )
+    if version >= 16:
+        # Write the byte offsets for each program
+        file_obj.seek(table_start)
+        for offset in byte_offsets:
+            file_obj.write(
+                struct.pack(formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset))
+            )
+        # Seek to the end of the file
+        file_obj.seek(0, 2)
 
 
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: Optional[Type[JSONDecoder]] = None,
+    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
 ) -> List[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
     This function is used to load a serialized QPY Qiskit program file and create
-    :class:`~qiskit.circuit.QuantumCircuit` objects or
-    :class:`~qiskit.pulse.schedule.ScheduleBlock` objects from its contents.
+    :class:`~qiskit.circuit.QuantumCircuit` objects from its contents.
     For example:
 
     .. code-block:: python
@@ -267,12 +263,11 @@ def load(
             circuits = qpy.load(fd)
 
     which will read the contents of the qpy and return a list of
-    :class:`~qiskit.circuit.QuantumCircuit` objects or
-    :class:`~qiskit.pulse.schedule.ScheduleBlock` objects from the file.
+    :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
 
     Args:
         file_obj: A file like object that contains the QPY binary
-            data for a circuit or pulse schedule.
+            data for a circuit.
         metadata_deserializer: An optional JSONDecoder class
             that will be used for the ``cls`` kwarg on the internal
             ``json.load`` call used to deserialize the JSON payload used for
@@ -280,6 +275,9 @@ def load(
             If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
+        annotation_factories: Mapping of namespaces to functions that create new instances of
+            :class:`.annotation.QPUSerializer`, for handling the loading of custom
+            :class:`.Annotation` objects.
 
     Returns:
         The list of Qiskit programs contained in the QPY data.
@@ -288,6 +286,11 @@ def load(
     Raises:
         QiskitError: if ``file_obj`` is not a valid QPY file
         TypeError: When invalid data type is loaded.
+        MissingOptionalLibraryError: If the ``symengine`` engine library is
+            not installed when loading a QPY version 10, 11, or 12 payload
+            that is using symengine symbolic encoding and contains
+            :class:`.ParameterExpression` instances.
+        QpyError: if known but unsupported data type is loaded.
     """
 
     # identify file header version
@@ -313,6 +316,14 @@ def load(
                 formats.FILE_HEADER_V10_PACK,
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
+        )
+
+    config = user_config.get_config()
+    min_qpy_version = config.get("min_qpy_version")
+    if min_qpy_version is not None and data.qpy_version < min_qpy_version:
+        raise QpyError(
+            f"QPY version {data.qpy_version} is lower than the configured minimum "
+            f"version {min_qpy_version}."
         )
 
     if data.preface.decode(common.ENCODE) != "QISKIT":
@@ -347,19 +358,12 @@ def load(
     else:
         type_key = common.read_type_key(file_obj)
 
-    if type_key == type_keys.Program.CIRCUIT:
-        loader = binary_io.read_circuit
-    elif type_key == type_keys.Program.SCHEDULE_BLOCK:
-        loader = binary_io.read_schedule_block
-        warnings.warn(
-            category=QPYLoadingDeprecatedFeatureWarning,
-            message="Pulse gates deserialization is deprecated as of Qiskit 1.3 and "
-            "will be removed in Qiskit 2.0. This is part of the deprecation plan for "
-            "the entire Qiskit Pulse package. Once Pulse is removed, `ScheduleBlock` "
-            "sections will be ignored when loading QPY files with pulse data.",
+    if type_key == type_keys.Program.SCHEDULE_BLOCK:
+        raise QpyError(
+            "Payloads of type `ScheduleBlock` cannot be loaded as of Qiskit 2.0. "
+            "Use an earlier version of Qiskit if you want to load `ScheduleBlock` payloads."
         )
-
-    else:
+    if type_key != type_keys.Program.CIRCUIT:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 
     if data.qpy_version < 10:
@@ -367,14 +371,61 @@ def load(
     else:
         use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
 
+    if data.qpy_version >= 16:
+        # Obtain the byte offsets for each program
+        program_offsets = []
+        for _ in range(data.num_programs):
+            program_offsets.append(
+                formats.CIRCUIT_TABLE_ENTRY(
+                    *struct.unpack(
+                        formats.CIRCUIT_TABLE_ENTRY_PACK,
+                        file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
+                    )
+                ).offset
+            )
+
     programs = []
-    for _ in range(data.num_programs):
+    for i in range(data.num_programs):
+        if data.qpy_version >= 16:
+            # Deserialize each program using their byte offsets
+            file_obj.seek(program_offsets[i])
         programs.append(
-            loader(
+            binary_io.read_circuit(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
                 use_symengine=use_symengine,
+                annotation_factories=annotation_factories,
             )
         )
     return programs
+
+
+def get_qpy_version(
+    file_obj: BinaryIO,
+) -> int:
+    """This function identifies the QPY version of the file.
+
+    This function will read the header of ``file_obj`` and will
+    return the QPY format version. It will **not** advance the
+    cursor of ``file_obj``. If you are using this for a subsequent
+    read, such as to call :func:`.load`, you can pass ``file_obj``
+    directly. For example::
+
+        from qiskit import qpy
+
+        qpy_version = qpy.get_qpy_version(qpy_file)
+        if qpy_version > 12:
+            qpy.load(qpy_file)
+
+    Args:
+        file_obj: A file like object that contains the QPY binary
+            data for a circuit.
+
+    Returns:
+        The QPY version of the specified file.
+    """
+
+    version = struct.unpack("!6sB", file_obj.read(7))[1]
+    file_obj.seek(-7, 1)
+    return version

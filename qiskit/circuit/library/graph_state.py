@@ -41,12 +41,14 @@ class GraphState(QuantumCircuit):
     **Reference Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GraphState
        from qiskit.visualization.library import _generate_circuit_library_visualization
        import rustworkx as rx
        G = rx.generators.cycle_graph(5)
        circuit = GraphState(rx.adjacency_matrix(G))
+       circuit.name = "Graph state"
        _generate_circuit_library_visualization(circuit)
 
     **References:**
@@ -58,9 +60,9 @@ class GraphState(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.GraphStateGate instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
         """Create graph state preparation circuit.
@@ -105,6 +107,7 @@ class GraphStateGate(Gate):
     **Reference Circuit:**
 
     .. plot::
+        :alt: Circuit diagram output by the previous code.
         :include-source:
 
         from qiskit.circuit import QuantumCircuit

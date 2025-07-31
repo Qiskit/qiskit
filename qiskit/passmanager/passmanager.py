@@ -174,6 +174,8 @@ class BasePassManager(ABC):
         in_programs: Any | list[Any],
         callback: Callable = None,
         num_processes: int = None,
+        *,
+        property_set: dict[str, object] | None = None,
         **kwargs,
     ) -> Any:
         """Run all the passes on the specified ``in_programs``.
@@ -211,7 +213,11 @@ class BasePassManager(ABC):
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
                 to ``None`` the system default or local user configuration will be used.
-
+            property_set: If given, the initial value to use as the :class:`.PropertySet` for the
+                pass manager pipeline.  This can be used to persist analysis from one run to
+                another, in cases where you know the analysis is safe to share.  Beware that some
+                analysis will be specific to the input circuit and the particular :class:`.Target`,
+                so you should take a lot of care when using this argument.
             kwargs: Arbitrary arguments passed to the compiler frontend and backend.
 
         Returns:
@@ -229,7 +235,13 @@ class BasePassManager(ABC):
         # ourselves, since that can be quite expensive.
         if len(in_programs) == 1 or not should_run_in_parallel(num_processes):
             out = [
-                _run_workflow(program=program, pass_manager=self, callback=callback, **kwargs)
+                _run_workflow(
+                    program=program,
+                    pass_manager=self,
+                    callback=callback,
+                    initial_property_set=property_set,
+                    **kwargs,
+                )
                 for program in in_programs
             ]
             if len(in_programs) == 1 and not is_list:
@@ -246,7 +258,10 @@ class BasePassManager(ABC):
         return parallel_map(
             _run_workflow_in_new_process,
             values=in_programs,
-            task_kwargs={"pass_manager_bin": dill.dumps(self)},
+            task_kwargs={
+                "pass_manager_bin": dill.dumps(self),
+                "initial_property_set": property_set,
+            },
             num_processes=num_processes,
         )
 
@@ -270,6 +285,8 @@ class BasePassManager(ABC):
 def _run_workflow(
     program: Any,
     pass_manager: BasePassManager,
+    *,
+    initial_property_set: dict[str, object] | None = None,
     **kwargs,
 ) -> Any:
     """Run single program optimization with a pass manager.
@@ -289,12 +306,12 @@ def _run_workflow(
         input_program=program,
         **kwargs,
     )
+    property_set = (
+        PropertySet() if initial_property_set is None else PropertySet(initial_property_set)
+    )
     passmanager_ir, final_state = flow_controller.execute(
         passmanager_ir=passmanager_ir,
-        state=PassManagerState(
-            workflow_status=initial_status,
-            property_set=PropertySet(),
-        ),
+        state=PassManagerState(workflow_status=initial_status, property_set=property_set),
         callback=kwargs.get("callback", None),
     )
     # The `property_set` has historically been returned as a mutable attribute on `PassManager`
@@ -317,6 +334,8 @@ def _run_workflow(
 def _run_workflow_in_new_process(
     program: Any,
     pass_manager_bin: bytes,
+    *,
+    initial_property_set: dict[str, object] | None,
 ) -> Any:
     """Run single program optimization in new process.
 
@@ -330,4 +349,5 @@ def _run_workflow_in_new_process(
     return _run_workflow(
         program=program,
         pass_manager=dill.loads(pass_manager_bin),
+        initial_property_set=initial_property_set,
     )

@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::types::{PySequence, PyString, PyTuple};
+use pyo3::types::{PySequence, PyTuple};
 
 use ahash::RandomState;
 
@@ -63,7 +63,7 @@ impl BuilderState {
         let name_id = decl
             .name()
             .as_ref()
-            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
+            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {err:?}")))?;
         let name_symbol = &ast_symbols[name_id];
         match name_symbol.symbol_type() {
             Type::Bit(is_const) => {
@@ -96,8 +96,7 @@ impl BuilderState {
                 }
             }
             ty => Err(QASM3ImporterError::new_err(format!(
-                "unhandled classical type: {:?}",
-                ty,
+                "unhandled classical type: {ty:?}",
             ))),
         }
     }
@@ -111,7 +110,7 @@ impl BuilderState {
         let name_id = decl
             .name()
             .as_ref()
-            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
+            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {err:?}")))?;
         let name_symbol = &ast_symbols[name_id];
         match name_symbol.symbol_type() {
             Type::Qubit => self.add_qubit(py, name_id.clone()),
@@ -141,11 +140,11 @@ impl BuilderState {
         let gate_id = call
             .name()
             .as_ref()
-            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
+            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {err:?}")))?;
         let gate = self.symbols.gates.get(gate_id).ok_or_else(|| {
-            QASM3ImporterError::new_err(format!("internal error: unknown gate {:?}", gate_id))
+            QASM3ImporterError::new_err(format!("internal error: unknown gate {gate_id:?}"))
         })?;
-        let params = PyTuple::new_bound(
+        let params = PyTuple::new(
             py,
             call.params()
                 .as_ref()
@@ -154,7 +153,7 @@ impl BuilderState {
                 .iter()
                 .map(|param| expr::eval_gate_param(py, &self.symbols, ast_symbols, param))
                 .collect::<PyResult<Vec<_>>>()?,
-        );
+        )?;
         let qargs = call.qubits();
         if params.len() != gate.num_params() {
             return Err(QASM3ImporterError::new_err(format!(
@@ -209,7 +208,7 @@ impl BuilderState {
                     }
                 }
             }
-            PyTuple::new_bound(py, qubits.values())
+            PyTuple::new(py, qubits.values())?
         } else {
             // If there's no qargs (represented in the ASG with a `None` rather than an empty
             // vector), it's a barrier over all in-scope qubits, which is all qubits, unless we're
@@ -235,7 +234,7 @@ impl BuilderState {
     fn map_gate_ids(&mut self, _py: Python, ast_symbols: &SymbolTable) -> PyResult<()> {
         for (name, name_id, defined_num_params, defined_num_qubits) in ast_symbols.gates() {
             let pygate = self.pygates.get(name).ok_or_else(|| {
-                QASM3ImporterError::new_err(format!("can't handle non-built-in gate: '{}'", name))
+                QASM3ImporterError::new_err(format!("can't handle non-built-in gate: '{name}'"))
             })?;
             if pygate.num_params() != defined_num_params {
                 return Err(QASM3ImporterError::new_err(format!(
@@ -273,8 +272,7 @@ impl BuilderState {
                 expr::expect_gate_operand(target.operand())?,
             ),
             expr => Err(QASM3ImporterError::new_err(format!(
-                "only measurement assignments are currently supported, not {:?}",
-                expr,
+                "only measurement assignments are currently supported, not {expr:?}",
             ))),
         }?;
         let carg = expr::eval_measure_carg(py, &self.symbols, ast_symbols, assignment.lvalue())?;
@@ -320,9 +318,9 @@ impl BuilderState {
         }
     }
 
-    fn add_qreg<T: IntoPy<Py<PyString>>>(
-        &mut self,
-        py: Python,
+    fn add_qreg<'a, T: IntoPyObject<'a>>(
+        &'a mut self,
+        py: Python<'a>,
         ast_symbol: SymbolId,
         name: T,
         size: usize,
@@ -338,9 +336,9 @@ impl BuilderState {
         }
     }
 
-    fn add_creg<T: IntoPy<Py<PyString>>>(
+    fn add_creg<'py, T: IntoPyObject<'py>>(
         &mut self,
-        py: Python,
+        py: Python<'py>,
         ast_symbol: SymbolId,
         name: T,
         size: usize,
@@ -411,8 +409,7 @@ pub fn convert_asg(
             | asg::Stmt::SwitchCaseStmt(_)
             | asg::Stmt::While(_) => {
                 return Err(QASM3ImporterError::new_err(format!(
-                    "this statement is not yet handled during OpenQASM 3 import: {:?}",
-                    statement
+                    "this statement is not yet handled during OpenQASM 3 import: {statement:?}"
                 )));
             }
         }

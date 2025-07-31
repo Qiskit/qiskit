@@ -41,18 +41,17 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import FilterOpNodes
-from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ConstrainedReschedule
-from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.utils.deprecate_pulse import deprecate_pulse_arg
+from qiskit.utils import deprecate_func
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -60,15 +59,17 @@ _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not
 # Any method neither known good nor known bad (i.e. not a Terra-internal pass) is passed through
 # without error, since it is being supplied by a plugin and we don't have any knowledge of these.
 _CONTROL_FLOW_STATES = {
-    "layout_method": _ControlFlowState(working={"trivial", "dense", "sabre"}, not_working=set()),
+    "layout_method": _ControlFlowState(
+        working={"default", "trivial", "dense", "sabre"}, not_working=set()
+    ),
     "routing_method": _ControlFlowState(
-        working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
+        working={"default", "none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
     "translation_method": _ControlFlowState(
-        working={"translator", "synthesis"},
+        working={"default", "translator", "synthesis"},
         not_working=set(),
     ),
-    "optimization_method": _ControlFlowState(working=set(), not_working=set()),
+    "optimization_method": _ControlFlowState(working={"default"}, not_working=set()),
     "scheduling_method": _ControlFlowState(working=set(), not_working={"alap", "asap"}),
 }
 
@@ -85,9 +86,9 @@ class _InvalidControlFlowForBackend:
     # Explicitly stateful closure to allow pickling.
 
     def __init__(self, basis_gates=(), target=None):
-        if target is not None:
+        if target is not None and len(target.operation_names) > 0:
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in target]
-        elif basis_gates is not None:
+        elif basis_gates is not None and len(basis_gates) > 0:
             basis_gates = set(basis_gates)
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in basis_gates]
         else:
@@ -280,8 +281,7 @@ def generate_routing_passmanager(
     target,
     coupling_map=None,
     vf2_call_limit=None,
-    backend_properties=None,
-    seed_transpiler=None,
+    seed_transpiler=-1,
     check_trivial=False,
     use_barrier_before_measurement=True,
     vf2_max_trials=None,
@@ -297,10 +297,11 @@ def generate_routing_passmanager(
         vf2_call_limit (int): The internal call limit for the vf2 post layout
             pass. If this is ``None`` or ``0`` the vf2 post layout will not be
             run.
-        backend_properties (BackendProperties): Properties of a backend to
-            synthesize for (e.g. gate fidelities).
         seed_transpiler (int): Sets random seed for the stochastic parts of
-            the transpiler.
+            the transpiler. This is currently only used for :class:`.VF2PostLayout` and the
+            default value of ``-1`` is strongly recommended (which is no randomization).
+            If a value of ``None`` is provided this will seed from system
+            entropy.
         check_trivial (bool): If set to true this will condition running the
             :class:`~.VF2PostLayout` pass after routing on whether a trivial
             layout was tried and was found to not be perfect. This is only
@@ -351,14 +352,12 @@ def generate_routing_passmanager(
         routing.append(ConditionalController(routing_pass, condition=_swap_condition))
 
     is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
-    if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
+    if target is not None and is_vf2_fully_bounded:
         routing.append(
             ConditionalController(
                 VF2PostLayout(
                     target,
-                    coupling_map,
-                    backend_properties,
-                    seed_transpiler,
+                    seed=seed_transpiler,
                     call_limit=vf2_call_limit,
                     max_trials=vf2_max_trials,
                     strict_direction=False,
@@ -376,11 +375,19 @@ def generate_routing_passmanager(
     return routing
 
 
+@deprecate_func(
+    since="2.0",
+    additional_msg=(
+        "Translation plugins are now required to respect ISA directionality,"
+        " so typically no replacement is necessary."
+    ),
+    removal_timeline="in Qiskit 3.0",
+)
 def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_zero=False):
     """Generate a pre-optimization loop :class:`~qiskit.transpiler.PassManager`
 
     This pass manager will check to ensure that directionality from the coupling
-    map is respected
+    map is respected.
 
     Args:
         target (Target): the :class:`~.Target` object representing the backend
@@ -415,7 +422,6 @@ def generate_translation_passmanager(
     method="translator",
     approximation_degree=None,
     coupling_map=None,
-    backend_props=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
@@ -438,8 +444,6 @@ def generate_translation_passmanager(
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
-        backend_props (BackendProperties): Properties of a backend to
-            synthesize for (e.g. gate fidelities).
         unitary_synthesis_method (str): The unitary synthesis method to use. You can
             see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
         hls_config (HLSConfig): An optional configuration class to use for
@@ -454,7 +458,11 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
+    if basis_gates is None and target is None:
+        return PassManager([])
+
     if method == "translator":
+        translator = BasisTranslator(sel, basis_gates, target)
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling
@@ -462,7 +470,6 @@ def generate_translation_passmanager(
                 basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
-                backend_props=backend_props,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 target=target,
@@ -476,8 +483,77 @@ def generate_translation_passmanager(
                 basis_gates=basis_gates,
                 qubits_initially_zero=qubits_initially_zero,
             ),
+            translator,
+        ]
+        fix_1q = [translator]
+    elif method == "clifford_t":
+        # The list of extended basis gates consists of the specified Clifford+T basis gates and
+        # additionally the 1q-gate "u".
+        # We set target=None to make sure extended_basis_gates is not overwritten by the target.
+        extended_basis_gates = list(basis_gates) + ["u"]
+
+        unroll = [
+            # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
+            # extended_basis_gates.
+            UnitarySynthesis(
+                basis_gates=extended_basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=None,
+            ),
+            # Use the HighLevelSynthesis pass to unroll all the remaining 1q and 2q custom
+            # gates into extended_basis_gates + the gates in the equivalence library.
+            # We set target=None to make sure extended_basis_gates is not overwritten by the target.
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=None,
+                use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=extended_basis_gates,
+                qubits_initially_zero=qubits_initially_zero,
+            ),
+            # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
+            # In other words, this translates the gates in the equivalence library that are not
+            # in extended_basis_gates to gates in extended_basis_gates only.
+            # Note that we do not want to make any assumptions on which Clifford gates are present
+            # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
+            # a helpful error message otherwise).
+            BasisTranslator(sel, extended_basis_gates, None),
+            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
+            # gates.
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=None,
+                target=None,
+                approximation_degree=approximation_degree,
+                force_consolidate=True,
+            ),
+            # We use the "clifford" unitary synthesis plugin to replace single-qubit
+            # unitary gates that can be represented as Cliffords by Clifford gates.
+            UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
+            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
+            # UnitarySynthesisPlugin.
+            UnitarySynthesis(
+                basis_gates=["h", "t", "tdg"],
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method="sk",
+                min_qubits=1,
+                target=None,
+            ),
+            # Finally, we use BasisTranslator to translate ["h", "t", "tdg"] to the actually
+            # specified set of basis gates.
             BasisTranslator(sel, basis_gates, target),
         ]
+        # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection
+        # into basis_gates.
+        translator = BasisTranslator(sel, basis_gates, target)
+        fix_1q = [translator]
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
@@ -486,7 +562,6 @@ def generate_translation_passmanager(
                 basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
-                backend_props=backend_props,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 min_qubits=3,
@@ -511,7 +586,6 @@ def generate_translation_passmanager(
                 basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
-                backend_props=backend_props,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 target=target,
@@ -525,15 +599,43 @@ def generate_translation_passmanager(
                 qubits_initially_zero=qubits_initially_zero,
             ),
         ]
+        fix_1q = [
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+            ),
+            UnitarySynthesis(
+                basis_gates=basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=target,
+            ),
+        ]
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
+    # Our built-ins don't 100% guarantee that 2q gate direction is respected, so we might need to
+    # run a little bit of fix up on them.  `GateDirection` doesn't guarantee that 1q gates are
+    # ISA safe after it runs, so we need another run too.
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
+        unroll.append(CheckGateDirection(coupling_map, target=target))
+
+        def _direction_condition(property_set):
+            return not property_set["is_direction_mapped"]
+
+        unroll.append(
+            ConditionalController(
+                [GateDirection(coupling_map, target=target)] + fix_1q,
+                condition=_direction_condition,
+            )
+        )
     return PassManager(unroll)
 
 
-@deprecate_pulse_arg("inst_map", predicate=lambda inst_map: inst_map is not None)
-def generate_scheduling(
-    instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
-):
+def generate_scheduling(instruction_durations, scheduling_method, timing_constraints, target=None):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
     Args:
@@ -542,7 +644,6 @@ def generate_scheduling(
             ``'asap'``/``'as_soon_as_possible'`` or
             ``'alap'``/``'as_late_as_possible'``
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-        inst_map (InstructionScheduleMap): DEPRECATED. Mapping object that maps gate to schedule.
         target (Target): The :class:`~.Target` object representing the backend
 
     Returns:
@@ -552,8 +653,6 @@ def generate_scheduling(
         TranspilerError: If the ``scheduling_method`` kwarg is not a valid value
     """
     scheduling = PassManager()
-    if inst_map and inst_map.has_custom_gate():
-        scheduling.append(PulseGates(inst_map=inst_map, target=target))
     if scheduling_method:
         # Do scheduling after unit conversion.
         scheduler = {
@@ -606,16 +705,9 @@ def generate_scheduling(
                 condition=_require_alignment,
             )
         )
-        scheduling.append(
-            ValidatePulseGates(
-                granularity=timing_constraints.granularity,
-                min_length=timing_constraints.min_length,
-                target=target,
-            )
-        )
     if scheduling_method:
         # Call padding pass if circuit is scheduled
-        scheduling.append(PadDelay(target=target))
+        scheduling.append(PadDelay(target=target, durations=instruction_durations))
 
     return scheduling
 
@@ -647,3 +739,35 @@ def get_vf2_limits(
                 250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
             )
     return limits
+
+
+# Clifford+T basis, consisting of Clifford+T gate names + additional instruction names
+# that are a part of every basis
+_CLIFFORD_T_BASIS = set(_CLIFFORD_GATE_NAMES).union(
+    {"t", "tdg", "delay", "barrier", "reset", "measure"}.union(CONTROL_FLOW_OP_NAMES)
+)
+
+
+def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
+    """
+    Checks whether the given basis set can be considered as Clifford+T.
+
+    For this we require that:
+    1. The set only contains Clifford+T gates,
+    2. The set contains either T or Tdg gate or both.
+
+    In particular, these conditions guarantee that the empty basis set
+    is not considered as Clifford+T.
+    """
+
+    if target is not None:
+        basis = set(target.operation_names)
+    elif basis_gates is not None:
+        basis = set(basis_gates)
+    else:
+        basis = set()
+
+    if (basis_gates is None) or (("t" not in basis_gates) and ("tdg" not in basis_gates)):
+        return False
+
+    return basis.issubset(_CLIFFORD_T_BASIS)

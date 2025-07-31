@@ -21,7 +21,6 @@ from ddt import ddt, data, idata, unpack
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
-from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
@@ -261,10 +260,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             param_vector = param_vector[:-1]
             gate = gate_class(*param_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 2
             param_vector = param_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *param_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 2
+            param_vector = param_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *param_vector)
         elif class_name == "MSGate":
             num_qubits = 2
             param_vector = param_vector[:-1]
@@ -292,10 +296,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             float_vector = float_vector[:-1]
             gate = gate_class(*float_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 3
+            float_vector = float_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
@@ -336,8 +345,6 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "MCXGate",
         "MCMTGate",
         "VariadicZeroParamGate",
-        "ClassicalFunction",
-        "ClassicalElement",
         "StatePreparation",
         "UniformSuperpositionGate",
         "LinearFunction",
@@ -360,6 +367,15 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "OrGate",
         "BitwiseXorGate",
         "InnerProductGate",
+        "IntegerComparatorGate",
+        "PolynomialPauliRotationsGate",
+        "PiecewiseLinearPauliRotationsGate",
+        "PiecewisePolynomialPauliRotationsGate",
+        "PiecewiseChebyshevGate",
+        "ExactReciprocalGate",
+        "LinearPauliRotationsGate",
+        "LinearAmplitudeFunctionGate",
+        "WeightedSumGate",
     }
 
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
@@ -377,7 +393,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             params[0] = 2
         if gate_class.__name__ in ["PauliGate"]:
             params = ["IXYZ"]
-        if gate_class.__name__ in ["BooleanExpression"]:
+        if gate_class.__name__ in ["BooleanExpression", "BitFlipOracleGate", "PhaseOracleGate"]:
             params = ["x | y"]
 
         gate = gate_class(*params)
@@ -453,8 +469,8 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         self.assertGreaterEqual(len(param_entry), 1)
         self.assertGreaterEqual(len(float_entry), 1)
 
-        param_qc = QuantumCircuit([Qubit() for _ in range(param_gate.num_qubits)])
-        float_qc = QuantumCircuit([Qubit() for _ in range(float_gate.num_qubits)])
+        param_qc = QuantumCircuit(param_gate.num_qubits)
+        float_qc = QuantumCircuit(float_gate.num_qubits)
 
         param_qc.append(param_gate, param_qc.qubits)
         float_qc.append(float_gate, float_qc.qubits)

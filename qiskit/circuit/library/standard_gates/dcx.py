@@ -13,7 +13,6 @@
 """Double-CNOT gate."""
 
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -50,29 +49,28 @@ class DCXGate(SingletonGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.DCXGate
+    _standard_gate = StandardGate.DCX
 
-    def __init__(self, label=None, *, duration=None, unit="dt"):
+    def __init__(self, label=None):
         """Create new DCX gate."""
-        super().__init__("dcx", 2, [], label=label, duration=duration, unit=unit)
+        super().__init__("dcx", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate dcx a, b { cx a, b; cx b, a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(CXGate(), [q[0], q[1]], []), (CXGate(), [q[1], q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #           ┌───┐
+        # q_0: ──■──┤ X ├
+        #      ┌─┴─┐└─┬─┘
+        # q_1: ┤ X ├──■──
+        #      └───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.DCX._get_definition(self.params), add_regs=True, name=self.name
+        )
 
     def __eq__(self, other):
         return isinstance(other, DCXGate)

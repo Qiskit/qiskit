@@ -30,9 +30,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "2.0"
+version = "2.2"
 # The full version, including alpha/beta/rc tags
-release = "2.0.0"
+release = "2.2.0"
 
 language = "en"
 
@@ -49,7 +49,11 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
+    "breathe",
 ]
+
+breathe_projects = {"qiskit": "xml/"}
+breathe_default_project = "qiskit"
 
 templates_path = ["_templates"]
 
@@ -80,7 +84,7 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "rustworkx": ("https://www.rustworkx.org/", None),
-    "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
+    "qiskit-ibm-runtime": ("https://quantum.cloud.ibm.com/docs/api/qiskit-ibm-runtime/", None),
     "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),

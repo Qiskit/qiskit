@@ -337,7 +337,7 @@ pub struct TokenStream {
     /// backing file or other named resource.
     pub filename: std::ffi::OsString,
     strict: bool,
-    source: Box<dyn std::io::BufRead + Send>,
+    source: Box<dyn std::io::BufRead + Send + Sync>,
     line_buffer: Vec<u8>,
     done: bool,
     line: usize,
@@ -352,7 +352,7 @@ impl TokenStream {
     /// Create and initialise a generic [TokenStream], given a source that implements
     /// [std::io::BufRead] and a filename (or resource path) that describes its source.
     fn new(
-        source: Box<dyn std::io::BufRead + Send>,
+        source: Box<dyn std::io::BufRead + Send + Sync>,
         filename: std::ffi::OsString,
         strict: bool,
     ) -> Self {
@@ -413,7 +413,7 @@ impl TokenStream {
                     self.done = true;
                     Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(&self.filename, self.line, self.col)),
-                        &format!("lexer failed to read stream: {}", err),
+                        &format!("lexer failed to read stream: {err}"),
                     )))
                 }
             }
@@ -433,7 +433,7 @@ impl TokenStream {
                 self.done = true;
                 Err(QASM2ParseError::new_err(message_generic(
                     Some(&Position::new(&self.filename, self.line, self.col)),
-                    &format!("encountered a non-ASCII byte: {:02X?}", b),
+                    &format!("encountered a non-ASCII byte: {b:02X?}"),
                 )))
             }
             b => Ok(Some(b)),
@@ -452,7 +452,7 @@ impl TokenStream {
                 self.done = true;
                 Err(QASM2ParseError::new_err(message_generic(
                     Some(&Position::new(&self.filename, self.line, self.col)),
-                    &format!("encountered a non-ASCII byte: {:02X?}", b),
+                    &format!("encountered a non-ASCII byte: {b:02X?}"),
                 )))
             }
             b => Ok(Some(b)),

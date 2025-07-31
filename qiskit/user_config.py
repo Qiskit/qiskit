@@ -36,6 +36,7 @@ class UserConfig:
     parallel = False
     num_processes = 4
     sabre_all_threads = true
+    min_qpy_version = 13
 
     """
 
@@ -176,6 +177,15 @@ class UserConfig:
             if sabre_all_threads is not None:
                 self.settings["sabre_all_threads"] = sabre_all_threads
 
+            # Parse min_qpy_version
+            min_qpy_version = self.config_parser.getint("default", "min_qpy_version", fallback=None)
+            if min_qpy_version:
+                if min_qpy_version < 0:
+                    raise exceptions.QiskitUserConfigError(
+                        f"{min_qpy_version} is not a valid QPY version."
+                    )
+                self.settings["min_qpy_version"] = min_qpy_version
+
 
 def set_config(key, value, section=None, file_path=None):
     """Adds or modifies a user configuration
@@ -217,6 +227,7 @@ def set_config(key, value, section=None, file_path=None):
         "parallel",
         "num_processes",
         "sabre_all_threads",
+        "min_qpy_version",
     }
 
     if section in [None, "default"]:
@@ -245,15 +256,19 @@ def set_config(key, value, section=None, file_path=None):
 
 
 def get_config():
-    """Read the config file from the default location or env var
+    """Read the config file from the default location or env var.
 
-    It will read a config file at either the default location
-    ~/.qiskit/settings.conf or if set the value of the QISKIT_SETTINGS env var.
+    It will read a config file at the location specified by the ``QISKIT_SETTINGS`` environment
+    variable if set, or ``$HOME/.qiskit/settings.conf`` if not.
 
-    It will return the parsed settings dict from the parsed config file.
+    If the environment variable ``QISKIT_IGNORE_USER_SETTINGS`` is set to the string ``TRUE``, this
+    will return an empty configuration, regardless of all other variables.
+
     Returns:
         dict: The settings dict from the parsed config file.
     """
+    if os.getenv("QISKIT_IGNORE_USER_SETTINGS", "false").lower() == "true":
+        return {}
     filename = os.getenv("QISKIT_SETTINGS", DEFAULT_FILENAME)
     if not os.path.isfile(filename):
         return {}

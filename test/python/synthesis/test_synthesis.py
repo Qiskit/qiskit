@@ -17,12 +17,13 @@ import unittest
 import contextlib
 import logging
 import math
+import dill
 import numpy as np
 import scipy
 import scipy.stats
-from ddt import ddt, data
+from ddt import ddt
 
-from qiskit import QiskitError, transpile
+from qiskit import QiskitError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -68,7 +69,6 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 from qiskit._accelerate.two_qubit_decompose import Specialization
 from qiskit._accelerate.two_qubit_decompose import Ud
-from qiskit.synthesis.unitary import qsd
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -1426,14 +1426,32 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
 class TestTwoQubitControlledUDecompose(CheckDecompositions):
     """Test TwoQubitControlledUDecomposer() for exact decompositions and raised exceptions"""
 
-    @combine(seed=range(10), name="seed_{seed}")
-    def test_correct_unitary(self, seed):
+    @combine(
+        seed=range(5),
+        gate=[RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate],
+        euler_basis=[
+            "ZYZ",
+            "ZXZ",
+            "XYX",
+            "XZX",
+            "RR",
+            "U",
+            "U3",
+            "U321",
+            "PSX",
+            "ZSX",
+            "ZSXX",
+            "U1X",
+        ],
+        name="seed_{seed}",
+    )
+    def test_correct_unitary(self, seed, gate, euler_basis):
         """Verify unitary for different gates in the decomposition"""
         unitary = random_unitary(4, seed=seed)
-        for gate in [RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate]:
-            decomposer = TwoQubitControlledUDecomposer(gate)
-            circ = decomposer(unitary)
-            self.assertEqual(Operator(unitary), Operator(circ))
+
+        decomposer = TwoQubitControlledUDecomposer(gate, euler_basis)
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
 
     def test_not_rxx_equivalent(self):
         """Test that an exception is raised if the gate is not equivalent to an RXXGate"""
@@ -1526,6 +1544,41 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
 
+    def test_assert_pickle(self):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        decomp = TwoQubitControlledUDecomposer(RXXGate)
+
+        pkl = pickle.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = pickle.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(decomp.rxx_equivalent_gate, decomp_cpy.rxx_equivalent_gate, msg=msg_base)
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
+
+    def test_assert_pickle_with_dill(self):
+        """Assert that TwoQubitControlledUDecomposer supports pickle"""
+
+        class CustomXXGate(RXXGate):
+            """Custom RXXGate subclass that's not a standard gate"""
+
+            _standard_gate = None
+
+            def __init__(self, theta, label=None):
+                super().__init__(theta, label)
+                self.name = "MyCustomXXGate"
+
+        decomp = TwoQubitControlledUDecomposer(CustomXXGate)
+
+        pkl = dill.dumps(decomp, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        decomp_cpy = dill.loads(pkl)
+        msg_base = f"decomp:\n{decomp}\ndecomp_cpy:\n{decomp_cpy}"
+        self.assertEqual(type(decomp), type(decomp_cpy), msg_base)
+        self.assertEqual(
+            decomp.rxx_equivalent_gate.name, decomp_cpy.rxx_equivalent_gate.name, msg=msg_base
+        )
+        self.assertEqual(decomp.euler_basis, decomp_cpy.euler_basis, msg=msg_base)
+
 
 class TestDecomposeProductRaises(QiskitTestCase):
     """Check that exceptions are raised when 2q matrix is not a product of 1q unitaries"""
@@ -1554,220 +1607,6 @@ class TestDecomposeProductRaises(QiskitTestCase):
         with self.assertRaises(QiskitError) as exc:
             decompose_two_qubit_product_gate(klkr)
         self.assertIn("decomposition failed", exc.exception.message)
-
-
-@ddt
-class TestQuantumShannonDecomposer(QiskitTestCase):
-    """
-    Test Quantum Shannon Decomposition.
-    """
-
-    def setUp(self):
-        super().setUp()
-        np.random.seed(657)  # this seed should work for calls to scipy.stats.<method>.rvs()
-        self.qsd = qsd.qs_decomposition
-
-    def _get_lower_cx_bound(self, n):
-        return 1 / 4 * (4**n - 3 * n - 1)
-
-    def _qsd_l2_cx_count(self, n):
-        """expected unoptimized cnot count for down to 2q"""
-        return 9 / 16 * 4**n - 3 / 2 * 2**n
-
-    def _qsd_l2_a1_mod(self, n):
-        return (4 ** (n - 2) - 1) // 3
-
-    def _qsd_l2_a2_mod(self, n):
-        return 4 ** (n - 1) - 1
-
-    @data(*list(range(1, 5)))
-    def test_random_decomposition_l2_no_opt(self, nqubits):
-        """test decomposition of random SU(n) down to 2 qubits without optimizations."""
-        dim = 2**nqubits
-        mat = scipy.stats.unitary_group.rvs(dim, random_state=1559)
-        circ = self.qsd(mat, opt_a1=False, opt_a2=False)
-        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
-        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
-        if nqubits > 1:
-            self.assertLessEqual(ccirc.count_ops().get("cx"), self._qsd_l2_cx_count(nqubits))
-        else:
-            self.assertEqual(sum(ccirc.count_ops().values()), 1)
-
-    @data(*list(range(1, 5)))
-    def test_random_decomposition_l2_a1_opt(self, nqubits):
-        """test decomposition of random SU(n) down to 2 qubits with 'a1' optimization."""
-        dim = 2**nqubits
-        mat = scipy.stats.unitary_group.rvs(dim, random_state=789)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
-        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
-        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
-        if nqubits > 1:
-            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
-            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
-
-    def test_SO3_decomposition_l2_a1_opt(self):
-        """test decomposition of random So(3) down to 2 qubits with 'a1' optimization."""
-        nqubits = 3
-        dim = 2**nqubits
-        mat = scipy.stats.ortho_group.rvs(dim)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
-        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
-        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
-        expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
-        self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
-
-    def test_identity_decomposition(self):
-        """Test decomposition on identity matrix"""
-        nqubits = 3
-        dim = 2**nqubits
-        mat = np.identity(dim)
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
-        self.assertTrue(np.allclose(mat, Operator(circ).data))
-        self.assertEqual(sum(circ.count_ops().values()), 0)
-
-    @data(*list(range(1, 4)))
-    def test_diagonal(self, nqubits):
-        """Test decomposition on diagonal -- qsd is not optimal"""
-        dim = 2**nqubits
-        mat = np.diag(np.exp(1j * np.random.normal(size=dim)))
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
-        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
-        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
-        if nqubits > 1:
-            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
-            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
-
-    @data(*list(range(2, 4)))
-    def test_hermitian(self, nqubits):
-        """Test decomposition on hermitian -- qsd is not optimal"""
-        # better might be (arXiv:1405.6741)
-        dim = 2**nqubits
-        umat = scipy.stats.unitary_group.rvs(dim, random_state=750)
-        dmat = np.diag(np.exp(1j * np.random.normal(size=dim)))
-        mat = umat.T.conjugate() @ dmat @ umat
-        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
-        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
-        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
-        if nqubits > 1:
-            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
-            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
-
-    @data(*list(range(1, 6)))
-    def test_opt_a1a2(self, nqubits):
-        """Test decomposition with both optimization a1 and a2 from shende2006"""
-        dim = 2**nqubits
-        umat = scipy.stats.unitary_group.rvs(dim, random_state=1224)
-        circ = self.qsd(umat, opt_a1=True, opt_a2=True)
-        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
-        self.assertTrue(Operator(umat) == Operator(ccirc))
-        if nqubits > 2:
-            self.assertEqual(
-                ccirc.count_ops().get("cx"),
-                (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3,
-            )
-        elif nqubits == 1:
-            self.assertEqual(ccirc.count_ops().get("cx", 0), 0)
-        elif nqubits == 2:
-            self.assertLessEqual(ccirc.count_ops().get("cx", 0), 3)
-
-    def test_a2_opt_single_2q(self):
-        """
-        Test a2_opt when a unitary causes a single final 2-qubit unitary for which this optimization
-        won't help. This came up in issue 10787.
-        """
-        # this somewhat unique signed permutation matrix seems to cause the issue
-        mat = np.array(
-            [
-                [
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    1.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                ],
-                [
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    1.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                ],
-                [
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    -1.0 + 0.0j,
-                    0.0 + 0.0j,
-                ],
-                [
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    -1.0 + 0.0j,
-                ],
-                [
-                    1.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                ],
-                [
-                    0.0 + 0.0j,
-                    1.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                ],
-                [
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    -1.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                ],
-                [
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    -1.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                    0.0 + 0.0j,
-                ],
-            ]
-        )
-
-        gate = UnitaryGate(mat)
-        qc = QuantumCircuit(3)
-        qc.append(gate, range(3))
-        try:
-            qc.to_gate().control(1)
-        except UnboundLocalError as uerr:
-            self.fail(str(uerr))
 
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):

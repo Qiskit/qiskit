@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -47,6 +47,7 @@ def qaoa_ansatz(
         optimization problem:
 
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
             from qiskit.quantum_info import SparsePauliOp

@@ -116,7 +116,7 @@ class SabrePreLayout(AnalysisPass):
             augmented_map, augmented_error_map = self._add_extra_edges(cur_distance)
             pass_ = VF2Layout(
                 augmented_map,
-                seed=0,
+                seed=-1,
                 max_trials=self.max_trials_vf2,
                 call_limit=self.call_limit_vf2,
             )

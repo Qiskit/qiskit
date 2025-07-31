@@ -39,10 +39,10 @@ qiskit_python="$qiskit_venv/bin/python"
 python -m venv "$qiskit_venv"
 
 # `packaging` is needed for the `get_versions.py` script.
-"$qiskit_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" packaging
+"$qiskit_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" packaging "symengine<0.14" "sympy>1.3"
 
 # Run all of the tests of cross-Qiskit-version compatibility.
-"$qiskit_python" "$our_dir/get_versions.py" | parallel --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"
+"$qiskit_python" "$our_dir/get_versions.py" | parallel -j 2 --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"
 
 # Test dev compatibility with itself.
 dev_version="$("$qiskit_python" -c 'import qiskit; print(qiskit.__version__)')"
@@ -57,6 +57,8 @@ popd
 # This will likely duplicate the base dev-compatibility test, but the tests are fairly fast, and
 # it's better safe than sorry with the serialisation tests.
 
+# Note that the constraint in the range of symengine versions is logically duplicated
+# in `qpy_test_constraints.txt`
 symengine_versions=(
     '>=0.11,<0.12'
     '>=0.13,<0.14'

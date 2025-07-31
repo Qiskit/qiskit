@@ -12,6 +12,7 @@
 
 """Test the evolved operator ansatz."""
 
+import unittest
 from ddt import ddt, data
 import numpy as np
 
@@ -25,6 +26,7 @@ from qiskit.circuit.library.n_local import (
     hamiltonian_variational_ansatz,
 )
 from qiskit.synthesis.evolution import MatrixExponential
+from qiskit.utils import optionals
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -41,7 +43,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         if use_function:
             evo = evolved_operator_ansatz(ops, 2)
         else:
-            evo = EvolvedOperatorAnsatz(ops, 2)
+            with self.assertWarns(DeprecationWarning):
+                evo = EvolvedOperatorAnsatz(ops, 2)
 
         parameters = evo.parameters
 
@@ -65,7 +68,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         if use_function:
             evo = evolved_operator_ansatz(op, evolution=evolution)
         else:
-            evo = EvolvedOperatorAnsatz(op, evolution=evolution)
+            with self.assertWarns(DeprecationWarning):
+                evo = EvolvedOperatorAnsatz(op, evolution=evolution)
 
         parameters = evo.parameters
 
@@ -80,7 +84,9 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
     def test_changing_operators(self):
         """Test rebuilding after the operators changed."""
         ops = [Pauli("X"), Pauli("Y"), Pauli("Z")]
-        evo = EvolvedOperatorAnsatz(ops)
+        with self.assertWarns(DeprecationWarning):
+            evo = EvolvedOperatorAnsatz(ops)
+
         evo.operators = [Pauli("X"), Pauli("Y")]
         parameters = evo.parameters
 
@@ -97,11 +103,13 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
             if use_function:
                 _ = evolved_operator_ansatz(Pauli("X"), reps=-1)
             else:
-                _ = EvolvedOperatorAnsatz(Pauli("X"), reps=-1)
+                with self.assertWarns(DeprecationWarning):
+                    _ = EvolvedOperatorAnsatz(Pauli("X"), reps=-1)
 
     def test_insert_barriers_circuit(self):
         """Test using insert_barriers."""
-        evo = EvolvedOperatorAnsatz(Pauli("Z"), reps=4, insert_barriers=True)
+        with self.assertWarns(DeprecationWarning):
+            evo = EvolvedOperatorAnsatz(Pauli("Z"), reps=4, insert_barriers=True)
         ref = QuantumCircuit(1)
         for parameter in evo.parameters:
             ref.rz(2.0 * parameter, 0)
@@ -122,7 +130,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
     def test_empty_build_fails(self):
         """Test setting no operators to evolve raises the appropriate error."""
-        evo = EvolvedOperatorAnsatz()
+        with self.assertWarns(DeprecationWarning):
+            evo = EvolvedOperatorAnsatz()
         with self.assertRaises(ValueError):
             _ = evo.draw()
 
@@ -132,7 +141,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         if use_function:
             evo = evolved_operator_ansatz([])
         else:
-            evo = EvolvedOperatorAnsatz([])
+            with self.assertWarns(DeprecationWarning):
+                evo = EvolvedOperatorAnsatz([])
 
         self.assertEqual(evo, QuantumCircuit())
 
@@ -144,7 +154,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         if use_function:
             evo = evolved_operator_ansatz(unitary, reps=3)
         else:
-            evo = EvolvedOperatorAnsatz(unitary, reps=3).decompose()
+            with self.assertWarns(DeprecationWarning):
+                evo = EvolvedOperatorAnsatz(unitary, reps=3).decompose()
 
         self.assertEqual(evo.count_ops()["hamiltonian"], 3)
 
@@ -152,7 +163,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         """Test flatten option is actually flattened."""
         num_qubits = 3
         ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
-        evo = EvolvedOperatorAnsatz(ops, reps=3, flatten=True)
+        with self.assertWarns(DeprecationWarning):
+            evo = EvolvedOperatorAnsatz(ops, reps=3, flatten=True)
         self.assertNotIn("hamiltonian", evo.count_ops())
         self.assertNotIn("EvolvedOps", evo.count_ops())
         self.assertNotIn("PauliEvolution", evo.count_ops())
@@ -183,6 +195,16 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
             self.assertIn("hamiltonian", ops)
             self.assertIn("PauliEvolution", ops)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
+    def test_sympify_is_real(self):
+        """Test converting the parameters to sympy is real."""
+        evo = evolved_operator_ansatz(SparsePauliOp(["Z"], coeffs=[1 + 0j]))
+        param = evo.parameters[0]  # get the gamma parameter
+
+        angle = evo.data[0].operation.params[0]
+        expected = (2.0 * param).sympify()
+        self.assertEqual(expected, angle.sympify())
+
 
 class TestHamiltonianVariationalAnsatz(QiskitTestCase):
     """Test the hamiltonian_variational_ansatz function.
@@ -198,6 +220,21 @@ class TestHamiltonianVariationalAnsatz(QiskitTestCase):
 
         # this Hamiltonian should be split into 2 commuting groups, hence we get 2 parameters
         self.assertEqual(2, circuit.num_parameters)
+
+    def test_evolution_with_identity(self):
+        """Test a Hamiltonian containing an identity term.
+
+        Regression test of #13644.
+        """
+        hamiltonian = SparsePauliOp(["III", "IZZ", "IXI"])
+        ansatz = hamiltonian_variational_ansatz(hamiltonian, reps=1)
+        bound = ansatz.assign_parameters([1, 1])  # we have two non-commuting groups, hence 2 params
+
+        expected = QuantumCircuit(3, global_phase=-1)
+        expected.rzz(2, 0, 1)
+        expected.rx(2, 1)
+
+        self.assertEqual(expected, bound)
 
 
 def evolve(pauli_string, time):
