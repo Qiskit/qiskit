@@ -74,6 +74,7 @@ impl Expr {
             Expr::Var(v) => ExprRef::Var(v),
             Expr::Stretch(s) => ExprRef::Stretch(s),
             Expr::Index(i) => ExprRef::Index(i.as_ref()),
+            Expr::Range(r) => ExprRef::Range(r.as_ref()),
         }
     }
 
@@ -87,6 +88,7 @@ impl Expr {
             Expr::Var(v) => ExprRefMut::Var(v),
             Expr::Stretch(s) => ExprRefMut::Stretch(s),
             Expr::Index(i) => ExprRefMut::Index(i.as_mut()),
+            Expr::Range(r) => ExprRefMut::Range(r.as_mut()),
         }
     }
 
@@ -170,6 +172,13 @@ impl Expr {
                 i.target.visit_mut_impl(visitor)?;
                 i.index.visit_mut_impl(visitor)?;
             }
+            Expr::Range(r) => {
+                r.start.visit_mut_impl(visitor)?;
+                r.stop.visit_mut_impl(visitor)?;
+                if let Some(step) = &mut r.step {
+                    step.visit_mut_impl(visitor)?;
+                }
+            }
         }
         visitor(self.as_mut())
     }
@@ -238,6 +247,11 @@ impl Expr {
                         }
                     }
                     (ExprRef::Index(a), ExprRef::Index(b)) => {
+                        if a.ty != b.ty || a.constant != b.constant {
+                            return false;
+                        }
+                    }
+                    (ExprRef::Range(a), ExprRef::Range(b)) => {
                         if a.ty != b.ty || a.constant != b.constant {
                             return false;
                         }
