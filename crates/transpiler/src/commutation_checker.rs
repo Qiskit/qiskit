@@ -171,7 +171,6 @@ impl CommutationChecker {
         )?;
 
         self.commute_inner(
-            py,
             &op1.instruction.operation.view(),
             &op1.instruction.params,
             &qargs1,
@@ -208,7 +207,6 @@ impl CommutationChecker {
         let (cargs1, cargs2) = get_bits::<Clbit>(&cargs1, &cargs2)?;
 
         self.commute_inner(
-            py,
             &op1.operation.view(),
             &op1.params,
             &qargs1,
@@ -277,7 +275,6 @@ impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
     pub fn commute_inner(
         &mut self,
-        py: Python,
         op1: &OperationRef,
         params1: &[Param],
         qargs1: &[Qubit],
@@ -370,7 +367,6 @@ impl CommutationChecker {
 
         if !check_cache {
             return self.commute_matmul(
-                py,
                 first_op,
                 first_params,
                 first_qargs,
@@ -405,7 +401,6 @@ impl CommutationChecker {
 
         // Perform matrix multiplication to determine commutation
         let is_commuting = self.commute_matmul(
-            py,
             first_op,
             first_params,
             first_qargs,
@@ -440,7 +435,6 @@ impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
     fn commute_matmul(
         &self,
-        py: Python,
         first_op: &OperationRef,
         first_params: &[Param],
         first_qargs: &[Qubit],
@@ -478,12 +472,12 @@ impl CommutationChecker {
                 "first instructions must have at most as many qubits as the second instruction",
             ));
         };
-        let first_mat = match get_matrix(py, first_op, first_params)? {
+        let first_mat = match get_matrix(first_op, first_params)? {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
 
-        let second_mat = match get_matrix(py, second_op, second_params)? {
+        let second_mat = match get_matrix(second_op, second_params)? {
             Some(matrix) => matrix,
             None => return Ok(false),
         };
@@ -589,16 +583,16 @@ fn commutation_precheck(
     None
 }
 
-fn get_matrix(
-    py: Python,
-    operation: &OperationRef,
-    params: &[Param],
-) -> PyResult<Option<Array2<Complex64>>> {
+fn get_matrix(operation: &OperationRef, params: &[Param]) -> PyResult<Option<Array2<Complex64>>> {
     match operation.matrix(params) {
         Some(matrix) => Ok(Some(matrix)),
         None => match operation {
-            PyGateType(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
-            PyOperationType(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
+            PyGateType(gate) => {
+                Python::with_gil(|py| Ok(Some(matrix_via_operator(py, &gate.gate)?)))
+            }
+            PyOperationType(op) => {
+                Python::with_gil(|py| Ok(Some(matrix_via_operator(py, &op.operation)?)))
+            }
             _ => Ok(None),
         },
     }
