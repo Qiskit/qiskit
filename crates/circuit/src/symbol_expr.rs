@@ -1016,33 +1016,35 @@ impl SymbolExpr {
                     rhs: r_rhs,
                 } = rhs
                 {
-                    // recursive optimization for add and sub
-                    if let BinaryOp::Add = &op {
-                        if let Some(e) = self.add_opt(r_lhs, true) {
-                            return match e.add_opt(r_rhs, true) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(e, r_rhs.as_ref().clone())),
-                            };
+                    if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) | SymbolExpr::Unary { .. } = self {
+                        // recursive optimization for add and sub
+                        if let BinaryOp::Add = &op {
+                            if let Some(e) = self.add_opt(r_lhs, true) {
+                                return match e.add_opt(r_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_add(e, r_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = self.add_opt(r_rhs, true) {
+                                return match e.add_opt(r_lhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_add(e, r_lhs.as_ref().clone())),
+                                };
+                            }
                         }
-                        if let Some(e) = self.add_opt(r_rhs, true) {
-                            return match e.add_opt(r_lhs, true) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(e, r_lhs.as_ref().clone())),
-                            };
-                        }
-                    }
-                    if let BinaryOp::Sub = &op {
-                        if let Some(e) = self.add_opt(r_lhs, true) {
-                            return match e.sub_opt(r_rhs, true) {
-                                Some(ee) => Some(ee),
-                                None => Some(_sub(e, r_rhs.as_ref().clone())),
-                            };
-                        }
-                        if let Some(e) = self.sub_opt(r_rhs, true) {
-                            return match e.add_opt(r_lhs, true) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(e, r_lhs.as_ref().clone())),
-                            };
+                        if let BinaryOp::Sub = &op {
+                            if let Some(e) = self.add_opt(r_lhs, true) {
+                                return match e.sub_opt(r_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_sub(e, r_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = self.sub_opt(r_rhs, true) {
+                                return match e.add_opt(r_lhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_add(e, r_lhs.as_ref().clone())),
+                                };
+                            }
                         }
                     }
                 }
@@ -1144,7 +1146,28 @@ impl SymbolExpr {
                             }
                         }
                     }
-                    None
+
+                    // swap nodes by sorting rule
+                    match rhs {
+                        SymbolExpr::Binary { op: rop, .. } => {
+                            if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
+                                if self > rhs {
+                                    Some(_add(rhs.clone(), self.clone()))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                        _ => {
+                            if self > rhs {
+                                Some(_add(rhs.clone(), self.clone()))
+                            } else {
+                                None
+                            }
+                        }
+                    }
                 }
                 SymbolExpr::Binary {
                     op,
@@ -1301,7 +1324,31 @@ impl SymbolExpr {
                             }
                         }
                     }
-                    None
+                    // swap nodes by sorting rule
+                    if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
+                        match rhs {
+                            SymbolExpr::Binary { op: rop, .. } => {
+                                if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
+                                    if self > rhs {
+                                        Some(_add(rhs.clone(), self.clone()))
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => {
+                                if self > rhs {
+                                    Some(_add(rhs.clone(), self.clone()))
+                                } else {
+                                    None
+                                }
+                            }
+                        }
+                    } else {
+                        None
+                    }
                 }
             }
         }
@@ -1329,33 +1376,35 @@ impl SymbolExpr {
                     rhs: r_rhs,
                 } = rhs
                 {
-                    // recursive optimization for add and sub
-                    if let BinaryOp::Add = &op {
-                        if let Some(e) = self.sub_opt(r_lhs, true) {
-                            return match e.sub_opt(r_rhs, true) {
-                                Some(ee) => Some(ee),
-                                None => Some(_sub(e, r_rhs.as_ref().clone())),
-                            };
+                    if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) | SymbolExpr::Unary { .. } = self {
+                        // recursive optimization for add and sub
+                        if let BinaryOp::Add = &op {
+                            if let Some(e) = self.sub_opt(r_lhs, true) {
+                                return match e.sub_opt(r_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_sub(e, r_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = self.sub_opt(r_rhs, true) {
+                                return match e.sub_opt(r_lhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_sub(e, r_lhs.as_ref().clone())),
+                                };
+                            }
                         }
-                        if let Some(e) = self.sub_opt(r_rhs, true) {
-                            return match e.sub_opt(r_lhs, true) {
-                                Some(ee) => Some(ee),
-                                None => Some(_sub(e, r_lhs.as_ref().clone())),
-                            };
-                        }
-                    }
-                    if let BinaryOp::Sub = &op {
-                        if let Some(e) = self.sub_opt(r_lhs, true) {
-                            return match e.add_opt(r_rhs, true) {
-                                Some(ee) => Some(ee),
-                                None => Some(_add(e, r_rhs.as_ref().clone())),
-                            };
-                        }
-                        if let Some(e) = self.add_opt(r_rhs, true) {
-                            return match e.sub_opt(r_lhs, true) {
-                                Some(ee) => Some(ee),
-                                None => Some(_sub(e, r_lhs.as_ref().clone())),
-                            };
+                        if let BinaryOp::Sub = &op {
+                            if let Some(e) = self.sub_opt(r_lhs, true) {
+                                return match e.add_opt(r_rhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_add(e, r_rhs.as_ref().clone())),
+                                };
+                            }
+                            if let Some(e) = self.add_opt(r_rhs, true) {
+                                return match e.sub_opt(r_lhs, true) {
+                                    Some(ee) => Some(ee),
+                                    None => Some(_sub(e, r_lhs.as_ref().clone())),
+                                };
+                            }
                         }
                     }
                 }
@@ -1458,7 +1507,34 @@ impl SymbolExpr {
                             }
                         }
                     }
-                    None
+
+                    // swap nodes by sorting rule
+                    match rhs {
+                        SymbolExpr::Binary { op: rop, .. } => {
+                            if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
+                                if self > rhs {
+                                    match rhs.neg_opt() {
+                                        Some(e) => Some(_add(e, self.clone())),
+                                        None => Some(_add(_neg(rhs.clone()), self.clone())),
+                                    }
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                        _ => {
+                            if self > rhs {
+                                match rhs.neg_opt() {
+                                    Some(e) => Some(_add(e, self.clone())),
+                                    None => Some(_add(_neg(rhs.clone()), self.clone())),
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                    }
                 }
                 SymbolExpr::Binary {
                     op,
@@ -1612,7 +1688,37 @@ impl SymbolExpr {
                             }
                         }
                     }
-                    None
+                    // swap nodes by sorting rule
+                    if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = op {
+                        match rhs {
+                            SymbolExpr::Binary { op: rop, .. } => {
+                                if let BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow = rop {
+                                    if self > rhs {
+                                        match rhs.neg_opt() {
+                                            Some(e) => Some(_add(e, self.clone())),
+                                            None => Some(_add(_neg(rhs.clone()), self.clone())),
+                                        }
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => {
+                                if self > rhs {
+                                    match rhs.neg_opt() {
+                                        Some(e) => Some(_add(e, self.clone())),
+                                        None => Some(_add(_neg(rhs.clone()), self.clone())),
+                                    }
+                                } else {
+                                    None
+                                }
+                            }
+                        }
+                    } else {
+                        None
+                    }
                 }
             }
         }
