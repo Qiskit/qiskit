@@ -585,7 +585,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeCancellation(
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
 
@@ -617,7 +620,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeCancellation(
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
 
@@ -1090,7 +1096,10 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
                         target=pass_manager_config.target,
                     ),
                     OptimizeCliffordT(),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeCancellation(
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
 
