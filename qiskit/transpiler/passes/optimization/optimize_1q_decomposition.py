@@ -19,7 +19,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit._accelerate import euler_one_qubit_decomposer
-from qiskit._accelerate import optimize_1q_gates_decomposition
 from qiskit.circuit.library.standard_gates import (
     UGate,
     PhaseGate,
@@ -36,6 +35,7 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.circuit import Qubit
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+
 
 logger = logging.getLogger(__name__)
 
@@ -79,20 +79,22 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 target. When specified, any argument specified for ``basis_gates`` is ignored.
         """
         super().__init__()
+
+        if basis and len(basis) > 0:
+            self._basis_gates = set(basis)
+        else:
+            self._basis_gates = None
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        self._target = target if target is not None and len(target.operation_names) > 0 else None
+        self._global_decomposers = None
         self._local_decomposers_cache = {}
 
-        if target is not None and len(target.operation_names) > 0:
-            self._target = target
-            self._basis_gates = set(target.operation_names)
-            self._global_decomposers = _possible_decomposers(self._basis_gates)
-        elif basis:
-            self._target = None
-            self._basis_gates = set(basis)
-            self._global_decomposers = _possible_decomposers(self._basis_gates)
-        else:
-            self._target = None
-            self._basis_gates = None
+        if self._basis_gates:
+            self._global_decomposers = _possible_decomposers(set(basis))
+        elif target is None or len(target.operation_names) == 0:
             self._global_decomposers = _possible_decomposers(None)
+            self._basis_gates = None
 
         self.error_map = self._build_error_map()
 
@@ -119,40 +121,26 @@ class Optimize1qGatesDecomposition(TransformationPass):
             and self._target.num_qubits is not None
             and len(self._target.operation_names) > 0
         ):
-            qubits_tuple = (qubit,) if qubit is not None else None
+            if qubit is not None:
+                qubits_tuple = (qubit,)
+            else:
+                qubits_tuple = None
             if qubits_tuple in self._local_decomposers_cache:
-                return self._local_decomposers_cache[qubits_tuple]
+                decomposers = self._local_decomposers_cache[qubits_tuple]
+            else:
+                inst_objects = self._target.operations_for_qargs(qubits_tuple)
 
-            available_1q_basis = set()
-            inst_names = self._target.operation_names_for_qargs(qubits_tuple)
-            for inst_name in inst_names:
-                insts = self._target[inst_name]
-                keep_gate = False
-                for inst_props in insts.values():
-                    if inst_props is None:
-                        gate_class = NAME_MAP.get(inst_name)
-                        if gate_class is None:
-                            continue
-                        try:
-                            gate = gate_class()
-                            keep_gate = True
-                            break
-                        except (TypeError, ValueError, AttributeError):
-                            continue
-                    else:
-                        gate = inst_props.calibration
-                        if gate is None:
-                            continue
-                        keep_gate = True
-                        break
+                available_1q_basis = {
+                    op.name
+                    for op in inst_objects
+                    # Safely check .parameters, some gates (like SX, Phase) don’t have it
+                    if (not getattr(op, "parameters", None))
+                    or any(hasattr(param, "name") for param in getattr(op, "parameters", []))
+                }
 
-                if keep_gate:
-                    available_1q_basis.add(inst_name)
-
-            decomposers = _possible_decomposers(available_1q_basis)
+                decomposers = _possible_decomposers(available_1q_basis)
         else:
             decomposers = self._global_decomposers
-        logger.debug("Decomposer set for qubit %s: %s", qubit, decomposers)
         return decomposers
 
     def _resynthesize_run(self, matrix, qubit=None):
@@ -166,7 +154,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
         error when the circuit is applied to `qubit`.
         """
         decomposers = self._get_decomposer(qubit)
-        logger.debug("Decomposer set for qubit %s: %s", qubit, decomposers)
 
         best_synth_circuit = euler_one_qubit_decomposer.unitary_to_gate_sequence(
             matrix,
@@ -176,17 +163,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         )
         return best_synth_circuit
 
-    def _resynthesize(self, mat, qubit=None):
-        best_synth_circuit = self._resynthesize_run(mat, qubit)
-        if best_synth_circuit is None:
-            return None
-        return self._gate_sequence_to_dag(best_synth_circuit)
-
     def _gate_sequence_to_dag(self, best_synth_circuit):
-        """Convert a sequence of gates (or None) to a DAGCircuit."""
-        if best_synth_circuit is None:
-            return None
-
         qubits = (Qubit(),)
         out_dag = DAGCircuit()
         out_dag.add_qubits(qubits)
@@ -239,7 +216,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        optimize_1q_gates_decomposition.optimize_1q_gates_decomposition(
+        euler_one_qubit_decomposer.optimize_1q_gates_decomposition(
             dag,
             target=self._target,
             global_decomposers=self._global_decomposers,
