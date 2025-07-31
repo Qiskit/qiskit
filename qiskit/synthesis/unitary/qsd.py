@@ -140,64 +140,63 @@ def qs_decomposition(
         mat = _closest_unitary(mat)
         circ = decomposer_2q(mat)
         return circ
+    # check whether the matrix is equivalent to a block diagonal wrt ctrl_index
+    if opt_a2 is None:
+        opt_a2 = True
+        # check if the unitary is controlled
+        for ctrl_index in range(nqubits):
+            um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
+            if _off_diagonals_are_zero(um01, um10):
+                opt_a2 = False
+    if opt_a2 is False:
+        for ctrl_index in range(nqubits):
+            um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
+            # the ctrl_index is reversed here
+            if _off_diagonals_are_zero(um01, um10):
+                decirc, _, _ = _demultiplex(
+                    um00,
+                    um11,
+                    opt_a1=opt_a1,
+                    opt_a2=opt_a2,
+                    _vw_type="all",
+                    _depth=_depth,
+                    _ctrl_index=nqubits - 1 - ctrl_index,
+                )
+                return decirc
+    qr = QuantumRegister(nqubits)
+
+    # perform block ZXZ decomposition from [2]
+    A1, A2, B, C = _block_zxz_decomp(np.asarray(mat, dtype=complex))
+    iden = np.eye(2 ** (nqubits - 1))
+    # left circ
+    left_circ, vmatC, _wmatC = _demultiplex(
+        iden, C, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_w", _depth=_depth
+    )
+    # right circ
+    right_circ, _vmatA, wmatA = _demultiplex(
+        A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_v", _depth=_depth
+    )
+
+    # middle circ
+    # zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
+    zmat = np.diag([1] * (dim // 4) + [-1] * (dim // 4))
+    # wmatA and vmatC are combined into B1 and B2
+    B1 = wmatA @ vmatC
+    if opt_a1:
+        B2 = zmat @ wmatA @ B @ vmatC @ zmat
     else:
-        # check whether the matrix is equivalent to a block diagonal wrt ctrl_index
-        if opt_a2 is None:
-            opt_a2 = True
-            # check if the unitary is controlled
-            for ctrl_index in range(nqubits):
-                um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
-                if _off_diagonals_are_zero(um01, um10):
-                    opt_a2 = False
-        if opt_a2 is False:
-            for ctrl_index in range(nqubits):
-                um00, um11, um01, um10 = _extract_multiplex_blocks(mat, ctrl_index)
-                # the ctrl_index is reversed here
-                if _off_diagonals_are_zero(um01, um10):
-                    decirc, _, _ = _demultiplex(
-                        um00,
-                        um11,
-                        opt_a1=opt_a1,
-                        opt_a2=opt_a2,
-                        _vw_type="all",
-                        _depth=_depth,
-                        _ctrl_index=nqubits - 1 - ctrl_index,
-                    )
-                    return decirc
-        qr = QuantumRegister(nqubits)
+        B2 = wmatA @ B @ vmatC
+    middle_circ, _, _ = _demultiplex(
+        B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="all", _depth=_depth
+    )
 
-        # perform block ZXZ decomposition from [2]
-        A1, A2, B, C = _block_zxz_decomp(np.asarray(mat, dtype=complex))
-        iden = np.eye(2 ** (nqubits - 1))
-        # left circ
-        left_circ, vmatC, _wmatC = _demultiplex(
-            iden, C, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_w", _depth=_depth
-        )
-        # right circ
-        right_circ, _vmatA, wmatA = _demultiplex(
-            A1, A2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="only_v", _depth=_depth
-        )
-
-        # middle circ
-        # zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
-        zmat = np.diag([1] * (dim // 4) + [-1] * (dim // 4))
-        # wmatA and vmatC are combined into B1 and B2
-        B1 = wmatA @ vmatC
-        if opt_a1:
-            B2 = zmat @ wmatA @ B @ vmatC @ zmat
-        else:
-            B2 = wmatA @ B @ vmatC
-        middle_circ, _, _ = _demultiplex(
-            B1, B2, opt_a1=opt_a1, opt_a2=opt_a2, _vw_type="all", _depth=_depth
-        )
-
-        # the output circuit of the block ZXZ decomposition from [2]
-        circ = QuantumCircuit(qr)
-        circ.append(left_circ.to_instruction(), qr)
-        circ.h(nqubits - 1)
-        circ.append(middle_circ.to_instruction(), qr)
-        circ.h(nqubits - 1)
-        circ.append(right_circ.to_instruction(), qr)
+    # the output circuit of the block ZXZ decomposition from [2]
+    circ = QuantumCircuit(qr)
+    circ.append(left_circ.to_instruction(), qr)
+    circ.h(nqubits - 1)
+    circ.append(middle_circ.to_instruction(), qr)
+    circ.h(nqubits - 1)
+    circ.append(right_circ.to_instruction(), qr)
 
     if opt_a2 and _depth == 0 and dim > 4:
         return _apply_a2(circ)
