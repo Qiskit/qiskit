@@ -150,7 +150,8 @@ impl PhasedQubitSparsePauliView<'_> {
 pub struct PhasedQubitSparsePauli {
     /// The qubit sparse Pauli.
     qubit_sparse_pauli: QubitSparsePauli,
-    /// phase.
+    /// ZX phase. Note that this is different from the "group phase" the user interacts with in the
+    /// python interface.
     phase: isize,
 }
 
@@ -663,29 +664,31 @@ impl PyPhasedQubitSparsePauli {
         ))
     }
 
-    //fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
-    //    let py = slf_.py();
-    //    let borrowed = slf_.borrow();
-    //    (
-    //        borrowed.inner.num_qubits(),
-    //        Self::get_paulis(slf_.clone()),
-    //        Self::get_indices(slf_),
-    //    )
-    //        .into_pyobject(py)
-    //}
+    fn __getnewargs__(slf_: Bound<Self>) -> PyResult<Bound<PyTuple>> {
+        let py = slf_.py();
+        let borrowed = slf_.borrow();
+        (
+            borrowed.inner.num_qubits(),
+            Self::get_paulis(slf_.clone()),
+            Self::get_indices(slf_.clone()),
+            Self::get_phase(slf_)
+        )
+            .into_pyobject(py)
+    }
 
-    //fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-    //    let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.paulis());
-    //    (
-    //        py.get_type::<Self>().getattr("from_raw_parts")?,
-    //        (
-    //            self.inner.num_qubits(),
-    //            PyArray1::from_slice(py, paulis),
-    //            PyArray1::from_slice(py, self.inner.indices()),
-    //        ),
-    //    )
-    //        .into_pyobject(py)
-    //}
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let paulis: &[u8] = ::bytemuck::cast_slice(self.inner.qubit_sparse_pauli.paulis());
+        (
+            py.get_type::<Self>().getattr("from_raw_parts")?,
+            (
+                self.inner.num_qubits(),
+                PyArray1::from_slice(py, paulis),
+                PyArray1::from_slice(py, self.inner.qubit_sparse_pauli.indices()),
+                (self.inner.phase - self.inner.qubit_sparse_pauli.view().num_ys()).rem_euclid(4)
+            ),
+        )
+            .into_pyobject(py)
+    }
 
     /// Get a copy of this term.
     fn copy(&self) -> Self {

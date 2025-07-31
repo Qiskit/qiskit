@@ -31,16 +31,16 @@ from qiskit.transpiler import Target
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-"""
+
 def single_cases():
     return [
-        QubitSparsePauli(""),
-        QubitSparsePauli("I" * 10),
-        QubitSparsePauli.from_label("IIXIZI"),
-        QubitSparsePauli.from_label("ZZYYXX"),
+        PhasedQubitSparsePauli(""),
+        PhasedQubitSparsePauli("I" * 10),
+        PhasedQubitSparsePauli.from_label("IIXIZI"),
+        PhasedQubitSparsePauli(Pauli("iZZYYXX")),
     ]
 
-
+"""
 def single_cases_list():
     return [
         QubitSparsePauliList.empty(0),
@@ -277,33 +277,33 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
         self.assertEqual({label: PhasedQubitSparsePauli.Pauli[label] for label in labels}, labels)
         # The `label` property returns known values.
         self.assertEqual({pauli.label: pauli for pauli in PhasedQubitSparsePauli.Pauli}, labels)
-    '''
+    
     @ddt.idata(single_cases())
-    def test_pickle(self, qubit_sparse_pauli):
-        self.assertEqual(qubit_sparse_pauli, copy.copy(qubit_sparse_pauli))
-        self.assertIsNot(qubit_sparse_pauli, copy.copy(qubit_sparse_pauli))
-        self.assertEqual(qubit_sparse_pauli, copy.deepcopy(qubit_sparse_pauli))
-        self.assertEqual(qubit_sparse_pauli, pickle.loads(pickle.dumps(qubit_sparse_pauli)))
-
+    def test_pickle(self, phased_qubit_sparse_pauli):
+        self.assertEqual(phased_qubit_sparse_pauli, copy.copy(phased_qubit_sparse_pauli))
+        self.assertIsNot(phased_qubit_sparse_pauli, copy.copy(phased_qubit_sparse_pauli))
+        self.assertEqual(phased_qubit_sparse_pauli, copy.deepcopy(phased_qubit_sparse_pauli))
+        self.assertEqual(phased_qubit_sparse_pauli, pickle.loads(pickle.dumps(phased_qubit_sparse_pauli)))
+    
     @ddt.data(
-        QubitSparsePauli.from_label("IIXIZI"),
-        QubitSparsePauli.from_label("X"),
-        QubitSparsePauli.from_label("III"),
+        PhasedQubitSparsePauli.from_label("IIXIZI"),
+        PhasedQubitSparsePauli.from_label("X"),
+        PhasedQubitSparsePauli(Pauli("iIII")),
     )
     def test_repr(self, data):
         # The purpose of this is just to test that the `repr` doesn't crash, rather than asserting
         # that it has any particular form.
         self.assertIsInstance(repr(data), str)
-        self.assertIn("QubitSparsePauli", repr(data))
-
+        self.assertIn("PhasedQubitSparsePauli", repr(data))
+    
     @ddt.idata(single_cases())
-    def test_copy(self, qubit_sparse_pauli):
-        self.assertEqual(qubit_sparse_pauli, qubit_sparse_pauli.copy())
-        self.assertIsNot(qubit_sparse_pauli, qubit_sparse_pauli.copy())
-
+    def test_copy(self, phased_qubit_sparse_pauli):
+        self.assertEqual(phased_qubit_sparse_pauli, phased_qubit_sparse_pauli.copy())
+        self.assertIsNot(phased_qubit_sparse_pauli, phased_qubit_sparse_pauli.copy())
+    
     def test_equality(self):
-        sparse_data = ("XYY", (3, 1, 0))
-        pauli = QubitSparsePauli.from_sparse_label(sparse_data, num_qubits=5)
+        sparse_data = (1, "XYY", (3, 1, 0))
+        pauli = PhasedQubitSparsePauli.from_sparse_label(sparse_data, num_qubits=5)
         self.assertEqual(pauli, pauli.copy())
         # Take care that Rust space allows multiple views onto the same object.
         self.assertEqual(pauli, pauli)
@@ -313,33 +313,43 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
 
         # Difference in qubit count.
         self.assertNotEqual(
-            pauli, QubitSparsePauli.from_sparse_label(sparse_data, num_qubits=pauli.num_qubits + 1)
+            pauli, PhasedQubitSparsePauli.from_sparse_label(sparse_data, num_qubits=pauli.num_qubits + 1)
         )
 
         # Difference in bit terms.
         self.assertNotEqual(
-            QubitSparsePauli.from_label("IIXZI"),
-            QubitSparsePauli.from_label("IIYZI"),
+            PhasedQubitSparsePauli.from_label("IIXZI"),
+            PhasedQubitSparsePauli.from_label("IIYZI"),
         )
         self.assertNotEqual(
-            QubitSparsePauli.from_label("XXYYZ"),
-            QubitSparsePauli.from_label("XXYYY"),
+            PhasedQubitSparsePauli.from_label("XXYYZ"),
+            PhasedQubitSparsePauli.from_label("XXYYY"),
         )
 
         # Difference in indices.
         self.assertNotEqual(
-            QubitSparsePauli.from_label("IIXZI"),
-            QubitSparsePauli.from_label("IXIZI"),
+            PhasedQubitSparsePauli.from_label("IIXZI"),
+            PhasedQubitSparsePauli.from_label("IXIZI"),
         )
         self.assertNotEqual(
-            QubitSparsePauli.from_label("XIYYZ"),
-            QubitSparsePauli.from_label("IXYYZ"),
+            PhasedQubitSparsePauli.from_label("XIYYZ"),
+            PhasedQubitSparsePauli.from_label("IXYYZ"),
         )
 
+        # Difference in phase.
+        self.assertNotEqual(
+            PhasedQubitSparsePauli(Pauli("IIXZI")),
+            PhasedQubitSparsePauli(Pauli("-IIXZI")),
+        )
+        self.assertNotEqual(
+            PhasedQubitSparsePauli(Pauli("iXIYYZ")),
+            PhasedQubitSparsePauli(Pauli("-iXIYYZ")),
+        )
+    
     def test_attributes_sequence(self):
         """Test attributes of the `Sequence` protocol."""
         # Length
-        pauli = QubitSparsePauli.from_label("XZY")
+        pauli = PhasedQubitSparsePauli.from_label("XZY")
         self.assertEqual(len(pauli.indices), 3)
         self.assertEqual(len(pauli.paulis), 3)
 
@@ -347,15 +357,15 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
         self.assertEqual(tuple(pauli.indices), (0, 1, 2))
         # multiple iteration through same object
         paulis = pauli.paulis
-        self.assertEqual(set(paulis), {QubitSparsePauli.Pauli[x] for x in "XZY"})
+        self.assertEqual(set(paulis), {PhasedQubitSparsePauli.Pauli[x] for x in "XZY"})
 
         # Implicit iteration methods.
-        self.assertIn(QubitSparsePauli.Pauli.Y, pauli.paulis)
+        self.assertIn(PhasedQubitSparsePauli.Pauli.Y, pauli.paulis)
         self.assertNotIn(4, pauli.indices)
 
         # Index by scalar
         self.assertEqual(pauli.indices[-1], 2)
-        self.assertEqual(pauli.paulis[0], QubitSparsePauli.Pauli.Y)
+        self.assertEqual(pauli.paulis[0], PhasedQubitSparsePauli.Pauli.Y)
 
         # Index by slice.  This is API guaranteed to be a Numpy array to make it easier to
         # manipulate subslices with mathematic operations.
@@ -368,12 +378,12 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
         self.assertIsInstance(pauli.paulis[0:2], np.ndarray)
         np.testing.assert_array_equal(
             pauli.paulis[0:2],
-            np.array([QubitSparsePauli.Pauli.Y, QubitSparsePauli.Pauli.Z], dtype=np.uint8),
+            np.array([PhasedQubitSparsePauli.Pauli.Y, PhasedQubitSparsePauli.Pauli.Z], dtype=np.uint8),
             strict=True,
         )
 
     def test_attributes_to_array(self):
-        pauli = QubitSparsePauli.from_label("XZY")
+        pauli = PhasedQubitSparsePauli.from_label("XZY")
 
         # Natural dtypes.
         np.testing.assert_array_equal(
@@ -381,7 +391,7 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
         )
         np.testing.assert_array_equal(
             pauli.paulis,
-            np.array([QubitSparsePauli.Pauli[x] for x in "YZX"], dtype=np.uint8),
+            np.array([PhasedQubitSparsePauli.Pauli[x] for x in "YZX"], dtype=np.uint8),
             strict=True,
         )
 
@@ -391,7 +401,6 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
             np.array([0, 1, 2], dtype=np.uint8),
             strict=True,
         )
-    '''
 
     def test_identity(self):
         identity_5 = PhasedQubitSparsePauli.identity(5)
