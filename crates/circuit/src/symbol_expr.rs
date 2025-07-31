@@ -1016,7 +1016,9 @@ impl SymbolExpr {
                     rhs: r_rhs,
                 } = rhs
                 {
-                    if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) | SymbolExpr::Unary { .. } = self {
+                    if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) | SymbolExpr::Unary { .. } =
+                        self
+                    {
                         // recursive optimization for add and sub
                         if let BinaryOp::Add = &op {
                             if let Some(e) = self.add_opt(r_lhs, true) {
@@ -1376,7 +1378,9 @@ impl SymbolExpr {
                     rhs: r_rhs,
                 } = rhs
                 {
-                    if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) | SymbolExpr::Unary { .. } = self {
+                    if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) | SymbolExpr::Unary { .. } =
+                        self
+                    {
                         // recursive optimization for add and sub
                         if let BinaryOp::Add = &op {
                             if let Some(e) = self.sub_opt(r_lhs, true) {
