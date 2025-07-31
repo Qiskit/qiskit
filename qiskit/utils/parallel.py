@@ -54,9 +54,11 @@ from the multiprocessing library.
 
 from __future__ import annotations
 
+import logging
 import contextlib
 import functools
 import multiprocessing
+
 import os
 import platform
 import sys
@@ -64,6 +66,8 @@ import warnings
 from concurrent.futures import ProcessPoolExecutor
 
 from qiskit import user_config
+
+logger = logging.getLogger(__name__)
 
 
 CONFIG = user_config.get_config()
@@ -186,8 +190,28 @@ def should_run_in_parallel(num_processes: int | None = None) -> bool:
     .. autofunction:: qiskit.utils::should_run_in_parallel.ignore_user_settings
 
     Args:
-        num_processes: the maximum number of processes requested for use (``None`` implies the
-            default).
+        num_processes: the number of processes requested for use (if given).
+    """
+    num_processes = CPU_COUNT if num_processes is None else num_processes
+    in_parallel = os.getenv("QISKIT_IN_PARALLEL", "FALSE") == "TRUE"
+    parallel_enabled = CONFIG.get("parallel_enabled", PARALLEL_DEFAULT)
+    
+    result = (
+        num_processes > 1
+        and not in_parallel
+        and parallel_enabled
+    )
+    
+    logger.debug(
+        "Parallelization decision: %s (num_processes=%d, in_parallel=%s, parallel_enabled=%s)",
+        "PARALLEL" if result else "SERIAL",
+        num_processes,
+        in_parallel,
+        parallel_enabled
+    )
+    
+    return result
+
 
     Examples:
         Temporarily override the configured settings to disable parallelism::
@@ -303,16 +327,40 @@ def parallel_map(task, values, task_args=(), task_kwargs=None, num_processes=Non
     """
     task_kwargs = {} if task_kwargs is None else task_kwargs
     if num_processes is None:
-        num_processes = default_num_processes()
-    if len(values) < 2 or not should_run_in_parallel(num_processes):
-        return [task(value, *task_args, **task_kwargs) for value in values]
-    work_items = ((task, value, task_args, task_kwargs) for value in values)
+        num_processes = CPU_COUNT
+    if len(values) == 0:
+        return []
+    if len(values) == 1:
+        return [task(values[0], *task_args, **task_kwargs)]
 
-    # This isn't a user-set variable; we set this to talk to our own child processes.
-    previous_in_parallel = os.getenv("QISKIT_IN_PARALLEL", _IN_PARALLEL_ALLOW_PARALLELISM)
-    os.environ["QISKIT_IN_PARALLEL"] = _IN_PARALLEL_FORBID_PARALLELISM
-    try:
-        with ProcessPoolExecutor(max_workers=num_processes) as executor:
-            return list(executor.map(_task_wrapper, work_items))
-    finally:
-        os.environ["QISKIT_IN_PARALLEL"] = previous_in_parallel
+    if should_run_in_parallel(num_processes):
+        logger.debug("Executing parallel_map with %d processes for %d items", num_processes, len(values))
+        os.environ["QISKIT_IN_PARALLEL"] = "TRUE"
+        try:
+            results = []
+            with ProcessPoolExecutor(max_workers=num_processes) as executor:
+                param = ((task, value, task_args, task_kwargs) for value in values)
+                future = executor.map(_task_wrapper, param)
+
+            results = list(future)
+            logger.debug("Parallel execution completed successfully")
+
+        except (KeyboardInterrupt, Exception) as error:
+            logger.debug("Parallel execution failed: %s", str(error))
+            if isinstance(error, KeyboardInterrupt):
+                os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
+                raise QiskitError("Keyboard interrupt in parallel_map.") from error
+            # Otherwise just reset parallel flag and error
+            os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
+            raise error
+
+        os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
+        return results
+
+    logger.debug("Executing parallel_map serially for %d items", len(values))
+    results = []
+    for _, value in enumerate(values):
+        result = task(value, *task_args, **task_kwargs)
+        results.append(result)
+    return results
+
