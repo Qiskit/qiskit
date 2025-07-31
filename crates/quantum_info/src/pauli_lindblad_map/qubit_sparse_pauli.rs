@@ -110,7 +110,7 @@ impl Pauli {
     /// returning `Ok(None)` for it.  All other letters outside the alphabet return the complete
     /// error condition.
     #[inline]
-    fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
+    pub fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
         match value {
             b'I' => Ok(None),
             b'X' => Ok(Some(Pauli::X)),

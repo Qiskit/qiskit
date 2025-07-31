@@ -32,6 +32,8 @@ use qiskit_circuit::{
     bit::PyQubit, imports::ImportOnceCell, slice::{PySequenceIndex, SequenceIndex}
 };
 
+use crate::pauli_lindblad_map::qubit_sparse_pauli;
+
 use super::qubit_sparse_pauli::{
     raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
     LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
@@ -470,6 +472,83 @@ impl PyPhasedQubitSparsePauli {
             )?,
             group_phase
         );
+        Ok(inner.into())
+    }
+
+    /// Construct a qubit sparse Pauli from a sparse label, given as a tuple of a string of Paulis,
+    /// and the indices of the corresponding qubits.
+    ///
+    /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`.
+    ///
+    /// Args:
+    ///     sparse_label (tuple[str, Sequence[int]]): labels and the qubits each single-qubit term
+    ///         applies to.
+    ///
+    ///     num_qubits (int): the number of qubits the operator acts on.
+    ///
+    /// Examples:
+    ///
+    ///     Construct a simple Pauli::
+    ///
+    ///         >>> QubitSparsePauli.from_sparse_label(
+    ///         ...     ("ZX", (1, 4)),
+    ///         ...     num_qubits=5,
+    ///         ... )
+    ///         <QubitSparsePauli on 5 qubits: X_4 Z_1>
+    ///
+    ///     This method can replicate the behavior of :meth:`from_label`, if the qubit-arguments
+    ///     field of the tuple is set to decreasing integers::
+    ///
+    ///         >>> label = "XYXZ"
+    ///         >>> from_label = QubitSparsePauli.from_label(label)
+    ///         >>> from_sparse_label = QubitSparsePauli.from_sparse_label(
+    ///         ...     (label, (3, 2, 1, 0)),
+    ///         ...     num_qubits=4
+    ///         ... )
+    ///         >>> assert from_label == from_sparse_label
+    #[staticmethod]
+    #[pyo3(signature = (/, sparse_label, num_qubits))]
+    fn from_sparse_label(sparse_label: (isize, String, Vec<u32>), num_qubits: u32) -> PyResult<Self> {
+        let phase = sparse_label.0;
+        let label = sparse_label.1;
+        let indices = sparse_label.2;
+        let mut paulis = Vec::new();
+        let mut sorted_indices = Vec::new();
+
+        let label: &[u8] = label.as_ref();
+        let mut sorted = btree_map::BTreeMap::new();
+        if label.len() != indices.len() {
+            return Err(LabelError::WrongLengthIndices {
+                label: label.len(),
+                indices: indices.len(),
+            }
+            .into());
+        }
+        for (letter, index) in label.iter().zip(indices) {
+            if index >= num_qubits {
+                return Err(LabelError::BadIndex { index, num_qubits }.into());
+            }
+            let btree_map::Entry::Vacant(entry) = sorted.entry(index) else {
+                return Err(LabelError::DuplicateIndex { index }.into());
+            };
+            entry.insert(Pauli::try_from_u8(*letter).map_err(|_| LabelError::OutsideAlphabet)?);
+        }
+        for (index, term) in sorted.iter() {
+            let Some(term) = term else {
+                continue;
+            };
+            sorted_indices.push(*index);
+            paulis.push(*term);
+        }
+
+        let num_ys = isize::try_from(paulis.iter().filter(|&p| *p == Pauli::Y).count())?;
+
+        let qubit_sparse_pauli = QubitSparsePauli::new(
+            num_qubits,
+            paulis.into_boxed_slice(),
+            sorted_indices.into_boxed_slice(),
+        )?;
+        let inner = PhasedQubitSparsePauli::new(qubit_sparse_pauli, phase + num_ys);
         Ok(inner.into())
     }
 

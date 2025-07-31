@@ -133,79 +133,79 @@ class TestPhasedQubitSparsePauli(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Unicode shenangigans.
             PhasedQubitSparsePauli.from_label("🐍")
-    '''
+
     def test_from_sparse_label(self):
         self.assertEqual(
-            QubitSparsePauli.from_sparse_label(("XY", (0, 1)), num_qubits=5),
-            QubitSparsePauli.from_label("IIIYX"),
+            PhasedQubitSparsePauli.from_sparse_label((1, "XY", (0, 1)), num_qubits=5),
+            PhasedQubitSparsePauli(Pauli("-iIIIYX")),
         )
         self.assertEqual(
-            QubitSparsePauli.from_sparse_label(("XX", (1, 3)), num_qubits=5),
-            QubitSparsePauli.from_label("IXIXI"),
+            PhasedQubitSparsePauli.from_sparse_label((0, "XX", (1, 3)), num_qubits=5),
+            PhasedQubitSparsePauli.from_label("IXIXI"),
         )
         self.assertEqual(
-            QubitSparsePauli.from_sparse_label(("YYZ", (0, 2, 4)), num_qubits=5),
-            QubitSparsePauli.from_label("ZIYIY"),
+            PhasedQubitSparsePauli.from_sparse_label((3, "YYZ", (0, 2, 4)), num_qubits=5),
+            PhasedQubitSparsePauli(Pauli("iZIYIY")),
         )
 
         # The indices should be allowed to be given in unsorted order, but they should be term-wise
         # sorted in the output.
-        from_unsorted = QubitSparsePauli.from_sparse_label(("XYZ", (2, 0, 1)), num_qubits=3)
-        self.assertEqual(from_unsorted, QubitSparsePauli.from_label("XZY"))
+        from_unsorted = PhasedQubitSparsePauli.from_sparse_label((0, "XYZ", (2, 0, 1)), num_qubits=3)
+        self.assertEqual(from_unsorted, PhasedQubitSparsePauli.from_label("XZY"))
         np.testing.assert_equal(from_unsorted.indices, np.array([0, 1, 2], dtype=np.uint32))
 
         # Explicit identities should still work, just be skipped over.
-        explicit_identity = QubitSparsePauli.from_sparse_label(("ZXI", (0, 1, 2)), num_qubits=10)
+        explicit_identity = PhasedQubitSparsePauli.from_sparse_label((0, "ZXI", (0, 1, 2)), num_qubits=10)
         self.assertEqual(
             explicit_identity,
-            QubitSparsePauli.from_sparse_label(("XZ", (1, 0)), num_qubits=10),
+            PhasedQubitSparsePauli.from_sparse_label((0, "XZ", (1, 0)), num_qubits=10),
         )
         np.testing.assert_equal(explicit_identity.indices, np.array([0, 1], dtype=np.uint32))
 
-        explicit_identity = QubitSparsePauli.from_sparse_label(
-            ("XYIII", (0, 1, 2, 3, 8)), num_qubits=10
+        explicit_identity = PhasedQubitSparsePauli.from_sparse_label(
+            (0, "XYIII", (0, 1, 2, 3, 8)), num_qubits=10
         )
         self.assertEqual(
             explicit_identity,
-            QubitSparsePauli.from_sparse_label(("YX", (1, 0)), num_qubits=10),
+            PhasedQubitSparsePauli.from_sparse_label((0, "YX", (1, 0)), num_qubits=10),
         )
         np.testing.assert_equal(explicit_identity.indices, np.array([0, 1], dtype=np.uint32))
 
-    def test_from_sparse_list_failures(self):
+    def test_from_sparse_label_failures(self):
         with self.assertRaisesRegex(ValueError, "labels must only contain letters from"):
             # Bad letters that are still ASCII.
-            QubitSparsePauli.from_sparse_label(("+$", (2, 1)), num_qubits=8)
+            PhasedQubitSparsePauli.from_sparse_label((0, "+$", (2, 1)), num_qubits=8)
         # Unicode shenangigans.  These two should fail with a `ValueError`, but the exact message
         # isn't important.  "\xff" is "ÿ", which is two bytes in UTF-8 (so has a length of 2 in
         # Rust), but has a length of 1 in Python, so try with both a length-1 and length-2 index
         # sequence, and both should still raise `ValueError`.
         with self.assertRaises(ValueError):
-            QubitSparsePauli.from_sparse_label(("\xff", (1,)), num_qubits=5)
+            PhasedQubitSparsePauli.from_sparse_label((0, "\xff", (1,)), num_qubits=5)
         with self.assertRaises(ValueError):
-            QubitSparsePauli.from_sparse_label(("\xff", (1, 2)), num_qubits=5)
+            PhasedQubitSparsePauli.from_sparse_label((0, "\xff", (1, 2)), num_qubits=5)
 
         with self.assertRaisesRegex(
             ValueError, "label with length 2 does not match indices of length 1"
         ):
-            QubitSparsePauli.from_sparse_label(("XZ", (0,)), num_qubits=5)
+            PhasedQubitSparsePauli.from_sparse_label((0, "XZ", (0,)), num_qubits=5)
         with self.assertRaisesRegex(
             ValueError, "label with length 2 does not match indices of length 3"
         ):
-            QubitSparsePauli.from_sparse_label(("XZ", (0, 1, 2)), num_qubits=5)
+            PhasedQubitSparsePauli.from_sparse_label((0, "XZ", (0, 1, 2)), num_qubits=5)
 
         with self.assertRaisesRegex(ValueError, "index 3 is out of range for a 3-qubit operator"):
-            QubitSparsePauli.from_sparse_label(("XZY", (0, 1, 3)), num_qubits=3)
+            PhasedQubitSparsePauli.from_sparse_label((2, "XZY", (0, 1, 3)), num_qubits=3)
         with self.assertRaisesRegex(ValueError, "index 4 is out of range for a 3-qubit operator"):
-            QubitSparsePauli.from_sparse_label(("XZY", (0, 1, 4)), num_qubits=3)
+            PhasedQubitSparsePauli.from_sparse_label((1, "XZY", (0, 1, 4)), num_qubits=3)
         with self.assertRaisesRegex(ValueError, "index 3 is out of range for a 3-qubit operator"):
             # ... even if it's for an explicit identity.
-            QubitSparsePauli.from_sparse_label(("XXI", (0, 1, 3)), num_qubits=3)
+            PhasedQubitSparsePauli.from_sparse_label((4, "XXI", (0, 1, 3)), num_qubits=3)
 
         with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
-            QubitSparsePauli.from_sparse_label(("XZ", (3, 3)), num_qubits=5)
+            PhasedQubitSparsePauli.from_sparse_label((0, "XZ", (3, 3)), num_qubits=5)
         with self.assertRaisesRegex(ValueError, "index 3 is duplicated"):
-            QubitSparsePauli.from_sparse_label(("XYZXZ", (3, 0, 1, 2, 3)), num_qubits=5)
-    '''
+            PhasedQubitSparsePauli.from_sparse_label((0, "XYZXZ", (3, 0, 1, 2, 3)), num_qubits=5)
+
 
     def test_from_pauli(self):
         # This function should be infallible provided `Pauli` doesn't change its interface and the
