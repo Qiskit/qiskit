@@ -277,7 +277,7 @@ class TestNLocal(QiskitTestCase):
         with self.subTest(msg="Test the parameters of the transpiled circuit"):
             basis_gates = ["id", "u1", "u2", "u3", "cx"]
             transpiled_circuit = transpile(nlocal, basis_gates=basis_gates)
-            self.assertEqual(transpiled_circuit.parameters, param_set)
+            self.assertEqual(set(transpiled_circuit.parameters), param_set)
 
     def test_repetetive_parameter_setting(self):
         """Test alternate setting of parameters and circuit construction."""

@@ -458,7 +458,7 @@ impl EquivalenceLibrary {
         let bound_equivalencies = self
             ._get_equivalences(&key)
             .into_iter()
-            .filter_map(|equivalence| rebind_equiv(py, equivalence, &query_params).ok());
+            .filter_map(|equivalence| rebind_equiv(equivalence, &query_params).ok());
         let return_list = PyList::empty(py);
         for equiv in bound_equivalencies {
             return_list.append(equiv)?;
@@ -748,11 +748,7 @@ fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitFromPython) 
     Ok(())
 }
 
-fn rebind_equiv(
-    py: Python,
-    equiv: Equivalence,
-    query_params: &[Param],
-) -> PyResult<CircuitFromPython> {
+fn rebind_equiv(equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitFromPython> {
     let (equiv_params, mut equiv_circuit) = (equiv.params, equiv.circuit);
     let param_mapping: PyResult<IndexMap<ParameterUuid, &Param, ::ahash::RandomState>> =
         equiv_params
@@ -760,15 +756,20 @@ fn rebind_equiv(
             .zip(query_params.iter())
             .filter_map(|(param_x, param_y)| match param_x {
                 Param::ParameterExpression(param) => {
-                    let param_uuid = ParameterUuid::from_parameter(param.bind(py));
-                    Some(param_uuid.map(|uuid| (uuid, param_y)))
+                    // we know this expression represents a symbol
+                    let symbol = match param.try_to_symbol() {
+                        Ok(symbol) => symbol,
+                        Err(e) => return Some(Err(PyErr::from(e))),
+                    };
+                    let uuid = ParameterUuid::from_symbol(&symbol);
+                    Some(Ok((uuid, param_y)))
                 }
                 _ => None,
             })
             .collect();
     equiv_circuit
         .0
-        .assign_parameters_from_mapping(py, param_mapping?)?;
+        .assign_parameters_from_mapping(param_mapping?)?;
     Ok(equiv_circuit)
 }
 

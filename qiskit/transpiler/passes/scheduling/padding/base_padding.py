@@ -91,7 +91,9 @@ class BasePadding(TransformationPass):
             if self.target.dt is None:
                 return props.duration
             else:
-                return self.target.seconds_to_dt(props.duration)
+                res = self.target.seconds_to_dt(props.duration)
+                return res
+
         return self.durations.get(node.name, indices)
 
     def run(self, dag: DAGCircuit):
@@ -137,7 +139,8 @@ class BasePadding(TransformationPass):
         for node in dag.topological_op_nodes():
             if node in node_start_time:
                 t0 = node_start_time[node]
-                t1 = t0 + self.get_duration(node, dag)
+                dur = self.get_duration(node, dag)
+                t1 = t0 + dur
                 circuit_duration = max(circuit_duration, t1)
 
                 if isinstance(node.op, Delay):
