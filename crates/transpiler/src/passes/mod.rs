@@ -67,7 +67,7 @@ pub use high_level_synthesis::{
 pub use instruction_duration_check::{
     instruction_duration_check_mod, run_instruction_duration_check,
 };
-pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellation};
+pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellation_standard_gates};
 pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };

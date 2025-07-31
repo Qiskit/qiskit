@@ -1,0 +1,25 @@
+---
+features_transpiler:
+  - |
+    Added a default set of inverse gates for the :class:`.InverseCancellation`
+    transpiler pass. Previously, an explicit list of gates or gate pairs to
+    cancel was a required argument for the constructor of the pass object.
+    Now this list is optional and if no list is provided the self inverse gates:
+
+      * :class:`.CXGate`
+      * :class:`.ECRGate`
+      * :class:`.CYGate`
+      * :class:`.CZGate`
+      * :class:`.XGate`
+      * :class:`.YGate`
+      * :class:`.ZGate`
+      * :class:`.HGate`
+      * :class:`.SwapGate`
+
+    and the inverse pairs:
+
+      * :class:`TGate` and :class:`Tdg`
+      * :class:`SGate` and :class:`Sdg`
+      * :class:`SXGate` and :class:`SXdg`
+
+    will be cancelled by the pass.
