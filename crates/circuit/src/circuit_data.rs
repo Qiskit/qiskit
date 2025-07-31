@@ -2165,7 +2165,7 @@ impl CircuitData {
         Ok(())
     }
 
-    fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
+    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
                 .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
@@ -2308,6 +2308,11 @@ impl CircuitData {
     /// Unpacks from InternerIndex to `[Clbit]`
     pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
         self.cargs_interner().get(index)
+    }
+
+    /// Insert cargs into the interner and return the interned value
+    pub fn add_cargs(&mut self, clbits: &[Clbit]) -> Interned<[Clbit]> {
+        self.cargs_interner.insert(clbits)
     }
 
     fn assign_parameters_inner<I, T>(&mut self, py: Python, iter: I) -> PyResult<()>
