@@ -388,11 +388,17 @@ class QuantumMeasurementAssignment(Statement):
         | indexIdentifier EQUALS quantumMeasurement  # eg: bits = measure qubits;
     """
 
-    __slots__ = ("identifier", "quantumMeasurement")
+    __slots__ = ("identifier", "quantumMeasurement", "annotations")
 
-    def __init__(self, identifier: Identifier, quantumMeasurement: QuantumMeasurement):
+    def __init__(
+        self,
+        identifier: Identifier,
+        quantumMeasurement: QuantumMeasurement,
+        annotations: Sequence[Annotation] = (),
+    ):
         self.identifier = identifier
         self.quantumMeasurement = quantumMeasurement
+        self.annotations = tuple(annotations)
 
 
 class Designator(ASTNode):
@@ -504,6 +510,24 @@ class QuantumGateCall(QuantumInstruction):
         self.indexIdentifierList = indexIdentifierList
         self.parameters = parameters
         self.modifiers = modifiers
+
+
+class DefcalCallStatement(Statement):
+    """A quantum-like call that may have an assignment location."""
+
+    __slots__ = ("ident", "parameters", "qubits", "lvalue")
+
+    def __init__(
+        self,
+        ident: Identifier,
+        parameters: Sequence[Expression] = (),
+        qubits: Sequence[Expression] = (),
+        lvalue: Expression | None = None,
+    ):
+        self.ident = ident
+        self.parameters = tuple(parameters)
+        self.qubits = tuple(qubits)
+        self.lvalue = lvalue
 
 
 class QuantumBarrier(QuantumInstruction):

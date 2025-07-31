@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Contains functions used by the basic provider simulators.
-
-"""
+"""Contains functions used by the basic provider simulators."""
 from __future__ import annotations
 
 from string import ascii_uppercase, ascii_lowercase
