@@ -231,12 +231,6 @@ def _block_zxz_decomp(Umat):
     A1dg = A1.conj().T
     A2 = U21 + U22 @ (1j * (UYdg @ UX))
     B = 2 * (A1dg @ X) - np.eye(n)
-    zero = np.zeros((n, n))
-    iden = np.eye(n)
-    Ablock = np.block([[A1, zero], [zero, A2]])
-    Bblock = np.block([[iden + B, iden - B], [iden - B, iden + B]])
-    Cblock = np.block([[iden, zero], [zero, C]])
-    Ucheck = 0.5 * Ablock @ Bblock @ Cblock
     return A1, A2, B, C
 
 
