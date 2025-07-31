@@ -34,13 +34,11 @@ use numpy::PyReadonlyArray2;
 use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyIterator, PyList, PyTuple};
+use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
 use pyo3::{intern, IntoPyObjectExt, Python};
 
 #[derive(Clone, Debug)]
 pub enum Param {
-    // TODO I wonder if we need to store an enum here with Parameter, ParameterVectorElement
-    // and ParameterExpression here?
     ParameterExpression(ParameterExpression),
     Float(f64),
     Obj(PyObject),
@@ -110,14 +108,12 @@ impl Param {
             _ => self.eq(py, other),
         }
     }
-}
 
-impl Param {
     /// Get an iterator over any `Symbol` instances tracked within this `Param`.
     pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol> + '_>> {
         match self {
             Param::Float(_) => Ok(Box::new(::std::iter::empty())),
-            Param::ParameterExpression(expr) => Ok(expr.iter_symbols()),
+            Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols())),
             Param::Obj(obj) => {
                 Python::with_gil(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
                     let parameters_attr = intern!(py, "parameters");
@@ -148,18 +144,18 @@ impl Param {
     /// # Arguments
     ///
     /// * expr - The expression to construct the [Param] from.
-    /// * coerce - If `true`, coerce integers and complex (with 0 imaginary part) types to
+    /// * coerce_to_float - If `true`, coerce integers and complex (with 0 imaginary part) types to
     ///     [Param::Float]. If `false`, only float types are [Param::Float] and integers and
     ///     complex numbers are represented as [Param::ParameterExpression].
     ///
     /// # Returns
     ///
     /// - `Param` - The [Param] object.
-    pub fn from_expr(expr: ParameterExpression, coerce: bool) -> Self {
+    pub fn from_expr(expr: ParameterExpression, coerce_to_float: bool) -> Self {
         match expr.try_to_value(true) {
             Ok(value) => match value {
                 Value::Int(i) => {
-                    if coerce {
+                    if coerce_to_float {
                         Self::Float(i as f64) // coerce integer to float
                     } else {
                         Self::ParameterExpression(expr) // keep integer inside the expression
@@ -167,7 +163,7 @@ impl Param {
                 }
                 Value::Real(f) => Self::Float(f),
                 Value::Complex(c) => {
-                    if coerce && value.is_real() {
+                    if coerce_to_float && value.is_real() {
                         Self::Float(c.re)
                     } else {
                         Self::ParameterExpression(expr)
@@ -196,7 +192,6 @@ impl Param {
     /// Clones the [Param] object safely by reference count or copying.
     pub fn clone_ref(&self, py: Python) -> Self {
         match self {
-            // TODO is there a better way than exp.clone() here?
             Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone()),
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
@@ -217,16 +212,6 @@ impl AsRef<Param> for Param {
 impl From<f64> for Param {
     fn from(value: f64) -> Self {
         Param::Float(value)
-    }
-}
-
-/// Struct to provide iteration over Python-space `Parameter` instances within a `Param`.
-pub struct ParamParameterIter<'py>(Option<Bound<'py, PyIterator>>);
-impl<'py> Iterator for ParamParameterIter<'py> {
-    type Item = PyResult<Bound<'py, PyAny>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.as_mut().and_then(|iter| iter.next())
     }
 }
 

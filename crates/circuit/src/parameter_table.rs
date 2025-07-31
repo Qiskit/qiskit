@@ -61,7 +61,7 @@ pub struct ParameterInfo {
     uses: HashSet<ParameterUse>,
     name: String, // TODO probably redundant, just get Symbol.name(), which is cheap
     element: Option<VectorElement>, // TODO maybe this is redundant now and can be removed
-    object: Symbol, // TODO rename this to symbol
+    symbol: Symbol, // TODO rename this to symbol
 }
 
 /// Rust-space information on a Python `ParameterVector` and its uses in the table.
@@ -77,7 +77,6 @@ struct VectorInfo {
 /// `ParameterTable`.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub struct ParameterUuid(u128);
-// TODO can't we just replaced ParameterUuid by Rust's Uuid type?
 impl ParameterUuid {
     /// Extract a UUID from a Python-space `Parameter` object. This assumes that the object is known
     /// to be a parameter.
@@ -226,7 +225,7 @@ impl ParameterTable {
                     name,
                     uses,
                     element,
-                    object: param_ob.clone(),
+                    symbol: param_ob.clone(),
                 });
                 self.invalidate_cache();
             }
@@ -245,12 +244,12 @@ impl ParameterTable {
     pub fn parameter_by_name(&self, name: &String) -> Option<&Symbol> {
         self.by_name
             .get(name)
-            .map(|uuid| &self.by_uuid[uuid].object)
+            .map(|uuid| &self.by_uuid[uuid].symbol)
     }
 
     /// Lookup the Python parameter object by uuid.
     pub fn parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Symbol> {
-        self.by_uuid.get(&uuid).map(|param| &param.object)
+        self.by_uuid.get(&uuid).map(|param| &param.symbol)
     }
 
     /// Get the (maybe cached) Python list of the sorted `Parameter` objects.
@@ -259,14 +258,14 @@ impl ParameterTable {
             self.order_cache
                 .get_or_init(|| self.sorted_order())
                 .iter()
-                .map(|uuid| self.by_uuid[uuid].object.clone())
+                .map(|uuid| self.by_uuid[uuid].symbol.clone())
                 .collect()
         })
     }
 
     /// Get a Python set of all tracked `Parameter` objects.
     pub fn parameters_unsorted(&self) -> HashSet<&Symbol> {
-        HashSet::from_iter(self.by_uuid.values().map(|info| &info.object))
+        HashSet::from_iter(self.by_uuid.values().map(|info| &info.symbol))
     }
 
     /// Get the sorted order of the `ParameterTable`.  This does not access the cache.
@@ -425,7 +424,7 @@ impl Iterator for ParameterTableDrain {
                 .by_uuid
                 .remove(&uuid)
                 .expect("tracked UUIDs should be consistent");
-            (info.object, info.uses)
+            (info.symbol, info.uses)
         })
     }
 

@@ -35,7 +35,6 @@ use crate::operations::{
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
-use crate::parameter::symbol_expr::Value;
 use crate::register_data::RegisterData;
 use crate::rustworkx_core_vnext::isomorphism;
 use crate::slice::PySequenceIndex;
@@ -1888,15 +1887,7 @@ impl DAGCircuit {
         let normalize_param = |param: &Param| {
             if let Param::ParameterExpression(ob) = param {
                 // try casting ParameterExpression to Param, prioritizing Float
-                // TODO this could maybe be done by a custom constructor on Param too
-                match ob.try_to_value(true) {
-                    Ok(value) => match value {
-                        Value::Int(i) => Param::Float(i as f64),
-                        Value::Real(r) => Param::Float(r),
-                        Value::Complex(_) => param.clone(),
-                    },
-                    Err(_) => param.clone(),
-                }
+                Param::from_expr(ob.clone(), true)
             } else {
                 param.clone()
             }

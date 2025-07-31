@@ -292,9 +292,8 @@ impl ParameterExpression {
             .expect("Invalid QPY replay encountered during deserialization: empty OPReplay."))
     }
 
-    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = Symbol> + '_> {
-        // self.expr.iter_symbols()
-        Box::new(self.name_map.values().cloned())
+    pub fn iter_symbols(&self) -> impl Iterator<Item = Symbol> + '_ {
+        self.name_map.values().cloned()
     }
 
     /// Whether the expression represents a complex number. None if cannot be determined.

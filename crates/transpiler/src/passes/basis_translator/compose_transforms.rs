@@ -106,12 +106,19 @@ pub(super) fn compose_transforms<'a>(
                     let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
                         equiv_params
                             .iter()
-                            .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
-                            .zip(params)
-                            .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
-                                Ok((uuid?, param.clone_ref(py)))
+                            .map(|x| {
+                                // extract the Symbol from the Param
+                                let symbol = match x {
+                                    Param::ParameterExpression(expr) => {
+                                        expr.try_to_symbol().unwrap()
+                                    }
+                                    _ => panic!("Equivalence transform param must be expression."),
+                                };
+                                ParameterUuid::from_symbol(&symbol)
                             })
-                            .collect::<PyResult<_>>()?;
+                            .zip(params)
+                            .map(|(uuid, param)| (uuid, param.clone_ref(py)))
+                            .collect();
                     let mut replacement = equiv.clone();
                     replacement
                         .0

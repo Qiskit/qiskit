@@ -28,7 +28,7 @@ use crate::interner::{Interned, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::parameter::parameter_expression::{ParameterExpression, PyParameter};
+use crate::parameter::parameter_expression::ParameterExpression;
 use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -1193,10 +1193,8 @@ impl CircuitData {
                 parameter: parameter_index,
             };
             for param in parameters.try_iter()? {
-                let param = param?;
-                let py_param = param.downcast::<PyParameter>()?;
-                let borrowed = py_param.borrow();
-                self.param_table.track(borrowed.symbol_ref(), Some(usage))?;
+                let symbol = param?.extract::<Symbol>()?;
+                self.param_table.track(&symbol, Some(usage))?;
             }
         }
         Ok(())
@@ -2315,7 +2313,7 @@ impl CircuitData {
         let inconsistent =
             || PyRuntimeError::new_err("internal error: circuit parameter table is inconsistent");
 
-        // Bind a single `Parameter` into a Python-space `ParameterExpression`.
+        // Bind a single `Parameter` into a `ParameterExpression`.
         let bind_expr = |expr: &ParameterExpression,
                          param_ob: &Symbol,
                          value: &Param,
