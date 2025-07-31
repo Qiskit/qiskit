@@ -17,7 +17,7 @@ import struct
 
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate, annotation
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats, get_qpy_version, QPY_COMPATIBILITY_VERSION
@@ -31,15 +31,23 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class QpyCircuitTestCase(QiskitTestCase):
     """QPY circuit testing platform."""
 
-    def assert_roundtrip_equal(self, circuit, version=None, use_symengine=None):
+    def assert_roundtrip_equal(
+        self, circuit, version=None, use_symengine=None, annotation_factories=None
+    ):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
         if use_symengine is None:
-            dump(circuit, qpy_file, version=version)
+            dump(circuit, qpy_file, version=version, annotation_factories=annotation_factories)
         else:
-            dump(circuit, qpy_file, version=version, use_symengine=use_symengine)
+            dump(
+                circuit,
+                qpy_file,
+                version=version,
+                use_symengine=use_symengine,
+                annotation_factories=annotation_factories,
+            )
         qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
+        new_circuit = load(qpy_file, annotation_factories=annotation_factories)[0]
 
         self.assertEqual(circuit, new_circuit)
         self.assertEqual(circuit.layout, new_circuit.layout)
@@ -352,3 +360,250 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
                 )
             )
             self.assertEqual(header_data.symbolic_encoding, b"e" if use_symengine else b"p")
+
+
+class TestSymbolExpr(QpyCircuitTestCase):
+    """Test QPY with SymbolExpr"""
+
+    def test_back_slash(self):
+        """Test Parameter with back slash"""
+        qc = QuantumCircuit(2)
+        alpha = Parameter(r"\alpha")
+        beta = Parameter(r"\beta")
+        qc.rz(alpha + beta, 0)
+        self.assert_roundtrip_equal(qc)
+
+    def test_math_mode_backslash(self):
+        """Test Parameter with mathmode backslah."""
+        qc = QuantumCircuit(2)
+        alpha = Parameter(r"$\alpha$")
+        beta = Parameter(r"$\beta$")
+        qc.rz(alpha + beta, 0)
+        self.assert_roundtrip_equal(qc)
+
+
+class TestAnnotations(QpyCircuitTestCase):
+    # pylint: disable=missing-class-docstring,missing-function-docstring,redefined-outer-name
+
+    def test_wrapping_openqasm3(self):
+        class My(annotation.Annotation):
+            def __init__(self, namespace, value):
+                self.namespace = namespace
+                self.value = value
+
+            def __eq__(self, other):
+                return (
+                    isinstance(other, My)
+                    and self.namespace == other.namespace
+                    and self.value == other.value
+                )
+
+        class Serializer(annotation.OpenQASM3Serializer):
+            def load(self, namespace, payload):
+                return My(namespace, payload)
+
+            def dump(self, annotation):
+                return annotation.value
+
+        qc = QuantumCircuit()
+        with qc.box([My("my.a", "hello"), My("my.b", "world")]):
+            with qc.box([My("my.c", "")]):
+                pass
+        self.assert_roundtrip_equal(qc, annotation_factories={"my": Serializer().as_qpy()})
+
+    def test_simple_serializer(self):
+        outer_self = self
+
+        class Dummy(annotation.Annotation):
+            namespace = "dummy"
+
+            def __eq__(self, other):
+                return isinstance(other, Dummy)
+
+        class Serializer(annotation.QPYSerializer):
+            def load_annotation(self, payload):
+                outer_self.assertEqual(payload, b"SENTINEL")
+                return Dummy()
+
+            def dump_annotation(self, namespace, annotation):
+                outer_self.assertEqual(namespace, "dummy")
+                return b"SENTINEL"
+
+        qc = QuantumCircuit()
+        with qc.box([Dummy()]):
+            pass
+        self.assert_roundtrip_equal(qc, annotation_factories={"dummy": Serializer})
+
+    def test_stateful_serializer(self):
+        outer_self = self
+
+        class My(annotation.Annotation):
+            namespace = "my"
+
+            def __init__(self, value):
+                self.value = value
+
+            def __eq__(self, other):
+                return isinstance(other, My) and self.value == other.value
+
+        class Serializer(annotation.QPYSerializer):
+            def __init__(self):
+                self.loaded_state = False
+                self.dumped_state = False
+                self.num_serialized = 0
+
+            def dump_annotation(self, namespace, annotation):
+                outer_self.assertFalse(self.dumped_state)
+                outer_self.assertFalse(self.loaded_state)
+                self.num_serialized += 1
+                return annotation.value.encode("utf-8")
+
+            def dump_state(self):
+                # This is a check that there are two separate instances when moving into an inner
+                # circuit; both the outer and inner `box`es have two annotations.
+                outer_self.assertEqual(self.num_serialized, 2)
+                outer_self.assertFalse(self.dumped_state)
+                outer_self.assertFalse(self.loaded_state)
+                self.dumped_state = True
+                return b"SENTINEL"
+
+            def load_annotation(self, payload):
+                outer_self.assertFalse(self.dumped_state)
+                outer_self.assertTrue(self.loaded_state)
+                return My(payload.decode("utf-8"))
+
+            def load_state(self, namespace, payload):
+                outer_self.assertEqual(namespace, "my")
+                outer_self.assertEqual(payload, b"SENTINEL")
+                outer_self.assertFalse(self.dumped_state)
+                outer_self.assertFalse(self.loaded_state)
+                self.loaded_state = True
+
+        qc = QuantumCircuit()
+        with qc.box([My("hello"), My("world")]):
+            with qc.box([My("inner"), My("number 2")]):
+                pass
+        self.assert_roundtrip_equal(qc, annotation_factories={"my": Serializer})
+
+    def test_multiple_serializers(self):
+        outer_self = self
+
+        class TypeA(annotation.Annotation):
+            namespace = "a"
+
+            def __eq__(self, other):
+                return isinstance(other, TypeA)
+
+        class TypeB(annotation.Annotation):
+            namespace = "b"
+
+            def __eq__(self, other):
+                return isinstance(other, TypeB)
+
+        class SerializerA(annotation.QPYSerializer):
+            def dump_annotation(self, namespace, annotation):
+                outer_self.assertEqual(namespace, "a")
+                outer_self.assertIsInstance(annotation, TypeA)
+                return b"A"
+
+            def dump_state(self):
+                return b"STATE A"
+
+            def load_annotation(self, payload):
+                outer_self.assertEqual(payload, b"A")
+                return TypeA()
+
+            def load_state(self, namespace, payload):
+                outer_self.assertEqual(namespace, "a")
+                outer_self.assertEqual(payload, b"STATE A")
+
+        class SerializerB(annotation.QPYSerializer):
+            def dump_annotation(self, namespace, annotation):
+                outer_self.assertEqual(namespace, "b")
+                outer_self.assertIsInstance(annotation, TypeB)
+                return b"B"
+
+            def dump_state(self):
+                return b"STATE B"
+
+            def load_annotation(self, payload):
+                outer_self.assertEqual(payload, b"B")
+                return TypeB()
+
+            def load_state(self, namespace, payload):
+                outer_self.assertEqual(namespace, "b")
+                outer_self.assertEqual(payload, b"STATE B")
+
+        qc = QuantumCircuit()
+        with qc.box([TypeA(), TypeB()]):
+            with qc.box([TypeB(), TypeA()]):
+                pass
+        with qc.box([TypeB(), TypeA()]):
+            with qc.box([TypeA()]):
+                pass
+        self.assert_roundtrip_equal(qc, annotation_factories={"a": SerializerA, "b": SerializerB})
+
+    def test_parent_namespacing(self):
+        outer_self = self
+
+        class My(annotation.Annotation):
+            def __init__(self, namespace, value):
+                self.namespace = namespace
+                self.value = value
+
+            def __eq__(self, other):
+                return (
+                    isinstance(other, My)
+                    and self.namespace == other.namespace
+                    and self.value == other.value
+                )
+
+        triggered_not_implemented = False
+
+        class Serializer(annotation.QPYSerializer):
+            # The idea with this family of serialisers is that we say the "value" we expect to see
+            # in the annotations it will handle, then don't actually store _anything_ in the QPY for
+            # that.  We only store the _actual_ namespace of the annotation (not the parent we were
+            # called with) in the state field.
+
+            def __init__(self, value):
+                self.actual_namespace = None
+                self.value = value
+
+            def dump_annotation(self, namespace, annotation):
+                if annotation.value != self.value:
+                    nonlocal triggered_not_implemented
+                    triggered_not_implemented = True
+                    return NotImplemented
+                if self.actual_namespace is None:
+                    self.actual_namespace = annotation.namespace
+                else:
+                    outer_self.assertEqual(annotation.namespace, self.actual_namespace)
+                return b""
+
+            def load_annotation(self, payload):
+                return My(self.actual_namespace, self.value)
+
+            def dump_state(self):
+                outer_self.assertIsNotNone(self.actual_namespace)
+                return self.actual_namespace.encode("utf-8") + b"\x00" + self.value.encode("utf-8")
+
+            def load_state(self, namespace, payload):
+                namespace, value = payload.split(b"\x00")
+                self.actual_namespace = namespace.decode("utf-8")
+                self.value = value.decode("utf-8")
+
+        qc = QuantumCircuit()
+        with qc.box(
+            [My("a.b", "looks at a"), My("a.c", "looks at a.c"), My("a.d", "looks at global")]
+        ):
+            pass
+        self.assert_roundtrip_equal(
+            qc,
+            annotation_factories={
+                "a.c": (lambda: Serializer("looks at a.c")),
+                "a": (lambda: Serializer("looks at a")),
+                "": (lambda: Serializer("looks at global")),
+            },
+        )
+        self.assertTrue(triggered_not_implemented)
