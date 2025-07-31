@@ -57,6 +57,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, SDG_GATE, S_GATE};
+use qiskit_circuit::instruction::{IntoInstructionView, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::util::{c64, GateArray1Q, GateArray2Q, C_M_ONE, C_ONE, C_ZERO, IM, M_IM};
@@ -416,6 +417,8 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
             // by something else and is invalid.
             let gate_matrix = inst
                 .0
+                .try_standard_gate()
+                .expect("should be sx, x, rz, or cx")
                 .matrix(&inst.1.iter().map(|x| Param::Float(*x)).collect::<Vec<_>>())
                 .unwrap();
             (gate_matrix, &inst.2)
@@ -2088,8 +2091,10 @@ impl TwoQubitBasisDecomposer {
         euler_basis: &str,
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
-        let gate_params: PyResult<SmallVec<[f64; 3]>> = gate
-            .params
+        let params = gate.try_legacy_params().ok_or_else(|| {
+            PyValueError::new_err("Only gates are supported by two qubit decomposer")
+        })?;
+        let gate_params: PyResult<SmallVec<[f64; 3]>> = params
             .iter()
             .map(|x| match x {
                 Param::Float(val) => Ok(*val),
@@ -2231,7 +2236,7 @@ impl TwoQubitBasisDecomposer {
         let mut builder = dag.into_builder();
         for (gate, params, qubits) in sequence.gates {
             let qubits: Vec<Qubit> = qubits.iter().map(|x| Qubit(*x as u32)).collect();
-            let params = params.iter().map(|x| Param::Float(*x)).collect();
+            let params = Parameters::Params(params.iter().map(|x| Param::Float(*x)).collect());
             builder.apply_operation_back(
                 gate,
                 &qubits,
@@ -2273,7 +2278,9 @@ impl TwoQubitBasisDecomposer {
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
                 Ok((
                     gate,
-                    params.iter().map(|x| Param::Float(*x)).collect(),
+                    Some(Parameters::Params(
+                        params.iter().map(|x| Param::Float(*x)).collect(),
+                    )),
                     qubits.iter().map(|q| Qubit(*q as u32)).collect(),
                     vec![],
                 ))
@@ -2341,7 +2348,7 @@ fn two_qubit_decompose_up_to_diagonal(
                 let params: SmallVec<[Param; 3]> =
                     param_floats.into_iter().map(Param::Float).collect();
                 let qubits = qubit_index.into_iter().map(|x| Qubit(x as u32)).collect();
-                Ok((gate, params, qubits, vec![]))
+                Ok((gate, Some(Parameters::Params(params)), qubits, vec![]))
             }),
         Param::Float(circ_seq.global_phase + phase),
     )?;
@@ -2554,7 +2561,14 @@ impl TwoQubitControlledUDecomposer {
                 Python::with_gil(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
                     let raw_inverse = gate.gate.call_method0(py, intern!(py, "inverse"))?;
                     let inverse: OperationFromPython = raw_inverse.extract(py)?;
-                    Ok((inverse.operation, inverse.params))
+                    Ok((
+                        inverse.operation,
+                        match inverse.params {
+                            Some(Parameters::Params(params)) => params,
+                            None => smallvec![],
+                            _ => panic!("invalid gate parameters"),
+                        },
+                    ))
                 })?
             }
             // UnitaryGate isn't applicable here as the 2q gate here is the parameterized
@@ -2964,7 +2978,9 @@ impl TwoQubitControlledUDecomposer {
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
                 Ok((
                     gate,
-                    params.into_iter().map(Param::Float).collect(),
+                    Some(Parameters::Params(
+                        params.into_iter().map(Param::Float).collect(),
+                    )),
                     qubits.into_iter().map(|x| Qubit(x as u32)).collect(),
                     vec![],
                 ))

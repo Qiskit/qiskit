@@ -26,18 +26,17 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PySequence, PyTuple};
 use pyo3::BoundObject;
 
+use crate::gate_metrics;
+use crate::QiskitError;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::imports::QI_OPERATOR;
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::object_registry::ObjectRegistry;
-use qiskit_circuit::operations::OperationRef::{Gate as PyGateType, Operation as PyOperationType};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, STANDARD_GATE_SIZE,
 };
 use qiskit_circuit::{Clbit, Qubit};
-
-use crate::gate_metrics;
-use crate::QiskitError;
 use qiskit_quantum_info::unitary_compose;
 
 const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
@@ -173,11 +172,11 @@ impl CommutationChecker {
         self.commute_inner(
             py,
             &op1.instruction.operation.view(),
-            &op1.instruction.params,
+            op1.instruction.parameters(),
             &qargs1,
             &cargs1,
             &op2.instruction.operation.view(),
-            &op2.instruction.params,
+            op2.instruction.parameters(),
             &qargs2,
             &cargs2,
             max_num_qubits,
@@ -210,11 +209,11 @@ impl CommutationChecker {
         self.commute_inner(
             py,
             &op1.operation.view(),
-            &op1.params,
+            op1.parameters(),
             &qargs1,
             &cargs1,
             &op2.operation.view(),
-            &op2.params,
+            op2.parameters(),
             &qargs2,
             &cargs2,
             max_num_qubits,
@@ -275,15 +274,15 @@ impl CommutationChecker {
 
 impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
-    pub fn commute_inner(
+    pub fn commute_inner<T>(
         &mut self,
         py: Python,
         op1: &OperationRef,
-        params1: &[Param],
+        params1: Option<&Parameters<T>>,
         qargs1: &[Qubit],
         cargs1: &[Clbit],
         op2: &OperationRef,
-        params2: &[Param],
+        params2: Option<&Parameters<T>>,
         qargs2: &[Qubit],
         cargs2: &[Clbit],
         max_num_qubits: u32,
@@ -293,6 +292,19 @@ impl CommutationChecker {
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
         let tol = 1e-12_f64.max(1. - approximation_degree);
+
+        let params1 = params1
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => &[],
+            })
+            .unwrap_or_default();
+        let params2 = params2
+            .map(|p| match p {
+                Parameters::Params(p) => p.as_slice(),
+                _ => &[],
+            })
+            .unwrap_or_default();
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
@@ -335,6 +347,7 @@ impl CommutationChecker {
         if let Some(is_commuting) = commutation {
             return Ok(is_commuting);
         }
+        // let params1 = p
 
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
@@ -551,7 +564,9 @@ fn commutation_precheck(
     cargs2: &[Clbit],
     max_num_qubits: u32,
 ) -> Option<bool> {
-    if op1.control_flow() || op2.control_flow() {
+    if matches!(op1, OperationRef::ControlFlow { .. })
+        || matches!(op2, OperationRef::ControlFlow { .. })
+    {
         return Some(false);
     }
 
@@ -594,13 +609,12 @@ fn get_matrix(
     operation: &OperationRef,
     params: &[Param],
 ) -> PyResult<Option<Array2<Complex64>>> {
-    match operation.matrix(params) {
-        Some(matrix) => Ok(Some(matrix)),
-        None => match operation {
-            PyGateType(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
-            PyOperationType(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
-            _ => Ok(None),
-        },
+    match operation {
+        OperationRef::StandardGate(g) => Ok(g.matrix(params)),
+        OperationRef::Gate(gate) => Ok(Some(matrix_via_operator(py, &gate.gate)?)),
+        OperationRef::Operation(op) => Ok(Some(matrix_via_operator(py, &op.operation)?)),
+        OperationRef::Unitary(u) => Ok(u.matrix()),
+        _ => Ok(None),
     }
 }
 
