@@ -686,11 +686,13 @@ fn extract_definition(
                         angles_from_unitary(unitary.view(), EulerBasis::U);
                     let mut circuit_data: CircuitData =
                         CircuitData::with_capacity(1, 0, 1, Param::Float(phase))?;
-                    circuit_data.push_standard_gate(
-                        StandardGate::U,
-                        &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
-                        &[Qubit(0)],
-                    );
+                    circuit_data
+                        .push_standard_gate(
+                            StandardGate::U,
+                            &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
+                            &[Qubit(0)],
+                        )
+                        .unwrap();
                     Ok(Some(circuit_data))
                 }
                 // Run 2q synthesis

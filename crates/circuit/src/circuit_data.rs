@@ -2047,18 +2047,32 @@ impl CircuitData {
         Ok(res)
     }
 
-    /// Append a standard gate to this CircuitData
+    /// Append a standard gate to this CircuitData.
+    ///
+    /// # Arguments
+    ///
+    /// * operation - The standard gate to append.
+    /// * params - A slice of [Param] to use as gate parameters. Note these must be
+    ///     [Param::Float] or [Param::ParameterExpression] variants, not [Param::Obj].
+    /// * qargs - A slice of [Qubit] to attach the gate to.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Upon success.
+    /// * `Err(PyErr)` - Can be caused if tracking the instruction parameters fails. This cannot
+    ///     happen for [Param::Float] parameters, in which case it is safe to unwrap the result.
     pub fn push_standard_gate(
         &mut self,
         operation: StandardGate,
         params: &[Param],
         qargs: &[Qubit],
-    ) {
+    ) -> PyResult<()> {
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
         self.data.push(PackedInstruction::from_standard_gate(
             operation, params, qubits,
         ));
+        self.track_instruction_parameters(self.data.len() - 1)
     }
 
     /// Append a packed operation to this CircuitData

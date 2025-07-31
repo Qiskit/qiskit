@@ -878,6 +878,53 @@ cleanup:
     return result;
 }
 
+int test_parameterized_circuit(void) {
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    QkParam *x = qk_parameter_new_symbol("x");
+    QkParam *y = qk_parameter_new_symbol("somey longery namey");
+
+    uint32_t q0[1] = {0};
+    uint32_t q1[1] = {1};
+    uint32_t q01[2] = {0, 1};
+    QkParam *rx_param[1] = {x};
+    QkParam *rzz_param[1] = {y};
+
+    int result = Ok;
+
+    result = qk_circuit_parameterized_gate(qc, QkGate_RX, q0, (const QkParam *const *)rx_param);
+    result = qk_circuit_parameterized_gate(qc, QkGate_RX, q0, (const QkParam *const *)rx_param);
+    result = qk_circuit_parameterized_gate(qc, QkGate_RZZ, q01, (const QkParam *const *)rzz_param);
+
+    if (result != Ok) {
+        goto cleanup;
+    }
+
+    // check the number of parameters
+    size_t num_params = qk_circuit_num_parameters(qc);
+    if (num_params != 2) {
+        result = EqualityError;
+        printf("Expected 2 free parameters, found %zu", num_params);
+        goto cleanup;
+    }
+
+    // assign values
+    double values[2] = {-1.2, 0.231};
+    qk_circuit_bind_values(qc, values);
+
+    num_params = qk_circuit_num_parameters(qc);
+    if (num_params != 0) {
+        result = EqualityError;
+        printf("Bound circuit still has free parameters");
+        goto cleanup;
+    }
+
+cleanup:
+    qk_parameter_free(x);
+    qk_parameter_free(y);
+    qk_circuit_free(qc);
+    return result;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -897,6 +944,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_not_unitary_gate);
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
+    num_failed += RUN_TEST(test_parameterized_circuit);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

@@ -455,9 +455,86 @@ pub unsafe extern "C" fn qk_circuit_gate(
             // There are no ``QkGate``s that take > 4 params
             _ => unreachable!(),
         };
-        circuit.push_standard_gate(gate, params, qargs);
+        // we know we don't have parameters here, so we can safely unwrap
+        circuit.push_standard_gate(gate, params, qargs).unwrap();
     }
     ExitCode::Success
+}
+
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_parameterized_gate(
+    circuit: *mut CircuitData,
+    gate: StandardGate,
+    qubits: *const u32,
+    params: *const *const Param,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    // SAFETY: Per the documentation the qubits and params pointers are arrays of num_qubits()
+    // and num_params() elements respectively.
+    let qargs: &[Qubit] = unsafe {
+        match gate.num_qubits() {
+            0 => &[],
+            1 => &[Qubit(*qubits.wrapping_add(0))],
+            2 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+            ],
+            3 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+            ],
+            4 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+                Qubit(*qubits.wrapping_add(3)),
+            ],
+            // There are no ``QkGate``s > 4 qubits
+            _ => unreachable!(),
+        }
+    };
+    let params: Vec<Param> =
+        unsafe { ::std::slice::from_raw_parts(params, gate.num_params() as usize) }
+            .iter()
+            .map(|&ptr| unsafe { const_ptr_as_ref(ptr) }.clone())
+            .collect();
+
+    match circuit.push_standard_gate(gate, &params, qargs) {
+        Ok(_) => ExitCode::Success,
+        Err(_) => ExitCode::ParameterError,
+    }
+}
+
+/// Bind ALL values in place. For a single value maybe we can add _bind_value(symbol_name, value)
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_circuit_bind_values(
+    circuit: *mut CircuitData,
+    values: *const f64,
+) -> ExitCode {
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let num_parameters = circuit.num_parameters();
+
+    // SAFETY: The caller guarantees that `values` is readable for all parameter values.
+    let values = unsafe { ::std::slice::from_raw_parts(values, num_parameters) };
+    let as_params: Vec<Param> = values.iter().map(|val| Param::Float(*val)).collect();
+
+    match circuit.assign_parameters_from_slice(&as_params) {
+        Ok(_) => ExitCode::Success,
+        Err(_) => ExitCode::ParameterError,
+    }
+}
+
+/// @ingroup QkCircuit
+/// Get the number of unbound parameters in the circuit.
+#[no_mangle]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_circuit_num_parameters(circuit: *mut CircuitData) -> usize {
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    circuit.num_parameters()
 }
 
 /// @ingroup QkCircuit
