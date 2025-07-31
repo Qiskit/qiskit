@@ -1016,8 +1016,13 @@ impl SymbolExpr {
                     rhs: r_rhs,
                 } = rhs
                 {
-                    if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) | SymbolExpr::Unary { .. } =
-                        self
+                    if let SymbolExpr::Value(_)
+                    | SymbolExpr::Symbol(_)
+                    | SymbolExpr::Unary { .. }
+                    | SymbolExpr::Binary {
+                        op: BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow,
+                        ..
+                    } = self
                     {
                         // recursive optimization for add and sub
                         if let BinaryOp::Add = &op {
@@ -1378,8 +1383,13 @@ impl SymbolExpr {
                     rhs: r_rhs,
                 } = rhs
                 {
-                    if let SymbolExpr::Value(_) | SymbolExpr::Symbol(_) | SymbolExpr::Unary { .. } =
-                        self
+                    if let SymbolExpr::Value(_)
+                    | SymbolExpr::Symbol(_)
+                    | SymbolExpr::Unary { .. }
+                    | SymbolExpr::Binary {
+                        op: BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow,
+                        ..
+                    } = self
                     {
                         // recursive optimization for add and sub
                         if let BinaryOp::Add = &op {
