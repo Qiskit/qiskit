@@ -37,6 +37,7 @@ mod high_level_synthesis;
 mod instruction_duration_check;
 mod inverse_cancellation;
 mod optimize_1q_gates_decomposition;
+mod pad_dynamical_decoupling;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
 pub mod sabre;
@@ -71,6 +72,7 @@ pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellatio
 pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };
+pub use pad_dynamical_decoupling::{pad_dynamical_decoupling_mod, run_pad_dynamical_decoupling};
 pub use remove_diagonal_gates_before_measure::{
     remove_diagonal_gates_before_measure_mod, run_remove_diagonal_before_measure,
 };
