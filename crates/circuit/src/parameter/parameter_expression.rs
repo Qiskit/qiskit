@@ -302,7 +302,7 @@ impl ParameterExpression {
 
     /// Divide by another expression; ``self / rhs``.
     pub fn div(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
-        if rhs.expr.is_zero() {
+        if rhs.expr.is_zero(true) {
             return Err(ParameterError::ZeroDivisionError);
         }
 
