@@ -714,6 +714,7 @@ class TextDrawing:
         encoding=None,
         with_layout=False,
         expr_len=30,
+        measure_arrows=None,
     ):
         self.qubits = qubits
         self.clbits = clbits
@@ -733,6 +734,7 @@ class TextDrawing:
         self.reverse_bits = reverse_bits
         self.line_length = line_length
         self.expr_len = expr_len
+        self.measure_arrows = measure_arrows
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
@@ -1108,8 +1110,16 @@ class TextDrawing:
         conditional = False
         base_gate = getattr(op, "base_gate", None)
 
-        params = get_param_str(op, "text", ndigits=5)
-        if not isinstance(op, (Measure, SwapGate, Reset)) and not getattr(op, "_directive", False):
+        # For measure_arrows False, put the reg_bit into the params string
+        if isinstance(op, Measure) and not self.measure_arrows:
+            register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
+            if register is not None:
+                params = f"{register.name}_{reg_index}"
+            else:
+                params = f"{reg_index}"
+        else:
+            params = get_param_str(op, "text", ndigits=5)
+        if not isinstance(op, (SwapGate, Reset)) and not getattr(op, "_directive", False):
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
@@ -1136,7 +1146,7 @@ class TextDrawing:
                     mod_control = modifier
                     break
 
-        if isinstance(op, Measure):
+        if self.measure_arrows and isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
             register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
@@ -1174,8 +1184,10 @@ class TextDrawing:
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
-        elif len(node.qargs) == 1 and not node.cargs:
-            # unitary gate
+        elif (len(node.qargs) == 1 and not node.cargs) or (
+            not self.measure_arrows and isinstance(op, Measure)
+        ):
+            # single qubit gate or measure with measure_arrows False
             layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 
         elif isinstance(op, ControlledGate) or mod_control:
