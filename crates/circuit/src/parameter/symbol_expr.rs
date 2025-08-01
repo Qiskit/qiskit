@@ -11,7 +11,9 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
+use pyo3::exceptions::PyTypeError;
 use pyo3::exceptions::PyValueError;
+use pyo3::IntoPyObjectExt;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -23,6 +25,9 @@ use uuid::Uuid;
 
 use num_complex::Complex64;
 use pyo3::prelude::*;
+
+use crate::parameter::parameter_expression::PyParameter;
+use crate::parameter::parameter_expression::PyParameterVectorElement;
 
 // epsilon for SymbolExpr is heuristically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
@@ -53,6 +58,32 @@ impl PartialOrd for Symbol {
 impl Hash for Symbol {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         (&self.name, self.uuid, self.index).hash(state);
+    }
+}
+
+impl<'py> FromPyObject<'py> for Symbol {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(py_vector_element) = ob.extract::<PyParameterVectorElement>() {
+            Ok(py_vector_element.symbol())
+        } else if let Ok(py_param) = ob.extract::<PyParameter>() {
+            Ok(py_param.symbol())
+        } else {
+            Err(PyTypeError::new_err("Cannot extract Symbol from {ob:?}"))
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Symbol {
+    type Target = PyAny; // to cover PyParameter and PyParameterVectorElement
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match (&self.index, &self.vector) {
+            (Some(_), Some(_)) => Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?
+                .into_bound_py_any(py),
+            _ => Py::new(py, PyParameter::from_symbol(self.clone()))?.into_bound_py_any(py),
+        }
     }
 }
 
@@ -92,6 +123,15 @@ impl Symbol {
         match self.index {
             Some(i) => format!("{base_name}[{i}]"),
             None => base_name.clone(),
+        }
+    }
+
+    pub fn coerce_into_py(&self, py: Python) -> PyResult<PyObject> {
+        match (&self.index, &self.vector) {
+            (Some(_index), Some(_vector)) => {
+                Ok(Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?.into_any())
+            }
+            _ => Ok(Py::new(py, PyParameter::from_symbol(self.clone()))?.into_any()),
         }
     }
 }
@@ -257,7 +297,7 @@ fn _neg(expr: SymbolExpr) -> SymbolExpr {
 
 impl fmt::Display for SymbolExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.repr(false))
+        write!(f, "{}", self.display(false))
     }
 }
 
@@ -622,14 +662,15 @@ impl SymbolExpr {
     }
 
     /// Return hashset of all parameters this equation contains.
-    pub fn parameters(&self) -> HashSet<Symbol> {
+    /// TODO This should just be iter_symbols.collect()
+    pub fn symbols(&self) -> HashSet<Symbol> {
         match self {
             SymbolExpr::Symbol(e) => HashSet::from_iter([e.clone()]),
             SymbolExpr::Value(_) => HashSet::<Symbol>::new(),
-            SymbolExpr::Unary { op: _, expr } => expr.parameters(),
+            SymbolExpr::Unary { op: _, expr } => expr.symbols(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
                 let mut parameters = HashSet::<Symbol>::new();
-                for s in lhs.parameters().union(&rhs.parameters()) {
+                for s in lhs.symbols().union(&rhs.symbols()) {
                     parameters.insert(s.clone());
                 }
                 parameters
@@ -637,9 +678,21 @@ impl SymbolExpr {
         }
     }
 
+    /// This could maybe be more elegantly resolved with a SymbolIter type>
+    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = Symbol>> {
+        match self {
+            SymbolExpr::Symbol(e) => Box::new(::std::iter::once(e.clone())),
+            SymbolExpr::Value(_) => Box::new(::std::iter::empty()),
+            SymbolExpr::Unary { op: _, expr } => expr.iter_symbols(),
+            SymbolExpr::Binary { op: _, lhs, rhs } => {
+                Box::new(lhs.iter_symbols().chain(rhs.iter_symbols()))
+            }
+        }
+    }
+
     /// Map of parameter name to the parameter.
     pub fn name_map(&self) -> HashMap<String, Symbol> {
-        self.parameters()
+        self.symbols()
             .iter()
             .map(|param| (param.name(), param.clone()))
             .collect()
@@ -733,13 +786,7 @@ impl SymbolExpr {
 
     /// check if real number or not
     pub fn is_real(&self) -> Option<bool> {
-        match self.eval(true) {
-            Some(v) => match v {
-                Value::Real(_) | Value::Int(_) => Some(true),
-                Value::Complex(c) => Some((-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)),
-            },
-            None => None,
-        }
+        self.eval(true).map(|value| value.is_real())
     }
 
     /// check if integer or not
@@ -900,7 +947,7 @@ impl SymbolExpr {
     }
 
     pub fn string_id(&self) -> String {
-        self.repr(true)
+        self.display(true)
     }
 
     // Add with heuristic optimization
@@ -2469,7 +2516,7 @@ impl SymbolExpr {
         }
     }
 
-    fn repr(&self, with_uuid: bool) -> String {
+    fn display(&self, with_uuid: bool) -> String {
         match self {
             SymbolExpr::Symbol(e) => match with_uuid {
                 true => format!("{}_{}", e.name(), e.uuid.as_u128()),
@@ -2477,7 +2524,7 @@ impl SymbolExpr {
             },
             SymbolExpr::Value(e) => e.to_string(),
             SymbolExpr::Unary { op, expr } => {
-                let s = expr.repr(with_uuid);
+                let s = expr.display(with_uuid);
                 match op {
                     UnaryOp::Abs => format!("abs({s})"),
                     UnaryOp::Neg => match expr.as_ref() {
@@ -2501,8 +2548,8 @@ impl SymbolExpr {
                 }
             }
             SymbolExpr::Binary { op, lhs, rhs } => {
-                let s_lhs = lhs.repr(with_uuid);
-                let s_rhs = rhs.repr(with_uuid);
+                let s_lhs = lhs.display(with_uuid);
+                let s_rhs = rhs.display(with_uuid);
                 let op_lhs = match lhs.as_ref() {
                     SymbolExpr::Binary { op: lop, .. } => {
                         matches!(lop, BinaryOp::Add | BinaryOp::Sub)
@@ -2906,6 +2953,13 @@ impl Value {
             Value::Real(e) => *e,
             Value::Int(e) => *e as f64,
             Value::Complex(e) => e.re,
+        }
+    }
+
+    pub fn is_real(&self) -> bool {
+        match self {
+            Value::Real(_) | Value::Int(_) => true,
+            Value::Complex(c) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im),
         }
     }
 

@@ -18,12 +18,12 @@ use thiserror::Error;
 
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::pybacked::PyBackedStr;
-use pyo3::types::{PyList, PySet};
-use pyo3::{import_exception, intern, PyTraverseError, PyVisit};
+use pyo3::types::PySet;
+use pyo3::{import_exception, intern};
 
 use crate::imports::UUID;
 use crate::parameter::parameter_expression::{PyParameter, PyParameterExpression};
+use crate::parameter::symbol_expr::Symbol;
 
 import_exception!(qiskit.circuit, CircuitError);
 
@@ -52,22 +52,22 @@ pub enum ParameterUse {
 #[derive(Clone, Debug)]
 struct VectorElement {
     vector_uuid: VectorUuid,
-    index: usize,
+    index: u32,
 }
 
 /// Tracked data tied to each parameter's UUID in the table.
 #[derive(Clone, Debug)]
 pub struct ParameterInfo {
     uses: HashSet<ParameterUse>,
-    name: PyBackedStr,
-    element: Option<VectorElement>,
-    object: Py<PyAny>,
+    name: String, // TODO probably redundant, just get Symbol.name(), which is cheap
+    element: Option<VectorElement>, // TODO maybe this is redundant now and can be removed
+    symbol: Symbol, // TODO rename this to symbol
 }
 
 /// Rust-space information on a Python `ParameterVector` and its uses in the table.
 #[derive(Clone, Debug)]
 struct VectorInfo {
-    name: PyBackedStr,
+    name: String,
     /// Number of elements of the vector tracked within the parameter table.
     refcount: usize,
 }
@@ -82,6 +82,7 @@ impl ParameterUuid {
     /// to be a parameter.
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
         let uuid = if let Ok(param) = ob.downcast::<PyParameter>() {
+            // this downcast should cover both PyParameterVectorElement and PyParameter
             param.borrow().symbol_ref().uuid.as_u128()
         } else if let Ok(expr) = ob.downcast::<PyParameterExpression>() {
             let expr_borrowed = expr.borrow();
@@ -90,11 +91,15 @@ impl ParameterUuid {
             symbol.uuid.as_u128()
         } else {
             return Err(PyTypeError::new_err(
-                "Could not downcast to Parameter or Expression",
+                "Could not downcast to Parameter or Expression (that equals a symbol)",
             ));
         };
 
         Ok(Self(uuid))
+    }
+
+    pub fn from_symbol(symbol: &Symbol) -> Self {
+        Self(symbol.uuid.as_u128())
     }
 }
 
@@ -134,9 +139,8 @@ impl<'py> FromPyObject<'py> for VectorUuid {
 pub struct ParameterTable {
     /// Mapping of the parameter key (its UUID) to the information on it tracked by this table.
     by_uuid: HashMap<ParameterUuid, ParameterInfo>,
-    /// Mapping of the parameter names to the UUID that represents them.  Since we always get
-    /// parameters in as Python-space objects, we use the string object extracted from Python space.
-    by_name: HashMap<PyBackedStr, ParameterUuid>,
+    /// Mapping of the parameter names to the UUID that represents them.  
+    by_name: HashMap<String, ParameterUuid>,
     /// Additional information on any `ParameterVector` instances that have elements in the circuit.
     vectors: HashMap<VectorUuid, VectorInfo>,
     /// Cache of the sort order of the parameters.  This is lexicographical for most parameters,
@@ -149,7 +153,7 @@ pub struct ParameterTable {
     /// specifically when asked.
     ///
     /// Any method that adds or removes a parameter needs to invalidate this.
-    py_parameters_cache: OnceLock<Py<PyList>>,
+    parameters_cache: OnceLock<Vec<Symbol>>,
 }
 
 impl ParameterTable {
@@ -170,11 +174,10 @@ impl ParameterTable {
     /// lookups and updates done without interaction with Python.
     pub fn track(
         &mut self,
-        param_ob: &Bound<PyAny>,
+        param_ob: &Symbol, // TODO rename param_ob
         usage: Option<ParameterUse>,
     ) -> PyResult<ParameterUuid> {
-        let py = param_ob.py();
-        let uuid = ParameterUuid::from_parameter(param_ob)?;
+        let uuid = ParameterUuid::from_symbol(param_ob);
         match self.by_uuid.entry(uuid) {
             Entry::Occupied(mut entry) => {
                 if let Some(usage) = usage {
@@ -182,29 +185,32 @@ impl ParameterTable {
                 }
             }
             Entry::Vacant(entry) => {
-                let py_name_attr = intern!(py, "name");
-                let name = param_ob.getattr(py_name_attr)?.extract::<PyBackedStr>()?;
+                let name = param_ob.name();
                 if self.by_name.contains_key(&name) {
                     return Err(CircuitError::new_err(format!(
                         "name conflict adding parameter '{}'",
                         &name
                     )));
                 }
-                let element = if let Ok(vector) = param_ob.getattr(intern!(py, "vector")) {
-                    let vector_uuid = VectorUuid::from_vector(&vector)?;
-                    match self.vectors.entry(vector_uuid) {
-                        Entry::Occupied(mut entry) => entry.get_mut().refcount += 1,
-                        Entry::Vacant(entry) => {
-                            entry.insert(VectorInfo {
-                                name: vector.getattr(py_name_attr)?.extract()?,
-                                refcount: 1,
-                            });
+                let element = if let Some(vector) = &param_ob.vector {
+                    Python::with_gil(|py| -> PyResult<Option<VectorElement>> {
+                        let vector_bound = vector.bind(py);
+                        let vector_uuid = VectorUuid::from_vector(vector_bound)?;
+                        let py_name_attr = intern!(py, "name");
+                        match self.vectors.entry(vector_uuid) {
+                            Entry::Occupied(mut entry) => entry.get_mut().refcount += 1,
+                            Entry::Vacant(entry) => {
+                                entry.insert(VectorInfo {
+                                    name: vector_bound.getattr(py_name_attr)?.extract()?,
+                                    refcount: 1,
+                                });
+                            }
                         }
-                    }
-                    Some(VectorElement {
-                        vector_uuid,
-                        index: param_ob.getattr(intern!(py, "index"))?.extract()?,
-                    })
+                        Ok(Some(VectorElement {
+                            vector_uuid,
+                            index: param_ob.index.unwrap(), // we now the index exists
+                        }))
+                    })?
                 } else {
                     None
                 };
@@ -219,7 +225,7 @@ impl ParameterTable {
                     name,
                     uses,
                     element,
-                    object: param_ob.clone().unbind(),
+                    symbol: param_ob.clone(),
                 });
                 self.invalidate_cache();
             }
@@ -229,44 +235,37 @@ impl ParameterTable {
 
     /// Untrack one use of a single Python-space `Parameter` object from the table, discarding all
     /// other tracking of that `Parameter` if this was the last usage of it.
-    pub fn untrack(&mut self, param_ob: &Bound<PyAny>, usage: ParameterUse) -> PyResult<()> {
-        self.remove_use(ParameterUuid::from_parameter(param_ob)?, usage)
+    pub fn untrack(&mut self, param_ob: &Symbol, usage: ParameterUse) -> PyResult<()> {
+        self.remove_use(ParameterUuid::from_symbol(param_ob), usage)
             .map_err(PyErr::from)
     }
 
     /// Lookup the Python parameter object by name.
-    pub fn py_parameter_by_name(&self, name: &PyBackedStr) -> Option<&Py<PyAny>> {
+    pub fn parameter_by_name(&self, name: &String) -> Option<&Symbol> {
         self.by_name
             .get(name)
-            .map(|uuid| &self.by_uuid[uuid].object)
+            .map(|uuid| &self.by_uuid[uuid].symbol)
     }
 
     /// Lookup the Python parameter object by uuid.
-    pub fn py_parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Py<PyAny>> {
-        self.by_uuid.get(&uuid).map(|param| &param.object)
+    pub fn parameter_by_uuid(&self, uuid: ParameterUuid) -> Option<&Symbol> {
+        self.by_uuid.get(&uuid).map(|param| &param.symbol)
     }
 
     /// Get the (maybe cached) Python list of the sorted `Parameter` objects.
-    pub fn py_parameters<'py>(&self, py: Python<'py>) -> Bound<'py, PyList> {
-        self.py_parameters_cache
-            .get_or_init(|| {
-                PyList::new(
-                    py,
-                    self.order_cache
-                        .get_or_init(|| self.sorted_order())
-                        .iter()
-                        .map(|uuid| self.by_uuid[uuid].object.bind(py).clone()),
-                )
-                .unwrap()
-                .unbind()
-            })
-            .bind(py)
-            .clone()
+    pub fn parameters(&self) -> &[Symbol] {
+        self.parameters_cache.get_or_init(|| {
+            self.order_cache
+                .get_or_init(|| self.sorted_order())
+                .iter()
+                .map(|uuid| self.by_uuid[uuid].symbol.clone())
+                .collect()
+        })
     }
 
     /// Get a Python set of all tracked `Parameter` objects.
-    pub fn py_parameters_unsorted<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
-        PySet::new(py, self.by_uuid.values().map(|info| &info.object))
+    pub fn parameters_unsorted(&self) -> HashSet<&Symbol> {
+        HashSet::from_iter(self.by_uuid.values().map(|info| &info.symbol))
     }
 
     /// Get the sorted order of the `ParameterTable`.  This does not access the cache.
@@ -358,7 +357,7 @@ impl ParameterTable {
     /// The clearing effect is eager and not dependent on the iteration.
     pub fn drain_ordered(
         &mut self,
-    ) -> impl ExactSizeIterator<Item = (Py<PyAny>, HashSet<ParameterUse>)> {
+    ) -> impl ExactSizeIterator<Item = (Symbol, HashSet<ParameterUse>)> {
         let order = self
             .order_cache
             .take()
@@ -366,7 +365,7 @@ impl ParameterTable {
         let by_uuid = ::std::mem::take(&mut self.by_uuid);
         self.by_name.clear();
         self.vectors.clear();
-        self.py_parameters_cache.take();
+        self.parameters_cache.take();
         ParameterTableDrain {
             order: order.into_iter(),
             by_uuid,
@@ -384,7 +383,7 @@ impl ParameterTable {
 
     fn invalidate_cache(&mut self) {
         self.order_cache.take();
-        self.py_parameters_cache.take();
+        self.parameters_cache.take();
     }
 
     /// Expose the tracked data for a given parameter as directly as possible to Python space.
@@ -410,20 +409,6 @@ impl ParameterTable {
         }
         Ok(out.unbind())
     }
-
-    /// Accept traversal of this object by the Python garbage collector.
-    ///
-    /// This is not a pyclass, so it's up to our owner to delegate their own traversal to us.
-    pub fn py_gc_traverse(&self, visit: &PyVisit) -> Result<(), PyTraverseError> {
-        for info in self.by_uuid.values() {
-            visit.call(&info.object)?
-        }
-        // We don't need to / can't visit the `PyBackedStr` stores.
-        if let Some(list) = self.py_parameters_cache.get() {
-            visit.call(list)?
-        }
-        Ok(())
-    }
 }
 
 struct ParameterTableDrain {
@@ -431,7 +416,7 @@ struct ParameterTableDrain {
     by_uuid: HashMap<ParameterUuid, ParameterInfo>,
 }
 impl Iterator for ParameterTableDrain {
-    type Item = (Py<PyAny>, HashSet<ParameterUse>);
+    type Item = (Symbol, HashSet<ParameterUse>);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.order.next().map(|uuid| {
@@ -439,7 +424,7 @@ impl Iterator for ParameterTableDrain {
                 .by_uuid
                 .remove(&uuid)
                 .expect("tracked UUIDs should be consistent");
-            (info.object, info.uses)
+            (info.symbol, info.uses)
         })
     }
 

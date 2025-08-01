@@ -45,20 +45,25 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                             return if unit == DelayUnit::DT {
                                 if let Some(dt) = dt {
                                     match dur {
-                                        Param::Float(val) =>
-                                            {
-                                                Ok(val * dt)
-
-                                            },
-                                        Param::Obj(val) => {
-                                            Python::with_gil(|py| {
-                                                let dur_float: f64 = val.extract(py)?;
-                                                Ok(dur_float * dt)
-                                            })
-                                        },
-                                        Param::ParameterExpression(_) => Err(QiskitError::new_err(
-                                            "Circuit contains parameterized delays, can't compute a duration estimate with this circuit"
-                                        )),
+                                        Param::Float(val) => Ok(val * dt),
+                                        Param::Obj(val) => Python::with_gil(|py| {
+                                            let dur_float: f64 = val.extract(py)?;
+                                            Ok(dur_float * dt)
+                                        }),
+                                        Param::ParameterExpression(expr) => {
+                                            let val = expr.try_to_value(false).map_err(|_|
+                                                QiskitError::new_err(
+                                                    "Circuit contains parameterized delays, can't compute a duration estimate with this circuit"
+                                                )
+                                            )?;
+                                            if !val.is_real() {
+                                                Err(QiskitError::new_err(
+                                                    "Circuit contains complex delay, can't compute a duration estimte with this circuit",
+                                                ))
+                                            } else {
+                                                Ok(val.as_real() * dt)
+                                            }
+                                        }
                                     }
                                 } else {
                                     Err(QiskitError::new_err(

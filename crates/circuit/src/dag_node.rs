@@ -188,7 +188,7 @@ impl DAGOpNode {
                         relative_eq!(float_a, float_b, max_relative = 1e-10)
                     }
                     [Param::ParameterExpression(param_a), Param::ParameterExpression(param_b)] => {
-                        param_a.bind(py).eq(param_b)?
+                        param_a == param_b
                     }
                     [Param::Obj(param_a), Param::Obj(param_b)] => param_a.bind(py).eq(param_b)?,
                     _ => false,
