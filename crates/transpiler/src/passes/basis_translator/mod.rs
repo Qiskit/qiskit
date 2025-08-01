@@ -19,24 +19,23 @@ use compose_transforms::compose_transforms;
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use pyo3::intern;
 use pyo3::prelude::*;
 
 mod basis_search;
 mod compose_transforms;
 
-use pyo3::types::{IntoPyDict, PyComplex, PyDict, PyTuple};
-use pyo3::IntoPyObjectExt;
-use pyo3::PyTypeInfo;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
 use qiskit_circuit::imports::DAG_TO_CIRCUIT;
-use qiskit_circuit::imports::PARAMETER_EXPRESSION;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::parameter::parameter_expression::ParameterError;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::parameter::symbol_expr::SymbolExpr;
+use qiskit_circuit::parameter::symbol_expr::Value;
 use qiskit_circuit::{
     circuit_data::CircuitData,
     dag_circuit::DAGCircuit,
@@ -632,24 +631,13 @@ fn replace_node(
         }
         dag.add_global_phase(target_dag.global_phase())?;
     } else {
-        // Needs Python to create a Parameter map between the parameters obtained from
-        // the Target and the parameters in the node.
-        // If no ParameterExpressions are present, DO NOT BUILD THE MAP.
-        let provisional_param_map: Vec<(&Param, &Param)> = target_params
-            .iter()
-            .zip(node.params_view())
-            .filter(|(key, _)| matches!(key, Param::ParameterExpression(_)))
-            .collect();
-        let parameter_map = if provisional_param_map.is_empty() {
-            None
-        } else {
-            Python::with_gil(|py| {
-                provisional_param_map
-                    .into_py_dict(py)
-                    .ok()
-                    .map(|dict| dict.unbind())
-            })
-        };
+        let parameter_map: IndexMap<ParameterExpression, Param> =
+            IndexMap::from_iter(target_params.iter().zip(node.params_view()).filter_map(
+                |(key, val)| match key {
+                    Param::ParameterExpression(param) => Some((param.clone(), val.clone())),
+                    _ => None
+                },
+            ));
         for inner_index in target_dag.topological_op_nodes()? {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
@@ -689,42 +677,59 @@ fn replace_node(
                 new_params = SmallVec::new();
                 for param in inner_node.params_view() {
                     if let Param::ParameterExpression(param_obj) = param {
-                        // TODO: Remove this
-                        // Acquire the gil to use a parameter expression.
-                        let new_value: Param = Python::with_gil(|py| -> PyResult<Param> {
-                            let bound_param = param_obj.bind(py);
-                            let exp_params = param.iter_parameters(py)?;
-                            let bind_dict = PyDict::new(py);
-                            let temp_param_mapping = parameter_map.as_ref().unwrap().bind(py);
-                            for key in exp_params {
-                                let key = key?;
-                                // Dict is guaranteed to have been built due to the type of Param.
-                                bind_dict.set_item(&key, temp_param_mapping.get_item(&key)?)?;
+                        let new_value: Param = {
+                            let mut bind_dict = HashMap::new();
+                            for key in param.iter_parameters()? {
+                                bind_dict.insert(
+                                    key.clone(),
+                                    parameter_map[&ParameterExpression::from_symbol(key)].clone(),
+                                );
                             }
-                            let mut new_value: Bound<PyAny>;
-                            let comparison = bind_dict.values().iter().any(|param| {
-                                param
-                                    .is_instance(PARAMETER_EXPRESSION.get_bound(py))
-                                    .is_ok_and(|x| x)
-                            });
-                            if comparison {
-                                new_value = bound_param.clone();
-                                for items in bind_dict.items() {
-                                    new_value = new_value.call_method1(
-                                        intern!(py, "assign"),
-                                        items.downcast::<PyTuple>()?,
-                                    )?;
+                            let mut new_value: ParameterExpression;
+                            if bind_dict
+                                .values()
+                                .any(|param| matches!(param, Param::ParameterExpression(_)))
+                            {
+                                new_value = param_obj.clone();
+                                for (symbol, val) in bind_dict.iter() {
+                                    let Param::ParameterExpression(val) = val else {
+                                        continue;
+                                    };
+                                    new_value = if let Ok(value) = val.try_to_value(false) {
+                                        let map: HashMap<Symbol, Value> =
+                                            [(symbol.clone(), value)].into_iter().collect();
+                                        new_value.bind(&map, false)?
+                                    } else {
+                                        let map: HashMap<Symbol, ParameterExpression> =
+                                            [(symbol.clone(), val.clone())].into_iter().collect();
+                                        new_value.subs(&map, false)?
+                                    }
                                 }
                             } else {
-                                new_value =
-                                    bound_param.call_method1(intern!(py, "bind"), (&bind_dict,))?;
+                                let parsed_bind_dict = bind_dict
+                                    .into_iter()
+                                    .map(|(key, param)| match param {
+                                        Param::ParameterExpression(parameter_expression) => {
+                                            parameter_expression
+                                                .try_to_value(false)
+                                                .map(|val| (key, val))
+                                        }
+                                        Param::Float(val) => Ok((key, Value::Real(val))),
+                                        Param::Obj(py_obj) => Python::with_gil(|py| {
+                                            py_obj.extract::<Value>(py).map(|val| (key, val))
+                                        })
+                                        .map_err(|_| ParameterError::InvalidValue),
+                                    })
+                                    .collect::<Result<_, ParameterError>>()?;
+                                new_value = param_obj.bind(&parsed_bind_dict, false)?;
                             }
-                            let eval = new_value.getattr(intern!(py, "parameters"))?;
-                            if eval.is_empty()? {
-                                new_value = new_value.call_method0(intern!(py, "numeric"))?;
+                            if new_value.iter_symbols().next().is_none() {
+                                new_value = ParameterExpression::from_symbol_expr(
+                                    SymbolExpr::Value(new_value.try_to_value(false)?),
+                                );
                             }
-                            new_value.extract()
-                        })?;
+                            Param::ParameterExpression(new_value)
+                        };
                         new_params.push(new_value);
                     } else {
                         new_params.push(param.clone());
@@ -769,44 +774,65 @@ fn replace_node(
 
         match target_dag.global_phase() {
             Param::ParameterExpression(old_phase) => {
-                // TODO: Remove this.
-                // If we are using a ParameterExpression, acquire the gil.
-                let new_phase: Param = Python::with_gil(|py| {
-                    let bound_old_phase = old_phase.bind(py);
-                    let bind_dict = PyDict::new(py);
-                    let temp_param_mapping = parameter_map.as_ref().unwrap().bind(py);
-                    for key in target_dag.global_phase().iter_parameters(py)? {
-                        let key = key?;
-                        // If the target_dag's phase is a ParameterExpression, the dict will
-                        // have been built.
-                        bind_dict.set_item(&key, temp_param_mapping.get_item(&key)?)?;
+                let new_phase: Param = {
+                    let mut bind_dict = HashMap::new();
+                    for key in old_phase.iter_symbols() {
+                        bind_dict.insert(
+                            key.clone(),
+                            parameter_map[&ParameterExpression::from_symbol(key)].clone(),
+                        );
                     }
-                    let mut new_phase: Bound<PyAny>;
-                    if bind_dict.values().iter().any(|param| {
-                        param
-                            .extract::<Param>()
-                            .is_ok_and(|param| matches!(param, Param::ParameterExpression(_)))
-                    }) {
-                        new_phase = bound_old_phase.clone();
-                        for key_val in bind_dict.items() {
-                            new_phase = new_phase
-                                .call_method1(intern!(py, "assign"), key_val.downcast()?)?;
+                    let mut new_phase: ParameterExpression;
+                    if bind_dict
+                        .values()
+                        .any(|param| matches!(param, Param::ParameterExpression(_)))
+                    {
+                        new_phase = old_phase.clone();
+                        for (key, val) in bind_dict.iter() {
+                            let Param::ParameterExpression(val) = val else {
+                                continue;
+                            };
+                            new_phase = if let Ok(value) = val.try_to_value(false) {
+                                let map: HashMap<Symbol, Value> =
+                                    [(key.clone(), value)].into_iter().collect();
+                                new_phase.bind(&map, false)?
+                            } else {
+                                let map: HashMap<Symbol, ParameterExpression> =
+                                    [(key.clone(), val.clone())].into_iter().collect();
+                                new_phase.subs(&map, false)?
+                            }
                         }
                     } else {
-                        new_phase =
-                            bound_old_phase.call_method1(intern!(py, "bind"), (bind_dict,))?;
+                        let parsed_bind_dict = bind_dict
+                            .into_iter()
+                            .map(|(key, param)| match param {
+                                Param::ParameterExpression(parameter_expression) => {
+                                    parameter_expression
+                                        .try_to_value(false)
+                                        .map(|val| (key, val))
+                                }
+                                Param::Float(val) => Ok((key, Value::Real(val))),
+                                Param::Obj(py_obj) => Python::with_gil(|py| {
+                                    py_obj.extract::<Value>(py).map(|val| (key, val))
+                                })
+                                .map_err(|_| ParameterError::InvalidValue),
+                            })
+                            .collect::<Result<_, ParameterError>>()?;
+                        new_phase = old_phase.bind(&parsed_bind_dict, false)?;
                     }
-                    if !new_phase.getattr(intern!(py, "parameters"))?.is_truthy()? {
-                        new_phase = new_phase.call_method0(intern!(py, "numeric"))?;
-                        if new_phase.is_instance(&PyComplex::type_object(py))? {
+                    if new_phase.iter_symbols().next().is_none() {
+                        let parsed = new_phase.try_to_value(false)?;
+                        if matches!(parsed, Value::Complex(_)) {
                             return Err(TranspilerError::new_err(format!(
                                 "Global phase must be real, but got {}",
-                                new_phase.repr()?
+                                parsed
                             )));
                         }
+                        new_phase =
+                            ParameterExpression::from_symbol_expr(SymbolExpr::Value(parsed));
                     }
-                    new_phase.extract()
-                })?;
+                    Param::ParameterExpression(new_phase)
+                };
                 dag.add_global_phase(&new_phase)?;
             }
 
