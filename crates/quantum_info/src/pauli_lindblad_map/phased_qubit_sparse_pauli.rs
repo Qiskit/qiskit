@@ -305,7 +305,66 @@ impl PhasedQubitSparsePauli {
     }
 }
 
-
+/// A Pauli operator stored in a qubit-sparse format.
+///
+/// Representation
+/// ==============
+///
+/// A Pauli operator is a tensor product of single-qubit Pauli operators of the form :math:`P =
+/// (-i)^n \bigotimes_n A^{(n)}_i`, for :math:`A^{(n)}_i \in \{I, X, Y, Z\}` and an integer
+/// :math:`n`. The internal representation of a :class:`PhasedQubitSparsePauli` stores only the
+/// non-identity single-qubit Pauli operators.
+///
+/// Internally, each single-qubit Pauli operator is stored with a numeric value. See the
+/// documentation of :class:`QubitSparsePauli` for a description of the formatting of the numeric
+/// value associated with each Pauli, as well as descriptions of the :attr:`paulis` and 
+/// :attr:`indices` attributes that store each Pauli and its associated qubit index.
+///
+/// Additionally, the phase of the operator can be retrieved through the :attr:`phase` attribute,
+/// which returns the group phase exponent, matching the behaviour of the same attribute in 
+/// :class:`.Pauli`.
+///
+/// Construction
+/// ============
+///
+/// :class:`PhasedQubitSparsePauli` defines several constructors.  The default constructor will
+/// attempt to delegate to one of the more specific constructors, based on the type of the input.
+/// You can always use the specific constructors to have more control over the construction.
+///
+/// .. _phased-qubit-sparse-pauli-convert-constructors:
+/// .. table:: Construction from other objects
+///
+///   ============================  ================================================================
+///   Method                        Summary
+///   ============================  ================================================================
+///   :meth:`from_label`            Convert a dense string label into a 
+///                                 :class:`~.PhasedQubitSparsePauli`.
+///
+///   :meth:`from_sparse_label`     Build a :class:`.PhasedQubitSparsePauli` from a tuple of a 
+///                                 phase, a sparse string label, and the qubits they apply to.
+///
+///   :meth:`from_pauli`            Raise a single :class:`~.quantum_info.Pauli` into a
+///                                 :class:`.PhasedQubitSparsePauli`.
+///
+///   :meth:`from_raw_parts`        Build the list from :ref:`the raw data arrays
+///                                 <qubit-sparse-pauli-arrays>` and the phase.
+///   ============================  ================================================================
+///
+/// .. py:function:: PhasedQubitSparsePauli.__new__(data, /, num_qubits=None)
+///
+///     The default constructor of :class:`QubitSparsePauli`.
+///
+///     This delegates to one of :ref:`the explicit conversion-constructor methods
+///     <phased-qubit-sparse-pauli-convert-constructors>`, based on the type of the ``data`` 
+///     argument. If ``num_qubits`` is supplied and constructor implied by the type of ``data`` does
+///     not accept a number, the given integer must match the input.
+///
+///     :param data: The data type of the input.  This can be another :class:`QubitSparsePauli`,
+///         in which case the input is copied, or it can be a valid format for either
+///         :meth:`from_label` or :meth:`from_sparse_label`.
+///     :param int|None num_qubits: Optional number of qubits for the operator.  For most data
+///         inputs, this can be inferred and need not be passed.  It is only necessary for the
+///         sparse-label format.  If given unnecessarily, it must match the data input.
 #[pyclass(name = "PhasedQubitSparsePauli", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
 pub struct PyPhasedQubitSparsePauli {
@@ -366,8 +425,7 @@ impl PyPhasedQubitSparsePauli {
     }
 
     /// Construct a :class:`.PhasedQubitSparsePauli` from raw Numpy arrays that match :ref:`the
-    /// required data representation described in the class-level documentation
-    /// <qubit-sparse-pauli-arrays>`.
+    /// required data representation described in the class-level documentation.
     ///
     /// The data from each array is copied into fresh, growable Rust-space allocations.
     ///
@@ -377,7 +435,7 @@ impl PyPhasedQubitSparsePauli {
     ///         :attr:`~numpy.uint8` (which is compatible with :class:`.Pauli`).
     ///     indices: sorted list of the qubits each single-qubit term corresponds to.  This should
     ///         be a Numpy array with dtype :attr:`~numpy.uint32`.
-    ///     phase: The phase of the operator.
+    ///     phase: The phase exponent of the operator.
     ///
     /// Examples:
     ///
@@ -420,9 +478,9 @@ impl PyPhasedQubitSparsePauli {
         Ok(PyPhasedQubitSparsePauli { inner })
     }
 
-    /// Construct a :class:`.QubitSparsePauli` from a single :class:`~.quantum_info.Pauli` instance.
+    /// Construct a :class:`.PhasedQubitSparsePauli` from a single :class:`~.quantum_info.Pauli`
+    /// instance.
     ///
-    /// Note that the phase of the Pauli is dropped.
     ///
     /// Args:
     ///     pauli (:class:`~.quantum_info.Pauli`): the single Pauli to convert.
@@ -431,11 +489,11 @@ impl PyPhasedQubitSparsePauli {
     ///
     ///     .. code-block:: python
     ///
-    ///         >>> label = "IYXZI"
+    ///         >>> label = "iIYXZI"
     ///         >>> pauli = Pauli(label)
-    ///         >>> QubitSparsePauli.from_pauli(pauli)
-    ///         <QubitSparsePauli on 5 qubits: Y_3 X_2 Z_1>
-    ///         >>> assert QubitSparsePauli.from_label(label) == QubitSparsePauli.from_pauli(pauli)
+    ///         >>> PhasedQubitSparsePauli.from_pauli(pauli)
+    ///         <PhasedQubitSparsePauli on 5 qubits: iY_3 X_2 Z_1>
+    ///         >>> assert PhasedQubitSparsePauli.from_label(label) == PhasedQubitSparsePauli.from_pauli(pauli)
     #[staticmethod]
     #[pyo3(signature = (pauli, /))]
     fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
@@ -478,7 +536,7 @@ impl PyPhasedQubitSparsePauli {
     }
 
     /// Construct a phased qubit sparse Pauli from a sparse label, given as a tuple of an int for
-    /// phase, a string of Paulis, and the indices of the corresponding qubits.
+    /// the phase exponent, a string of Paulis, and the indices of the corresponding qubits.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_sparse_list`.
     ///
@@ -611,7 +669,7 @@ impl PyPhasedQubitSparsePauli {
         return (phase - num_ys).rem_euclid(4)
     }
 
-    /// Convert this Pauli into a single element :class:`PhaseddQubitSparsePauliList`.
+    /// Convert this Pauli into a single element :class:`PhasedQubitSparsePauliList`.
     fn to_phased_qubit_sparse_pauli_list(&self) -> PyResult<PyPhasedQubitSparsePauliList> {
         Ok(self.inner.to_phased_qubit_sparse_pauli_list().into())
     }
@@ -630,10 +688,11 @@ impl PyPhasedQubitSparsePauli {
         self.compose(other)
     }
 
-    /// Check if `self`` commutes with another qubit sparse pauli.
+    /// Check if `self`` commutes with another phased qubit sparse pauli.
     ///
     /// Args:
-    ///     other (PhasedQubitSparsePauli): the qubit sparse Pauli to check for commutation with.
+    ///     other (PhasedQubitSparsePauli): the phased qubit sparse Pauli to check for commutation
+    ///         with.
     fn commutes(&self, other: PyPhasedQubitSparsePauli) -> PyResult<bool> {
         Ok(self.inner.commutes(&other.inner)?)
     }
@@ -698,7 +757,7 @@ impl PyPhasedQubitSparsePauli {
     /// Read-only view onto the individual single-qubit terms.
     ///
     /// The only valid values in the array are those with a corresponding
-    /// :class:`~QubitSparsePauli.Pauli`.
+    /// :class:`~PhasedQubitSparsePauli.Pauli`.
     #[getter]
     fn get_paulis(slf_: Bound<Self>) -> Bound<PyArray1<u8>> {
         let borrowed = slf_.borrow();
@@ -737,7 +796,7 @@ impl PyPhasedQubitSparsePauli {
     }
 
     // The documentation for this is inlined into the class-level documentation of
-    // :class:`QubitSparsePauliList`.
+    // :class:`PhasedQubitSparsePauliList`.
     #[allow(non_snake_case)]
     #[classattr]
     fn Pauli(py: Python) -> PyResult<Py<PyType>> {
