@@ -1104,9 +1104,9 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///                                 string label and the qubits they apply to.
 ///
 ///   :meth:`from_pauli`            Raise a single :class:`~.quantum_info.Pauli` into a
-///                                 single-element :class:`.QubitSparsePauli`.
+///                                 :class:`.QubitSparsePauli`.
 ///
-///   :meth:`from_raw_parts`        Build the list from :ref:`the raw data arrays
+///   :meth:`from_raw_parts`        Build the operator from :ref:`the raw data arrays
 ///                                 <qubit-sparse-pauli-arrays>`.
 ///   ============================  ================================================================
 ///
