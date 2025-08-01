@@ -21,11 +21,13 @@ use numpy::Complex64;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::{GATE, PARAMETER_VECTOR};
+use qiskit_circuit::imports::GATE;
 use qiskit_circuit::operations::{
     get_standard_gate_names, ArrayType, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::parameter::parameter_expression::{ParameterError, ParameterExpression};
+use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::{
@@ -59,14 +61,15 @@ pub(super) fn compose_transforms<'a>(
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
 
         // The last usage of Python left is the parameter vector here.
-        let placeholder_params: SmallVec<[Param; 3]> = if num_params == 0 {
-            Default::default()
-        } else {
-            PARAMETER_VECTOR
-                .get_bound(py)
-                .call1((&gate_name, num_params))?
-                .extract()?
-        };
+        let placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
+            .map(|idx| {
+                Param::ParameterExpression(ParameterExpression::from_symbol(Symbol::new(
+                    &gate_name,
+                    None,
+                    Some(idx),
+                )))
+            })
+            .collect();
 
         let mut dag = DAGCircuit::new()?;
         // Create the mock gate and add to the circuit, use Python for this.
@@ -120,18 +123,26 @@ pub(super) fn compose_transforms<'a>(
                 let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
                     equiv_params
                         .iter()
-                        .map(|x| ParameterUuid::from_parameter(&x.into_pyobject(py).unwrap()))
+                        .map(|x| match x {
+                            Param::ParameterExpression(parameter_expression) => {
+                                let Ok(symbol) = parameter_expression.try_to_symbol() else {
+                                    return Err(ParameterError::NotASymbol);
+                                };
+                                Ok(ParameterUuid::from_symbol(&symbol))
+                            }
+                            _ => Err(ParameterError::NotASymbol),
+                        })
                         .zip(params)
                         .map(|(uuid, param)| -> PyResult<(ParameterUuid, Param)> {
-                            Ok((uuid?, param.clone_ref(py)))
+                            Ok((uuid?, param.clone()))
                         })
                         .collect::<PyResult<_>>()?;
                 let mut replacement = equiv.clone();
                 replacement
                     .0
-                    .assign_parameters_from_mapping(py, param_mapping)?;
+                    .assign_parameters_from_mapping(param_mapping)?;
                 let replace_dag: DAGCircuit =
-                    DAGCircuit::from_circuit_data(py, replacement.0, true)?;
+                    DAGCircuit::from_circuit_data(&replacement.0, true, None, None, None, None)?;
                 let op_node = dag.get_node(py, node)?;
                 dag.py_substitute_node_with_dag(py, op_node.bind(py), &replace_dag, None, None)?;
             }
