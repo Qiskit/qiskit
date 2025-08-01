@@ -55,10 +55,10 @@ impl Param {
         }
     }
 
-    pub fn is_close(&self, py: Python, other: &Param, max_relative: f64) -> PyResult<bool> {
+    pub fn is_close(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
-            _ => self.eq(py, other),
+            _ => Python::with_gil(|py| self.eq(py, other)),
         }
     }
 }
