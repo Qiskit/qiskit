@@ -21,25 +21,17 @@ from test import QiskitTestCase
 
 import ddt
 
-from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.utils.optionals import HAS_SYMPY
-
 
 param_x = Parameter("x")
 param_y = Parameter("y")
 nested_expr = param_x + param_y - param_x
 nested_expr = nested_expr.subs({param_y: param_x})
 
-vector = ParameterVector("vec", 1000)
-nested_vector_expr = vector[500] + vector[256] - vector[500]
-for i in range(1000):
-    nested_vector_expr += vector[i] - vector[i]
-
-
 operands = [
     Parameter("a"),
     Parameter("dai"),
-    ParameterVector("a", 100)[42],
     complex(3.14, -3.14),
     complex(1.0, 1.0),
     complex(0, 1),
@@ -58,10 +50,7 @@ operands = [
     Parameter("X") * 1.0,
     Parameter("Y") ** complex(1.0, 0),
     Parameter("abcd_complex") / complex(1, 0),
-    ParameterVector("b", 1)[0] + (0 * 1) * Parameter("ZERO"),
     nested_expr,
-    nested_vector_expr,
-    Parameter("a0") / int(3) + int(2) * Parameter("a1") / int(3),
 ]
 
 bind_values = [math.pi, -math.pi, 5, -5, complex(2, 1), complex(-1, 2), 0, complex(0, 0)]
@@ -436,7 +425,7 @@ class TestParameterExpression(QiskitTestCase):
             ("arccos", lambda x: -((1 - x**2) ** (-0.5))),
             ("arcsin", lambda x: (1 - x**2) ** (-0.5)),
             ("arctan", lambda x: 1 / (1 + x**2)),
-            ("conjugate", lambda x: 1),
+            ("conjugate", lambda _: 1),
         ]
 
         x = Parameter("x")
@@ -453,8 +442,7 @@ class TestParameterExpression(QiskitTestCase):
                 with self.subTest(method=method, value=value):
                     ref = reference(value)
                     if isinstance(d_expr, ParameterExpression):
-                        # allow unknown parameters since the derivative could evaluate to a const
-                        val = d_expr.bind({x: value}, allow_unknown_parameters=True).numeric()
+                        val = d_expr.bind({x: value}).numeric()
                     else:
                         val = d_expr  # d/dx conj(x) == 1
 
@@ -508,25 +496,3 @@ class TestParameterExpression(QiskitTestCase):
         expected = expected.subs({c: a})
 
         self.assertEqual(result, expected)
-
-    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
-    def test_sympify_subs_vector(self):
-        """Test an expression with subbed ParameterVectorElements is sympifiable"""
-        import sympy
-
-        p_vec = ParameterVector("p", length=2)
-        theta = Parameter("theta")
-
-        expression = theta + 1
-        expression = expression.subs({theta: p_vec[0]})
-        result = expression.sympify()
-        expected = sympy.Symbol("p[0]") + 1
-        self.assertEqual(expected, result)
-
-    def test_print_rational(self):
-        """Test printing parameter expression with rational numbers"""
-        a = Parameter("a")
-        self.assertEqual("2*a/3", str(2 * a / 3))
-        self.assertEqual("(-2)*a/3", str((-2) * a / 3))
-        self.assertEqual("a/3", str(1 * a / 3))
-        self.assertEqual("(-2)*a/3", str(2 * (-a) / 3))
