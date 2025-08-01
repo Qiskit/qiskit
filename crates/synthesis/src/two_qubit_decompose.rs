@@ -2313,12 +2313,20 @@ fn real_trace_transform(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
 }
 
 #[pyfunction]
-fn two_qubit_decompose_up_to_diagonal(
+#[pyo3(name = "two_qubit_decompose_up_to_diagonal")]
+fn py_two_qubit_decompose_up_to_diagonal(
     py: Python,
     mat: PyReadonlyArray2<Complex64>,
 ) -> PyResult<(PyObject, CircuitData)> {
     let mat_arr: ArrayView2<Complex64> = mat.as_array();
-    let (su4, phase) = u4_to_su4(mat_arr);
+    let (real_map, circ) = two_qubit_decompose_up_to_diagonal(mat_arr)?;
+    Ok((real_map.into_pyarray(py).into_any().unbind(), circ))
+}
+
+pub fn two_qubit_decompose_up_to_diagonal(
+    mat: ArrayView2<Complex64>,
+) -> PyResult<(Array2<Complex64>, CircuitData)> {
+    let (su4, phase) = u4_to_su4(mat);
     let mut real_map = real_trace_transform(su4.view());
     let mapped_su4 = real_map.dot(&su4.view());
     let decomp = TwoQubitBasisDecomposer::new_inner(
@@ -2346,7 +2354,7 @@ fn two_qubit_decompose_up_to_diagonal(
         Param::Float(circ_seq.global_phase + phase),
     )?;
     real_map.mapv_inplace(|x| x.conj());
-    Ok((real_map.into_pyarray(py).into_any().unbind(), circ))
+    Ok((real_map, circ))
 }
 
 static MAGIC: GateArray2Q = [
@@ -2977,7 +2985,7 @@ impl TwoQubitControlledUDecomposer {
 pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
     m.add_wrapped(wrap_pyfunction!(py_decompose_two_qubit_product_gate))?;
-    m.add_wrapped(wrap_pyfunction!(two_qubit_decompose_up_to_diagonal))?;
+    m.add_wrapped(wrap_pyfunction!(py_two_qubit_decompose_up_to_diagonal))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_local_invariants))?;
     m.add_wrapped(wrap_pyfunction!(local_equivalence))?;
     m.add_wrapped(wrap_pyfunction!(py_trace_to_fid))?;
