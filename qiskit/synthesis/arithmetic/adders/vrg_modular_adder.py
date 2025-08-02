@@ -26,7 +26,7 @@ def adder_modular_v17(num_qubits: int) -> QuantumCircuit:
     """
 
     if num_qubits < 1:
-            raise ValueError("The number of qubits must be at least 1.")
+        raise ValueError("The number of qubits must be at least 1.")
 
     qr_a = QuantumRegister(num_qubits, "a")
     qr_b = QuantumRegister(num_qubits, "b")
@@ -49,7 +49,7 @@ def adder_modular_v17(num_qubits: int) -> QuantumCircuit:
         qc.rccx(qr_b[i], qr_a[-1], qr_a[i])
         qc.cx(qr_a[i], qr_a[-1])
 
-    qc.cx(qr_a[-1], qr_b[-1])               # High bit toggle.
+    qc.cx(qr_a[-1], qr_b[-1])  # High bit toggle.
 
     # Ripple backward.
     for i in range(num_qubits - 2, -1, -1):
