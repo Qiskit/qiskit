@@ -366,6 +366,43 @@ impl<'py> FromPyObject<'py> for DelayUnit {
     }
 }
 
+// TODO use this or a function map_delay_str_to_enum instead?
+impl<'a> TryFrom<&'a str> for DelayUnit {
+    type Error = PyErr;
+
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        Ok(match value {
+            "ns" => DelayUnit::NS,
+            "ps" => DelayUnit::PS,
+            "us" => DelayUnit::US,
+            "ms" => DelayUnit::MS,
+            "s" => DelayUnit::S,
+            "dt" => DelayUnit::DT,
+            "expr" => DelayUnit::EXPR,
+            unknown_unit => return Err(PyValueError::new_err(format!(
+                "Unit '{unknown_unit}' is invalid."
+            ))),
+        })
+    }
+}
+
+impl TryFrom<String> for DelayUnit {
+    type Error = PyErr;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        DelayUnit::try_from(s.as_str())
+    }
+}
+
+impl TryFrom<&String> for DelayUnit {
+    type Error = PyErr;
+
+    fn try_from(s: &String) -> Result<Self, Self::Error> {
+        DelayUnit::try_from(s.as_str())
+    }
+}
+
+
 /// An internal type used to further discriminate the payload of a `PackedOperation` when its
 /// discriminant is `PackedOperationType::StandardInstruction`.
 ///
