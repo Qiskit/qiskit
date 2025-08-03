@@ -373,7 +373,7 @@ Modular Adder Synthesis
     * - ``"v17"``
       - :class:`.ModularAdderSynthesisV17`
       - 0
-      - a modular adder without any carry qubits
+      - a modular adder without any ancillary qubits
     * - ``"ripple_cdkm"``
       - :class:`.ModularAdderSynthesisC04`
       - 1
@@ -1638,7 +1638,12 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
 
 
 class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
-    r""" """
+    r"""The plugin name is :``ModularAdder.v17`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    
+    This plugin requires no auxiliary qubits.
+
+    """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         if not isinstance(high_level_object, ModularAdderGate):
