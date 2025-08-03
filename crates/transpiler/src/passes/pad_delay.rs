@@ -19,7 +19,7 @@ use qiskit_circuit::dag_node::DAGOutNode;
 use qiskit_circuit::operations::{
     DelayUnit, Param, StandardInstruction};
 use qiskit_circuit::Qubit;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{smallvec};
 
 #[pyfunction]
 #[pyo3(name = "pad_delay")]
@@ -27,8 +27,10 @@ pub fn run_pad_delay(
     py: Python,
     dag: &mut DAGCircuit,
     qubit: ShareableQubit,
-    t_start: usize,
-    t_end: usize,
+    // t_start: usize,
+    // t_end: usize,
+    t_start: f64,
+    t_end: f64,
     fill_very_end: bool,
     next_node: &Bound<PyAny>, // Subclass of DAGNode is unknown
     // The Python equivalent this is replacing takes a prev_node 
@@ -41,12 +43,17 @@ pub fn run_pad_delay(
         return Ok(());
     }
 
+    // NOTE: I think this is causing underflow?
+    // Warnings in Tox test output such as:
+    // ` UserWarning: Duration is rounded to 5952 [dt] = 1.322667e-06 [s] from 1.322676e-06 [s] `
     let time_interval = t_end - t_start;
     apply_scheduled_delay_op(
         py,
         dag,
-        &(t_start as f64),
-        &(time_interval as f64),
+        &t_start,
+        &time_interval,
+        // &(t_start as f64),
+        // &(time_interval as f64),
         &qubit,
         &property_set,
     )?;
@@ -60,6 +67,8 @@ pub fn run_pad_delay(
 fn apply_scheduled_delay_op(
     py: Python,
     dag: &mut DAGCircuit,
+    // t_start: &usize,
+    // time_interval: &usize,
     t_start: &f64,
     time_interval: &f64,
     qubit: &ShareableQubit,
@@ -80,7 +89,12 @@ fn apply_scheduled_delay_op(
         StandardInstruction::Delay(u)
     };
 
-    let params = Some(smallvec![Param::Float(*time_interval)]);
+    
+    // TODO test me
+    let params = Some(smallvec![Param::Float(*time_interval)]); // if passing a float directly
+    // let params = Some(smallvec![Param::Obj(time_interval.into_pyobject(py).unwrap().into())]); // python ints from usize
+    // let params = Some(smallvec![Param::Float(*time_interval as f64)]); // casting usize to f64
+
     let new_node = dag.apply_operation_back(
         delay_instr.into(), 
         &[Qubit(qubit.index().unwrap() as u32)], 
@@ -94,7 +108,14 @@ fn apply_scheduled_delay_op(
     let py_new_node = dag.get_node(py, new_node)?;
     let node_start_time_obj = property_set.get_item("node_start_time")?;
     let node_start_time_dict = node_start_time_obj.downcast::<PyDict>()?;
+    
+    // using f64
     node_start_time_dict.set_item(&py_new_node, t_start)?;
+
+    // Cast the original usize start back to Python int
+    // let start_i: i64 = (*t_start) as i64;
+    // let py_start = start_i.into_pyobject(py).unwrap();
+    // node_start_time_dict.set_item(&py_new_node, py_start)?;
 
     Ok(())
 }
@@ -105,7 +126,7 @@ pub fn pad_delay_mod(m: &Bound<PyModule>) -> PyResult<()> {
 }
 
 
-// TODO use a function like this or the *new* Impl from_str in operations::DelayUnit
+// TODO use a function like this or the *new* Impl from_str in operations::DelayUnit ?
 // fn map_delay_str_to_enum(delay_str: &str) -> DelayUnit {
 //     match delay_str {
 //         "ns" => DelayUnit::NS,
