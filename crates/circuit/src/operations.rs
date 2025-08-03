@@ -367,38 +367,26 @@ impl<'py> FromPyObject<'py> for DelayUnit {
 }
 
 // TODO use this or a function map_delay_str_to_enum instead?
-impl<'a> TryFrom<&'a str> for DelayUnit {
-    type Error = PyErr;
-
-    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
-        Ok(match value {
-            "ns" => DelayUnit::NS,
-            "ps" => DelayUnit::PS,
-            "us" => DelayUnit::US,
-            "ms" => DelayUnit::MS,
-            "s" => DelayUnit::S,
-            "dt" => DelayUnit::DT,
-            "expr" => DelayUnit::EXPR,
-            unknown_unit => return Err(PyValueError::new_err(format!(
-                "Unit '{unknown_unit}' is invalid."
-            ))),
-        })
-    }
-}
-
-impl TryFrom<String> for DelayUnit {
-    type Error = PyErr;
-
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        DelayUnit::try_from(s.as_str())
-    }
-}
-
-impl TryFrom<&String> for DelayUnit {
-    type Error = PyErr;
-
-    fn try_from(s: &String) -> Result<Self, Self::Error> {
-        DelayUnit::try_from(s.as_str())
+// We cannot do a 
+// ```
+// impl<T> TryFrom<T> for DelayUnit
+// where
+//     T: AsRef<str>, {}
+// ```
+// because in `core` there exists `impl<T, U> TryFrom<U> for T where U: Into<T>`.
+// So this is my workaround
+impl DelayUnit {
+    pub fn from_str<S: AsRef<str>>(s: S) -> Result<Self, PyErr> {
+        match s.as_ref() {
+            "ns"   => Ok(DelayUnit::NS),
+            "ps"   => Ok(DelayUnit::PS),
+            "us"   => Ok(DelayUnit::US),
+            "ms"   => Ok(DelayUnit::MS),
+            "s"    => Ok(DelayUnit::S),
+            "dt"   => Ok(DelayUnit::DT),
+            "expr" => Ok(DelayUnit::EXPR),
+            other  => Err(PyValueError::new_err(format!("Unit `{}` is invalid.", other))),
+        }
     }
 }
 
