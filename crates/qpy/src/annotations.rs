@@ -14,44 +14,42 @@ use hashbrown::HashMap;
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyIterator, PyNotImplemented};
-/// The purpose of AnnotationsSerializer is to keep track of all the annotation serializers at once.
-/// Each namespace has one potential serializer corresponding to it, given in the factories list.
-/// The first time a namespace is encountered, the serializer is generated from the factory,
+/// The purpose of AnnotationHandler is to keep track of all the annotation serializers/deserializers at once.
+/// Each namespace has one potential serializer/deserializer corresponding to it, given in the factories list.
+/// When serializing the first time a namespace is encountered, the serializer is generated from the factory,
 /// but it remains inside `potential_serializers` as long as it did not manage to serialize any annotation.
 /// The way to determine whether a serialization attempt succeeded is to check whether the result of `dump_annotation`
 /// was `NotImplemented`.
-pub struct AnnotationHandler {
-    pub annotation_factories: Py<PyDict>,
+pub struct AnnotationHandler<'a> {
+    pub annotation_factories: &'a Bound<'a, PyDict>,
     factories: HashMap<String, Py<PyAny>>,
     pub serializers: HashMap<String, (usize, Py<PyAny>)>,
     potential_serializers: HashMap<String, Py<PyAny>>,
     pub deserializers: Vec<Py<PyAny>>,
 }
 
-impl AnnotationHandler {
-    pub fn new(annotation_factories: Py<PyDict>) -> Self {
-        Python::with_gil(|py| {
-            let dict = annotation_factories.bind(py);
-            let mut factories = HashMap::with_capacity(dict.len());
-            for (key, value) in dict.iter() {
-                if let Ok(key_string) = key.extract() {
-                    // we ignore non-string keys since they will not be invoked during serialization
-                    // where we choose serializer according to the namespace string
-                    factories.insert(key_string, value.clone().unbind());
-                }
+impl<'a> AnnotationHandler<'a> {
+    pub fn new(annotation_factories: &'a Bound<'a, PyDict>) -> Self {
+        let mut factories = HashMap::with_capacity(annotation_factories.len());
+        for (key, value) in annotation_factories.iter() {
+            if let Ok(key_string) = key.extract() {
+                // we ignore non-string keys since they will not be invoked during serialization
+                // where we choose serializer according to the namespace string
+                factories.insert(key_string, value.clone().unbind());
             }
-            let serializers = HashMap::new();
-            let potential_serializers = HashMap::new();
-            // deserializers are created on demand based on the QPY annotation headers
-            let deserializers = Vec::new();
-            AnnotationHandler {
-                annotation_factories: annotation_factories.clone(),
-                factories,
-                serializers,
-                potential_serializers,
-                deserializers,
-            }
-        })
+        }
+
+        let serializers = HashMap::new();
+        let potential_serializers = HashMap::new();
+        // deserializers are created on demand based on the QPY annotation headers
+        let deserializers = Vec::new();
+        AnnotationHandler {
+            annotation_factories,
+            factories,
+            serializers,
+            potential_serializers,
+            deserializers,
+        }
     }
     pub fn serialize(&mut self, annotation: &Bound<PyAny>) -> PyResult<(u32, Bytes)> {
         let py = annotation.py();
@@ -113,15 +111,13 @@ impl AnnotationHandler {
         Ok((0, Bytes(Vec::new())))
     }
 
-    pub fn load(&self, index: u32, payload: Bytes) -> PyResult<Py<PyAny>> {
-        Python::with_gil(|py| {
-            if let Some(deserializer) = self.deserializers.get(index as usize) {
-                deserializer.call_method1(py, "load_annotation", (payload,))
-            } else {
-                Err(PyIndexError::new_err(format!(
-                    "Annotation deserializer index {:?} out of range (0...{:?}), is too large and would overflow", index, self.deserializers.len())))
-            }
-        })
+    pub fn load(&self, py: Python, index: u32, payload: Bytes) -> PyResult<Py<PyAny>> {
+        if let Some(deserializer) = self.deserializers.get(index as usize) {
+            deserializer.call_method1(py, "load_annotation", (payload,))
+        } else {
+            Err(PyIndexError::new_err(format!(
+                "Annotation deserializer index {:?} out of range (0...{:?}), is too large and would overflow", index, self.deserializers.len())))
+        }
     }
 
     pub fn dump_serializers(&self) -> PyResult<Vec<(String, Bytes)>> {

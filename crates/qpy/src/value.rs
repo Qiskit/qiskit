@@ -40,12 +40,12 @@ use uuid::Uuid;
 
 const QPY_VERSION: u32 = 15;
 
-pub struct QPYWriteData {
+pub struct QPYWriteData<'a> {
     pub version: u32,
     pub _use_symengine: bool,
     pub clbit_indices: Py<PyDict>,
     pub standalone_var_indices: Py<PyDict>,
-    pub annotation_handler: AnnotationHandler,
+    pub annotation_handler: AnnotationHandler<'a>,
 }
 
 pub struct QPYReadData<'a> {
@@ -56,7 +56,7 @@ pub struct QPYReadData<'a> {
     pub cregs: Py<PyDict>,
     pub standalone_vars: Py<PyList>,
     pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u64>)>,
-    pub annotation_handler: AnnotationHandler,
+    pub annotation_handler: AnnotationHandler<'a>,
 }
 
 pub mod tags {
@@ -234,7 +234,7 @@ pub fn dumps_value(py_object: &Bound<PyAny>, qpy_data: &QPYWriteData) -> PyResul
             py.None().bind(py),
             false,
             QPY_VERSION,
-            qpy_data.annotation_handler.annotation_factories.clone(),
+            qpy_data.annotation_handler.annotation_factories,
         )?)?,
         _ => {
             return Err(PyTypeError::new_err(format!(
@@ -604,7 +604,7 @@ impl DumpedValue {
                 qpy_data.version,
                 py.None().bind(py),
                 qpy_data.use_symengine,
-                qpy_data.annotation_handler.annotation_factories.clone(),
+                qpy_data.annotation_handler.annotation_factories,
             )?
             .0
             .unbind(),

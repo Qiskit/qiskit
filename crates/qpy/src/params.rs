@@ -755,7 +755,7 @@ pub fn dumps_register_param(register: &Bound<PyAny>) -> PyResult<Bytes> {
     }
 }
 
-pub fn pack_param(
+pub fn pack_param_obj(
     py: Python,
     param: &Param,
     qpy_data: &QPYWriteData,
@@ -765,6 +765,14 @@ pub fn pack_param(
         Param::ParameterExpression(py_object) => dumps_value(py_object.bind(py), qpy_data)?,
         Param::Obj(py_object) => dumps_instruction_param_value(py_object.bind(py), qpy_data)?,
     };
+    Ok(formats::PackedParam { type_key, data })
+}
+
+pub fn pack_param(
+    py_object: &Bound<PyAny>,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::PackedParam> {
+    let (type_key, data) = dumps_instruction_param_value(py_object, qpy_data)?;
     Ok(formats::PackedParam { type_key, data })
 }
 

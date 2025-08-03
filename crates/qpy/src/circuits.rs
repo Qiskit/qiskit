@@ -46,7 +46,7 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
-use crate::params::{pack_param, unpack_param};
+use crate::params::{pack_param, pack_param_obj, unpack_param};
 use crate::value::{
     circuit_instruction_types, deserialize, deserialize_with_args, dumps_value,
     expression_var_declaration, get_circuit_type_key, pack_generic_data, pack_standalone_var,
@@ -57,8 +57,6 @@ use crate::UnsupportedFeatureForVersion;
 
 const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 // used when writing
-type CustomOperationsMap = HashMap<String, PackedOperation>;
-type CustomOperationsList = Vec<String>;
 //used when reading
 #[derive(Debug)]
 struct CustomCircuitInstructionData {
@@ -70,8 +68,6 @@ struct CustomCircuitInstructionData {
     // ctrl_state: u32,
     base_gate_raw: Bytes,
 }
-
-type CustomInstructionsMap = HashMap<String, CustomCircuitInstructionData>;
 
 pub mod register_types {
     pub const QREG: u8 = b'q';
@@ -222,8 +218,8 @@ fn get_instruction_params(
             let cases = op.call_method0("cases_specifier")?;
             let cases_tuple = imports::BUILTIN_TUPLE.get_bound(py).call1((cases,))?;
             return Ok(vec![
-                pack_param(py, &target.extract::<Param>()?, qpy_data)?,
-                pack_param(py, &cases_tuple.extract::<Param>()?, qpy_data)?,
+                pack_param(&target, qpy_data)?,
+                pack_param(&cases_tuple, qpy_data)?,
             ]);
         }
         if inst
@@ -241,9 +237,9 @@ fn get_instruction_params(
             let duration = op.getattr("duration")?;
             let unit = op.getattr("unit")?;
             return Ok(vec![
-                pack_param(py, &first_block.extract::<Param>()?, qpy_data)?,
-                pack_param(py, &duration.extract::<Param>()?, qpy_data)?,
-                pack_param(py, &unit.extract::<Param>()?, qpy_data)?,
+                pack_param(&first_block, qpy_data)?,
+                pack_param(&duration, qpy_data)?,
+                pack_param(&unit, qpy_data)?,
             ]);
         }
     }
@@ -256,11 +252,7 @@ fn get_instruction_params(
         {
             let op = op.operation.bind(py);
             let tableau = op.getattr("tableau")?;
-            return Ok(vec![pack_param(
-                py,
-                &tableau.extract::<Param>()?,
-                qpy_data,
-            )?]);
+            return Ok(vec![pack_param(&tableau, qpy_data)?]);
         }
         if op
             .operation
@@ -271,7 +263,7 @@ fn get_instruction_params(
             let modifiers = op.getattr("modifiers")?;
             return modifiers
                 .try_iter()?
-                .map(|modifier| pack_param(py, &modifier?.extract::<Param>()?, qpy_data))
+                .map(|modifier| pack_param(&modifier?, qpy_data))
                 .collect::<PyResult<_>>();
         }
     }
@@ -281,7 +273,6 @@ fn get_instruction_params(
     if let OperationRef::Unitary(unitary) = instruction.op.view() {
         // unitary gates are special since they are uniquely determined by a matrix, which is not
         // a "parameter", strictly speaking, but is treated as such when serializing
-        //return unitary.array;
 
         // until we change the QPY version or verify we get the exact same result,
         // we translate the matrix to numpy and then serialize it like python does
@@ -290,16 +281,12 @@ fn get_instruction_params(
             ArrayType::OneQ(arr) => arr.to_pyarray(py),
             ArrayType::TwoQ(arr) => arr.to_pyarray(py),
         };
-        return Ok(vec![pack_param(
-            py,
-            &out_array.extract::<Param>()?,
-            qpy_data,
-        )?]);
+        return Ok(vec![pack_param(&out_array, qpy_data)?]);
     }
     instruction
         .params_view()
         .iter()
-        .map(|x| pack_param(py, x, qpy_data))
+        .map(|x| pack_param_obj(py, x, qpy_data))
         .collect::<PyResult<_>>()
 }
 
@@ -507,8 +494,8 @@ fn pack_instruction(
     py: Python,
     instruction: &PackedInstruction,
     circuit_data: &CircuitData,
-    custom_operations: &mut CustomOperationsMap,
-    new_custom_operations: &mut CustomOperationsList,
+    custom_operations: &mut HashMap<String, PackedOperation>,
+    new_custom_operations: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
     let mut gate_class_name = gate_class_name(py, &instruction.op)?;
@@ -616,7 +603,7 @@ fn unpack_custom_instruction(
     label: Option<&String>,
     custom_instruction: &CustomCircuitInstructionData,
     qpy_data: &mut QPYReadData,
-    custom_instructions_map: &CustomInstructionsMap,
+    custom_instructions_map: &HashMap<String, CustomCircuitInstructionData>,
 ) -> PyResult<PackedOperation> {
     // TODO: should have "if version >= 11" check here once we introduce versioning to rust
     let mut gate_class_name = match instruction.gate_class_name.rfind('_') {
@@ -743,7 +730,7 @@ fn unpack_condition(
 fn unpack_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
-    custom_instructions: &CustomInstructionsMap,
+    custom_instructions: &HashMap<String, CustomCircuitInstructionData>,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<PackedInstruction> {
     let name = instruction.gate_class_name.clone();
@@ -819,9 +806,11 @@ fn unpack_instruction(
                         .annotations
                         .iter()
                         .map(|annotation| {
-                            qpy_data
-                                .annotation_handler
-                                .load(annotation.namespace_index, annotation.payload.clone())
+                            qpy_data.annotation_handler.load(
+                                py,
+                                annotation.namespace_index,
+                                annotation.payload.clone(),
+                            )
                         })
                         .collect::<PyResult<_>>()?,
                     None => Vec::new(),
@@ -929,9 +918,12 @@ pub fn pack_instructions(
     py: Python,
     circuit_data: &CircuitData,
     qpy_data: &mut QPYWriteData,
-) -> PyResult<(Vec<formats::CircuitInstructionV2Pack>, CustomOperationsMap)> {
-    let mut custom_operations: CustomOperationsMap = HashMap::new();
-    let mut custom_new_operations: CustomOperationsList = Vec::new();
+) -> PyResult<(
+    Vec<formats::CircuitInstructionV2Pack>,
+    HashMap<String, PackedOperation>,
+)> {
+    let mut custom_operations = HashMap::new();
+    let mut custom_new_operations = Vec::new();
     Ok((
         circuit_data
             .data()
@@ -1306,8 +1298,8 @@ fn unpack_custom_layout<'py>(
     let mut input_qubit_mapping = py.None();
     let mut final_layout = py.None();
 
-    let mut extra_register_map: HashMap<&str, QuantumRegister> = HashMap::new();
-    let mut existing_register_map: HashMap<&str, &QuantumRegister> = HashMap::new();
+    let mut extra_register_map = HashMap::new();
+    let mut existing_register_map = HashMap::new();
     for packed_register in &layout.extra_registers {
         if packed_register.register_type == bit_types::QUBIT {
             let register = QuantumRegister::new_owning(
@@ -1448,7 +1440,7 @@ fn pack_pauli_evolution_gate(
 fn pack_custom_instruction(
     py: Python,
     name: &String,
-    custom_instructions_hash: &mut CustomOperationsMap,
+    custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     new_instructions_list: &mut Vec<String>,
     circuit_data: &mut CircuitData,
     qpy_data: &mut QPYWriteData,
@@ -1485,7 +1477,7 @@ fn pack_custom_instruction(
                 py.None().bind(py),
                 false,
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories.clone(),
+                qpy_data.annotation_handler.annotation_factories,
             )?)?;
             num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
@@ -1510,7 +1502,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                            qpy_data.annotation_handler.annotation_factories.clone(),
+                            qpy_data.annotation_handler.annotation_factories,
                         )?)?;
                     }
                 }
@@ -1526,7 +1518,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                            qpy_data.annotation_handler.annotation_factories.clone(),
+                            qpy_data.annotation_handler.annotation_factories,
                         )?)?;
                     }
                 }
@@ -1542,7 +1534,7 @@ fn pack_custom_instruction(
                             py.None().bind(py),
                             false,
                             qpy_data.version,
-                            qpy_data.annotation_handler.annotation_factories.clone(),
+                            qpy_data.annotation_handler.annotation_factories,
                         )?)?;
                     }
                 }
@@ -1579,7 +1571,7 @@ fn pack_custom_instruction(
 
 fn pack_custom_instructions(
     py: Python,
-    custom_instructions_hash: &mut CustomOperationsMap,
+    custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     circuit_data: &mut CircuitData,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CustomCircuitInstructionsPack> {
@@ -1685,7 +1677,7 @@ pub fn pack_circuit(
     metadata_serializer: &Bound<PyAny>,
     use_symengine: bool,
     version: u32,
-    annotation_factories: Py<PyDict>,
+    annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYFormatV15> {
     let py = circuit.py();
     circuit.getattr("data")?; // in case _data is lazily generated in python
@@ -1790,8 +1782,8 @@ fn read_custom_instructions(
     py: Python,
     packed_circuit: &formats::QPYFormatV15,
     qpy_data: &mut QPYReadData,
-) -> PyResult<CustomInstructionsMap> {
-    let mut result: CustomInstructionsMap = HashMap::new();
+) -> PyResult<HashMap<String, CustomCircuitInstructionData>> {
+    let mut result = HashMap::new();
     for operation in &packed_circuit.custom_instructions.custom_instructions {
         let definition = if operation.custom_definition != 0 {
             if operation.name.starts_with("###PauliEvolutionGate_") {
@@ -1808,7 +1800,7 @@ fn read_custom_instructions(
                         qpy_data.version,
                         py.None().bind(py),
                         qpy_data.use_symengine,
-                        qpy_data.annotation_handler.annotation_factories.clone(),
+                        qpy_data.annotation_handler.annotation_factories,
                     )?
                     .0
                     .unbind(),
@@ -2033,7 +2025,7 @@ pub fn deserialize_circuit<'py>(
     version: u32,
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
-    annotation_factories: Py<PyDict>,
+    annotation_factories: &Bound<PyDict>,
 ) -> PyResult<(Bound<'py, PyAny>, usize)> {
     let (packed_circuit, pos) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
     let instruction_capacity = packed_circuit.instructions.len();
@@ -2132,7 +2124,7 @@ pub fn py_write_circuit(
     metadata_serializer: &Bound<PyAny>,
     use_symengine: bool,
     version: u32,
-    annotation_factories: Py<PyDict>,
+    annotation_factories: &Bound<PyDict>,
 ) -> PyResult<usize> {
     let serialized_circuit = serialize(&pack_circuit(
         circuit,
@@ -2156,7 +2148,7 @@ pub fn py_read_circuit<'py>(
     version: u32,
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
-    annotation_factories: Py<PyDict>,
+    annotation_factories: &Bound<PyDict>,
 ) -> PyResult<Bound<'py, PyAny>> {
     let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes = file_obj.call_method0("read")?;
