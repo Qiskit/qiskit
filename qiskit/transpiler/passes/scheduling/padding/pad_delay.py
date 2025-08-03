@@ -18,7 +18,7 @@ from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
-from qiskit._accelerate.pad_delay import pad_delay
+from qiskit._accelerate.pad_delay import pad_delay # is this making a circular import? _accelerate fails to load in py39 and py312
 
 from .base_padding import BasePadding
 

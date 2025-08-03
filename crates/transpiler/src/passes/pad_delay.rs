@@ -90,8 +90,15 @@ fn apply_scheduled_delay_op(
     };
 
     
-    // TODO test me
-    let params = Some(smallvec![Param::Float(*time_interval)]); // if passing a float directly
+    // This seems to add a decimal point to dt when passing it back to python.
+    // let params = Some(smallvec![Param::Float(*time_interval)]); // if passing a float directly
+    
+    // Why PyInt conversion? The internal representation of time 
+    // added a decimal when passing a float back to python. The 
+    // difference in internal representation breaks some tests such as:
+    // `test.python.transpiler.test_context_aware_dd.TestContextAwareDD.test_collecting_diamond_with_initial`
+    let py_dur: PyObject = (*time_interval as usize).into_pyobject(py).unwrap().into();
+    let params = Some(smallvec![Param::Obj(py_dur)]);
     // let params = Some(smallvec![Param::Obj(time_interval.into_pyobject(py).unwrap().into())]); // python ints from usize
     // let params = Some(smallvec![Param::Float(*time_interval as f64)]); // casting usize to f64
 
@@ -109,13 +116,14 @@ fn apply_scheduled_delay_op(
     let node_start_time_obj = property_set.get_item("node_start_time")?;
     let node_start_time_dict = node_start_time_obj.downcast::<PyDict>()?;
     
+    // This seems to add a decimal point to the time interval when passing it back to python.
+    // Again, the difference in internal representation breaks some tests
     // using f64
-    node_start_time_dict.set_item(&py_new_node, t_start)?;
+    // node_start_time_dict.set_item(&py_new_node, t_start)?;
 
-    // Cast the original usize start back to Python int
-    // let start_i: i64 = (*t_start) as i64;
-    // let py_start = start_i.into_pyobject(py).unwrap();
-    // node_start_time_dict.set_item(&py_new_node, py_start)?;
+    // using pyobject
+    let py_start: PyObject = (*t_start as usize).into_pyobject(py).unwrap().into();
+    node_start_time_dict.set_item(&py_new_node, py_start)?;
 
     Ok(())
 }
