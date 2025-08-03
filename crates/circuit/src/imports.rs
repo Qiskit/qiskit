@@ -76,8 +76,6 @@ pub static PARAMETER_VECTOR: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parametervector", "ParameterVector");
 pub static PARAMETER_VECTOR_ELEMENT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parametervector", "ParameterVectorElement");
-pub static PARAMETER_SUBS: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.parameterexpression", "_SUBS");
 pub static QUANTUM_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
 pub static SINGLETON_GATE: ImportOnceCell =

@@ -9,12 +9,12 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyAttributeError, PyTypeError, PyValueError};
-use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyTuple};
+use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PySet, PyTuple};
 use pyo3::{intern, prelude::*, IntoPyObjectExt, PyObject};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
+use qiskit_circuit::parameter::parameter_expression::{OPReplay, OpCode};
 use std::vec;
 use uuid::Uuid;
 
@@ -209,23 +209,25 @@ fn getattr_or_none<'py>(py_object: &'py Bound<PyAny>, name: &str) -> PyResult<Bo
 }
 
 fn pack_parameter_expression_element(
-    replay_obj: &Bound<PyAny>,
+    replay_py_obj: &Bound<PyAny>,
     extra_symbols: &mut Bound<PyDict>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
-    let py = replay_obj.py();
+    let py = replay_py_obj.py();
     let mut result = Vec::new();
-    if replay_obj
-        .is_instance(imports::PARAMETER_SUBS.get_bound(py))
-        .unwrap()
-    {
-        return Ok(vec![pack_replay_subs(replay_obj, extra_symbols, qpy_data)?]);
+    let replay_obj = replay_py_obj.extract::<OPReplay>()?;
+    if replay_obj.op == OpCode::SUBSTITUTE {
+        return Ok(vec![pack_replay_subs(
+            replay_py_obj,
+            extra_symbols,
+            qpy_data,
+        )?]);
     }
     let (lhs_type, lhs, extra_lhs_data) =
-        pack_parameter_replay_entry(py, &getattr_or_none(replay_obj, "lhs")?, false, qpy_data)?;
+        pack_parameter_replay_entry(py, &getattr_or_none(replay_py_obj, "lhs")?, false, qpy_data)?;
     let (rhs_type, rhs, extra_rhs_data) =
-        pack_parameter_replay_entry(py, &getattr_or_none(replay_obj, "rhs")?, true, qpy_data)?;
-    let op_code = replay_obj.getattr(intern!(py, "op"))?.extract::<u8>()?;
+        pack_parameter_replay_entry(py, &getattr_or_none(replay_py_obj, "rhs")?, true, qpy_data)?;
+    let op_code = replay_obj.op as u8;
     let entry = formats::ParameterExpressionStandardOpPack {
         lhs_type,
         lhs,
@@ -323,16 +325,13 @@ fn pack_parameter_expression_elements(
 
 fn pack_symbol(
     symbol: &Bound<PyAny>,
-    value: &Bound<PyAny>,
+    value: Option<&Bound<PyAny>>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::ParameterExpressionSymbolPack> {
     let symbol_key = get_type_key(symbol)?;
-    let (value_key, value_data): (u8, Bytes) = match value
-        .rich_compare(symbol.getattr("_symbol_expr")?, CompareOp::Eq)?
-        .is_truthy()?
-    {
-        true => (symbol_key, Bytes::new()),
-        false => dumps_value(value, qpy_data)?,
+    let (value_key, value_data): (u8, Bytes) = match value {
+        None => (symbol_key, Bytes::new()),
+        Some(py_value) => dumps_value(py_value, qpy_data)?,
     };
     match symbol_key {
         tags::PARAMETER_EXPRESSION => {
@@ -378,10 +377,10 @@ fn pack_symbol_table(
     qpy_data: &QPYWriteData,
 ) -> PyResult<Vec<formats::ParameterExpressionSymbolPack>> {
     py_object
-        .getattr(intern!(py, "_parameter_symbols"))?
-        .extract::<Bound<PyDict>>()?
+        .getattr(intern!(py, "parameters"))?
+        .extract::<Bound<PySet>>()?
         .iter()
-        .map(|(symbol, value)| pack_symbol(&symbol, &value, qpy_data))
+        .map(|symbol| pack_symbol(&symbol, None, qpy_data))
         .collect::<PyResult<_>>()
 }
 
@@ -395,13 +394,13 @@ fn pack_extra_symbol_table(
     let keys = PyIterator::from_object(&extra_symbols.keys())?
         .map(|item| {
             let symbol = item?;
-            pack_symbol(&symbol, &symbol, qpy_data)
+            pack_symbol(&symbol, Some(&symbol), qpy_data)
         })
         .collect::<PyResult<_>>()?;
     let values = PyIterator::from_object(&extra_symbols.values())?
         .map(|item| {
             let symbol = item?;
-            pack_symbol(&symbol, &symbol, qpy_data)
+            pack_symbol(&symbol, Some(&symbol), qpy_data)
         })
         .collect::<PyResult<_>>()?;
     Ok((keys, values))
@@ -811,7 +810,8 @@ pub fn pack_parameter_vector(py_object: &Bound<PyAny>) -> PyResult<formats::Para
         .getattr("uuid")?
         .getattr("bytes")?
         .extract::<[u8; 16]>()?;
-    let index = py_object.getattr("_index")?.extract::<u64>()?;
+    // let index = py_object.getattr("_index")?.extract::<u64>()?;
+    let index = py_object.getattr("index")?.extract::<u64>()?;
     Ok(formats::ParameterVectorPack {
         vector_size,
         uuid,
