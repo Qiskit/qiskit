@@ -20,8 +20,8 @@ from qiskit.circuit.library import XGate, MCMTGate
 
 def adder_modular_v17(num_qubits: int) -> QuantumCircuit:
     r"""
-    Construct a modular adder circuit with no ancillary qubits based on the Van Rentergem-style adder in Fig. 15 of [1].
-    The implementation uses at most math:`16k - 15` CX gates.
+    Construct a modular adder circuit with no ancillary qubits based on the Van Rentergem-style
+    adder in Fig. 15 of [1]. The implementation uses at most math:`16k - 15` CX gates.
 
     Args:
         num_qubits: The size of the register.
