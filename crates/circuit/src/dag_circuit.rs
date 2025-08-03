@@ -587,11 +587,12 @@ impl DAGCircuit {
         self.get_internal_unit()
     }
 
+    // TODO is there a way to get this information without making a deprecated fn public? For use in pad_delay and dynamical_decoupling
     /// Returns the unit that duration is specified in for internal use (no deprecation warning).
     ///
     /// To be removed with get_unit.
     #[getter("_unit")]
-    pub fn get_internal_unit(&self) -> PyResult<String> { // TODO is there a way to get this information without making a deprecated fn public?
+    pub fn get_internal_unit(&self) -> PyResult<String> { 
         Ok(self.unit.clone())
     }
 
