@@ -297,7 +297,6 @@ fn qsd_inner(
     append(&mut out, middle_circ, &qr)?;
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)]);
     append(&mut out, right_circuit, &qr)?;
-
     if opt_a2_val && depth == 0 && dim > 4 {
         apply_a2(&out, two_qubit_decomposer)
     } else {
@@ -547,6 +546,19 @@ fn append(circ: &mut CircuitData, new: CircuitData, qubit_map: &[Qubit]) -> PyRe
     Ok(())
 }
 
+/// numpy's move_axis has the effect of pushing back the axis
+/// before the location we move into. there's no native ndarray equivalent
+fn move_axis<X>(array: ArrayD<X>, src: usize, dest: usize) -> ArrayD<X>
+where
+    X: Clone,
+{
+    let ndim = array.ndim();
+    let mut axes: Vec<usize> = (0..ndim).collect();
+    let axis = axes.remove(src);
+    axes.insert(dest, axis);
+    array.permuted_axes(axes)
+}
+
 /// A block diagonal gate is represented as:
 /// [ um00 | um01 ]
 /// [ ---- | ---- ]
@@ -556,10 +568,13 @@ fn extract_multiplex_blocks(umat: &DMatrix<Complex64>, k: usize) -> [DMatrix<Com
     let num_qubits = dim.ilog2() as usize;
     let half_dim = dim / 2;
     let umat_array: Array2<Complex64> = Array2::from_shape_fn(umat.shape(), |(i, j)| umat[(i, j)]);
-    let mut utensor = umat_array.to_shape(vec![2; 2 * num_qubits]).unwrap();
+    let mut utensor = umat_array
+        .to_shape(vec![2; 2 * num_qubits])
+        .unwrap()
+        .into_owned();
     if k != 0 {
-        utensor.swap_axes(k, 0);
-        utensor.swap_axes(k + num_qubits, num_qubits)
+        utensor = move_axis(utensor, k, 0);
+        utensor = move_axis(utensor, k + num_qubits, num_qubits);
     }
     let ud4 = utensor.to_shape([2, half_dim, 2, half_dim]).unwrap();
     let um00 = ud4.slice(s![0, .., 0, ..]);
