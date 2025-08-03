@@ -145,7 +145,6 @@ pub fn quantum_volume(
             .collect()
     };
     CircuitData::from_packed_operations(
-        py,
         num_qubits,
         0,
         unitaries
