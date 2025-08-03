@@ -18,6 +18,8 @@ from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
+from qiskit._accelerate.pad_delay import pad_delay
+
 from .base_padding import BasePadding
 
 
@@ -83,8 +85,24 @@ class PadDelay(BasePadding):
         next_node: DAGNode,
         prev_node: DAGNode,
     ):
-        if not self.fill_very_end and isinstance(next_node, DAGOutNode):
-            return
+        # NOTE: original python implementation:
+        # if not self.fill_very_end and isinstance(next_node, DAGOutNode):
+        #     return
 
-        time_interval = t_end - t_start
-        self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
+        # time_interval = t_end - t_start
+        # self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
+
+        # NOTE: The :meth:`._pad` method is currently being ported as it is the core logic within the ``PadDelay`` pass
+        # and the :meth:`.run` method would need to be ported along with the :class:`.BasePadding` class when the ``PadDynamicDecoupling`` pass 
+        # is finished being ported.
+
+        pad_delay(
+            dag,
+            qubit,
+            t_start,
+            t_end,
+            self.fill_very_end,
+            next_node,
+            prev_node,
+            self.property_set,
+        )
