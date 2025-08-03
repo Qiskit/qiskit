@@ -591,7 +591,7 @@ impl DAGCircuit {
     ///
     /// To be removed with get_unit.
     #[getter("_unit")]
-    fn get_internal_unit(&self) -> PyResult<String> {
+    pub fn get_internal_unit(&self) -> PyResult<String> { // TODO is there a way to get this information without making a deprecated fn public?
         Ok(self.unit.clone())
     }
 
